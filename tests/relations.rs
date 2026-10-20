@@ -660,3 +660,305 @@ async fn get_is_member_only_and_tenant_scoped(pool: PgPool) {
         assert_eq!(status, StatusCode::NOT_FOUND, "{bad}");
     }
 }
+
+// ---- list + search
+
+/// Relation with an optional contact; returns its id.
+async fn relation(api: &Api, company: &str, email: &str, contact: Option<Value>) -> String {
+    let mut b = json!({ "type": "business", "company_name": company, "email": email,
+                        "addresses": [nl_address()] });
+    if let Some(c) = contact {
+        b["contact"] = c;
+    }
+    api.create(b, "relation_id").await
+}
+
+fn ids(res: &Value) -> Vec<String> {
+    res["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["id"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[sqlx::test]
+async fn list_newest_first_in_index_shape(pool: PgPool) {
+    let api = api(pool).await;
+    let a = relation(
+        &api,
+        "Alpha",
+        "a@x.nl",
+        Some(json!({ "first_name": "ann", "last_name": "A" })),
+    )
+    .await;
+    let b = relation(&api, "Beta", "b@x.nl", None).await;
+    sqlx::query("UPDATE relations SET is_lead = true WHERE id = $1::uuid")
+        .bind(&a)
+        .execute(&api.pool)
+        .await
+        .unwrap();
+
+    let res = api.list("?tab=overview&view_mode=list").await;
+
+    assert_eq!(
+        ids(&res),
+        vec![b.clone(), a.clone()],
+        "leads listed too, newest first"
+    );
+    assert_eq!(
+        res["meta"],
+        json!({ "current_page": 1, "from": 1, "last_page": 1, "per_page": 30, "to": 2, "total": 2 })
+    );
+    let row = &res["data"][1];
+    assert_eq!(row["relation_nr"], "RE-0001");
+    assert_eq!(row["activities_count"], 0);
+    assert_eq!(row["has_activities"], false);
+    assert_eq!(row["has_note_activity"], false);
+    assert_eq!(row["tags_count"], 0);
+    assert_eq!(row["open_orders"], Value::Null);
+    assert_eq!(row["open_order_value"], "0.00");
+    assert_eq!(row["supplier_data"], Value::Null);
+    assert_eq!(row["email_validation"], Value::Null);
+    assert_eq!(row["addresses"][0]["reverse_charge"], Value::Null);
+    assert_eq!(
+        row["addresses"][0]["formatted"],
+        "Midwaystraat 11 Midwaystraat1\n1339NM Almere\nNetherlands"
+    );
+    let rel = row["relationships"].as_object().unwrap();
+    assert_eq!(rel["relation_type"]["name"], "Supplier");
+    assert_eq!(rel["contacts"][0]["full_name"], "Ann A");
+    assert_eq!(rel["tags"], json!([]));
+    assert!(!rel.contains_key("owner"));
+    assert!(row.get("has_advice").is_none());
+}
+
+#[sqlx::test]
+async fn list_limit_like_laravel(pool: PgPool) {
+    let api = api(pool).await;
+    for i in 0..3 {
+        relation(&api, &format!("C{i}"), "c@x.nl", None).await;
+    }
+
+    let two = api.list("?limit=2&page=2").await;
+    assert_eq!(
+        two["meta"],
+        json!({ "current_page": 2, "from": 3, "last_page": 2, "per_page": 2, "to": 3, "total": 3 })
+    );
+    for (q, per_page) in [
+        ("?limit=500", 50),
+        ("?limit=0", 30),
+        ("?limit=abc", 30),
+        ("?limit=199", 199),
+    ] {
+        assert_eq!(api.list(q).await["meta"]["per_page"], per_page, "{q}");
+    }
+    let past = api.list("?page=9").await;
+    assert_eq!(
+        (past["data"].clone(), past["meta"]["total"].clone()),
+        (json!([]), json!(3))
+    );
+}
+
+#[sqlx::test]
+async fn list_needs_relation_list_and_stays_in_workspace(pool: PgPool) {
+    let api = api(pool).await;
+    let mine = relation(&api, "Mine", "m@x.nl", None).await;
+    let bob = member_with(
+        &api.app,
+        &api.pool,
+        &api.ws,
+        "bob@example.com",
+        &["relation.create"],
+    )
+    .await;
+    let carl = member_with(
+        &api.app,
+        &api.pool,
+        &api.ws,
+        "carl@example.com",
+        &["relation.list"],
+    )
+    .await;
+    let (eve, eve_ws) = signup(&api.app, "eve@example.com", "evil").await;
+    let uri = format!("/v1/workspace/{eve_ws}/relations");
+    send(&api.app, Method::POST, &uri, Some(body()), Some(&eve)).await;
+
+    assert_eq!(
+        api.call(Method::GET, "", None, &bob).await.0,
+        StatusCode::FORBIDDEN
+    );
+    let (status, res) = api.call(Method::GET, "", None, &carl).await;
+    assert_eq!((status, ids(&res)), (StatusCode::OK, vec![mine.clone()]));
+    let (_, theirs) = send(&api.app, Method::GET, &uri, None, Some(&eve)).await;
+    assert!(!ids(&theirs).contains(&mine));
+    assert_eq!(
+        api.call(Method::GET, "", None, &eve).await.0,
+        StatusCode::NOT_FOUND
+    );
+}
+
+#[sqlx::test]
+async fn supplier_list_and_advice_flags(pool: PgPool) {
+    let api = api(pool).await;
+    let supplier = relation(&api, "Parts BV", "p@x.nl", None).await;
+    let client = type_id(&api, "Client").await;
+    let mut c = body();
+    c["relation_type_id"] = json!(client);
+    api.create(c, "relation_id").await;
+    let mut nameless = json!({ "type": "personal", "alias": "Anon" });
+    nameless["relation_type_id"] = json!(type_id(&api, "Supplier").await);
+    api.create(nameless, "relation_id").await;
+
+    let res = api.list("?suppliers=1").await;
+    assert_eq!(
+        ids(&res),
+        vec![supplier.clone()],
+        "supplier type with a company name only"
+    );
+    assert_eq!(res["data"][0]["open_orders"], 0);
+    assert_eq!(res["data"][0]["open_order_value"], "0.00");
+
+    let advice = api.list("?suppliers=true&include_advice=1").await;
+    let row = &advice["data"][0];
+    assert_eq!(
+        (row["has_advice"].clone(), row["advice_count"].clone()),
+        (json!(false), json!(0))
+    );
+    assert_eq!(row["relationships"], json!({ "tags": [] }));
+}
+
+#[sqlx::test]
+async fn search_matches_relation_contact_and_type_fields(pool: PgPool) {
+    let api = api(pool).await;
+    let cotit = relation(
+        &api,
+        "COTIT Retail",
+        "info@cotit.eu",
+        Some(
+            json!({ "first_name": "john", "last_name": "Doe", "email": "john@doe.nl",
+                     "phones": [{ "type": "mobile", "number": "06 12345678" }] }),
+        ),
+    )
+    .await;
+    let other = relation(&api, "Bakkerij 50% off", "bak@x.nl", None).await;
+    let search = |q: &str| {
+        let enc: String = q
+            .chars()
+            .map(|c| match c {
+                ' ' => "%20".to_owned(),
+                '"' => "%22".to_owned(),
+                '%' => "%25".to_owned(),
+                c => c.to_string(),
+            })
+            .collect();
+        format!("?q={enc}")
+    };
+
+    for (q, want) in [
+        ("cotit", vec![cotit.clone()]),
+        ("RETAIL", vec![cotit.clone()]),
+        ("john doe", vec![cotit.clone()]),
+        ("doe.nl", vec![cotit.clone()]),
+        ("\"info@cotit.eu\"", vec![cotit.clone()]),
+        ("Supplier", vec![other.clone(), cotit.clone()]),
+        ("50%", vec![other.clone()]),
+        ("RE-0002", vec![other.clone()]),
+        ("0612345678", vec![cotit.clone()]),
+        ("nobody", vec![]),
+        ("null undefined", vec![]),
+        ("*", vec![other.clone(), cotit.clone()]),
+    ] {
+        assert_eq!(ids(&api.list(&search(q)).await), want, "q={q}");
+    }
+}
+
+#[sqlx::test]
+async fn filters_last_name_zipcode_company(pool: PgPool) {
+    let api = api(pool).await;
+    let a = relation(
+        &api,
+        "Acme",
+        "a@x.nl",
+        Some(json!({ "first_name": "j", "last_name": "Jansen" })),
+    )
+    .await;
+    let mut spaced = body();
+    spaced["addresses"][0]["zipcode"] = json!("1234 AB");
+    let b = api.create(spaced, "relation_id").await;
+
+    assert_eq!(ids(&api.list("?last_name=jansen").await), vec![a.clone()]);
+    assert_eq!(ids(&api.list("?zipcode=1339nm").await), vec![a.clone()]);
+    assert_eq!(ids(&api.list("?zipcode=1234AB").await), vec![b.clone()]);
+    assert_eq!(ids(&api.list("?company_name=acme").await), vec![a.clone()]);
+    assert_eq!(
+        ids(&api.list("?company_name=acm").await),
+        Vec::<String>::new()
+    );
+}
+
+#[sqlx::test]
+async fn search_registry_answers_for_relations(pool: PgPool) {
+    let api = api(pool).await;
+    let supplier = relation(&api, "Parts BV", "p@x.nl", None).await;
+    let mut c = body();
+    c["relation_type_id"] = json!(type_id(&api, "Client").await);
+    c["company_name"] = json!("Parts Client");
+    let client = api.create(c, "relation_id").await;
+    let uri = |q: &str| {
+        format!(
+            "/v1/workspace/{}/searches?domain=relation&q=parts{q}",
+            api.ws
+        )
+    };
+
+    let (status, all) = send(&api.app, Method::GET, &uri(""), None, Some(&api.owner)).await;
+    assert_eq!(status, StatusCode::OK, "{all}");
+    assert_eq!(ids(&all), vec![client, supplier.clone()]);
+    assert!(all["data"][0]["relationships"]["contacts"].is_array());
+    let (_, suppliers) = send(
+        &api.app,
+        Method::GET,
+        &uri("&is_supplier=true"),
+        None,
+        Some(&api.owner),
+    )
+    .await;
+    assert_eq!(ids(&suppliers), vec![supplier]);
+}
+
+#[sqlx::test]
+async fn list_stays_fast_at_volume(pool: PgPool) {
+    let api = api(pool).await;
+    let ty = type_id(&api, "Client").await;
+    sqlx::query(
+        "INSERT INTO relations (workspace_id, relation_type_id, relation_number, company_name, email)
+         SELECT $1::uuid, $2::uuid, n, 'Company ' || n, 'c' || n || '@x.nl'
+         FROM generate_series(1, 3000) n",
+    )
+    .bind(&api.ws)
+    .bind(&ty)
+    .execute(&api.pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO contacts (workspace_id, relation_id, first_name, last_name)
+         SELECT workspace_id, id, 'First', 'Last' || relation_number FROM relations",
+    )
+    .execute(&api.pool)
+    .await
+    .unwrap();
+
+    let started = std::time::Instant::now();
+    let page = api.list("").await;
+    let found = api.list("?q=last2999").await;
+    let elapsed = started.elapsed();
+
+    assert_eq!(page["meta"]["total"], 3000);
+    assert_eq!(page["data"].as_array().unwrap().len(), 30);
+    assert_eq!(found["meta"]["total"], 1);
+    assert!(
+        elapsed < std::time::Duration::from_secs(2),
+        "list + search took {elapsed:?}"
+    );
+}

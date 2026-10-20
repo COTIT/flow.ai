@@ -9,8 +9,12 @@ use crate::{
     modules::{
         contacts, custom_types,
         relations::{
-            dto::{Detail, NewRelation, RelationResource, TYPE_NOT_VALID, WorkspaceCtx},
-            phone, repo,
+            dto::{
+                Detail, IndexFlags, NewRelation, RelationIndexResource, RelationResource,
+                TYPE_NOT_VALID, WorkspaceCtx,
+            },
+            phone,
+            repo::{self, ListFilter},
         },
         vat_groups, workspaces,
     },
@@ -111,4 +115,34 @@ pub async fn get(
         include_unpaid_invoices: flags.include_unpaid_invoices,
     }
     .into())
+}
+
+/// One list page (index rows with their contacts) plus the matching total. Two queries; a
+/// page past the end re-reads the first row only to get the total.
+pub async fn list(
+    state: &AppState,
+    workspace_id: Uuid,
+    f: &ListFilter<'_>,
+    flags: IndexFlags,
+) -> Result<(Vec<RelationIndexResource>, i64), AppError> {
+    let (rows, mut total) = repo::list(&state.db, workspace_id, f).await?;
+    if rows.is_empty() && f.offset > 0 {
+        let first = ListFilter {
+            limit: 1,
+            offset: 0,
+            ..*f
+        };
+        total = repo::list(&state.db, workspace_id, &first).await?.1;
+    }
+    let ids: Vec<Uuid> = rows.iter().map(|(r, _, _)| r.id).collect();
+    let mut contacts = contacts::repo::for_relations(&state.db, workspace_id, &ids).await?;
+    let data = rows
+        .into_iter()
+        .map(|row| {
+            let id = row.0.id;
+            let mine = contacts.extract_if(.., |c| c.relation_id == id).collect();
+            RelationIndexResource::new(row, mine, flags)
+        })
+        .collect();
+    Ok((data, total))
 }

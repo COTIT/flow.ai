@@ -125,7 +125,7 @@ async fn unknown_unported_or_missing_domain_is_404(pool: PgPool) {
     for query in [
         "?domain=nope",
         "?domain=product",
-        "?domain=relation",
+        "?domain=contact",
         "",
         "?q=zeta",
     ] {

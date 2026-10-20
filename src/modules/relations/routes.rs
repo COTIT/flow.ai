@@ -12,7 +12,7 @@ use crate::{AppState, modules::relations::handlers};
 pub fn private() -> Router<AppState> {
     let base = "/workspace/{workspace}/relations";
     Router::new()
-        .route(base, post(handlers::create))
+        .route(base, get(handlers::list).post(handlers::create))
         .route(&format!("{base}/"), post(handlers::create))
         .route(&format!("{base}/{{relation}}"), get(handlers::get))
 }

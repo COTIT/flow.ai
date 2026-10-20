@@ -512,6 +512,124 @@ impl From<Detail> for RelationResource {
     }
 }
 
+/// Laravel RelationIndexResource::normalizeSupplierData: null when every top-level value is
+/// null, blank or an empty list; else the stored data (FTP password blanked).
+fn index_supplier(stored: Option<&Value>) -> Option<Value> {
+    let stored = stored?;
+    let map = stored.as_object()?;
+    let empty = |v: &Value| match v {
+        Value::Null => true,
+        Value::String(s) => s.trim().is_empty(),
+        Value::Array(a) => a.is_empty(),
+        Value::Object(o) => o.is_empty(),
+        _ => false,
+    };
+    (!map.values().all(empty)).then(|| supplier_out(stored))
+}
+
+#[derive(Serialize)]
+struct IndexRelationships {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    relation_type: Option<Option<CustomTypeResource>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_type: Option<Option<CustomTypeResource>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    contacts: Option<Vec<ContactResource>>,
+    tags: [(); 0],
+}
+
+/// Laravel RelationIndexResource (list rows, `/searches?domain=relation`). Activity and tag
+/// counters are zero until those modules are ported; addresses are the stored ones (no VAT keys).
+#[derive(Serialize)]
+pub struct RelationIndexResource {
+    id: Uuid,
+    alias: Option<String>,
+    company_name: Option<String>,
+    #[serde(rename = "type")]
+    kind: String,
+    email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    email_validation: Option<Option<Value>>,
+    website: Option<String>,
+    phone_number: Option<String>,
+    relation_nr: Option<String>,
+    default_language: Option<String>,
+    addresses: Vec<AddressView>,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+    allow_invoicing_on_account: bool,
+    disable_order_workflow_emails: bool,
+    supplier_data: Option<Value>,
+    activities_count: i64,
+    has_activities: bool,
+    has_note_activity: bool,
+    tags_count: i64,
+    relationships: IndexRelationships,
+    /// Laravel `purchase_orders_count`: only loaded on the supplier list.
+    open_orders: Option<i64>,
+    open_order_value: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    has_advice: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    advice_count: Option<i64>,
+}
+
+/// List flags that change the row shape.
+#[derive(Clone, Copy)]
+pub struct IndexFlags {
+    pub suppliers: bool,
+    pub include_advice: bool,
+}
+
+impl RelationIndexResource {
+    /// One list row. `suppliers` + `include_advice` loads no relations in Laravel, so only
+    /// `relationships.tags` is left.
+    pub fn new(
+        (r, relation_type, source_type): (
+            RelationRow,
+            Option<CustomTypeRow>,
+            Option<CustomTypeRow>,
+        ),
+        contacts: Vec<ContactRow>,
+        flags: IndexFlags,
+    ) -> Self {
+        let bare = flags.suppliers && flags.include_advice;
+        Self {
+            id: r.id,
+            email_validation: truthy(&r.email).then_some(None),
+            relation_nr: relation_nr(r.relation_number, r.relation_appendix.as_ref()),
+            addresses: r.addresses.iter().map(AddressView::from).collect(),
+            supplier_data: index_supplier(r.supplier_data.as_ref()),
+            alias: r.alias,
+            company_name: r.company_name,
+            kind: r.kind,
+            email: r.email,
+            website: r.website,
+            phone_number: r.phone_number,
+            default_language: r.default_language,
+            created_at: r.created_at,
+            last_updated_at: r.updated_at,
+            allow_invoicing_on_account: r.allow_invoicing_on_account,
+            disable_order_workflow_emails: r.disable_order_workflow_emails,
+            activities_count: 0,
+            has_activities: false,
+            has_note_activity: false,
+            tags_count: 0,
+            relationships: IndexRelationships {
+                relation_type: (!bare).then(|| relation_type.map(Into::into)),
+                source_type: (!bare).then(|| source_type.map(Into::into)),
+                contacts: (!bare).then(|| contacts.into_iter().map(Into::into).collect()),
+                tags: [],
+            },
+            // shortcut: purchase orders not ported; counts are 0 / "0.00" until they are.
+            open_orders: flags.suppliers.then_some(0),
+            open_order_value: format_decimals(None, 2, true, Zero::Falsy),
+            has_advice: flags.include_advice.then_some(false),
+            advice_count: flags.include_advice.then_some(0),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

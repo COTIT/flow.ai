@@ -8,5 +8,6 @@ pub mod handlers;
 pub mod phone;
 pub mod repo;
 pub mod routes;
+pub mod search;
 pub mod service;
 pub mod vat_number;

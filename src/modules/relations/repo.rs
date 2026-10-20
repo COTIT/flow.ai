@@ -113,13 +113,134 @@ pub async fn insert(
     .await
 }
 
-/// Live relation with its relation type and source type (None when that type was deleted).
+/// Relation joined with its relation type (`rt_*`) and source type (`st_*`); `total` is the
+/// list's window count (None for single-row reads).
+struct Joined {
+    id: Uuid,
+    relation_type_id: Uuid,
+    source_type_id: Option<Uuid>,
+    relation_number: Option<i64>,
+    relation_appendix: Option<Value>,
+    kind: String,
+    allow_invoicing_on_account: bool,
+    disable_order_workflow_emails: bool,
+    alias: Option<String>,
+    company_name: Option<String>,
+    email: Option<String>,
+    website: Option<String>,
+    phone_number: Option<String>,
+    coc_number: Option<String>,
+    vat_number: Option<String>,
+    import_source: Option<String>,
+    import_id: Option<String>,
+    default_language: Option<String>,
+    addresses: Value,
+    financial_account: Option<Value>,
+    terms_and_periods: Option<Value>,
+    supplier_data: Option<Value>,
+    meta: Option<Value>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    rt_id: Option<Uuid>,
+    rt_name: Option<String>,
+    rt_domain: Option<String>,
+    rt_properties: Option<Value>,
+    rt_meta: Option<Value>,
+    rt_created_at: Option<DateTime<Utc>>,
+    rt_updated_at: Option<DateTime<Utc>>,
+    st_id: Option<Uuid>,
+    st_name: Option<String>,
+    st_domain: Option<String>,
+    st_properties: Option<Value>,
+    st_meta: Option<Value>,
+    st_created_at: Option<DateTime<Utc>>,
+    st_updated_at: Option<DateTime<Utc>>,
+    total: Option<i64>,
+}
+
+/// A relation plus its live relation type and source type (None when deleted).
+pub type WithTypes = (RelationRow, Option<CustomTypeRow>, Option<CustomTypeRow>);
+
+#[allow(clippy::too_many_arguments)]
+fn custom_type(
+    id: Option<Uuid>,
+    name: Option<String>,
+    domain: Option<String>,
+    properties: Option<Value>,
+    meta: Option<Value>,
+    created_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
+) -> Option<CustomTypeRow> {
+    Some(CustomTypeRow {
+        id: id?,
+        name: name?,
+        domain: domain?,
+        properties,
+        meta,
+        created_at: created_at?,
+        updated_at: updated_at?,
+    })
+}
+
+impl Joined {
+    fn split(self) -> Result<WithTypes, sqlx::Error> {
+        let relation_type = custom_type(
+            self.rt_id,
+            self.rt_name,
+            self.rt_domain,
+            self.rt_properties,
+            self.rt_meta,
+            self.rt_created_at,
+            self.rt_updated_at,
+        );
+        let source_type = custom_type(
+            self.st_id,
+            self.st_name,
+            self.st_domain,
+            self.st_properties,
+            self.st_meta,
+            self.st_created_at,
+            self.st_updated_at,
+        );
+        let relation = RelationRow {
+            id: self.id,
+            relation_type_id: self.relation_type_id,
+            source_type_id: self.source_type_id,
+            relation_number: self.relation_number,
+            relation_appendix: self.relation_appendix,
+            kind: self.kind,
+            allow_invoicing_on_account: self.allow_invoicing_on_account,
+            disable_order_workflow_emails: self.disable_order_workflow_emails,
+            alias: self.alias,
+            company_name: self.company_name,
+            email: self.email,
+            website: self.website,
+            phone_number: self.phone_number,
+            coc_number: self.coc_number,
+            vat_number: self.vat_number,
+            import_source: self.import_source,
+            import_id: self.import_id,
+            default_language: self.default_language,
+            addresses: decode_addresses(self.addresses)?,
+            financial_account: self.financial_account,
+            terms_and_periods: self.terms_and_periods,
+            supplier_data: self.supplier_data,
+            meta: self.meta,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+        };
+        Ok((relation, relation_type, source_type))
+    }
+}
+
+/// Live relation of the workspace with its types.
 pub async fn find_detail(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     id: Uuid,
-) -> Result<Option<(RelationRow, Option<CustomTypeRow>, Option<CustomTypeRow>)>, sqlx::Error> {
-    let Some(row) = sqlx::query!(
+) -> Result<Option<WithTypes>, sqlx::Error> {
+    sqlx::query_as!(
+        Joined,
         r#"SELECT r.id, r.relation_type_id, r.source_type_id, r.relation_number, r.relation_appendix,
                   r.type AS kind, r.allow_invoicing_on_account, r.disable_order_workflow_emails,
                   r.alias, r.company_name, r.email, r.website, r.phone_number, r.coc_number,
@@ -131,7 +252,8 @@ pub async fn find_detail(
                   rt.created_at AS "rt_created_at?", rt.updated_at AS "rt_updated_at?",
                   st.id AS "st_id?", st.name AS "st_name?", st.domain AS "st_domain?",
                   st.properties AS st_properties, st.meta AS st_meta,
-                  st.created_at AS "st_created_at?", st.updated_at AS "st_updated_at?"
+                  st.created_at AS "st_created_at?", st.updated_at AS "st_updated_at?",
+                  NULL::bigint AS total
            FROM relations r
            LEFT JOIN custom_types rt ON rt.workspace_id = r.workspace_id
                 AND rt.id = r.relation_type_id AND rt.deleted_at IS NULL
@@ -143,70 +265,110 @@ pub async fn find_detail(
     )
     .fetch_optional(db)
     .await?
-    else {
-        return Ok(None);
-    };
-    let ty = |id: Option<Uuid>,
-              name: Option<String>,
-              domain: Option<String>,
-              properties: Option<Value>,
-              meta: Option<Value>,
-              created_at: Option<DateTime<Utc>>,
-              updated_at: Option<DateTime<Utc>>| {
-        Some(CustomTypeRow {
-            id: id?,
-            name: name?,
-            domain: domain?,
-            properties,
-            meta,
-            created_at: created_at?,
-            updated_at: updated_at?,
-        })
-    };
-    let relation_type = ty(
-        row.rt_id,
-        row.rt_name,
-        row.rt_domain,
-        row.rt_properties,
-        row.rt_meta,
-        row.rt_created_at,
-        row.rt_updated_at,
-    );
-    let source_type = ty(
-        row.st_id,
-        row.st_name,
-        row.st_domain,
-        row.st_properties,
-        row.st_meta,
-        row.st_created_at,
-        row.st_updated_at,
-    );
-    let relation = RelationRow {
-        id: row.id,
-        relation_type_id: row.relation_type_id,
-        source_type_id: row.source_type_id,
-        relation_number: row.relation_number,
-        relation_appendix: row.relation_appendix,
-        kind: row.kind,
-        allow_invoicing_on_account: row.allow_invoicing_on_account,
-        disable_order_workflow_emails: row.disable_order_workflow_emails,
-        alias: row.alias,
-        company_name: row.company_name,
-        email: row.email,
-        website: row.website,
-        phone_number: row.phone_number,
-        coc_number: row.coc_number,
-        vat_number: row.vat_number,
-        import_source: row.import_source,
-        import_id: row.import_id,
-        default_language: row.default_language,
-        addresses: decode_addresses(row.addresses)?,
-        financial_account: row.financial_account,
-        terms_and_periods: row.terms_and_periods,
-        supplier_data: row.supplier_data,
-        meta: row.meta,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-    };
-    Ok(Some((relation, relation_type, source_type)))
+    .map(Joined::split)
+    .transpose()
+}
+
+/// List filters; `q` from `search::parse`. Patterns are escaped ILIKE values.
+#[derive(Clone, Copy)]
+pub struct ListFilter<'a> {
+    pub suppliers: bool,
+    /// Lowercased exact contact last name.
+    pub last_name: Option<&'a str>,
+    /// Compact uppercase zipcode (`1339NM`), compared the same way against stored addresses.
+    pub zipcode: Option<&'a str>,
+    /// Lowercased exact company name.
+    pub company_name: Option<&'a str>,
+    pub q: &'a crate::modules::relations::search::Query,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+/// One page, newest first, plus the matching total (0 when the page is empty). One query:
+/// Laravel's SQL search (relation fields, type name, contact names/email, phone spellings,
+/// id-like exact matches) with trigram indexes behind the ILIKEs.
+pub async fn list(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    f: &ListFilter<'_>,
+) -> Result<(Vec<WithTypes>, i64), sqlx::Error> {
+    let words = serde_json::to_value(&f.q.words).map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+    let rows = sqlx::query_as!(
+        Joined,
+        r#"SELECT r.id, r.relation_type_id, r.source_type_id, r.relation_number, r.relation_appendix,
+                  r.type AS kind, r.allow_invoicing_on_account, r.disable_order_workflow_emails,
+                  r.alias, r.company_name, r.email, r.website, r.phone_number, r.coc_number,
+                  r.vat_number, r.import_source, r.import_id, r.default_language, r.addresses,
+                  r.financial_account, r.terms_and_periods, r.supplier_data, r.meta, r.created_at,
+                  r.updated_at,
+                  rt.id AS "rt_id?", rt.name AS "rt_name?", rt.domain AS "rt_domain?",
+                  rt.properties AS rt_properties, rt.meta AS rt_meta,
+                  rt.created_at AS "rt_created_at?", rt.updated_at AS "rt_updated_at?",
+                  st.id AS "st_id?", st.name AS "st_name?", st.domain AS "st_domain?",
+                  st.properties AS st_properties, st.meta AS st_meta,
+                  st.created_at AS "st_created_at?", st.updated_at AS "st_updated_at?",
+                  count(*) OVER () AS total
+           FROM relations r
+           LEFT JOIN custom_types rt ON rt.workspace_id = r.workspace_id
+                AND rt.id = r.relation_type_id AND rt.deleted_at IS NULL
+           LEFT JOIN custom_types st ON st.workspace_id = r.workspace_id
+                AND st.id = r.source_type_id AND st.deleted_at IS NULL
+           WHERE r.workspace_id = $1 AND r.deleted_at IS NULL
+             AND (NOT $2 OR (r.company_name IS NOT NULL
+                             AND rt.properties @> '{"is_supplier": true}'))
+             AND ($3::text IS NULL OR EXISTS (
+                   SELECT 1 FROM contacts c
+                   WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id
+                     AND c.deleted_at IS NULL AND lower(c.last_name) = $3))
+             AND ($4::text IS NULL OR EXISTS (
+                   SELECT 1 FROM jsonb_array_elements(r.addresses) a
+                   WHERE upper(regexp_replace(a ->> 'zipcode', '[^0-9A-Za-z]', '', 'g')) = $4))
+             AND ($5::text IS NULL OR lower(r.company_name) = $5)
+             AND (cardinality($6::text[]) = 0
+                  OR r.alias ILIKE ANY($6) OR r.company_name ILIKE ANY($6)
+                  OR r.email ILIKE ANY($6) OR r.phone_number ILIKE ANY($6)
+                  OR r.website ILIKE ANY($6) OR rt.name ILIKE ANY($6)
+                  OR r.id = $8 OR r.import_id = $9 OR lower(r.email) = lower($9)
+                  OR r.phone_number = $9 OR r.relation_number = $10
+                  OR r.phone_number = ANY($11)
+                  OR EXISTS (
+                     SELECT 1 FROM contacts c
+                     WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id
+                       AND c.deleted_at IS NULL
+                       AND (c.email ILIKE ANY($6)
+                            OR c.phone_number = ANY($11)
+                            OR c.phones::text ILIKE ANY($12)
+                            -- every word of one phrase hits first, middle or last name
+                            OR EXISTS (
+                               SELECT 1 FROM jsonb_array_elements($7::jsonb) phrase
+                               WHERE NOT EXISTS (
+                                  SELECT 1 FROM jsonb_array_elements_text(phrase) w
+                                  WHERE NOT (coalesce(c.first_name, '') ILIKE w
+                                             OR coalesce(c.middle_name, '') ILIKE w
+                                             OR coalesce(c.last_name, '') ILIKE w))))))
+           ORDER BY r.id DESC
+           LIMIT $13 OFFSET $14"#,
+        workspace_id,
+        f.suppliers,
+        f.last_name,
+        f.zipcode,
+        f.company_name,
+        &f.q.patterns,
+        words,
+        f.q.uuid,
+        f.q.text,
+        f.q.number,
+        &f.q.phones,
+        &f.q.phone_patterns,
+        f.limit,
+        f.offset,
+    )
+    .fetch_all(db)
+    .await?;
+    let total = rows.first().and_then(|r| r.total).unwrap_or(0);
+    let rows = rows
+        .into_iter()
+        .map(Joined::split)
+        .collect::<Result<_, _>>()?;
+    Ok((rows, total))
 }

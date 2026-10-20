@@ -26,6 +26,7 @@ use crate::{
             dto::CustomTypeResource, repo::ListFilter as TypeFilter, service as custom_types,
         },
         hourly_rates::{dto::HourlyRateResource, service as hourly_rates},
+        relations,
         sales_groups::{dto::SalesGroupResource, service as sales_groups},
         shipment_methods::{
             dto::ShipmentMethodResource, repo::ListFilter as ShipmentFilter,
@@ -48,6 +49,8 @@ pub struct SearchQuery {
     page_size: Option<String>,
     /// Laravel ScoutFilterHelper: shipment methods only.
     can_be_selected: Option<String>,
+    /// Relation pickers: suppliers only.
+    is_supplier: Option<String>,
 }
 
 fn page_of<T: Serialize, R: Into<T>>(rows: Vec<R>, total: i64, page: Page) -> Response {
@@ -123,6 +126,21 @@ pub async fn search(
             };
             let (rows, total) = custom_types::list(s, ws, &f).await?;
             page_of::<CustomTypeResource, _>(rows, total, page)
+        }
+        Some("relation") => {
+            // Relations parse `q` themselves (phrases, id-like and phone matches).
+            let suppliers = query.is_supplier.as_deref().is_some_and(flag);
+            let filters = [None, None, None];
+            let list = relations::handlers::page_of(
+                s,
+                ws,
+                query.q.as_deref(),
+                suppliers,
+                false,
+                filters,
+                page,
+            );
+            Json(list.await?).into_response()
         }
         _ => return Err(AppError::NotFound),
     })
