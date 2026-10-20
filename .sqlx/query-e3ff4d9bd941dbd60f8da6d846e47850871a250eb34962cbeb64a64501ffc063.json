@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE contacts SET deleted_at = now(), updated_at = now()\n         WHERE id = $3 AND workspace_id = $1 AND relation_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e3ff4d9bd941dbd60f8da6d846e47850871a250eb34962cbeb64a64501ffc063"
+}

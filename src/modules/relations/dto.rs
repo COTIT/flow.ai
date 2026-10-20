@@ -236,6 +236,207 @@ impl Validate for CreateRelationRequest {
     }
 }
 
+/// `terms_and_periods`: four optional whole numbers 1..=365, keys `terms_and_periods.<key>`.
+/// Laravel's rule named a validator that doesn't exist (`int`) and answered 500 for any value.
+fn terms_in(r: &mut Rules, v: Value) -> Option<Value> {
+    let map = match v {
+        Value::Null => return None,
+        Value::Object(map) => map,
+        _ => {
+            r.add(
+                "terms_and_periods",
+                "The terms and periods must be an array.",
+            );
+            return None;
+        }
+    };
+    let mut out = Map::new();
+    for k in TERM_KEYS {
+        let key = format!("terms_and_periods.{k}");
+        let n = filled(map.get(k).cloned()).and_then(|n| {
+            let mut own = Rules::default();
+            let n = own.integer(k, &n, 1, 365);
+            // Keys carry the prefix, messages the bare name (Laravel Data::validate wrapping).
+            if let Err(crate::error::AppError::Validation(errors)) = own.into_result() {
+                for message in errors.into_values().flatten() {
+                    r.add(&key, message);
+                }
+            }
+            n
+        });
+        out.insert(k.into(), n.map_or(Value::Null, Value::from));
+    }
+    Some(Value::Object(out))
+}
+
+/// Laravel SupplierPaymentTermsEnum values.
+const PAYMENT_TERMS: [&str; 8] = [
+    "end_of_next_month",
+    "fifteen_days",
+    "fob",
+    "forty_five_days",
+    "immediate_payment",
+    "ninety_days",
+    "thirty_days",
+    "twenty_one_days",
+];
+
+/// `supplier_data` (Laravel RelationSupplierData): an object stored as sent, after checking
+/// its enums, numbers and the fixed shipping cost rule. Keys `supplier_data.<field>`.
+// shortcut: no field-by-field port of the nested Data classes (purchase orders read them in
+// the last batch); vimdesk-web fills their defaults itself.
+fn supplier_in(r: &mut Rules, v: Value) -> Option<Value> {
+    let map = match &v {
+        Value::Null => return None,
+        Value::Object(map) => map,
+        _ => {
+            r.add("supplier_data", "The supplier data is not valid");
+            return None;
+        }
+    };
+    let key = |f: &str| format!("supplier_data.{f}");
+    let pick = |r: &mut Rules, f: &str, allowed: &[&str]| match filled(map.get(f).cloned()) {
+        None => {}
+        Some(Value::String(x)) if allowed.contains(&x.as_str()) => {}
+        Some(_) => r.add(&key(f), format!("The selected {} is invalid.", human(f))),
+    };
+    pick(r, "payment_term", &PAYMENT_TERMS);
+    pick(r, "order_type", &["email", "ftp"]);
+    if let Some(n) = filled(map.get("lead_time").cloned()) {
+        let mut own = Rules::default();
+        own.integer("lead_time", &n, i64::MIN, i64::MAX);
+        own.merge_into_prefixed(r, "supplier_data.");
+    }
+    for f in ["min_order_weight", "min_order_value"] {
+        if let Some(n) = filled(map.get(f).cloned()) {
+            let mut own = Rules::default();
+            own.decimal(f, &n, Decimal::MIN, Decimal::MAX);
+            own.merge_into_prefixed(r, "supplier_data.");
+        }
+    }
+    if let Some(Value::Object(fixed)) = map.get("fixed_shipping_cost") {
+        let mut own = Rules::default();
+        let enabled =
+            filled(fixed.get("enabled").cloned()).and_then(|b| own.boolean("enabled", &b));
+        match filled(fixed.get("amount_base").cloned()) {
+            None if enabled == Some(true) => own.missing("amount_base"),
+            None => {}
+            Some(n) => {
+                if let Some(a) = own.decimal("amount_base", &n, Decimal::MIN, Decimal::MAX)
+                    && a <= Decimal::ZERO
+                {
+                    own.add("amount_base", "The amount base must be greater than 0.");
+                }
+            }
+        }
+        if let Some(n) = filled(fixed.get("vat").cloned()) {
+            own.decimal("vat", &n, Decimal::ZERO, Decimal::MAX);
+        }
+        for f in ["line_name", "reference"] {
+            opt_str(&mut own, f, fixed.get(f), 255);
+        }
+        own.merge_into_prefixed(r, "supplier_data.fixed_shipping_cost.");
+    }
+    Some(v)
+}
+
+/// POST /relations/{id}: `type` and `relation_type_id` required (Laravel update rules), every
+/// other known key is a patch (absent = keep, null = clear). Raw object: the SPA sends its
+/// whole form, stray keys included.
+#[derive(Deserialize)]
+pub struct UpdateRelationRequest(Map<String, Value>);
+
+/// Validated update; `None` keeps the stored value, `Some(None)` clears it.
+#[derive(Default)]
+pub struct RelationPatch {
+    pub kind: String,
+    pub relation_type_id: Option<Uuid>,
+    pub alias: Option<Option<String>>,
+    pub company_name: Option<Option<String>>,
+    pub coc_number: Option<Option<String>>,
+    pub vat_number: Option<Option<String>>,
+    pub email: Option<Option<String>>,
+    pub website: Option<Option<String>>,
+    pub phone_number: Option<Option<String>>,
+    pub default_language: Option<Option<String>>,
+    pub import_source: Option<Option<String>>,
+    pub import_id: Option<Option<String>>,
+    pub addresses: Option<Vec<Address>>,
+    pub financial_account: Option<Option<Value>>,
+    pub terms_and_periods: Option<Option<Value>>,
+    pub supplier_data: Option<Option<Value>>,
+    pub allow_invoicing_on_account: Option<bool>,
+    pub disable_order_workflow_emails: Option<bool>,
+    pub meta: Option<Option<Value>>,
+}
+
+impl Validate for UpdateRelationRequest {
+    type Valid = RelationPatch;
+
+    fn validate(self, r: &mut Rules) -> Option<RelationPatch> {
+        let v = self.0;
+        checked_only(r, &v);
+        custom_sections(r, "custom_sections", get(&v, "custom_sections"));
+        custom_sections(r, "custom_section_forms", get(&v, "custom_section_forms"));
+        let sent = |k: &str| v.contains_key(k);
+        let text =
+            |r: &mut Rules, k: &str, max: usize| sent(k).then(|| opt_str(r, k, get(&v, k), max));
+        let relation_type_id = type_ref(r, "relation_type_id", get(&v, "relation_type_id"));
+        if relation_type_id.is_none() && filled(get(&v, "relation_type_id").cloned()).is_none() {
+            r.missing("relation_type_id");
+        }
+        let flag_patch = |r: &mut Rules, k: &str| {
+            sent(k).then(|| match filled(get(&v, k).cloned()) {
+                None => {
+                    r.missing(k);
+                    false
+                }
+                Some(b) => r.boolean(k, &b).unwrap_or_default(),
+            })
+        };
+        Some(RelationPatch {
+            kind: kind(r, get(&v, "type")).unwrap_or_default(),
+            relation_type_id,
+            alias: text(r, "alias", 255),
+            company_name: text(r, "company_name", 255),
+            coc_number: text(r, "coc_number", 200),
+            vat_number: text(r, "vat_number", 255),
+            email: sent("email").then(|| email(r, "email", get(&v, "email"))),
+            website: sent("website").then(|| website(r, get(&v, "website"))),
+            phone_number: text(r, "phone_number", 55),
+            default_language: sent("default_language")
+                .then(|| language(r, get(&v, "default_language"))),
+            import_source: text(r, "import_source", 255),
+            import_id: text(r, "import_id", 255),
+            addresses: get(&v, "addresses").map(|a| address::validate_list(r, a.clone())),
+            financial_account: sent("financial_account").then(|| {
+                filled(get(&v, "financial_account").cloned())
+                    .map(|a| account(r, "financial_account", "", a))
+                    .filter(|a| !a.is_null())
+            }),
+            terms_and_periods: sent("terms_and_periods")
+                .then(|| terms_in(r, get(&v, "terms_and_periods").cloned().unwrap_or_default())),
+            supplier_data: sent("supplier_data")
+                .then(|| supplier_in(r, get(&v, "supplier_data").cloned().unwrap_or_default())),
+            allow_invoicing_on_account: flag_patch(r, "allow_invoicing_on_account"),
+            disable_order_workflow_emails: flag_patch(r, "disable_order_workflow_emails"),
+            meta: sent("meta").then(|| r.meta(get(&v, "meta").cloned()).flatten()),
+        })
+    }
+}
+
+/// True when an update's FTP config leaves the password blank: keep the stored one, since
+/// responses never show it and the SPA posts back what it loaded.
+pub fn keeps_ftp_password(supplier: &Value) -> bool {
+    supplier
+        .get("order_ftp")
+        .and_then(Value::as_object)
+        .is_some_and(|ftp| {
+            ftp.get("password")
+                .is_none_or(|p| p.is_null() || p.as_str().is_some_and(|s| s.is_empty()))
+        })
+}
+
 /// Create response.
 #[derive(Serialize)]
 pub struct RelationCreated {

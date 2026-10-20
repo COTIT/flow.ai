@@ -962,3 +962,581 @@ async fn list_stays_fast_at_volume(pool: PgPool) {
         "list + search took {elapsed:?}"
     );
 }
+
+// ---- update
+
+async fn update(api: &Api, id: &str, b: Value) -> (StatusCode, Value) {
+    api.update(id, b).await
+}
+
+/// The minimal update body Laravel requires (`type` + `relation_type_id`).
+async fn required(api: &Api, kind: &str) -> Value {
+    json!({ "type": kind, "relation_type_id": type_id(api, "Client").await })
+}
+
+#[sqlx::test]
+async fn update_patches_only_sent_keys(pool: PgPool) {
+    let api = api(pool).await;
+    let id = api.create(body(), "relation_id").await;
+    let mut b = required(&api, "personal").await;
+    b["alias"] = Value::Null;
+    b["website"] = json!("https://cotit.eu");
+    b["address"] = json!({});
+    b["default_validity_period"] = json!(30);
+
+    let (status, res) = update(&api, &id, b).await;
+
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    let got = api.get(&id).await;
+    assert_eq!(got["type"], "personal");
+    assert_eq!(got["relationships"]["relation_type"]["name"], "Client");
+    assert_eq!(got["alias"], Value::Null, "sent null clears");
+    assert_eq!(got["website"], "https://cotit.eu");
+    assert_eq!(got["company_name"], "COTIT", "absent key kept");
+    assert_eq!(got["email"], "user@cotit.eu");
+    assert_eq!(got["relation_nr"], "RE-0001", "number never changes");
+    assert_eq!(got["addresses"].as_array().unwrap().len(), 1);
+}
+
+#[sqlx::test]
+async fn update_replaces_addresses_and_normalizes_phone(pool: PgPool) {
+    let api = api(pool).await;
+    let id = api.create(body(), "relation_id").await;
+    let mut b = required(&api, "business").await;
+    b["addresses"] = json!([
+        { "address": "Rue", "house_number": "1", "zipcode": "1000", "city": "Brussel", "country": "be", "main_address": true },
+        { "address": "Weg", "house_number": "2", "zipcode": "1339NM", "city": "Almere", "country": "NL" },
+    ]);
+    b["phone_number"] = json!("0471 12 34 56");
+
+    assert_eq!(update(&api, &id, b).await.0, StatusCode::OK);
+
+    let got = api.get(&id).await;
+    assert_eq!(got["addresses"].as_array().unwrap().len(), 2);
+    assert_eq!(got["addresses"][0]["country"], "BE");
+    assert_eq!(
+        got["phone_number"], "+32471123456",
+        "country of the new main address"
+    );
+}
+
+#[sqlx::test]
+async fn update_requires_type_and_relation_type(pool: PgPool) {
+    let api = api(pool).await;
+    let id = api.create(body(), "relation_id").await;
+
+    let (status, res) = update(&api, &id, json!({ "alias": "x" })).await;
+
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"]["type"],
+        json!(["The type field is required."])
+    );
+    assert_eq!(
+        res["errors"]["relation_type_id"],
+        json!(["The relation type id field is required."])
+    );
+    let mut lead = required(&api, "business").await;
+    lead["relation_type_id"] = json!(type_id(&api, "Website").await);
+    assert_eq!(
+        update(&api, &id, lead).await.1["errors"]["relation_type_id"],
+        json!(["The relation type id is not valid"])
+    );
+    let mut nulled = required(&api, "business").await;
+    nulled["allow_invoicing_on_account"] = Value::Null;
+    assert_eq!(
+        update(&api, &id, nulled).await.1["errors"]["allow_invoicing_on_account"],
+        json!(["The allow invoicing on account field is required."])
+    );
+}
+
+#[sqlx::test]
+async fn update_terms_and_supplier_data(pool: PgPool) {
+    let api = api(pool).await;
+    let id = api.create(body(), "relation_id").await;
+    let mut bad = required(&api, "business").await;
+    bad["terms_and_periods"] =
+        json!({ "invoice_payment_term": 0, "estimate_validity_period": 366 });
+    bad["supplier_data"] = json!({ "payment_term": "someday", "order_type": "pigeon",
+                                   "lead_time": "soon",
+                                   "fixed_shipping_cost": { "enabled": true } });
+
+    let e = update(&api, &id, bad).await.1["errors"].clone();
+
+    assert_eq!(
+        e["terms_and_periods.invoice_payment_term"],
+        json!(["The invoice payment term must be at least 1."])
+    );
+    assert_eq!(
+        e["terms_and_periods.estimate_validity_period"],
+        json!(["The estimate validity period must not be greater than 365."])
+    );
+    assert_eq!(
+        e["supplier_data.payment_term"],
+        json!(["The selected payment term is invalid."])
+    );
+    assert_eq!(
+        e["supplier_data.order_type"],
+        json!(["The selected order type is invalid."])
+    );
+    assert_eq!(
+        e["supplier_data.lead_time"],
+        json!(["The lead time must be an integer."])
+    );
+    assert_eq!(
+        e["supplier_data.fixed_shipping_cost.amount_base"],
+        json!(["The amount base field is required."])
+    );
+
+    let mut ok = required(&api, "business").await;
+    ok["terms_and_periods"] =
+        json!({ "invoice_payment_term": "21", "estimate_validity_period": null });
+    ok["supplier_data"] = json!({ "payment_term": "thirty_days", "lead_time": 5, "order_type": "ftp",
+                                  "order_ftp": { "host": "ftp.acme.nl", "password": "s3cret" } });
+    assert_eq!(update(&api, &id, ok).await.0, StatusCode::OK);
+    let got = api.get(&id).await;
+    assert_eq!(got["terms_and_periods"]["invoice_payment_term"], 21);
+    assert_eq!(got["used_terms_and_periods"]["invoice_payment_term"], 21);
+    assert_eq!(
+        got["used_terms_and_periods"]["estimate_validity_period"],
+        30
+    );
+    assert_eq!(got["supplier_data"]["order_ftp"]["password"], Value::Null);
+    assert_eq!(got["supplier_data"]["payment_term"], "thirty_days");
+}
+
+#[sqlx::test]
+async fn ftp_password_is_write_only(pool: PgPool) {
+    let api = api(pool).await;
+    let id = api.create(body(), "relation_id").await;
+    let mut set = required(&api, "business").await;
+    set["supplier_data"] = json!({ "order_ftp": { "host": "h", "password": "s3cret" } });
+    update(&api, &id, set).await;
+
+    // vimdesk-web posts back what it loaded: the password as null.
+    let mut echo = required(&api, "business").await;
+    echo["supplier_data"] = api.get(&id).await["supplier_data"].clone();
+    echo["supplier_data"]["order_ftp"]["host"] = json!("h2");
+    assert_eq!(update(&api, &id, echo).await.0, StatusCode::OK);
+
+    let ftp = stored(&api, &id).await["supplier_data"]["order_ftp"].clone();
+    assert_eq!(ftp, json!({ "host": "h2", "password": "s3cret" }));
+    let mut replace = required(&api, "business").await;
+    replace["supplier_data"] = json!({ "order_ftp": { "host": "h2", "password": "new" } });
+    update(&api, &id, replace).await;
+    assert_eq!(
+        stored(&api, &id).await["supplier_data"]["order_ftp"]["password"],
+        "new"
+    );
+}
+
+#[sqlx::test]
+async fn update_vat_checked_only_for_stored_eu_country(pool: PgPool) {
+    let api = api(pool).await;
+    let nl = api.create(body(), "relation_id").await;
+    let mut us_body = body();
+    us_body["addresses"][0]["country"] = json!("US");
+    let us = api.create(us_body, "relation_id").await;
+    let vat = |v: &str| {
+        let v = v.to_owned();
+        let api = &api;
+        async move {
+            let mut b = required(api, "business").await;
+            b["vat_number"] = json!(v);
+            b
+        }
+    };
+
+    let (status, res) = update(&api, &nl, vat("NL123").await).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"]["vat_number"],
+        json!(["The Vat number must be a valid number issued by any Member State."])
+    );
+    assert_eq!(
+        update(&api, &nl, vat("NL123456789B01").await).await.0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        update(&api, &us, vat("EIN 12-345").await).await.0,
+        StatusCode::OK
+    );
+}
+
+#[sqlx::test]
+async fn update_and_delete_permissions_and_ids(pool: PgPool) {
+    let api = api(pool).await;
+    let id = api.create(body(), "relation_id").await;
+    let bob = member_with(
+        &api.app,
+        &api.pool,
+        &api.ws,
+        "bob@example.com",
+        &["relation.list"],
+    )
+    .await;
+    let carl = member_with(
+        &api.app,
+        &api.pool,
+        &api.ws,
+        "carl@example.com",
+        &["relation.update", "relation.delete"],
+    )
+    .await;
+    let path = format!("/{id}");
+
+    for method in [Method::POST, Method::DELETE] {
+        let (status, _) = api.call(method.clone(), &path, Some(json!({})), &bob).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{method}");
+    }
+    let b = required(&api, "business").await;
+    assert_eq!(
+        api.call(Method::POST, &path, Some(b.clone()), &carl)
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let (eve, eve_ws) = signup(&api.app, "eve@example.com", "evil").await;
+    let foreign = format!("/v1/workspace/{eve_ws}/relations/{id}");
+    for method in [Method::POST, Method::DELETE] {
+        let mut fb = b.clone();
+        fb["relation_type_id"] = json!("01900000-0000-7000-8000-000000000001");
+        let (status, _) = send(&api.app, method.clone(), &foreign, Some(fb), Some(&eve)).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "foreign {method}");
+    }
+    api.delete(&id).await;
+    for bad in [id.as_str(), "nope", "01900000-0000-7000-8000-000000000001"] {
+        for method in [Method::POST, Method::DELETE] {
+            let (status, _) = api
+                .call(
+                    method.clone(),
+                    &format!("/{bad}"),
+                    Some(b.clone()),
+                    &api.owner,
+                )
+                .await;
+            assert_eq!(status, StatusCode::NOT_FOUND, "{method} {bad}");
+        }
+    }
+}
+
+#[sqlx::test]
+async fn delete_keeps_contacts_and_number(pool: PgPool) {
+    let api = api(pool).await;
+    let mut b = body();
+    b["contact"] = json!({ "first_name": "a", "last_name": "b" });
+    let id = api.create(b, "relation_id").await;
+
+    api.delete(&id).await;
+
+    assert_eq!(api.list("").await["meta"]["total"], 0);
+    assert_eq!(
+        contacts_in_db(&api, &id).await.len(),
+        1,
+        "Laravel left contacts in place"
+    );
+    let next = api.create(body(), "relation_id").await;
+    assert_eq!(api.get(&next).await["relation_nr"], "RE-0002");
+}
+
+// ---- contacts
+
+async fn contacts(
+    api: &Api,
+    relation: &str,
+    path: &str,
+    method: Method,
+    b: Option<Value>,
+    token: &str,
+) -> (StatusCode, Value) {
+    api.call(method, &format!("/{relation}/contacts{path}"), b, token)
+        .await
+}
+
+#[sqlx::test]
+async fn contact_create_update_delete(pool: PgPool) {
+    let api = api(pool).await;
+    let rel = api.create(body(), "relation_id").await;
+
+    let (status, res) = contacts(
+        &api,
+        &rel,
+        "",
+        Method::POST,
+        Some(
+            json!({ "first_name": "jan", "last_name": "jansen", "email": "Jan@X.nl",
+                     "phone_number": "06 1234 5678", "job_title": "Buyer", "default_contact": true,
+                     "default_for": "default_for_invoice",
+                     "phones": [{ "type": "work", "number": "020 1234567" }] }),
+        ),
+        &api.owner,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let cid = res["data"]["contact_id"].as_str().unwrap().to_owned();
+    let shown = &api.get(&rel).await["relationships"]["contacts"][0];
+    assert_eq!(shown["id"], cid.as_str());
+    assert_eq!(shown["full_name"], "Jan Jansen");
+    assert_eq!(shown["email"], "jan@x.nl");
+    assert_eq!(shown["default_for"], "default_for_invoice");
+    assert_eq!(
+        shown["phones"],
+        json!([{ "type": "work", "number": "+31201234567" }])
+    );
+    assert!(
+        shown.get("phone_number").is_none(),
+        "Laravel never returned it"
+    );
+
+    let (status, res) = contacts(
+        &api,
+        &rel,
+        &format!("/{cid}"),
+        Method::POST,
+        Some(json!({ "job_title": "Owner" })),
+        &api.owner,
+    )
+    .await;
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    let c = &contacts_in_db(&api, &rel).await[0];
+    assert_eq!(c["job_title"], "Owner");
+    assert_eq!(
+        c["email"], "jan@x.nl",
+        "Laravel cleared it on every update without email"
+    );
+    assert_eq!(c["phone_number"], "+31612345678");
+
+    let (status, res) = contacts(
+        &api,
+        &rel,
+        &format!("/{cid}"),
+        Method::DELETE,
+        None,
+        &api.owner,
+    )
+    .await;
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    assert_eq!(api.get(&rel).await["relationships"]["contacts"], json!([]));
+}
+
+#[sqlx::test]
+async fn one_default_contact_after_create_and_update(pool: PgPool) {
+    let api = api(pool).await;
+    let rel = api.create(body(), "relation_id").await;
+    let add = |first: &'static str| {
+        let api = &api;
+        let rel = rel.clone();
+        async move {
+            let b = json!({ "first_name": first, "last_name": "x", "default_contact": true });
+            let (s, r) = contacts(api, &rel, "", Method::POST, Some(b), &api.owner).await;
+            assert_eq!(s, StatusCode::CREATED, "{r}");
+            r["data"]["contact_id"].as_str().unwrap().to_owned()
+        }
+    };
+    let first = add("a").await;
+    let second = add("b").await;
+    let defaults = |api: &Api| {
+        let pool = api.pool.clone();
+        let rel = rel.clone();
+        async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT id::text FROM contacts WHERE relation_id = $1::uuid AND default_contact",
+            )
+            .bind(rel)
+            .fetch_all(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    assert_eq!(defaults(&api).await, vec![second.clone()]);
+
+    let b = json!({ "default_contact": "1" });
+    contacts(
+        &api,
+        &rel,
+        &format!("/{first}"),
+        Method::POST,
+        Some(b),
+        &api.owner,
+    )
+    .await;
+
+    assert_eq!(defaults(&api).await, vec![first]);
+}
+
+#[sqlx::test]
+async fn contact_rules_and_scoping(pool: PgPool) {
+    let api = api(pool).await;
+    let rel = api.create(body(), "relation_id").await;
+    let other = api.create(body(), "relation_id").await;
+    let (_, made) = contacts(
+        &api,
+        &rel,
+        "",
+        Method::POST,
+        Some(json!({ "first_name": "a", "last_name": "b" })),
+        &api.owner,
+    )
+    .await;
+    let cid = made["data"]["contact_id"].as_str().unwrap().to_owned();
+
+    let (status, res) = contacts(
+        &api,
+        &rel,
+        "",
+        Method::POST,
+        Some(json!({ "email": "x", "default_for": "invoice" })),
+        &api.owner,
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"]["first_name"],
+        json!(["The first name field is required."])
+    );
+    assert_eq!(
+        res["errors"]["last_name"],
+        json!(["The last name field is required."])
+    );
+    assert_eq!(
+        res["errors"]["email"],
+        json!(["The email field must be a valid email address."])
+    );
+    assert_eq!(
+        res["errors"]["default_for"],
+        json!(["The selected default for: invoice is invalid."])
+    );
+
+    for (method, b) in [
+        (Method::POST, Some(json!({ "job_title": "x" }))),
+        (Method::DELETE, None),
+    ] {
+        let (status, _) = contacts(
+            &api,
+            &other,
+            &format!("/{cid}"),
+            method.clone(),
+            b.clone(),
+            &api.owner,
+        )
+        .await;
+        assert_eq!(
+            status,
+            StatusCode::NOT_FOUND,
+            "contact via another relation, {method}"
+        );
+        let (status, _) = contacts(&api, &rel, "/undefined", method.clone(), b, &api.owner).await;
+        assert_eq!(
+            status,
+            StatusCode::NOT_FOUND,
+            "POS sends /contacts/undefined, {method}"
+        );
+    }
+    let (status, _) = contacts(
+        &api,
+        "01900000-0000-7000-8000-000000000001",
+        "",
+        Method::POST,
+        Some(json!({ "first_name": "a", "last_name": "b" })),
+        &api.owner,
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "unknown relation");
+
+    let bob = member_with(
+        &api.app,
+        &api.pool,
+        &api.ws,
+        "bob@example.com",
+        &["relation.list"],
+    )
+    .await;
+    for (path, method) in [
+        ("".to_owned(), Method::POST),
+        (format!("/{cid}"), Method::POST),
+        (format!("/{cid}"), Method::DELETE),
+    ] {
+        let (status, _) = contacts(&api, &rel, &path, method.clone(), Some(json!({})), &bob).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{method} {path}");
+    }
+    let (eve, eve_ws) = signup(&api.app, "eve@example.com", "evil").await;
+    let foreign = format!("/v1/workspace/{eve_ws}/relations/{rel}/contacts");
+    let (status, _) = send(
+        &api.app,
+        Method::POST,
+        &foreign,
+        Some(json!({ "first_name": "a", "last_name": "b" })),
+        Some(&eve),
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+// ---- financial summary
+
+#[sqlx::test]
+async fn financial_summary_zero_documents(pool: PgPool) {
+    let api = api(pool).await;
+    let mut b = body();
+    b["financial_account"] = json!({ "credit_limit": "1500.5" });
+    let id = api.create(b, "relation_id").await;
+
+    let (status, lite) = api
+        .call(
+            Method::GET,
+            &format!("/{id}/financial-summary?lite=1"),
+            None,
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{lite}");
+    assert_eq!(
+        lite["data"],
+        json!({ "relation_id": id, "projected_ltv": null, "total_spend": 0.0, "outstanding_amount": 0.0,
+                "outstanding_count": 0, "total_customer_value": 0.0, "outstanding_balance": 0.0,
+                "credit_limit": 1500.5, "available_credit": 1500.5, "account_manager_name": null,
+                "customer_since": null, "last_payment_date": null, "loyalty_points": 0 })
+    );
+
+    let (_, full) = api
+        .call(
+            Method::GET,
+            &format!("/{id}/financial-summary"),
+            None,
+            &api.owner,
+        )
+        .await;
+    let d = &full["data"];
+    for k in [
+        "first_send_date",
+        "last_send_date",
+        "months_since_last",
+        "account_manager_name",
+        "last_payment_date",
+    ] {
+        assert_eq!(d[k], Value::Null, "{k}");
+    }
+    assert_eq!(d["orders_count"], 0);
+    assert_eq!(d["expected_lifespan_years"], 5);
+    assert_eq!(d["projected_ltv"], 0.0);
+    assert!(
+        d["customer_since"].as_str().unwrap().len() == 19,
+        "Y-m-d H:i:s like the MySQL row"
+    );
+
+    let bob = member_with(&api.app, &api.pool, &api.ws, "bob@example.com", &[]).await;
+    assert_eq!(
+        api.call(Method::GET, &format!("/{id}/financial-summary"), None, &bob)
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let (eve, eve_ws) = signup(&api.app, "eve@example.com", "evil").await;
+    let foreign = format!("/v1/workspace/{eve_ws}/relations/{id}/financial-summary");
+    assert_eq!(
+        send(&api.app, Method::GET, &foreign, None, Some(&eve))
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+}

@@ -262,6 +262,19 @@ impl Rules {
         had
     }
 
+    /// `merge_into` with `prefix` before every field key (messages keep the bare name, as
+    /// Laravel's nested value validators reported them).
+    pub fn merge_into_prefixed(self, into: &mut Rules, prefix: &str) -> bool {
+        let had = !self.errors.is_empty();
+        for (field, messages) in self.errors {
+            into.errors
+                .entry(format!("{prefix}{field}"))
+                .or_default()
+                .extend(messages);
+        }
+        had
+    }
+
     /// Ok when no rule failed, else 422 with every message.
     pub fn into_result(self) -> Result<(), AppError> {
         if self.errors.is_empty() {

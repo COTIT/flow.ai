@@ -25,13 +25,6 @@ pub struct Query {
     pub phone_patterns: Vec<String>,
 }
 
-impl Query {
-    /// True when `q` asks for a filter at all.
-    pub fn is_set(&self) -> bool {
-        !self.patterns.is_empty()
-    }
-}
-
 /// Split on commas outside quotes, trim spaces and quotes, drop `null`/`undefined` tokens
 /// left by template strings (a one-word term stays, so a relation named "null" is findable).
 fn terms(raw: &str) -> Vec<String> {
@@ -233,7 +226,7 @@ mod tests {
             parse(Some("50%")).unwrap().unwrap().patterns,
             vec!["%50\\%%"]
         );
-        assert!(!parse(Some("*")).unwrap().unwrap().is_set());
+        assert!(parse(Some("*")).unwrap().unwrap().patterns.is_empty());
         assert_eq!(parse(Some("null undefined")).unwrap(), None);
         assert!(parse(Some(&"x".repeat(256))).is_err());
         assert!(

@@ -14,13 +14,13 @@ use crate::{
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, flag},
-        response::Data,
+        response::{Data, Message},
         workspace::{Can, WorkspaceAccess, permissions},
     },
     modules::relations::{
         dto::{
             CreateRelationRequest, IndexFlags, RelationCreated, RelationIndexResource,
-            RelationResource,
+            RelationResource, UpdateRelationRequest,
         },
         repo::ListFilter,
         search,
@@ -31,6 +31,8 @@ use crate::{
 permissions! {
     RelationCreate => "relation.create",
     RelationList => "relation.list",
+    RelationUpdate => "relation.update",
+    RelationDelete => "relation.delete",
 }
 
 /// `{workspace}` + `{relation}`; the id stays raw so a malformed one is a 404.
@@ -41,6 +43,7 @@ type RelationPath = Path<(String, String)>;
 pub struct GetQuery {
     slim: Option<String>,
     include_unpaid_invoices: Option<String>,
+    lite: Option<String>,
 }
 
 /// POST /relations (and `/relations/`, which vimdesk-web and the POS call) -> 201
@@ -172,5 +175,39 @@ pub async fn list(
             page,
         )
         .await?,
+    ))
+}
+
+/// POST /relations/{relation} -> `{"message":"ok"}`.
+pub async fn update(
+    State(state): State<AppState>,
+    access: Can<RelationUpdate>,
+    Path((_, id)): RelationPath,
+    ValidatedJson(patch): ValidatedJson<UpdateRelationRequest>,
+) -> Result<Message, AppError> {
+    service::update(&state, access.workspace_id, &id, patch).await?;
+    Ok(Message("ok"))
+}
+
+/// DELETE /relations/{relation} -> `{"message":"ok"}`.
+pub async fn delete(
+    State(state): State<AppState>,
+    access: Can<RelationDelete>,
+    Path((_, id)): RelationPath,
+) -> Result<Message, AppError> {
+    service::delete(&state, access.workspace_id, &id).await?;
+    Ok(Message("ok"))
+}
+
+/// GET /relations/{relation}/financial-summary?lite= (member only, as in Laravel).
+pub async fn financial_summary(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, id)): RelationPath,
+    Query(query): Query<GetQuery>,
+) -> Result<Data<serde_json::Value>, AppError> {
+    let lite = query.lite.as_deref().is_some_and(flag);
+    Ok(Data(
+        service::financial_summary(&state, access.workspace_id, &id, lite).await?,
     ))
 }

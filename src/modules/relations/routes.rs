@@ -14,5 +14,14 @@ pub fn private() -> Router<AppState> {
     Router::new()
         .route(base, get(handlers::list).post(handlers::create))
         .route(&format!("{base}/"), post(handlers::create))
-        .route(&format!("{base}/{{relation}}"), get(handlers::get))
+        .route(
+            &format!("{base}/{{relation}}"),
+            get(handlers::get)
+                .post(handlers::update)
+                .delete(handlers::delete),
+        )
+        .route(
+            &format!("{base}/{{relation}}/financial-summary"),
+            get(handlers::financial_summary),
+        )
 }

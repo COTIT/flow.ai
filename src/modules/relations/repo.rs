@@ -17,8 +17,6 @@ pub const START_NUMBER: i64 = 1;
 /// Live relation. `addresses` decoded from the JSON array column.
 pub struct RelationRow {
     pub id: Uuid,
-    pub relation_type_id: Uuid,
-    pub source_type_id: Option<Uuid>,
     pub relation_number: Option<i64>,
     pub relation_appendix: Option<Value>,
     pub kind: String,
@@ -117,8 +115,6 @@ pub async fn insert(
 /// list's window count (None for single-row reads).
 struct Joined {
     id: Uuid,
-    relation_type_id: Uuid,
-    source_type_id: Option<Uuid>,
     relation_number: Option<i64>,
     relation_appendix: Option<Value>,
     kind: String,
@@ -204,8 +200,6 @@ impl Joined {
         );
         let relation = RelationRow {
             id: self.id,
-            relation_type_id: self.relation_type_id,
-            source_type_id: self.source_type_id,
             relation_number: self.relation_number,
             relation_appendix: self.relation_appendix,
             kind: self.kind,
@@ -241,7 +235,7 @@ pub async fn find_detail(
 ) -> Result<Option<WithTypes>, sqlx::Error> {
     sqlx::query_as!(
         Joined,
-        r#"SELECT r.id, r.relation_type_id, r.source_type_id, r.relation_number, r.relation_appendix,
+        r#"SELECT r.id, r.relation_number, r.relation_appendix,
                   r.type AS kind, r.allow_invoicing_on_account, r.disable_order_workflow_emails,
                   r.alias, r.company_name, r.email, r.website, r.phone_number, r.coc_number,
                   r.vat_number, r.import_source, r.import_id, r.default_language, r.addresses,
@@ -295,7 +289,7 @@ pub async fn list(
     let words = serde_json::to_value(&f.q.words).map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
     let rows = sqlx::query_as!(
         Joined,
-        r#"SELECT r.id, r.relation_type_id, r.source_type_id, r.relation_number, r.relation_appendix,
+        r#"SELECT r.id, r.relation_number, r.relation_appendix,
                   r.type AS kind, r.allow_invoicing_on_account, r.disable_order_workflow_emails,
                   r.alias, r.company_name, r.email, r.website, r.phone_number, r.coc_number,
                   r.vat_number, r.import_source, r.import_id, r.default_language, r.addresses,
@@ -371,4 +365,159 @@ pub async fn list(
         .map(Joined::split)
         .collect::<Result<_, _>>()?;
     Ok((rows, total))
+}
+
+/// Stored addresses of a live relation, row locked for this transaction (updates and contact
+/// writes read the country, and default-contact changes serialize on it). None = 404.
+pub async fn addresses_for_update(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<Vec<Address>>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT addresses FROM relations
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+         FOR UPDATE",
+        id,
+        workspace_id,
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .map(decode_addresses)
+    .transpose()
+}
+
+/// Apply a validated patch in one statement (absent = keep). `keep_ftp_password` copies the
+/// stored FTP password into the new supplier data. False = no such live row.
+pub async fn update(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    relation_type_id: Uuid,
+    p: &crate::modules::relations::dto::RelationPatch,
+    keep_ftp_password: bool,
+) -> Result<bool, sqlx::Error> {
+    let text = |v: &Option<Option<String>>| (v.is_some(), v.clone().flatten());
+    let json = |v: &Option<Option<Value>>| (v.is_some(), v.clone().flatten());
+    let (s_alias, alias) = text(&p.alias);
+    let (s_company, company) = text(&p.company_name);
+    let (s_coc, coc) = text(&p.coc_number);
+    let (s_vat, vat) = text(&p.vat_number);
+    let (s_email, email) = text(&p.email);
+    let (s_website, website) = text(&p.website);
+    let (s_phone, phone) = text(&p.phone_number);
+    let (s_language, language) = text(&p.default_language);
+    let (s_import_source, import_source) = text(&p.import_source);
+    let (s_import_id, import_id) = text(&p.import_id);
+    let (s_account, account) = json(&p.financial_account);
+    let (s_terms, terms) = json(&p.terms_and_periods);
+    let (s_supplier, supplier) = json(&p.supplier_data);
+    let (s_meta, meta) = json(&p.meta);
+    let addresses = p
+        .addresses
+        .as_ref()
+        .map(serde_json::to_value)
+        .transpose()
+        .map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
+    sqlx::query!(
+        r#"UPDATE relations
+           SET type = $3,
+               relation_type_id = $4,
+               alias = CASE WHEN $5 THEN $6 ELSE alias END,
+               company_name = CASE WHEN $7 THEN $8 ELSE company_name END,
+               coc_number = CASE WHEN $9 THEN $10 ELSE coc_number END,
+               vat_number = CASE WHEN $11 THEN $12 ELSE vat_number END,
+               email = CASE WHEN $13 THEN $14 ELSE email END,
+               website = CASE WHEN $15 THEN $16 ELSE website END,
+               phone_number = CASE WHEN $17 THEN $18 ELSE phone_number END,
+               default_language = CASE WHEN $19 THEN $20 ELSE default_language END,
+               import_source = CASE WHEN $21 THEN $22 ELSE import_source END,
+               import_id = CASE WHEN $23 THEN $24 ELSE import_id END,
+               addresses = COALESCE($25, addresses),
+               financial_account = CASE WHEN $26 THEN $27 ELSE financial_account END,
+               terms_and_periods = CASE WHEN $28 THEN $29 ELSE terms_and_periods END,
+               supplier_data = CASE
+                   WHEN NOT $30 THEN supplier_data
+                   WHEN $31 AND supplier_data #> '{order_ftp,password}' IS NOT NULL
+                       THEN jsonb_set($32, '{order_ftp,password}', supplier_data #> '{order_ftp,password}')
+                   ELSE $32 END,
+               allow_invoicing_on_account = COALESCE($33, allow_invoicing_on_account),
+               disable_order_workflow_emails = COALESCE($34, disable_order_workflow_emails),
+               meta = CASE WHEN $35 THEN $36 ELSE meta END,
+               updated_at = now()
+           WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL"#,
+        id,
+        workspace_id,
+        p.kind,
+        relation_type_id,
+        s_alias,
+        alias,
+        s_company,
+        company,
+        s_coc,
+        coc,
+        s_vat,
+        vat,
+        s_email,
+        email,
+        s_website,
+        website,
+        s_phone,
+        phone,
+        s_language,
+        language,
+        s_import_source,
+        import_source,
+        s_import_id,
+        import_id,
+        addresses,
+        s_account,
+        account,
+        s_terms,
+        terms,
+        s_supplier,
+        keep_ftp_password,
+        supplier,
+        p.allow_invoicing_on_account,
+        p.disable_order_workflow_emails,
+        s_meta,
+        meta,
+    )
+    .execute(&mut *conn)
+    .await
+    .map(|done| done.rows_affected() == 1)
+}
+
+/// Soft delete. False = no such live row. Contacts stay (Laravel parity).
+pub async fn soft_delete(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query!(
+        "UPDATE relations SET deleted_at = now(), updated_at = now()
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+        id,
+        workspace_id,
+    )
+    .execute(db)
+    .await
+    .map(|done| done.rows_affected() == 1)
+}
+
+/// What the financial summary needs from a live relation: stored account and creation time.
+pub async fn summary_source(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<(Option<Value>, DateTime<Utc>)>, sqlx::Error> {
+    Ok(sqlx::query!(
+        "SELECT financial_account, created_at FROM relations
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+        id,
+        workspace_id,
+    )
+    .fetch_optional(db)
+    .await?
+    .map(|r| (r.financial_account, r.created_at)))
 }

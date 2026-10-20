@@ -1,6 +1,7 @@
 //! Relation rules: create with number + inline default contact in one transaction, detail view.
 
-use serde_json::json;
+use chrono::{DateTime, Utc};
+use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
@@ -9,12 +10,14 @@ use crate::{
     modules::{
         contacts, custom_types,
         relations::{
+            address,
             dto::{
-                Detail, IndexFlags, NewRelation, RelationIndexResource, RelationResource,
-                TYPE_NOT_VALID, WorkspaceCtx,
+                Detail, IndexFlags, NewRelation, RelationIndexResource, RelationPatch,
+                RelationResource, TYPE_NOT_VALID, WorkspaceCtx, keeps_ftp_password,
             },
             phone,
             repo::{self, ListFilter},
+            vat_number,
         },
         vat_groups, workspaces,
     },
@@ -145,4 +148,109 @@ pub async fn list(
         })
         .collect();
     Ok((data, total))
+}
+
+/// Patch a live relation of this workspace, else 404. Row locked first: the VAT and phone
+/// rules read its stored addresses (Laravel ValidateVatNumber used the stored ones too).
+pub async fn update(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    mut p: RelationPatch,
+) -> Result<(), AppError> {
+    let id = parse(id)?;
+    let mut tx = state.db.begin().await?;
+    let stored = repo::addresses_for_update(&mut tx, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let relation_type_id = p
+        .relation_type_id
+        .ok_or_else(|| AppError::field("relation_type_id", TYPE_NOT_VALID))?;
+    if !custom_types::repo::is_live(&mut *tx, workspace_id, relation_type_id, Some("relation"))
+        .await?
+    {
+        return Err(AppError::field("relation_type_id", TYPE_NOT_VALID));
+    }
+    let stored_country = address::default_of(&stored).and_then(|a| a.country.clone());
+    if let Some(Some(vat)) = &p.vat_number
+        && stored_country.as_deref().is_some_and(vat_number::in_vat_eu)
+        && !vat_number::is_valid_format(vat)
+    {
+        return Err(AppError::field(
+            "vat_number",
+            "The Vat number must be a valid number issued by any Member State.",
+        ));
+    }
+    if let Some(Some(n)) = &p.phone_number {
+        let country = p
+            .addresses
+            .as_deref()
+            .and_then(phone::country_of)
+            .or_else(|| phone::country_of(&stored));
+        p.phone_number = Some(phone::normalize(Some(n), country));
+    }
+    let keep = matches!(&p.supplier_data, Some(Some(s)) if keeps_ftp_password(s));
+    repo::update(&mut tx, workspace_id, id, relation_type_id, &p, keep).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Soft delete, else 404.
+// shortcut: no invoices/orders/estimates/work orders yet, so Laravel's "has documents" 422
+// can't trigger; the order/invoice batch adds that guard.
+pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
+    repo::soft_delete(&state.db, workspace_id, parse(id)?)
+        .await?
+        .then_some(())
+        .ok_or(AppError::NotFound)
+}
+
+/// Laravel GetRelationFinancialSummary with no documents: every amount is 0, credit comes from
+/// the financial account. Key sets match Laravel's lite and full answers.
+// shortcut: invoices/payments/loyalty not ported; the invoice batch replaces the zeros.
+pub async fn financial_summary(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    lite: bool,
+) -> Result<Value, AppError> {
+    let id = parse(id)?;
+    let (account, created_at) = repo::summary_source(&state.db, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let credit_limit = account
+        .as_ref()
+        .and_then(|a| a.get("credit_limit"))
+        .and_then(|c| {
+            c.as_f64()
+                .or_else(|| c.as_str().and_then(|s| s.trim().parse().ok()))
+        });
+    let available = credit_limit.map(|c| (c.max(0.0) * 100.0).round() / 100.0);
+    if lite {
+        return Ok(json!({
+            "relation_id": id, "projected_ltv": null, "total_spend": 0.0,
+            "outstanding_amount": 0.0, "outstanding_count": 0, "total_customer_value": 0.0,
+            "outstanding_balance": 0.0, "credit_limit": credit_limit, "available_credit": available,
+            "account_manager_name": null, "customer_since": null, "last_payment_date": null,
+            "loyalty_points": 0,
+        }));
+    }
+    Ok(json!({
+        "relation_id": id, "first_send_date": null, "last_send_date": null,
+        "months_since_last": null, "orders_count": 0, "years_active": 0.0, "total_spend": 0.0,
+        "avg_order_value": 0.0, "purchases_per_year": 0.0,
+        // Laravel's base lifespan for a relation without recent orders.
+        "expected_lifespan_years": 5, "projected_ltv": 0.0, "remaining_ltv": 0.0,
+        "outstanding_amount": 0.0, "outstanding_count": 0, "total_customer_value": 0.0,
+        "outstanding_balance": 0.0,
+        // shortcut: no set-owner route yet, so no relation has an account manager.
+        "account_manager_name": null,
+        "customer_since": mysql_datetime(created_at), "last_payment_date": null,
+        "credit_limit": credit_limit, "available_credit": available,
+    }))
+}
+
+/// `Y-m-d H:i:s`, the raw MySQL column form Laravel returned from its summary query.
+fn mysql_datetime(t: DateTime<Utc>) -> String {
+    t.format("%Y-%m-%d %H:%M:%S").to_string()
 }

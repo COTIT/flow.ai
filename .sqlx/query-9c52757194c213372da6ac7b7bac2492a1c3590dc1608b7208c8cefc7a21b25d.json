@@ -1,0 +1,221 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, relation_id, first_name, middle_name, last_name, email, phones, job_title,\n                initials, prefix, attn, salutation, default_contact, default_for, meta,\n                created_at, updated_at\n         FROM contacts\n         WHERE workspace_id = $1 AND relation_id = ANY($2) AND deleted_at IS NULL\n         ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "first_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "first_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "middle_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "middle_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "last_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "phones",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "phones"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "job_title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "job_title"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "initials",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "initials"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "prefix",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "prefix"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "attn",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "attn"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "salutation",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "salutation"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "default_contact",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "default_contact"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "default_for",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "default_for"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "9c52757194c213372da6ac7b7bac2492a1c3590dc1608b7208c8cefc7a21b25d"
+}
