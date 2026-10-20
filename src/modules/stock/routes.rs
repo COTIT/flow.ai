@@ -1,6 +1,9 @@
 //! Stock routes, mounted under /v1 (paths match vimdesk-api).
 
-use axum::{Router, routing::post};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 
 use crate::{AppState, modules::stock::handlers};
 
@@ -23,5 +26,17 @@ pub fn private() -> Router<AppState> {
         .route(
             &format!("{product}/move-stock-between-bins"),
             post(handlers::move_between_bins),
+        )
+        .route(
+            &format!("{product}/stock-with-bins"),
+            get(handlers::with_bins),
+        )
+        .route(
+            &format!("{product}/configured-bins"),
+            get(handlers::configured_bins),
+        )
+        .route(
+            &format!("{product}/stock-movements"),
+            get(handlers::movements),
         )
 }

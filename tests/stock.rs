@@ -831,3 +831,145 @@ async fn product_resource_shows_real_stock(pool: PgPool) {
     assert_eq!(s["pos_stock_status"], "not_applicable");
     assert_eq!(s["total_available_stock"], json!(0));
 }
+
+impl World {
+    async fn read(&self, path: &str) -> Value {
+        let (status, res) = self
+            .api
+            .call(
+                Method::GET,
+                &format!("/{}/{path}", self.product),
+                None,
+                &self.api.owner,
+            )
+            .await;
+        assert_eq!(status, StatusCode::OK, "{path}: {res}");
+        res
+    }
+}
+
+#[sqlx::test]
+async fn stock_with_bins_and_configured_bins(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    let (bin, shelf) = (&w.bins[1].0, &w.bins[1].1);
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 4 }))
+        .await;
+    w.mutate(json!({ "warehouse_id": w.main, "bin_id": bin, "mutation_value": "1.5" }))
+        .await;
+
+    let rows = w.read("stock-with-bins").await;
+    let rows = rows["data"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(
+        rows[0],
+        json!({ "id": rows[0]["id"], "stock_lvl": "4.00", "reserved": "0.00",
+                "minimal_stock_level": 0, "maximum_stock_level": 0,
+                "warehouse": { "id": w.main, "name": "Main" }, "shelf": null, "bin": null })
+    );
+    assert_eq!(rows[1]["shelf"]["id"], shelf.as_str());
+    assert_eq!(rows[1]["shelf"]["row"]["row_code"], "H-ROW-A");
+    assert_eq!(rows[1]["shelf"]["row"]["section"]["section_code"], "H");
+    assert_eq!(rows[1]["bin"]["id"], bin.as_str());
+
+    let groups = w.read("configured-bins").await;
+    assert_eq!(groups["data"].as_array().unwrap().len(), 1);
+    let g = &groups["data"][0];
+    assert_eq!(
+        (g["warehouse_id"].clone(), g["warehouse_uuid"].clone()),
+        (json!(w.main), json!(w.main)),
+        "no int ids in genesy: both carry the uuid"
+    );
+    assert_eq!(g["bins"][0]["id"], bin.as_str());
+    assert_eq!(g["bins"][0]["row"]["row_code"], "H-ROW-A");
+    assert_eq!(g["bins"][0]["section"]["section_code"], "H");
+    assert_eq!(g["bins"][0]["shelf"]["id"], shelf.as_str());
+
+    let viewer = member_with(
+        &w.api.app,
+        &pool,
+        &w.api.ws,
+        "bob@example.com",
+        &["stock.mutate"],
+    )
+    .await;
+    let path = format!("/{}/stock-with-bins", w.product);
+    let (status, _) = w.api.call(Method::GET, &path, None, &viewer).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "needs stock.list");
+    let (status, _) = w
+        .api
+        .call(
+            Method::GET,
+            "/01900000-0000-7000-8000-000000000001/configured-bins",
+            None,
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test]
+async fn stock_movements_list(pool: PgPool) {
+    let w = world(pool).await;
+    let (bin, _) = &w.bins[0];
+    w.mutate(
+        json!({ "warehouse_id": w.main, "mutation_value": 3, "reason": "in",
+                     "meta": { "source": "picqer_sync" } }),
+    )
+    .await;
+    w.mutate(json!({ "warehouse_id": w.main, "bin_id": bin, "mutation_value": 1 }))
+        .await;
+    w.mutate(json!({ "warehouse_id": w.shop, "mutation_value": 2 }))
+        .await;
+
+    let res = w.read("stock-movements").await;
+    let rows = res["data"].as_array().unwrap();
+    assert_eq!(rows.len(), 3);
+    assert_eq!(
+        res["meta"]["total"], 3,
+        "Laravel dropped meta; the web client reads it"
+    );
+    assert_eq!(res["meta"]["per_page"], 15);
+    let newest = &rows[0];
+    assert_eq!(newest["relationships"]["warehouse"]["name"], "Shop");
+    let oldest = &rows[2];
+    assert_eq!(oldest["movement_type"], "increase");
+    assert_eq!(
+        (
+            oldest["quantity_change"].clone(),
+            oldest["quantity_before"].clone(),
+            oldest["quantity_after"].clone()
+        ),
+        (json!("3.00"), json!("0.00"), json!("3.00"))
+    );
+    assert_eq!(oldest["reason"], "in");
+    assert_eq!(oldest["is_correction"], false);
+    assert_eq!(oldest["meta"], json!({ "source": "picqer_sync" }));
+    assert_eq!(oldest["location"], Value::Null);
+    assert_eq!(oldest["relationships"]["user"]["name"], "Ada Lovelace");
+    assert_eq!(oldest["relationships"]["picqer_sync"], Value::Null);
+    assert_eq!(oldest["relationships"]["stock"]["stock_lvl"], "3.00");
+    assert!(oldest["relationships"].get("product").is_none());
+    let binned = &rows[1];
+    assert_eq!(
+        binned["location"], "Hall.Row A.Shelf 1",
+        "names before codes"
+    );
+    assert_eq!(
+        binned["relationships"]["bin"]["code"],
+        binned["relationships"]["bin"]["bin_code"]
+    );
+
+    let filtered = w
+        .read(&format!(
+            "stock-movements?warehouse_id={}&per_page=1&page=2",
+            w.main
+        ))
+        .await;
+    assert_eq!(filtered["meta"]["total"], 2);
+    assert_eq!(filtered["data"][0]["reason"], "in");
+    let by_bin = w.read(&format!("stock-movements?bin_id={bin}")).await;
+    assert_eq!(
+        by_bin["meta"]["total"], 1,
+        "bin filter works without shelf_id (Laravel dropped it)"
+    );
+}

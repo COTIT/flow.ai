@@ -347,3 +347,43 @@ impl DeleteQuery {
             .ok_or_else(|| crate::error::AppError::field("warehouse_id", NO_WAREHOUSE))
     }
 }
+
+/// GET stock-movements query (Laravel ListProductStockMovementsRequest). Ids filter
+/// independently; `per_page` defaults to 15.
+#[derive(Deserialize)]
+pub struct MovementQuery {
+    pub warehouse_id: Option<String>,
+    pub shelf_id: Option<String>,
+    pub bin_id: Option<String>,
+    pub page: Option<String>,
+    pub per_page: Option<String>,
+}
+
+impl MovementQuery {
+    /// The filter and its page. A malformed id matches nothing (nil).
+    pub fn filter(
+        &self,
+    ) -> (
+        crate::modules::stock::repo::MovementFilter,
+        crate::http::list::Page,
+    ) {
+        let id = |v: &Option<String>| {
+            v.as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(|s| Uuid::parse_str(s).unwrap_or(Uuid::nil()))
+        };
+        let page = crate::http::list::Page::parse(
+            self.page.as_deref(),
+            Some(self.per_page.as_deref().unwrap_or("15")),
+        );
+        let f = crate::modules::stock::repo::MovementFilter {
+            warehouse_id: id(&self.warehouse_id),
+            shelf_id: id(&self.shelf_id),
+            bin_id: id(&self.bin_id),
+            limit: page.size,
+            offset: page.offset(),
+        };
+        (f, page)
+    }
+}

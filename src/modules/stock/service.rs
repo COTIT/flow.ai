@@ -4,6 +4,8 @@
 
 use std::collections::BTreeMap;
 
+use serde_json::Value;
+
 use uuid::Uuid;
 
 use crate::{
@@ -14,7 +16,8 @@ use crate::{
         products::{dto::PHYSICAL, repo as products, repo::ProductRow},
         stock::{
             dto::{Entry, Move, Mutate, NO_WAREHOUSE, SetRequirements},
-            repo::{self, Cause, Floor, Movement, Mutated, Slot},
+            repo::{self, Cause, Floor, Movement, MovementFilter, Mutated, Slot},
+            resource,
         },
         warehouses::repo as warehouses,
     },
@@ -387,4 +390,43 @@ fn rename(e: AppError, from: &str, to: &str) -> AppError {
         }
         e => e,
     }
+}
+
+/// GET /products/{id}/stock-with-bins.
+pub async fn with_bins(
+    state: &AppState,
+    workspace_id: Uuid,
+    product_id: &str,
+) -> Result<Vec<Value>, AppError> {
+    let p = product(state, workspace_id, product_id).await?;
+    let rows = repo::with_bins(&state.db, workspace_id, p.id).await?;
+    Ok(rows.iter().map(resource::with_bins).collect())
+}
+
+/// GET /products/{id}/configured-bins.
+pub async fn configured_bins(
+    state: &AppState,
+    workspace_id: Uuid,
+    product_id: &str,
+) -> Result<Vec<Value>, AppError> {
+    let p = product(state, workspace_id, product_id).await?;
+    let bins = repo::configured_bins(&state.db, workspace_id, p.id).await?;
+    Ok(resource::configured(&bins))
+}
+
+/// GET /products/{id}/stock-movements: one page, newest first, plus the total.
+pub async fn movements(
+    state: &AppState,
+    workspace_id: Uuid,
+    product_id: &str,
+    f: &MovementFilter,
+) -> Result<(Vec<Value>, i64), AppError> {
+    let p = product(state, workspace_id, product_id).await?;
+    let rows = repo::movements(&state.db, workspace_id, p.id, f).await?;
+    let total = match rows.first() {
+        Some(r) => r.total,
+        None if f.offset > 0 => repo::movements_count(&state.db, workspace_id, p.id, f).await?,
+        None => 0,
+    };
+    Ok((rows.iter().map(resource::movement).collect(), total))
 }

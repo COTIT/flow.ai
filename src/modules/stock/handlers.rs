@@ -1,23 +1,31 @@
 //! HTTP edge for the stock routes under /v1/workspace/{workspace}/products (Laravel StockPolicy
 //! names from the permission catalog).
 
-use axum::extract::{Path, Query, State};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+};
+use serde_json::{Value, json};
 
 use crate::{
     AppState,
     error::AppError,
     http::{
         json::ValidatedJson,
+        list::Paginated,
         response::Message,
         workspace::{Can, permissions},
     },
     modules::stock::{
-        dto::{DeleteQuery, MoveBody, MutateBody, SetLevelsBody, SetRequirementsBody},
+        dto::{
+            DeleteQuery, MoveBody, MovementQuery, MutateBody, SetLevelsBody, SetRequirementsBody,
+        },
         service,
     },
 };
 
 permissions! {
+    StockList => "stock.list",
     StockMutate => "stock.mutate",
     StockMove => "stock.move",
     StockSetLevels => "stock.set_stock_levels",
@@ -81,4 +89,37 @@ pub async fn move_between_bins(
 ) -> Result<Message, AppError> {
     service::move_between_bins(&state, access.workspace_id, &p, m, access.user_id).await?;
     Ok(Message("ok"))
+}
+
+/// GET /products/{product}/stock-with-bins -> `{data:[...]}`.
+pub async fn with_bins(
+    State(state): State<AppState>,
+    access: Can<StockList>,
+    Path((_, p)): ProductPath,
+) -> Result<Json<Value>, AppError> {
+    let data = service::with_bins(&state, access.workspace_id, &p).await?;
+    Ok(Json(json!({ "data": data })))
+}
+
+/// GET /products/{product}/configured-bins -> `{data:[...]}`.
+pub async fn configured_bins(
+    State(state): State<AppState>,
+    access: Can<StockList>,
+    Path((_, p)): ProductPath,
+) -> Result<Json<Value>, AppError> {
+    let data = service::configured_bins(&state, access.workspace_id, &p).await?;
+    Ok(Json(json!({ "data": data })))
+}
+
+/// GET /products/{product}/stock-movements -> `{data, meta}` (Laravel dropped `meta`; the
+/// web client reads it).
+pub async fn movements(
+    State(state): State<AppState>,
+    access: Can<StockList>,
+    Path((_, p)): ProductPath,
+    Query(q): Query<MovementQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    let (f, page) = q.filter();
+    let (data, total) = service::movements(&state, access.workspace_id, &p, &f).await?;
+    Ok(Json(Paginated::new(data, total, page)))
 }

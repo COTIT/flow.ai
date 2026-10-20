@@ -393,6 +393,242 @@ pub async fn bin(
     .await
 }
 
+/// A stock row with its warehouse, shelf (with row and section) and bin, for
+/// `stock-with-bins`. Each relation is None when soft-deleted.
+pub struct BinsRow {
+    pub id: Uuid,
+    pub stock_lvl: Decimal,
+    pub reserved: Decimal,
+    pub minimal_stock_level: i32,
+    pub maximum_stock_level: i32,
+    pub w_id: Option<Uuid>,
+    pub w_name: Option<String>,
+    pub sh_id: Option<Uuid>,
+    pub sh_code: Option<String>,
+    pub sh_name: Option<String>,
+    pub r_id: Option<Uuid>,
+    pub r_code: Option<String>,
+    pub r_name: Option<String>,
+    pub sec_id: Option<Uuid>,
+    pub sec_code: Option<String>,
+    pub sec_name: Option<String>,
+    pub b_id: Option<Uuid>,
+    pub b_code: Option<String>,
+    pub b_name: Option<String>,
+}
+
+/// Live stock rows of the product with their place, oldest first.
+pub async fn with_bins(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    product_id: Uuid,
+) -> Result<Vec<BinsRow>, sqlx::Error> {
+    sqlx::query_as!(
+        BinsRow,
+        r#"SELECT s.id, s.stock_lvl, s.reserved, s.minimal_stock_level, s.maximum_stock_level,
+                  w.id AS "w_id?", w.name AS "w_name?",
+                  sh.id AS "sh_id?", sh.shelf_code AS "sh_code?", sh.shelf_name AS "sh_name?",
+                  r.id AS "r_id?", r.row_code AS "r_code?", r.row_name AS "r_name?",
+                  sec.id AS "sec_id?", sec.section_code AS "sec_code?",
+                  sec.section_name AS "sec_name?",
+                  b.id AS "b_id?", b.bin_code AS "b_code?", b.bin_name AS "b_name?"
+           FROM stocks s
+           LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL
+           LEFT JOIN warehouse_section_rows r ON r.id = sh.row_id AND r.deleted_at IS NULL
+           LEFT JOIN warehouse_sections sec ON sec.id = r.section_id AND sec.deleted_at IS NULL
+           LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL
+           WHERE s.workspace_id = $1 AND s.product_id = $2 AND s.deleted_at IS NULL
+           ORDER BY s.id"#,
+        workspace_id,
+        product_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// A live bin holding a live stock row of the product, with its warehouse and place.
+pub struct ConfiguredBin {
+    pub id: Uuid,
+    pub bin_code: String,
+    pub bin_name: Option<String>,
+    pub warehouse_id: Uuid,
+    pub w_id: Option<Uuid>,
+    pub sec_id: Option<Uuid>,
+    pub sec_code: Option<String>,
+    pub sec_name: Option<String>,
+    pub r_id: Option<Uuid>,
+    pub r_code: Option<String>,
+    pub r_name: Option<String>,
+    pub sh_id: Option<Uuid>,
+    pub sh_code: Option<String>,
+    pub sh_name: Option<String>,
+}
+
+/// The product's configured bins (Laravel ListProductConfiguredBins), oldest bin first.
+pub async fn configured_bins(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    product_id: Uuid,
+) -> Result<Vec<ConfiguredBin>, sqlx::Error> {
+    sqlx::query_as!(
+        ConfiguredBin,
+        r#"SELECT b.id, b.bin_code, b.bin_name, b.warehouse_id, w.id AS "w_id?",
+                  sec.id AS "sec_id?", sec.section_code AS "sec_code?",
+                  sec.section_name AS "sec_name?",
+                  r.id AS "r_id?", r.row_code AS "r_code?", r.row_name AS "r_name?",
+                  sh.id AS "sh_id?", sh.shelf_code AS "sh_code?", sh.shelf_name AS "sh_name?"
+           FROM warehouse_section_row_bins b
+           LEFT JOIN warehouses w ON w.id = b.warehouse_id AND w.deleted_at IS NULL
+           LEFT JOIN warehouse_sections sec ON sec.id = b.section_id AND sec.deleted_at IS NULL
+           LEFT JOIN warehouse_section_rows r ON r.id = b.row_id AND r.deleted_at IS NULL
+           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = b.shelf_id AND sh.deleted_at IS NULL
+           WHERE b.workspace_id = $1 AND b.deleted_at IS NULL
+             AND b.id IN (SELECT bin_id FROM stocks
+                          WHERE workspace_id = $1 AND product_id = $2 AND deleted_at IS NULL
+                            AND bin_id IS NOT NULL)
+           ORDER BY b.id"#,
+        workspace_id,
+        product_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Movement list filter: each id narrows independently.
+pub struct MovementFilter {
+    pub warehouse_id: Option<Uuid>,
+    pub shelf_id: Option<Uuid>,
+    pub bin_id: Option<Uuid>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+/// A ledger row with its place, user and stock row (Laravel StockMovementResource).
+pub struct MovementRow {
+    pub id: Uuid,
+    pub movement_type: String,
+    pub quantity_change: Option<Decimal>,
+    pub quantity_before: Option<Decimal>,
+    pub quantity_after: Option<Decimal>,
+    pub minimal_stock_level_before: Option<i32>,
+    pub minimal_stock_level_after: Option<i32>,
+    pub maximum_stock_level_before: Option<i32>,
+    pub maximum_stock_level_after: Option<i32>,
+    pub reason: Option<String>,
+    pub is_correction: bool,
+    pub related_domain: Option<String>,
+    pub related_id: Option<Uuid>,
+    pub meta: Option<Value>,
+    pub created_at: DateTime<Utc>,
+    pub w_id: Option<Uuid>,
+    pub w_name: Option<String>,
+    pub sh_id: Option<Uuid>,
+    pub sh_code: Option<String>,
+    pub sh_name: Option<String>,
+    pub r_code: Option<String>,
+    pub r_name: Option<String>,
+    pub sec_code: Option<String>,
+    pub sec_name: Option<String>,
+    pub b_id: Option<Uuid>,
+    pub b_code: Option<String>,
+    pub b_name: Option<String>,
+    pub u_id: Option<Uuid>,
+    pub u_first: Option<String>,
+    pub u_middle: Option<String>,
+    pub u_last: Option<String>,
+    pub u_email: Option<String>,
+    pub st_id: Option<Uuid>,
+    pub st_product: Option<Uuid>,
+    pub st_warehouse: Option<Uuid>,
+    pub st_shelf: Option<Uuid>,
+    pub st_bin: Option<Uuid>,
+    pub st_lvl: Option<Decimal>,
+    pub st_reserved: Option<Decimal>,
+    pub st_max: Option<i32>,
+    pub st_min: Option<i32>,
+    pub st_meta: Option<Value>,
+    pub st_created: Option<DateTime<Utc>>,
+    pub st_updated: Option<DateTime<Utc>>,
+    pub total: i64,
+}
+
+/// One page of the product's movements, newest first, with the total in every row.
+pub async fn movements(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    product_id: Uuid,
+    f: &MovementFilter,
+) -> Result<Vec<MovementRow>, sqlx::Error> {
+    sqlx::query_as!(
+        MovementRow,
+        r#"SELECT m.id, m.movement_type, m.quantity_change, m.quantity_before, m.quantity_after,
+                  m.minimal_stock_level_before, m.minimal_stock_level_after,
+                  m.maximum_stock_level_before, m.maximum_stock_level_after, m.reason,
+                  m.is_correction, m.related_domain, m.related_id, m.meta, m.created_at,
+                  w.id AS "w_id?", w.name AS "w_name?",
+                  sh.id AS "sh_id?", sh.shelf_code AS "sh_code?", sh.shelf_name AS "sh_name?",
+                  r.row_code AS "r_code?", r.row_name AS "r_name?",
+                  sec.section_code AS "sec_code?", sec.section_name AS "sec_name?",
+                  b.id AS "b_id?", b.bin_code AS "b_code?", b.bin_name AS "b_name?",
+                  u.id AS "u_id?", u.first_name AS "u_first?", u.middle_name AS "u_middle?",
+                  u.last_name AS "u_last?", u.email AS "u_email?",
+                  st.id AS "st_id?", st.product_id AS "st_product?",
+                  st.warehouse_id AS "st_warehouse?", st.shelf_id AS "st_shelf?",
+                  st.bin_id AS "st_bin?", st.stock_lvl AS "st_lvl?", st.reserved AS "st_reserved?",
+                  st.maximum_stock_level AS "st_max?", st.minimal_stock_level AS "st_min?",
+                  st.meta AS "st_meta?", st.created_at AS "st_created?",
+                  st.updated_at AS "st_updated?",
+                  count(*) OVER () AS "total!"
+           FROM stock_movements m
+           LEFT JOIN warehouses w ON w.id = m.warehouse_id AND w.deleted_at IS NULL
+           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = m.shelf_id AND sh.deleted_at IS NULL
+           LEFT JOIN warehouse_section_rows r ON r.id = sh.row_id AND r.deleted_at IS NULL
+           LEFT JOIN warehouse_sections sec ON sec.id = r.section_id AND sec.deleted_at IS NULL
+           LEFT JOIN warehouse_section_row_bins b ON b.id = m.bin_id AND b.deleted_at IS NULL
+           LEFT JOIN users u ON u.id = m.user_id
+           LEFT JOIN stocks st ON st.id = m.stock_id AND st.deleted_at IS NULL
+           WHERE m.workspace_id = $1 AND m.product_id = $2
+             AND ($3::uuid IS NULL OR m.warehouse_id = $3)
+             AND ($4::uuid IS NULL OR m.shelf_id = $4)
+             AND ($5::uuid IS NULL OR m.bin_id = $5)
+           ORDER BY m.created_at DESC, m.id DESC
+           LIMIT $6 OFFSET $7"#,
+        workspace_id,
+        product_id,
+        f.warehouse_id,
+        f.shelf_id,
+        f.bin_id,
+        f.limit,
+        f.offset,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Movements matching the filter (for a page past the end).
+pub async fn movements_count(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    product_id: Uuid,
+    f: &MovementFilter,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM stock_movements m
+           WHERE m.workspace_id = $1 AND m.product_id = $2
+             AND ($3::uuid IS NULL OR m.warehouse_id = $3)
+             AND ($4::uuid IS NULL OR m.shelf_id = $4)
+             AND ($5::uuid IS NULL OR m.bin_id = $5)"#,
+        workspace_id,
+        product_id,
+        f.warehouse_id,
+        f.shelf_id,
+        f.bin_id,
+    )
+    .fetch_one(db)
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
