@@ -7,7 +7,7 @@ use axum::{
     extract::{FromRequest, Request},
     http::StatusCode,
 };
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde::{Deserialize, de::DeserializeOwned};
 use serde_json::Value;
 
@@ -195,6 +195,34 @@ impl Rules {
             return None;
         }
         Some(v)
+    }
+
+    /// Laravel `nullable|in:...`: blank = None, else one of `allowed`. `message` replaces
+    /// "The selected X is invalid." where Laravel had a custom text.
+    pub fn one_of(
+        &mut self,
+        field: &str,
+        value: Option<String>,
+        allowed: &[&str],
+        message: Option<&str>,
+    ) -> Option<String> {
+        let v = optional(value)?;
+        if allowed.contains(&v.as_str()) {
+            return Some(v);
+        }
+        let msg = message.map_or_else(
+            || format!("The selected {} is invalid.", human(field)),
+            str::to_owned,
+        );
+        self.add(field, msg);
+        None
+    }
+
+    /// Laravel `numeric|min` on a measurement Laravel kept as a double (meters, m3): exact
+    /// parse via `decimal`, then a JSON number.
+    pub fn number(&mut self, field: &str, value: &Value, min: Decimal) -> Option<f64> {
+        self.decimal(field, value, min, crate::money::MAX)
+            .and_then(|d| d.to_f64())
     }
 
     /// Laravel `boolean`: exactly true, false, 1, 0, "1", "0".

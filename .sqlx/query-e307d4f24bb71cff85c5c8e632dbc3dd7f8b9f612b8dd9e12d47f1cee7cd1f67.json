@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE warehouse_section_rows SET\n             row_code = COALESCE($4, row_code),\n             row_name = COALESCE($5, row_name),\n             length_meters = COALESCE($6, length_meters),\n             width_meters = COALESCE($7, width_meters),\n             height_meters = COALESCE($8, height_meters),\n             orientation = CASE WHEN $9 THEN $10 ELSE orientation END,\n             row_type = CASE WHEN $11 THEN $12 ELSE row_type END,\n             calculated_volume_cubic_meters =\n                 CASE WHEN $13 THEN $14 ELSE calculated_volume_cubic_meters END,\n             number_of_shelves = CASE WHEN $15 THEN $16 ELSE number_of_shelves END,\n             shelf_spacing_cm = CASE WHEN $17 THEN $18 ELSE shelf_spacing_cm END,\n             position_x = CASE WHEN $19 THEN $20 ELSE position_x END,\n             position_y = CASE WHEN $21 THEN $22 ELSE position_y END,\n             access_side = CASE WHEN $23 THEN $24 ELSE access_side END,\n             aisle_width_cm = CASE WHEN $25 THEN $26 ELSE aisle_width_cm END,\n             equipment_access = CASE WHEN $27 THEN $28 ELSE equipment_access END,\n             priority_level = COALESCE($29, priority_level),\n             temperature_zone = COALESCE($30, temperature_zone),\n             notes = CASE WHEN $31 THEN $32 ELSE notes END,\n             enable_automatic_bin_labeling = COALESCE($33, enable_automatic_bin_labeling),\n             generate_qr_codes_for_shelves = COALESCE($34, generate_qr_codes_for_shelves),\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND section_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Float8",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Float8",
+        "Bool",
+        "Float8",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e307d4f24bb71cff85c5c8e632dbc3dd7f8b9f612b8dd9e12d47f1cee7cd1f67"
+}

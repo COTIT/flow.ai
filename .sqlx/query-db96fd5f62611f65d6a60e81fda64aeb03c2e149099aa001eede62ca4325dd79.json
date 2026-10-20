@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE warehouse_sections SET\n             section_name = $4,\n             section_code = $5,\n             category = CASE WHEN $6 THEN $7 ELSE category END,\n             description = CASE WHEN $8 THEN $9 ELSE description END,\n             rows = CASE WHEN $10 THEN $11 ELSE rows END,\n             shelves_per_row = CASE WHEN $12 THEN $13 ELSE shelves_per_row END,\n             bins_per_shelf = CASE WHEN $14 THEN $15 ELSE bins_per_shelf END,\n             total_bins = CASE WHEN $16 THEN $17 ELSE total_bins END,\n             zone = CASE WHEN $18 THEN $19 ELSE zone END,\n             temperature_control = COALESCE($20, temperature_control),\n             restricted_access = COALESCE($21, restricted_access),\n             assigned_manager = CASE WHEN $22 THEN $23 ELSE assigned_manager END,\n             priority_level = COALESCE($24, priority_level),\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND warehouse_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "db96fd5f62611f65d6a60e81fda64aeb03c2e149099aa001eede62ca4325dd79"
+}

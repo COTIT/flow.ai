@@ -1,0 +1,294 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, row_code, row_name, orientation, row_type, length_meters, width_meters,\n                height_meters, calculated_volume_cubic_meters, number_of_shelves,\n                shelf_spacing_cm, position_x, position_y, access_side, aisle_width_cm,\n                equipment_access, priority_level, temperature_zone, notes,\n                enable_automatic_bin_labeling, generate_qr_codes_for_shelves, created_at,\n                updated_at\n         FROM warehouse_section_rows\n         WHERE id = $1 AND workspace_id = $2 AND section_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "row_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "row_code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "row_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "row_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "orientation",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "orientation"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "row_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "row_type"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "length_meters",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "length_meters"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "width_meters",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "width_meters"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "height_meters",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "height_meters"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "calculated_volume_cubic_meters",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "calculated_volume_cubic_meters"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "number_of_shelves",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "number_of_shelves"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "shelf_spacing_cm",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "shelf_spacing_cm"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "position_x",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "position_x"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "position_y",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "position_y"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "access_side",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "access_side"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "aisle_width_cm",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "aisle_width_cm"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "equipment_access",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "equipment_access"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "priority_level",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "priority_level"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "temperature_zone",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "temperature_zone"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "notes",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "notes"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "enable_automatic_bin_labeling",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "enable_automatic_bin_labeling"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "generate_qr_codes_for_shelves",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "generate_qr_codes_for_shelves"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4e74125e1c92d2d5f90bd476ad8eaa73b2ba5e55c60f5996872bfd927e358802"
+}

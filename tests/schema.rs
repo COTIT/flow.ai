@@ -810,3 +810,93 @@ async fn warehouse_location_must_point_at_same_workspace_warehouse(pool: PgPool)
         "warehouse_locations_location_check"
     );
 }
+
+// ---- batch 6B: warehouse hierarchy ----
+
+async fn insert_section(
+    pool: &PgPool,
+    ws: Uuid,
+    wh: Uuid,
+    code: &str,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar(
+        "INSERT INTO warehouse_sections (workspace_id, warehouse_id, section_name, section_code)
+         VALUES ($1, $2, $3, $3) RETURNING id",
+    )
+    .bind(ws)
+    .bind(wh)
+    .bind(code)
+    .fetch_one(pool)
+    .await
+}
+
+async fn insert_row(
+    pool: &PgPool,
+    ws: Uuid,
+    wh: Uuid,
+    section: Uuid,
+    code: &str,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar(
+        "INSERT INTO warehouse_section_rows (workspace_id, warehouse_id, section_id, row_code,
+                                             row_name, length_meters, width_meters, height_meters)
+         VALUES ($1, $2, $3, $4, $4, 1, 1, 1) RETURNING id",
+    )
+    .bind(ws)
+    .bind(wh)
+    .bind(section)
+    .bind(code)
+    .fetch_one(pool)
+    .await
+}
+
+#[sqlx::test]
+async fn hierarchy_chain_must_stay_in_one_warehouse(pool: PgPool) {
+    let (a, b) = warehouse_world(&pool).await;
+    let wh1 = insert_warehouse(&pool, a, "one", false, None)
+        .await
+        .unwrap();
+    let wh2 = insert_warehouse(&pool, a, "two", false, None)
+        .await
+        .unwrap();
+    let other_ws_wh = insert_warehouse(&pool, b, "one", false, None)
+        .await
+        .unwrap();
+    let s1 = insert_section(&pool, a, wh1, "S1").await.unwrap();
+
+    assert!(insert_row(&pool, a, wh1, s1, "R1").await.is_ok());
+    assert_eq!(
+        violated(insert_row(&pool, a, wh2, s1, "R2").await.unwrap_err()),
+        "warehouse_section_rows_section_fk"
+    );
+    assert_eq!(
+        violated(insert_section(&pool, b, wh1, "S9").await.unwrap_err()),
+        "warehouse_sections_warehouse_fk"
+    );
+    assert!(insert_section(&pool, b, other_ws_wh, "S1").await.is_ok());
+}
+
+#[sqlx::test]
+async fn hierarchy_codes_unique_per_parent_among_live_rows(pool: PgPool) {
+    let (a, _) = warehouse_world(&pool).await;
+    let wh = insert_warehouse(&pool, a, "one", false, None)
+        .await
+        .unwrap();
+    let s = insert_section(&pool, a, wh, "S1").await.unwrap();
+
+    assert_eq!(
+        violated(insert_section(&pool, a, wh, "s1").await.unwrap_err()),
+        "warehouse_sections_code_unique"
+    );
+    let r = insert_row(&pool, a, wh, s, "R1").await.unwrap();
+    assert_eq!(
+        violated(insert_row(&pool, a, wh, s, "r1").await.unwrap_err()),
+        "warehouse_section_rows_code_unique"
+    );
+    sqlx::query("UPDATE warehouse_section_rows SET deleted_at = now() WHERE id = $1")
+        .bind(r)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(insert_row(&pool, a, wh, s, "R1").await.is_ok());
+}

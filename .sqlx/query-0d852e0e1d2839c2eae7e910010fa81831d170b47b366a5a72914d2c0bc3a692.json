@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO warehouse_section_row_bins (workspace_id, warehouse_id, section_id, row_id,\n             shelf_id, bin_code, bin_name)\n         SELECT $1, $2, $3, r, s, c, n\n         FROM unnest($4::uuid[], $5::uuid[], $6::text[], $7::text[]) WITH ORDINALITY\n              AS t(r, s, c, n, i)\n         ORDER BY i",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0d852e0e1d2839c2eae7e910010fa81831d170b47b366a5a72914d2c0bc3a692"
+}

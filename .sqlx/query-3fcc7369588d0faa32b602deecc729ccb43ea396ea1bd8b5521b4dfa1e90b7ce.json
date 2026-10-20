@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM warehouse_sections s\n           WHERE s.workspace_id = $1 AND s.warehouse_id = $2 AND s.deleted_at IS NULL\n             AND ($3::text IS NULL OR s.category = $3)\n             AND ($4::text IS NULL OR s.zone = $4)\n             AND ($5::text IS NULL OR s.priority_level = $5)\n             AND ($6::bool IS NULL OR s.restricted_access = $6)\n             AND ($7::text IS NULL OR s.section_name ILIKE $7 OR s.section_code ILIKE $7\n                  OR s.description ILIKE $7)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3fcc7369588d0faa32b602deecc729ccb43ea396ea1bd8b5521b4dfa1e90b7ce"
+}

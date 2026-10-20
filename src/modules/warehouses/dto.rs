@@ -433,8 +433,8 @@ fn fields(r: &mut Rules, b: WarehouseBody, patch: bool) -> Fields {
                 .and_then(|v| address::validate_one(r, "location", &v))
                 .and_then(|a| serde_json::to_value(a).ok())
         }),
-        status: opt_s(b.status).map(|v| choice(r, "status", v, &STATUSES)),
-        kind: opt_s(b.kind).map(|v| choice(r, "type", v, &TYPES)),
+        status: opt_s(b.status).map(|v| r.one_of("status", v, &STATUSES, None)),
+        kind: opt_s(b.kind).map(|v| r.one_of("type", v, &TYPES, None)),
         dimensions: opt(b.dimensions).map(|v| filled(v).and_then(|v| dimensions(r, &v))),
         loading_docks: opt(b.loading_docks).map(|v| int(r, "loading_docks", v)),
         sections: opt(b.sections).map(|v| int(r, "sections", v)),
@@ -511,17 +511,6 @@ fn parent(r: &mut Rules, v: Value) -> Option<Uuid> {
         r.add("parent_id", BAD_PARENT);
     }
     id
-}
-
-/// `nullable|Enum`: Laravel's fallback text for a missing `validation.enum` key.
-fn choice(r: &mut Rules, key: &str, v: Option<String>, allowed: &[&str]) -> Option<String> {
-    let v = r.opt_text(key, v, usize::MAX)?;
-    if allowed.contains(&v.as_str()) {
-        Some(v)
-    } else {
-        r.add(key, format!("The selected {} is invalid.", human(key)));
-        None
-    }
 }
 
 fn int(r: &mut Rules, key: &str, v: Option<Value>) -> Option<i32> {

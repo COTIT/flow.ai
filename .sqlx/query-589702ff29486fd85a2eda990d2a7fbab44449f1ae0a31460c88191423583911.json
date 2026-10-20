@@ -1,0 +1,338 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, workspace_id, warehouse_id, section_id, row_id, shelf_id, bin_code,\n                  bin_name, side, position, bin_type, length_cm, width_cm, height_cm,\n                  volume_m3, max_weight_kg, load_rating, access_type, priority_level,\n                  temperature_monitoring, barcode_scanner, rfid_enabled, security_lock, notes,\n                  created_at, updated_at, count(*) OVER () AS \"total!\"\n           FROM warehouse_section_row_bins\n           WHERE workspace_id = $1 AND shelf_id = $2 AND deleted_at IS NULL\n           ORDER BY id\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "section_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "section_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "row_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "row_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "shelf_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "shelf_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "bin_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_code"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "bin_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "side",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "side"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "position",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "position"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "bin_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_type"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "length_cm",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "length_cm"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "width_cm",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "width_cm"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "height_cm",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "height_cm"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "volume_m3",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "volume_m3"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "max_weight_kg",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "max_weight_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "load_rating",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "load_rating"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "access_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "access_type"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "priority_level",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "priority_level"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "temperature_monitoring",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "temperature_monitoring"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "barcode_scanner",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "barcode_scanner"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "rfid_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "rfid_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "security_lock",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "security_lock"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "notes",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "notes"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 26,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "589702ff29486fd85a2eda990d2a7fbab44449f1ae0a31460c88191423583911"
+}
