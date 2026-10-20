@@ -270,6 +270,43 @@ pub async fn find_detail(
     .transpose()
 }
 
+/// Live relations of the workspace among `ids`, with their types (resources that embed one).
+pub async fn find_many(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<WithTypes>, sqlx::Error> {
+    sqlx::query_as!(
+        Joined,
+        r#"SELECT r.id, r.relation_number, r.relation_appendix,
+                  r.type AS kind, r.allow_invoicing_on_account, r.disable_order_workflow_emails,
+                  r.alias, r.company_name, r.email, r.website, r.phone_number, r.coc_number,
+                  r.vat_number, r.import_source, r.import_id, r.default_language, r.addresses,
+                  r.financial_account, r.terms_and_periods, r.supplier_data, r.meta, r.created_at,
+                  r.updated_at,
+                  rt.id AS "rt_id?", rt.name AS "rt_name?", rt.domain AS "rt_domain?",
+                  rt.properties AS rt_properties, rt.meta AS rt_meta,
+                  rt.created_at AS "rt_created_at?", rt.updated_at AS "rt_updated_at?",
+                  st.id AS "st_id?", st.name AS "st_name?", st.domain AS "st_domain?",
+                  st.properties AS st_properties, st.meta AS st_meta,
+                  st.created_at AS "st_created_at?", st.updated_at AS "st_updated_at?",
+                  NULL::bigint AS total
+           FROM relations r
+           LEFT JOIN custom_types rt ON rt.workspace_id = r.workspace_id
+                AND rt.id = r.relation_type_id AND rt.deleted_at IS NULL
+           LEFT JOIN custom_types st ON st.workspace_id = r.workspace_id
+                AND st.id = r.source_type_id AND st.deleted_at IS NULL
+           WHERE r.id = ANY($1) AND r.workspace_id = $2 AND r.deleted_at IS NULL"#,
+        ids,
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await?
+    .into_iter()
+    .map(Joined::split)
+    .collect()
+}
+
 /// List filters; `q` from `search::parse`. Patterns are escaped ILIKE values.
 #[derive(Clone, Copy)]
 pub struct ListFilter<'a> {

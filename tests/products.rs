@@ -100,11 +100,9 @@ async fn create_then_get_prints_laravel_prices(pool: PgPool) {
 async fn gross_and_markup_normalise_on_save(pool: PgPool) {
     let (api, _) = world(pool).await;
 
+    // Create: price is required and wins (Laravel priority "price").
     let id = api
-        .create(
-            json!({ "name": "A", "price": 0, "gross_price": "200", "impact_on_price": "10" }),
-            "product_id",
-        )
+        .create(json!({ "name": "A", "price": "220", "gross_price": "200" }), "product_id")
         .await;
     let p = api.get(&id).await;
     assert_eq!(
@@ -114,10 +112,13 @@ async fn gross_and_markup_normalise_on_save(pool: PgPool) {
     assert_eq!(p["price_incl"], "266.2");
     assert_eq!(p["gross_price_incl"], "242");
 
-    let (status, res) = api
-        .update(&id, json!({ "gross_price": "250", "price": "275" }))
-        .await;
+    // Only the markup changes: the price follows the gross price.
+    let (status, res) = api.update(&id, json!({ "impact_on_price": "20" })).await;
     assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    assert_eq!(api.get(&id).await["price"], "240");
+
+    // A new price wins over the stored markup.
+    api.update(&id, json!({ "gross_price": "250", "price": "275" })).await;
     let p = api.get(&id).await;
     assert_eq!(
         (p["price"].clone(), p["impact_on_price"].clone()),
@@ -356,9 +357,9 @@ async fn access_rules(pool: PgPool) {
         .call(Method::POST, "/search", Some(json!({ "query": "x" })), &carl)
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND, "search needs product.list, carl has it");
-    let (eve, eve_ws) = common::signup(&api.app, "eve@example.com", "evil").await;
-    let uri = format!("/v1/workspace/{eve_ws}/products/{id}/price-history");
-    let (status, _) = send(&api.app, Method::GET, &uri, None, Some(&eve)).await;
+    let (mal, mal_ws) = common::signup(&api.app, "mallory@example.com", "mal").await;
+    let uri = format!("/v1/workspace/{mal_ws}/products/{id}/price-history");
+    let (status, _) = send(&api.app, Method::GET, &uri, None, Some(&mal)).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
 

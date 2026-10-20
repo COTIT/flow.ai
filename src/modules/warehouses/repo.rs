@@ -75,6 +75,16 @@ pub struct CompactRow {
     pub kind: Option<String>,
 }
 
+/// A warehouse as a product's fallback stock row embeds it.
+pub struct StockRef {
+    pub id: Uuid,
+    pub name: String,
+    pub alias: Option<String>,
+    pub is_store: Option<bool>,
+    pub pickup_enabled: bool,
+    pub location: Option<Value>,
+}
+
 /// List filter (Laravel ListWarehouse).
 pub struct ListFilter {
     pub parent_id: Option<Uuid>,
@@ -473,6 +483,44 @@ pub async fn compact(
     )
     .fetch_optional(db)
     .await
+}
+
+/// Live warehouses among `ids`, plus the workspace's first live store (Laravel's fallback
+/// stock warehouses for products). One query.
+pub async fn stock_refs(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<(Vec<StockRef>, Option<Uuid>), sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"WITH store AS (
+               SELECT id FROM warehouses
+               WHERE workspace_id = $1 AND is_store AND deleted_at IS NULL
+               ORDER BY id LIMIT 1
+           )
+           SELECT w.id, w.name, w.alias, w.is_store, w.pickup_enabled, w.location,
+                  w.id = (SELECT id FROM store) AS "is_first_store!"
+           FROM warehouses w
+           WHERE w.workspace_id = $1 AND w.deleted_at IS NULL
+             AND (w.id = ANY($2) OR w.id = (SELECT id FROM store))"#,
+        workspace_id,
+        ids,
+    )
+    .fetch_all(db)
+    .await?;
+    let store = rows.iter().find(|r| r.is_first_store).map(|r| r.id);
+    let refs = rows
+        .into_iter()
+        .map(|r| StockRef {
+            id: r.id,
+            name: r.name,
+            alias: r.alias,
+            is_store: r.is_store,
+            pickup_enabled: r.pickup_enabled,
+            location: r.location,
+        })
+        .collect();
+    Ok((refs, store))
 }
 
 /// Live children of any of `parent_ids`, oldest first. One query for a whole page.

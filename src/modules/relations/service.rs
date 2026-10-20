@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::{
@@ -211,6 +212,34 @@ async fn list(
         })
         .collect();
     Ok((data, total))
+}
+
+/// Relations among `ids` in RelationIndexResource shape, keyed by id (missing or deleted ones
+/// absent). Two queries whatever the count; for resources that embed a relation.
+pub async fn index_values(
+    state: &AppState,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<HashMap<Uuid, Value>, AppError> {
+    if ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let rows = repo::find_many(&state.db, workspace_id, ids).await?;
+    let found: Vec<Uuid> = rows.iter().map(|(r, _, _)| r.id).collect();
+    let mut contacts = contacts::repo::for_relations(&state.db, workspace_id, &found).await?;
+    let flags = IndexFlags {
+        suppliers: false,
+        include_advice: false,
+    };
+    let mut out = HashMap::with_capacity(rows.len());
+    for row in rows {
+        let id = row.0.id;
+        let mine = contacts.extract_if(.., |c| c.relation_id == id).collect();
+        let v = serde_json::to_value(RelationIndexResource::new(row, mine, flags))
+            .map_err(|e| AppError::Internal(e.to_string()))?;
+        out.insert(id, v);
+    }
+    Ok(out)
 }
 
 /// Patch a live relation of this workspace, else 404. Row locked first: the VAT and phone
