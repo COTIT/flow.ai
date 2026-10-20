@@ -111,6 +111,46 @@ async fn create_then_get_prints_laravel_prices(pool: PgPool) {
     }
 }
 
+/// Laravel `buildPrice` outputs were PHP floats (zero "0.00"); raw columns were DB strings ("0").
+#[sqlx::test]
+async fn zero_prices_print_by_laravel_source(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let id = api
+        .create(
+            json!({ "name": "Free", "price": "0", "gross_price": "0", "impact_on_price": "0",
+                    "impact_on_wholesale_price": "0" }),
+            "product_id",
+        )
+        .await;
+
+    let p = api.get(&id).await;
+
+    for key in [
+        "price",
+        "price_incl",
+        "original_price",
+        "original_price_incl",
+        "price_without_correction",
+        "price_without_correction_incl",
+        "business_price",
+        "business_price_incl",
+        "gross_price_incl",
+    ] {
+        assert_eq!(p[key], "0.00", "computed {key}");
+    }
+    for key in [
+        "gross_price",
+        "wholesale_price",
+        "supplier_wholesale_price",
+        "impact_on_price",
+        "impact_on_wholesale_price",
+        "purchase_price",
+        "supplier_purchase_price_from_discount",
+    ] {
+        assert_eq!(p[key], "0", "raw column {key}");
+    }
+}
+
 #[sqlx::test]
 async fn gross_and_markup_normalise_on_save(pool: PgPool) {
     let (api, _) = world(pool).await;

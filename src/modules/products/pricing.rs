@@ -73,6 +73,7 @@ pub fn column(v: Option<Decimal>, dp: u32) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
     use std::str::FromStr;
 
     fn d(s: &str) -> Decimal {
@@ -137,6 +138,30 @@ mod tests {
         assert_eq!(column(Some(Decimal::ZERO), 4), "0");
         assert_eq!(column(None, 4), "0.00");
         assert_eq!(column(Some(d("220.50000000")), 4), "220.5");
+    }
+
+    /// PHP MoneyHelper at 4 dp: a computed float zero prints "0.00", a DB string zero "0".
+    #[test]
+    fn zero_rules_match_php_oracle() {
+        let fixture: Value =
+            serde_json::from_str(include_str!("../../../tests/fixtures/format_decimals.json"))
+                .unwrap();
+        let zero_case = |kind: &str| {
+            fixture["cases"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|c| {
+                    c["kind"] == kind
+                        && c["dp"] == 4
+                        && c["rtrim"] == true
+                        && c["value"].as_str().is_some_and(|v| d(v) == Decimal::ZERO)
+                })
+                .unwrap()["expected"]
+                .clone()
+        };
+        assert_eq!(computed(Decimal::ZERO, 4), zero_case("float"));
+        assert_eq!(column(Some(Decimal::ZERO), 4), zero_case("db_string"));
     }
 
     #[test]
