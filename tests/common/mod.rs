@@ -223,3 +223,154 @@ pub async fn member_with(
     join_team(pool, &team, email).await;
     token
 }
+
+/// One workspace resource under test: Ada owns `acme`, requests go to
+/// `/v1/workspace/{ws}{base}`. Holds the access checks every reference-data route shares.
+pub struct Api {
+    pub app: Router,
+    pub pool: PgPool,
+    pub owner: String,
+    pub ws: String,
+    base: &'static str,
+}
+
+impl Api {
+    pub async fn new(pool: PgPool, base: &'static str) -> Self {
+        let app = app(pool.clone());
+        let (owner, ws) = signup(&app, "ada@example.com", "acme").await;
+        Self {
+            app,
+            pool,
+            owner,
+            ws,
+            base,
+        }
+    }
+
+    pub async fn call(
+        &self,
+        method: Method,
+        path: &str,
+        body: Option<Value>,
+        token: &str,
+    ) -> (StatusCode, Value) {
+        let uri = format!("/v1/workspace/{}{}{path}", self.ws, self.base);
+        send(&self.app, method, &uri, body, Some(token)).await
+    }
+
+    /// POST as owner, expect 201, return `data.<id_key>`.
+    pub async fn create(&self, body: Value, id_key: &str) -> String {
+        let (status, res) = self.call(Method::POST, "", Some(body), &self.owner).await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        res["data"][id_key].as_str().unwrap().to_owned()
+    }
+
+    /// GET one as owner, expect 200, return `data`.
+    pub async fn get(&self, id: &str) -> Value {
+        let (status, res) = self
+            .call(Method::GET, &format!("/{id}"), None, &self.owner)
+            .await;
+        assert_eq!(status, StatusCode::OK, "{res}");
+        res["data"].clone()
+    }
+
+    /// GET list as owner, expect 200, return the whole body.
+    pub async fn list(&self, query: &str) -> Value {
+        let (status, res) = self.call(Method::GET, query, None, &self.owner).await;
+        assert_eq!(status, StatusCode::OK, "{res}");
+        res
+    }
+
+    /// POST /{id} as owner; returns status + body.
+    pub async fn update(&self, id: &str, body: Value) -> (StatusCode, Value) {
+        self.call(Method::POST, &format!("/{id}"), Some(body), &self.owner)
+            .await
+    }
+
+    /// A member without permissions gets 403 on every route, before body validation (422).
+    pub async fn assert_member_forbidden(&self, id: &str) {
+        let bob = member_with(&self.app, &self.pool, &self.ws, "bob@example.com", &[]).await;
+        for (method, path) in [
+            (Method::GET, String::new()),
+            (Method::POST, String::new()),
+            (Method::GET, format!("/{id}")),
+            (Method::POST, format!("/{id}")),
+            (Method::DELETE, format!("/{id}")),
+        ] {
+            let body = Some(serde_json::json!({ "name": null }));
+            let (status, res) = self.call(method.clone(), &path, body, &bob).await;
+            assert_eq!(status, StatusCode::FORBIDDEN, "{method} {path}: {res}");
+            assert_eq!(res["message"], "This action is unauthorized.");
+        }
+    }
+
+    /// `perms` let a member do everything: create, list, get, update, delete.
+    pub async fn assert_granted(&self, perms: &[&str], body: Value, id_key: &str) {
+        let carl = member_with(&self.app, &self.pool, &self.ws, "carl@example.com", perms).await;
+        let (status, res) = self.call(Method::POST, "", Some(body.clone()), &carl).await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        let id = res["data"][id_key].as_str().unwrap().to_owned();
+        for (method, path, body) in [
+            (Method::GET, String::new(), None),
+            (Method::GET, format!("/{id}"), None),
+            (Method::POST, format!("/{id}"), Some(body)),
+            (Method::DELETE, format!("/{id}"), None),
+        ] {
+            let (status, res) = self.call(method.clone(), &path, body, &carl).await;
+            assert_eq!(status, StatusCode::OK, "{method} {path}: {res}");
+        }
+    }
+
+    /// Another tenant can't reach this workspace, nor this row through its own workspace,
+    /// and never sees the row in its own list.
+    pub async fn assert_foreign_404(&self, id: &str, update: Value) {
+        let (eve, eve_ws) = signup(&self.app, "eve@example.com", "evil").await;
+        let (status, _) = self.call(Method::GET, "", None, &eve).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "outsider list");
+        for method in [Method::GET, Method::POST, Method::DELETE] {
+            let uri = format!("/v1/workspace/{eve_ws}{}/{id}", self.base);
+            let body = (method == Method::POST).then(|| update.clone());
+            let (status, _) = send(&self.app, method.clone(), &uri, body, Some(&eve)).await;
+            assert_eq!(status, StatusCode::NOT_FOUND, "{method} via own workspace");
+        }
+        let uri = format!("/v1/workspace/{eve_ws}{}?page_size=100", self.base);
+        let (_, listed) = send(&self.app, Method::GET, &uri, None, Some(&eve)).await;
+        assert!(
+            listed["data"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|row| row["id"] != id),
+            "foreign list leaks {id}"
+        );
+        let (status, _) = self
+            .call(Method::GET, &format!("/{id}"), None, &self.owner)
+            .await;
+        assert_eq!(status, StatusCode::OK, "row untouched");
+    }
+
+    /// Malformed, unknown, and soft-deleted ids are all 404.
+    pub async fn assert_bad_ids_404(&self, deleted: &str, update: Value) {
+        let unknown = "01900000-0000-7000-8000-000000000001";
+        for id in ["nope", "123", unknown, deleted] {
+            for method in [Method::GET, Method::POST, Method::DELETE] {
+                let body = (method == Method::POST).then(|| update.clone());
+                let (status, _) = self
+                    .call(method.clone(), &format!("/{id}"), body, &self.owner)
+                    .await;
+                assert_eq!(status, StatusCode::NOT_FOUND, "{method} {id}");
+            }
+        }
+    }
+
+    /// DELETE as owner -> `{"message":"ok"}`.
+    pub async fn delete(&self, id: &str) {
+        let (status, res) = self
+            .call(Method::DELETE, &format!("/{id}"), None, &self.owner)
+            .await;
+        assert_eq!(
+            (status, res),
+            (StatusCode::OK, serde_json::json!({ "message": "ok" }))
+        );
+    }
+}

@@ -123,6 +123,17 @@ impl Rules {
         v
     }
 
+    /// ISO 3166-1 alpha-2 code (any case) -> uppercase, else Laravel ValidateCountry's
+    /// ":attribute is not valid".
+    pub fn country(&mut self, field: &str, value: &str) -> Option<String> {
+        if is_country(value) {
+            Some(value.to_ascii_uppercase())
+        } else {
+            self.add(field, format!("{} is not valid", human(field)));
+            None
+        }
+    }
+
     /// Laravel `numeric|min|max` on a sent value: JSON number or numeric string -> exact
     /// `Decimal`. At most 8 decimals (columns are `numeric(24,8)`).
     pub fn decimal(

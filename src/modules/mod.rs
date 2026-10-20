@@ -7,4 +7,5 @@ pub mod invites;
 pub mod permissions;
 pub mod teams;
 pub mod users;
+pub mod vat_groups;
 pub mod workspaces;
