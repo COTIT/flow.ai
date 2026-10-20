@@ -242,11 +242,16 @@ impl Rules {
 
     /// `meta`: a JSON object, or null/absent = none (Laravel MetaRule meant a keyed array).
     pub fn meta(&mut self, value: Option<Value>) -> Option<Option<Value>> {
+        self.meta_at("meta", value)
+    }
+
+    /// `meta` rule for a nested object's meta (`contact.meta`).
+    pub fn meta_at(&mut self, key: &str, value: Option<Value>) -> Option<Option<Value>> {
         match value {
             None | Some(Value::Null) => Some(None),
             Some(object @ Value::Object(_)) => Some(Some(object)),
             Some(_) => {
-                self.add("meta", "The meta field must be an array.");
+                self.add(key, format!("The {} field must be an array.", human(key)));
                 None
             }
         }

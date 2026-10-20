@@ -19,12 +19,10 @@ use crate::{
     },
     modules::relations::{
         dto::{
-            CreateRelationRequest, IndexFlags, RelationCreated, RelationIndexResource,
-            RelationResource, UpdateRelationRequest,
+            CreateRelationRequest, RelationCreated, RelationIndexResource, RelationResource,
+            UpdateRelationRequest,
         },
-        repo::ListFilter,
-        search,
-        service::{self, GetFlags},
+        service::{self, GetFlags, IndexQuery},
     },
 };
 
@@ -43,6 +41,11 @@ type RelationPath = Path<(String, String)>;
 pub struct GetQuery {
     slim: Option<String>,
     include_unpaid_invoices: Option<String>,
+}
+
+/// GET /relations/{id}/financial-summary query.
+#[derive(Deserialize)]
+pub struct SummaryQuery {
     lite: Option<String>,
 }
 
@@ -88,7 +91,7 @@ pub struct ListQuery {
 }
 
 /// Laravel `limit` (default 30; 200 or more falls back to 50). Junk or <= 0 = 30.
-pub fn relation_page(page: Option<&str>, limit: Option<&str>) -> Page {
+fn relation_page(page: Option<&str>, limit: Option<&str>) -> Page {
     let size = limit
         .and_then(|l| l.trim().parse::<i64>().ok())
         .filter(|n| *n > 0)
@@ -99,59 +102,6 @@ pub fn relation_page(page: Option<&str>, limit: Option<&str>) -> Page {
     }
 }
 
-/// Trimmed optional filter, capped like Laravel's request rules; None when blank.
-fn filter(
-    r: &mut crate::http::json::Rules,
-    key: &str,
-    v: Option<&str>,
-    max: usize,
-) -> Option<String> {
-    let v = v.map(str::trim).filter(|v| !v.is_empty())?;
-    r.max_chars(key, v, max);
-    Some(v.to_owned())
-}
-
-/// Shared by GET /relations and `/searches?domain=relation`.
-pub async fn page_of(
-    state: &AppState,
-    workspace_id: uuid::Uuid,
-    q: Option<&str>,
-    suppliers: bool,
-    include_advice: bool,
-    filters: [Option<&str>; 3],
-    page: Page,
-) -> Result<Paginated<RelationIndexResource>, AppError> {
-    let mut r = crate::http::json::Rules::default();
-    let last_name = filter(&mut r, "last_name", filters[0], 255).map(|l| l.to_lowercase());
-    let zipcode =
-        filter(&mut r, "zipcode", filters[1], 10).and_then(|z| search::compact_zipcode(&z));
-    let company = filter(&mut r, "company_name", filters[2], 255).map(|c| c.to_lowercase());
-    r.into_result()?;
-    // `q` emptied by cleanup ("null undefined") answers an empty page unless a filter is set.
-    let query = match search::parse(q)? {
-        Some(query) => query,
-        None if last_name.is_none() && zipcode.is_none() && company.is_none() => {
-            return Ok(Paginated::new(Vec::new(), 0, page));
-        }
-        None => search::Query::default(),
-    };
-    let f = ListFilter {
-        suppliers,
-        last_name: last_name.as_deref(),
-        zipcode: zipcode.as_deref(),
-        company_name: company.as_deref(),
-        q: &query,
-        limit: page.size,
-        offset: page.offset(),
-    };
-    let flags = IndexFlags {
-        suppliers,
-        include_advice,
-    };
-    let (data, total) = service::list(state, workspace_id, &f, flags).await?;
-    Ok(Paginated::new(data, total, page))
-}
-
 /// GET /relations -> `{data:[...], meta}`.
 pub async fn list(
     State(state): State<AppState>,
@@ -159,23 +109,16 @@ pub async fn list(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Paginated<RelationIndexResource>>, AppError> {
     let on = |v: &Option<String>| v.as_deref().is_some_and(flag);
-    let page = relation_page(query.page.as_deref(), query.limit.as_deref());
-    Ok(Json(
-        page_of(
-            &state,
-            access.workspace_id,
-            query.q.as_deref(),
-            on(&query.suppliers),
-            on(&query.include_advice),
-            [
-                query.last_name.as_deref(),
-                query.zipcode.as_deref(),
-                query.company_name.as_deref(),
-            ],
-            page,
-        )
-        .await?,
-    ))
+    let iq = IndexQuery {
+        q: query.q.as_deref(),
+        suppliers: on(&query.suppliers),
+        include_advice: on(&query.include_advice),
+        last_name: query.last_name.as_deref(),
+        zipcode: query.zipcode.as_deref(),
+        company_name: query.company_name.as_deref(),
+        page: relation_page(query.page.as_deref(), query.limit.as_deref()),
+    };
+    Ok(Json(service::index(&state, access.workspace_id, iq).await?))
 }
 
 /// POST /relations/{relation} -> `{"message":"ok"}`.
@@ -204,7 +147,7 @@ pub async fn financial_summary(
     State(state): State<AppState>,
     access: WorkspaceAccess,
     Path((_, id)): RelationPath,
-    Query(query): Query<GetQuery>,
+    Query(query): Query<SummaryQuery>,
 ) -> Result<Data<serde_json::Value>, AppError> {
     let lite = query.lite.as_deref().is_some_and(flag);
     Ok(Data(

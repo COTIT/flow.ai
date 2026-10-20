@@ -1,4 +1,5 @@
-//! SQL for relations. Every statement takes `workspace_id` and skips soft-deleted rows.
+//! SQL for relations. Every statement takes `workspace_id`; all but numbering skip
+//! soft-deleted rows (numbers are never reused).
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
@@ -50,6 +51,10 @@ pub fn decode_addresses(v: Value) -> Result<Vec<Address>, sqlx::Error> {
 /// advisory lock (Laravel had none, so parallel creates got the same number). MAX counts
 /// soft-deleted rows too: numbers are never reused.
 pub async fn next_number(conn: &mut PgConnection, workspace_id: Uuid) -> Result<i64, sqlx::Error> {
+    // A waiter holds a pooled connection; give up instead of starving the pool.
+    sqlx::query!("SET LOCAL lock_timeout = '5s'")
+        .execute(&mut *conn)
+        .await?;
     sqlx::query!(
         "SELECT pg_advisory_xact_lock(hashtext('relations.relation_number'), hashtext($1::text))",
         workspace_id.to_string(),
@@ -62,7 +67,10 @@ pub async fn next_number(conn: &mut PgConnection, workspace_id: Uuid) -> Result<
     )
     .fetch_one(&mut *conn)
     .await?;
-    Ok(max.map_or(START_NUMBER, |n| n + 1))
+    max.map_or(Ok(START_NUMBER), |n| {
+        n.checked_add(1)
+            .ok_or_else(|| sqlx::Error::Protocol("relation number overflow".into()))
+    })
 }
 
 /// New relation row; returns its id. `relation_type_id` already resolved.
@@ -157,7 +165,6 @@ struct Joined {
 /// A relation plus its live relation type and source type (None when deleted).
 pub type WithTypes = (RelationRow, Option<CustomTypeRow>, Option<CustomTypeRow>);
 
-#[allow(clippy::too_many_arguments)]
 fn custom_type(
     id: Option<Uuid>,
     name: Option<String>,
@@ -279,8 +286,9 @@ pub struct ListFilter<'a> {
 }
 
 /// One page, newest first, plus the matching total (0 when the page is empty). One query:
-/// Laravel's SQL search (relation fields, type name, contact names/email, phone spellings,
-/// id-like exact matches) with trigram indexes behind the ILIKEs.
+/// matching ids first (workspace-scoped scan: relation fields, type name, contact names and
+/// email, phone spellings, id-like exact matches), counted over ids only, then the page rows
+/// joined. Laravel's SQL search; no index serves the OR, see docs/api/relations.md for size.
 pub async fn list(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -289,7 +297,48 @@ pub async fn list(
     let words = serde_json::to_value(&f.q.words).map_err(|e| sqlx::Error::Encode(Box::new(e)))?;
     let rows = sqlx::query_as!(
         Joined,
-        r#"SELECT r.id, r.relation_number, r.relation_appendix,
+        r#"WITH matched AS (
+               SELECT r.id
+               FROM relations r
+               LEFT JOIN custom_types rt ON rt.workspace_id = r.workspace_id
+                    AND rt.id = r.relation_type_id AND rt.deleted_at IS NULL
+               WHERE r.workspace_id = $1 AND r.deleted_at IS NULL
+                 AND (NOT $2 OR (r.company_name IS NOT NULL
+                                 AND rt.properties @> '{"is_supplier": true}'))
+                 AND ($3::text IS NULL OR EXISTS (
+                       SELECT 1 FROM contacts c
+                       WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id
+                         AND c.deleted_at IS NULL AND lower(c.last_name) = $3))
+                 AND ($4::text IS NULL OR EXISTS (
+                       SELECT 1 FROM jsonb_array_elements(r.addresses) a
+                       WHERE upper(regexp_replace(a ->> 'zipcode', '[^0-9A-Za-z]', '', 'g')) = $4))
+                 AND ($5::text IS NULL OR lower(r.company_name) = $5)
+                 AND (cardinality($6::text[]) = 0
+                      OR r.alias ILIKE ANY($6) OR r.company_name ILIKE ANY($6)
+                      OR r.email ILIKE ANY($6) OR r.phone_number ILIKE ANY($6)
+                      OR r.website ILIKE ANY($6) OR rt.name ILIKE ANY($6)
+                      OR r.id = $8 OR r.import_id = $9 OR lower(r.email) = lower($9)
+                      OR r.phone_number = $9 OR r.relation_number = $10
+                      OR r.phone_number = ANY($11)
+                      OR EXISTS (
+                         SELECT 1 FROM contacts c
+                         WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id
+                           AND c.deleted_at IS NULL
+                           AND (c.email ILIKE ANY($6)
+                                OR c.phone_number = ANY($11)
+                                OR c.phones::text ILIKE ANY($12)
+                                -- every word of one phrase is in the full name (words have
+                                -- no spaces, so none can straddle two name parts)
+                                OR EXISTS (
+                                   SELECT 1 FROM jsonb_array_elements($7::jsonb) phrase
+                                   WHERE concat_ws(' ', c.first_name, c.middle_name, c.last_name)
+                                         ILIKE ALL (ARRAY(SELECT jsonb_array_elements_text(phrase)))))))
+           ),
+           page AS (
+               SELECT id, count(*) OVER () AS total FROM matched
+               ORDER BY id DESC LIMIT $13 OFFSET $14
+           )
+           SELECT r.id, r.relation_number, r.relation_appendix,
                   r.type AS kind, r.allow_invoicing_on_account, r.disable_order_workflow_emails,
                   r.alias, r.company_name, r.email, r.website, r.phone_number, r.coc_number,
                   r.vat_number, r.import_source, r.import_id, r.default_language, r.addresses,
@@ -301,47 +350,14 @@ pub async fn list(
                   st.id AS "st_id?", st.name AS "st_name?", st.domain AS "st_domain?",
                   st.properties AS st_properties, st.meta AS st_meta,
                   st.created_at AS "st_created_at?", st.updated_at AS "st_updated_at?",
-                  count(*) OVER () AS total
-           FROM relations r
+                  page.total
+           FROM page
+           JOIN relations r ON r.id = page.id
            LEFT JOIN custom_types rt ON rt.workspace_id = r.workspace_id
                 AND rt.id = r.relation_type_id AND rt.deleted_at IS NULL
            LEFT JOIN custom_types st ON st.workspace_id = r.workspace_id
                 AND st.id = r.source_type_id AND st.deleted_at IS NULL
-           WHERE r.workspace_id = $1 AND r.deleted_at IS NULL
-             AND (NOT $2 OR (r.company_name IS NOT NULL
-                             AND rt.properties @> '{"is_supplier": true}'))
-             AND ($3::text IS NULL OR EXISTS (
-                   SELECT 1 FROM contacts c
-                   WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id
-                     AND c.deleted_at IS NULL AND lower(c.last_name) = $3))
-             AND ($4::text IS NULL OR EXISTS (
-                   SELECT 1 FROM jsonb_array_elements(r.addresses) a
-                   WHERE upper(regexp_replace(a ->> 'zipcode', '[^0-9A-Za-z]', '', 'g')) = $4))
-             AND ($5::text IS NULL OR lower(r.company_name) = $5)
-             AND (cardinality($6::text[]) = 0
-                  OR r.alias ILIKE ANY($6) OR r.company_name ILIKE ANY($6)
-                  OR r.email ILIKE ANY($6) OR r.phone_number ILIKE ANY($6)
-                  OR r.website ILIKE ANY($6) OR rt.name ILIKE ANY($6)
-                  OR r.id = $8 OR r.import_id = $9 OR lower(r.email) = lower($9)
-                  OR r.phone_number = $9 OR r.relation_number = $10
-                  OR r.phone_number = ANY($11)
-                  OR EXISTS (
-                     SELECT 1 FROM contacts c
-                     WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id
-                       AND c.deleted_at IS NULL
-                       AND (c.email ILIKE ANY($6)
-                            OR c.phone_number = ANY($11)
-                            OR c.phones::text ILIKE ANY($12)
-                            -- every word of one phrase hits first, middle or last name
-                            OR EXISTS (
-                               SELECT 1 FROM jsonb_array_elements($7::jsonb) phrase
-                               WHERE NOT EXISTS (
-                                  SELECT 1 FROM jsonb_array_elements_text(phrase) w
-                                  WHERE NOT (coalesce(c.first_name, '') ILIKE w
-                                             OR coalesce(c.middle_name, '') ILIKE w
-                                             OR coalesce(c.last_name, '') ILIKE w))))))
-           ORDER BY r.id DESC
-           LIMIT $13 OFFSET $14"#,
+           ORDER BY r.id DESC"#,
         workspace_id,
         f.suppliers,
         f.last_name,
@@ -368,7 +384,8 @@ pub async fn list(
 }
 
 /// Stored addresses of a live relation, row locked for this transaction (updates and contact
-/// writes read the country, and default-contact changes serialize on it). None = 404.
+/// writes read the country, and default-contact changes serialize on it). NO KEY: child
+/// inserts (contacts now, orders later) still take their FK share lock. None = 404.
 pub async fn addresses_for_update(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -377,7 +394,7 @@ pub async fn addresses_for_update(
     sqlx::query_scalar!(
         "SELECT addresses FROM relations
          WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
-         FOR UPDATE",
+         FOR NO KEY UPDATE",
         id,
         workspace_id,
     )
@@ -387,10 +404,11 @@ pub async fn addresses_for_update(
     .transpose()
 }
 
-/// Apply a validated patch in one statement (absent = keep). `keep_ftp_password` copies the
-/// stored FTP password into the new supplier data. False = no such live row.
+/// Apply a validated patch in one statement (absent = keep). `keep_ftp_password`: the new FTP
+/// config left the password blank, so carry the stored one over when the server and login
+/// are unchanged (else store null). False = no such live row.
 pub async fn update(
-    conn: &mut PgConnection,
+    db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     id: Uuid,
     relation_type_id: Uuid,
@@ -438,8 +456,15 @@ pub async fn update(
                terms_and_periods = CASE WHEN $28 THEN $29 ELSE terms_and_periods END,
                supplier_data = CASE
                    WHEN NOT $30 THEN supplier_data
+                   -- Keep the stored password only for the same server and login: a new
+                   -- host must never inherit the old secret.
                    WHEN $31 AND supplier_data #> '{order_ftp,password}' IS NOT NULL
-                       THEN jsonb_set($32, '{order_ftp,password}', supplier_data #> '{order_ftp,password}')
+                        AND $32::jsonb #> '{order_ftp,host}' IS NOT DISTINCT FROM supplier_data #> '{order_ftp,host}'
+                        AND $32::jsonb #> '{order_ftp,port}' IS NOT DISTINCT FROM supplier_data #> '{order_ftp,port}'
+                        AND $32::jsonb #> '{order_ftp,username}' IS NOT DISTINCT FROM supplier_data #> '{order_ftp,username}'
+                        AND $32::jsonb #> '{order_ftp,type}' IS NOT DISTINCT FROM supplier_data #> '{order_ftp,type}'
+                       THEN jsonb_set($32::jsonb, '{order_ftp,password}', supplier_data #> '{order_ftp,password}')
+                   WHEN $31 THEN jsonb_set($32::jsonb, '{order_ftp,password}', 'null')
                    ELSE $32 END,
                allow_invoicing_on_account = COALESCE($33, allow_invoicing_on_account),
                disable_order_workflow_emails = COALESCE($34, disable_order_workflow_emails),
@@ -483,7 +508,7 @@ pub async fn update(
         s_meta,
         meta,
     )
-    .execute(&mut *conn)
+    .execute(db)
     .await
     .map(|done| done.rows_affected() == 1)
 }

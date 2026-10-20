@@ -25,6 +25,7 @@ use crate::{
         workspaces::dto::account,
     },
     money::{Zero, format_decimals},
+    php::truthy,
 };
 
 /// Laravel CustomSectionExistForDomain text; no section can exist until custom fields are ported.
@@ -33,11 +34,6 @@ const NO_SECTION: &str = "this custom section does not exist for the selected do
 pub const TYPE_NOT_VALID: &str = "The relation type id is not valid";
 const POS_NAME: &str =
     "A POS customer needs a company name, alias, or contact first and last name.";
-
-/// PHP truthiness of an optional string.
-pub fn truthy(s: &Option<String>) -> bool {
-    s.as_deref().is_some_and(|s| !s.is_empty() && s != "0")
-}
 
 fn get<'a>(v: &'a Map<String, Value>, k: &str) -> Option<&'a Value> {
     v.get(k)
@@ -252,16 +248,11 @@ fn terms_in(r: &mut Rules, v: Value) -> Option<Value> {
     };
     let mut out = Map::new();
     for k in TERM_KEYS {
-        let key = format!("terms_and_periods.{k}");
         let n = filled(map.get(k).cloned()).and_then(|n| {
             let mut own = Rules::default();
             let n = own.integer(k, &n, 1, 365);
             // Keys carry the prefix, messages the bare name (Laravel Data::validate wrapping).
-            if let Err(crate::error::AppError::Validation(errors)) = own.into_result() {
-                for message in errors.into_values().flatten() {
-                    r.add(&key, message);
-                }
-            }
+            own.merge_into_prefixed(r, "terms_and_periods.");
             n
         });
         out.insert(k.into(), n.map_or(Value::Null, Value::from));
@@ -347,10 +338,9 @@ fn supplier_in(r: &mut Rules, v: Value) -> Option<Value> {
 pub struct UpdateRelationRequest(Map<String, Value>);
 
 /// Validated update; `None` keeps the stored value, `Some(None)` clears it.
-#[derive(Default)]
 pub struct RelationPatch {
     pub kind: String,
-    pub relation_type_id: Option<Uuid>,
+    pub relation_type_id: Uuid,
     pub alias: Option<Option<String>>,
     pub company_name: Option<Option<String>>,
     pub coc_number: Option<Option<String>>,
@@ -396,7 +386,6 @@ impl Validate for UpdateRelationRequest {
         };
         Some(RelationPatch {
             kind: kind(r, get(&v, "type")).unwrap_or_default(),
-            relation_type_id,
             alias: text(r, "alias", 255),
             company_name: text(r, "company_name", 255),
             coc_number: text(r, "coc_number", 200),
@@ -421,6 +410,8 @@ impl Validate for UpdateRelationRequest {
             allow_invoicing_on_account: flag_patch(r, "allow_invoicing_on_account"),
             disable_order_workflow_emails: flag_patch(r, "disable_order_workflow_emails"),
             meta: sent("meta").then(|| r.meta(get(&v, "meta").cloned()).flatten()),
+            // Last: every other rule has run, so all errors are reported before this ends it.
+            relation_type_id: relation_type_id?,
         })
     }
 }
@@ -433,7 +424,7 @@ pub fn keeps_ftp_password(supplier: &Value) -> bool {
         .and_then(Value::as_object)
         .is_some_and(|ftp| {
             ftp.get("password")
-                .is_none_or(|p| p.is_null() || p.as_str().is_some_and(|s| s.is_empty()))
+                .is_none_or(|p| p.is_null() || p.as_str().is_some_and(|s| s.trim().is_empty()))
         })
 }
 
@@ -455,7 +446,8 @@ pub fn relation_nr(number: Option<i64>, appendix: Option<&Value>) -> Option<Stri
     let digits = appendix
         .and_then(|a| a.get("digits"))
         .and_then(Value::as_u64)
-        .unwrap_or(1) as usize;
+        .unwrap_or(1)
+        .min(20) as usize;
     Some(format!("{}{n:0>digits$}{}", part("prefix"), part("suffix")))
 }
 
@@ -477,7 +469,7 @@ fn eu_member(code: &str) -> bool {
 
 /// Laravel Relation::isCompany.
 pub fn is_company(r: &RelationRow) -> bool {
-    r.kind == "business" || truthy(&r.company_name)
+    r.kind == "business" || truthy(r.company_name.as_deref())
 }
 
 const TERM_KEYS: [&str; 4] = [
@@ -614,7 +606,7 @@ impl From<Detail> for RelationResource {
         let r = &d.row;
         let ws_country = d.workspace.country();
         let company = is_company(r);
-        let vat = truthy(&r.vat_number);
+        let vat = truthy(r.vat_number.as_deref());
         let default_address = address::default_of(&r.addresses);
         let default_country = default_address.and_then(|a| a.country.clone());
         let foreign = |c: &str| c.to_ascii_uppercase() != ws_country;
@@ -668,7 +660,7 @@ impl From<Detail> for RelationResource {
         let r = d.row;
         Self {
             id: r.id,
-            email_validation: truthy(&r.email).then_some(None),
+            email_validation: truthy(r.email.as_deref()).then_some(None),
             terms_and_periods: terms(r.terms_and_periods.as_ref()),
             used_terms_and_periods: used_terms(&r),
             relation_nr: relation_nr(r.relation_number, r.relation_appendix.as_ref()),
@@ -797,7 +789,7 @@ impl RelationIndexResource {
         let bare = flags.suppliers && flags.include_advice;
         Self {
             id: r.id,
-            email_validation: truthy(&r.email).then_some(None),
+            email_validation: truthy(r.email.as_deref()).then_some(None),
             relation_nr: relation_nr(r.relation_number, r.relation_appendix.as_ref()),
             addresses: r.addresses.iter().map(AddressView::from).collect(),
             supplier_data: index_supplier(r.supplier_data.as_ref()),

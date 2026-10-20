@@ -129,18 +129,16 @@ pub async fn search(
         }
         Some("relation") => {
             // Relations parse `q` themselves (phrases, id-like and phone matches).
-            let suppliers = query.is_supplier.as_deref().is_some_and(flag);
-            let filters = [None, None, None];
-            let list = relations::handlers::page_of(
-                s,
-                ws,
-                query.q.as_deref(),
-                suppliers,
-                false,
-                filters,
+            let iq = relations::service::IndexQuery {
+                q: query.q.as_deref(),
+                suppliers: query.is_supplier.as_deref().is_some_and(flag),
+                include_advice: false,
+                last_name: None,
+                zipcode: None,
+                company_name: None,
                 page,
-            );
-            Json(list.await?).into_response()
+            };
+            Json(relations::service::index(s, ws, iq).await?).into_response()
         }
         _ => return Err(AppError::NotFound),
     })

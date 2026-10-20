@@ -1,9 +1,7 @@
 -- CRM relations (customers, suppliers, leads) and their contacts (Laravel CRM/Relation,
 -- CRM/Contact). Addresses and phones stay JSON arrays, as in Laravel.
-
--- Trigram indexes serve ILIKE '%q%' search (Laravel searched Meilisearch). Trusted
--- extension: the database owner may create it without superuser.
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- Search is a workspace-scoped scan (no trigram index: its OR over joined and correlated
+-- arms can't use one); see docs/api/relations.md for the size it holds up to.
 
 CREATE TABLE relations (
     id                            uuid        PRIMARY KEY DEFAULT uuidv7(),
@@ -57,10 +55,12 @@ CREATE UNIQUE INDEX relations_number_unique ON relations (workspace_id, relation
     WHERE relation_number IS NOT NULL;
 -- Default list order: newest first.
 CREATE INDEX relations_live_idx ON relations (workspace_id, id DESC) WHERE deleted_at IS NULL;
-CREATE INDEX relations_import_idx ON relations (workspace_id, import_source, import_id);
-CREATE INDEX relations_search_trgm ON relations
-    USING gin (company_name gin_trgm_ops, alias gin_trgm_ops, email gin_trgm_ops,
-               website gin_trgm_ops, phone_number gin_trgm_ops);
+CREATE INDEX relations_import_idx ON relations (workspace_id, import_source, import_id)
+    WHERE import_id IS NOT NULL;
+-- Referencing side of the custom type FKs (probe on type delete, "type in use" checks).
+CREATE INDEX relations_relation_type_idx ON relations (workspace_id, relation_type_id);
+CREATE INDEX relations_source_type_idx ON relations (workspace_id, source_type_id)
+    WHERE source_type_id IS NOT NULL;
 
 CREATE TABLE contacts (
     id              uuid        PRIMARY KEY DEFAULT uuidv7(),
@@ -94,9 +94,8 @@ CREATE TABLE contacts (
     CONSTRAINT contacts_relation_fk FOREIGN KEY (workspace_id, relation_id)
         REFERENCES relations (workspace_id, id) ON DELETE CASCADE
 );
-CREATE INDEX contacts_relation_idx ON contacts (relation_id) WHERE deleted_at IS NULL;
+-- Serves the composite FK (cascade probe) and the per-page contact load.
+CREATE INDEX contacts_relation_idx ON contacts (workspace_id, relation_id);
 -- Laravel let a relation end up with several defaults; one is enough.
 CREATE UNIQUE INDEX contacts_one_default ON contacts (relation_id)
     WHERE default_contact AND deleted_at IS NULL;
-CREATE INDEX contacts_search_trgm ON contacts
-    USING gin (first_name gin_trgm_ops, last_name gin_trgm_ops, email gin_trgm_ops);

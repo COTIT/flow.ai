@@ -9,6 +9,7 @@ mod http;
 pub mod mail;
 mod modules;
 mod money;
+mod php;
 
 use axum::{
     Router,
@@ -26,7 +27,7 @@ use modules::{
     vat_groups, workspaces,
 };
 
-/// Largest JSON body any endpoint needs is a signup form; 64 KiB leaves plenty of room
+/// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
 /// and keeps junk bodies (axum default 2 MB) off the parser.
 const BODY_LIMIT: usize = 64 * 1024;
 

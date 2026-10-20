@@ -9,7 +9,11 @@ use uuid::Uuid;
 use crate::{
     http::json::{Rules, Validate, human, present},
     modules::contacts::repo::ContactRow,
+    php::{truthy, ucfirst},
 };
+
+/// Most phone numbers one contact may hold (Laravel had no cap).
+const MAX_PHONES: usize = 20;
 
 /// Laravel ContactType values for `default_for`.
 pub const DEFAULT_FOR: [&str; 5] = [
@@ -23,30 +27,17 @@ pub const DEFAULT_FOR: [&str; 5] = [
 /// Laravel PhoneNumberType values for `phones[].type`.
 const PHONE_TYPES: [&str; 5] = ["home", "mobile", "phone", "phone2", "work"];
 
-/// PHP truthiness of a stored string, for Laravel `when($this->x, …)` keys.
-fn truthy(s: &Option<String>) -> bool {
-    s.as_deref().is_some_and(|s| !s.is_empty() && s != "0")
-}
-
-/// PHP `ucfirst` (first char, ASCII only).
-pub fn ucfirst(s: &str) -> String {
-    let mut c = s.chars();
-    c.next()
-        .map(|f| f.to_ascii_uppercase().to_string() + c.as_str())
-        .unwrap_or_default()
-}
-
 /// Laravel Contact::full_name: first name (else salutation), ` middle `, last name.
 pub fn full_name(c: &ContactRow) -> String {
     let first = match &c.first_name {
-        Some(f) if truthy(&c.first_name) => ucfirst(f),
+        Some(f) if truthy(c.first_name.as_deref()) => ucfirst(f),
         _ => c.salutation.clone().unwrap_or_default(),
     };
     let middle = match &c.middle_name {
-        Some(m) if truthy(&c.middle_name) => format!(" {} ", m.to_ascii_lowercase()),
+        Some(m) if truthy(c.middle_name.as_deref()) => format!(" {} ", m.to_ascii_lowercase()),
         _ => " ".to_owned(),
     };
-    let last = if truthy(&c.last_name) {
+    let last = if truthy(c.last_name.as_deref()) {
         c.last_name.as_deref().unwrap_or_default()
     } else {
         ""
@@ -86,19 +77,19 @@ pub struct ContactResource {
 
 impl From<ContactRow> for ContactResource {
     fn from(c: ContactRow) -> Self {
-        let when = |s: &Option<String>| s.clone().filter(|_| truthy(s));
+        let when = |s: Option<String>| s.filter(|v| truthy(Some(v)));
         Self {
             id: c.id,
             full_name: full_name(&c),
-            prefix: when(&c.prefix),
-            attn: when(&c.attn),
-            salutation: when(&c.salutation),
-            initials: c.initials.clone(),
-            job_title: c.job_title.clone(),
-            first_name: c.first_name.clone(),
-            middle_name: c.middle_name.as_deref().map(str::to_ascii_lowercase),
-            last_name: c.last_name.clone(),
-            email_validation: truthy(&c.email).then_some(None),
+            email_validation: truthy(c.email.as_deref()).then_some(None),
+            middle_name: c.middle_name.map(|m| m.to_ascii_lowercase()),
+            prefix: when(c.prefix),
+            attn: when(c.attn),
+            salutation: when(c.salutation),
+            initials: c.initials,
+            job_title: c.job_title,
+            first_name: c.first_name,
+            last_name: c.last_name,
             email: c.email,
             phones: c.phones,
             default_contact: c.default_contact,
@@ -149,6 +140,11 @@ pub fn phones(r: &mut Rules, prefix: &str, v: Option<&Value>) -> Vec<Value> {
     let key = format!("{prefix}phones");
     let items = match v {
         None | Some(Value::Null) => return Vec::new(),
+        Some(Value::Array(items)) if items.len() > MAX_PHONES => {
+            let msg = format!("The {key} must not have more than {MAX_PHONES} items.");
+            r.add(&key, msg);
+            return Vec::new();
+        }
         Some(Value::Array(items)) => items,
         Some(_) => {
             r.add(&key, format!("The {} must be an array.", human(&key)));
@@ -247,7 +243,7 @@ pub fn contact_fields(
             None
         }
     });
-    let meta = r.meta(v.get("meta").cloned()).flatten();
+    let meta = r.meta_at(&key("meta"), v.get("meta").cloned()).flatten();
     ContactFields {
         first_name,
         middle_name: opt_str(r, &key("middle_name"), v.get("middle_name"), 55)
@@ -309,7 +305,6 @@ pub struct UpdateContactRequest {
 }
 
 /// Validated contact patch; `None` keeps the stored value, `Some(None)` clears it.
-#[derive(Default)]
 pub struct ContactPatch {
     pub first_name: Option<Option<String>>,
     pub middle_name: Option<Option<String>>,

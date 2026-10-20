@@ -7,6 +7,7 @@ use serde_json::{Map, Value};
 use crate::{
     http::json::{Rules, human},
     modules::relations::countries,
+    php::{truthy, ucfirst},
 };
 
 /// rinvex fallback when a known country has no template (Laravel Address::format).
@@ -14,23 +15,51 @@ const DEFAULT_FORMAT: &str =
     "{{recipient}}\n{{street}}\n{{postalcode}} {{city}}\n{{region}}\n{{country}}";
 
 /// One address as stored in `relations.addresses`. Country uppercase, phone trimmed.
+/// Reads leniently (numbers as text, null flags as false): Laravel rows held both.
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[serde(default)]
 pub struct Address {
+    #[serde(deserialize_with = "lenient_text")]
     pub address: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub house_number: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub zipcode: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub city: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub country: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub house_number_addition: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub address2: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub state: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub label: Option<String>,
-    #[serde(default)]
+    #[serde(deserialize_with = "lenient_flag")]
     pub main_address: bool,
-    #[serde(rename = "type")]
+    #[serde(rename = "type", deserialize_with = "lenient_text")]
     pub kind: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub attn: Option<String>,
+    #[serde(deserialize_with = "lenient_text")]
     pub phone_number: Option<String>,
+}
+
+/// Stored text field: string, number (as its text) or null; anything else reads as null.
+fn lenient_text<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    Ok(match Value::deserialize(d)? {
+        Value::String(s) => Some(s),
+        Value::Number(n) => Some(n.to_string()),
+        _ => None,
+    })
+}
+
+/// Stored flag: true, 1 or "1" are true; anything else (null included) is false.
+fn lenient_flag<'de, D: serde::Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    let v = Value::deserialize(d)?;
+    Ok(v == Value::Bool(true) || v.as_i64() == Some(1) || v.as_str() == Some("1"))
 }
 
 /// Address as Laravel serialized it: stored fields in constructor order plus the computed
@@ -83,22 +112,8 @@ impl From<&Address> for AddressView {
     }
 }
 
-/// PHP truthiness of an optional string: set, non-empty and not "0".
-fn truthy(s: &Option<String>) -> bool {
-    s.as_deref().is_some_and(|s| !s.is_empty() && s != "0")
-}
-
 fn text(s: &Option<String>) -> &str {
     s.as_deref().unwrap_or("")
-}
-
-/// PHP `ucfirst`: uppercase the first byte when it is an ASCII letter.
-fn ucfirst(s: &str) -> String {
-    let mut c = s.chars();
-    match c.next() {
-        Some(first) => first.to_ascii_uppercase().to_string() + c.as_str(),
-        None => String::new(),
-    }
 }
 
 impl Address {
@@ -133,26 +148,26 @@ impl Address {
 
     fn non_region_format(&self) -> String {
         let mut out = String::new();
-        if truthy(&self.address) {
+        if truthy(self.address.as_deref()) {
             out += &format!("{} ", text(&self.address));
         }
-        if truthy(&self.house_number) {
+        if truthy(self.house_number.as_deref()) {
             out += &format!(
                 "{}{}\n",
                 text(&self.house_number),
                 text(&self.house_number_addition)
             );
         }
-        if truthy(&self.address2) {
+        if truthy(self.address2.as_deref()) {
             out += &format!("{}\n", text(&self.address2));
         }
-        if truthy(&self.zipcode) {
+        if truthy(self.zipcode.as_deref()) {
             out += &format!("{}, ", text(&self.zipcode).to_ascii_uppercase());
         }
-        if truthy(&self.city) {
+        if truthy(self.city.as_deref()) {
             out += &format!("{}\n", text(&self.city));
         }
-        if truthy(&self.country) {
+        if truthy(self.country.as_deref()) {
             out += text(&self.country);
         }
         out
@@ -160,7 +175,7 @@ impl Address {
 
     /// `1339nm 11`: zipcode lowercased without spaces + house number (zipcode lookups).
     pub fn search_format(&self) -> String {
-        let zipcode = if truthy(&self.zipcode) {
+        let zipcode = if truthy(self.zipcode.as_deref()) {
             text(&self.zipcode).to_ascii_lowercase().replace(' ', "")
         } else {
             String::new()
@@ -168,6 +183,9 @@ impl Address {
         format!("{zipcode} {}", text(&self.house_number))
     }
 }
+
+/// Most addresses one relation may hold.
+pub const MAX_ADDRESSES: usize = 50;
 
 /// Characters PHP `trim()` strips.
 const PHP_TRIM: &[char] = &[' ', '\t', '\n', '\r', '\0', '\x0B'];
@@ -253,6 +271,14 @@ pub fn validate_list(r: &mut Rules, value: Value) -> Vec<Address> {
         r.add("addresses", "The addresses is not valid");
         return Vec::new();
     };
+    // Laravel had no cap; 50 bounds row size and every response that embeds them.
+    if items.len() > MAX_ADDRESSES {
+        r.add(
+            "addresses",
+            format!("The addresses must not have more than {MAX_ADDRESSES} items."),
+        );
+        return Vec::new();
+    }
     let mut out = Vec::with_capacity(items.len());
     for (i, v) in items.iter().enumerate() {
         let Value::Object(map) = v else {

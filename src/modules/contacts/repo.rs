@@ -169,7 +169,7 @@ pub async fn update(
     .map(|done| done.rows_affected() == 1)
 }
 
-/// Soft delete a live contact of `relation_id`. False = no such row.
+/// Soft delete a live contact of a live `relation_id`. False = no such row.
 pub async fn soft_delete(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -178,7 +178,9 @@ pub async fn soft_delete(
 ) -> Result<bool, sqlx::Error> {
     sqlx::query!(
         "UPDATE contacts SET deleted_at = now(), updated_at = now()
-         WHERE id = $3 AND workspace_id = $1 AND relation_id = $2 AND deleted_at IS NULL",
+         WHERE id = $3 AND workspace_id = $1 AND relation_id = $2 AND deleted_at IS NULL
+           AND EXISTS (SELECT 1 FROM relations r
+                       WHERE r.id = $2 AND r.workspace_id = $1 AND r.deleted_at IS NULL)",
         workspace_id,
         relation_id,
         id,

@@ -31,7 +31,7 @@ The body is a JSON object, and unknown keys are ignored (the web form sends `add
 |---|---|
 | `type` | required, `business` or `personal` (any case, stored lowercase): "The selected type: X is invalid." |
 | `relation_type_id` | uuid of a live `relation` custom type in this workspace; else 422 "The relation type id is not valid". Absent or null: the workspace's oldest relation type, which signup seeds as Supplier. No relation type at all: 422 "The relation type id field is required." |
-| `source_type_id` | uuid of a live custom type in this workspace |
+| `source_type_id` | uuid of a live `lead_source` custom type in this workspace (Laravel took any domain) |
 | `alias`, `company_name` | text ≤ 255 |
 | `coc_number` | text ≤ 200 |
 | `vat_number` | text; the two-letter prefix plus that country's pattern (ibericode/vat 2.1.2 shapes, no VIES call): "The Vat number must be a valid number issued by any Member State." |
@@ -39,7 +39,7 @@ The body is a JSON object, and unknown keys are ignored (the web form sends `add
 | `website` | `http(s)://` URL with a dotted host ≤ 255 |
 | `phone_number` | text ≤ 55, normalized (below) |
 | `default_language` | `en` or `nl` |
-| `addresses` | array of address objects, at most one `main_address` |
+| `addresses` | array of at most 50 address objects, at most one `main_address` |
 | `financial_account` | `{account_name, account_number (IBAN), bic_swift (BIC), credit_limit ≥ 0}` |
 | `allow_invoicing_on_account`, `disable_order_workflow_emails` | boolean (Laravel set: `true/false/1/0/"1"/"0"`) |
 | `meta` | object or null |
@@ -64,7 +64,7 @@ The body is a JSON object, and unknown keys are ignored (the web form sends `add
 | `label` | text ≤ 55 |
 | `main_address` | boolean |
 
-Address errors use bare keys (`zipcode`, `city`), and only the first bad item reports. That is what Laravel sent, and the web address form reads those keys. A non-array `addresses` is "The addresses is not valid"; two main addresses are "There should be one main address".
+Address errors use bare keys (`zipcode`, `city`), and only the first bad item reports. More than 50 is "The addresses must not have more than 50 items." That is what Laravel sent, and the web address form reads those keys. A non-array `addresses` is "The addresses is not valid"; two main addresses are "There should be one main address".
 
 ### Numbering
 
@@ -143,6 +143,13 @@ Query: `slim=1` drops `supplier_discount_groups`, `relation_discount_groups` and
 
 **Paging.** `limit` (default 30; 200 or more gives 50; junk or ≤ 0 gives 30) and `page`. Rows come newest first, leads included. Unknown query params are ignored.
 
+**Speed, measured on PG 18 with 100k relations in one workspace (release build, local Docker):**
+- the default page or any page: about 24 ms
+- a zipcode filter: about 100 ms
+- a text search: about 500 ms. Search scans the workspace's relations and contacts; no index serves its OR across relation, type and contact fields. At 10k relations expect roughly 50–110 ms (110 ms was measured before the contact-name match got cheaper; 50 ms is the 100k run scaled down).
+
+**Upgrade path, once a workspace passes about 25k relations:** a maintained search-text column with a trigram index (`btree_gin` for `workspace_id`), or Meilisearch as in Laravel.
+
 **Filters:**
 
 | Param | Effect |
@@ -150,10 +157,10 @@ Query: `slim=1` drops `supplier_discount_groups`, `relation_discount_groups` and
 | `suppliers=1` | relation type `properties.is_supplier = true` and a company name; adds `open_orders: 0` |
 | `include_advice=1` | adds `has_advice: false, advice_count: 0`; together with `suppliers`, `relationships` is only `{tags: []}` (Laravel loaded nothing) |
 | `last_name` | a contact with exactly this last name, any case (≤ 255) |
-| `zipcode` | an address with this zipcode, ignoring case, spaces and dashes (≤ 10) |
+| `zipcode` | an address with this zipcode, ignoring case, spaces and dashes (≤ 10); one with no letters or digits matches nothing |
 | `company_name` | exact company name, any case (≤ 255) |
 
-**Search `q`** (≤ 255 chars; blank or `*` = no filter):
+**Search `q`** (≤ 255 chars; blank or `*` = no filter; at most 5 comma phrases and 8 words per phrase are used):
 - **Splitting.** Commas outside quotes split it into phrases, and quotes are stripped. `null`/`undefined` tokens left by template strings are dropped, and a `q` emptied that way answers an empty page.
 - **Matched fields.** Any phrase may match alias, company name, email, phone, website or relation type name (case-insensitive substring), a contact's email, or a contact whose first, middle or last names contain every word of the phrase.
 - **Id-like input** (uuid, digits, codes like `RE-0012`) also matches exactly on id, import id, email, phone and relation number.
@@ -180,8 +187,9 @@ Row shape (RelationIndexResource): `id, alias, company_name, type, email, email_
   - `fixed_shipping_cost`: `enabled` boolean; `amount_base` required when enabled and > 0; `vat` ≥ 0; `line_name` and `reference` ≤ 255
 - **FTP password (write-only).**
   - Responses always show `supplier_data.order_ftp.password: null`.
-  - On update, a blank or null password keeps the stored one (the web form posts back what it loaded), and a new value replaces it.
-  - Once set, the API can replace a password but not clear it.
+  - On update, a blank, spaces-only or null password keeps the stored one when `host`, `port`, `username` and `type` are unchanged (the web form posts back what it loaded). If any of them changed, the password is cleared, so a new server never receives the old secret.
+  - A new value replaces it.
+  - The API can't clear a password while the server and login stay the same.
 - **Ignored keys.** `import_source` and `import_id` (≤ 255) are accepted. `source_type_id`, `owner_id` and the singular `address` key are ignored, as in Laravel.
 
 ## Delete `DELETE /relations/{relation}`
@@ -194,11 +202,11 @@ Soft delete. Its contacts stay, and its number stays taken. Laravel refused (422
   - `first_name` and `last_name` are required (≤ 55, first letter uppercased).
   - `middle_name` (lowercased), `prefix`, `initials` and `salutation` are ≤ 55, and `job_title` is ≤ 100.
   - `email` is ≤ 255 and stored lowercase. `phone_number` is ≤ 55.
-  - `phones` is a list of `{type: home|mobile|phone|phone2|work, number ≤ 30}`, with errors at `phones.N.type`.
+  - `phones` is a list of at most 20 `{type: home|mobile|phone|phone2|work, number ≤ 30}`, with errors at `phones.N.type`.
   - `default_contact` is a boolean, `default_for` is one of the five `default_for_*` values, and `meta` is an object.
 - **Update.** Every key is a patch. Laravel set `email` and `phone_number` to null on every update that left them out; genesy keeps them.
 - **Default contact.** A relation has at most one live default contact (unique index). Creating or updating a contact as default clears the flag on the others in the same transaction. Laravel did this on update only, so a relation could end up with several defaults.
-- **Delete.** Soft delete.
+- **Delete.** Soft delete; 404 when the relation itself is deleted.
 
 ## Financial summary `GET /relations/{relation}/financial-summary`
 
@@ -227,7 +235,9 @@ The same keys as Laravel. Every amount is 0, because genesy has no invoices yet;
 - A deleted relation type no longer counts as valid.
 - Updating a contact keeps the fields it doesn't send.
 - One default contact per relation.
-- A contact can't be changed or deleted through another relation.
+- A contact can't be changed or deleted through another relation, nor once its relation is deleted.
+- `source_type_id` must be a lead source.
+- Address and phone lists are capped (50 / 20).
 - `terms_and_periods` values are validated instead of answering 500.
 - The zipcode filter matches `1339NM` and `1339 NM` both.
 - The FTP password is never returned.

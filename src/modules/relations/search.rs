@@ -9,7 +9,7 @@ use crate::{
     modules::relations::phone,
 };
 
-/// What one `q` asks for. Empty `terms` with `emptied` = nothing left after cleanup.
+/// Bound parameters for one `q`. No patterns = no text filter.
 #[derive(Debug, Default, PartialEq)]
 pub struct Query {
     /// `%term%` ILIKE patterns: one per comma-separated phrase.
@@ -129,6 +129,11 @@ pub fn compact_zipcode(zip: &str) -> Option<String> {
     (!z.is_empty()).then_some(z)
 }
 
+/// Comma phrases used from one `q`; later ones are ignored.
+const MAX_PHRASES: usize = 5;
+/// Words per phrase matched against contact names.
+const MAX_WORDS: usize = 8;
+
 /// `q` -> search parameters; None = nothing searchable left (Laravel answers an empty page).
 /// Over 255 chars is a 422: duplicate checks send whole email addresses quoted.
 pub fn parse(q: Option<&str>) -> Result<Option<Query>, AppError> {
@@ -140,19 +145,28 @@ pub fn parse(q: Option<&str>) -> Result<Option<Query>, AppError> {
     r.max_chars("q", raw, 255);
     r.into_result()?;
     let exact = raw.contains('"');
-    let terms = terms(raw);
+    let mut terms = terms(raw);
+    // Each phrase and word adds a scan arm; past these caps a `q` buys cost, not precision.
+    let mut seen = std::collections::HashSet::new();
+    terms.retain(|t| seen.insert(t.to_lowercase()));
+    terms.truncate(MAX_PHRASES);
     if terms.is_empty() {
         return Ok(None);
     }
     let search = terms.join(" ");
     let phrases = if exact { terms } else { vec![search.clone()] };
-    let phones = phone::search_candidates(&search, None);
+    let phones = phone::search_candidates(&search);
     let id_like = identifier_like(&search);
     Ok(Some(Query {
         patterns: phrases.iter().map(|p| contains_pattern(p)).collect(),
         words: phrases
             .iter()
-            .map(|p| p.split_whitespace().map(contains_pattern).collect())
+            .map(|p| {
+                p.split_whitespace()
+                    .take(MAX_WORDS)
+                    .map(contains_pattern)
+                    .collect()
+            })
             .collect(),
         uuid: id_like.then(|| Uuid::parse_str(&search).ok()).flatten(),
         text: id_like.then(|| search.clone()),

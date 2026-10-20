@@ -63,14 +63,14 @@ pub fn country_of(addresses: &[Address]) -> Option<&'static str> {
 
 /// Stored spellings a typed phone number may match: bare digits, `+`/`00`/`0` variants for
 /// NL/BE/DE. Fewer than 7 digits -> none (too short to search on).
-pub fn search_candidates(number: &str, country: Option<&str>) -> Vec<String> {
+pub fn search_candidates(number: &str) -> Vec<String> {
     let number = number.trim();
     let digits: String = number.chars().filter(char::is_ascii_digit).collect();
     if digits.len() < 7 {
         return Vec::new();
     }
     let mut out = vec![digits.clone()];
-    push_variants(&mut out, normalize(Some(number), country));
+    push_variants(&mut out, normalize(Some(number), None));
     for (_, code) in SUPPORTED {
         if let Some(rest) = digits.strip_prefix(code).filter(|r| !r.is_empty()) {
             out.push(format!("+{digits}"));
@@ -209,7 +209,7 @@ mod tests {
 
     #[test]
     fn search_candidates_cover_stored_spellings() {
-        let c = search_candidates("06 12345678", None);
+        let c = search_candidates("06 12345678");
 
         for want in [
             "0612345678",
@@ -224,7 +224,7 @@ mod tests {
             c.len(),
             c.iter().collect::<std::collections::HashSet<_>>().len()
         );
-        assert!(search_candidates("+31612345678", None).contains(&"0612345678".to_owned()));
-        assert!(search_candidates("123456", None).is_empty());
+        assert!(search_candidates("+31612345678").contains(&"0612345678".to_owned()));
+        assert!(search_candidates("123456").is_empty());
     }
 }

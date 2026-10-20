@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT addresses FROM relations\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL\n         FOR UPDATE",
+  "query": "SELECT addresses FROM relations\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL\n         FOR NO KEY UPDATE",
   "describe": {
     "columns": [
       {
@@ -25,5 +25,5 @@
       false
     ]
   },
-  "hash": "be5e2703d828dc505b1049d1274373602e7b4c45794e4f3ebc6f946023b4a8e4"
+  "hash": "3d88817473990843a93411ae8db2af493128068a75727a14ee7e20f516b4b929"
 }

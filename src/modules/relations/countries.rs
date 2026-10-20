@@ -11,7 +11,7 @@ pub struct Country {
 }
 
 /// Every rinvex country, sorted by code for binary search.
-pub const ALL: [Country; 250] = [
+pub static ALL: [Country; 250] = [
     Country {
         code: "AD",
         name: "Andorra",
@@ -1572,4 +1572,17 @@ pub fn find(code: &str) -> Option<&'static Country> {
     ALL.binary_search_by(|c| c.code.cmp(code.as_str()))
         .ok()
         .map(|i| &ALL[i])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sorted_for_binary_search_and_eu_count() {
+        assert!(ALL.windows(2).all(|w| w[0].code < w[1].code));
+        assert_eq!(ALL.iter().filter(|c| c.eu_member).count(), 27);
+        assert_eq!(find("nl").map(|c| c.name), Some("Netherlands"));
+        assert!(find("ZZ").is_none());
+    }
 }

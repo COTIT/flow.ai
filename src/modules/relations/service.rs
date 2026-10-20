@@ -7,6 +7,10 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
+    http::{
+        json::Rules,
+        list::{Page, Paginated},
+    },
     modules::{
         contacts, custom_types,
         relations::{
@@ -17,7 +21,7 @@ use crate::{
             },
             phone,
             repo::{self, ListFilter},
-            vat_number,
+            search, vat_number,
         },
         vat_groups, workspaces,
     },
@@ -53,7 +57,7 @@ pub async fn create(
             })?,
     };
     if let Some(id) = input.source_type_id
-        && !custom_types::repo::is_live(&mut *tx, workspace_id, id, None).await?
+        && !custom_types::repo::is_live(&mut *tx, workspace_id, id, Some("lead_source")).await?
     {
         return Err(AppError::field(
             "source_type_id",
@@ -120,9 +124,68 @@ pub async fn get(
     .into())
 }
 
+/// What a list or `/searches?domain=relation` call asks for.
+pub struct IndexQuery<'a> {
+    pub q: Option<&'a str>,
+    pub suppliers: bool,
+    pub include_advice: bool,
+    pub last_name: Option<&'a str>,
+    pub zipcode: Option<&'a str>,
+    pub company_name: Option<&'a str>,
+    pub page: Page,
+}
+
+/// Trimmed optional filter, capped like Laravel's request rules; None when blank.
+fn filter(r: &mut Rules, key: &str, v: Option<&str>, max: usize) -> Option<String> {
+    let v = v.map(str::trim).filter(|v| !v.is_empty())?;
+    r.max_chars(key, v, max);
+    Some(v.to_owned())
+}
+
+/// Filters + search -> one page. A `q` emptied by cleanup ("null undefined") or a zipcode
+/// with no letters or digits matches nothing.
+pub async fn index(
+    state: &AppState,
+    workspace_id: Uuid,
+    iq: IndexQuery<'_>,
+) -> Result<Paginated<RelationIndexResource>, AppError> {
+    let mut r = Rules::default();
+    let last_name = filter(&mut r, "last_name", iq.last_name, 255).map(|l| l.to_lowercase());
+    let zip = filter(&mut r, "zipcode", iq.zipcode, 10);
+    let company = filter(&mut r, "company_name", iq.company_name, 255).map(|c| c.to_lowercase());
+    r.into_result()?;
+    let empty = || Paginated::new(Vec::new(), 0, iq.page);
+    let zipcode = match zip.as_deref().map(search::compact_zipcode) {
+        Some(None) => return Ok(empty()),
+        other => other.flatten(),
+    };
+    let query = match search::parse(iq.q)? {
+        Some(query) => query,
+        None if last_name.is_none() && zipcode.is_none() && company.is_none() => {
+            return Ok(empty());
+        }
+        None => search::Query::default(),
+    };
+    let f = ListFilter {
+        suppliers: iq.suppliers,
+        last_name: last_name.as_deref(),
+        zipcode: zipcode.as_deref(),
+        company_name: company.as_deref(),
+        q: &query,
+        limit: iq.page.size,
+        offset: iq.page.offset(),
+    };
+    let flags = IndexFlags {
+        suppliers: iq.suppliers,
+        include_advice: iq.include_advice,
+    };
+    let (data, total) = list(state, workspace_id, &f, flags).await?;
+    Ok(Paginated::new(data, total, iq.page))
+}
+
 /// One list page (index rows with their contacts) plus the matching total. Two queries; a
 /// page past the end re-reads the first row only to get the total.
-pub async fn list(
+async fn list(
     state: &AppState,
     workspace_id: Uuid,
     f: &ListFilter<'_>,
@@ -163,9 +226,7 @@ pub async fn update(
     let stored = repo::addresses_for_update(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    let relation_type_id = p
-        .relation_type_id
-        .ok_or_else(|| AppError::field("relation_type_id", TYPE_NOT_VALID))?;
+    let relation_type_id = p.relation_type_id;
     if !custom_types::repo::is_live(&mut *tx, workspace_id, relation_type_id, Some("relation"))
         .await?
     {
@@ -190,7 +251,9 @@ pub async fn update(
         p.phone_number = Some(phone::normalize(Some(n), country));
     }
     let keep = matches!(&p.supplier_data, Some(Some(s)) if keeps_ftp_password(s));
-    repo::update(&mut tx, workspace_id, id, relation_type_id, &p, keep).await?;
+    if !repo::update(&mut *tx, workspace_id, id, relation_type_id, &p, keep).await? {
+        return Err(AppError::NotFound);
+    }
     tx.commit().await?;
     Ok(())
 }
@@ -224,7 +287,8 @@ pub async fn financial_summary(
         .and_then(|c| {
             c.as_f64()
                 .or_else(|| c.as_str().and_then(|s| s.trim().parse().ok()))
-        });
+        })
+        .filter(|c: &f64| c.is_finite());
     let available = credit_limit.map(|c| (c.max(0.0) * 100.0).round() / 100.0);
     if lite {
         return Ok(json!({

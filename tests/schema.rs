@@ -619,12 +619,3 @@ async fn contact_default_for_and_phones_checked(pool: PgPool) {
     assert_eq!(violated(bad_for), "contacts_default_for_check");
     assert_eq!(violated(bad_phones), "contacts_phones_check");
 }
-
-#[sqlx::test]
-async fn trigram_extension_installed(pool: PgPool) {
-    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM pg_extension WHERE extname = 'pg_trgm'")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    assert_eq!(n, 1);
-}
