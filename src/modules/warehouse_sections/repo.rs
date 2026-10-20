@@ -42,18 +42,36 @@ pub struct ListFilter<'a> {
     pub offset: i64,
 }
 
-/// Generated rows/shelves/bins of one section, in creation order. Children name their parent
-/// by code, so ids are matched by code, never by RETURNING order.
+/// Generated layout of one section as insert columns, in creation order. Children name their
+/// parent by code, and ids are matched by code, never by RETURNING order.
 #[derive(Default)]
 pub struct Layout {
-    /// (code, name).
-    pub rows: Vec<(String, String)>,
     pub shelves_per_row: i32,
-    /// (row code, code, name, level).
-    pub shelves: Vec<(String, String, String, i32)>,
     pub bins_per_shelf: i32,
-    /// (shelf code, code, name).
-    pub bins: Vec<(String, String, String)>,
+    pub rows: Columns,
+    /// `parents` = row codes.
+    pub shelves: Columns,
+    /// `parents` = shelf codes.
+    pub bins: Columns,
+}
+
+/// One level of a generated layout; `parents` and `levels` stay empty where unused.
+#[derive(Default)]
+pub struct Columns {
+    pub parents: Vec<String>,
+    pub codes: Vec<String>,
+    pub names: Vec<String>,
+    pub levels: Vec<i32>,
+}
+
+impl Columns {
+    /// Append one generated child.
+    pub fn push(&mut self, parent: Option<&str>, code: String, name: String, level: Option<i32>) {
+        self.parents.extend(parent.map(str::to_owned));
+        self.codes.push(code);
+        self.names.push(name);
+        self.levels.extend(level);
+    }
 }
 
 /// New section; returns its id. Create always sends `Some` for every field.
@@ -101,7 +119,6 @@ pub async fn insert_layout(
     temperature: &str,
     l: &Layout,
 ) -> Result<(), sqlx::Error> {
-    let (codes, names): (Vec<String>, Vec<String>) = l.rows.iter().cloned().unzip();
     // Laravel SectionCreated defaults: 10 x 1.2 x 6 m rows.
     let rows: HashMap<String, Uuid> = sqlx::query!(
         "INSERT INTO warehouse_section_rows (workspace_id, warehouse_id, section_id, row_code,
@@ -114,8 +131,8 @@ pub async fn insert_layout(
         workspace_id,
         warehouse_id,
         section_id,
-        &codes,
-        &names,
+        &l.rows.codes,
+        &l.rows.names,
         l.shelves_per_row,
         temperature,
     )
@@ -124,14 +141,7 @@ pub async fn insert_layout(
     .into_iter()
     .map(|r| (r.row_code, r.id))
     .collect();
-    let shelf_rows: Vec<Uuid> = l
-        .shelves
-        .iter()
-        .filter_map(|s| rows.get(&s.0).copied())
-        .collect();
-    let codes: Vec<String> = l.shelves.iter().map(|s| s.1.clone()).collect();
-    let names: Vec<String> = l.shelves.iter().map(|s| s.2.clone()).collect();
-    let levels: Vec<i32> = l.shelves.iter().map(|s| s.3).collect();
+    let shelf_rows = ids_of(&l.shelves.parents, &rows)?;
     let shelves: HashMap<String, (Uuid, Uuid)> = sqlx::query!(
         "INSERT INTO warehouse_section_row_shelves (workspace_id, warehouse_id, section_id, row_id,
              shelf_code, shelf_name, shelf_level, bins_per_shelf)
@@ -144,9 +154,9 @@ pub async fn insert_layout(
         warehouse_id,
         section_id,
         &shelf_rows,
-        &codes,
-        &names,
-        &levels,
+        &l.shelves.codes,
+        &l.shelves.names,
+        &l.shelves.levels,
         l.bins_per_shelf,
     )
     .fetch_all(&mut *conn)
@@ -154,15 +164,8 @@ pub async fn insert_layout(
     .into_iter()
     .map(|r| (r.shelf_code, (r.row_id, r.id)))
     .collect();
-    let parents: Vec<(Uuid, Uuid)> = l
-        .bins
-        .iter()
-        .filter_map(|b| shelves.get(&b.0).copied())
-        .collect();
-    let bin_rows: Vec<Uuid> = parents.iter().map(|p| p.0).collect();
-    let bin_shelves: Vec<Uuid> = parents.iter().map(|p| p.1).collect();
-    let codes: Vec<String> = l.bins.iter().map(|b| b.1.clone()).collect();
-    let names: Vec<String> = l.bins.iter().map(|b| b.2.clone()).collect();
+    let parents = ids_of(&l.bins.parents, &shelves)?;
+    let (bin_rows, bin_shelves): (Vec<Uuid>, Vec<Uuid>) = parents.into_iter().unzip();
     sqlx::query!(
         "INSERT INTO warehouse_section_row_bins (workspace_id, warehouse_id, section_id, row_id,
              shelf_id, bin_code, bin_name)
@@ -175,33 +178,20 @@ pub async fn insert_layout(
         section_id,
         &bin_rows,
         &bin_shelves,
-        &codes,
-        &names,
+        &l.bins.codes,
+        &l.bins.names,
     )
     .execute(&mut *conn)
     .await?;
     Ok(())
 }
 
-/// True when a live section of this warehouse uses `code` (any case), other than `except`.
-pub async fn code_taken(
-    db: impl PgExecutor<'_>,
-    warehouse_id: Uuid,
-    code: &str,
-    except: Option<Uuid>,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"SELECT EXISTS (
-               SELECT 1 FROM warehouse_sections
-               WHERE warehouse_id = $1 AND lower(section_code) = lower($2)
-                 AND deleted_at IS NULL AND ($3::uuid IS NULL OR id <> $3)
-           ) AS "e!""#,
-        warehouse_id,
-        code,
-        except,
-    )
-    .fetch_one(db)
-    .await
+/// Parent ids by code. A miss would misalign the unnest columns, so it fails the insert.
+fn ids_of<T: Copy>(codes: &[String], ids: &HashMap<String, T>) -> Result<Vec<T>, sqlx::Error> {
+    codes
+        .iter()
+        .map(|c| ids.get(c).copied().ok_or(sqlx::Error::RowNotFound))
+        .collect()
 }
 
 /// Live section under a live warehouse of this workspace. None = 404.

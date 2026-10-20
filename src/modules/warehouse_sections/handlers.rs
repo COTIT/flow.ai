@@ -13,7 +13,7 @@ use crate::{
     error::AppError,
     http::{
         json::{Rules, ValidatedJson},
-        list::{Page, Paginated, contains_pattern, flag},
+        list::{Paginated, contains_pattern, flag},
         response::{Data, Message},
         workspace::{Can, permissions},
     },
@@ -29,9 +29,6 @@ permissions! {
     HierarchyWrite => "warehouse.update",
 }
 
-/// Laravel ListSectionRequest: `per_page` default 15, max 100.
-const PER_PAGE: i64 = 15;
-
 type WarehousePath = Path<(String, String)>;
 type SectionPath = Path<(String, String, String)>;
 
@@ -43,14 +40,7 @@ pub async fn list(
     Query(q): Query<ListQuery>,
 ) -> Result<Json<Paginated<SectionResource>>, AppError> {
     let warehouse_id = service::warehouse(&state, access.workspace_id, &wh).await?;
-    let mut page = Page::parse(q.page.as_deref(), q.per_page.as_deref());
-    if q.per_page
-        .as_deref()
-        .and_then(|s| s.trim().parse::<i64>().ok())
-        .is_none()
-    {
-        page.size = PER_PAGE;
-    }
+    let page = q.page();
     let search = q.search.as_deref().map(str::trim).filter(|s| !s.is_empty());
     if let Some(s) = search {
         let mut r = Rules::default();

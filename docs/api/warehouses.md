@@ -54,7 +54,7 @@ Deletes are soft and don't cascade, as in Laravel. A child of a deleted parent s
   - `name` is required, ≤150 characters.
   - `slug` is Laravel `Str::slug(name)`, fixed at create. A slug already used by a live warehouse in the workspace gives 422 `slug`: "a Warehouse with this slug already exists". Laravel sent only a `message`; genesy also sends `errors.slug`, which vimdesk-web reads. A deleted warehouse frees its slug; Laravel answered 500 there.
   - `parent_id` must be a live warehouse of this workspace ("The parent id is an invalid id for the warehouse domain.").
-  - `user_id`, `manager_id`, `manager_assistant_id` must be **members of this workspace** ("The selected manager id is invalid."). Laravel accepted any user, which would embed another tenant's name and email.
+  - `user_id`, `manager_id`, `manager_assistant_id` must be **members of this workspace** ("The selected manager id is invalid."). Laravel accepted any user, which would embed another tenant's name and email. Composite FKs into `workspace_members` enforce this in the DB, and a member who leaves is cleared from these fields.
   - `location` uses the Address rules: `address`, `house_number` (numeric), `country`, `zipcode` and `city` are required. Errors use bare keys (`city`), as in Laravel.
   - `status` is one of active / construction / inactive / maintenance. `type` is one of cross-dock / distribution / fulfillment / processing / storage / store.
   - `dimensions`: `total_area` and `storage_height` are numbers ≥ 0. `total_height` is validated, then dropped (Laravel's cast).
@@ -64,9 +64,9 @@ Deletes are soft and don't cascade, as in Laravel. A child of a deleted parent s
   - `custom_sections` with a `section_id` gives 422: custom fields aren't ported.
 - **Default warehouse:**
   - The first warehouse of a workspace becomes the default unless sent `default_warehouse: false`.
-  - `default_warehouse: true` (on create or update) moves the default.
-  - `POST /{id}/default` sets it too.
-  - There is one live default per workspace, enforced by a partial unique index plus a per-workspace lock. Deleting the default leaves none (Laravel parity).
+  - `default_warehouse: true` (on create or update) moves the default. `POST /{id}/default` sets it too.
+  - **Changing which warehouse is the default needs `warehouse.set_default`**, on every route, so holders of `warehouse.create`/`warehouse.update` get 403 when trying. Laravel only checked it on `/default`. Echoing the stored value is allowed, since vimdesk-web sends `default_warehouse` on every save, and the automatic first default needs no permission.
+  - There is one live default per workspace, enforced by a partial unique index plus a per-workspace lock. Deleting the default, or updating it with `default_warehouse: false`, leaves none (Laravel parity).
 - **Update** is a patch. `name` is still required (Laravel's update rules), and `parent_id` is ignored. A rename keeps the slug.
 - **List:**
   - Filters: `parent_id`, `roots_only` (default true; `0`/`false` lists children too), `pickup_enabled=1`.
@@ -119,8 +119,9 @@ Flat, free-text scan labels such as `A.01.02`. They are separate from the bin hi
   - It all happens in the same transaction, in three batched inserts.
   - Row letters continue `Z, AA, AB…`. Laravel's `chr(65+i)` broke past Z.
   - A layout over 10 000 bins is 422 on `rows`. A layout that would repeat a bin code (shelves ≥ 11 with bins ≥ 101, Laravel's scheme) is 422 on `bins_per_shelf`; Laravel answered 500.
-- **Update** is a patch (absent keys keep). Laravel reset `temperature_control`/`priority_level` to defaults when they were omitted; vimdesk-web always sends them, so nothing it does changes. The layout is never regenerated.
-- **List:** sorted by `section_name`; `per_page` default 15, max 100. Filters: `category`, `zone`, `priority_level`, `restricted_access`, `search` (name, code or description, ≤255).
+  - **Workspace quota:** at most 200 000 live bins per workspace ("The workspace can't hold more than 200000 bins.", on `rows` for a layout and on `bin_code` for a single bin). Laravel had no limit. This bounds what a self-signup account can write.
+- **Update** is a patch (absent keys keep). Laravel reset `temperature_control`/`priority_level` to defaults when they were omitted; vimdesk-web always sends them, so nothing it does changes. The layout is never regenerated. Huge counts are stored as sent; the `layout` totals saturate instead of overflowing.
+- **List:** sorted by `section_name`; `per_page` default 15, max 100 (missing, junk or < 1 means 15). Filters: `category`, `zone`, `priority_level`, `restricted_access`, `search` (name, code or description, ≤255).
 
 ## Rows `/warehouses/{w}/sections/{s}/rows`
 
@@ -161,8 +162,16 @@ Flat, free-text scan labels such as `A.01.02`. They are separate from the bin hi
 Every live bin of the warehouse whose whole path is live: `{data: [{id, bin_code, bin_name, warehouse{id,name}, section{id,section_code,section_name}, row{id,row_code,row_name}, shelf{id,shelf_code,shelf_name}}]}`.
 
 - Ordered by section, row, shelf, then bin code.
-- Not paginated (Laravel parity), but capped at 10 000 rows.
+- Not paginated (Laravel parity), but capped at 10 000 rows. When the cap cuts the list, the body also has `"meta": {"truncated": true}`; otherwise there is no `meta`.
 - One query.
+
+## Search `GET /searches?domain=warehouse_location`
+
+Used by vimdesk-web's `WarehouseLocationSelect`. It lists live locations of live warehouses in the workspace, in the location list shape.
+
+- `q` matches the label.
+- `warehouse_id` narrows the list to one warehouse; a malformed id matches nothing.
+- `page` and `page_size` page the list. Laravel searched Meilisearch.
 
 ## Not ported
 

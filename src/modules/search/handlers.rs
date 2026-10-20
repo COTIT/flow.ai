@@ -3,12 +3,15 @@
 //! of Laravel's Meilisearch; results stay in insertion order.
 // shortcut: no relevance ranking; fine for reference lists, revisit for products/relations.
 
+use std::borrow::Cow;
+
 use axum::{
     Json,
     extract::{Query, State},
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     AppState,
@@ -33,6 +36,8 @@ use crate::{
             service as shipment_methods,
         },
         vat_groups::{dto::VatGroupResource, repo::ListFilter as VatFilter, service as vat_groups},
+        warehouse_locations::{dto::LocationResource, repo as location_repo},
+        warehouses::dto::WarehouseCompacted,
     },
 };
 
@@ -51,6 +56,8 @@ pub struct SearchQuery {
     can_be_selected: Option<String>,
     /// Relation pickers: suppliers only.
     is_supplier: Option<String>,
+    /// Warehouse location picker: one warehouse's labels.
+    warehouse_id: Option<String>,
 }
 
 fn page_of<T: Serialize, R: Into<T>>(rows: Vec<R>, total: i64, page: Page) -> Response {
@@ -85,6 +92,25 @@ pub async fn search(
             };
             let (rows, total) = vat_groups::list(s, ws, &f).await?;
             page_of::<VatGroupResource, _>(rows, total, page)
+        }
+        Some("warehouse_location") => {
+            // A malformed id matches nothing, as Laravel's Meilisearch filter did.
+            let warehouse = query
+                .warehouse_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .map(|v| Uuid::parse_str(v).unwrap_or_default());
+            let (rows, total) =
+                location_repo::search(&s.db, ws, warehouse, pattern, limit, offset).await?;
+            let data: Vec<LocationResource> = rows
+                .into_iter()
+                .map(|r| {
+                    let compact = WarehouseCompacted::from(&r.warehouse);
+                    LocationResource::new(r.location, Cow::Owned(compact))
+                })
+                .collect();
+            Json(Paginated::new(data, total, page)).into_response()
         }
         Some("sales_group") => {
             let (rows, total) = sales_groups::list(s, ws, pattern, limit, offset).await?;

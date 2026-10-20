@@ -188,19 +188,36 @@ pub struct RowBody {
 #[derive(Deserialize)]
 pub struct CreateRowRequest(RowBody);
 
+/// Validated create: required columns as plain values, the rest in `fields`.
+pub struct NewRow {
+    pub code: String,
+    pub name: String,
+    pub length_meters: f64,
+    pub width_meters: f64,
+    pub height_meters: f64,
+    pub fields: Fields,
+}
+
 /// POST /rows/{row}: everything optional (absent keeps the stored value).
 #[derive(Deserialize)]
 pub struct UpdateRowRequest(RowBody);
 
 impl Validate for CreateRowRequest {
-    type Valid = Fields;
+    type Valid = NewRow;
 
-    fn validate(self, r: &mut Rules) -> Option<Fields> {
-        let b = self.0;
-        let mut f = fields(r, b, true);
+    fn validate(self, r: &mut Rules) -> Option<NewRow> {
+        let mut f = fields(r, self.0, true);
         f.priority_level.get_or_insert_with(|| "standard".into());
         f.temperature_zone.get_or_insert_with(|| "ambient".into());
-        Some(f)
+        // A missing value already recorded its error; the 422 discards these defaults.
+        Some(NewRow {
+            code: f.row_code.take().unwrap_or_default(),
+            name: f.row_name.take().unwrap_or_default(),
+            length_meters: f.length_meters.take().unwrap_or_default(),
+            width_meters: f.width_meters.take().unwrap_or_default(),
+            height_meters: f.height_meters.take().unwrap_or_default(),
+            fields: f,
+        })
     }
 }
 

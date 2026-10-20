@@ -17,7 +17,7 @@ use crate::{
         json::ValidatedJson,
         list::{Page, Paginated, flag},
         response::{Data, Message},
-        workspace::{Can, permissions},
+        workspace::{Can, Permission, permissions},
     },
     modules::warehouses::{
         dto::{
@@ -96,7 +96,8 @@ pub async fn create(
     access: Can<WarehouseCreate>,
     ValidatedJson(input): ValidatedJson<CreateWarehouseRequest>,
 ) -> Result<(StatusCode, Data<WarehouseCreated>), AppError> {
-    let warehouse_id = service::create(&state, access.workspace_id, input).await?;
+    let may = access.allows(WarehouseSetDefault::NAME);
+    let warehouse_id = service::create(&state, access.workspace_id, input, may).await?;
     Ok((StatusCode::CREATED, Data(WarehouseCreated { warehouse_id })))
 }
 
@@ -107,7 +108,8 @@ pub async fn update(
     Path((_, id)): WarehousePath,
     ValidatedJson(patch): ValidatedJson<UpdateWarehouseRequest>,
 ) -> Result<Message, AppError> {
-    service::update(&state, access.workspace_id, &id, patch).await?;
+    let may = access.allows(WarehouseSetDefault::NAME);
+    service::update(&state, access.workspace_id, &id, patch, may).await?;
     Ok(Message("ok"))
 }
 

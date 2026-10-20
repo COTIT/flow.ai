@@ -71,14 +71,31 @@ pub async fn get(
     Ok(Data(BinResource::new(bin, true)))
 }
 
-/// GET /warehouses/{warehouse}/bins -> `{data:[...]}` (not paginated, as in Laravel).
+/// GET /warehouses/{warehouse}/bins -> `{data:[...]}` (not paginated, as in Laravel), plus
+/// `meta.truncated` only when the cap cut the list.
 pub async fn by_warehouse(
     State(state): State<AppState>,
     access: Can<HierarchyRead>,
     Path((_, wh)): Path<(String, String)>,
-) -> Result<Data<Vec<BinHierarchyResource>>, AppError> {
-    let rows = service::of_warehouse(&state, access.workspace_id, &wh).await?;
-    Ok(Data(rows.into_iter().map(Into::into).collect()))
+) -> Result<Json<WarehouseBins>, AppError> {
+    let (rows, truncated) = service::of_warehouse(&state, access.workspace_id, &wh).await?;
+    Ok(Json(WarehouseBins {
+        data: rows.into_iter().map(Into::into).collect(),
+        meta: truncated.then_some(Truncated { truncated: true }),
+    }))
+}
+
+/// Body of `GET /warehouses/{warehouse}/bins`.
+#[derive(serde::Serialize)]
+pub struct WarehouseBins {
+    data: Vec<BinHierarchyResource>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    meta: Option<Truncated>,
+}
+
+#[derive(serde::Serialize)]
+struct Truncated {
+    truncated: bool,
 }
 
 /// POST /bins -> 201 `{data:{bin_id}}`.

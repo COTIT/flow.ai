@@ -17,9 +17,10 @@ CREATE TABLE warehouses (
     pickup_enabled              boolean     NOT NULL DEFAULT false,
     auto_generate_transfer_list boolean     NOT NULL DEFAULT false,
     total_sum_enabled           boolean     NOT NULL DEFAULT false,
-    user_id                     uuid        REFERENCES users (id) ON DELETE SET NULL,
-    manager_id                  uuid        REFERENCES users (id) ON DELETE SET NULL,
-    manager_assistant_id        uuid        REFERENCES users (id) ON DELETE SET NULL,
+    -- Workspace members only (composite FKs below); leaving the workspace clears them.
+    user_id                     uuid,
+    manager_id                  uuid,
+    manager_assistant_id        uuid,
     -- Laravel Infrastructure\Values\Address.
     location                    jsonb       CHECK (location IS NULL OR jsonb_typeof(location) = 'object'),
     status                      text        CHECK (status IN ('active', 'construction', 'inactive', 'maintenance')),
@@ -41,7 +42,14 @@ CREATE TABLE warehouses (
     CONSTRAINT warehouses_workspace_id_id_key UNIQUE (workspace_id, id),
     CONSTRAINT warehouses_parent_fk FOREIGN KEY (workspace_id, parent_id)
         REFERENCES warehouses (workspace_id, id),
-    CONSTRAINT warehouses_not_own_parent CHECK (parent_id <> id)
+    CONSTRAINT warehouses_not_own_parent CHECK (parent_id <> id),
+    CONSTRAINT warehouses_user_member_fk FOREIGN KEY (workspace_id, user_id)
+        REFERENCES workspace_members (workspace_id, user_id) ON DELETE SET NULL (user_id),
+    CONSTRAINT warehouses_manager_member_fk FOREIGN KEY (workspace_id, manager_id)
+        REFERENCES workspace_members (workspace_id, user_id) ON DELETE SET NULL (manager_id),
+    CONSTRAINT warehouses_assistant_member_fk FOREIGN KEY (workspace_id, manager_assistant_id)
+        REFERENCES workspace_members (workspace_id, user_id)
+        ON DELETE SET NULL (manager_assistant_id)
 );
 -- Laravel's unique (slug, workspace_id) counted deleted rows (500 on re-create); live rows only here.
 CREATE UNIQUE INDEX warehouses_slug_unique ON warehouses (workspace_id, slug) WHERE deleted_at IS NULL;

@@ -9,7 +9,7 @@ use crate::{
         warehouse_rows::{repo::RowRow, service as rows},
         warehouse_sections::{repo::SectionRow, service::parse},
         warehouse_shelves::{
-            dto::{CODE_TAKEN, Fields},
+            dto::{CODE_TAKEN, Fields, NewShelf},
             repo::{self, Parent, ShelfRow},
         },
     },
@@ -61,21 +61,17 @@ pub async fn create(
     workspace_id: Uuid,
     section: &SectionRow,
     row: &RowRow,
-    f: Fields,
+    n: NewShelf,
 ) -> Result<Uuid, AppError> {
-    let code = f.shelf_code.as_deref().unwrap_or_default();
-    if repo::code_taken(&state.db, row.id, code, None).await? {
-        return Err(AppError::field("shelf_code", CODE_TAKEN));
-    }
     let parent = Parent {
         workspace_id,
         warehouse_id: section.warehouse_id,
         section_id: section.id,
         row_id: row.id,
     };
-    repo::insert(&state.db, &parent, &f)
+    repo::insert(&state.db, &parent, &n)
         .await
-        .map_err(code_race)
+        .map_err(code_clash)
 }
 
 /// Patch; 404 when the shelf is gone.
@@ -87,14 +83,10 @@ pub async fn update(
     f: Fields,
 ) -> Result<(), AppError> {
     let id = parse(id)?;
-    if let Some(code) = f.shelf_code.as_deref()
-        && repo::code_taken(&state.db, row_id, code, Some(id)).await?
-    {
-        return Err(AppError::field("shelf_code", CODE_TAKEN));
-    }
+    // No code pre-check: an unknown id must stay a 404; the index catches a clash.
     repo::update(&state.db, workspace_id, row_id, id, &f)
         .await
-        .map_err(code_race)?
+        .map_err(code_clash)?
         .then_some(())
         .ok_or(AppError::NotFound)
 }
@@ -112,12 +104,12 @@ pub async fn delete(
         .ok_or(AppError::NotFound)
 }
 
-/// The unique index caught a race the pre-check missed: same 422.
-fn code_race(e: sqlx::Error) -> AppError {
-    match e.as_database_error().and_then(|d| d.constraint()) {
-        Some("warehouse_section_row_shelves_code_unique") => {
-            AppError::field("shelf_code", CODE_TAKEN)
-        }
-        _ => AppError::Database(e),
-    }
+/// The live-code unique index fired: same 422 as the pre-check.
+fn code_clash(e: sqlx::Error) -> AppError {
+    AppError::unique(
+        e,
+        "warehouse_section_row_shelves_code_unique",
+        "shelf_code",
+        CODE_TAKEN,
+    )
 }

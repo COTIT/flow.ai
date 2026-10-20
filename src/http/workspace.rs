@@ -39,6 +39,11 @@ impl WorkspaceAccess {
     pub fn is_admin(&self) -> bool {
         self.granted.is_admin()
     }
+
+    /// Same check as `Can<P>`, for a rule that only applies to some request bodies.
+    pub fn allows(&self, name: &str) -> bool {
+        self.granted.allows(name)
+    }
 }
 
 impl FromRequestParts<AppState> for WorkspaceAccess {

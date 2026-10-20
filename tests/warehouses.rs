@@ -560,3 +560,63 @@ async fn list_page_of_100_with_children_is_complete(pool: PgPool) {
     // Generous bound: a per-row query pattern (N+1) over 100 rows blows well past this.
     assert!(elapsed.as_millis() < 1_000, "list took {elapsed:?}");
 }
+
+#[sqlx::test]
+async fn moving_the_default_needs_set_default(pool: PgPool) {
+    let api = api(pool.clone()).await;
+    let a = api.create(json!({ "name": "A" }), "warehouse_id").await;
+    let b = api.create(json!({ "name": "B" }), "warehouse_id").await;
+    let editor = member_with(
+        &api.app,
+        &pool,
+        &api.ws,
+        "bob@example.com",
+        &["warehouse.update", "warehouse.create"],
+    )
+    .await;
+
+    // Echoing the stored value is a normal form save.
+    for (id, value) in [(&a, true), (&b, false)] {
+        let body = json!({ "name": "x", "default_warehouse": value });
+        let (status, res) = api
+            .call(Method::POST, &format!("/{id}"), Some(body), &editor)
+            .await;
+        assert_eq!(status, StatusCode::OK, "{res}");
+    }
+    // Changing it is not.
+    for (id, value) in [(&b, true), (&a, false)] {
+        let body = json!({ "name": "x", "default_warehouse": value });
+        let (status, _) = api
+            .call(Method::POST, &format!("/{id}"), Some(body), &editor)
+            .await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{id} -> {value}");
+    }
+    let body = json!({ "name": "C", "default_warehouse": true });
+    let (status, _) = api.call(Method::POST, "", Some(body), &editor).await;
+    assert_eq!(
+        status,
+        StatusCode::FORBIDDEN,
+        "create can't displace the default"
+    );
+    assert_eq!(api.get(&a).await["default_warehouse"], true);
+}
+
+#[sqlx::test]
+async fn parallel_first_creates_leave_one_default(pool: PgPool) {
+    let api = api(pool).await;
+
+    let (x, y) = tokio::join!(
+        api.call(Method::POST, "", Some(json!({ "name": "X" })), &api.owner),
+        api.call(Method::POST, "", Some(json!({ "name": "Y" })), &api.owner),
+    );
+
+    assert_eq!((x.0, y.0), (StatusCode::CREATED, StatusCode::CREATED));
+    let all = api.list("").await;
+    let defaults = all["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|w| w["default_warehouse"] == true)
+        .count();
+    assert_eq!(defaults, 1);
+}

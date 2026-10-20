@@ -8,7 +8,7 @@ use crate::{
     error::AppError,
     modules::{
         warehouse_rows::{
-            dto::{CODE_TAKEN, Fields},
+            dto::{CODE_TAKEN, Fields, NewRow},
             repo::{self, RowRow},
         },
         warehouse_sections::{repo::SectionRow, service as sections},
@@ -58,15 +58,11 @@ pub async fn create(
     state: &AppState,
     workspace_id: Uuid,
     s: &SectionRow,
-    f: Fields,
+    n: NewRow,
 ) -> Result<Uuid, AppError> {
-    let code = f.row_code.as_deref().unwrap_or_default();
-    if repo::code_taken(&state.db, s.id, code, None).await? {
-        return Err(AppError::field("row_code", CODE_TAKEN));
-    }
-    repo::insert(&state.db, workspace_id, s.warehouse_id, s.id, &f)
+    repo::insert(&state.db, workspace_id, s.warehouse_id, s.id, &n)
         .await
-        .map_err(code_race)
+        .map_err(code_clash)
 }
 
 /// Patch; 404 when the row is gone.
@@ -78,14 +74,10 @@ pub async fn update(
     f: Fields,
 ) -> Result<(), AppError> {
     let id = sections::parse(id)?;
-    if let Some(code) = f.row_code.as_deref()
-        && repo::code_taken(&state.db, s.id, code, Some(id)).await?
-    {
-        return Err(AppError::field("row_code", CODE_TAKEN));
-    }
+    // No code pre-check: an unknown id must stay a 404; the index catches a clash.
     repo::update(&state.db, workspace_id, s.id, id, &f)
         .await
-        .map_err(code_race)?
+        .map_err(code_clash)?
         .then_some(())
         .ok_or(AppError::NotFound)
 }
@@ -103,10 +95,12 @@ pub async fn delete(
         .ok_or(AppError::NotFound)
 }
 
-/// The unique index caught a race the pre-check missed: same 422.
-fn code_race(e: sqlx::Error) -> AppError {
-    match e.as_database_error().and_then(|d| d.constraint()) {
-        Some("warehouse_section_rows_code_unique") => AppError::field("row_code", CODE_TAKEN),
-        _ => AppError::Database(e),
-    }
+/// The live-code unique index fired: same 422 as the pre-check.
+fn code_clash(e: sqlx::Error) -> AppError {
+    AppError::unique(
+        e,
+        "warehouse_section_rows_code_unique",
+        "row_code",
+        CODE_TAKEN,
+    )
 }

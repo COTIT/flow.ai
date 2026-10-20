@@ -145,6 +145,22 @@ pub async fn set_default(
     .map(|done| done.rows_affected() == 1)
 }
 
+/// `default_warehouse` of a live warehouse. None = no such row.
+pub async fn default_flag(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<bool>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT default_warehouse FROM warehouses
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+        id,
+        workspace_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
 /// True when `slug` is used by a live warehouse of the workspace.
 pub async fn slug_taken(
     db: impl PgExecutor<'_>,

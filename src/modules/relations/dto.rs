@@ -28,7 +28,6 @@ use crate::{
     php::truthy,
 };
 
-/// Laravel CustomSectionExistForDomain text; no section can exist until custom fields are ported.
 /// Laravel `rules.CustomTypeNotValid` for `relation_type_id`.
 pub const TYPE_NOT_VALID: &str = "The relation type id is not valid";
 const POS_NAME: &str =
