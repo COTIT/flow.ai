@@ -69,6 +69,29 @@ pub async fn list(
     .await
 }
 
+/// Live variant of this product. None = 404.
+pub async fn find(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    product_id: Uuid,
+    id: Uuid,
+) -> Result<Option<VariantRow>, sqlx::Error> {
+    sqlx::query_as!(
+        VariantRow,
+        "SELECT id, product_id, is_default, sku, barcode, ean13, price, gross_price, original_price,
+                wholesale_price, original_wholesale_price, supplier_wholesale_price,
+                impact_on_price, impact_on_wholesale_price, weight, reference_vendor,
+                reference_vendor2, reference_vendor3, meta, created_at, updated_at
+         FROM product_variants
+         WHERE id = $1 AND workspace_id = $2 AND product_id = $3 AND deleted_at IS NULL",
+        id,
+        workspace_id,
+        product_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
 /// Live variant of this product under a row lock. None = 404.
 pub async fn find_locked(
     conn: &mut PgConnection,
@@ -228,6 +251,22 @@ pub async fn option_values(
     )
     .fetch_all(db)
     .await
+}
+
+/// Serialise option type/value upserts per workspace: parallel generates naming the same
+/// types in another order would otherwise deadlock.
+pub async fn lock_options(conn: &mut PgConnection, workspace_id: Uuid) -> Result<(), sqlx::Error> {
+    // A waiter holds a pooled connection; give up instead of starving the pool.
+    sqlx::query!("SET LOCAL lock_timeout = '5s'")
+        .execute(&mut *conn)
+        .await?;
+    sqlx::query!(
+        "SELECT pg_advisory_xact_lock(hashtext('option_types'), hashtext($1::text))",
+        workspace_id.to_string(),
+    )
+    .execute(&mut *conn)
+    .await
+    .map(|_| ())
 }
 
 /// Laravel OptionType::firstOrCreate by lowercased name; returns its id.

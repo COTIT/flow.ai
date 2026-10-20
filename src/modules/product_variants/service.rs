@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde_json::{Value, json};
+use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::{
@@ -16,7 +17,7 @@ use crate::{
             repo::{self, VariantRow},
         },
         products::{
-            pricing::{Priority, normalise},
+            pricing::{Priority, normalise, out_of_range},
             repo::{self as products, PriceChange, ProductRow},
             service::{Actor, render_index},
         },
@@ -30,6 +31,17 @@ async fn product(
     id: &str,
 ) -> Result<(ProductRow, Value), AppError> {
     render_index(state, workspace_id, parse(id)?).await
+}
+
+/// Lock the live product row: serialises default switches and reads its current price.
+async fn lock_product(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<ProductRow, AppError> {
+    products::find_locked(conn, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)
 }
 
 /// Render `rows` with their option values and the parent product.
@@ -77,13 +89,10 @@ pub async fn get(
     id: &str,
 ) -> Result<Value, AppError> {
     let (p, pv) = product(state, workspace_id, product_id).await?;
-    let id = parse(id)?;
-    let rows: Vec<VariantRow> = repo::list(&state.db, workspace_id, p.id)
+    let v = repo::find(&state.db, workspace_id, p.id, parse(id)?)
         .await?
-        .into_iter()
-        .filter(|v| v.id == id)
-        .collect();
-    render_all(state, workspace_id, &rows, &pv)
+        .ok_or(AppError::NotFound)?;
+    render_all(state, workspace_id, std::slice::from_ref(&v), &pv)
         .await?
         .pop()
         .ok_or(AppError::NotFound)
@@ -128,8 +137,9 @@ pub async fn create(
     } else {
         Priority::Impact
     };
-    normalise_variant(&mut v, p.price, priority);
     let mut tx = state.db.begin().await?;
+    let p = lock_product(&mut tx, workspace_id, p.id).await?;
+    normalise_variant(&mut v, p.price, priority)?;
     if v.is_default {
         // Uuid::nil() is never a real id, so this clears every current default.
         repo::clear_default(&mut tx, workspace_id, p.id, Uuid::nil()).await?;
@@ -162,18 +172,25 @@ pub async fn update(
     let (p, pv) = product(state, workspace_id, product_id).await?;
     let id = parse(id)?;
     let mut tx = state.db.begin().await?;
+    let p = lock_product(&mut tx, workspace_id, p.id).await?;
     let before = repo::find_locked(&mut tx, workspace_id, p.id, id)
         .await?
         .ok_or(AppError::NotFound)?;
     let mut v = before.clone();
     apply(&mut v, &f);
+    if before.is_default && !v.is_default {
+        return Err(AppError::field(
+            "is_default",
+            "The default variant stays the default until another variant takes over.",
+        ));
+    }
     if v.price != before.price || v.impact_on_price != before.impact_on_price {
         let priority = if v.price != before.price {
             Priority::Price
         } else {
             Priority::Impact
         };
-        normalise_variant(&mut v, p.price, priority);
+        normalise_variant(&mut v, p.price, priority)?;
     }
     // Clear the old default first: the one-default index checks each statement.
     if v.is_default && !before.is_default {
@@ -207,6 +224,7 @@ pub async fn delete(
 ) -> Result<(), AppError> {
     let (p, _) = product(state, workspace_id, product_id).await?;
     let mut tx = state.db.begin().await?;
+    lock_product(&mut tx, workspace_id, p.id).await?;
     let v = repo::find_locked(&mut tx, workspace_id, p.id, parse(id)?)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -232,6 +250,8 @@ pub async fn generate(
 ) -> Result<Vec<Value>, AppError> {
     let (p, pv) = product(state, workspace_id, product_id).await?;
     let mut tx = state.db.begin().await?;
+    let p = lock_product(&mut tx, workspace_id, p.id).await?;
+    repo::lock_options(&mut tx, workspace_id).await?;
     let mut by_index: Vec<Vec<Uuid>> = Vec::new();
     let mut by_key: HashMap<String, Uuid> = HashMap::new();
     for (ot, t) in g.option_types.iter().enumerate() {
@@ -288,7 +308,7 @@ pub async fn generate(
             created_at: now,
             updated_at: now,
         };
-        normalise_variant(&mut v, p.price, Priority::Price);
+        normalise_variant(&mut v, p.price, Priority::Price)?;
         v.id = repo::insert(&mut tx, workspace_id, &v).await?;
         repo::link_values(&mut tx, workspace_id, v.id, &ids).await?;
         let changes = created_prices(&v);
@@ -357,17 +377,23 @@ fn apply(v: &mut VariantRow, f: &Fields) {
 }
 
 /// Laravel ProductVariant saving hook: the product's price is the gross for the markup.
-fn normalise_variant(v: &mut VariantRow, product_price: Decimal, priority: Priority) {
+fn normalise_variant(
+    v: &mut VariantRow,
+    product_price: Decimal,
+    priority: Priority,
+) -> Result<(), AppError> {
     let (price, impact) = normalise(
         Some(product_price),
         Some(v.price),
         v.impact_on_price,
         priority,
-    );
+    )
+    .map_err(out_of_range)?;
     if let Some(price) = price {
         v.price = price;
     }
     v.impact_on_price = impact;
+    Ok(())
 }
 
 fn created_prices(v: &VariantRow) -> Vec<PriceChange> {

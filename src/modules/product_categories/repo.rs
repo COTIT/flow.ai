@@ -2,7 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use sqlx::PgExecutor;
+use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
 use crate::modules::product_categories::dto::CategoryInput;
@@ -83,6 +83,21 @@ pub async fn children(
 }
 
 /// True when `parent` is a live category of the workspace and not `id` or one of its
+/// Serialise re-parenting per workspace; the caller then checks for cycles and writes.
+pub async fn lock_tree(conn: &mut PgConnection, workspace_id: Uuid) -> Result<(), sqlx::Error> {
+    // A waiter holds a pooled connection; give up instead of starving the pool.
+    sqlx::query!("SET LOCAL lock_timeout = '5s'")
+        .execute(&mut *conn)
+        .await?;
+    sqlx::query!(
+        "SELECT pg_advisory_xact_lock(hashtext('product_categories'), hashtext($1::text))",
+        workspace_id.to_string(),
+    )
+    .execute(&mut *conn)
+    .await
+    .map(|_| ())
+}
+
 /// descendants (that would make a cycle). `id` None = a new category.
 pub async fn parent_ok(
     db: impl PgExecutor<'_>,

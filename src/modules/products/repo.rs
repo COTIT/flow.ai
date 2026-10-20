@@ -358,7 +358,8 @@ pub async fn find_many(
 }
 
 /// Exact, case-insensitive barcode/EAN/vendor-barcode or id match; several matches prefer an
-/// active product, then the newest (Laravel hard-coded warehouses 7 and 8 here).
+/// active product, then the oldest, so a later copy never shadows it at the till (Laravel
+/// `first()`, plus hard-coded warehouses 7 and 8).
 pub async fn by_code(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -378,11 +379,13 @@ pub async fn by_code(
            export_price_sync, export_product_data, export_data, meta, created_at, updated_at"# + " FROM products
          WHERE workspace_id = $1 AND deleted_at IS NULL
            AND (lower(barcode) = lower($2) OR lower(ean13) = lower($2)
-                OR lower(barcode_vendor) = lower($2) OR id::text = lower($2))
-         ORDER BY status = 'active' DESC, id DESC
+                OR lower(barcode_vendor) = lower($2) OR id = $3)
+         ORDER BY status = 'active' DESC, id
          LIMIT 1",
         workspace_id,
         code,
+        // nil never matches: keeps `id = $3` a plain index lookup next to the code indexes.
+        Uuid::parse_str(code).unwrap_or(Uuid::nil()),
     )
     .fetch_optional(db)
     .await

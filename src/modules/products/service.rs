@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, HashMap};
 use chrono::Utc;
 use rust_decimal::Decimal;
 use serde_json::{Value, json};
+use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::{
@@ -16,7 +17,7 @@ use crate::{
         currencies::{dto::CurrencyResource, repo as currencies},
         products::{
             dto::{BAD_CURRENCY, Fields, PHYSICAL, bad_id},
-            pricing::{Priority, normalise},
+            pricing::{Priority, normalise, out_of_range},
             repo::{self, ListFilter, PriceChange, ProductRow},
             resource::{self, Embeds},
         },
@@ -113,8 +114,8 @@ pub async fn create(
 ) -> Result<Uuid, AppError> {
     let mut row = blank(state, workspace_id, &f).await?;
     apply(&mut row, &f);
-    check(state, workspace_id, &row, &f).await?;
-    normalise_row(&mut row, Priority::Price);
+    check(&mut *state.db.acquire().await?, workspace_id, &row, &f).await?;
+    normalise_row(&mut row, Priority::Price)?;
     let mut tx = state.db.begin().await?;
     row.product_number = repo::next_number(&mut tx, workspace_id).await?;
     row.product_nr_formatted = format!("PRO-{:05}", row.product_number);
@@ -138,7 +139,8 @@ pub async fn create(
         Some(row.price),
         row.impact_on_price,
         Priority::Price,
-    );
+    )
+    .map_err(out_of_range)?;
     let variant = repo::insert_default_variant(&mut tx, workspace_id, &row, variant_impact).await?;
     let mut variant_changes = changes;
     variant_changes.retain(|c| c.2.is_some());
@@ -174,7 +176,7 @@ pub async fn update(
         .ok_or(AppError::NotFound)?;
     let mut row = before.clone();
     apply(&mut row, &f);
-    check(state, workspace_id, &row, &f).await?;
+    check(&mut tx, workspace_id, &row, &f).await?;
     if row.gross_price != before.gross_price
         || row.price != before.price
         || row.impact_on_price != before.impact_on_price
@@ -184,7 +186,7 @@ pub async fn update(
         } else {
             Priority::Impact
         };
-        normalise_row(&mut row, priority);
+        normalise_row(&mut row, priority)?;
     }
     repo::update(&mut tx, workspace_id, &row).await?;
     let changes = changed_prices(&before, &row);
@@ -465,29 +467,31 @@ fn apply(p: &mut ProductRow, f: &Fields) {
 }
 
 /// Laravel's saving hook: with a gross price, price and markup follow each other.
-fn normalise_row(p: &mut ProductRow, priority: Priority) {
+fn normalise_row(p: &mut ProductRow, priority: Priority) -> Result<(), AppError> {
     let (price, impact) = normalise(
         Some(p.gross_price),
         Some(p.price),
         p.impact_on_price,
         priority,
-    );
+    )
+    .map_err(out_of_range)?;
     if let Some(price) = price {
         p.price = price;
     }
     p.impact_on_price = impact;
+    Ok(())
 }
 
 /// References must be live rows of this workspace; bundle children live products other than
 /// this one.
 async fn check(
-    state: &AppState,
+    conn: &mut PgConnection,
     workspace_id: Uuid,
     p: &ProductRow,
     f: &Fields,
 ) -> Result<(), AppError> {
     let [supplier, vat, sales, warehouse, currency] = repo::refs_ok(
-        &state.db,
+        &mut *conn,
         workspace_id,
         [
             f.supplier_relation_id.flatten(),
@@ -514,7 +518,7 @@ async fn check(
     }
     if let Some(children) = &f.set_children {
         let ids: Vec<Uuid> = children.iter().map(|c| c.0).collect();
-        let live = repo::live_ids(&state.db, workspace_id, &ids).await?;
+        let live = repo::live_ids(&mut *conn, workspace_id, &ids).await?;
         for (i, (child, _)) in children.iter().enumerate() {
             if *child == p.id || !live.contains(child) {
                 let key = format!("multi_set_product_ids.{i}.id");

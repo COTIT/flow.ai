@@ -1,6 +1,7 @@
 //! Category rules: parent must be a live category of the workspace and never the category
 //! itself or one of its descendants (Laravel had no cycle guard).
 
+use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::{
@@ -48,8 +49,9 @@ pub async fn create(
     workspace_id: Uuid,
     c: CategoryInput,
 ) -> Result<Uuid, AppError> {
-    check_parent(state, workspace_id, c.parent_id.flatten(), None).await?;
-    Ok(repo::insert(&state.db, workspace_id, &c).await?)
+    let mut conn = state.db.acquire().await?;
+    check_parent(&mut conn, workspace_id, c.parent_id.flatten(), None).await?;
+    Ok(repo::insert(&mut *conn, workspace_id, &c).await?)
 }
 
 /// Patch, else 404.
@@ -60,11 +62,17 @@ pub async fn update(
     c: CategoryInput,
 ) -> Result<(), AppError> {
     let id = parse(id)?;
-    check_parent(state, workspace_id, c.parent_id.flatten(), Some(id)).await?;
-    repo::update(&state.db, workspace_id, id, &c)
-        .await?
-        .then_some(())
-        .ok_or(AppError::NotFound)
+    let mut tx = state.db.begin().await?;
+    if c.parent_id.flatten().is_some() {
+        // Two re-parents checked at once could each pass and close a loop.
+        repo::lock_tree(&mut tx, workspace_id).await?;
+        check_parent(&mut tx, workspace_id, c.parent_id.flatten(), Some(id)).await?;
+    }
+    if !repo::update(&mut *tx, workspace_id, id, &c).await? {
+        return Err(AppError::NotFound);
+    }
+    tx.commit().await?;
+    Ok(())
 }
 
 /// Soft delete, else 404.
@@ -76,13 +84,13 @@ pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
 }
 
 async fn check_parent(
-    state: &AppState,
+    conn: &mut PgConnection,
     workspace_id: Uuid,
     parent: Option<Uuid>,
     id: Option<Uuid>,
 ) -> Result<(), AppError> {
     match parent {
-        Some(p) if !repo::parent_ok(&state.db, workspace_id, p, id).await? => {
+        Some(p) if !repo::parent_ok(conn, workspace_id, p, id).await? => {
             Err(AppError::field("parent_id", BAD_PARENT))
         }
         _ => Ok(()),

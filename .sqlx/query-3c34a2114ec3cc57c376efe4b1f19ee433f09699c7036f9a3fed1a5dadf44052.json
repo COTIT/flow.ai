@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_number, product_nr_formatted, name, brand, type AS kind, status, has_stock,\n           is_serialized, warranty_default_mode, warranty_duration_value, warranty_duration_unit,\n           reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,\n           barcode, barcode_vendor, supplier_discount_code, short_description, description,\n           stock_level_supplier, supplier_relation_id, currency_id, vat_group_id, sales_group_id,\n           default_warehouse_id, price, gross_price, wholesale_price, supplier_wholesale_price,\n           impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,\n           dimensions, country_of_origin, url_vendor, url_vendor_override,\n           exclude_price_corrections, archived, import_id, import_source, export_enabled,\n           export_price_sync, export_product_data, export_data, meta, created_at, updated_at FROM products\n         WHERE workspace_id = $1 AND deleted_at IS NULL\n           AND (lower(barcode) = lower($2) OR lower(ean13) = lower($2)\n                OR lower(barcode_vendor) = lower($2) OR id::text = lower($2))\n         ORDER BY status = 'active' DESC, id DESC\n         LIMIT 1",
+  "query": "SELECT id, product_number, product_nr_formatted, name, brand, type AS kind, status, has_stock,\n           is_serialized, warranty_default_mode, warranty_duration_value, warranty_duration_unit,\n           reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,\n           barcode, barcode_vendor, supplier_discount_code, short_description, description,\n           stock_level_supplier, supplier_relation_id, currency_id, vat_group_id, sales_group_id,\n           default_warehouse_id, price, gross_price, wholesale_price, supplier_wholesale_price,\n           impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,\n           dimensions, country_of_origin, url_vendor, url_vendor_override,\n           exclude_price_corrections, archived, import_id, import_source, export_enabled,\n           export_price_sync, export_product_data, export_data, meta, created_at, updated_at FROM products\n         WHERE workspace_id = $1 AND deleted_at IS NULL\n           AND (lower(barcode) = lower($2) OR lower(ean13) = lower($2)\n                OR lower(barcode_vendor) = lower($2) OR id = $3)\n         ORDER BY status = 'active' DESC, id\n         LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -601,7 +601,8 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Text"
+        "Text",
+        "Uuid"
       ]
     },
     "nullable": [
@@ -661,5 +662,5 @@
       false
     ]
   },
-  "hash": "3de46c9b2cc40fa3bb5887aa8ac83f23f0ed0f2e9133a6b241a99f8080669818"
+  "hash": "3c34a2114ec3cc57c376efe4b1f19ee433f09699c7036f9a3fed1a5dadf44052"
 }

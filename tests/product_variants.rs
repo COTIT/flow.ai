@@ -209,3 +209,148 @@ async fn variants_are_scoped_to_their_product_and_workspace(pool: PgPool) {
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
 }
+
+#[sqlx::test]
+async fn default_stays_and_prices_stay_in_range(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let first = rows(&api.list("").await)[0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+
+    let (status, res) = api
+        .call(
+            Method::PUT,
+            &format!("/{first}"),
+            Some(json!({ "price": 1, "is_default": false })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["is_default"],
+        json!(["The default variant stays the default until another variant takes over."])
+    );
+
+    let (status, res) = api
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "impact_on_price": -200 })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["impact_on_price"],
+        json!(["The impact on price is out of range."])
+    );
+}
+
+#[sqlx::test]
+async fn generate_bounds_skus_and_values(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let long = "x".repeat(256);
+    let body = json!({
+        "option_types": [{ "name": "Size", "values": [{ "value": "S" }] }],
+        "combinations": [{ "option_value_ids": ["S"], "sku": long }],
+        "sku_pattern": long,
+    });
+    let (status, res) = api
+        .call(Method::POST, "/generate", Some(body), &api.owner)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["combinations.0.sku"],
+        json!(["The combinations.0.sku must not be greater than 255 characters."])
+    );
+    assert_eq!(
+        res["errors"]["sku_pattern"],
+        json!(["The sku pattern must not be greater than 255 characters."])
+    );
+
+    let values: Vec<Value> = (0..100)
+        .map(|i| json!({ "value": format!("v{i}") }))
+        .collect();
+    let types: Vec<Value> = (0..3)
+        .map(|t| json!({ "name": format!("t{t}"), "values": values }))
+        .collect();
+    let (status, res) = api
+        .call(
+            Method::POST,
+            "/generate",
+            Some(json!({ "option_types": types })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["option_types"],
+        json!(["The option types must not have more than 200 values in total."])
+    );
+}
+
+/// Parallel default switches and generates on shared option types finish cleanly: the
+/// product row (defaults) and a workspace lock (option types) serialise them.
+#[sqlx::test]
+async fn parallel_default_switches_and_generates(pool: PgPool) {
+    let (api, product) = world(pool.clone()).await;
+    let mut ids = Vec::new();
+    for sku in ["a", "b", "c", "d"] {
+        ids.push(
+            api.create(json!({ "sku": sku, "price": 1 }), "variant_id")
+                .await,
+        );
+    }
+    let mut set = tokio::task::JoinSet::new();
+    for id in &ids {
+        let (app, token) = (api.app.clone(), api.owner.clone());
+        let uri = format!("/v1/workspace/{}/products/{product}/variants/{id}", api.ws);
+        set.spawn(async move {
+            common::send(
+                &app,
+                Method::PUT,
+                &uri,
+                Some(json!({ "is_default": true, "price": 1 })),
+                Some(&token),
+            )
+            .await
+        });
+    }
+    for order in [
+        ["Color", "Size"],
+        ["Size", "Color"],
+        ["Color", "Size"],
+        ["Size", "Color"],
+    ] {
+        let (app, token) = (api.app.clone(), api.owner.clone());
+        let uri = format!(
+            "/v1/workspace/{}/products/{product}/variants/generate",
+            api.ws
+        );
+        let types: Vec<Value> = order
+            .iter()
+            .map(|n| json!({ "name": n, "values": [{ "value": "A" }, { "value": "B" }] }))
+            .collect();
+        set.spawn(async move {
+            common::send(
+                &app,
+                Method::POST,
+                &uri,
+                Some(json!({ "option_types": types })),
+                Some(&token),
+            )
+            .await
+        });
+    }
+    let results = set.join_all().await;
+
+    assert!(results.iter().all(|(s, _)| s.is_success()), "{results:?}");
+    let defaults: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM product_variants WHERE is_default AND deleted_at IS NULL",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(defaults, 1);
+}

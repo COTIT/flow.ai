@@ -274,8 +274,20 @@ fn fields(r: &mut Rules, m: &Map<String, Value>, create: bool) -> Fields {
         short_description: text(r, m, "short_description", 255),
         description: text(r, m, "description", 1500),
         // Laravel `numeric` into an int column: MySQL rounded.
-        stock_level_supplier: decimal(r, m, "stock_level_supplier", any, max)
-            .map(|v| v.and_then(|d| money::round(d, 0).to_i32())),
+        stock_level_supplier: decimal(r, m, "stock_level_supplier", any, max).map(|v| {
+            v.and_then(|d| {
+                let n = money::round(d, 0).to_i32();
+                if n.is_none() {
+                    let msg = if d.is_sign_negative() {
+                        "The stock level supplier must be at least -2147483648."
+                    } else {
+                        "The stock level supplier must not be greater than 2147483647."
+                    };
+                    r.add("stock_level_supplier", msg);
+                }
+                n
+            })
+        }),
         supplier_relation_id: id(
             r,
             m,
@@ -384,7 +396,14 @@ fn set_children(r: &mut Rules, v: &Value) -> Option<Vec<(Uuid, Decimal)>> {
         }
         let qty = filled(item.get("quantity").cloned())
             .and_then(|q| r.decimal(&format!("{k}.quantity"), &q, Decimal::ONE, money::MAX));
-        if let (Some(id), Some(q)) = (id, qty) {
+        if let Some(id) = id
+            && out.iter().any(|(seen, _)| *seen == id)
+        {
+            r.add(
+                &format!("{k}.id"),
+                format!("The {k}.id field has a duplicate value."),
+            );
+        } else if let (Some(id), Some(q)) = (id, qty) {
             out.push((id, q));
         }
     }

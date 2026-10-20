@@ -12,6 +12,8 @@ use crate::{
 
 /// Combinations one generate call may create.
 const MAX_COMBINATIONS: usize = 500;
+/// Option values one generate call may upsert, over all its types.
+const MAX_VALUES: usize = 200;
 
 /// Sent columns; `None` = not sent (update keeps), `Some(None)` = clear.
 #[derive(Default)]
@@ -201,6 +203,12 @@ impl Validate for GenerateBody {
                 "The option types must have between 1 and 20 items.",
             ),
         }
+        if option_types.iter().map(|t| t.values.len()).sum::<usize>() > MAX_VALUES {
+            r.add(
+                "option_types",
+                format!("The option types must not have more than {MAX_VALUES} values in total."),
+            );
+        }
         let mut combinations = Vec::new();
         match m.get("combinations") {
             None | Some(Value::Null) => {}
@@ -230,6 +238,9 @@ impl Validate for GenerateBody {
                         .map(str::trim)
                         .filter(|s| !s.is_empty())
                         .map(str::to_owned);
+                    if let Some(sku) = &sku {
+                        r.max_chars(&format!("{k}.sku"), sku, 255);
+                    }
                     combinations.push(Combination {
                         ids,
                         sku,
@@ -246,13 +257,18 @@ impl Validate for GenerateBody {
         let dec = |r: &mut Rules, k: &str| {
             filled(m.get(k).cloned()).and_then(|v| r.decimal(k, &v, Decimal::ZERO, max))
         };
+        // `{index}` (7 chars) expands to at most 3 digits, so a fitting pattern gives a fitting sku.
+        let sku_pattern = m
+            .get("sku_pattern")
+            .and_then(Value::as_str)
+            .map(str::to_owned);
+        if let Some(pat) = &sku_pattern {
+            r.max_chars("sku_pattern", pat, 255);
+        }
         Some(Generate {
             option_types,
             combinations,
-            sku_pattern: m
-                .get("sku_pattern")
-                .and_then(Value::as_str)
-                .map(str::to_owned),
+            sku_pattern,
             default_price: dec(r, "default_price"),
             default_stock: dec(r, "default_stock"),
         })

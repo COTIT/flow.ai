@@ -72,6 +72,12 @@ pub async fn list(
         .split(',')
         .filter_map(|s| Uuid::parse_str(s.trim()).ok())
         .collect();
+    if exclude.len() > 100 {
+        return Err(AppError::field(
+            "exclude_ids",
+            "The exclude ids must not have more than 100 items.",
+        ));
+    }
     let status = q
         .status
         .as_deref()

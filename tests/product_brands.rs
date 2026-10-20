@@ -288,3 +288,33 @@ async fn search_domains(pool: PgPool) {
     assert_eq!(names(&res), vec!["Drills"]);
     assert_eq!(res["data"][0]["product_category_id"], res["data"][0]["id"]);
 }
+
+/// X.parent = Y and Y.parent = X sent together: one wins, the other sees the cycle.
+#[sqlx::test]
+async fn parallel_reparenting_cannot_make_a_cycle(pool: PgPool) {
+    let api = Api::new(pool, "/erp/product-categories").await;
+    for _ in 0..5 {
+        let x = api
+            .create(json!({ "name": "x" }), "product_category_id")
+            .await;
+        let y = api
+            .create(json!({ "name": "y" }), "product_category_id")
+            .await;
+        let mut set = tokio::task::JoinSet::new();
+        for (child, parent) in [(&x, &y), (&y, &x)] {
+            let (app, token) = (api.app.clone(), api.owner.clone());
+            let uri = format!("/v1/workspace/{}/erp/product-categories/{child}", api.ws);
+            let body = json!({ "parent_id": parent });
+            set.spawn(async move {
+                common::send(&app, Method::POST, &uri, Some(body), Some(&token)).await
+            });
+        }
+        let mut statuses: Vec<_> = set.join_all().await.into_iter().map(|(s, _)| s).collect();
+        statuses.sort();
+        assert_eq!(
+            statuses,
+            [StatusCode::OK, StatusCode::UNPROCESSABLE_ENTITY],
+            "exactly one re-parent wins"
+        );
+    }
+}

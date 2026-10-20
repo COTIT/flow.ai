@@ -638,3 +638,142 @@ async fn product_page_companions_answer_truthfully(pool: PgPool) {
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
+
+/// Derived prices past the column range or below 0 are a 422 on the field that drove them.
+#[sqlx::test]
+async fn out_of_range_derived_prices_are_422(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let (status, res) = api
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "name": "a", "price": "9999999999999999", "gross_price": "0.00000001" })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["price"],
+        json!(["The price is out of range."])
+    );
+
+    let id = api
+        .create(json!({ "name": "a", "price": 1 }), "product_id")
+        .await;
+    for impact in ["9999999999999999", "10000000000", "-200"] {
+        let body = json!({ "gross_price": "9999999999999999", "impact_on_price": impact });
+        let (status, res) = api
+            .call(Method::POST, &format!("/{id}"), Some(body), &api.owner)
+            .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{impact}: {res}");
+        assert_eq!(
+            res["errors"]["impact_on_price"],
+            json!(["The impact on price is out of range."])
+        );
+    }
+    assert_eq!(api.get(&id).await["price"], "1", "unchanged");
+}
+
+#[sqlx::test]
+async fn bundle_children_and_supplier_stock_level_bounds(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let child = api
+        .create(json!({ "name": "c", "price": 1 }), "product_id")
+        .await;
+    let body = json!({ "name": "b", "price": 1, "type": "multi_product_set",
+        "multi_set_product_ids": [{ "id": child, "quantity": 1 }, { "id": child, "quantity": 2 }] });
+    let (status, res) = api.call(Method::POST, "", Some(body), &api.owner).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["multi_set_product_ids.1.id"],
+        json!(["The multi_set_product_ids.1.id field has a duplicate value."])
+    );
+
+    let (status, res) = api
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "name": "a", "price": 1, "stock_level_supplier": 3_000_000_000_i64 })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["stock_level_supplier"],
+        json!(["The stock level supplier must not be greater than 2147483647."])
+    );
+
+    let many: Vec<String> = (0..101)
+        .map(|i| format!("01900000-0000-7000-8000-{i:012}"))
+        .collect();
+    let (status, res) = api
+        .call(
+            Method::GET,
+            &format!("?exclude_ids={}", many.join(",")),
+            None,
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["exclude_ids"],
+        json!(["The exclude ids must not have more than 100 items."])
+    );
+}
+
+/// A later product with the same barcode (a duplicate, or a planted one) never shadows the
+/// original at the till: active first, then the oldest (Laravel `first()`).
+#[sqlx::test]
+async fn barcode_tie_prefers_active_then_oldest(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let original = api
+        .create(
+            json!({ "name": "A", "price": 5, "barcode": "X1" }),
+            "product_id",
+        )
+        .await;
+    api.create(
+        json!({ "name": "Cheap", "price": 1, "barcode": "X1" }),
+        "product_id",
+    )
+    .await;
+    async fn found(api: &Api) -> Value {
+        let body = Some(json!({ "query": "x1" }));
+        let (_, res) = api.call(Method::POST, "/search", body, &api.owner).await;
+        res["data"]["id"].clone()
+    }
+    assert_eq!(found(&api).await, original.as_str());
+
+    let (status, _) = api
+        .call(
+            Method::POST,
+            &format!("/{original}"),
+            Some(json!({ "status": "disabled" })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_ne!(found(&api).await, original.as_str(), "active wins");
+}
+
+/// Update checks its references on its own transaction: 20 parallel updates on a small pool
+/// all succeed instead of waiting for a second connection.
+#[sqlx::test]
+async fn parallel_updates_do_not_starve_the_pool(pool: PgPool) {
+    let (api, vat) = world(pool).await;
+    let id = api
+        .create(json!({ "name": "a", "price": 1 }), "product_id")
+        .await;
+    let mut set = tokio::task::JoinSet::new();
+    for i in 0..20 {
+        let (app, token) = (api.app.clone(), api.owner.clone());
+        let uri = format!("/v1/workspace/{}/products/{id}", api.ws);
+        let body = json!({ "price": i + 2, "vat_group_id": vat });
+        set.spawn(async move { send(&app, Method::POST, &uri, Some(body), Some(&token)).await });
+    }
+    let results = set.join_all().await;
+    assert!(
+        results.iter().all(|(s, _)| *s == StatusCode::OK),
+        "{results:?}"
+    );
+}

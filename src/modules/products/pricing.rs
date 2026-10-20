@@ -4,7 +4,11 @@
 
 use rust_decimal::Decimal;
 
-use crate::money::{Zero, format_decimals, round};
+use crate::{
+    error::AppError,
+    http::json::human,
+    money::{MAX, Zero, format_decimals, round},
+};
 
 /// Which input wins when gross, price and impact all changed (Laravel `$priority`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,30 +18,46 @@ pub enum Priority {
 }
 
 /// Laravel `Product::normalizePriceImpact`: with a gross price > 0, price and markup
-/// (`impact`, %) are derived from each other. Returns `(price, impact)`.
+/// (`impact`, %) are derived from each other. Returns `(price, impact)`, or the field that
+/// drove a derived value out of range (price outside `0..=MAX`, impact outside `±MAX`).
 pub fn normalise(
     gross: Option<Decimal>,
     price: Option<Decimal>,
     impact: Option<Decimal>,
     priority: Priority,
-) -> (Option<Decimal>, Option<Decimal>) {
+) -> Result<(Option<Decimal>, Option<Decimal>), &'static str> {
     let Some(gross) = gross.filter(|g| *g > Decimal::ZERO) else {
-        return (price, impact);
+        return Ok((price, impact));
     };
     let hundred = Decimal::ONE_HUNDRED;
-    let from_impact = |i: Decimal| round(gross * (i / hundred + Decimal::ONE), 2);
+    let from_impact = |i: Decimal| {
+        let p = round(gross.checked_mul(i / hundred + Decimal::ONE)?, 2);
+        (Decimal::ZERO..=MAX).contains(&p).then_some(p)
+    };
+    let to_impact = |p: Decimal| {
+        let i = round(p.checked_div(gross)?.checked_mul(hundred)? - hundred, 4);
+        (-MAX..=MAX).contains(&i).then_some(i)
+    };
     match (price, impact, priority) {
-        (None, None, _) => (None, None),
-        (_, Some(i), Priority::Impact) => (Some(from_impact(i)), Some(i)),
+        (None, None, _) => Ok((None, None)),
+        (_, Some(i), Priority::Impact) => {
+            let p = from_impact(i).ok_or("impact_on_price")?;
+            Ok((Some(p), Some(i)))
+        }
         (Some(p), _, _) => {
-            let p = round(p, 2);
-            (Some(p), Some(round(p / gross * hundred - hundred, 4)))
+            let p = Some(round(p, 2)).filter(|p| *p <= MAX).ok_or("price")?;
+            Ok((Some(p), Some(to_impact(p).ok_or("price")?)))
         }
         (None, Some(i), _) => {
             let i = round(i, 4);
-            (Some(from_impact(i)), Some(i))
+            Ok((Some(from_impact(i).ok_or("impact_on_price")?), Some(i)))
         }
     }
+}
+
+/// 422 for the field [`normalise`] named.
+pub fn out_of_range(field: &str) -> AppError {
+    AppError::field(field, format!("The {} is out of range.", human(field)))
 }
 
 /// Price incl VAT: `net × (100 + vat) / 100` (Laravel `buildPriceIncl`).
@@ -87,7 +107,8 @@ mod tests {
             Some(d("100")),
             Some(d("10")),
             Priority::Impact,
-        );
+        )
+        .unwrap();
         assert_eq!((p, i), (Some(d("220")), Some(d("10"))));
     }
 
@@ -98,30 +119,59 @@ mod tests {
             Some(d("275")),
             Some(d("3")),
             Priority::Price,
-        );
+        )
+        .unwrap();
         assert_eq!((p, i), (Some(d("275")), Some(d("10"))));
     }
 
     #[test]
     fn price_rounds_to_cents_and_impact_to_four_places() {
-        let (p, i) = normalise(Some(d("3")), Some(d("1.005")), None, Priority::Price);
+        let (p, i) = normalise(Some(d("3")), Some(d("1.005")), None, Priority::Price).unwrap();
         assert_eq!(p, Some(d("1.01")));
         assert_eq!(i, Some(d("-66.3333")));
     }
 
     #[test]
     fn negative_markup_is_a_discount() {
-        let (p, _) = normalise(Some(d("100")), None, Some(d("-12.5")), Priority::Impact);
+        let (p, _) = normalise(Some(d("100")), None, Some(d("-12.5")), Priority::Impact).unwrap();
         assert_eq!(p, Some(d("87.5")));
     }
 
     #[test]
     fn no_gross_leaves_both_untouched() {
         let raw = (Some(d("743.057847")), Some(d("5")));
-        assert_eq!(normalise(None, raw.0, raw.1, Priority::Price), raw);
+        assert_eq!(normalise(None, raw.0, raw.1, Priority::Price), Ok(raw));
         assert_eq!(
             normalise(Some(Decimal::ZERO), raw.0, raw.1, Priority::Price),
-            raw
+            Ok(raw)
+        );
+    }
+
+    #[test]
+    fn derived_values_outside_the_column_name_their_driver() {
+        let max = "9999999999999999";
+        let n = |g, p: Option<&str>, i: Option<&str>, prio| {
+            normalise(Some(d(g)), p.map(d), i.map(d), prio)
+        };
+        assert_eq!(
+            n(max, None, Some(max), Priority::Impact),
+            Err("impact_on_price")
+        );
+        assert_eq!(
+            n("100", None, Some("-200"), Priority::Impact),
+            Err("impact_on_price")
+        );
+        assert_eq!(
+            n("0.00000001", Some(max), None, Priority::Price),
+            Err("price")
+        );
+        assert_eq!(
+            n("1", Some("9999999999999999.999"), None, Priority::Price),
+            Err("price")
+        );
+        assert_eq!(
+            n("100", None, Some("-100"), Priority::Impact).unwrap().0,
+            Some(Decimal::ZERO)
         );
     }
 
