@@ -26,6 +26,10 @@ use crate::{
             dto::CustomTypeResource, repo::ListFilter as TypeFilter, service as custom_types,
         },
         hourly_rates::{dto::HourlyRateResource, service as hourly_rates},
+        product_brands::{dto::BrandResource, service as product_brands},
+        product_categories::{
+            dto::CategoryResource, repo::ListFilter as CategoryFilter, service as product_categories,
+        },
         relations,
         sales_groups::{dto::SalesGroupResource, service as sales_groups},
         shipment_methods::{
@@ -85,6 +89,21 @@ pub async fn search(
             };
             let (rows, total) = vat_groups::list(s, ws, &f).await?;
             page_of::<VatGroupResource, _>(rows, total, page)
+        }
+        Some("product_brand") => {
+            let (rows, total) = product_brands::list(s, ws, pattern, limit, offset).await?;
+            page_of::<BrandResource, _>(rows, total, page)
+        }
+        Some("product_category") => {
+            let f = CategoryFilter {
+                pattern,
+                parent_id: None,
+                root_only: false,
+                limit,
+                offset,
+            };
+            let (rows, total) = product_categories::list(s, ws, &f).await?;
+            page_of::<CategoryResource, _>(rows, total, page)
         }
         Some("sales_group") => {
             let (rows, total) = sales_groups::list(s, ws, pattern, limit, offset).await?;

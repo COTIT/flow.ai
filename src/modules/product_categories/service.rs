@@ -1,0 +1,95 @@
+//! Category rules: parent must be a live category of the workspace and never the category
+//! itself or one of its descendants (Laravel had no cycle guard).
+
+use uuid::Uuid;
+
+use crate::{
+    AppState,
+    error::AppError,
+    modules::product_categories::{
+        dto::{BAD_PARENT, CategoryInput},
+        repo::{self, CategoryRow, ListFilter},
+    },
+};
+
+/// One page plus total.
+pub async fn list(
+    state: &AppState,
+    workspace_id: Uuid,
+    f: &ListFilter<'_>,
+) -> Result<(Vec<CategoryRow>, i64), AppError> {
+    let (rows, mut total) = repo::list(&state.db, workspace_id, f).await?;
+    if rows.is_empty() && f.offset > 0 {
+        total = repo::count(&state.db, workspace_id, f).await?;
+    }
+    Ok((rows, total))
+}
+
+/// One live category with its parent and live children, else 404.
+pub async fn get(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+) -> Result<(CategoryRow, Option<CategoryRow>, Vec<CategoryRow>), AppError> {
+    let c = repo::find(&state.db, workspace_id, parse(id)?)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let parent = match c.parent_id {
+        Some(p) => repo::find(&state.db, workspace_id, p).await?,
+        None => None,
+    };
+    let children = repo::children(&state.db, workspace_id, c.id).await?;
+    Ok((c, parent, children))
+}
+
+/// Insert; returns the new id.
+pub async fn create(
+    state: &AppState,
+    workspace_id: Uuid,
+    c: CategoryInput,
+) -> Result<Uuid, AppError> {
+    check_parent(state, workspace_id, c.parent_id.flatten(), None).await?;
+    Ok(repo::insert(&state.db, workspace_id, &c).await?)
+}
+
+/// Patch, else 404.
+pub async fn update(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    c: CategoryInput,
+) -> Result<(), AppError> {
+    let id = parse(id)?;
+    check_parent(state, workspace_id, c.parent_id.flatten(), Some(id)).await?;
+    repo::update(&state.db, workspace_id, id, &c)
+        .await?
+        .then_some(())
+        .ok_or(AppError::NotFound)
+}
+
+/// Soft delete, else 404.
+pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
+    repo::soft_delete(&state.db, workspace_id, parse(id)?)
+        .await?
+        .then_some(())
+        .ok_or(AppError::NotFound)
+}
+
+async fn check_parent(
+    state: &AppState,
+    workspace_id: Uuid,
+    parent: Option<Uuid>,
+    id: Option<Uuid>,
+) -> Result<(), AppError> {
+    match parent {
+        Some(p) if !repo::parent_ok(&state.db, workspace_id, p, id).await? => {
+            Err(AppError::field("parent_id", BAD_PARENT))
+        }
+        _ => Ok(()),
+    }
+}
+
+/// Malformed id = unknown id = 404.
+fn parse(id: &str) -> Result<Uuid, AppError> {
+    Uuid::parse_str(id).map_err(|_| AppError::NotFound)
+}

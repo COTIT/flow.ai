@@ -9,6 +9,8 @@ pub mod email_verification;
 pub mod hourly_rates;
 pub mod invites;
 pub mod permissions;
+pub mod product_brands;
+pub mod product_categories;
 pub mod relations;
 pub mod sales_groups;
 pub mod search;
