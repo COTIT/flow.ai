@@ -13,7 +13,7 @@ use crate::{
     modules::{
         teams::dto::TeamResource,
         users::{
-            repo::Member,
+            repo::{Member, UserRef},
             service::{Me, MemberView},
         },
         workspaces::{dto::Profile, repo::MemberWorkspace},
@@ -362,6 +362,45 @@ impl MembersQuery {
             team_id: team_id.and_then(Result::ok),
             has_pin_code,
         })
+    }
+}
+
+/// Laravel UserEmailResource: a user embedded in another resource.
+#[derive(Serialize)]
+pub struct UserEmailResource {
+    id: Uuid,
+    name: String,
+    initials: String,
+    email: String,
+    avatar_path: String,
+    /// No column yet.
+    color: Option<String>,
+}
+
+impl UserEmailResource {
+    /// From the user's name parts.
+    pub fn new(id: Uuid, first: &str, middle: Option<&str>, last: &str, email: String) -> Self {
+        let name = full_name(first, middle, last);
+        Self {
+            id,
+            initials: initials(first, last),
+            avatar_path: avatar_path(&name),
+            name,
+            email,
+            color: None,
+        }
+    }
+}
+
+impl From<&UserRef> for UserEmailResource {
+    fn from(u: &UserRef) -> Self {
+        Self::new(
+            u.id,
+            &u.first_name,
+            u.middle_name.as_deref(),
+            &u.last_name,
+            u.email.clone(),
+        )
     }
 }
 

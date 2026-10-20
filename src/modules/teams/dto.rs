@@ -11,7 +11,7 @@ use crate::{
     http::json::{Rules, Validate, optional, present},
     modules::{
         teams::repo::{TeamRow, TeamUser},
-        users::dto::{avatar_path, full_name, initials},
+        users::dto::UserEmailResource,
     },
 };
 
@@ -41,38 +41,24 @@ pub struct TeamResource {
 #[serde(untagged)]
 enum Relationships {
     NotLoaded([(); 0]),
-    Loaded { users: Vec<TeamUserResource> },
-}
-
-/// Laravel UserEmailResource.
-#[derive(Serialize)]
-struct TeamUserResource {
-    id: Uuid,
-    name: String,
-    initials: String,
-    email: String,
-    avatar_path: String,
-    /// No column yet.
-    color: Option<String>,
+    Loaded { users: Vec<UserEmailResource> },
 }
 
 impl TeamResource {
     /// Teams with `relationships.users`, each team's members taken from `users`.
     pub fn page(teams: Vec<TeamRow>, users: Vec<TeamUser>) -> Vec<Self> {
-        let mut by_team: HashMap<Uuid, Vec<TeamUserResource>> = HashMap::new();
+        let mut by_team: HashMap<Uuid, Vec<UserEmailResource>> = HashMap::new();
         for u in users {
-            let name = full_name(&u.first_name, u.middle_name.as_deref(), &u.last_name);
             by_team
                 .entry(u.team_id)
                 .or_default()
-                .push(TeamUserResource {
-                    id: u.id,
-                    initials: initials(&u.first_name, &u.last_name),
-                    avatar_path: avatar_path(&name),
-                    name,
-                    email: u.email,
-                    color: None,
-                });
+                .push(UserEmailResource::new(
+                    u.id,
+                    &u.first_name,
+                    u.middle_name.as_deref(),
+                    &u.last_name,
+                    u.email,
+                ));
         }
         teams
             .into_iter()

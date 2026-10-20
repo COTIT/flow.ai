@@ -301,6 +301,18 @@ pub fn validate_list(r: &mut Rules, value: Value) -> Vec<Address> {
     out
 }
 
+/// One address object under `key` (Laravel `Address` rule on a single value, e.g. warehouse
+/// `location`). Field errors use bare keys, as for list items. None when anything failed.
+pub fn validate_one(r: &mut Rules, key: &str, value: &Value) -> Option<Address> {
+    let Value::Object(map) = value else {
+        r.add(key, format!("The {} must be an array.", human(key)));
+        return None;
+    };
+    let mut own = Rules::default();
+    let a = item(&mut own, map);
+    (!own.merge_into(r)).then_some(a)
+}
+
 /// Address Laravel's `defaultAddress()` picks: main, else first.
 pub fn default_of(addresses: &[Address]) -> Option<&Address> {
     addresses

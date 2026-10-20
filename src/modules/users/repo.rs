@@ -264,6 +264,35 @@ pub async fn find_member(
     .await
 }
 
+/// Live user as other resources embed them (source of Laravel UserEmailResource).
+pub struct UserRef {
+    pub id: Uuid,
+    pub first_name: String,
+    pub middle_name: Option<String>,
+    pub last_name: String,
+    pub email: String,
+}
+
+/// Live users among `ids` with a membership (active or not) in `workspace_id`. One query
+/// serves both the "is this id a member" check and a page's embedded users.
+pub async fn members_among(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<UserRef>, sqlx::Error> {
+    sqlx::query_as!(
+        UserRef,
+        "SELECT u.id, u.first_name, u.middle_name, u.last_name, u.email
+         FROM workspace_members m
+         JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL
+         WHERE m.workspace_id = $1 AND m.user_id = ANY($2)",
+        workspace_id,
+        ids,
+    )
+    .fetch_all(db)
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -247,6 +247,17 @@ impl Api {
         }
     }
 
+    /// Same app, owner and workspace, requests under another base path (nested routes).
+    pub fn with_base(&self, base: &'static str) -> Self {
+        Self {
+            app: self.app.clone(),
+            pool: self.pool.clone(),
+            owner: self.owner.clone(),
+            ws: self.ws.clone(),
+            base,
+        }
+    }
+
     pub async fn call(
         &self,
         method: Method,

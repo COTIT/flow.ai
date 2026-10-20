@@ -619,3 +619,194 @@ async fn contact_default_for_and_phones_checked(pool: PgPool) {
     assert_eq!(violated(bad_for), "contacts_default_for_check");
     assert_eq!(violated(bad_phones), "contacts_phones_check");
 }
+
+// ---- batch 6A: warehouses + warehouse_locations ----
+
+async fn insert_warehouse(
+    pool: &PgPool,
+    ws: Uuid,
+    slug: &str,
+    default: bool,
+    parent: Option<Uuid>,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar(
+        "INSERT INTO warehouses (workspace_id, name, slug, default_warehouse, parent_id)
+         VALUES ($1, $2, $2, $3, $4) RETURNING id",
+    )
+    .bind(ws)
+    .bind(slug)
+    .bind(default)
+    .bind(parent)
+    .fetch_one(pool)
+    .await
+}
+
+async fn warehouse_world(pool: &PgPool) -> (Uuid, Uuid) {
+    let ada = insert_user(pool, "ada@example.com").await.unwrap();
+    let a = insert_workspace(pool, "acme", ada).await.unwrap();
+    let b = insert_workspace(pool, "evil", ada).await.unwrap();
+    (a, b)
+}
+
+#[sqlx::test]
+async fn warehouse_parent_must_be_in_same_workspace(pool: PgPool) {
+    let (a, b) = warehouse_world(&pool).await;
+    let parent = insert_warehouse(&pool, a, "main", false, None)
+        .await
+        .unwrap();
+
+    assert!(
+        insert_warehouse(&pool, a, "child", false, Some(parent))
+            .await
+            .is_ok()
+    );
+    assert_eq!(
+        violated(
+            insert_warehouse(&pool, b, "child", false, Some(parent))
+                .await
+                .unwrap_err()
+        ),
+        "warehouses_parent_fk"
+    );
+}
+
+#[sqlx::test]
+async fn warehouse_slug_unique_per_workspace_among_live_rows(pool: PgPool) {
+    let (a, b) = warehouse_world(&pool).await;
+    let first = insert_warehouse(&pool, a, "main", false, None)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        violated(
+            insert_warehouse(&pool, a, "main", false, None)
+                .await
+                .unwrap_err()
+        ),
+        "warehouses_slug_unique"
+    );
+    assert!(
+        insert_warehouse(&pool, b, "main", false, None)
+            .await
+            .is_ok()
+    );
+    sqlx::query("UPDATE warehouses SET deleted_at = now() WHERE id = $1")
+        .bind(first)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        insert_warehouse(&pool, a, "main", false, None)
+            .await
+            .is_ok()
+    );
+}
+
+#[sqlx::test]
+async fn one_live_default_warehouse_per_workspace(pool: PgPool) {
+    let (a, b) = warehouse_world(&pool).await;
+    let first = insert_warehouse(&pool, a, "one", true, None).await.unwrap();
+
+    assert_eq!(
+        violated(
+            insert_warehouse(&pool, a, "two", true, None)
+                .await
+                .unwrap_err()
+        ),
+        "warehouses_one_default"
+    );
+    assert!(
+        insert_warehouse(&pool, a, "three", false, None)
+            .await
+            .is_ok()
+    );
+    assert!(insert_warehouse(&pool, b, "one", true, None).await.is_ok());
+    sqlx::query("UPDATE warehouses SET deleted_at = now() WHERE id = $1")
+        .bind(first)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(insert_warehouse(&pool, a, "four", true, None).await.is_ok());
+}
+
+#[sqlx::test]
+async fn warehouse_enums_lengths_and_json_shapes_checked(pool: PgPool) {
+    let (a, _) = warehouse_world(&pool).await;
+    let id = insert_warehouse(&pool, a, "main", false, None)
+        .await
+        .unwrap();
+    let set = |sql: &'static str| {
+        let pool = pool.clone();
+        async move { sqlx::query(sql).bind(id).execute(&pool).await }
+    };
+
+    for (sql, constraint) in [
+        (
+            "UPDATE warehouses SET status = 'open' WHERE id = $1",
+            "warehouses_status_check",
+        ),
+        (
+            "UPDATE warehouses SET type = 'garage' WHERE id = $1",
+            "warehouses_type_check",
+        ),
+        (
+            "UPDATE warehouses SET name = repeat('x', 151) WHERE id = $1",
+            "warehouses_name_check",
+        ),
+        (
+            "UPDATE warehouses SET alias = repeat('x', 56) WHERE id = $1",
+            "warehouses_alias_check",
+        ),
+        (
+            "UPDATE warehouses SET location = '[]' WHERE id = $1",
+            "warehouses_location_check",
+        ),
+        (
+            "UPDATE warehouses SET dimensions = '1' WHERE id = $1",
+            "warehouses_dimensions_check",
+        ),
+        (
+            "UPDATE warehouses SET meta = '\"x\"' WHERE id = $1",
+            "warehouses_meta_check",
+        ),
+        (
+            "UPDATE warehouses SET parent_id = id WHERE id = $1",
+            "warehouses_not_own_parent",
+        ),
+    ] {
+        assert_eq!(violated(set(sql).await.unwrap_err()), constraint, "{sql}");
+    }
+    assert!(set("UPDATE warehouses SET name = repeat('é', 150), status = 'active', type = 'cross-dock' WHERE id = $1").await.is_ok());
+}
+
+#[sqlx::test]
+async fn warehouse_location_must_point_at_same_workspace_warehouse(pool: PgPool) {
+    let (a, b) = warehouse_world(&pool).await;
+    let wh = insert_warehouse(&pool, a, "main", false, None)
+        .await
+        .unwrap();
+    let add = |ws: Uuid, text: String| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query(
+                "INSERT INTO warehouse_locations (workspace_id, warehouse_id, location)
+                 VALUES ($1, $2, $3)",
+            )
+            .bind(ws)
+            .bind(wh)
+            .bind(text)
+            .execute(&pool)
+            .await
+        }
+    };
+
+    assert!(add(a, "A.1.2".into()).await.is_ok());
+    assert_eq!(
+        violated(add(b, "A.1.2".into()).await.unwrap_err()),
+        "warehouse_locations_warehouse_fk"
+    );
+    assert_eq!(
+        violated(add(a, "x".repeat(501)).await.unwrap_err()),
+        "warehouse_locations_location_check"
+    );
+}

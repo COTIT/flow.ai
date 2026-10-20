@@ -16,4 +16,6 @@ pub mod shipment_methods;
 pub mod teams;
 pub mod users;
 pub mod vat_groups;
+pub mod warehouse_locations;
+pub mod warehouses;
 pub mod workspaces;

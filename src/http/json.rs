@@ -257,6 +257,26 @@ impl Rules {
         }
     }
 
+    /// `custom_sections` / `custom_section_forms`: custom fields aren't ported, so null or a
+    /// list is fine, but any item naming a `section_id` is unknown (Laravel's own message).
+    // shortcut: custom fields not ported; replace with a real section lookup when they are.
+    pub fn custom_sections(&mut self, key: &str, v: Option<&Value>) {
+        match v {
+            None | Some(Value::Null) => {}
+            Some(Value::Array(items)) => {
+                for (i, item) in items.iter().enumerate() {
+                    if filled(item.get("section_id").cloned()).is_some() {
+                        self.add(
+                            &format!("{key}.{i}.section_id"),
+                            "this custom section does not exist for the selected domain",
+                        );
+                    }
+                }
+            }
+            Some(_) => self.add(key, format!("The {} must be an array.", human(key))),
+        }
+    }
+
     /// Move these errors into `into`; true when there were any. Lets a nested value be
     /// checked on its own and stop at the first bad item.
     pub fn merge_into(self, into: &mut Rules) -> bool {

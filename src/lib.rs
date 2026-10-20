@@ -24,7 +24,7 @@ pub use http::rate_limit::RateLimit;
 use modules::{
     auth, contacts, currencies, custom_statuses, custom_types, email_verification, hourly_rates,
     invites, permissions, relations, sales_groups, search, shipment_methods, teams, users,
-    vat_groups, workspaces,
+    vat_groups, warehouse_locations, warehouses, workspaces,
 };
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
@@ -82,6 +82,8 @@ pub fn build_app(state: AppState) -> Router {
         .merge(search::routes::private())
         .merge(relations::routes::private())
         .merge(contacts::routes::private())
+        .merge(warehouses::routes::private())
+        .merge(warehouse_locations::routes::private())
         // Responses carry bearer tokens and invite data: never cache, never sniff.
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,

@@ -29,7 +29,6 @@ use crate::{
 };
 
 /// Laravel CustomSectionExistForDomain text; no section can exist until custom fields are ported.
-const NO_SECTION: &str = "this custom section does not exist for the selected domain";
 /// Laravel `rules.CustomTypeNotValid` for `relation_type_id`.
 pub const TYPE_NOT_VALID: &str = "The relation type id is not valid";
 const POS_NAME: &str =
@@ -102,23 +101,6 @@ fn type_ref(r: &mut Rules, key: &str, v: Option<&Value>) -> Option<Uuid> {
     id
 }
 
-/// `custom_sections` / `custom_section_forms`: absent, null or a list whose items name no
-/// section. Any `section_id` is unknown, since sections can't be created in genesy yet.
-// shortcut: custom fields not ported; replace with real section lookup when they are.
-fn custom_sections(r: &mut Rules, key: &str, v: Option<&Value>) {
-    match v {
-        None | Some(Value::Null) => {}
-        Some(Value::Array(items)) => {
-            for (i, item) in items.iter().enumerate() {
-                if filled(item.get("section_id").cloned()).is_some() {
-                    r.add(&format!("{key}.{i}.section_id"), NO_SECTION);
-                }
-            }
-        }
-        Some(_) => r.add(key, format!("The {} must be an array.", human(key))),
-    }
-}
-
 /// Laravel `nullable|integer` / `numeric|min:0|max:100` fields that are validated but never
 /// stored (`default_payment_term`, `default_vat_rate`: no column / overridden accessor).
 fn checked_only(r: &mut Rules, v: &Map<String, Value>) {
@@ -162,8 +144,8 @@ impl Validate for CreateRelationRequest {
     fn validate(self, r: &mut Rules) -> Option<NewRelation> {
         let v = self.0;
         checked_only(r, &v);
-        custom_sections(r, "custom_sections", get(&v, "custom_sections"));
-        custom_sections(r, "custom_section_forms", get(&v, "custom_section_forms"));
+        r.custom_sections("custom_sections", get(&v, "custom_sections"));
+        r.custom_sections("custom_section_forms", get(&v, "custom_section_forms"));
         let vat = opt_str(r, "vat_number", get(&v, "vat_number"), 255);
         if let Some(vat) = &vat {
             r.check(
@@ -362,8 +344,8 @@ impl Validate for UpdateRelationRequest {
     fn validate(self, r: &mut Rules) -> Option<RelationPatch> {
         let v = self.0;
         checked_only(r, &v);
-        custom_sections(r, "custom_sections", get(&v, "custom_sections"));
-        custom_sections(r, "custom_section_forms", get(&v, "custom_section_forms"));
+        r.custom_sections("custom_sections", get(&v, "custom_sections"));
+        r.custom_sections("custom_section_forms", get(&v, "custom_section_forms"));
         let sent = |k: &str| v.contains_key(k);
         let text =
             |r: &mut Rules, k: &str, max: usize| sent(k).then(|| opt_str(r, k, get(&v, k), max));
