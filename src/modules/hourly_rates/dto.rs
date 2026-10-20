@@ -64,6 +64,7 @@ impl From<HourlyRateRow> for HourlyRateResource {
     }
 }
 
+/// Create response: the new row's id.
 #[derive(Serialize)]
 pub struct HourlyRateCreated {
     pub hourly_rate_id: Uuid,
@@ -108,6 +109,7 @@ pub struct CreateHourlyRateRequest {
     meta: Option<Value>,
 }
 
+/// Validated create input.
 pub struct NewHourlyRate {
     pub title: String,
     pub description: String,
@@ -162,6 +164,7 @@ pub struct UpdateHourlyRateRequest {
     meta: Option<Option<Value>>,
 }
 
+/// Validated update; `None` keeps the stored value.
 pub struct HourlyRatePatch {
     pub title: Option<String>,
     pub description: Option<String>,

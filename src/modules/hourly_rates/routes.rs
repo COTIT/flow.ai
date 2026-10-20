@@ -4,6 +4,7 @@ use axum::{Router, routing::get};
 
 use crate::{AppState, modules::hourly_rates::handlers};
 
+/// Routes for this module; each handler runs the workspace guard.
 pub fn private() -> Router<AppState> {
     let base = "/workspace/{workspace}/hourly-rates";
     Router::new()

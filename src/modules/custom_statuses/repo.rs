@@ -24,7 +24,7 @@ pub struct ListFilter<'a> {
     pub offset: i64,
 }
 
-/// New rows of one workspace and domain in one statement, ids follow `names` order.
+/// New rows of one workspace and domain in one statement (uuidv7 ids follow `names` order).
 pub async fn insert_many(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,

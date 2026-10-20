@@ -100,7 +100,7 @@ async fn signup_seeds_custom_types(pool: PgPool) {
             json!(["Social media", "lead_source", null]),
             json!(["Work", "hour_registration_type", null]),
             json!(["Leave", "hour_registration_type", { "is_leave_hours_type": true }]),
-            json!(["Sick leave", "hour_registration_type", { "is_leave_hours_type": true }]),
+            json!(["Sick leave", "hour_registration_type", { "is_leave_hours_type": true, "is_sick_hours_type": true }]),
         ]
     );
     // The hour-type filters vimdesk-web uses find the seeded rows.

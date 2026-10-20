@@ -39,6 +39,7 @@ pub async fn get(
         .ok_or(AppError::NotFound)
 }
 
+/// Insert after the module's checks; returns the new id.
 pub async fn create(
     state: &AppState,
     workspace_id: Uuid,
@@ -82,6 +83,7 @@ pub async fn update(
     changed.then_some(()).ok_or(AppError::NotFound)
 }
 
+/// Soft delete a live row of this workspace, else 404.
 pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
     repo::soft_delete(&state.db, workspace_id, parse(id)?)
         .await?

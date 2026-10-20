@@ -27,6 +27,7 @@ pub struct HourlyRateRow {
     pub vat_group: Option<VatGroupRow>,
 }
 
+/// New row; returns its id.
 pub async fn insert(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,

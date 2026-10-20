@@ -110,6 +110,21 @@ async fn property_rules_use_laravel_wording(pool: PgPool) {
         errors(&a, body("product_return_reason", json!({}))).await,
         json!({ "properties.discount_percentage": ["discount percentage is required"] })
     );
+    for junk in ["1_0", "1e2", "0x10"] {
+        let res = errors(
+            &a,
+            body(
+                "product_return_reason",
+                json!({ "discount_percentage": junk }),
+            ),
+        )
+        .await;
+        assert_eq!(
+            res,
+            json!({ "properties.discount_percentage": ["discount percentage must be numeric"] }),
+            "{junk}"
+        );
+    }
     assert_eq!(
         errors(
             &a,
@@ -362,4 +377,27 @@ async fn delete_bad_ids_and_access(pool: PgPool) {
         ID,
     )
     .await;
+}
+
+#[sqlx::test]
+async fn property_values_are_trimmed_and_capped(pool: PgPool) {
+    let a = Api::new(pool, BASE).await;
+
+    assert_eq!(
+        props(
+            &a,
+            "product_return_reason",
+            json!({ "discount_percentage": " 12.50 " })
+        )
+        .await,
+        json!({ "discount_percentage": "12.5" })
+    );
+    assert_eq!(
+        errors(
+            &a,
+            json!({ "name": "n", "domain": "activity", "properties": { "icon": "i".repeat(256), "color": "c" } })
+        )
+        .await,
+        json!({ "properties.icon": ["The properties.icon field must not be greater than 255 characters."] })
+    );
 }

@@ -24,12 +24,14 @@ pub async fn list(
     Ok((rows, total))
 }
 
+/// One live row of this workspace, else 404.
 pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<VatGroupRow, AppError> {
     repo::find(&state.db, workspace_id, parse(id)?)
         .await?
         .ok_or(AppError::NotFound)
 }
 
+/// Insert after the module's checks; returns the new id.
 pub async fn create(
     state: &AppState,
     workspace_id: Uuid,
@@ -38,6 +40,7 @@ pub async fn create(
     Ok(repo::insert(&state.db, workspace_id, &input).await?)
 }
 
+/// Patch a live row of this workspace, else 404.
 pub async fn update(
     state: &AppState,
     workspace_id: Uuid,

@@ -35,6 +35,7 @@ pub struct ListFilter<'a> {
     pub offset: i64,
 }
 
+/// New row; returns its id.
 pub async fn insert(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,

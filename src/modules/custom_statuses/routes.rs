@@ -4,6 +4,7 @@ use axum::{Router, routing::get};
 
 use crate::{AppState, modules::custom_statuses::handlers};
 
+/// Routes for this module; each handler runs the workspace guard.
 pub fn private() -> Router<AppState> {
     let base = "/workspace/{workspace}/custom-status";
     Router::new()

@@ -18,7 +18,13 @@
     - VAT `country` and `q` filters combine.
     - `archived` and `can_be_selected` are JSON bools.
     - Null on a required field is a 422 (Laravel: 500). Malformed ids are 404.
-    - Seeded hour types use `hour_registration_type`, and Supplier carries `is_supplier: true`.
+    - Seeded hour types use `hour_registration_type`, Supplier carries `is_supplier: true`, and Sick leave carries `is_sick_hours_type: true`.
+  - Review fixes (ecc:rust-reviewer + ecc:security-reviewer):
+    - Shipment `countries` elements are rebuilt from `name` (≤255), `country` (uppercased), `price` and `lead_time_hours`; other keys are dropped.
+    - Activity `icon`/`color` are capped at 255 characters. `discount_percentage` takes plain decimals only (no `1_0`, `1e2`) and is stored normalized.
+    - A decimal with too many integer digits reports the bound it crosses (min for negatives).
+    - Kept on purpose: `/searches` checks only `workspace.global-search`, as Laravel does. Requiring each module's `*.list` would break dropdowns for every member, since nobody holds the new catalog names yet.
+    - Left for a platform-wide follow-up: there's no rate limit or per-workspace row quota on authenticated writes, in any module.
   - Not ported: LabelTemplate, VAT import, hourly-rate user links, custom status archive/unarchive, currency `filter[]`/`sort`, Meilisearch.
 - Batch 3 phase A (permission core):
   - Migration `teams`: `teams` (soft delete, Laravel length caps), `team_permissions` (lowercase names, one row per grant), `team_members`, and `invites.team_id` (set null if the team row goes).

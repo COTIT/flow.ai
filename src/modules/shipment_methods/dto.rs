@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use uuid::Uuid;
 
 use crate::{
@@ -70,6 +70,7 @@ impl From<ShipmentMethodRow> for ShipmentMethodResource {
     }
 }
 
+/// Create response: the new row's id.
 #[derive(Serialize)]
 pub struct ShipmentMethodCreated {
     pub shipment_method_id: Uuid,
@@ -93,10 +94,11 @@ fn impact(r: &mut Rules, field: &str, v: Option<Value>) -> Option<Decimal> {
     r.decimal(field, &v, -Decimal::ONE_HUNDRED, Decimal::ONE_HUNDRED)
 }
 
-/// `[{name, country, price, lead_time_hours}]`, kept as sent. Each element must be an object;
-/// a given country must be ISO alpha-2, price a number >= 0, lead time a whole number >= 0.
+/// `[{name, country, price, lead_time_hours}]`, rebuilt from the validated keys only (others
+/// dropped): name text <=255, country ISO alpha-2 uppercased, price a number >= 0 (kept as
+/// sent, trimmed), lead time a whole number >= 0.
 fn countries(r: &mut Rules, v: Value) -> Option<Value> {
-    let Value::Array(items) = &v else {
+    let Value::Array(items) = v else {
         r.add("countries", "The countries must be an array.");
         return None;
     };
@@ -105,36 +107,53 @@ fn countries(r: &mut Rules, v: Value) -> Option<Value> {
         r.add("countries", msg);
         return None;
     }
-    for (i, item) in items.iter().enumerate() {
-        let Value::Object(c) = item else {
+    let mut out = Vec::with_capacity(items.len());
+    for (i, item) in items.into_iter().enumerate() {
+        let Value::Object(mut c) = item else {
             r.add(
                 &format!("countries.{i}"),
                 format!("The countries.{i} must be an array."),
             );
             continue;
         };
-        if let Some(code) = filled(c.get("country").cloned()) {
+        let mut kept = Map::new();
+        if let Some(name) = filled(c.remove("name")) {
+            let field = format!("countries.{i}.name");
+            match name {
+                Value::String(s) => {
+                    r.max_chars(&field, s.trim(), TEXT_MAX);
+                    kept.insert("name".into(), Value::String(s.trim().to_owned()));
+                }
+                _ => r.add(&field, format!("The {field} must be a string.")),
+            }
+        }
+        if let Some(code) = filled(c.remove("country")) {
             let field = format!("countries.{i}.country");
-            r.country(&field, code.as_str().unwrap_or_default());
+            if let Some(code) = r.country(&field, code.as_str().unwrap_or_default()) {
+                kept.insert("country".into(), Value::String(code));
+            }
         }
-        if let Some(price) = filled(c.get("price").cloned()) {
-            r.decimal(
-                &format!("countries.{i}.price"),
-                &price,
-                Decimal::ZERO,
-                money::MAX,
-            );
+        if let Some(price) = filled(c.remove("price")) {
+            let field = format!("countries.{i}.price");
+            if r.decimal(&field, &price, Decimal::ZERO, money::MAX)
+                .is_some()
+            {
+                let price = match price {
+                    Value::String(s) => Value::String(s.trim().to_owned()),
+                    other => other,
+                };
+                kept.insert("price".into(), price);
+            }
         }
-        if let Some(hours) = filled(c.get("lead_time_hours").cloned()) {
-            r.integer(
-                &format!("countries.{i}.lead_time_hours"),
-                &hours,
-                0,
-                i64::MAX,
-            );
+        if let Some(hours) = filled(c.remove("lead_time_hours")) {
+            let field = format!("countries.{i}.lead_time_hours");
+            if let Some(h) = r.integer(&field, &hours, 0, i64::MAX) {
+                kept.insert("lead_time_hours".into(), Value::from(h));
+            }
         }
+        out.push(Value::Object(kept));
     }
-    Some(v)
+    Some(Value::Array(out))
 }
 
 fn selectable(r: &mut Rules, v: Option<Value>) -> bool {
@@ -159,6 +178,7 @@ pub struct CreateShipmentMethodRequest {
     meta: Option<Value>,
 }
 
+/// Validated create input.
 pub struct NewShipmentMethod {
     pub name: String,
     pub carrier: String,
@@ -232,6 +252,7 @@ pub struct UpdateShipmentMethodRequest {
     meta: Option<Option<Value>>,
 }
 
+/// Validated update; `None` keeps the stored value.
 pub struct ShipmentMethodPatch {
     pub name: Option<String>,
     pub carrier: Option<String>,

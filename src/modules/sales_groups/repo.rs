@@ -18,6 +18,7 @@ pub struct SalesGroupRow {
     pub updated_at: DateTime<Utc>,
 }
 
+/// New row; returns its id.
 pub async fn insert(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,

@@ -134,9 +134,10 @@ impl Rules {
         }
     }
 
-    /// Laravel `numeric|min|max` on a sent value: JSON number or numeric string -> exact
-    /// `Decimal`. At most 8 decimals (columns are `numeric(24,8)`). Wording follows
-    /// vimdesk-api `resources/lang/en/validation.php` (no "field" in number rules).
+    /// Laravel `numeric|min|max` on a sent value: JSON number or plain decimal string -> exact
+    /// `Decimal`. Number wording follows vimdesk-api `resources/lang/en/validation.php`.
+    /// Stricter than Laravel on purpose: no exponent form, at most 8 decimals (columns are
+    /// `numeric(24,8)`; MySQL rounded silently), so float noise is a 422, not a stored value.
     pub fn decimal(
         &mut self,
         field: &str,
@@ -174,8 +175,13 @@ impl Rules {
             })
             .flatten();
         let Some(v) = parsed.map(|v| v.normalize()) else {
-            let max = max.normalize();
-            self.add(field, format!("The {f} must not be greater than {max}."));
+            // Too many integer digits: past `min` when negative, else past `max`.
+            let msg = if negative {
+                format!("The {f} must be at least {}.", min.normalize())
+            } else {
+                format!("The {f} must not be greater than {}.", max.normalize())
+            };
+            self.add(field, msg);
             return None;
         };
         if v < min {
@@ -735,6 +741,14 @@ mod value_rule_tests {
             crate::money::MAX,
         );
         assert_eq!(huge, None);
+        let mut neg = Rules::default();
+        neg.decimal(
+            "price",
+            &json!("-12345678901234567890"),
+            dec("0"),
+            crate::money::MAX,
+        );
+        assert_eq!(errors(neg)["price"], ["The price must be at least 0."]);
         assert_eq!(
             errors(r)["price"],
             ["The price must not be greater than 9999999999999999.99999999."]

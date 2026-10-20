@@ -27,7 +27,7 @@ pub struct ListFilter<'a> {
     pub offset: i64,
 }
 
-/// New rows of one workspace in one statement; returns ids in input order.
+/// New rows of one workspace in one statement (uuidv7 ids follow input order); returns the ids.
 pub async fn insert_many(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -210,11 +210,13 @@ pub async fn soft_delete(
     .map(|done| done.rows_affected() == 1)
 }
 
-/// Laravel WorkspaceSetup custom types for a new workspace, two bugs fixed: hour types use
-/// `hour_registration_type` (Laravel wrote `hour_registration`, which vimdesk-web never reads)
-/// and Supplier carries `is_supplier: true` (Laravel dropped it).
+/// Laravel WorkspaceSetup custom types for a new workspace, three bugs fixed: hour types use
+/// `hour_registration_type` (Laravel wrote `hour_registration`, which vimdesk-web never reads),
+/// Supplier carries `is_supplier: true` (Laravel dropped it), and Sick leave carries
+/// `is_sick_hours_type` (LeaveRequest's sick check reads it).
 pub async fn seed_defaults(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Result<(), sqlx::Error> {
     let leave = Some(serde_json::json!({ "is_leave_hours_type": true }));
+    let sick = Some(serde_json::json!({ "is_leave_hours_type": true, "is_sick_hours_type": true }));
     let rows: [(&str, &str, Option<Value>); 9] = [
         (
             "Supplier",
@@ -235,8 +237,8 @@ pub async fn seed_defaults(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Resul
         ("Website", "lead_source", None),
         ("Social media", "lead_source", None),
         ("Work", "hour_registration_type", None),
-        ("Leave", "hour_registration_type", leave.clone()),
-        ("Sick leave", "hour_registration_type", leave),
+        ("Leave", "hour_registration_type", leave),
+        ("Sick leave", "hour_registration_type", sick),
     ];
     let names: Vec<&str> = rows.iter().map(|r| r.0).collect();
     let domains: Vec<&str> = rows.iter().map(|r| r.1).collect();

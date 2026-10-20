@@ -39,6 +39,7 @@ impl From<SalesGroupRow> for SalesGroupResource {
     }
 }
 
+/// Create response: the new row's id.
 #[derive(Serialize)]
 pub struct SalesGroupCreated {
     pub sales_group_id: Uuid,
@@ -61,6 +62,7 @@ pub struct CreateSalesGroupRequest {
     meta: Option<Value>,
 }
 
+/// Validated create input.
 pub struct NewSalesGroup {
     pub name: String,
     pub purchase_code: Option<String>,
@@ -94,6 +96,7 @@ pub struct UpdateSalesGroupRequest {
     meta: Option<Option<Value>>,
 }
 
+/// Validated update; `None` keeps the stored value.
 pub struct SalesGroupPatch {
     pub name: String,
     pub purchase_code: Option<Option<String>>,

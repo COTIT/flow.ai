@@ -117,7 +117,7 @@ Permissions `shipmentmethod.{list,get,create,update,delete}` (new catalog names)
   - `can_be_selected` optional
 
   Laravel dropped the last three on create.
-- **Countries:** each element must be an object. A given `country` must be ISO alpha-2, `price` ≥0, and `lead_time_hours` a whole number ≥0. Errors use keys like `countries.0.price`. The array is stored as sent, at most 300 elements.
+- **Countries:** each element must be an object, and is rebuilt from four keys; anything else is dropped. `name` is text ≤255, `country` ISO alpha-2 (stored uppercase), `price` a number ≥0 (stored as sent, trimmed), and `lead_time_hours` a whole number ≥0. Errors use keys like `countries.0.price`. At most 300 elements.
 - **Update:** the price impacts and `countries` are required (Laravel). An empty `countries` array is accepted; Laravel refused it. The rest patches. The weight rule is a DB CHECK on the merged row, so sending only `max_weight` is compared with the stored `min_weight`.
 - `provider` / `provider_id` are set by fulfilment integrations, never by this API.
 - **List:** `q`, `page`, `page_size`. `can_be_selected` filters only through `/searches`.
@@ -139,8 +139,8 @@ Permissions `customtype.{list,view,create,update,delete}`. The catalog has `view
   | Domain | Stored | Errors |
   |---|---|---|
   | `relation` | `{is_supplier}`, default false | "is supplier must be true or false" |
-  | `activity` | `{is_ticket_type, icon, color}`, defaults false | "is ticket type must be true or false" |
-  | `product_return_reason` | `{discount_percentage}` when properties are sent | "discount percentage is required / must be numeric / must be between 0 and 100" |
+  | `activity` | `{is_ticket_type, icon, color}`, defaults false; `icon`/`color` text ≤255 | "is ticket type must be true or false" |
+  | `product_return_reason` | `{discount_percentage}` when properties are sent; a number stays a number, text is stored normalized (`" 12.50 "` → `"12.5"`) | "discount percentage is required / must be numeric / must be between 0 and 100" |
   | `hour_registration_type` | the sent booleans among `default_for_work_order`, `is_leave_hours_type`, `is_sick_hours_type` | "<key> must be true or false" |
   | any other | null | – |
 - **Update:**
@@ -177,6 +177,7 @@ Permissions `customstatus.{list,get,create,update,delete}`. The path is singular
 - **Domains:** `currency`, `vat_group`, `sales_group`, `hourly_rate`, `shipment_method` (plus `can_be_selected=1|0`), `custom_status`, `custom_type`. Each answers in that module's list shape.
 - **Query:** `q` matches the name (title for hourly rates); blank or `*` matches all.
 - **404:** any other domain, or no domain (Laravel's global search).
+- **Permissions:** only `workspace.global-search` is checked, as in Laravel, not each module's `*.list`. A member who can search sees every listed domain's rows, hourly rate purchase prices and ledger codes included. Requiring the new `vatgroup.list` / `salesgroup.list` / `shipmentmethod.list` names would break every dropdown for members, since nobody holds them yet.
 
 ## Seeded at signup
 
@@ -193,6 +194,6 @@ These are created in the signup transaction (Laravel `WorkspaceSetup`):
   - Supplier `{is_supplier: true}` and Client `{is_supplier: false}` (`relation`)
   - Note and Ticket `{is_ticket_type: true}` (`activity`)
   - Website and Social media (`lead_source`)
-  - Work, Leave `{is_leave_hours_type: true}` and Sick leave `{is_leave_hours_type: true}` (`hour_registration_type`)
+  - Work, Leave `{is_leave_hours_type: true}` and Sick leave `{is_leave_hours_type: true, is_sick_hours_type: true}` (`hour_registration_type`)
 
-  Laravel wrote these hour types under `hour_registration`, which vimdesk-web never reads, and dropped Supplier's flag.
+  Laravel wrote these hour types under `hour_registration`, which vimdesk-web never reads, dropped Supplier's flag, and left Sick leave without the flag its leave-request sick check reads.

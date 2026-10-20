@@ -46,6 +46,7 @@ impl From<CustomStatusRow> for CustomStatusResource {
     }
 }
 
+/// Create response: the new row's id.
 #[derive(Serialize)]
 pub struct CustomStatusCreated {
     pub custom_status_id: Uuid,
@@ -88,6 +89,7 @@ pub struct CreateCustomStatusRequest {
     meta: Option<Value>,
 }
 
+/// Validated create input.
 pub struct NewCustomStatus {
     pub name: String,
     pub domain: String,
@@ -115,6 +117,7 @@ pub struct UpdateCustomStatusRequest {
     meta: Option<Option<Value>>,
 }
 
+/// Validated update; `None` keeps the stored value.
 pub struct CustomStatusPatch {
     pub name: Option<String>,
     pub meta: Option<Option<Value>>,

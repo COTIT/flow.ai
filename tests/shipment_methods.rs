@@ -218,3 +218,35 @@ async fn delete_bad_ids_and_access(pool: PgPool) {
     )
     .await;
 }
+
+#[sqlx::test]
+async fn countries_are_rebuilt_from_validated_fields(pool: PgPool) {
+    let a = Api::new(pool, BASE).await;
+    let mut body = dhl();
+    body["countries"] = json!([
+        { "name": "Belgium", "country": "be", "price": 4, "lead_time_hours": "48", "junk": { "big": "x" } },
+        { "country": "DE" },
+    ]);
+
+    let id = a.create(body, ID).await;
+
+    assert_eq!(
+        a.get(&id).await["countries"],
+        json!([
+            { "name": "Belgium", "country": "BE", "price": 4, "lead_time_hours": 48 },
+            { "country": "DE" },
+        ])
+    );
+
+    let mut body = dhl();
+    body["countries"] = json!([{ "name": "n".repeat(256), "country": "NL" }, { "name": 7 }]);
+    let (status, res) = a.call(Method::POST, "", Some(body), &a.owner).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"],
+        json!({
+            "countries.0.name": ["The countries.0.name field must not be greater than 255 characters."],
+            "countries.1.name": ["The countries.1.name must be a string."],
+        })
+    );
+}

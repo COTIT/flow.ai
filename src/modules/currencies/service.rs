@@ -29,6 +29,7 @@ pub async fn list(
     Ok((rows, total))
 }
 
+/// One live row of this workspace, else 404.
 pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<CurrencyRow, AppError> {
     repo::find(&state.db, workspace_id, parse(id)?)
         .await?

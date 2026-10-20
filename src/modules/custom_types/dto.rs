@@ -19,6 +19,8 @@ use crate::{
 };
 
 const NAME_MAX: usize = 55;
+/// `icon` / `color` on activity types.
+const TEXT_MAX: usize = 255;
 /// Laravel `rules.CustomTypeUnique` / `rules.CustomStatusUnique` for attribute `name`.
 pub const NOT_UNIQUE: &str = "The name is not unique";
 
@@ -48,6 +50,7 @@ impl From<CustomTypeRow> for CustomTypeResource {
     }
 }
 
+/// Create response: the new row's id.
 #[derive(Serialize)]
 pub struct CustomTypeCreated {
     pub custom_type_id: Uuid,
@@ -130,11 +133,18 @@ pub fn properties(r: &mut Rules, domain: &str, given: Option<Value>) -> Option<V
         }
         "activity" => {
             let ticket = get("is_ticket_type").and_then(|v| strict_bool(r, "is_ticket_type", v));
-            let text = |key| get(key).filter(|v| v.is_string()).cloned();
+            let mut text = |key: &str| match get(key).and_then(Value::as_str) {
+                Some(s) => {
+                    r.max_chars(&format!("properties.{key}"), s.trim(), TEXT_MAX);
+                    Value::String(s.trim().to_owned())
+                }
+                None => Value::Bool(false),
+            };
+            let (icon, color) = (text("icon"), text("color"));
             Some(json!({
                 "is_ticket_type": ticket.unwrap_or(false),
-                "icon": text("icon").unwrap_or(Value::Bool(false)),
-                "color": text("color").unwrap_or(Value::Bool(false)),
+                "icon": icon,
+                "color": color,
             }))
         }
         "product_return_reason" => {
@@ -144,11 +154,19 @@ pub fn properties(r: &mut Rules, domain: &str, given: Option<Value>) -> Option<V
                 r.add(field, "discount percentage is required");
                 return None;
             };
-            let n = match v {
-                Value::Number(n) => Decimal::from_str(&n.to_string()).ok(),
-                Value::String(s) => Decimal::from_str(s.trim()).ok(),
-                _ => None,
+            // Plain decimals only, like PHP is_numeric (rust_decimal alone takes "1_0", "1e2").
+            let plain = |t: &str| {
+                !t.is_empty()
+                    && t.bytes()
+                        .all(|b| b.is_ascii_digit() || matches!(b, b'.' | b'-' | b'+'))
             };
+            let n = match v {
+                Value::Number(n) => Some(n.to_string()),
+                Value::String(s) => Some(s.trim().to_owned()),
+                _ => None,
+            }
+            .filter(|t| plain(t))
+            .and_then(|t| Decimal::from_str(&t).ok());
             match n {
                 None => r.add(field, "discount percentage must be numeric"),
                 Some(n) if n < Decimal::ZERO || n > Decimal::ONE_HUNDRED => {
@@ -156,7 +174,12 @@ pub fn properties(r: &mut Rules, domain: &str, given: Option<Value>) -> Option<V
                 }
                 Some(_) => {}
             }
-            Some(json!({ "discount_percentage": v }))
+            // A number stays a number; text is stored normalized (" 12.50 " -> "12.5").
+            let kept = match (v, n) {
+                (Value::String(_), Some(n)) => Value::String(n.normalize().to_string()),
+                (v, _) => v.clone(),
+            };
+            Some(json!({ "discount_percentage": kept }))
         }
         "hour_registration_type" => {
             obj?;
@@ -185,6 +208,7 @@ pub struct CreateCustomTypeRequest {
     meta: Option<Value>,
 }
 
+/// Validated create input.
 pub struct NewCustomType {
     pub name: String,
     pub domain: String,
@@ -218,6 +242,7 @@ pub struct UpdateCustomTypeRequest {
     meta: Option<Option<Value>>,
 }
 
+/// Validated update; `None` keeps the stored value.
 pub struct CustomTypePatch {
     pub name: Option<String>,
     /// Raw; Some(None) = sent as null.

@@ -16,7 +16,8 @@ pub enum Zero {
 }
 
 /// `MoneyHelper::formatDecimals($value, $dp, $rtrim)`: `None` -> `"0.00"`, else round to `dp`,
-/// print `dp` digits, drop trailing zeros when `rtrim`, then a trailing `.`.
+/// print `dp` digits, drop trailing zeros when `rtrim`, then a trailing `.`. One deliberate
+/// difference: with `dp = 0` PHP trims "100" to "1"; this keeps "100".
 pub fn format_decimals(value: Option<Decimal>, dp: u32, rtrim: bool, zero: Zero) -> String {
     let Some(v) = value else {
         return "0.00".into();

@@ -45,6 +45,7 @@ impl From<VatGroupRow> for VatGroupResource {
     }
 }
 
+/// Create response: the new row's id.
 #[derive(Serialize)]
 pub struct VatGroupCreated {
     pub vat_group_id: Uuid,
@@ -105,6 +106,7 @@ pub struct CreateVatGroupRequest {
     meta: Option<Value>,
 }
 
+/// Validated create input.
 pub struct NewVatGroup {
     pub name: String,
     pub vat_amount: Decimal,
@@ -141,6 +143,7 @@ pub struct UpdateVatGroupRequest {
     meta: Option<Option<Value>>,
 }
 
+/// Validated update; `None` keeps the stored value.
 pub struct VatGroupPatch {
     pub name: String,
     pub vat_amount: Decimal,

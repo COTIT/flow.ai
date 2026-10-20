@@ -76,6 +76,7 @@ impl From<CurrencyRow> for CurrencyResource {
     }
 }
 
+/// Create response: the new row's id.
 #[derive(Serialize)]
 pub struct CurrencyCreated {
     pub currency_id: Uuid,
@@ -102,6 +103,7 @@ pub struct CreateCurrencyRequest {
     meta: Option<Value>,
 }
 
+/// Validated create input.
 pub struct NewCurrency {
     pub name: String,
     pub asset_type: String,
