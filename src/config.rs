@@ -50,7 +50,9 @@ impl fmt::Debug for Config {
 impl Config {
     /// Build from process env.
     pub fn from_env() -> Result<Self, String> {
-        Self::from_lookup(|key| std::env::var(key).ok())
+        let env = |key: &str| std::env::var(key).ok();
+        let files = read_secret_files(env, |path| std::fs::read_to_string(path))?;
+        Self::from_lookup(|key| files.get(key).cloned().or_else(|| env(key)))
     }
 
     // Lookup fn instead of env::var so tests skip global env mutation (unsafe in edition 2024).
@@ -102,6 +104,32 @@ impl Config {
             invites_per_hour,
         })
     }
+}
+
+/// Vars that may come from `<KEY>_FILE` (Docker secrets), so passwords never sit in env files.
+const SECRET_FILE_VARS: [&str; 2] = ["DATABASE_URL", "SMTP_URL"];
+
+/// Read each `<KEY>_FILE` that is set. Errors name the var and path, never the contents.
+fn read_secret_files(
+    get: impl Fn(&str) -> Option<String>,
+    read: impl Fn(&str) -> std::io::Result<String>,
+) -> Result<std::collections::HashMap<&'static str, String>, String> {
+    let mut found = std::collections::HashMap::new();
+    for key in SECRET_FILE_VARS {
+        let Some(path) = get(&format!("{key}_FILE")) else {
+            continue;
+        };
+        if get(key).is_some() {
+            return Err(format!("set {key} or {key}_FILE, not both"));
+        }
+        let value = read(&path).map_err(|e| format!("{key}_FILE unreadable at {path}: {e}"))?;
+        let value = value.trim_end_matches(['\n', '\r']);
+        if value.is_empty() {
+            return Err(format!("{key}_FILE is empty ({path})"));
+        }
+        found.insert(key, value.to_owned());
+    }
+    Ok(found)
 }
 
 /// True when the URL's query string holds exactly `pair` (not as a substring of another pair,
@@ -370,5 +398,87 @@ mod tests {
         .unwrap_err();
 
         assert!(err.starts_with("BIND_ADDR invalid"), "{err}");
+    }
+}
+
+#[cfg(test)]
+mod secret_file_tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn env<'a>(pairs: &'a [(&'a str, &'a str)]) -> impl Fn(&str) -> Option<String> + 'a {
+        move |key| {
+            pairs
+                .iter()
+                .find(|(k, _)| *k == key)
+                .map(|(_, v)| v.to_string())
+        }
+    }
+
+    fn files(
+        map: &'static [(&'static str, &'static str)],
+    ) -> impl Fn(&str) -> std::io::Result<String> {
+        move |path| {
+            map.iter()
+                .find(|(p, _)| *p == path)
+                .map(|(_, v)| v.to_string())
+                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "missing"))
+        }
+    }
+
+    #[test]
+    fn reads_secret_file_and_trims_trailing_newline() {
+        let got = read_secret_files(
+            env(&[
+                ("DATABASE_URL_FILE", "/run/secrets/db"),
+                ("SMTP_URL_FILE", "/run/secrets/smtp"),
+            ]),
+            files(&[
+                ("/run/secrets/db", "postgres://u:p@h/db\n"),
+                ("/run/secrets/smtp", "smtps://h:465\r\n"),
+            ]),
+        )
+        .unwrap();
+
+        assert_eq!(
+            got,
+            HashMap::from([
+                ("DATABASE_URL", "postgres://u:p@h/db".to_owned()),
+                ("SMTP_URL", "smtps://h:465".to_owned()),
+            ])
+        );
+    }
+
+    #[test]
+    fn no_file_vars_means_nothing_read() {
+        assert!(read_secret_files(env(&[]), files(&[])).unwrap().is_empty());
+    }
+
+    #[test]
+    fn plain_and_file_together_is_an_error() {
+        let err = read_secret_files(
+            env(&[
+                ("DATABASE_URL", "postgres://x"),
+                ("DATABASE_URL_FILE", "/run/secrets/db"),
+            ]),
+            files(&[("/run/secrets/db", "postgres://y")]),
+        )
+        .unwrap_err();
+
+        assert!(err.contains("DATABASE_URL or DATABASE_URL_FILE"), "{err}");
+    }
+
+    #[test]
+    fn unreadable_or_empty_file_names_the_var_not_the_contents() {
+        let missing =
+            read_secret_files(env(&[("SMTP_URL_FILE", "/nope")]), files(&[])).unwrap_err();
+        let empty = read_secret_files(
+            env(&[("SMTP_URL_FILE", "/run/secrets/smtp")]),
+            files(&[("/run/secrets/smtp", "\n")]),
+        )
+        .unwrap_err();
+
+        assert!(missing.starts_with("SMTP_URL_FILE"), "{missing}");
+        assert!(empty.starts_with("SMTP_URL_FILE"), "{empty}");
     }
 }

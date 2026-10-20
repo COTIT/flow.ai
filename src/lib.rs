@@ -4,6 +4,7 @@ pub mod cleanup;
 pub mod config;
 mod error;
 mod health;
+pub mod healthcheck;
 mod http;
 pub mod mail;
 mod modules;

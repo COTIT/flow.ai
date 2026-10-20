@@ -3,7 +3,7 @@
 use std::{net::SocketAddr, time::Duration};
 
 use genesy_360_api::{
-    AppState, RateLimit, build_app, cleanup, config::Config, mail::Mailer, warm_up,
+    AppState, RateLimit, build_app, cleanup, config::Config, healthcheck, mail::Mailer, warm_up,
 };
 use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::EnvFilter;
@@ -13,6 +13,16 @@ const DB_ACQUIRE_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[tokio::main]
 async fn main() {
+    // `genesy-360-api healthcheck`: compose healthcheck for the shell-less image. Needs only
+    // BIND_ADDR's port, not the full config (secrets, DB), and exits right away.
+    if std::env::args().nth(1).as_deref() == Some("healthcheck") {
+        let port = std::env::var("BIND_ADDR")
+            .ok()
+            .and_then(|addr| addr.parse::<SocketAddr>().ok())
+            .map_or(8080, |addr| addr.port());
+        std::process::exit(if healthcheck::probe(port).await { 0 } else { 1 });
+    }
+
     // .env optional: dev convenience, prod injects real env.
     dotenvy::dotenv().ok();
     tracing_subscriber::fmt()
