@@ -2,6 +2,8 @@
 
 pub mod auth;
 pub mod currencies;
+pub mod custom_statuses;
+pub mod custom_types;
 pub mod email_verification;
 pub mod hourly_rates;
 pub mod invites;
