@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_sets (workspace_id, product_id, child_product_id, quantity)\n         SELECT $1, $2, c, q FROM unnest($3::uuid[], $4::numeric[]) AS t(c, q)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "NumericArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3c7d5b362a487be17b2647088003289cdcda684e2e6a229be8386180ab147bb4"
+}

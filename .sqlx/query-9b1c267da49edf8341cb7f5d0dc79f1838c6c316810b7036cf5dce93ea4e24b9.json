@@ -1,0 +1,468 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.relation_number, r.relation_appendix,\n                  r.type AS kind, r.allow_invoicing_on_account, r.disable_order_workflow_emails,\n                  r.alias, r.company_name, r.email, r.website, r.phone_number, r.coc_number,\n                  r.vat_number, r.import_source, r.import_id, r.default_language, r.addresses,\n                  r.financial_account, r.terms_and_periods, r.supplier_data, r.meta, r.created_at,\n                  r.updated_at,\n                  rt.id AS \"rt_id?\", rt.name AS \"rt_name?\", rt.domain AS \"rt_domain?\",\n                  rt.properties AS rt_properties, rt.meta AS rt_meta,\n                  rt.created_at AS \"rt_created_at?\", rt.updated_at AS \"rt_updated_at?\",\n                  st.id AS \"st_id?\", st.name AS \"st_name?\", st.domain AS \"st_domain?\",\n                  st.properties AS st_properties, st.meta AS st_meta,\n                  st.created_at AS \"st_created_at?\", st.updated_at AS \"st_updated_at?\",\n                  NULL::bigint AS total\n           FROM relations r\n           LEFT JOIN custom_types rt ON rt.workspace_id = r.workspace_id\n                AND rt.id = r.relation_type_id AND rt.deleted_at IS NULL\n           LEFT JOIN custom_types st ON st.workspace_id = r.workspace_id\n                AND st.id = r.source_type_id AND st.deleted_at IS NULL\n           WHERE r.id = ANY($1) AND r.workspace_id = $2 AND r.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "relation_number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "relation_number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "relation_appendix",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "relation_appendix"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "allow_invoicing_on_account",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "allow_invoicing_on_account"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "disable_order_workflow_emails",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "disable_order_workflow_emails"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "alias",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "alias"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "company_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "company_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "website",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "website"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "phone_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "phone_number"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "coc_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "coc_number"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "vat_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "vat_number"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "import_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "import_source"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "import_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "import_id"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "default_language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "default_language"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "addresses",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "addresses"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "financial_account",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "financial_account"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "terms_and_periods",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "terms_and_periods"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "supplier_data",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "supplier_data"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "rt_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
+        "name": "rt_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "rt_domain?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "ordinal": 26,
+        "name": "rt_properties",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "properties"
+          }
+        }
+      },
+      {
+        "ordinal": 27,
+        "name": "rt_meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 28,
+        "name": "rt_created_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 29,
+        "name": "rt_updated_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 30,
+        "name": "st_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 31,
+        "name": "st_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 32,
+        "name": "st_domain?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "ordinal": 33,
+        "name": "st_properties",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "properties"
+          }
+        }
+      },
+      {
+        "ordinal": 34,
+        "name": "st_meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 35,
+        "name": "st_created_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 36,
+        "name": "st_updated_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 37,
+        "name": "total",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "9b1c267da49edf8341cb7f5d0dc79f1838c6c316810b7036cf5dce93ea4e24b9"
+}

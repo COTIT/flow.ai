@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO option_values (workspace_id, option_type_id, value, display_value, sort_order)\n         VALUES ($1, $2, lower($3), $3, $4)\n         ON CONFLICT (option_type_id, value) WHERE deleted_at IS NULL\n         DO UPDATE SET value = EXCLUDED.value\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "option_values",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "269dbb4d1e7dfd4ed3b8e6aa8a99189cede83ff56e09eacfeee7bca0f2bf630a"
+}

@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Batch 6 PR-2 (product catalog, contract `docs/api/products.md`):
+  - Migrations:
+    - `product_brands_categories`
+    - `products`: products, product_variants, product_price_histories, product_sets
+    - `product_options`: option types/values and their links
+    - Money is `numeric(24,8)`. Every reference is a composite FK inside the workspace.
+  - **Brands and categories:** CRUD that persists (Laravel's writes never did), plus `/searches?domain=product_brand|product_category`. Category parents can't form a cycle.
+  - **Products:**
+    - Routes: CRUD, duplicate, barcode `POST /products/search`, price history.
+    - The resource is in Laravel `ProductResource` shape, including its zero rules: computed prices print `"0.00"`, raw columns `"0"`.
+    - With a gross price, price and markup are normalised.
+    - Product numbers `PRO-00001` are assigned under a per-workspace lock.
+    - Create also writes the default variant and the price-history rows, in the same transaction.
+    - The resource embeds the supplier relation, currency, VAT and sales group, the default warehouse, and fallback stock rows.
+    - `vat_group_id` falls back to the default group (user decision).
+  - **Product-page companions** answer truthfully: `sale-statics` (zeros), `linked-products` (none), the Picqer stock sync (Laravel's not-configured `{"message":"ok"}`).
+  - **Variants:**
+    - Routes: list, get, create, update (PUT), delete, scoped to their product.
+    - Prices are normalised against the product price.
+    - One default per product, which can't be deleted.
+    - Generate from option types and combinations.
+  - **List search scale:** about 70 ms at 100 000 products per workspace on PG18, so no trigram index for now.
+  - **Shared:** `relations::repo::find_many` + `relations::service::index_values`, `warehouses::repo::stock_refs`, and the crate `recursion_limit` raised to 512 for the product `json!`.
 - Batch 6 PR-1 (warehouses + bin hierarchy, contract `docs/api/warehouses.md`):
   - Migration `warehouses`: `warehouses` (same-workspace parent via composite FK, live-slug unique index, one live default per workspace) and `warehouse_locations`.
   - Warehouses CRUD, plus `POST /warehouses/{id}/default`, in Laravel's WarehouseResource shape (children and people embedded, one query each per page). The slug is Laravel `Str::slug`, fixed at create. The first warehouse becomes the default. Manager, assistant and user must be members of the workspace (Laravel accepted any user).
