@@ -25,6 +25,20 @@
     - Generate from option types and combinations.
   - **List search scale:** about 70 ms at 100 000 products per workspace on PG18, so no trigram index for now.
   - **Shared:** `relations::repo::find_many` + `relations::service::index_values`, `warehouses::repo::stock_refs`, and the crate `recursion_limit` raised to 512 for the product `json!`.
+  - **Review fixes:**
+    - Price maths is checked: an out-of-range derived price or markup is a 422 on the field that drove it (was a panic or 500).
+    - Product update checks references on its own transaction connection, so parallel updates no longer starve the pool.
+    - Barcode search prefers the oldest product among active matches.
+    - Variant writes lock the product row. The current default can't be unset.
+    - Generate bounds sku, sku_pattern and total values, and runs one at a time per workspace.
+    - Category re-parenting runs under a workspace lock, so two parallel moves can't close a cycle.
+    - Duplicate bundle children, an out-of-range `stock_level_supplier` and over 100 `exclude_ids` are 422s.
+    - Bundle children sync only for bundle types with a non-empty list. `order_unit` 0 is stored as 1.
+    - The default variant's price is normalised as in Laravel.
+    - Product GET/list no longer 500 when a workspace has a default warehouse but no store.
+    - Embeds load currencies, sales groups and warehouses in one query each.
+    - Price-history rows carry their statement time.
+  - **Also:** the batch 4 row in `docs/api/conventions.md` is split, and product zero rules are pinned to the PHP oracle.
 - Batch 6 PR-1 (warehouses + bin hierarchy, contract `docs/api/warehouses.md`):
   - Migration `warehouses`: `warehouses` (same-workspace parent via composite FK, live-slug unique index, one live default per workspace) and `warehouse_locations`.
   - Warehouses CRUD, plus `POST /warehouses/{id}/default`, in Laravel's WarehouseResource shape (children and people embedded, one query each per page). The slug is Laravel `Str::slug`, fixed at create. The first warehouse becomes the default. Manager, assistant and user must be members of the workspace (Laravel accepted any user).

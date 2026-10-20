@@ -485,6 +485,27 @@ pub async fn compact(
     .await
 }
 
+/// Compact form of the live warehouses among `ids`.
+pub async fn compact_many(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<CompactRow>, sqlx::Error> {
+    sqlx::query_as!(
+        CompactRow,
+        r#"SELECT w.id, w.name, w.slug, w.alias, w.is_store, w.pickup_enabled,
+                  p.name AS "parent_name?", w.status, w.type AS kind
+           FROM warehouses w
+           LEFT JOIN warehouses p ON p.id = w.parent_id AND p.workspace_id = w.workspace_id
+                                 AND p.deleted_at IS NULL
+           WHERE w.id = ANY($1) AND w.workspace_id = $2 AND w.deleted_at IS NULL"#,
+        ids,
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
 /// Live warehouses among `ids`, plus the workspace's first live store (Laravel's fallback
 /// stock warehouses for products). One query.
 pub async fn stock_refs(
@@ -499,7 +520,7 @@ pub async fn stock_refs(
                ORDER BY id LIMIT 1
            )
            SELECT w.id, w.name, w.alias, w.is_store, w.pickup_enabled, w.location,
-                  w.id = (SELECT id FROM store) AS "is_first_store!"
+                  COALESCE(w.id = (SELECT id FROM store), false) AS "is_first_store!"
            FROM warehouses w
            WHERE w.workspace_id = $1 AND w.deleted_at IS NULL
              AND (w.id = ANY($2) OR w.id = (SELECT id FROM store))"#,

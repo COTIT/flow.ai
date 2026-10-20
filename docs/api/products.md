@@ -93,7 +93,9 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
     - `impact_on_wholesale_price` ≤100
     - `url_vendor*`: URL on create
   - **References:** `supplier_relation_id`, `vat_group_id`, `sales_group_id`, `default_warehouse_id` and `currency_id` must be live rows of this workspace.
-  - **Bundles:** `multi_set_product_ids` `[{id, quantity ≥ 1}]` is required for bundle types, with at most 100 children. Each child must be a live product of the workspace other than the product itself.
+  - **Bundles:** `multi_set_product_ids` `[{id, quantity ≥ 1}]` is required for bundle types, with at most 100 children. Each child must be a live product of the workspace, other than the product itself, and listed once (else "The multi_set_product_ids.N.id field has a duplicate value.").
+    - Children are written only for a bundle type and a non-empty list, as in Laravel. An empty list or another type keeps the stored children.
+  - `stock_level_supplier` is rounded to a whole number (as MySQL did) and must fit a 32-bit integer.
 - **Defaults:**
   - `currency_id`: the default currency, else the oldest. With none at all it is 422 "This currency id does not exist".
   - `vat_group_id`: the **default group**, else the oldest. This is a user decision; Laravel took the oldest only.
@@ -104,9 +106,16 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - A changed price sets `impact = round(price/gross×100 − 100, 4)`, with the price rounded to cents.
   - Otherwise the price follows: `round(gross × (1 + impact/100), 2)`.
   - On create the price always wins, as in Laravel.
+  - A derived price outside 0…9999999999999999 or a markup outside ±9999999999999999 is a 422 on the field that drove it: "The price is out of range." or "The impact on price is out of range." Laravel answered 500.
+- **`order_unit`:** 0 is stored as 1 (Laravel saving hook).
 - **Numbers:** `PRO-00001`, MAX+1 per workspace under an advisory lock. Deleted products keep their number.
-- **Default variant:** create also writes it. It copies the product's codes and prices, with its markup normalised against the product price (0 when the price is > 0).
-- **Price history:** create writes a row for each non-null `gross_price` / `price` / `supplier_wholesale_price` / `wholesale_price`, for the product and for its default variant. Update writes only the changed fields. The flow is `manual` from the API and `system` for duplicate.
+- **Default variant:** create also writes it, copying the product's codes and prices.
+  - Its saving hook normalises the product price against itself: the price is rounded to cents, and the markup is what that rounding left (`743.057847` → price `743.06`, markup `0.0003`).
+  - `original_price` keeps the raw product price.
+- **Price history:** create writes a row for each non-null `gross_price` / `price` / `supplier_wholesale_price` / `wholesale_price`. A gross price that wasn't sent gets no product row (null in Laravel).
+  - The default variant gets its own rows from its own values.
+  - Update writes only the changed fields.
+  - The flow is `manual` from the API and `system` for duplicate.
 - **Duplicate** creates the product again from its stored columns, with a new number.
 - **Delete** is soft. **There is no "used in items" guard yet:** order items arrive in the final batch, which must add it.
 
@@ -117,14 +126,14 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - `q`, or `search` (the RN app's name): ILIKE on name, reference, vendor reference, EAN, barcode and product number
   - `supplier_id` / `supplier_relation_id` (uuid)
   - `ean13` (exact)
-  - `exclude_ids` (comma-separated)
+  - `exclude_ids` (comma-separated, at most 100)
 - **Paging:** `limit` / `per_page` / `page_size`, max 100.
 - **Order:** newest first.
 - **Laravel differences:** Laravel ignored `ean13`, `search`, `per_page` and `exclude_ids`. The RN app's barcode fallback `?ean13=X` relied on them and got an arbitrary product.
 - **Scale:** the `q` search scans the workspace. Measured on Postgres 18 at 100 000 products: about 70 ms for a search, about 30 ms for a plain page. No trigram index was added; add one if a workspace far exceeds this.
 - **`POST /search`:**
   - An exact, case-insensitive match on barcode, EAN, vendor barcode or the product id. The literal `Shift` that some scanners type is stripped.
-  - Several matches prefer an active product, then the newest. Laravel hard-coded warehouses 7 and 8 here.
+  - Several matches prefer an active product, then the **oldest**, so a later copy (a duplicate, or a planted cheaper product) never shadows the original at the till. Laravel took `first()` after hard-coding warehouses 7 and 8.
 
 ## Variants `/products/{product}/variants`
 
@@ -148,14 +157,16 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - Update is a patch with the same rules.
 - **Prices:**
   - The markup is normalised against the **product's price** as gross, as in Laravel.
-  - `is_default: true` makes the variant the product's only default.
+  - `is_default: true` makes the variant the product's only default. The current default can't be unset with `false` (422); make another variant the default instead.
+  - Writes lock the product row, so the price used for normalisation is current and two default switches never collide.
   - Each change writes price-history rows with the variant id.
 - **Delete:** a variant is reached only through its own product. Laravel ignored the product in the path. The default variant can't be deleted (422); Laravel answered 500.
 - **Generate:**
   - `option_types[{name, sort_order?, values[{value, sort_order?}]}]` reuse existing types and values by lowercased name or value; the typed text is kept as display text.
   - `combinations[{option_value_ids, sku?, price?, stock?}]`. Ids resolve via `"{value}-{type#}-{value#}"`, the plain value, or a trailing index pair. A combination that resolves nothing is skipped.
   - `price` falls back to `default_price`, then the product price. `sku` falls back to `sku_pattern` with `{index}`. `meta.stock` takes `stock`, else `default_stock`.
-  - At most 20 types, 100 values per type and 500 combinations, all in one transaction.
+  - At most 20 types, 100 values per type, 200 values in total and 500 combinations, all in one transaction. `sku` and `sku_pattern` are at most 255 characters.
+  - Generates in one workspace run one at a time: option types are shared, and two calls naming them in a different order would otherwise deadlock.
 
 ## Not ported
 

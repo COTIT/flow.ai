@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH store AS (\n               SELECT id FROM warehouses\n               WHERE workspace_id = $1 AND is_store AND deleted_at IS NULL\n               ORDER BY id LIMIT 1\n           )\n           SELECT w.id, w.name, w.alias, w.is_store, w.pickup_enabled, w.location,\n                  w.id = (SELECT id FROM store) AS \"is_first_store!\"\n           FROM warehouses w\n           WHERE w.workspace_id = $1 AND w.deleted_at IS NULL\n             AND (w.id = ANY($2) OR w.id = (SELECT id FROM store))",
+  "query": "WITH store AS (\n               SELECT id FROM warehouses\n               WHERE workspace_id = $1 AND is_store AND deleted_at IS NULL\n               ORDER BY id LIMIT 1\n           )\n           SELECT w.id, w.name, w.alias, w.is_store, w.pickup_enabled, w.location,\n                  COALESCE(w.id = (SELECT id FROM store), false) AS \"is_first_store!\"\n           FROM warehouses w\n           WHERE w.workspace_id = $1 AND w.deleted_at IS NULL\n             AND (w.id = ANY($2) OR w.id = (SELECT id FROM store))",
   "describe": {
     "columns": [
       {
@@ -92,5 +92,5 @@
       null
     ]
   },
-  "hash": "211a501a19d89a9204331431b9a7c65aaa753ec9169e71d7ded0349c4dcf97ad"
+  "hash": "b9fec99bf0bf2936b61e4cb791ac2ff5d215c86d1d33fb065df5f76c84d84bbb"
 }

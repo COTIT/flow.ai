@@ -777,3 +777,123 @@ async fn parallel_updates_do_not_starve_the_pool(pool: PgPool) {
         "{results:?}"
     );
 }
+
+/// Laravel ProductCreated + the variant saving hook: the default variant's price is rounded
+/// against the product price, `original_price` keeps the raw one; its history logs the
+/// variant's own values. The product logs no gross price it never got.
+#[sqlx::test]
+async fn default_variant_price_follows_the_variant_hook(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let id = api
+        .create(json!({ "name": "a", "price": "743.057847" }), "product_id")
+        .await;
+
+    let base: &'static str = Box::leak(format!("/products/{id}/variants").into_boxed_str());
+    let v = api.with_base(base).list("").await["data"][0].clone();
+    assert_eq!(
+        (
+            v["price"].clone(),
+            v["original_price"].clone(),
+            v["impact_on_price"].clone()
+        ),
+        (json!("743.06"), json!("743.0578"), json!("0.0003"))
+    );
+    let rows: Vec<(String, bool, String)> = sqlx::query_as(
+        "SELECT field, product_variant_id IS NOT NULL, new_value::text
+         FROM product_price_histories ORDER BY product_variant_id NULLS FIRST, field",
+    )
+    .fetch_all(&api.pool)
+    .await
+    .unwrap();
+    let row = |f: &str, variant: bool| {
+        rows.iter()
+            .find(|r| r.0 == f && r.1 == variant)
+            .map(|r| r.2.clone())
+    };
+    assert_eq!(row("price", false).as_deref(), Some("743.05784700"));
+    assert_eq!(row("price", true).as_deref(), Some("743.06000000"));
+    assert_eq!(row("gross_price", false), None, "gross never sent");
+    assert_eq!(row("gross_price", true).as_deref(), Some("0.00000000"));
+}
+
+/// Laravel's saving hook: a falsy order unit becomes 1.
+#[sqlx::test]
+async fn zero_order_unit_becomes_one(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let id = api
+        .create(
+            json!({ "name": "a", "price": 1, "order_unit": 0 }),
+            "product_id",
+        )
+        .await;
+    assert_eq!(api.get(&id).await["order_unit"], "1.0000");
+    assert_eq!(
+        api.update(&id, json!({ "order_unit": "2.5" })).await.0,
+        StatusCode::OK
+    );
+    assert_eq!(api.get(&id).await["order_unit"], "2.5000");
+    assert_eq!(
+        api.update(&id, json!({ "order_unit": 0 })).await.0,
+        StatusCode::OK
+    );
+    assert_eq!(api.get(&id).await["order_unit"], "1.0000");
+}
+
+/// A default warehouse in a workspace without a store: one fallback row, no 500.
+#[sqlx::test]
+async fn fallback_stock_without_a_store(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let main = api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Main" }), "warehouse_id")
+        .await;
+    let id = api
+        .create(
+            json!({ "name": "a", "price": 1, "default_warehouse_id": main }),
+            "product_id",
+        )
+        .await;
+
+    let p = api.get(&id).await;
+    assert_eq!(p["stocks"].as_array().unwrap().len(), 1);
+    assert_eq!(p["stocks"][0]["id"], format!("fallback-{main}"));
+    assert_eq!(api.list("").await["data"].as_array().unwrap().len(), 1);
+}
+
+/// Laravel ProductCreated/Updated sync bundle children only for bundle types with a
+/// non-empty list.
+#[sqlx::test]
+async fn bundle_children_only_for_bundles(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let child = api
+        .create(json!({ "name": "c", "price": 1 }), "product_id")
+        .await;
+    let kids = json!([{ "id": child, "quantity": 2 }]);
+    api.create(
+        json!({ "name": "p", "price": 1, "multi_set_product_ids": kids }),
+        "product_id",
+    )
+    .await;
+    let bundle = api
+        .create(
+            json!({ "name": "b", "price": 1, "type": "multi_product_set", "multi_set_product_ids": kids }),
+            "product_id",
+        )
+        .await;
+    assert_eq!(
+        api.update(&bundle, json!({ "multi_set_product_ids": [] }))
+            .await
+            .0,
+        StatusCode::OK
+    );
+
+    let sets: Vec<String> = sqlx::query_scalar("SELECT product_id::text FROM product_sets")
+        .fetch_all(&api.pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        sets,
+        [bundle],
+        "physical ignored, empty list keeps children"
+    );
+}

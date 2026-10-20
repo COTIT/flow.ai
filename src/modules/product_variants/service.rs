@@ -106,11 +106,11 @@ pub async fn create(
     f: Fields,
     actor: Actor,
 ) -> Result<Uuid, AppError> {
-    let (p, _) = product(state, workspace_id, product_id).await?;
+    let product_id = parse(product_id)?;
     let now = chrono::Utc::now();
     let mut v = VariantRow {
         id: Uuid::nil(),
-        product_id: p.id,
+        product_id,
         is_default: false,
         sku: None,
         barcode: None,
@@ -138,7 +138,7 @@ pub async fn create(
         Priority::Impact
     };
     let mut tx = state.db.begin().await?;
-    let p = lock_product(&mut tx, workspace_id, p.id).await?;
+    let p = lock_product(&mut tx, workspace_id, product_id).await?;
     normalise_variant(&mut v, p.price, priority)?;
     if v.is_default {
         // Uuid::nil() is never a real id, so this clears every current default.
@@ -209,6 +209,10 @@ pub async fn update(
     )
     .await?;
     tx.commit().await?;
+    // Re-read: the row's `updated_at` comes from the database.
+    let v = repo::find(&state.db, workspace_id, p.id, v.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
     render_all(state, workspace_id, std::slice::from_ref(&v), &pv)
         .await?
         .pop()
@@ -222,9 +226,8 @@ pub async fn delete(
     product_id: &str,
     id: &str,
 ) -> Result<(), AppError> {
-    let (p, _) = product(state, workspace_id, product_id).await?;
     let mut tx = state.db.begin().await?;
-    lock_product(&mut tx, workspace_id, p.id).await?;
+    let p = lock_product(&mut tx, workspace_id, parse(product_id)?).await?;
     let v = repo::find_locked(&mut tx, workspace_id, p.id, parse(id)?)
         .await?
         .ok_or(AppError::NotFound)?;

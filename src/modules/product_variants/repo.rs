@@ -107,7 +107,7 @@ pub async fn find_locked(
                 reference_vendor2, reference_vendor3, meta, created_at, updated_at
          FROM product_variants
          WHERE id = $1 AND workspace_id = $2 AND product_id = $3 AND deleted_at IS NULL
-         FOR UPDATE",
+         FOR NO KEY UPDATE",
         id,
         workspace_id,
         product_id,

@@ -66,6 +66,25 @@ pub async fn find(
     .await
 }
 
+/// Live currencies of `workspace_id` among `ids`.
+pub async fn find_many(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<CurrencyRow>, sqlx::Error> {
+    sqlx::query_as!(
+        CurrencyRow,
+        "SELECT id, name, asset_type, symbol_prefix, symbol_suffix, decimals, default_currency,
+                active, meta, created_at, updated_at
+         FROM currencies
+         WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
+        ids,
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
 /// One page, oldest first, plus the total matching count (0 when the page is empty).
 pub async fn list(
     db: impl PgExecutor<'_>,

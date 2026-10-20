@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO product_variants (workspace_id, product_id, is_default, barcode, ean13,\n             price, original_price, wholesale_price, original_wholesale_price, gross_price,\n             supplier_wholesale_price, impact_on_price, impact_on_wholesale_price, weight,\n             reference_vendor, reference_vendor2, reference_vendor3)\n         VALUES ($1, $2, true, $3, $4, $5, $5, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14)\n         RETURNING id",
+  "query": "INSERT INTO product_variants (workspace_id, product_id, is_default, barcode, ean13,\n             price, original_price, wholesale_price, original_wholesale_price, gross_price,\n             supplier_wholesale_price, impact_on_price, impact_on_wholesale_price, weight,\n             reference_vendor, reference_vendor2, reference_vendor3)\n         VALUES ($1, $2, true, $3, $4, $5, $15, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14)\n         RETURNING id",
   "describe": {
     "columns": [
       {
@@ -30,12 +30,13 @@
         "Numeric",
         "Text",
         "Text",
-        "Text"
+        "Text",
+        "Numeric"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "b7b02458d976a18f226e8b725084a423853da6e72e297a15b8e9e18e12df0375"
+  "hash": "e0a1c2e42c18d19a550198728da4ea72aa5268e224a76e748947c1c22f6d0990"
 }

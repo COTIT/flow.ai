@@ -323,7 +323,7 @@ pub async fn find_locked(
            dimensions, country_of_origin, url_vendor, url_vendor_override,
            exclude_price_corrections, archived, import_id, import_source, export_enabled,
            export_price_sync, export_product_data, export_data, meta, created_at, updated_at"# + " FROM products
-         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL FOR UPDATE",
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
         id,
         workspace_id,
     )
@@ -534,12 +534,14 @@ pub async fn soft_delete(
     .map(|done| done.rows_affected() == 1)
 }
 
-/// The default variant of a new product (Laravel ProductCreated): its codes and prices copied,
-/// the price normalised against itself. Returns the variant id.
+/// The default variant of a new product (Laravel ProductCreated): codes and prices copied from
+/// `p`, which carries the variant's normalised price; `original_price` is the product's raw
+/// price. Returns the variant id.
 pub async fn insert_default_variant(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     p: &ProductRow,
+    original_price: Decimal,
     impact_on_price: Option<Decimal>,
 ) -> Result<Uuid, sqlx::Error> {
     sqlx::query_scalar!(
@@ -547,7 +549,7 @@ pub async fn insert_default_variant(
              price, original_price, wholesale_price, original_wholesale_price, gross_price,
              supplier_wholesale_price, impact_on_price, impact_on_wholesale_price, weight,
              reference_vendor, reference_vendor2, reference_vendor3)
-         VALUES ($1, $2, true, $3, $4, $5, $5, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         VALUES ($1, $2, true, $3, $4, $5, $15, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING id",
         workspace_id,
         p.id,
@@ -563,6 +565,7 @@ pub async fn insert_default_variant(
         p.reference_vendor,
         p.reference_vendor2,
         p.reference_vendor3,
+        original_price,
     )
     .fetch_one(&mut *conn)
     .await
@@ -586,8 +589,8 @@ pub async fn insert_history(
     let new: Vec<Option<Decimal>> = changes.iter().map(|c| c.2).collect();
     sqlx::query!(
         "INSERT INTO product_price_histories (workspace_id, product_id, product_variant_id,
-             field, old_value, new_value, changed_by_user_id, changed_by_flow)
-         SELECT $1, $2, $3, f, o, n, $7, $8
+             field, old_value, new_value, changed_by_user_id, changed_by_flow, created_at)
+         SELECT $1, $2, $3, f, o, n, $7, $8, clock_timestamp()
          FROM unnest($4::text[], $5::numeric[], $6::numeric[]) WITH ORDINALITY AS t(f, o, n, i)
          ORDER BY i",
         workspace_id,

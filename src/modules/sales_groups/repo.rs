@@ -56,6 +56,24 @@ pub async fn find(
     .await
 }
 
+/// Live groups of `workspace_id` among `ids`.
+pub async fn find_many(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<SalesGroupRow>, sqlx::Error> {
+    sqlx::query_as!(
+        SalesGroupRow,
+        "SELECT id, name, purchase_code, revenue_code, meta, created_at, updated_at
+         FROM sales_groups
+         WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
+        ids,
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
 /// True when another live group of `workspace_id` has this name, ignoring case.
 pub async fn name_taken(
     db: impl PgExecutor<'_>,

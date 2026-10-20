@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_id, is_default, sku, barcode, ean13, price, gross_price, original_price,\n                wholesale_price, original_wholesale_price, supplier_wholesale_price,\n                impact_on_price, impact_on_wholesale_price, weight, reference_vendor,\n                reference_vendor2, reference_vendor3, meta, created_at, updated_at\n         FROM product_variants\n         WHERE id = $1 AND workspace_id = $2 AND product_id = $3 AND deleted_at IS NULL\n         FOR UPDATE",
+  "query": "SELECT id, product_id, is_default, sku, barcode, ean13, price, gross_price, original_price,\n                wholesale_price, original_wholesale_price, supplier_wholesale_price,\n                impact_on_price, impact_on_wholesale_price, weight, reference_vendor,\n                reference_vendor2, reference_vendor3, meta, created_at, updated_at\n         FROM product_variants\n         WHERE id = $1 AND workspace_id = $2 AND product_id = $3 AND deleted_at IS NULL\n         FOR NO KEY UPDATE",
   "describe": {
     "columns": [
       {
@@ -266,5 +266,5 @@
       false
     ]
   },
-  "hash": "048efcc240ab7c24ddc19b97ab0f1e023a18e0402f9eac1ee541e7210a26111d"
+  "hash": "50593955d645e19a518efeb173386c6fa1c9f813a42fa7318a7d390bbd596a9e"
 }

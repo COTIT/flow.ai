@@ -16,7 +16,7 @@ use crate::{
     modules::{
         currencies::{dto::CurrencyResource, repo as currencies},
         products::{
-            dto::{BAD_CURRENCY, Fields, PHYSICAL, bad_id},
+            dto::{BAD_CURRENCY, Fields, PHYSICAL, SET_TYPES, bad_id},
             pricing::{Priority, normalise, out_of_range},
             repo::{self, ListFilter, PriceChange, ProductRow},
             resource::{self, Embeds},
@@ -122,39 +122,48 @@ pub async fn create(
     // Laravel ProductSetting defaults, snapshotted per row like product_appendix.
     let appendix = json!({ "prefix": "PRO-", "digits": 5, "suffix": null });
     row.id = repo::insert(&mut tx, workspace_id, &appendix, &row).await?;
-    let changes = created_prices(&row);
     repo::insert_history(
         &mut tx,
         workspace_id,
         row.id,
         None,
-        &changes,
+        &created_prices(&row, f.gross_price.is_some()),
         Some(actor.user_id),
         actor.flow,
     )
     .await?;
-    // Default variant: the product price normalised against itself (impact 0 when price > 0).
-    let (_, variant_impact) = normalise(
+    // Default variant (Laravel ProductCreated): its saving hook normalises the product price
+    // against itself, so the price rounds to cents and `original_price` keeps the raw one.
+    let (variant_price, variant_impact) = normalise(
         Some(row.price),
         Some(row.price),
         row.impact_on_price,
         Priority::Price,
     )
     .map_err(out_of_range)?;
-    let variant = repo::insert_default_variant(&mut tx, workspace_id, &row, variant_impact).await?;
-    let mut variant_changes = changes;
-    variant_changes.retain(|c| c.2.is_some());
+    let variant_row = ProductRow {
+        price: variant_price.unwrap_or(row.price),
+        ..row.clone()
+    };
+    let variant = repo::insert_default_variant(
+        &mut tx,
+        workspace_id,
+        &variant_row,
+        row.price,
+        variant_impact,
+    )
+    .await?;
     repo::insert_history(
         &mut tx,
         workspace_id,
         row.id,
         Some(variant),
-        &variant_changes,
+        &created_prices(&variant_row, true),
         Some(actor.user_id),
         actor.flow,
     )
     .await?;
-    if let Some(children) = &f.set_children {
+    if let Some(children) = bundle_children(&row, &f) {
         repo::set_children(&mut tx, workspace_id, row.id, children).await?;
     }
     tx.commit().await?;
@@ -200,7 +209,7 @@ pub async fn update(
         actor.flow,
     )
     .await?;
-    if let Some(children) = &f.set_children {
+    if let Some(children) = bundle_children(&row, &f) {
         repo::set_children(&mut tx, workspace_id, id, children).await?;
     }
     tx.commit().await?;
@@ -464,6 +473,18 @@ fn apply(p: &mut ProductRow, f: &Fields) {
             p.is_serialized = v;
         }
     }
+    // Laravel saving hook: a falsy order unit is 1.
+    if p.order_unit.is_zero() {
+        p.order_unit = Decimal::ONE;
+    }
+}
+
+/// Children to sync: only for a bundle type and a non-empty list (Laravel ProductCreated and
+/// ProductUpdated); otherwise the stored children stay.
+fn bundle_children<'a>(p: &ProductRow, f: &'a Fields) -> Option<&'a [(Uuid, Decimal)]> {
+    f.set_children
+        .as_deref()
+        .filter(|c| !c.is_empty() && SET_TYPES.contains(&p.kind.as_str()))
 }
 
 /// Laravel's saving hook: with a gross price, price and markup follow each other.
@@ -533,10 +554,11 @@ async fn check(
     }
 }
 
-/// Price fields recorded on create: every non-null one (Laravel RecordsPriceChanges).
-fn created_prices(p: &ProductRow) -> Vec<PriceChange> {
+/// Price fields recorded on create: every non-null one (Laravel RecordsPriceChanges). An unsent
+/// gross price was null in Laravel (stored 0 here), so it gets no row.
+fn created_prices(p: &ProductRow, gross_sent: bool) -> Vec<PriceChange> {
     [
-        ("gross_price", Some(p.gross_price)),
+        ("gross_price", gross_sent.then_some(p.gross_price)),
         ("price", Some(p.price)),
         ("supplier_wholesale_price", p.supplier_wholesale_price),
         ("wholesale_price", p.wholesale_price),
@@ -590,57 +612,52 @@ async fn embeds(
         .into_iter()
         .map(|g| (g.id, g))
         .collect();
-    for id in distinct(all.iter().map(|p| Some(p.currency_id))) {
-        if let Some(c) = currencies::find(&state.db, workspace_id, id).await? {
-            e.currencies
-                .insert(id, to_value(CurrencyResource::from(c))?);
-        }
+    let currency_ids = distinct(all.iter().map(|p| Some(p.currency_id)));
+    for c in currencies::find_many(&state.db, workspace_id, &currency_ids).await? {
+        e.currencies
+            .insert(c.id, to_value(CurrencyResource::from(c))?);
     }
-    for id in distinct(all.iter().map(|p| p.sales_group_id)) {
-        if let Some(g) = sales_groups::find(&state.db, workspace_id, id).await? {
-            e.sales_groups
-                .insert(id, to_value(SalesGroupResource::from(g))?);
-        }
+    let group_ids = distinct(all.iter().map(|p| p.sales_group_id));
+    for g in sales_groups::find_many(&state.db, workspace_id, &group_ids).await? {
+        e.sales_groups
+            .insert(g.id, to_value(SalesGroupResource::from(g))?);
     }
     let suppliers = distinct(all.iter().map(|p| p.supplier_relation_id));
     e.suppliers = relations::index_values(state, workspace_id, &suppliers).await?;
     let defaults = distinct(all.iter().map(|p| p.default_warehouse_id));
-    for id in &defaults {
-        let v = if detail {
-            let page = warehouse_service::get(state, workspace_id, &id.to_string()).await;
-            match page {
-                Ok(p) => WarehouseResource::build(p.rows, p.children, &p.people)
-                    .pop()
-                    .map(to_value)
-                    .transpose()?,
-                Err(AppError::NotFound) => None,
-                Err(err) => return Err(err),
-            }
-        } else {
-            warehouses::compact(&state.db, workspace_id, *id)
-                .await?
-                .map(|w| to_value(WarehouseCompacted::from(&w)))
-                .transpose()?
-        };
-        if let Some(v) = v {
-            e.warehouses.insert(*id, v);
-        }
+    for w in warehouses::compact_many(&state.db, workspace_id, &defaults).await? {
+        e.warehouses
+            .insert(w.id, to_value(WarehouseCompacted::from(&w))?);
     }
     let (refs, store) = warehouses::stock_refs(&state.db, workspace_id, &defaults).await?;
     e.stock_refs = refs.into_iter().map(|w| (w.id, w)).collect();
     e.store = store;
-    if detail && !children.is_empty() {
-        let rendered: HashMap<Uuid, Value> = all[rows.len()..]
-            .iter()
-            .map(|c| (c.id, resource::render(c, &e, false)))
-            .collect();
-        for (parent, child, qty) in children {
-            if let Some(v) = rendered.get(&child) {
-                e.set_children
-                    .entry(parent)
-                    .or_default()
-                    .push((v.clone(), qty));
+    if !detail {
+        return Ok(e);
+    }
+    // Bundle children render in list shape (compact warehouse) before the detail rows' own
+    // default warehouses switch to the full resource.
+    let rendered: HashMap<Uuid, Value> = all[rows.len()..]
+        .iter()
+        .map(|c| (c.id, resource::render(c, &e, false)))
+        .collect();
+    for (parent, child, qty) in children {
+        if let Some(v) = rendered.get(&child) {
+            e.set_children
+                .entry(parent)
+                .or_default()
+                .push((v.clone(), qty));
+        }
+    }
+    for id in distinct(rows.iter().map(|p| p.default_warehouse_id)) {
+        match warehouse_service::get(state, workspace_id, &id.to_string()).await {
+            Ok(p) => {
+                if let Some(w) = WarehouseResource::build(p.rows, p.children, &p.people).pop() {
+                    e.warehouses.insert(id, to_value(w)?);
+                }
             }
+            Err(AppError::NotFound) => {}
+            Err(err) => return Err(err),
         }
     }
     Ok(e)
