@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,\n                i.expires_at, i.created_at, i.token_hash\n         FROM invites i\n         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n         WHERE i.id = $1",
+  "query": "SELECT t.id, t.workspace_id, t.name, t.description, t.meta, t.created_at, t.updated_at,\n                  ARRAY(SELECT p.permission FROM team_permissions p\n                        WHERE p.team_id = t.id ORDER BY p.permission) AS \"permissions!\"\n           FROM teams t\n           WHERE t.id = $1 AND t.workspace_id = $2 AND t.deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "invites",
+            "table": "teams",
             "name": "id"
           }
         }
@@ -20,80 +20,76 @@
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "invites",
+            "table": "teams",
             "name": "workspace_id"
           }
         }
       },
       {
         "ordinal": 2,
-        "name": "workspace_name",
+        "name": "name",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "workspaces",
+            "table": "teams",
             "name": "name"
           }
         }
       },
       {
         "ordinal": 3,
-        "name": "email",
+        "name": "description",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "invites",
-            "name": "email"
+            "table": "teams",
+            "name": "description"
           }
         }
       },
       {
         "ordinal": 4,
-        "name": "status",
-        "type_info": "Text",
+        "name": "meta",
+        "type_info": "Jsonb",
         "origin": {
           "Table": {
-            "table": "invites",
-            "name": "status"
+            "table": "teams",
+            "name": "meta"
           }
         }
       },
       {
         "ordinal": 5,
-        "name": "expires_at",
-        "type_info": "Timestamptz",
-        "origin": {
-          "Table": {
-            "table": "invites",
-            "name": "expires_at"
-          }
-        }
-      },
-      {
-        "ordinal": 6,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "invites",
+            "table": "teams",
             "name": "created_at"
           }
         }
       },
       {
-        "ordinal": 7,
-        "name": "token_hash",
-        "type_info": "Bytea",
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "invites",
-            "name": "token_hash"
+            "table": "teams",
+            "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "permissions!",
+        "type_info": "TextArray",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Uuid"
       ]
     },
@@ -102,11 +98,11 @@
       false,
       false,
       false,
+      true,
       false,
       false,
-      false,
-      false
+      null
     ]
   },
-  "hash": "1f0314f84ef8f77ec876df36d47c83685d13eaedbf390f84855fa2ef4c6cc8a9"
+  "hash": "7b1f07c702272695845cfabfd2b2b8d69028fdfd1c4757895f34aa6fb5d7cea1"
 }

@@ -1,4 +1,4 @@
-//! DB-level guarantees of 0001 init_auth: constraints hold even if app validation is skipped.
+//! DB-level guarantees of the migrations: constraints hold even if app validation is skipped.
 
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -263,4 +263,137 @@ async fn invite_status_uses_denied_not_declined(pool: PgPool) {
     let err = set("declined").await.unwrap_err();
     assert_eq!(violated(err), "invites_status_check");
     assert!(set("denied").await.is_ok());
+}
+
+// ---- teams
+
+async fn insert_team(pool: &PgPool, ws: Uuid, name: &str) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar(
+        "INSERT INTO teams (workspace_id, name, description) VALUES ($1, $2, 'd') RETURNING id",
+    )
+    .bind(ws)
+    .bind(name)
+    .fetch_one(pool)
+    .await
+}
+
+async fn team_world(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+    let user = insert_user(pool, "o@x.io").await.unwrap();
+    let ws = insert_workspace(pool, "acme", user).await.unwrap();
+    let team = insert_team(pool, ws, "Admins").await.unwrap();
+    (user, ws, team)
+}
+
+#[sqlx::test]
+async fn team_name_and_description_capped_like_laravel(pool: PgPool) {
+    let (_, ws, _) = team_world(&pool).await;
+
+    let err = insert_team(&pool, ws, &"n".repeat(56)).await.unwrap_err();
+    assert_eq!(violated(err), "teams_name_check");
+    assert!(insert_team(&pool, ws, &"n".repeat(55)).await.is_ok());
+
+    let err =
+        sqlx::query("INSERT INTO teams (workspace_id, name, description) VALUES ($1, 'x', $2)")
+            .bind(ws)
+            .bind("d".repeat(226))
+            .execute(&pool)
+            .await
+            .unwrap_err();
+    assert_eq!(violated(err), "teams_description_check");
+}
+
+#[sqlx::test]
+async fn team_permission_stored_once_and_lowercase(pool: PgPool) {
+    let (_, _, team) = team_world(&pool).await;
+    let grant = |p: &'static str| {
+        sqlx::query("INSERT INTO team_permissions (team_id, permission) VALUES ($1, $2)")
+            .bind(team)
+            .bind(p)
+            .execute(&pool)
+    };
+
+    grant("relation.list").await.unwrap();
+    assert_eq!(
+        violated(grant("relation.list").await.unwrap_err()),
+        "team_permissions_pkey"
+    );
+    assert_eq!(
+        violated(grant("Relation.List").await.unwrap_err()),
+        "team_permissions_permission_check"
+    );
+}
+
+#[sqlx::test]
+async fn team_member_added_once(pool: PgPool) {
+    let (user, _, team) = team_world(&pool).await;
+    let add = || {
+        sqlx::query("INSERT INTO team_members (team_id, user_id) VALUES ($1, $2)")
+            .bind(team)
+            .bind(user)
+            .execute(&pool)
+    };
+    add().await.unwrap();
+
+    assert_eq!(violated(add().await.unwrap_err()), "team_members_pkey");
+}
+
+#[sqlx::test]
+async fn deleting_workspace_drops_its_teams_grants_and_members(pool: PgPool) {
+    let (user, ws, team) = team_world(&pool).await;
+    sqlx::query("INSERT INTO team_permissions (team_id, permission) VALUES ($1, 'team.list')")
+        .bind(team)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO team_members (team_id, user_id) VALUES ($1, $2)")
+        .bind(team)
+        .bind(user)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    sqlx::query("DELETE FROM workspaces WHERE id = $1")
+        .bind(ws)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let left: i64 = sqlx::query_scalar(
+        "SELECT (SELECT count(*) FROM teams) + (SELECT count(*) FROM team_permissions)
+              + (SELECT count(*) FROM team_members)",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(left, 0);
+}
+
+#[sqlx::test]
+async fn invite_team_must_exist_and_is_cleared_when_team_row_goes(pool: PgPool) {
+    let (owner, ws, team) = team_world(&pool).await;
+    let invite = insert_pending_invite(&pool, ws, owner, "new@x.io")
+        .await
+        .unwrap();
+    let set_team = |t: Uuid| {
+        sqlx::query("UPDATE invites SET team_id = $2 WHERE id = $1")
+            .bind(invite)
+            .bind(t)
+            .execute(&pool)
+    };
+
+    let err = set_team(Uuid::max()).await.unwrap_err();
+    assert_eq!(violated(err), "invites_team_id_fkey");
+
+    set_team(team).await.unwrap();
+    sqlx::query("DELETE FROM teams WHERE id = $1")
+        .bind(team)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let team_id: Option<Uuid> = sqlx::query_scalar("SELECT team_id FROM invites WHERE id = $1")
+        .bind(invite)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(team_id, None);
 }

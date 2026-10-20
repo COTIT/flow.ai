@@ -1,14 +1,23 @@
-//! /v1/me response bodies. Keys follow Laravel UserResource / WorkspaceResource / PendingInviteResource,
-//! limited to what vimdesk-web reads plus the profile-form round trip fields.
+//! /v1/me and workspace user bodies. Keys follow Laravel UserResource / WorkspaceUserResource /
+//! WorkspaceResource / PendingInviteResource, limited to what vimdesk-web reads plus the
+//! profile-form round trip fields.
 
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::modules::{
-    users::service::{Me, permissions},
-    workspaces::repo::MemberWorkspace,
+use crate::{
+    error::AppError,
+    http::json::{Rules, optional},
+    modules::{
+        teams::dto::TeamResource,
+        users::{
+            repo::Member,
+            service::{Me, MemberView},
+        },
+        workspaces::repo::MemberWorkspace,
+    },
 };
 
 #[derive(Serialize)]
@@ -45,14 +54,14 @@ struct UserResource {
 struct WorkspacePermissions {
     /// Same uuid as /me/workspaces[].id (auth.store.js matches on it).
     workspace: Uuid,
-    permissions: Vec<&'static str>,
+    permissions: Vec<String>,
 }
 
 #[derive(Serialize)]
 struct Relationships {
     pending_invites: Vec<PendingInviteResource>,
-    /// Teams and employment groups not ported yet.
-    teams: Vec<Value>,
+    teams: Vec<TeamResource>,
+    /// Employment groups not ported yet.
     employment_group: Option<Value>,
 }
 
@@ -99,16 +108,16 @@ impl From<MemberWorkspace> for WorkspaceResource {
 
 impl From<Me> for MeResponse {
     fn from(me: Me) -> Self {
-        let p = me.profile;
-        let name = full_name(&p.first_name, p.middle_name.as_deref(), &p.last_name);
         let permissions = me
             .workspaces
             .iter()
             .map(|ws| WorkspacePermissions {
                 workspace: ws.id,
-                permissions: permissions(p.id, ws),
+                permissions: me.granted(ws).to_list(),
             })
             .collect();
+        let p = me.profile;
+        let name = full_name(&p.first_name, p.middle_name.as_deref(), &p.last_name);
         let pending_invites = me
             .pending_invites
             .into_iter()
@@ -129,51 +138,249 @@ impl From<Me> for MeResponse {
             })
             .collect();
 
+        let person = Person {
+            id: p.id,
+            email: p.email,
+            first_name: p.first_name,
+            middle_name: p.middle_name,
+            last_name: p.last_name,
+            created_at: p.created_at,
+            updated_at: p.updated_at,
+        };
+        let relationships = Relationships {
+            pending_invites,
+            teams: me.teams.into_iter().map(Into::into).collect(),
+            employment_group: None,
+        };
         Self {
-            user: UserResource {
-                id: p.id,
-                user_id: p.id,
-                initials: initials(&p.first_name, &p.last_name),
-                // Laravel parity: third-party avatar from the display name.
-                avatar_path: format!("https://eu.ui-avatars.com/api/?name={}", form_encode(&name)),
-                name,
-                first_name: p.first_name,
-                middle_name: p.middle_name,
-                last_name: p.last_name,
-                email: p.email,
-                has_pin_code: false,
-                color: None,
-                created_at: p.created_at,
-                last_updated_at: p.updated_at,
-                permissions,
-                meta: None,
-                interface_language: None,
-                active: true,
-                relationships: Relationships {
-                    pending_invites,
-                    teams: Vec::new(),
-                    employment_group: None,
-                },
-            },
+            user: UserResource::new(person, name, true, permissions, relationships),
         }
     }
 }
 
+/// Fields UserResource needs from a users row.
+struct Person {
+    id: Uuid,
+    email: String,
+    first_name: String,
+    middle_name: Option<String>,
+    last_name: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl UserResource {
+    fn new(
+        p: Person,
+        name: String,
+        active: bool,
+        permissions: Vec<WorkspacePermissions>,
+        relationships: Relationships,
+    ) -> Self {
+        Self {
+            id: p.id,
+            user_id: p.id,
+            initials: initials(&p.first_name, &p.last_name),
+            avatar_path: avatar_path(&name),
+            name,
+            first_name: p.first_name,
+            middle_name: p.middle_name,
+            last_name: p.last_name,
+            email: p.email,
+            has_pin_code: false,
+            color: None,
+            created_at: p.created_at,
+            last_updated_at: p.updated_at,
+            permissions,
+            meta: None,
+            interface_language: None,
+            active,
+            relationships,
+        }
+    }
+}
+
+fn person(m: Member) -> (Person, String) {
+    let name = full_name(&m.first_name, m.middle_name.as_deref(), &m.last_name);
+    let p = Person {
+        id: m.id,
+        email: m.email,
+        first_name: m.first_name,
+        middle_name: m.middle_name,
+        last_name: m.last_name,
+        created_at: m.created_at,
+        updated_at: m.updated_at,
+    };
+    (p, name)
+}
+
+/// GET /v1/workspace/{ws}/users/{id} body: UserResource scoped to this workspace. Permissions,
+/// teams and invites of the user's other workspaces stay hidden (Laravel showed them all).
+#[derive(Serialize)]
+#[serde(transparent)]
+pub struct UserDetail(UserResource);
+
+impl UserDetail {
+    pub fn new(view: MemberView, workspace: Uuid) -> Self {
+        let permissions = vec![WorkspacePermissions {
+            workspace,
+            permissions: view.granted().to_list(),
+        }];
+        let active = view.member.active;
+        let (p, name) = person(view.member);
+        let relationships = Relationships {
+            pending_invites: Vec::new(),
+            teams: view.teams.into_iter().map(Into::into).collect(),
+            employment_group: None,
+        };
+        Self(UserResource::new(
+            p,
+            name,
+            active,
+            permissions,
+            relationships,
+        ))
+    }
+}
+
+/// One users-tab row (Laravel WorkspaceUserResource).
+#[derive(Serialize)]
+pub struct MemberResource {
+    id: Uuid,
+    name: String,
+    email: String,
+    /// Not ported.
+    user_type: Option<String>,
+    avatar_path: String,
+    initials: String,
+    color: Option<String>,
+    /// Membership flag in this workspace.
+    active: bool,
+    permissions: [WorkspacePermissions; 1],
+    /// Top-level here (users.vue reads `teams.0.name`), under `relationships` on the detail.
+    teams: Vec<MemberTeamResource>,
+    /// Employment group not loaded, so Laravel leaves `[]`.
+    relationships: [(); 0],
+    created_at: DateTime<Utc>,
+}
+
+/// Laravel WorkspaceTeamResource.
+#[derive(Serialize)]
+struct MemberTeamResource {
+    id: Uuid,
+    name: String,
+    description: String,
+    permissions: Vec<String>,
+    meta: Option<Value>,
+}
+
+impl MemberResource {
+    pub fn new(view: MemberView, workspace: Uuid) -> Self {
+        let permissions = view.granted().to_list();
+        let m = view.member;
+        let name = full_name(&m.first_name, m.middle_name.as_deref(), &m.last_name);
+        Self {
+            id: m.id,
+            initials: initials(&m.first_name, &m.last_name),
+            avatar_path: avatar_path(&name),
+            name,
+            email: m.email,
+            user_type: None,
+            color: None,
+            active: m.active,
+            permissions: [WorkspacePermissions {
+                workspace,
+                permissions,
+            }],
+            teams: view
+                .teams
+                .into_iter()
+                .map(|t| MemberTeamResource {
+                    id: t.id,
+                    name: t.name,
+                    description: t.description,
+                    permissions: t.permissions,
+                    meta: t.meta,
+                })
+                .collect(),
+            relationships: [],
+            created_at: m.created_at,
+        }
+    }
+}
+
+/// GET /v1/workspace/{ws}/users query. Unknown params ignored.
+#[derive(Deserialize)]
+pub struct MembersQuery {
+    pub q: Option<String>,
+    pub team_id: Option<String>,
+    pub has_pin_code: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
+}
+
+/// Validated users-tab filter values.
+pub struct MembersFilter {
+    pub q: Option<String>,
+    pub team_id: Option<Uuid>,
+    pub has_pin_code: bool,
+}
+
+impl MembersQuery {
+    /// Laravel ListWorkspaceUserRequest: q max 100, team_id uuid, has_pin_code boolean.
+    pub fn filter(&self) -> Result<MembersFilter, AppError> {
+        let mut r = Rules::default();
+        let q = optional(self.q.as_deref().map(str::to_owned));
+        if let Some(q) = &q {
+            r.max_chars("q", q, 100);
+        }
+        let team_id =
+            optional(self.team_id.as_deref().map(str::to_owned)).map(|t| Uuid::parse_str(&t));
+        if matches!(team_id, Some(Err(_))) {
+            r.add("team_id", "The team id field must be a valid UUID.");
+        }
+        // Laravel `boolean` accepts these four (query values are strings).
+        let has_pin_code = match self.has_pin_code.as_deref().map(str::trim) {
+            None | Some("") | Some("0" | "false") => false,
+            Some("1" | "true") => true,
+            Some(_) => {
+                r.add(
+                    "has_pin_code",
+                    "The has pin code field must be true or false.",
+                );
+                false
+            }
+        };
+        r.into_result()?;
+        Ok(MembersFilter {
+            q,
+            team_id: team_id.and_then(Result::ok),
+            has_pin_code,
+        })
+    }
+}
+
 /// `first [middle ]last`, Laravel User::getNameAttribute.
-fn full_name(first: &str, middle: Option<&str>, last: &str) -> String {
+pub fn full_name(first: &str, middle: Option<&str>, last: &str) -> String {
     match middle {
         Some(m) => format!("{first} {m} {last}"),
         None => format!("{first} {last}"),
     }
 }
 
-fn initials(first: &str, last: &str) -> String {
+/// First letters of first and last name, uppercased.
+pub fn initials(first: &str, last: &str) -> String {
     first
         .chars()
         .take(1)
         .chain(last.chars().take(1))
         .flat_map(char::to_uppercase)
         .collect()
+}
+
+/// Laravel parity: third-party avatar from the display name.
+pub fn avatar_path(name: &str) -> String {
+    format!("https://eu.ui-avatars.com/api/?name={}", form_encode(name))
 }
 
 /// application/x-www-form-urlencoded value: space -> `+`, unreserved kept, rest %XX.

@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.active,\n                  w.created_by_user_id = m.user_id AS \"owner!\",\n                  ARRAY(SELECT DISTINCT p.permission\n                        FROM team_members tm\n                        JOIN teams t ON t.id = tm.team_id\n                                    AND t.workspace_id = w.id AND t.deleted_at IS NULL\n                        JOIN team_permissions p ON p.team_id = t.id\n                        WHERE tm.user_id = m.user_id) AS \"permissions!\"\n           FROM workspaces w\n           JOIN workspace_members m ON m.workspace_id = w.id AND m.user_id = $2\n           WHERE w.id = $1 AND w.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "workspace_members",
+            "name": "active"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "owner!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "permissions!",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "9fdab1c86eb11a7dc5782c749af98aab57274382fbef163fc26667269daade6c"
+}

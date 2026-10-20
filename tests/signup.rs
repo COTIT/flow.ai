@@ -268,6 +268,34 @@ async fn workspace_name_must_be_lowercase_slug(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn seeds_admin_team_with_owner(pool: PgPool) {
+    let (_, res) = post(&app(pool.clone()), URI, body()).await;
+    let ws: Uuid = res["data"]["workspace_ids"][0]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+
+    // Laravel WorkspaceSetup::teamAttributes, owner added right after.
+    let (name, description, perms, members): (String, String, Vec<String>, Vec<String>) =
+        sqlx::query_as(
+            "SELECT t.name, t.description,
+                    ARRAY(SELECT permission FROM team_permissions WHERE team_id = t.id),
+                    ARRAY(SELECT u.email FROM team_members m JOIN users u ON u.id = m.user_id
+                          WHERE m.team_id = t.id)
+             FROM teams t WHERE t.workspace_id = $1",
+        )
+        .bind(ws)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(name, "Admin Team");
+    assert_eq!(description, "This team consist of admins of the workspace");
+    assert_eq!(perms, ["workspace_admin"]);
+    assert_eq!(members, ["ada@example.com"]);
+}
+
+#[sqlx::test]
 async fn failed_signup_writes_nothing(pool: PgPool) {
     let app = app(pool.clone());
     post(&app, URI, body()).await;
@@ -276,6 +304,7 @@ async fn failed_signup_writes_nothing(pool: PgPool) {
 
     assert_eq!(count(&pool, "SELECT count(*) FROM users").await, 1);
     assert_eq!(count(&pool, "SELECT count(*) FROM access_tokens").await, 1);
+    assert_eq!(count(&pool, "SELECT count(*) FROM teams").await, 1);
 }
 
 // ---- edge / boundary

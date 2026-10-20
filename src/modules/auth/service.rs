@@ -15,12 +15,17 @@ use crate::{
             token::{self, PlainSecret},
         },
         email_verification::service as email_verification,
+        permissions::catalog::WORKSPACE_ADMIN,
+        teams::repo as teams,
         users::repo as users,
         workspaces::repo as workspaces,
     },
 };
 
 pub const EMAIL_TAKEN: &str = "The email has already been taken.";
+/// Seeded at signup (Laravel WorkspaceSetup::teamAttributes, typo kept).
+const ADMIN_TEAM: &str = "Admin Team";
+const ADMIN_TEAM_DESCRIPTION: &str = "This team consist of admins of the workspace";
 const NO_WORKSPACE: &str = "No workspace found associated with your account";
 /// Failed logins per email per 15 minutes before further attempts get 429.
 const MAX_LOGIN_FAILURES: i64 = 10;
@@ -32,7 +37,7 @@ pub struct Session {
     pub workspace_ids: Vec<Uuid>,
 }
 
-/// New user + workspace + owner membership + token, one transaction.
+/// New user + workspace + owner membership + Admin Team + token, one transaction.
 pub async fn create_workspace(state: &AppState, input: NewSignup) -> Result<Session, AppError> {
     // Pre-check reports both "taken" errors at once, like Laravel. Unique indexes still
     // catch the race where two signups pass this check together (see `taken`).
@@ -60,6 +65,23 @@ pub async fn create_workspace(state: &AppState, input: NewSignup) -> Result<Sess
             .await
             .map_err(taken)?;
     workspaces::add_member(&mut *tx, workspace_id, user_id).await?;
+    // Laravel WorkspaceSetup seeds this team so admins can be added from the UI.
+    let admins = teams::insert(
+        &mut *tx,
+        workspace_id,
+        ADMIN_TEAM,
+        ADMIN_TEAM_DESCRIPTION,
+        None,
+    )
+    .await?;
+    teams::grant(
+        &mut *tx,
+        workspace_id,
+        admins,
+        &[WORKSPACE_ADMIN.to_owned()],
+    )
+    .await?;
+    teams::add_members(&mut *tx, workspace_id, admins, &[user_id]).await?;
     let token = issue_token(&mut *tx, user_id, state.token_ttl).await?;
     tx.commit().await?;
     // After commit: a mail failure must not undo the account.

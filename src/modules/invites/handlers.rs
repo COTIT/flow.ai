@@ -12,6 +12,7 @@ use crate::{
         auth::AuthUser,
         json::ValidatedJson,
         response::{Data, Message},
+        workspace::{Can, permissions},
     },
     modules::{
         auth::dto::TokenResponse,
@@ -25,15 +26,22 @@ use crate::{
     },
 };
 
+permissions!(InviteCreate => "invite.create");
+
 /// POST /v1/workspace/{workspace}/invites -> 201 `{data:{invite_id}}`.
-// Path taken as String: a malformed uuid is a 404 like an unknown one, not axum's 400.
 pub async fn send(
     State(state): State<AppState>,
-    user: AuthUser,
-    Path(workspace): Path<String>,
-    ValidatedJson(email): ValidatedJson<SendInviteRequest>,
+    access: Can<InviteCreate>,
+    ValidatedJson(invite): ValidatedJson<SendInviteRequest>,
 ) -> Result<(StatusCode, Data<InviteCreated>), AppError> {
-    let invite_id = service::send(&state, user.user_id, &workspace, email).await?;
+    let invite_id = service::send(
+        &state,
+        access.user_id,
+        access.is_admin(),
+        access.workspace_id,
+        invite,
+    )
+    .await?;
     Ok((StatusCode::CREATED, Data(InviteCreated { invite_id })))
 }
 

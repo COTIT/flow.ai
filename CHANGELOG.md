@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Batch 3 phase A (permission core):
+  - Migration `teams`: `teams` (soft delete, Laravel length caps), `team_permissions` (lowercase names, one row per grant), `team_members`, and `invites.team_id` (set null if the team row goes).
+  - `build.rs` rebuilds on migration changes. Without it `sqlx::migrate!` kept the old set, so a migration-only change could ship a binary (and a cached Docker build) missing it.
+  - Permission catalog frozen from Laravel (43 groups, 222 names) and `GET /v1/workspace/{workspace}/permissions`. Grants must be exact catalog names. Contract: `docs/api/permissions.md`.
+  - `WorkspaceAccess` extractor for every workspace route: 404 for outsiders and unknown/malformed/deleted workspaces, 403 for inactive members; permission passes for owner, `workspace_admin`, frontend-only names, or an exact grant.
+  - `/v1/me`: `permissions` is the union of the user's live team grants per workspace plus `workspace_owner`, and `relationships.teams` lists their teams. Both come from one query.
+  - Invites need `invite.create` instead of owner-only, and any inviter must have a verified email. `team_id` is validated (live team in this workspace) and accepting joins that team in the same transaction.
+  - Signup seeds `Admin Team` (`workspace_admin`) with the owner, as Laravel `WorkspaceSetup` does.
+- Batch 3 phase B (teams + user reads):
+  - `http/list.rs`: `Page` (`page`, `page_size` default 50 max 100, junk falls back), `Paginated<T>` with Laravel `meta`, `contains_pattern` (ILIKE with `%` `_` `\` escaped). `http/json.rs` gains `present` for absent-vs-null fields in partial updates.
+  - Teams, 8 routes under `/v1/workspace/{workspace}/users/teams`: create, list (search, sort whitelist, paging), get, update (single-statement patch), soft delete, add/remove users, permission delta (`x` adds, `-x` removes, only the owner grants `workspace_admin`). GET and DELETE check `team.get` / `team.delete` instead of Laravel's unassignable names. Contract: `docs/api/teams.md`.
+  - `GET /v1/workspace/{workspace}/users` (`workspace.list`, search, `team_id`, paging) and `GET .../users/{user}` (`user.get`). Both show permissions and teams for this workspace only. Contract: `docs/api/users.md`.
+- Batch 3 review fixes (ecc:rust-reviewer + ecc:security-reviewer):
+  - Admin-team gate. Laravel let `team.invite`, `invite.create` or `team.permissions` alone reach `workspace_admin`. Now a team holding `workspace_admin` changes only through an owner or admin: add/remove users, delete, revoke that grant, invite into it. Each path has a test.
+  - `Can<P>` extractor with `permissions!` markers replaces `require()`, so 403 comes before 422 as in Laravel.
+  - Paging: overflow-safe `meta` for absurd page numbers. A page past the end reports the real total (a count query runs only there).
+  - Postgres NUL rejections (22021 / 22P05) are now 422 instead of 500. Team `meta` must be a JSON object.
+  - Invite `team_id: ""` means no team. Permission entries like `"- x"` are trimmed. Users list `has_pin_code` is validated as a boolean.
+  - Team writes (`grant`, `revoke`, `add_members`, `remove_members`, `count_in_team`) now take `workspace_id` and join `teams`. The team list groups members by team instead of scanning per team.
+
 - Project scaffold: Axum 0.8 + tokio + sqlx 0.9 (Postgres), env config (`DATABASE_URL`, `BIND_ADDR`), tracing, graceful shutdown on SIGINT/SIGTERM.
 - `GET /healthz`: `200 {"status":"ok"}` when the DB answers `SELECT 1`, `503 {"status":"unavailable"}` otherwise.
 - `postgres:18-alpine` service in `compose.local.yml` (host port 54320, reuses the local `db_password` secret).

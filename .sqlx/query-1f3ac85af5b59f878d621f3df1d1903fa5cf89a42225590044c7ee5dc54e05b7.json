@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE teams\n         SET name = COALESCE($3, name),\n             description = COALESCE($4, description),\n             meta = CASE WHEN $5 THEN $6 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1f3ac85af5b59f878d621f3df1d1903fa5cf89a42225590044c7ee5dc54e05b7"
+}

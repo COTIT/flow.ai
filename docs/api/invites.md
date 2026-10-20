@@ -8,24 +8,26 @@ An invite code is 64 hex chars, sent only in the email link. The DB stores its s
 
 ## POST /v1/workspace/{workspace}/invites
 
-Requires a Bearer token. Only the workspace owner may invite, and only while their membership is active and their email is verified (roles and teams aren't ported yet).
+Requires a Bearer token and the `invite.create` permission (owner and `workspace_admin` always pass; see `permissions.md`). The caller's email must be verified.
 
 | Field | Rules |
 |---|---|
 | `email` | required, valid email, max 255 |
-| `team_id` | accepted and ignored |
+| `team_id` | optional: null or blank (no team), or the id of a live team in this workspace. Accepting the invite adds the user to that team. A team holding `workspace_admin` needs an inviter who is the owner or holds `workspace_admin` (403 otherwise). |
 
 | Status | When |
 |---|---|
 | `201` | `{"data": {"invite_id": "<uuid>"}}`. Email sent to `email` with `{FRONTEND_URL}/accept-invitation?code=<code>`. |
 | `401` | no or bad token |
-| `403` | caller is a member but not the owner: `This action is unauthorized.` Or the owner's email isn't verified yet: `Verify your email address first.` |
+| `403` | membership inactive, no `invite.create`, or `team_id` is an admin team and the caller is no admin: `This action is unauthorized.` Or the caller's email isn't verified yet: `Verify your email address first.` |
 | `404` | unknown, deleted or malformed workspace id, or the caller isn't a member (so outsiders can't tell the workspace exists) |
-| `422` | email invalid, or already a member: `errors.email = ["user already exists in the workspace"]` |
+| `422` | email invalid, or already a member: `errors.email = ["user already exists in the workspace"]`. `team_id` not a uuid, from another workspace, or deleted: `errors.team_id = ["The team id is an invalid id for the team domain."]` |
 | `429` | `{"message": "Too Many Attempts."}`: caller sent `INVITES_PER_HOUR` invite emails (default 20) in the last hour. Re-sends and failed SMTP attempts count. |
 | `500` | SMTP failed. The invite row exists, and sending again rotates the code. |
 
-Inviting the same email again while the invite is pending reuses the row and the same `invite_id`, issues a new code and extends the expiry. The old link stops working, even for a request already in flight with it.
+Inviting the same email again while the invite is pending reuses the row and the same `invite_id`, issues a new code, extends the expiry and takes the new `team_id`. The old link stops working, even for a request already in flight with it.
+
+Accept (`POST /v1/register` or `POST /v1/invites` with `accept: true`) joins the workspace and, in the same transaction, the invite's team. A team deleted after the invite was sent is skipped; the user still joins the workspace.
 
 `email` must also parse as a deliverable address (lettre `Address`), so values like `a"b@x.co` are rejected before any row is written.
 

@@ -7,7 +7,7 @@ use axum::{
     extract::{FromRequest, Request},
     http::StatusCode,
 };
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, de::DeserializeOwned};
 
 use crate::error::AppError;
 
@@ -83,6 +83,17 @@ impl Rules {
             Err(AppError::Validation(self.errors))
         }
     }
+}
+
+/// `#[serde(default, deserialize_with = "present")]` on an `Option<Option<T>>` field:
+/// absent key -> None, `null` -> Some(None), value -> Some(Some(v)). Partial updates need
+/// "not sent" apart from "cleared".
+pub fn present<'de, D, T>(d: D) -> Result<Option<Option<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
+{
+    Option::<T>::deserialize(d).map(Some)
 }
 
 /// Trimmed value, blank -> None. Laravel TrimStrings + ConvertEmptyStringsToNull.

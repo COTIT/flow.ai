@@ -6,7 +6,7 @@ use axum::{
     Router,
     http::{Method, StatusCode},
 };
-use common::{app_with_mail, invite_mails, send, signup};
+use common::{add_team, app_with_mail, invite_mails, join_team, join_workspace, send, signup};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
@@ -81,14 +81,18 @@ async fn me_has_every_key_the_frontend_reads(pool: PgPool) {
         user["avatar_path"]
     );
     assert!(user["created_at"].is_string() && user["last_updated_at"].is_string());
+    // Seeded Admin Team grants workspace_admin; owner flag appended last.
     assert_eq!(
         user["permissions"],
-        json!([{ "workspace": ws, "permissions": ["workspace_owner"] }])
+        json!([{ "workspace": ws, "permissions": ["workspace_admin", "workspace_owner"] }])
     );
-    assert_eq!(
-        user["relationships"],
-        json!({ "pending_invites": [], "teams": [], "employment_group": null })
-    );
+    let rel = &user["relationships"];
+    assert_eq!(rel["pending_invites"], json!([]));
+    assert_eq!(rel["employment_group"], Value::Null);
+    let teams = rel["teams"].as_array().unwrap();
+    assert_eq!(teams.len(), 1);
+    assert_eq!(teams[0]["name"], "Admin Team");
+    assert_eq!(teams[0]["permissions"], json!(["workspace_admin"]));
 }
 
 #[sqlx::test]
@@ -269,6 +273,124 @@ async fn workspaces_hide_inactive_and_deleted(pool: PgPool) {
         .unwrap();
 
     assert_eq!(my_workspaces(&app, &token).await.1, json!({ "data": [] }));
+}
+
+// ================= team permissions in /me
+
+fn perms_for(res: &Value, ws: &str) -> Value {
+    res["data"]["user"]["permissions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["workspace"] == ws)
+        .map(|p| p["permissions"].clone())
+        .unwrap_or(Value::Null)
+}
+
+#[sqlx::test]
+async fn member_gets_union_of_live_team_permissions_sorted(pool: PgPool) {
+    let (app, _) = app_with_mail(pool.clone());
+    let (_, ws) = signup(&app, "ada@example.com", "acme").await;
+    let (bob, _) = signup(&app, "bob@example.com", "bobs").await;
+    join_workspace(&pool, &ws, "bob@example.com").await;
+    let sales = add_team(&pool, &ws, "Sales", &["relation.list", "team.list"], false).await;
+    let ops = add_team(&pool, &ws, "Ops", &["relation.list", "order.list"], false).await;
+    let gone = add_team(&pool, &ws, "Gone", &["invoice.list"], true).await;
+    for t in [&sales, &ops, &gone] {
+        join_team(&pool, t, "bob@example.com").await;
+    }
+
+    let res = me(&app, &bob).await.1;
+
+    assert_eq!(
+        perms_for(&res, &ws),
+        json!(["order.list", "relation.list", "team.list"])
+    );
+}
+
+#[sqlx::test]
+async fn owner_list_ends_with_workspace_owner(pool: PgPool) {
+    let (app, _) = app_with_mail(pool.clone());
+    let (ada, ws) = signup(&app, "ada@example.com", "acme").await;
+    let team = add_team(&pool, &ws, "Sales", &["relation.list"], false).await;
+    join_team(&pool, &team, "ada@example.com").await;
+
+    let res = me(&app, &ada).await.1;
+
+    // Laravel appends workspace_owner after the team grants.
+    let list = perms_for(&res, &ws);
+    assert_eq!(list.as_array().unwrap().last().unwrap(), "workspace_owner");
+    assert!(list.as_array().unwrap().contains(&json!("relation.list")));
+}
+
+#[sqlx::test]
+async fn team_grants_stay_in_their_own_workspace(pool: PgPool) {
+    let (app, _) = app_with_mail(pool.clone());
+    let (_, acme) = signup(&app, "ada@example.com", "acme").await;
+    let (bob, bobs) = signup(&app, "bob@example.com", "bobs").await;
+    join_workspace(&pool, &acme, "bob@example.com").await;
+    let team = add_team(&pool, &bobs, "Mine", &["invoice.list"], false).await;
+    join_team(&pool, &team, "bob@example.com").await;
+
+    let res = me(&app, &bob).await.1;
+
+    assert_eq!(perms_for(&res, &acme), json!([]));
+    assert!(
+        perms_for(&res, &bobs)
+            .as_array()
+            .unwrap()
+            .contains(&json!("invoice.list"))
+    );
+}
+
+#[sqlx::test]
+async fn teams_listed_in_team_resource_shape_live_only(pool: PgPool) {
+    let (app, _) = app_with_mail(pool.clone());
+    let (_, acme) = signup(&app, "ada@example.com", "acme").await;
+    let (_, eves) = signup(&app, "eve@example.com", "eves").await;
+    let (bob, _) = signup(&app, "bob@example.com", "bobs").await;
+    join_workspace(&pool, &acme, "bob@example.com").await;
+    join_workspace(&pool, &eves, "bob@example.com").await;
+    sqlx::query(
+        "UPDATE workspace_members SET active = false
+         WHERE workspace_id = $1::uuid AND user_id = (SELECT id FROM users WHERE email = 'bob@example.com')",
+    )
+    .bind(&eves)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let sales = add_team(
+        &pool,
+        &acme,
+        "Sales",
+        &["team.list", "relation.list"],
+        false,
+    )
+    .await;
+    let gone = add_team(&pool, &acme, "Gone", &[], true).await;
+    let left = add_team(&pool, &eves, "Left", &[], false).await;
+    for t in [&sales, &gone, &left] {
+        join_team(&pool, t, "bob@example.com").await;
+    }
+
+    let res = me(&app, &bob).await.1;
+
+    let teams = res["data"]["user"]["relationships"]["teams"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|t| t["name"] != "Admin Team")
+        .cloned()
+        .collect::<Vec<_>>();
+    assert_eq!(teams.len(), 1, "{teams:?}");
+    let t = &teams[0];
+    assert_eq!(t["id"], sales);
+    assert_eq!(t["name"], "Sales");
+    assert_eq!(t["description"], "d");
+    assert_eq!(t["permissions"], json!(["relation.list", "team.list"]));
+    assert_eq!(t["meta"], Value::Null);
+    assert!(t["created_at"].is_string() && t["last_updated_at"].is_string());
+    assert_eq!(t["relationships"], json!([]), "users not loaded on /me");
 }
 
 #[sqlx::test]

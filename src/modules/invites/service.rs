@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
+    http::workspace::NOT_ALLOWED,
     mail::Outgoing,
     modules::{
         auth::{
@@ -14,9 +15,10 @@ use crate::{
             token,
         },
         invites::{
-            dto::{Answer, NewInvitee},
+            dto::{Answer, BAD_TEAM, NewInvitee, SendInvite},
             repo::{self, InviteRow, NewInvite},
         },
+        teams::repo as teams,
         users::repo as users,
         workspaces::repo as workspaces,
     },
@@ -26,7 +28,6 @@ const INVITE_TTL_DAYS: i64 = 7;
 const EXPIRED: &str = "Workspace invite has expired";
 const USED: &str = "This invitation has already been used.";
 const ALREADY_MEMBER: &str = "user already exists in the workspace";
-const NOT_ALLOWED: &str = "This action is unauthorized.";
 const VERIFY_FIRST: &str = "Verify your email address first.";
 
 /// Invite plus derived fields for the status page.
@@ -36,42 +37,37 @@ pub struct StatusView {
     pub new_user: bool,
 }
 
-/// Owner invites `email` into `workspace` (raw path segment). Re-invite rotates the code,
-/// so only the newest email works. Returns invite id.
-// shortcut: owner-only until roles/teams are ported (Laravel checked `invite.create` permission).
+/// Member (already checked for `invite.create`) invites `email` into `workspace_id`.
+/// Re-invite rotates the code, so only the newest email works. Returns invite id.
+/// `inviter_is_admin`: owner or `workspace_admin`, needed to invite into a team holding
+/// `workspace_admin` (else a second account of the inviter would join it).
 // shortcut: mail sent inline, not queued; move to a job queue when send latency hurts.
 pub async fn send(
     state: &AppState,
     inviter: Uuid,
-    workspace: &str,
-    email: String,
+    inviter_is_admin: bool,
+    workspace_id: Uuid,
+    SendInvite { email, team_id }: SendInvite,
 ) -> Result<Uuid, AppError> {
-    let workspace_id = Uuid::parse_str(workspace).map_err(|_| AppError::NotFound)?;
     let ws = workspaces::find(&state.db, workspace_id)
         .await?
         .ok_or(AppError::NotFound)?;
-    // Deactivated owner = no rights here, same as any non-admin member.
-    let active_owner = ws.created_by_user_id == inviter
-        && workspaces::is_active_member(&state.db, workspace_id, inviter).await?;
-    if !active_owner {
-        // Members learn they lack rights; outsiders can't tell the workspace exists.
-        return Err(
-            if workspaces::is_member(&state.db, workspace_id, inviter).await? {
-                AppError::Forbidden(NOT_ALLOWED)
-            } else {
-                AppError::NotFound
-            },
-        );
-    }
     // Each invite mails a stranger from our domain: only proven inbox owners may do that.
-    let owner_verified = users::find_contact(&state.db, inviter)
+    let inviter_verified = users::find_contact(&state.db, inviter)
         .await?
         .is_some_and(|c| c.email_verified);
-    if !owner_verified {
+    if !inviter_verified {
         return Err(AppError::Forbidden(VERIFY_FIRST));
     }
     if workspaces::is_member_by_email(&state.db, workspace_id, &email).await? {
         return Err(AppError::field("email", ALREADY_MEMBER));
+    }
+    if let Some(team) = team_id {
+        match teams::admin_flag(&state.db, workspace_id, team).await? {
+            None => return Err(AppError::field("team_id", BAD_TEAM)),
+            Some(true) if !inviter_is_admin => return Err(AppError::Forbidden(NOT_ALLOWED)),
+            Some(_) => {}
+        }
     }
     // Each send emails an arbitrary address from our domain: cap per inviter, so a throwaway
     // signup can't turn us into a spam relay. DB count, so the cap holds across instances.
@@ -88,6 +84,7 @@ pub async fn send(
             email: &email,
             token_hash: &hash,
             expires_at: Utc::now() + Duration::days(INVITE_TTL_DAYS),
+            team_id,
         },
     )
     .await?;
@@ -137,7 +134,7 @@ pub async fn register(state: &AppState, input: NewInvitee) -> Result<Session, Ap
     if !repo::mark_answered(&mut *tx, invite.id, &token::hash(&input.invite_code), true).await? {
         return Err(AppError::field("invite_code", USED)); // tx dropped = rollback
     }
-    workspaces::add_member(&mut *tx, invite.workspace_id, user_id).await?;
+    join(&mut tx, &invite, user_id).await?;
     // Signed up with the emailed code, so the inbox is proven.
     users::mark_email_verified(&mut *tx, user_id).await?;
     let token = auth::issue_token(&mut *tx, user_id, state.token_ttl).await?;
@@ -181,7 +178,7 @@ pub async fn answer(state: &AppState, user_id: Uuid, input: Answer) -> Result<()
                 return Err(AppError::field("invite_code", USED));
             }
             if input.accept {
-                workspaces::add_member(&mut *tx, invite.workspace_id, user_id).await?;
+                join(&mut tx, &invite, user_id).await?;
             }
             if by_code {
                 // Holding the emailed code proves the inbox (Laravel verified here too).
@@ -195,6 +192,19 @@ pub async fn answer(state: &AppState, user_id: Uuid, input: Answer) -> Result<()
             if input.accept
                 && workspaces::is_member(&state.db, invite.workspace_id, user_id).await? => {}
         _ => return Err(AppError::field("invite_code", USED)),
+    }
+    Ok(())
+}
+
+/// Accepted invite: workspace membership, plus the invite's team if still live.
+async fn join(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    invite: &InviteRow,
+    user_id: Uuid,
+) -> Result<(), AppError> {
+    workspaces::add_member(&mut **tx, invite.workspace_id, user_id).await?;
+    if let Some(team) = invite.team_id {
+        teams::add_members(&mut **tx, invite.workspace_id, team, &[user_id]).await?;
     }
     Ok(())
 }
@@ -260,6 +270,7 @@ mod tests {
             expires_at: Utc::now() + expires_in,
             created_at: Utc::now(),
             token_hash: vec![0; 32],
+            team_id: None,
         }
     }
 

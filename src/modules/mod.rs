@@ -3,5 +3,7 @@
 pub mod auth;
 pub mod email_verification;
 pub mod invites;
+pub mod permissions;
+pub mod teams;
 pub mod users;
 pub mod workspaces;

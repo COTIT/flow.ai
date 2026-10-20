@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n             SELECT 1 FROM team_permissions p\n             WHERE p.team_id = t.id AND p.permission = 'workspace_admin'\n           ) AS \"admin!\"\n           FROM teams t\n           WHERE t.id = $1 AND t.workspace_id = $2 AND t.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "admin!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "85ea651f4ac2acce281827dab712c616c5596321c3044da04d74307a758f2758"
+}

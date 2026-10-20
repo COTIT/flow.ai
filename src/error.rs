@@ -53,6 +53,14 @@ impl AppError {
     }
 }
 
+const NUL_TEXT: &str = "Text must not contain NUL characters.";
+
+fn is_nul_rejection(e: &sqlx::Error) -> bool {
+    e.as_database_error()
+        .and_then(|d| d.code())
+        .is_some_and(|c| c == "22021" || c == "22P05")
+}
+
 fn first_message(errors: &BTreeMap<String, Vec<String>>) -> &str {
     errors
         .values()
@@ -108,6 +116,10 @@ impl IntoResponse for AppError {
                 Json(json!({ "message": TOO_MANY })),
             )
                 .into_response(),
+            // Postgres refuses NUL in text (22021) and \u0000 in jsonb (22P05): bad input, not a fault.
+            Self::Database(e) if is_nul_rejection(&e) => {
+                Self::field("input", NUL_TEXT).into_response()
+            }
             other => {
                 tracing::error!(error = %other, "request failed");
                 let body = json!({ "message": SERVER_ERROR });

@@ -866,3 +866,168 @@ async fn deactivated_owner_cannot_invite(pool: PgPool) {
     assert_eq!(status, StatusCode::FORBIDDEN);
     assert_eq!(res["message"], "This action is unauthorized.");
 }
+
+// ================= team_id: accepting joins the team (Laravel AnswerInviteController)
+
+const BAD_TEAM: &str = "The team id is an invalid id for the team domain.";
+
+impl World {
+    async fn invite_to_team(&self, email: &str, team: Value) -> (StatusCode, Value) {
+        send(
+            &self.app,
+            Method::POST,
+            &format!("/v1/workspace/{}/invites", self.ws),
+            Some(json!({ "email": email, "team_id": team })),
+            Some(&self.owner_token),
+        )
+        .await
+    }
+
+    async fn team_members(&self, team: &str) -> Vec<String> {
+        sqlx::query_scalar(
+            "SELECT u.email FROM team_members m JOIN users u ON u.id = m.user_id
+             WHERE m.team_id = $1::uuid ORDER BY u.email",
+        )
+        .bind(team)
+        .fetch_all(&self.pool)
+        .await
+        .unwrap()
+    }
+}
+
+#[sqlx::test]
+async fn register_through_team_invite_joins_team(pool: PgPool) {
+    let w = world(pool).await;
+    let team = common::add_team(&w.pool, &w.ws, "Sales", &["relation.list"], false).await;
+    let (status, res) = w.invite_to_team("new@example.com", json!(team)).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+
+    let (status, res) = w.register("new@example.com", &w.last_code()).await;
+
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(w.team_members(&team).await, ["new@example.com"]);
+}
+
+#[sqlx::test]
+async fn accepting_team_invite_joins_team(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob, _) = signup(&w.app, "bob@example.com", "bobs").await;
+    let team = common::add_team(&w.pool, &w.ws, "Sales", &[], false).await;
+    w.invite_to_team("bob@example.com", json!(team)).await;
+
+    assert_eq!(w.answer(&bob, &w.last_code(), true).await.0, StatusCode::OK);
+    assert_eq!(w.team_members(&team).await, ["bob@example.com"]);
+}
+
+#[sqlx::test]
+async fn declining_team_invite_joins_nothing(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob, _) = signup(&w.app, "bob@example.com", "bobs").await;
+    let team = common::add_team(&w.pool, &w.ws, "Sales", &[], false).await;
+    w.invite_to_team("bob@example.com", json!(team)).await;
+
+    w.answer(&bob, &w.last_code(), false).await;
+
+    assert!(w.team_members(&team).await.is_empty());
+}
+
+#[sqlx::test]
+async fn team_deleted_after_invite_is_skipped(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob, _) = signup(&w.app, "bob@example.com", "bobs").await;
+    let team = common::add_team(&w.pool, &w.ws, "Sales", &[], false).await;
+    w.invite_to_team("bob@example.com", json!(team)).await;
+    sqlx::query("UPDATE teams SET deleted_at = now()")
+        .execute(&w.pool)
+        .await
+        .unwrap();
+
+    assert_eq!(w.answer(&bob, &w.last_code(), true).await.0, StatusCode::OK);
+    assert!(w.team_members(&team).await.is_empty());
+    assert_eq!(
+        w.workspaces_of("bob@example.com")
+            .await
+            .as_array()
+            .unwrap()
+            .len(),
+        2,
+        "still joins the workspace"
+    );
+}
+
+#[sqlx::test]
+async fn foreign_deleted_or_garbage_team_is_422(pool: PgPool) {
+    let w = world(pool).await;
+    let (_, eves) = signup(&w.app, "eve@example.com", "eves").await;
+    let foreign = common::add_team(&w.pool, &eves, "Theirs", &[], false).await;
+    let deleted = common::add_team(&w.pool, &w.ws, "Gone", &[], true).await;
+
+    for team in [json!(foreign), json!(deleted), json!("nope"), json!(42)] {
+        let (status, res) = w.invite_to_team("new@example.com", team.clone()).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{team}: {res}");
+        assert_eq!(res["errors"]["team_id"], json!([BAD_TEAM]), "{team}");
+    }
+    assert!(common::invite_mails(&w.outbox).is_empty());
+}
+
+#[sqlx::test]
+async fn blank_team_id_means_no_team(pool: PgPool) {
+    let w = world(pool).await;
+
+    // Laravel ConvertEmptyStringsToNull.
+    let (status, res) = w.invite_to_team("new@example.com", json!("  ")).await;
+
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+}
+
+#[sqlx::test]
+async fn only_admins_invite_into_a_team_holding_workspace_admin(pool: PgPool) {
+    let w = world(pool).await;
+    let admins: String = sqlx::query_scalar("SELECT id::text FROM teams WHERE name = 'Admin Team'")
+        .fetch_one(&w.pool)
+        .await
+        .unwrap();
+    let bob = common::member_with(
+        &w.app,
+        &w.pool,
+        &w.ws,
+        "bob@example.com",
+        &["invite.create"],
+    )
+    .await;
+    common::verify_email(&w.pool, "bob@example.com").await;
+
+    let (status, res) = send(
+        &w.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/invites", w.ws),
+        Some(json!({ "email": "alt@example.com", "team_id": admins })),
+        Some(&bob),
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::FORBIDDEN,
+        "second-account escalation: {res}"
+    );
+    assert!(common::invite_mails(&w.outbox).is_empty());
+
+    assert_eq!(
+        w.invite_to_team("alt@example.com", json!(admins)).await.0,
+        StatusCode::CREATED
+    );
+}
+
+#[sqlx::test]
+async fn reinvite_takes_newest_team(pool: PgPool) {
+    let w = world(pool).await;
+    let first = common::add_team(&w.pool, &w.ws, "First", &[], false).await;
+    let second = common::add_team(&w.pool, &w.ws, "Second", &[], false).await;
+    w.invite_to_team("new@example.com", json!(first)).await;
+    w.invite_to_team("new@example.com", json!(second)).await;
+
+    w.register("new@example.com", &w.last_code()).await;
+
+    assert!(w.team_members(&first).await.is_empty());
+    assert_eq!(w.team_members(&second).await, ["new@example.com"]);
+}

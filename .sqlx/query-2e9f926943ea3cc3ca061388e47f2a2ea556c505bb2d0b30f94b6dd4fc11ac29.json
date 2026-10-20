@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO invites (workspace_id, invited_by_user_id, email, token_hash, expires_at, team_id)\n         VALUES ($1, $2, $3, $4, $5, $6)\n         ON CONFLICT (workspace_id, lower(email)) WHERE status = 'pending'\n         DO UPDATE SET token_hash = EXCLUDED.token_hash,\n                       expires_at = EXCLUDED.expires_at,\n                       invited_by_user_id = EXCLUDED.invited_by_user_id,\n                       email = EXCLUDED.email,\n                       team_id = EXCLUDED.team_id,\n                       updated_at = now()\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bytea",
+        "Timestamptz",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2e9f926943ea3cc3ca061388e47f2a2ea556c505bb2d0b30f94b6dd4fc11ac29"
+}

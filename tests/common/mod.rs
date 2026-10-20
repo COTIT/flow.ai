@@ -152,3 +152,74 @@ pub async fn verify_email(pool: &PgPool, email: &str) {
         .await
         .unwrap();
 }
+
+/// Team in `ws` with `perms`, soft-deleted when `deleted`. Returns its id. Direct SQL, so tests
+/// of other features don't depend on the teams endpoints.
+pub async fn add_team(
+    pool: &PgPool,
+    ws: &str,
+    name: &str,
+    perms: &[&str],
+    deleted: bool,
+) -> String {
+    let id: String = sqlx::query_scalar(
+        "INSERT INTO teams (workspace_id, name, description, deleted_at)
+         VALUES ($1::uuid, $2, 'd', CASE WHEN $3 THEN now() END) RETURNING id::text",
+    )
+    .bind(ws)
+    .bind(name)
+    .bind(deleted)
+    .fetch_one(pool)
+    .await
+    .unwrap();
+    for p in perms {
+        sqlx::query("INSERT INTO team_permissions (team_id, permission) VALUES ($1::uuid, $2)")
+            .bind(&id)
+            .bind(p)
+            .execute(pool)
+            .await
+            .unwrap();
+    }
+    id
+}
+
+pub async fn join_team(pool: &PgPool, team: &str, email: &str) {
+    sqlx::query(
+        "INSERT INTO team_members (team_id, user_id)
+         SELECT $1::uuid, id FROM users WHERE email = $2",
+    )
+    .bind(team)
+    .bind(email)
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+/// Active membership straight in the DB, skipping the invite flow.
+pub async fn join_workspace(pool: &PgPool, ws: &str, email: &str) {
+    sqlx::query(
+        "INSERT INTO workspace_members (workspace_id, user_id)
+         SELECT $1::uuid, id FROM users WHERE email = $2",
+    )
+    .bind(ws)
+    .bind(email)
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+/// `email` signs up (own workspace) and joins `ws` in a team holding `perms`. Returns their token.
+pub async fn member_with(
+    app: &Router,
+    pool: &PgPool,
+    ws: &str,
+    email: &str,
+    perms: &[&str],
+) -> String {
+    let own = format!("ws-{}", &email[..email.find('@').unwrap()]);
+    let (token, _) = signup(app, email, &own).await;
+    join_workspace(pool, ws, email).await;
+    let team = add_team(pool, ws, "Crew", perms, false).await;
+    join_team(pool, &team, email).await;
+    token
+}

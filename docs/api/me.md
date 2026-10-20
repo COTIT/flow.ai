@@ -12,25 +12,30 @@ Base path `/v1`. Both routes need `Authorization: Bearer <token>`, and return `4
   "has_pin_code": false, "color": null, "meta": null, "interface_language": null, "active": true,
   "avatar_path": "https://eu.ui-avatars.com/api/?name=Ada+Lovelace",
   "created_at": "…", "last_updated_at": "…",
-  "permissions": [ { "workspace": "<workspace uuid>", "permissions": ["workspace_owner"] } ],
+  "permissions": [ { "workspace": "<workspace uuid>",
+                     "permissions": ["workspace_admin", "workspace_owner"] } ],
   "relationships": {
     "pending_invites": [ {
       "id": "<invite uuid>", "status": "pending", "workspace_name": "acme",
       "invite_code": "<invite uuid>", "invited_on": "…",
       "invited_by": { "email": "owner@example.com", "name": "Owner Name" }
     } ],
-    "teams": [], "employment_group": null
+    "teams": [ { "id": "<team uuid>", "name": "Admin Team",
+                 "description": "This team consist of admins of the workspace",
+                 "permissions": ["workspace_admin"], "created_at": "…", "last_updated_at": "…",
+                 "meta": null, "relationships": [] } ],
+    "employment_group": null
   }
 } } }
 ```
 
-- `permissions`: one entry per **active** membership in a live workspace. The owner (`created_by_user_id`) gets `workspace_owner`; other members get `[]`. That matches Laravel, where an invite without a team grants no permissions. `workspace` is the same uuid as `/me/workspaces[].id`; `auth.store.js` matches on it.
+- `permissions`: one entry per **active** membership in a live workspace. The list is the union of the user's live teams' grants in that workspace, sorted, with `workspace_owner` appended for the creator (Laravel appends it last too). A member in no team gets `[]`. `workspace` is the same uuid as `/me/workspaces[].id`; `auth.store.js` matches on it.
+- `relationships.teams`: the user's live teams in workspaces where they're an active member, oldest first, in Laravel `TeamResource` shape. Users aren't loaded here, so `relationships` is `[]`. Signup seeds an `Admin Team` holding `workspace_admin` with the owner in it.
 - `pending_invites`: pending, unexpired invites to the user's email (case-insensitive), newest first. **Empty until the email is verified**, because an unverified account may be squatting someone else's address. `invite_code` is the invite id, accepted by `POST /v1/invites`.
 - Not ported yet, so these keep fixed values:
   - `user_id` is the uuid (Laravel sent the int PK; Security.vue skips uuid-looking values)
   - `has_pin_code: false`
   - `interface_language: null` (the frontend falls back to `nl`)
-  - `teams: []`
   - `employment_group: null`
 
 ## GET /v1/me/workspaces

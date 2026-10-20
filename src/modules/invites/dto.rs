@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{
@@ -12,17 +13,39 @@ use crate::{
     },
 };
 
-/// POST /v1/workspace/{workspace}/invites. `team_id` accepted and ignored: teams not ported.
+/// Laravel `rules.ValidateId` for attribute `team id`.
+pub const BAD_TEAM: &str = "The team id is an invalid id for the team domain.";
+
+/// POST /v1/workspace/{workspace}/invites. `team_id`: team the invitee joins on accept.
 #[derive(Deserialize)]
 pub struct SendInviteRequest {
     email: Option<String>,
+    /// Any JSON: a number or junk must be a `team_id` error, not a body parse error.
+    team_id: Option<Value>,
+}
+
+pub struct SendInvite {
+    pub email: String,
+    pub team_id: Option<Uuid>,
 }
 
 impl Validate for SendInviteRequest {
-    type Valid = String;
+    type Valid = SendInvite;
 
-    fn validate(self, r: &mut Rules) -> Option<String> {
-        required_email(r, "email", self.email)
+    fn validate(self, r: &mut Rules) -> Option<SendInvite> {
+        let email = required_email(r, "email", self.email);
+        let team_id = match self.team_id {
+            None | Some(Value::Null) => Some(None),
+            // Laravel ConvertEmptyStringsToNull: blank = no team.
+            Some(Value::String(s)) if s.trim().is_empty() => Some(None),
+            Some(Value::String(s)) => Uuid::parse_str(s.trim()).ok().map(Some),
+            Some(_) => None,
+        };
+        r.check("team_id", team_id.is_some(), BAD_TEAM);
+        Some(SendInvite {
+            email: email?,
+            team_id: team_id?,
+        })
     }
 }
 

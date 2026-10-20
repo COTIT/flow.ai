@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO teams (workspace_id, name, description, meta) VALUES ($1, $2, $3, $4)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "80958d26bf4c869a6cea755dc06ec652515fd1a6c228b65333be6b2d732d4753"
+}

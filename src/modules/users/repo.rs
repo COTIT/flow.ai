@@ -140,6 +140,130 @@ pub async fn find_profile(
     .await
 }
 
+/// Live user with their membership in one workspace.
+pub struct Member {
+    pub id: Uuid,
+    pub email: String,
+    pub first_name: String,
+    pub middle_name: Option<String>,
+    pub last_name: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    /// Membership flag, not the account's.
+    pub active: bool,
+    /// Created the workspace.
+    pub owner: bool,
+}
+
+/// Users-tab filter. `pattern` = escaped ILIKE pattern over names and email.
+pub struct MemberFilter<'a> {
+    pub pattern: Option<&'a str>,
+    pub team_id: Option<Uuid>,
+    /// PIN login not ported: nobody has one, so `true` matches no one.
+    pub has_pin_code: bool,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+/// One page of `workspace_id`'s members (active or not), oldest membership first, + total.
+pub async fn workspace_members(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    f: &MemberFilter<'_>,
+) -> Result<(Vec<Member>, i64), sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT u.id, u.email, u.first_name, u.middle_name, u.last_name, u.created_at,
+                  u.updated_at, m.active, w.created_by_user_id = u.id AS "owner!",
+                  count(*) OVER () AS "total!"
+           FROM workspace_members m
+           JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL
+           JOIN workspaces w ON w.id = m.workspace_id
+           WHERE m.workspace_id = $1 AND NOT $4
+             AND ($2::text IS NULL OR u.email ILIKE $2
+                  OR concat_ws(' ', u.first_name, u.middle_name, u.last_name) ILIKE $2
+                  OR concat_ws(' ', u.first_name, u.last_name) ILIKE $2)
+             AND ($3::uuid IS NULL OR EXISTS (
+                   SELECT 1 FROM team_members tm
+                   JOIN teams t ON t.id = tm.team_id AND t.deleted_at IS NULL
+                   WHERE tm.user_id = u.id AND t.id = $3 AND t.workspace_id = $1))
+           ORDER BY m.created_at, u.id
+           LIMIT $5 OFFSET $6"#,
+        workspace_id,
+        f.pattern,
+        f.team_id,
+        f.has_pin_code,
+        f.limit,
+        f.offset,
+    )
+    .fetch_all(db)
+    .await?;
+    // Empty page past the end has no row to carry the count: caller asks `count_members`.
+    let total = rows.first().map_or(0, |r| r.total);
+    let members = rows
+        .into_iter()
+        .map(|r| Member {
+            id: r.id,
+            email: r.email,
+            first_name: r.first_name,
+            middle_name: r.middle_name,
+            last_name: r.last_name,
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+            active: r.active,
+            owner: r.owner,
+        })
+        .collect();
+    Ok((members, total))
+}
+
+/// Members matching `f`, ignoring paging. Same WHERE as `workspace_members`.
+pub async fn count_members(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    f: &MemberFilter<'_>,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!"
+           FROM workspace_members m
+           JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL
+           WHERE m.workspace_id = $1 AND NOT $4
+             AND ($2::text IS NULL OR u.email ILIKE $2
+                  OR concat_ws(' ', u.first_name, u.middle_name, u.last_name) ILIKE $2
+                  OR concat_ws(' ', u.first_name, u.last_name) ILIKE $2)
+             AND ($3::uuid IS NULL OR EXISTS (
+                   SELECT 1 FROM team_members tm
+                   JOIN teams t ON t.id = tm.team_id AND t.deleted_at IS NULL
+                   WHERE tm.user_id = u.id AND t.id = $3 AND t.workspace_id = $1))"#,
+        workspace_id,
+        f.pattern,
+        f.team_id,
+        f.has_pin_code,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// One member of `workspace_id`. None = not a member, unknown or deleted user.
+pub async fn find_member(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+) -> Result<Option<Member>, sqlx::Error> {
+    sqlx::query_as!(
+        Member,
+        r#"SELECT u.id, u.email, u.first_name, u.middle_name, u.last_name, u.created_at,
+                  u.updated_at, m.active, w.created_by_user_id = u.id AS "owner!"
+           FROM workspace_members m
+           JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL
+           JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
+           WHERE m.workspace_id = $1 AND m.user_id = $2"#,
+        workspace_id,
+        user_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

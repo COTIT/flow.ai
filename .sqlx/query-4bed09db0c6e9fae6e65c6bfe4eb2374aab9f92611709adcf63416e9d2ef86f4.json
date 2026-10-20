@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO team_members (team_id, user_id)\n         SELECT t.id, u FROM teams t, unnest($3::uuid[]) AS u\n         WHERE t.id = $1 AND t.workspace_id = $2 AND t.deleted_at IS NULL\n         ON CONFLICT (team_id, user_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4bed09db0c6e9fae6e65c6bfe4eb2374aab9f92611709adcf63416e9d2ef86f4"
+}

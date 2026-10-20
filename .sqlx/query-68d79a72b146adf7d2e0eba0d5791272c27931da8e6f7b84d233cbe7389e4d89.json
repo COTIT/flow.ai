@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,\n                i.expires_at, i.created_at, i.token_hash\n         FROM invites i\n         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n         WHERE i.token_hash = $1",
+  "query": "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,\n                i.expires_at, i.created_at, i.token_hash, i.team_id\n         FROM invites i\n         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n         WHERE i.token_hash = $1",
   "describe": {
     "columns": [
       {
@@ -90,6 +90,17 @@
             "name": "token_hash"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "team_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "team_id"
+          }
+        }
       }
     ],
     "parameters": {
@@ -105,8 +116,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "e52dc6550e195ac8a549f97c603d3edb6c86b643ffea79243cddb1aa628e366d"
+  "hash": "68d79a72b146adf7d2e0eba0d5791272c27931da8e6f7b84d233cbe7389e4d89"
 }

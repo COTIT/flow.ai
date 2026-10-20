@@ -11,6 +11,7 @@ pub struct NewInvite<'a> {
     pub email: &'a str,
     pub token_hash: &'a [u8; 32],
     pub expires_at: DateTime<Utc>,
+    pub team_id: Option<Uuid>,
 }
 
 /// Invite plus workspace name, enough for status page and accept checks.
@@ -26,22 +27,25 @@ pub struct InviteRow {
     pub created_at: DateTime<Utc>,
     /// Current code hash; answering re-checks it so a code rotated meanwhile can't be used.
     pub token_hash: Vec<u8>,
+    /// Team joined on accept, if still live then.
+    pub team_id: Option<Uuid>,
 }
 
-/// Create pending invite, or rotate code + expiry on existing pending one for same email.
-/// Rotation kills old link, so only newest email works.
+/// Create pending invite, or rotate code + expiry + team on existing pending one for same
+/// email. Rotation kills old link, so only newest email works.
 pub async fn upsert_pending(
     db: impl PgExecutor<'_>,
     invite: &NewInvite<'_>,
 ) -> Result<Uuid, sqlx::Error> {
     sqlx::query_scalar!(
-        "INSERT INTO invites (workspace_id, invited_by_user_id, email, token_hash, expires_at)
-         VALUES ($1, $2, $3, $4, $5)
+        "INSERT INTO invites (workspace_id, invited_by_user_id, email, token_hash, expires_at, team_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (workspace_id, lower(email)) WHERE status = 'pending'
          DO UPDATE SET token_hash = EXCLUDED.token_hash,
                        expires_at = EXCLUDED.expires_at,
                        invited_by_user_id = EXCLUDED.invited_by_user_id,
                        email = EXCLUDED.email,
+                       team_id = EXCLUDED.team_id,
                        updated_at = now()
          RETURNING id",
         invite.workspace_id,
@@ -49,6 +53,7 @@ pub async fn upsert_pending(
         invite.email,
         &invite.token_hash[..],
         invite.expires_at,
+        invite.team_id,
     )
     .fetch_one(db)
     .await
@@ -62,7 +67,7 @@ pub async fn find_by_token_hash(
     sqlx::query_as!(
         InviteRow,
         "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,
-                i.expires_at, i.created_at, i.token_hash
+                i.expires_at, i.created_at, i.token_hash, i.team_id
          FROM invites i
          JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
          WHERE i.token_hash = $1",
@@ -80,7 +85,7 @@ pub async fn find_by_id(
     sqlx::query_as!(
         InviteRow,
         "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,
-                i.expires_at, i.created_at, i.token_hash
+                i.expires_at, i.created_at, i.token_hash, i.team_id
          FROM invites i
          JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
          WHERE i.id = $1",
@@ -232,6 +237,7 @@ mod tests {
             email,
             token_hash: hash,
             expires_at: Utc::now() + Duration::days(7),
+            team_id: None,
         }
     }
 

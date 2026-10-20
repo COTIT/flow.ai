@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM workspace_members m\n           JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL\n           WHERE m.workspace_id = $1 AND m.user_id = ANY($2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "879f7ebab3b97d3dc18756bded27932045f60367008d0dc7ef3e49b199606b02"
+}

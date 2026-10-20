@@ -34,10 +34,9 @@ pub async fn name_taken(db: impl PgExecutor<'_>, name: &str) -> Result<bool, sql
     .await
 }
 
-/// Owner + name of a live workspace.
+/// Name of a live workspace.
 pub struct WorkspaceRef {
     pub name: String,
-    pub created_by_user_id: Uuid,
 }
 
 /// Live workspace by id. None = unknown or deleted.
@@ -47,7 +46,7 @@ pub async fn find(
 ) -> Result<Option<WorkspaceRef>, sqlx::Error> {
     sqlx::query_as!(
         WorkspaceRef,
-        "SELECT name, created_by_user_id FROM workspaces WHERE id = $1 AND deleted_at IS NULL",
+        "SELECT name FROM workspaces WHERE id = $1 AND deleted_at IS NULL",
         workspace_id,
     )
     .fetch_optional(db)
@@ -101,24 +100,6 @@ pub async fn active_workspace_ids(
         user_id,
     )
     .fetch_all(db)
-    .await
-}
-
-/// True when user has an **active** membership in this workspace.
-pub async fn is_active_member(
-    db: impl PgExecutor<'_>,
-    workspace_id: Uuid,
-    user_id: Uuid,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"SELECT EXISTS (
-             SELECT 1 FROM workspace_members
-             WHERE workspace_id = $1 AND user_id = $2 AND active
-           ) AS "exists!""#,
-        workspace_id,
-        user_id,
-    )
-    .fetch_one(db)
     .await
 }
 
@@ -196,15 +177,16 @@ mod tests {
 
         let ws = insert(&pool, "acme", "manufacturing", owner).await.unwrap();
 
-        let found = find(&pool, ws).await.unwrap().unwrap();
-        assert_eq!(found.created_by_user_id, owner);
-        assert_eq!(found.name, "acme");
-        let ty: String = sqlx::query_scalar("SELECT workspace_type FROM workspaces WHERE id = $1")
-            .bind(ws)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+        assert_eq!(find(&pool, ws).await.unwrap().unwrap().name, "acme");
+        let (ty, by): (String, Uuid) = sqlx::query_as(
+            "SELECT workspace_type, created_by_user_id FROM workspaces WHERE id = $1",
+        )
+        .bind(ws)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
         assert_eq!(ty, "manufacturing");
+        assert_eq!(by, owner);
     }
 
     #[sqlx::test]
