@@ -23,6 +23,7 @@ use crate::{
         },
         relations::service as relations,
         sales_groups::{dto::SalesGroupResource, repo as sales_groups},
+        stock::repo as stock,
         vat_groups::repo as vat_groups,
         warehouses::{
             dto::{WarehouseCompacted, WarehouseResource},
@@ -165,6 +166,15 @@ pub async fn create(
     .await?;
     if let Some(children) = bundle_children(&row, &f) {
         repo::set_children(&mut tx, workspace_id, row.id, children).await?;
+    }
+    if row.has_stock {
+        let main = stock::seed(&mut tx, workspace_id, row.id).await?;
+        // Laravel overwrote a chosen default with the main warehouse; only fill a missing one.
+        if let Some(main) = main
+            && row.default_warehouse_id.is_none()
+        {
+            repo::set_default_warehouse(&mut tx, workspace_id, row.id, main).await?;
+        }
     }
     tx.commit().await?;
     Ok(row.id)

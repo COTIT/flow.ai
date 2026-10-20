@@ -213,6 +213,33 @@ pub async fn lock_or_create(
     Ok((row, created))
 }
 
+/// Laravel EnsureProductWarehouseStockEntries for a new product: zero warehouse-level rows in
+/// the main (default) warehouse and every store, only when a main warehouse exists. No
+/// movements, as in Laravel. Returns the main warehouse.
+pub async fn seed(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    product_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"WITH targets AS (
+               SELECT id, default_warehouse FROM warehouses
+               WHERE workspace_id = $1 AND deleted_at IS NULL AND (default_warehouse OR is_store)
+           ),
+           seeded AS (
+               INSERT INTO stocks (workspace_id, product_id, warehouse_id)
+               SELECT $1, $2, id FROM targets
+               WHERE EXISTS (SELECT 1 FROM targets WHERE default_warehouse)
+               ON CONFLICT DO NOTHING
+           )
+           SELECT id AS "id!" FROM targets WHERE default_warehouse"#,
+        workspace_id,
+        product_id,
+    )
+    .fetch_optional(&mut *conn)
+    .await
+}
+
 /// Soft-delete a row the caller holds locked.
 pub async fn soft_delete(conn: &mut PgConnection, id: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query!(

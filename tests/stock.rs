@@ -20,6 +20,10 @@ struct World {
 
 async fn world(pool: PgPool) -> World {
     let api = Api::new(pool, "/products").await;
+    // Created before any warehouse, so product create seeds no zero rows here.
+    let product = api
+        .create(json!({ "name": "A", "price": 1 }), "product_id")
+        .await;
     let wh = api.with_base("/warehouses");
     let main = wh.create(json!({ "name": "Main" }), "warehouse_id").await;
     let shop = wh
@@ -51,9 +55,6 @@ async fn world(pool: PgPool) -> World {
             )
         })
         .collect();
-    let product = api
-        .create(json!({ "name": "A", "price": 1 }), "product_id")
-        .await;
     World {
         api,
         product,
@@ -696,4 +697,66 @@ async fn move_between_bins(pool: PgPool) {
         .call(Method::POST, &path, Some(json!({})), &mover)
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
+}
+
+/// Laravel EnsureProductWarehouseStockEntries: a new stock-tracked product gets zero rows in
+/// the main warehouse and every store, and the main warehouse as default when it has none.
+#[sqlx::test]
+async fn product_create_seeds_zero_rows(pool: PgPool) {
+    let w = world(pool).await;
+    let main_is_default =
+        w.api.with_base("/warehouses").get(&w.main).await["default_warehouse"] == json!(true);
+    assert!(main_is_default, "first warehouse is the main one");
+    let rows = |id: String| {
+        let pool = w.api.pool.clone();
+        async move {
+            let rows: Vec<(String, String)> = sqlx::query_as(
+                "SELECT warehouse_id::text, stock_lvl::text FROM stocks
+                 WHERE product_id = $1::uuid ORDER BY warehouse_id",
+            )
+            .bind(id)
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+            rows
+        }
+    };
+
+    let b = w
+        .api
+        .create(json!({ "name": "B", "price": 1 }), "product_id")
+        .await;
+    let mut expected = vec![(w.main.clone(), s("0.00")), (w.shop.clone(), s("0.00"))];
+    expected.sort();
+    assert_eq!(rows(b.clone()).await, expected);
+    assert_eq!(
+        w.api.get(&b).await["default_warehouse"]["id"],
+        w.main.as_str()
+    );
+
+    let c = w
+        .api
+        .create(
+            json!({ "name": "C", "price": 1, "default_warehouse_id": w.shop }),
+            "product_id",
+        )
+        .await;
+    assert_eq!(
+        w.api.get(&c).await["default_warehouse"]["id"],
+        w.shop.as_str(),
+        "a chosen default stays (Laravel overwrote it with the main one)"
+    );
+    let d = w
+        .api
+        .create(
+            json!({ "name": "D", "price": 1, "has_stock": false }),
+            "product_id",
+        )
+        .await;
+    assert!(rows(d).await.is_empty(), "no stock tracking, no rows");
+    let movements: i64 = sqlx::query_scalar("SELECT count(*) FROM stock_movements")
+        .fetch_one(&w.api.pool)
+        .await
+        .unwrap();
+    assert_eq!(movements, 0, "seeding writes no ledger rows");
 }
