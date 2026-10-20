@@ -760,3 +760,74 @@ async fn product_create_seeds_zero_rows(pool: PgPool) {
         .unwrap();
     assert_eq!(movements, 0, "seeding writes no ledger rows");
 }
+
+/// Laravel ProductResource stock fields: real rows (StockWithoutRelationsResource), the sum,
+/// and the POS pick (highest pickup-enabled row: asked warehouse, else default, else any).
+#[sqlx::test]
+async fn product_resource_shows_real_stock(pool: PgPool) {
+    let w = world(pool).await;
+    let (bin, shelf) = (&w.bins[0].0, &w.bins[0].1);
+    for (wh, bin, value) in [
+        (&w.main, None, "5"),
+        (&w.shop, None, "2.5"),
+        (&w.main, Some(bin), "1"),
+    ] {
+        let (status, res) = w
+            .mutate(json!({ "warehouse_id": wh, "bin_id": bin, "mutation_value": value }))
+            .await;
+        assert_eq!(status, StatusCode::OK, "{res}");
+    }
+
+    let p = w.api.get(&w.product).await;
+    let stocks = p["stocks"].as_array().unwrap();
+    assert_eq!(stocks.len(), 3, "real rows only: the store has one");
+    let main = &stocks[0];
+    assert_eq!(main["stock_lvl"], "5.00");
+    assert_eq!(main["reserved"], "0.00");
+    assert_eq!(main["warehouse"]["name"], "Main");
+    assert_eq!(main["warehouse"]["color"], Value::Null);
+    assert_eq!(
+        (main["shelf"].clone(), main["bin"].clone()),
+        (Value::Null, Value::Null)
+    );
+    assert!(main.get("product").is_none(), "Laravel didn't load it here");
+    assert!(main["updated_at"].is_string());
+    assert_eq!(stocks[2]["bin"]["id"], bin.as_str());
+    assert_eq!(stocks[2]["shelf"]["id"], shelf.as_str());
+    assert_eq!(p["total_available_stock"], json!(8.5));
+    assert_eq!(p["total_reserved_stock"], json!(0));
+    // Only the store is pickup-enabled.
+    assert_eq!(p["pos_available_stock"], json!(2.5));
+    assert_eq!(p["pos_stock_status"], "available");
+    assert_eq!(p["pos_stock_warehouse_id"], w.shop.as_str());
+    assert_eq!(p["pos_stock_id"], stocks[1]["id"]);
+
+    let listed = w.api.list(&format!("?warehouse_id={}", w.main)).await;
+    let row = &listed["data"][0];
+    assert_eq!(row["pos_available_stock"], json!(0), "no pickup row there");
+    assert_eq!(row["pos_stock_status"], "unavailable");
+    assert_eq!(row["pos_stock_id"], Value::Null);
+    assert_eq!(row["stocks"].as_array().unwrap().len(), 3);
+
+    w.mutate(json!({ "warehouse_id": w.shop, "mutation_value": "0.5" }))
+        .await;
+    let p = w.api.get(&w.product).await;
+    assert_eq!(
+        p["total_available_stock"],
+        json!(9),
+        "a whole float prints as PHP did"
+    );
+    assert_eq!(p["pos_available_stock"], json!(3));
+
+    let service = w
+        .api
+        .create(
+            json!({ "name": "S", "price": 1, "type": "service" }),
+            "product_id",
+        )
+        .await;
+    let s = w.api.get(&service).await;
+    assert_eq!(s["pos_available_stock"], json!(0));
+    assert_eq!(s["pos_stock_status"], "not_applicable");
+    assert_eq!(s["total_available_stock"], json!(0));
+}

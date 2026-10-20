@@ -1,6 +1,7 @@
 //! SQL for stocks and the stock_movements ledger. Every write runs in the caller's
 //! transaction: lock the slot's row (or create it), change it, append one movement.
 
+use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde_json::Value;
 use sqlx::PgConnection;
@@ -153,6 +154,60 @@ pub async fn mutate(
         before: row.stock_lvl,
         after,
     })
+}
+
+/// A stock row with its warehouse, shelf and bin (Laravel StockWithoutRelationsResource).
+/// Each relation is None when soft-deleted, as Laravel's BelongsTo gave null.
+pub struct StockLine {
+    pub id: Uuid,
+    pub product_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub stock_lvl: Decimal,
+    pub reserved: Decimal,
+    pub minimal_stock_level: i32,
+    pub maximum_stock_level: i32,
+    pub meta: Option<Value>,
+    pub updated_at: DateTime<Utc>,
+    pub w_id: Option<Uuid>,
+    pub w_name: Option<String>,
+    pub w_alias: Option<String>,
+    pub w_is_store: Option<bool>,
+    pub w_pickup: Option<bool>,
+    pub w_location: Option<Value>,
+    pub shelf_id: Option<Uuid>,
+    pub shelf_code: Option<String>,
+    pub shelf_name: Option<String>,
+    pub bin_id: Option<Uuid>,
+    pub bin_code: Option<String>,
+    pub bin_name: Option<String>,
+}
+
+/// Live stock rows of `product_ids` with their relations, oldest first.
+pub async fn lines(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    product_ids: &[Uuid],
+) -> Result<Vec<StockLine>, sqlx::Error> {
+    sqlx::query_as!(
+        StockLine,
+        r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,
+                  s.minimal_stock_level, s.maximum_stock_level, s.meta, s.updated_at,
+                  w.id AS "w_id?", w.name AS "w_name?", w.alias AS "w_alias?",
+                  w.is_store AS "w_is_store?", w.pickup_enabled AS "w_pickup?",
+                  w.location AS "w_location?",
+                  sh.id AS "shelf_id?", sh.shelf_code AS "shelf_code?", sh.shelf_name AS "shelf_name?",
+                  b.id AS "bin_id?", b.bin_code AS "bin_code?", b.bin_name AS "bin_name?"
+           FROM stocks s
+           LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL
+           LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL
+           WHERE s.workspace_id = $1 AND s.product_id = ANY($2) AND s.deleted_at IS NULL
+           ORDER BY s.id"#,
+        workspace_id,
+        product_ids,
+    )
+    .fetch_all(db)
+    .await
 }
 
 /// The slot's live row under `FOR NO KEY UPDATE`; None = no row yet.

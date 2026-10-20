@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sqlx::PgConnection;
 use uuid::Uuid;
@@ -307,7 +307,9 @@ pub async fn generate(
             reference_vendor: p.reference_vendor.clone(),
             reference_vendor2: p.reference_vendor2.clone(),
             reference_vendor3: p.reference_vendor3.clone(),
-            meta: Some(json!({ "stock": number(c.stock.unwrap_or(default_stock)) })),
+            meta: Some(
+                json!({ "stock": crate::money::php_number(c.stock.unwrap_or(default_stock)) }),
+            ),
             created_at: now,
             updated_at: now,
         };
@@ -426,15 +428,6 @@ fn changed_prices(a: &VariantRow, b: &VariantRow) -> Vec<PriceChange> {
     .into_iter()
     .filter(|(_, x, y)| x != y)
     .collect()
-}
-
-/// A JSON number as the client sent it: whole -> integer, else float (Laravel kept the input).
-fn number(d: Decimal) -> Value {
-    if d.fract().is_zero() {
-        d.to_i64().map_or(Value::Null, Value::from)
-    } else {
-        d.to_f64().map_or(Value::Null, Value::from)
-    }
 }
 
 /// Malformed id = unknown id = 404.

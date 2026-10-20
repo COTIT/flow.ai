@@ -40,12 +40,17 @@ pub struct Actor {
     pub flow: &'static str,
 }
 
-/// One rendered product (GET one, barcode search).
-pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value, AppError> {
+/// One rendered product (GET one); `pos_warehouse` shapes the `pos_*` fields.
+pub async fn get(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    pos_warehouse: Option<Uuid>,
+) -> Result<Value, AppError> {
     let row = repo::find(&state.db, workspace_id, parse(id)?)
         .await?
         .ok_or(AppError::NotFound)?;
-    render_one(state, workspace_id, row).await
+    render_one(state, workspace_id, row, pos_warehouse).await
 }
 
 /// Ok when `id` is a live product of the workspace, else 404.
@@ -61,15 +66,17 @@ pub async fn search(state: &AppState, workspace_id: Uuid, code: &str) -> Result<
     let row = repo::by_code(&state.db, workspace_id, code)
         .await?
         .ok_or(AppError::NotFound)?;
-    render_one(state, workspace_id, row).await
+    render_one(state, workspace_id, row, None).await
 }
 
 async fn render_one(
     state: &AppState,
     workspace_id: Uuid,
     row: ProductRow,
+    pos_warehouse: Option<Uuid>,
 ) -> Result<Value, AppError> {
-    let e = embeds(state, workspace_id, std::slice::from_ref(&row), true).await?;
+    let mut e = embeds(state, workspace_id, std::slice::from_ref(&row), true).await?;
+    e.pos_warehouse = pos_warehouse;
     Ok(resource::render(&row, &e, true))
 }
 
@@ -87,17 +94,19 @@ pub async fn render_index(
     Ok((row, v))
 }
 
-/// One list page (rendered) plus total.
+/// One list page (rendered) plus total; `pos_warehouse` shapes the `pos_*` fields.
 pub async fn list(
     state: &AppState,
     workspace_id: Uuid,
     f: &ListFilter<'_>,
+    pos_warehouse: Option<Uuid>,
 ) -> Result<(Vec<Value>, i64), AppError> {
     let (rows, mut total) = repo::list(&state.db, workspace_id, f).await?;
     if rows.is_empty() && f.offset > 0 {
         total = repo::count(&state.db, workspace_id, f).await?;
     }
-    let e = embeds(state, workspace_id, &rows, false).await?;
+    let mut e = embeds(state, workspace_id, &rows, false).await?;
+    e.pos_warehouse = pos_warehouse;
     Ok((
         rows.iter()
             .map(|p| resource::render(p, &e, false))
@@ -642,6 +651,10 @@ async fn embeds(
     let (refs, store) = warehouses::stock_refs(&state.db, workspace_id, &defaults).await?;
     e.stock_refs = refs.into_iter().map(|w| (w.id, w)).collect();
     e.store = store;
+    let ids: Vec<Uuid> = all.iter().map(|p| p.id).collect();
+    for line in stock::lines(&state.db, workspace_id, &ids).await? {
+        e.stocks.entry(line.product_id).or_default().push(line);
+    }
     if !detail {
         return Ok(e);
     }

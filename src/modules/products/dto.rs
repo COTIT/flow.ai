@@ -440,6 +440,21 @@ pub struct ListQuery {
     pub supplier_relation_id: Option<String>,
     pub ean13: Option<String>,
     pub exclude_ids: Option<String>,
+    /// Shapes only the `pos_*` fields (Laravel didn't filter on it).
+    pub warehouse_id: Option<String>,
+}
+
+/// GET one query: `warehouse_id` shapes the `pos_*` fields.
+#[derive(Deserialize)]
+pub struct GetQuery {
+    pub warehouse_id: Option<String>,
+}
+
+/// A sent `warehouse_id`: a malformed one matches no warehouse (nil), blank is none.
+pub fn pos_warehouse(v: Option<&str>) -> Option<Uuid> {
+    v.map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| Uuid::parse_str(s).unwrap_or(Uuid::nil()))
 }
 
 /// GET price-history query.

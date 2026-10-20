@@ -277,7 +277,8 @@ async fn fallback_stock_rows_and_embedded_warehouse(pool: PgPool) {
 
     let id = api
         .create(
-            json!({ "name": "A", "price": 1, "default_warehouse_id": main }),
+            // No stock tracking: no seeded rows, so only Laravel's fallback rows show.
+            json!({ "name": "A", "price": 1, "default_warehouse_id": main, "has_stock": false }),
             "product_id",
         )
         .await;
@@ -849,7 +850,7 @@ async fn fallback_stock_without_a_store(pool: PgPool) {
         .await;
     let id = api
         .create(
-            json!({ "name": "a", "price": 1, "default_warehouse_id": main }),
+            json!({ "name": "a", "price": 1, "default_warehouse_id": main, "has_stock": false }),
             "product_id",
         )
         .await;

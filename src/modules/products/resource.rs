@@ -8,14 +8,18 @@ use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-use crate::modules::{
-    products::{
-        dto::PHYSICAL,
-        pricing::{column, computed, incl, purchase_price},
-        repo::ProductRow,
+use crate::{
+    modules::{
+        products::{
+            dto::PHYSICAL,
+            pricing::{column, computed, incl, purchase_price},
+            repo::ProductRow,
+        },
+        stock::repo::StockLine,
+        vat_groups::{dto::VatGroupResource, repo::VatGroupRow},
+        warehouses::repo::StockRef,
     },
-    vat_groups::{dto::VatGroupResource, repo::VatGroupRow},
-    warehouses::repo::StockRef,
+    money::php_number,
 };
 
 /// Everything a page of products embeds, loaded once per page.
@@ -32,6 +36,10 @@ pub struct Embeds {
     pub store: Option<Uuid>,
     /// Bundle children per parent, already rendered, with their quantity.
     pub set_children: HashMap<Uuid, Vec<(Value, Decimal)>>,
+    /// Live stock rows per product.
+    pub stocks: HashMap<Uuid, Vec<StockLine>>,
+    /// `?warehouse_id=` for the `pos_*` pick (Laravel read it from the request).
+    pub pos_warehouse: Option<Uuid>,
 }
 
 /// One product. `detail`: GET one (Laravel loaded more there).
@@ -39,6 +47,8 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
     let vat = p.vat_group_id.and_then(|id| e.vat_groups.get(&id));
     let vat_pct = vat.map_or(Decimal::ZERO, |v| v.vat_amount);
     let mutates = PHYSICAL.contains(&p.kind.as_str()) && p.has_stock;
+    let lines = e.stocks.get(&p.id).map_or(&[][..], Vec::as_slice);
+    let pos = if mutates { pos_pick(p, lines, e) } else { None };
     let price = computed(p.price, 4);
     let price_incl = computed(incl(p.price, vat_pct), 2);
     let purchase = purchase_price(
@@ -120,16 +130,19 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "description": p.description,
         "second_chance_reason": null,
         "exclude_price_corrections": p.exclude_price_corrections,
-        // shortcut: stock not ported (6F): no stock rows, so totals are 0 and only the
-        // fallback rows show.
-        "total_available_stock": 0,
+        "total_available_stock": php_number(lines.iter().map(|l| l.stock_lvl).sum()),
+        // shortcut: no orders or transfer lists yet (final batch), so nothing is reserved.
         "total_reserved_stock": 0,
-        "pos_available_stock": 0.0,
-        "pos_stock_status": if mutates { "unavailable" } else { "not_applicable" },
-        "pos_stock_warehouse_id": null,
-        "pos_stock_id": null,
+        "pos_available_stock": php_number(pos.map_or(Decimal::ZERO, |l| l.stock_lvl)),
+        "pos_stock_status": match pos {
+            _ if !mutates => "not_applicable",
+            Some(l) if l.stock_lvl > Decimal::ZERO => "available",
+            _ => "unavailable",
+        },
+        "pos_stock_warehouse_id": pos.map(|l| l.warehouse_id),
+        "pos_stock_id": pos.map(|l| l.id),
         "default_warehouse": p.default_warehouse_id.and_then(|id| e.warehouses.get(&id)),
-        "stocks": fallback_stocks(p, e),
+        "stocks": stocks(p, lines, e),
         "supplier_relation": p.supplier_relation_id.and_then(|id| e.suppliers.get(&id)),
         "attributes": null,
         "meta": p.meta,
@@ -167,37 +180,83 @@ fn raw(v: Decimal, dp: u32) -> String {
     v.to_string()
 }
 
-/// Laravel `stocksWithFallbackWarehouses` with no stock rows: one zero row for the default
-/// warehouse and one for the workspace's first store, each once.
-fn fallback_stocks(p: &ProductRow, e: &Embeds) -> Vec<Value> {
-    let mut ids: Vec<Uuid> = p.default_warehouse_id.into_iter().collect();
-    if let Some(store) = e.store
-        && !ids.contains(&store)
-    {
-        ids.push(store);
+/// Laravel `stocksWithFallbackWarehouses`: the real rows (StockWithoutRelationsResource), then
+/// one zero row for the default warehouse and the first store when they have none.
+fn stocks(p: &ProductRow, lines: &[StockLine], e: &Embeds) -> Vec<Value> {
+    let mut rows: Vec<Value> = lines.iter().map(stock_row).collect();
+    let mut have: Vec<Uuid> = lines.iter().filter_map(|l| l.w_id).collect();
+    for id in p.default_warehouse_id.into_iter().chain(e.store) {
+        if have.contains(&id) {
+            continue;
+        }
+        have.push(id);
+        if let Some(w) = e.stock_refs.get(&id) {
+            rows.push(fallback_row(w));
+        }
     }
-    ids.iter()
-        .filter_map(|id| e.stock_refs.get(id))
-        .map(|w| {
-            json!({
-                "id": format!("fallback-{}", w.id),
-                "stock_lvl": "0.00",
-                "reserved": "0.00",
-                "minimal_stock_level": 0,
-                "maximum_stock_level": 0,
-                "warehouse": {
-                    "id": w.id, "name": w.name, "alias": w.alias, "color": null, "icon": null,
-                    "is_store": w.is_store, "pickup_enabled": w.pickup_enabled,
-                    "location": w.location,
-                },
-                "shelf": null,
-                "bin": null,
-                "product": null,
-                "updated_at": null,
-                "meta": null,
+    rows
+}
+
+/// One real stock row. No `product` key: Laravel didn't load it in product resources.
+fn stock_row(l: &StockLine) -> Value {
+    json!({
+        "id": l.id,
+        "stock_lvl": raw(l.stock_lvl, 2),
+        "reserved": raw(l.reserved, 2),
+        "minimal_stock_level": l.minimal_stock_level,
+        "maximum_stock_level": l.maximum_stock_level,
+        "warehouse": l.w_id.map(|id| json!({
+            "id": id, "name": l.w_name, "alias": l.w_alias, "color": null, "icon": null,
+            "is_store": l.w_is_store, "pickup_enabled": l.w_pickup, "location": l.w_location,
+        })),
+        "shelf": l.shelf_id.map(|id| json!({
+            "id": id, "shelf_code": l.shelf_code, "shelf_name": l.shelf_name,
+        })),
+        "bin": l.bin_id.map(|id| json!({ "id": id, "bin_code": l.bin_code, "bin_name": l.bin_name })),
+        "updated_at": l.updated_at,
+        "meta": l.meta,
+    })
+}
+
+/// Laravel `makeFallbackStockRow`.
+fn fallback_row(w: &StockRef) -> Value {
+    json!({
+        "id": format!("fallback-{}", w.id),
+        "stock_lvl": "0.00",
+        "reserved": "0.00",
+        "minimal_stock_level": 0,
+        "maximum_stock_level": 0,
+        "warehouse": {
+            "id": w.id, "name": w.name, "alias": w.alias, "color": null, "icon": null,
+            "is_store": w.is_store, "pickup_enabled": w.pickup_enabled, "location": w.location,
+        },
+        "shelf": null,
+        "bin": null,
+        "product": null,
+        "updated_at": null,
+        "meta": null,
+    })
+}
+
+/// Laravel `posStockPayload`: the highest pickup-enabled row in the asked warehouse; without
+/// one asked, in the default warehouse, else anywhere. Ties keep the oldest row.
+fn pos_pick<'a>(p: &ProductRow, lines: &'a [StockLine], e: &Embeds) -> Option<&'a StockLine> {
+    let best = |wh: Option<Uuid>| {
+        lines
+            .iter()
+            .filter(|l| l.w_pickup == Some(true) && wh.is_none_or(|w| l.warehouse_id == w))
+            .fold(None, |best: Option<&StockLine>, l| match best {
+                Some(b) if b.stock_lvl >= l.stock_lvl => Some(b),
+                _ => Some(l),
             })
-        })
-        .collect()
+    };
+    match e.pos_warehouse {
+        Some(w) => best(Some(w)),
+        None => p
+            .default_warehouse_id
+            .and_then(|w| best(Some(w)))
+            .or_else(|| best(None)),
+    }
 }
 
 /// Price-history row (Laravel ProductPriceHistoryResource).

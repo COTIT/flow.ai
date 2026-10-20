@@ -19,7 +19,10 @@ use crate::{
         workspace::{Can, permissions},
     },
     modules::products::{
-        dto::{CreateProductRequest, HistoryQuery, ListQuery, SearchBody, UpdateProductRequest},
+        dto::{
+            CreateProductRequest, GetQuery, HistoryQuery, ListQuery, SearchBody,
+            UpdateProductRequest, pos_warehouse,
+        },
         repo::ListFilter,
         service::{self, Actor},
     },
@@ -94,7 +97,8 @@ pub async fn list(
         limit: page.size,
         offset: page.offset(),
     };
-    let (data, total) = service::list(&state, access.workspace_id, &filter).await?;
+    let pos = pos_warehouse(q.warehouse_id.as_deref());
+    let (data, total) = service::list(&state, access.workspace_id, &filter, pos).await?;
     Ok(Json(Paginated::new(data, total, page)))
 }
 
@@ -103,8 +107,12 @@ pub async fn get(
     State(state): State<AppState>,
     access: Can<ProductView>,
     Path((_, id)): ProductPath,
+    Query(q): Query<GetQuery>,
 ) -> Result<Data<Value>, AppError> {
-    Ok(Data(service::get(&state, access.workspace_id, &id).await?))
+    let pos = pos_warehouse(q.warehouse_id.as_deref());
+    Ok(Data(
+        service::get(&state, access.workspace_id, &id, pos).await?,
+    ))
 }
 
 /// POST /products/search `{query}` -> one product by barcode, EAN or id, else 404.
