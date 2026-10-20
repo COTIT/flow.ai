@@ -184,7 +184,7 @@ fn effective_status(invite: &InviteRow) -> &'static str {
         "pending" if invite.expires_at <= Utc::now() => "expired",
         "pending" => "pending",
         "accepted" => "accepted",
-        _ => "declined",
+        _ => "denied",
     }
 }
 
@@ -248,8 +248,8 @@ mod tests {
             "accepted"
         );
         assert_eq!(
-            effective_status(&row("declined", Duration::days(1))),
-            "declined"
+            effective_status(&row("denied", Duration::days(1))),
+            "denied"
         );
     }
 

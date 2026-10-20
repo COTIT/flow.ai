@@ -196,3 +196,71 @@ async fn deleting_user_drops_tokens(pool: PgPool) {
         .unwrap();
     assert_eq!(left, 0);
 }
+
+// ---- 0003 verify_email_and_denied
+
+async fn insert_verification(pool: &PgPool, user: Uuid, hash: Vec<u8>) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+         VALUES ($1, $2, now() + interval '1 day')",
+    )
+    .bind(user)
+    .bind(hash)
+    .execute(pool)
+    .await
+    .map(|_| ())
+}
+
+#[sqlx::test]
+async fn verification_token_hash_is_sha256_length_and_unique(pool: PgPool) {
+    let user = insert_user(&pool, "o@x.io").await.unwrap();
+
+    let err = insert_verification(&pool, user, vec![1; 31])
+        .await
+        .unwrap_err();
+    assert_eq!(violated(err), "email_verification_tokens_token_hash_check");
+
+    insert_verification(&pool, user, vec![1; 32]).await.unwrap();
+    let err = insert_verification(&pool, user, vec![1; 32])
+        .await
+        .unwrap_err();
+    assert_eq!(violated(err), "email_verification_tokens_token_hash_key");
+}
+
+#[sqlx::test]
+async fn deleting_user_drops_verification_tokens(pool: PgPool) {
+    let user = insert_user(&pool, "o@x.io").await.unwrap();
+    insert_verification(&pool, user, vec![1; 32]).await.unwrap();
+
+    sqlx::query("DELETE FROM users WHERE id = $1")
+        .bind(user)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let left: i64 = sqlx::query_scalar("SELECT count(*) FROM email_verification_tokens")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(left, 0);
+}
+
+#[sqlx::test]
+async fn invite_status_uses_denied_not_declined(pool: PgPool) {
+    let owner = insert_user(&pool, "o@x.io").await.unwrap();
+    let ws = insert_workspace(&pool, "acme", owner).await.unwrap();
+    let id = insert_pending_invite(&pool, ws, owner, "new@x.io")
+        .await
+        .unwrap();
+    let set = |status: &'static str| {
+        sqlx::query("UPDATE invites SET status = $2 WHERE id = $1")
+            .bind(id)
+            .bind(status)
+            .execute(&pool)
+    };
+
+    // vimdesk-web compares against 'denied' (accept-invitation.vue).
+    let err = set("declined").await.unwrap_err();
+    assert_eq!(violated(err), "invites_status_check");
+    assert!(set("denied").await.is_ok());
+}

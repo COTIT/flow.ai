@@ -20,7 +20,7 @@ pub struct InviteRow {
     pub workspace_id: Uuid,
     pub workspace_name: String,
     pub email: String,
-    /// `pending` | `accepted` | `declined`. Expiry is read from `expires_at`.
+    /// `pending` | `accepted` | `denied`. Expiry is read from `expires_at`.
     pub status: String,
     pub expires_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
@@ -70,7 +70,7 @@ pub async fn find_by_token_hash(
     .await
 }
 
-/// Set accepted/declined. Only flips a pending row still holding this code hash:
+/// Set accepted/denied. Only flips a pending row still holding this code hash:
 /// false = already answered, or code rotated by a re-invite since it was looked up.
 pub async fn mark_answered(
     db: impl PgExecutor<'_>,
@@ -80,7 +80,7 @@ pub async fn mark_answered(
 ) -> Result<bool, sqlx::Error> {
     sqlx::query!(
         "UPDATE invites
-         SET status = CASE WHEN $3 THEN 'accepted' ELSE 'declined' END,
+         SET status = CASE WHEN $3 THEN 'accepted' ELSE 'denied' END,
              responded_at = now(),
              updated_at = now()
          WHERE id = $1 AND token_hash = $2 AND status = 'pending'",
@@ -256,7 +256,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn decline_sets_declined(pool: PgPool) {
+    async fn decline_sets_denied(pool: PgPool) {
         let f = fixture(&pool).await;
         let id = upsert_pending(&pool, &invite(&f, "new@x.io", &[1; 32]))
             .await
@@ -270,7 +270,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .status,
-            "declined"
+            "denied"
         );
     }
 

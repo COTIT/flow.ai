@@ -39,7 +39,7 @@ Public.
             "invited_on": "2026-10-20T06:47:35.174246Z" } }
 ```
 
-- `status`: `pending`, `accepted`, `declined`, or `expired` (a pending invite past its expiry).
+- `status`: `pending`, `accepted`, `denied`, or `expired` (a pending invite past its expiry).
 - `new_user`: true when no account uses the invited email. vimdesk-web shows the signup form when it's true, and otherwise sends the user to login.
 - Unknown or malformed code: `404`.
 

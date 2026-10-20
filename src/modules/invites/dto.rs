@@ -88,7 +88,7 @@ pub struct InviteCreated {
 #[derive(Serialize)]
 pub struct InviteStatusResponse {
     id: Uuid,
-    /// `pending` | `accepted` | `declined` | `expired`.
+    /// `pending` | `accepted` | `denied` | `expired`.
     status: &'static str,
     /// True when no account uses the invited email yet (frontend shows signup form).
     new_user: bool,

@@ -490,7 +490,7 @@ async fn decline_then_accept_is_422_used(pool: PgPool) {
     let code = w.last_code();
 
     assert_eq!(w.answer(&bob_token, &code, false).await.0, StatusCode::OK);
-    assert_eq!(w.status(&code).await.1["data"]["status"], "declined");
+    assert_eq!(w.status(&code).await.1["data"]["status"], "denied");
     assert_eq!(
         w.workspaces_of("bob@example.com").await,
         json!([bobs]),

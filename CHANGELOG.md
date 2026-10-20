@@ -30,3 +30,4 @@
   - Migrations run at boot.
   - Runtime image `distroless/cc-debian13`, same Debian release as the build image `rust:1.99-slim-trixie`.
   - The timing test asserts a one-way floor.
+- Migration `verify_email_and_denied`: new `email_verification_tokens` table (sha256 only, cascades on user delete), and the invite status `declined` becomes `denied`, the word vimdesk-web compares against (`accept-invitation.vue`). Existing rows are converted in both directions.
