@@ -1,6 +1,9 @@
 //! Per-IP rate limit for public auth routes (signup, login, register, invite status).
 
-use std::{net::IpAddr, time::Duration};
+use std::{
+    net::{IpAddr, Ipv6Addr},
+    time::Duration,
+};
 
 use axum::{
     Json, Router,
@@ -43,11 +46,27 @@ impl KeyExtractor for ClientIp {
     type Key = IpAddr;
 
     fn extract<T>(&self, req: &Request<T>) -> Result<IpAddr, GovernorError> {
-        if self.trust_forwarded {
-            SmartIpKeyExtractor.extract(req)
+        let ip = if self.trust_forwarded {
+            SmartIpKeyExtractor.extract(req)?
         } else {
-            PeerIpKeyExtractor.extract(req)
-        }
+            PeerIpKeyExtractor.extract(req)?
+        };
+        Ok(bucket(ip))
+    }
+}
+
+/// Rate-limit key for an address. IPv6: the /64 prefix, since one customer gets a whole /64 and
+/// could rotate through it for free. IPv4 (and IPv4-mapped IPv6): the address itself.
+fn bucket(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V6(v6) => match v6.to_ipv4_mapped() {
+            Some(v4) => IpAddr::V4(v4),
+            None => {
+                let s = v6.segments();
+                IpAddr::V6(Ipv6Addr::new(s[0], s[1], s[2], s[3], 0, 0, 0, 0))
+            }
+        },
+        v4 => v4,
     }
 }
 
@@ -91,5 +110,31 @@ fn too_many(err: GovernorError) -> Response<Body> {
         }
         // No peer address: server not started with connect info. Config bug, not client fault.
         other => AppError::Internal(format!("rate limiter: {other}")).into_response(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ip(s: &str) -> IpAddr {
+        s.parse().unwrap()
+    }
+
+    #[test]
+    fn ipv6_addresses_in_one_slash_64_share_a_bucket() {
+        assert_eq!(bucket(ip("2001:db8:1:2:aaaa::1")), ip("2001:db8:1:2::"));
+        assert_eq!(
+            bucket(ip("2001:db8:1:2:ffff:ffff:ffff:ffff")),
+            ip("2001:db8:1:2::")
+        );
+        assert_ne!(bucket(ip("2001:db8:1:3::1")), bucket(ip("2001:db8:1:2::1")));
+    }
+
+    #[test]
+    fn ipv4_and_ipv4_mapped_stay_per_address() {
+        assert_eq!(bucket(ip("203.0.113.7")), ip("203.0.113.7"));
+        assert_eq!(bucket(ip("::ffff:203.0.113.7")), ip("203.0.113.7"));
+        assert_ne!(bucket(ip("203.0.113.7")), bucket(ip("203.0.113.8")));
     }
 }

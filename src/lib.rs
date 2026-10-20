@@ -1,5 +1,6 @@
 //! App assembly: shared state + router. main.rs boots it, tests call build_app directly.
 
+pub mod cleanup;
 pub mod config;
 mod error;
 mod health;
@@ -38,6 +39,13 @@ pub struct AppState {
     pub rate_limit: RateLimit,
     /// Max invites one user may create or re-send per hour.
     pub invites_per_hour: i64,
+}
+
+/// One-off boot work before serving (precomputes the login timing-equalizer hash).
+pub async fn warm_up() {
+    if let Err(err) = modules::auth::password::warm_up().await {
+        tracing::warn!(error = %err, "password warm-up failed; first unknown-email login is slower");
+    }
 }
 
 /// Full router. One entry point so tests run same middleware stack as prod.

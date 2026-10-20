@@ -54,6 +54,58 @@ pub async fn delete(db: impl PgExecutor<'_>, token_id: Uuid) -> Result<(), sqlx:
         .map(|_| ())
 }
 
+/// Login attempts for this email (any case) in the last 15 minutes, the current one included.
+/// Rows of successful logins are cleared, so this counts failures plus in-flight attempts.
+/// Index login_failures_email_failed_idx.
+pub async fn recent_login_attempts(
+    db: impl PgExecutor<'_>,
+    email: &str,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM login_failures
+           WHERE email_norm = lower($1) AND failed_at > now() - interval '15 minutes'"#,
+        email,
+    )
+    .fetch_one(db)
+    .await
+}
+
+pub async fn record_login_attempt(db: impl PgExecutor<'_>, email: &str) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "INSERT INTO login_failures (email_norm) VALUES (lower($1))",
+        email
+    )
+    .execute(db)
+    .await
+    .map(|_| ())
+}
+
+pub async fn clear_login_attempts(db: impl PgExecutor<'_>, email: &str) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "DELETE FROM login_failures WHERE email_norm = lower($1)",
+        email
+    )
+    .execute(db)
+    .await
+    .map(|_| ())
+}
+
+/// Cleanup: expired tokens never authenticate again.
+pub async fn prune_expired_tokens(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error> {
+    sqlx::query!("DELETE FROM access_tokens WHERE expires_at < now()")
+        .execute(db)
+        .await
+        .map(|done| done.rows_affected())
+}
+
+/// Cleanup: the login lock reads 15 minutes back; keep a day for incident review.
+pub async fn prune_old_login_attempts(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error> {
+    sqlx::query!("DELETE FROM login_failures WHERE failed_at < now() - interval '1 day'")
+        .execute(db)
+        .await
+        .map(|done| done.rows_affected())
+}
+
 /// Revoke every session of a user (first email verification, pre-hijack mitigation).
 pub async fn delete_all_for_user(
     db: impl PgExecutor<'_>,

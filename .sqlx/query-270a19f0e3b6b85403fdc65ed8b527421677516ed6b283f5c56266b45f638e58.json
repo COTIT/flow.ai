@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO login_failures (email_norm) VALUES (lower($1))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "270a19f0e3b6b85403fdc65ed8b527421677516ed6b283f5c56266b45f638e58"
+}

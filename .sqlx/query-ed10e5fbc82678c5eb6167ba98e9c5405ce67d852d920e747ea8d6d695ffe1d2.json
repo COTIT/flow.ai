@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"count!\" FROM login_failures\n           WHERE email_norm = lower($1) AND failed_at > now() - interval '15 minutes'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ed10e5fbc82678c5eb6167ba98e9c5405ce67d852d920e747ea8d6d695ffe1d2"
+}

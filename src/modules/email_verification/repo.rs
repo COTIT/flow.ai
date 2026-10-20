@@ -38,6 +38,14 @@ pub async fn find_live_user(
     .await
 }
 
+/// Cleanup: expired links can't verify; quota looks back only one day (= link lifetime).
+pub async fn prune_expired(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error> {
+    sqlx::query!("DELETE FROM email_verification_tokens WHERE expires_at < now()")
+        .execute(db)
+        .await
+        .map(|done| done.rows_affected())
+}
+
 /// Resend quota input for one user. Index user_created_idx.
 pub struct IssueStats {
     pub last_hour: i64,

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM login_failures WHERE failed_at < now() - interval '1 day'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "e8ffc962ed00a74b01a90b205d3aa990d54422e2a3cd415f3da5f9cb057587f2"
+}

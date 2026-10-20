@@ -2,7 +2,9 @@
 
 use std::{net::SocketAddr, time::Duration};
 
-use genesy_360_api::{AppState, RateLimit, build_app, config::Config, mail::Mailer};
+use genesy_360_api::{
+    AppState, RateLimit, build_app, cleanup, config::Config, mail::Mailer, warm_up,
+};
 use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::EnvFilter;
 
@@ -26,6 +28,8 @@ async fn main() {
     // Migrations are embedded in the binary; sqlx holds an advisory lock, so parallel replicas
     // booting together apply them once.
     sqlx::migrate!().run(&db).await.expect("run migrations");
+    warm_up().await;
+    cleanup::spawn(db.clone());
 
     let listener = tokio::net::TcpListener::bind(config.bind_addr)
         .await

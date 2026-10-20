@@ -22,7 +22,7 @@ Unauthenticated, `401`: `{"message": "You are not authorized to perform this act
 
 Server error, `500`: `{"message": "Server error."}`. The cause is logged and never returned.
 
-Rate limited, `429`: `{"message": "Too Many Attempts."}` plus a `Retry-After` header in seconds. Applies to the public routes (`create-workspace`, `login`, `register`, `invites/get-invite-status/{code}`), which share one budget per client IP: `RATE_LIMIT_BURST` requests at once (default 10), then one more every `RATE_LIMIT_REPLENISH_SECS` (default 6). Routes behind a Bearer token aren't limited, except invite send (see `invites.md`).
+Rate limited, `429`: `{"message": "Too Many Attempts."}` plus a `Retry-After` header in seconds. Applies to the public routes (`create-workspace`, `login`, `register`, `invites/get-invite-status/{code}`, `verify-email/{token}`), which share one budget per client IP (IPv6: per /64 block, since one customer usually gets a whole /64): `RATE_LIMIT_BURST` requests at once (default 10), then one more every `RATE_LIMIT_REPLENISH_SECS` (default 6). Routes behind a Bearer token aren't limited, except invite send (see `invites.md`).
 
 Body too large, `413`: `{"message": "The request body is too large."}`. Limit 64 KiB.
 
@@ -71,6 +71,7 @@ Laravel returned `200` here. vimdesk-web accepts both (`handleAuthResponse`).
 | `200` | token body. `workspace_ids` = every live workspace where the user is an active member, oldest membership first. |
 | `401` | `{"message": "Invalid login details"}` for an unknown email, a wrong password or a deleted user. Same body and similar timing in each case (unknown emails still run one argon2 verify). |
 | `403` | `{"message": "No workspace found associated with your account"}`. Checked only after the password matched, and no token is issued. |
+| `429` | `{"message": "Too Many Attempts."}`: 10 failed logins for this email (any case) in the last 15 minutes, from any IP. Unknown emails lock the same way, so a 429 doesn't reveal whether an account exists. Checked before any password hashing. A successful login clears the count. |
 | `422` | missing field or bad email format |
 
 Laravel differences: the `401` message sits at the top level instead of `data.message`; vimdesk-web reads both. The "no workspace" case is `403` (Laravel sent a malformed `422`).

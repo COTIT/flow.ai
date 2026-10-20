@@ -22,6 +22,8 @@ use crate::{
 
 pub const EMAIL_TAKEN: &str = "The email has already been taken.";
 const NO_WORKSPACE: &str = "No workspace found associated with your account";
+/// Failed logins per email per 15 minutes before further attempts get 429.
+const MAX_LOGIN_FAILURES: i64 = 10;
 const WORKSPACE_NAME_TAKEN: &str = "The workspace name has already been taken.";
 
 /// Fresh login: plaintext token (shown once) + workspaces it can open.
@@ -73,13 +75,25 @@ pub async fn create_workspace(state: &AppState, input: NewSignup) -> Result<Sess
 /// in both body and timing. Password checked before workspaces, so 403 never leaks a valid email
 /// to someone without its password.
 pub async fn login(state: &AppState, input: LoginInput) -> Result<Session, AppError> {
-    let Some(user) = users::find_credentials_by_email(&state.db, &input.email).await? else {
-        password::verify_dummy(input.password).await?;
-        return Err(AppError::InvalidCredentials);
-    };
-    if !password::verify(input.password, user.password_hash).await? {
-        return Err(AppError::InvalidCredentials);
+    // Per-account lock on top of the per-IP limit, checked before any argon2 work.
+    // Same for unknown emails, so a 429 doesn't reveal which emails exist.
+    // The attempt is recorded before counting: a parallel burst sees its own rows and can't all
+    // slip under the limit, and a client that disconnects mid-verify still counts.
+    // shortcut: anyone can lock an email for 15 min with 10 bad tries; add CAPTCHA/step-up
+    // instead of a hard lock if that DoS shows up.
+    tokens::record_login_attempt(&state.db, &input.email).await?;
+    if tokens::recent_login_attempts(&state.db, &input.email).await? > MAX_LOGIN_FAILURES {
+        return Err(AppError::TooManyRequests);
     }
+    let found = users::find_credentials_by_email(&state.db, &input.email).await?;
+    let matches = match &found {
+        Some(user) => password::verify(input.password, user.password_hash.clone()).await?,
+        None => password::verify_dummy(input.password).await?,
+    };
+    let Some(user) = found.filter(|_| matches) else {
+        return Err(AppError::InvalidCredentials); // attempt row stays as the failure
+    };
+    tokens::clear_login_attempts(&state.db, &input.email).await?;
 
     let workspace_ids = workspaces::active_workspace_ids(&state.db, user.id).await?;
     if workspace_ids.is_empty() {

@@ -851,3 +851,18 @@ async fn deny_by_invite_id_also_needs_verified_email(pool: PgPool) {
         "pending"
     );
 }
+
+#[sqlx::test]
+async fn deactivated_owner_cannot_invite(pool: PgPool) {
+    let w = world(pool).await;
+    sqlx::query("UPDATE workspace_members SET active = false WHERE workspace_id = $1::uuid")
+        .bind(w.ws.parse::<uuid::Uuid>().unwrap())
+        .execute(&w.pool)
+        .await
+        .unwrap();
+
+    let (status, res) = w.invite("new@example.com").await;
+
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert_eq!(res["message"], "This action is unauthorized.");
+}

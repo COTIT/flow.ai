@@ -21,11 +21,19 @@ impl fmt::Debug for PlainSecret {
     }
 }
 
+// Overwrite plaintext before the allocation is freed.
+impl Drop for PlainSecret {
+    fn drop(&mut self) {
+        zeroize::Zeroize::zeroize(&mut self.0);
+    }
+}
+
 /// New secret + sha256 to store. 256 bits of OS randomness, so plain sha256 (no salt/stretch) is enough.
 pub fn generate() -> Result<(PlainSecret, [u8; 32]), AppError> {
     let mut bytes = [0u8; 32];
     getrandom::fill(&mut bytes).map_err(|e| AppError::Internal(format!("os rng: {e}")))?;
     let plain = hex::encode(bytes);
+    zeroize::Zeroize::zeroize(&mut bytes);
     let digest = hash(&plain);
     Ok((PlainSecret(plain), digest))
 }

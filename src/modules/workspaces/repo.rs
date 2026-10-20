@@ -104,6 +104,24 @@ pub async fn active_workspace_ids(
     .await
 }
 
+/// True when user has an **active** membership in this workspace.
+pub async fn is_active_member(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (
+             SELECT 1 FROM workspace_members
+             WHERE workspace_id = $1 AND user_id = $2 AND active
+           ) AS "exists!""#,
+        workspace_id,
+        user_id,
+    )
+    .fetch_one(db)
+    .await
+}
+
 /// True when live user with this email (any case) is in this workspace.
 pub async fn is_member_by_email(
     db: impl PgExecutor<'_>,

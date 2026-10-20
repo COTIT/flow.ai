@@ -337,3 +337,124 @@ async fn token_responses_not_cacheable(pool: PgPool) {
     assert_eq!(res.headers()["cache-control"], "no-store");
     assert_eq!(res.headers()["x-content-type-options"], "nosniff");
 }
+
+// ================= per-account throttle (credential stuffing across many IPs)
+
+async fn fail_logins(app: &axum::Router, email: &str, times: usize) {
+    for _ in 0..times {
+        let (status, _) = post(app, LOGIN, creds(email, "Wr0ng!pass")).await;
+        assert_eq!(status, StatusCode::UNAUTHORIZED);
+    }
+}
+
+#[sqlx::test]
+async fn ten_failures_lock_the_email_even_for_right_password(pool: PgPool) {
+    let app = app(pool);
+    signup(&app, "ada@example.com", "acme").await;
+    fail_logins(&app, "ada@example.com", 10).await;
+
+    let (status, res) = post(&app, LOGIN, creds("ada@example.com", PASSWORD)).await;
+
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(res, json!({ "message": "Too Many Attempts." }));
+}
+
+#[sqlx::test]
+async fn unknown_email_is_throttled_the_same_way(pool: PgPool) {
+    // Same lock for unknown emails, so the 429 says nothing about which emails exist.
+    let app = app(pool);
+    fail_logins(&app, "nobody@example.com", 10).await;
+
+    assert_eq!(
+        post(&app, LOGIN, creds("nobody@example.com", PASSWORD))
+            .await
+            .0,
+        StatusCode::TOO_MANY_REQUESTS
+    );
+}
+
+#[sqlx::test]
+async fn throttle_ignores_case_and_spares_other_emails(pool: PgPool) {
+    let app = app(pool);
+    signup(&app, "bob@example.com", "bobs").await;
+    fail_logins(&app, "ADA@example.com", 10).await;
+
+    assert_eq!(
+        post(&app, LOGIN, creds("ada@example.com", PASSWORD))
+            .await
+            .0,
+        StatusCode::TOO_MANY_REQUESTS
+    );
+    assert_eq!(
+        post(&app, LOGIN, creds("bob@example.com", PASSWORD))
+            .await
+            .0,
+        StatusCode::OK
+    );
+}
+
+#[sqlx::test]
+async fn success_clears_the_failure_count(pool: PgPool) {
+    let app = app(pool);
+    signup(&app, "ada@example.com", "acme").await;
+    fail_logins(&app, "ada@example.com", 9).await;
+    assert_eq!(
+        post(&app, LOGIN, creds("ada@example.com", PASSWORD))
+            .await
+            .0,
+        StatusCode::OK
+    );
+
+    fail_logins(&app, "ada@example.com", 9).await; // would be 18 without the reset
+
+    assert_eq!(
+        post(&app, LOGIN, creds("ada@example.com", PASSWORD))
+            .await
+            .0,
+        StatusCode::OK
+    );
+}
+
+#[sqlx::test]
+async fn failures_older_than_fifteen_minutes_are_forgotten(pool: PgPool) {
+    let app = app(pool.clone());
+    signup(&app, "ada@example.com", "acme").await;
+    fail_logins(&app, "ada@example.com", 10).await;
+    sqlx::query("UPDATE login_failures SET failed_at = failed_at - interval '16 minutes'")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        post(&app, LOGIN, creds("ada@example.com", PASSWORD))
+            .await
+            .0,
+        StatusCode::OK
+    );
+}
+
+#[sqlx::test]
+async fn parallel_burst_cannot_beat_the_lock(pool: PgPool) {
+    // Attempts are recorded before the check, so 20 at once can't all slip under the limit.
+    let app = app(pool);
+    let mut calls = tokio::task::JoinSet::new();
+    for _ in 0..20 {
+        let app = app.clone();
+        calls.spawn(async move {
+            post(&app, LOGIN, creds("nobody@example.com", "Wr0ng!pass"))
+                .await
+                .0
+        });
+    }
+
+    let statuses = calls.join_all().await;
+
+    let got_past = statuses
+        .iter()
+        .filter(|s| **s == StatusCode::UNAUTHORIZED)
+        .count();
+    assert!(
+        got_past <= 10,
+        "{got_past} attempts got past the lock: {statuses:?}"
+    );
+}

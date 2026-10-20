@@ -35,6 +35,13 @@ impl fmt::Debug for Password {
     }
 }
 
+// Overwrite plaintext before the allocation is freed, so it can't linger in a heap dump.
+impl Drop for Password {
+    fn drop(&mut self) {
+        zeroize::Zeroize::zeroize(&mut self.0);
+    }
+}
+
 /// Laravel `Password::min(8)->mixedCase()->letters()->numbers()->symbols()`, plus max length.
 /// Lists every failed rule, same as Laravel.
 pub fn violations(field: &str, password: &str) -> Vec<String> {
@@ -109,15 +116,26 @@ pub async fn verify(password: Password, stored: String) -> Result<bool, AppError
     blocking(move || Ok(matches(&password, &stored))).await
 }
 
+static DUMMY_HASH: LazyLock<Option<String>> = LazyLock::new(|| {
+    Argon2::default()
+        .hash_password(b"timing-equalizer")
+        .map(|h| h.to_string())
+        .ok()
+});
+
+/// Build the dummy hash at boot. Built lazily, the first unknown-email login would also pay
+/// for a hash and answer measurably slower than later ones.
+pub async fn warm_up() -> Result<(), AppError> {
+    blocking(|| {
+        LazyLock::force(&DUMMY_HASH);
+        Ok(())
+    })
+    .await
+}
+
 /// Same CPU cost as `verify`, always false. Login runs it for unknown emails so response time
 /// doesn't reveal which emails exist.
 pub async fn verify_dummy(password: Password) -> Result<bool, AppError> {
-    static DUMMY_HASH: LazyLock<Option<String>> = LazyLock::new(|| {
-        Argon2::default()
-            .hash_password(b"timing-equalizer")
-            .map(|h| h.to_string())
-            .ok()
-    });
     blocking(move || {
         if let Some(stored) = DUMMY_HASH.as_deref() {
             matches(&password, stored);
@@ -299,6 +317,18 @@ mod tests {
                 .await
                 .unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn warm_up_then_dummy_still_never_matches() {
+        warm_up().await.unwrap();
+
+        assert!(
+            DUMMY_HASH
+                .as_deref()
+                .is_some_and(|h| h.starts_with("$argon2id$"))
+        );
+        assert!(!verify_dummy(Password(STRONG.to_owned())).await.unwrap());
     }
 
     #[tokio::test]

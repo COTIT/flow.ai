@@ -50,7 +50,10 @@ pub async fn send(
     let ws = workspaces::find(&state.db, workspace_id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if ws.created_by_user_id != inviter {
+    // Deactivated owner = no rights here, same as any non-admin member.
+    let active_owner = ws.created_by_user_id == inviter
+        && workspaces::is_active_member(&state.db, workspace_id, inviter).await?;
+    if !active_owner {
         // Members learn they lack rights; outsiders can't tell the workspace exists.
         return Err(
             if workspaces::is_member(&state.db, workspace_id, inviter).await? {

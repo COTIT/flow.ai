@@ -74,19 +74,18 @@ impl Config {
         let frontend_url = base_url(&get, "FRONTEND_URL")?;
         let api_public_url = base_url(&get, "API_PUBLIC_URL")?;
         let smtp_url = get("SMTP_URL").ok_or("SMTP_URL not set")?;
+        // Invite codes and SMTP credentials travel over this link: plain SMTP only on request.
+        let smtp_tls = smtp_url.starts_with("smtps://") || query_has(&smtp_url, "tls=required");
+        if !smtp_tls && !flag(&get, "SMTP_ALLOW_INSECURE")? {
+            return Err("SMTP_URL must use TLS (smtps:// or ?tls=required); set \
+                        SMTP_ALLOW_INSECURE=true only for a local Mailpit"
+                .into());
+        }
         let mail_from = get("MAIL_FROM").ok_or("MAIL_FROM not set")?;
         // Default 10 at once, then 1 per 6s: ~10 attempts a minute per IP.
         let rate_limit_burst = positive(&get, "RATE_LIMIT_BURST", 10)?;
         let rate_limit_replenish_secs = positive(&get, "RATE_LIMIT_REPLENISH_SECS", 6)?;
-        let trust_proxy_headers = match get("TRUST_PROXY_HEADERS").as_deref() {
-            None | Some("false") => false,
-            Some("true") => true,
-            Some(other) => {
-                return Err(format!(
-                    "TRUST_PROXY_HEADERS must be true|false, got {other:?}"
-                ));
-            }
-        };
+        let trust_proxy_headers = flag(&get, "TRUST_PROXY_HEADERS")?;
         let invites_per_hour = positive(&get, "INVITES_PER_HOUR", 20)?;
 
         Ok(Self {
@@ -102,6 +101,22 @@ impl Config {
             trust_proxy_headers,
             invites_per_hour,
         })
+    }
+}
+
+/// True when the URL's query string holds exactly `pair` (not as a substring of another pair,
+/// and not somewhere in the userinfo).
+fn query_has(url: &str, pair: &str) -> bool {
+    url.split_once('?')
+        .is_some_and(|(_, query)| query.split('&').any(|p| p == pair))
+}
+
+/// Optional `true|false` env var, default false.
+fn flag(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<bool, String> {
+    match get(key).as_deref() {
+        None | Some("false") => Ok(false),
+        Some("true") => Ok(true),
+        Some(other) => Err(format!("{key} must be true|false, got {other:?}")),
     }
 }
 
@@ -137,7 +152,7 @@ mod tests {
     const REQUIRED: [(&str, &str); 4] = [
         ("FRONTEND_URL", "https://app.test"),
         ("API_PUBLIC_URL", "https://api.test"),
-        ("SMTP_URL", "smtp://127.0.0.1:1025"),
+        ("SMTP_URL", "smtps://smtp.test:465"),
         ("MAIL_FROM", "Genesy <no-reply@genesy.test>"),
     ];
 
@@ -249,10 +264,60 @@ mod tests {
     }
 
     #[test]
+    fn smtp_url_must_use_tls_unless_insecure_allowed() {
+        let plain = |extra: &'static [(&'static str, &'static str)]| {
+            let mut pairs = vec![
+                ("DATABASE_URL", "postgres://x"),
+                ("SMTP_URL", "smtp://user:secret@smtp.test:587"),
+            ];
+            pairs.extend_from_slice(extra);
+            Config::from_lookup(lookup(Box::leak(pairs.into_boxed_slice())))
+        };
+
+        let err = plain(&[]).unwrap_err();
+        assert!(err.starts_with("SMTP_URL must use TLS"), "{err}");
+        assert!(
+            !err.contains("secret"),
+            "error must not echo credentials: {err}"
+        );
+        assert!(plain(&[("SMTP_ALLOW_INSECURE", "true")]).is_ok());
+        assert!(
+            plain(&[("SMTP_ALLOW_INSECURE", "maybe")])
+                .unwrap_err()
+                .starts_with("SMTP_ALLOW_INSECURE")
+        );
+
+        // Only an exact `tls=required` query pair counts, not the substring anywhere.
+        for bad in [
+            "smtp://u:tls=required@smtp.test:587",
+            "smtp://smtp.test:587?tls=requiredx",
+            "smtp://smtp.test:587?notls=required",
+            "smtp://smtp.test:587?tls=opportunistic&x=tls=required",
+        ] {
+            let err = Config::from_lookup(lookup(Box::leak(
+                vec![("DATABASE_URL", "postgres://x"), ("SMTP_URL", bad)].into_boxed_slice(),
+            )))
+            .unwrap_err();
+            assert!(err.starts_with("SMTP_URL must use TLS"), "{bad}: {err}");
+        }
+
+        for ok in [
+            "smtps://smtp.test:465",
+            "smtp://u:p@smtp.postmarkapp.com:587?tls=required",
+            "smtp://smtp.test:587?pool=1&tls=required",
+        ] {
+            let cfg = Config::from_lookup(lookup(Box::leak(
+                vec![("DATABASE_URL", "postgres://x"), ("SMTP_URL", ok)].into_boxed_slice(),
+            )));
+            assert!(cfg.is_ok(), "{ok}");
+        }
+    }
+
+    #[test]
     fn debug_masks_smtp_url() {
         let cfg = Config::from_lookup(lookup(&[
             ("DATABASE_URL", "postgres://x"),
-            ("SMTP_URL", "smtp://user:smtpsecret@host:587"),
+            ("SMTP_URL", "smtps://user:smtpsecret@host:465"),
         ]))
         .unwrap();
 

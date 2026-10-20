@@ -171,6 +171,26 @@ pub async fn pending_for_email(
     .await
 }
 
+/// Cleanup: answered or long-expired invites, kept 30 days for "who invited whom" questions.
+pub async fn prune_old(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error> {
+    sqlx::query!(
+        "DELETE FROM invites
+         WHERE (status <> 'pending' AND updated_at < now() - interval '30 days')
+            OR (status = 'pending' AND expires_at < now() - interval '30 days')"
+    )
+    .execute(db)
+    .await
+    .map(|done| done.rows_affected())
+}
+
+/// Cleanup: the send quota reads one hour back.
+pub async fn prune_old_sends(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error> {
+    sqlx::query!("DELETE FROM invite_sends WHERE sent_at < now() - interval '1 day'")
+        .execute(db)
+        .await
+        .map(|done| done.rows_affected())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

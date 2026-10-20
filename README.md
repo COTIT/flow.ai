@@ -29,6 +29,7 @@ All read once at boot. A missing required var stops the server with the var name
 | `TOKEN_TTL_DAYS` | no | `30` | 1..=365 |
 | `FRONTEND_URL` | yes | | vimdesk-web origin for email links |
 | `API_PUBLIC_URL` | yes | | this API's public origin; verification links point here |
+| `SMTP_ALLOW_INSECURE` | no | `false` | `true` lets `SMTP_URL` be plain `smtp://` (local Mailpit only) |
 | `SMTP_URL` | yes | | `smtp://127.0.0.1:1025` (Mailpit), Postmark: `smtp://TOKEN:TOKEN@smtp.postmarkapp.com:587?tls=required` |
 | `MAIL_FROM` | yes | | `Genesy <no-reply@...>` |
 | `RATE_LIMIT_BURST` | no | `10` | public auth routes, per client IP |
@@ -48,7 +49,7 @@ cargo sqlx prepare --check -- --all-targets   # .sqlx/ cache must match queries
 
 Each `#[sqlx::test]` gets its own throwaway database, so tests run in parallel without sharing state.
 
-Migrations are embedded in the binary and run at boot (`sqlx::migrate!`), so a fresh database needs no separate step.
+Migrations are embedded in the binary and run at boot (`sqlx::migrate!`), so a fresh database needs no separate step. An hourly cleanup job (`src/cleanup.rs`) deletes expired tokens, invites answered or expired over 30 days ago, and quota logs older than a day.
 
 ## Why two DB URL vars
 

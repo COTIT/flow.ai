@@ -8,7 +8,7 @@ An invite code is 64 hex chars, sent only in the email link. The DB stores its s
 
 ## POST /v1/workspace/{workspace}/invites
 
-Requires a Bearer token. Only the workspace owner may invite (roles and teams aren't ported yet).
+Requires a Bearer token. Only the workspace owner may invite, and only while their membership is active and their email is verified (roles and teams aren't ported yet).
 
 | Field | Rules |
 |---|---|

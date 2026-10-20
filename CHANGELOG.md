@@ -40,3 +40,11 @@
   - Inviting requires a verified owner email.
   - Request spans show 64-hex path segments as `:token`.
   - Index `invites_pending_email_idx` for the `/me` lookup.
+- Phase B hardening:
+  - Per-account login lock: 10 failures per email in 15 minutes gives `429`, checked before argon2 and applied the same way to unknown emails. Each attempt is recorded before counting, so a parallel burst can't slip under it (new table `login_failures`).
+  - The IP rate limit groups IPv6 by /64.
+  - Hourly cleanup job for expired tokens, old invites and quota logs.
+  - `SMTP_URL` must use TLS unless `SMTP_ALLOW_INSECURE=true`.
+  - Only an active owner may invite.
+  - `Password`/`PlainSecret` and the raw random bytes are zeroized on drop. This is best effort: request buffers and response copies aren't covered. The dummy argon2 hash is built at boot.
+- Phase B review fixes: `SMTP_URL` TLS needs an exact `tls=required` query pair (a substring anywhere no longer passes), and the cleanup SQL moved into each module's repo.
