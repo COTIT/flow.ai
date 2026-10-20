@@ -74,13 +74,14 @@ The runtime image is distroless and runs as non-root.
 `deploy/deploy.sh` turns it on per environment once both shared secrets exist (chmod 644):
 
 - `/home/deploy/shared/secrets/pg_root_password`: the shared Postgres superuser password
-- `/home/deploy/shared/secrets/genesy_smtp_url`: the full SMTP URL with TLS, e.g. `smtp://TOKEN:TOKEN@smtp.postmarkapp.com:587?tls=required`
+- `/home/deploy/shared/secrets/genesy_smtp_url_preview`: the SMTP URL for previews, using a Postmark **sandbox** server so previews never mail real people. Prod sets `GENESY_SMTP_SECRET_NAME=genesy_smtp_url` and uses the real server. Example value: `smtp://TOKEN:TOKEN@smtp.postmarkapp.com:587?tls=required`
 
 Then for each preview, `deploy.sh`:
 
 1. generates a database password and writes the `genesy_database_url` secret file
 2. creates the role and database with `deploy/genesy/provision-db.sh`, which is idempotent, owned by the app role, and revokes public connect
-3. starts `genesy-api` at `https://genesy-api-<slug>.dev.360.cotit.io`, or `HOST_GENESY_API` in prod, and waits for `/healthz`
+3. skips genesy-api (with a note) if the shared Postgres isn't reachable yet
+4. starts `genesy-api` at `https://genesy-api-<slug>.dev.360.cotit.io`, or `HOST_GENESY_API` in prod, and waits for `/healthz`
 
 The app runs its own migrations at boot. Its compose healthcheck is `/genesy-360-api healthcheck` (distroless has no shell).
 
