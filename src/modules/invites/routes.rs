@@ -2,7 +2,7 @@
 
 use axum::{
     Router,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 
 use crate::{AppState, modules::invites::handlers};
@@ -17,6 +17,13 @@ pub fn public() -> Router<AppState> {
 /// Bearer token required (checked by `AuthUser` in each handler).
 pub fn private() -> Router<AppState> {
     Router::new()
-        .route("/workspace/{workspace}/invites", post(handlers::send))
+        .route(
+            "/workspace/{workspace}/invites",
+            post(handlers::send).get(handlers::list),
+        )
+        .route(
+            "/workspace/{workspace}/invites/{invite}",
+            delete(handlers::delete),
+        )
         .route("/invites", post(handlers::answer))
 }

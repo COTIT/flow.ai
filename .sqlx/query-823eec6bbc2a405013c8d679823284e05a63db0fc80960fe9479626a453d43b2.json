@@ -1,0 +1,201 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.email, i.status, i.expires_at, i.created_at, i.updated_at,\n                  u.email AS inviter_email,\n                  t.id AS \"team_id?\", t.workspace_id AS \"team_workspace_id?\", t.name AS \"team_name?\",\n                  t.description AS \"team_description?\", t.meta AS \"team_meta?\",\n                  t.created_at AS \"team_created_at?\", t.updated_at AS \"team_updated_at?\",\n                  ARRAY(SELECT p.permission FROM team_permissions p\n                        WHERE p.team_id = t.id ORDER BY p.permission) AS \"team_permissions!\",\n                  count(*) OVER () AS \"total!\"\n           FROM invites i\n           JOIN users u ON u.id = i.invited_by_user_id\n           LEFT JOIN teams t ON t.id = i.team_id AND t.workspace_id = i.workspace_id\n                             AND t.deleted_at IS NULL\n           WHERE i.workspace_id = $1 AND ($2::text IS NULL OR i.status = $2)\n           ORDER BY i.created_at, i.id\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "inviter_email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "team_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "team_workspace_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "team_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "team_description?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "team_meta?",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "team_created_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "team_updated_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "teams",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "team_permissions!",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 15,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "823eec6bbc2a405013c8d679823284e05a63db0fc80960fe9479626a453d43b2"
+}

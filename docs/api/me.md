@@ -51,5 +51,5 @@ Active memberships in live workspaces, oldest membership first, which is the sam
 
 - Inactive memberships are left out of both `permissions` and `/me/workspaces`. Laravel included them in those two places, while login already excluded them.
 - Expired invites aren't listed. Laravel listed them, and they failed only when answered.
-- `workspace_profile` is always absent; Laravel also omitted it when the profile was null. vimdesk-web's POS receipt views read it without `?.`, so they need the profile port first.
+- `workspace_profile` (shape in `workspaces.md`) is omitted until a profile is saved, as Laravel omitted it when null. POS receipt views read it without `?.`, so a workspace needs a saved profile before printing.
 - `pending_invites_count` and `users_count` aren't sent, since the frontend never reads them.

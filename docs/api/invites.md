@@ -31,6 +31,25 @@ Accept (`POST /v1/register` or `POST /v1/invites` with `accept: true`) joins the
 
 `email` must also parse as a deliverable address (lettre `Address`), so values like `a"b@x.co` are rejected before any row is written.
 
+## GET /v1/workspace/{workspace}/invites
+
+Needs `invite.list`. Used by the pending invites modal: `?filter[invite_status]=pending`. Query params: `filter[invite_status]` (`pending` | `accepted` | `denied`; absent = all), `page`, `page_size` (default 50, max 100). Unknown params are ignored.
+
+```json
+{ "data": [ { "invite_id": "<uuid>", "email": "new@example.com", "invite_status": "pending",
+              "invited_by": "owner@example.com", "expired_at": "…", "meta": null,
+              "created_at": "…", "last_updated_at": "…", "relationships": { "team": null } } ],
+  "meta": { "current_page": 1, "from": 1, "last_page": 1, "per_page": 50, "to": 1, "total": 1 } }
+```
+
+- Invites are listed oldest first. An expired pending invite still shows as `pending`; `expired_at` tells.
+- `relationships.team` holds the live team (TeamResource, users not loaded) or null.
+- Laravel also sent `invite_code`. Here only its hash is stored, so the link goes to the invitee alone and the code is never echoed.
+
+## DELETE /v1/workspace/{workspace}/invites/{invite}
+
+Needs `invite.delete`. Deletes the invite (any status) and returns `{"message": "ok"}`. Its emailed link stops working. An unknown or malformed id, or an invite of another workspace, is 404.
+
 ## GET /v1/invites/get-invite-status/{code}
 
 Public.

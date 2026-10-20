@@ -16,7 +16,7 @@ use crate::{
             repo::Member,
             service::{Me, MemberView},
         },
-        workspaces::repo::MemberWorkspace,
+        workspaces::{dto::Profile, repo::MemberWorkspace},
     },
 };
 
@@ -90,6 +90,10 @@ pub struct WorkspaceResource {
     workspace_type: String,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    /// Omitted until a profile is saved (Laravel `when`). POS receipts read it. Any member
+    /// sees this list, so bank details are left out (they stay behind `workspace.get`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    workspace_profile: Option<Profile>,
     relationships: [(); 0],
 }
 
@@ -101,6 +105,7 @@ impl From<MemberWorkspace> for WorkspaceResource {
             workspace_type: ws.workspace_type,
             created_at: ws.created_at,
             last_updated_at: ws.updated_at,
+            workspace_profile: ws.profile.map(|p| Profile::from_stored(Some(p)).public()),
             relationships: [],
         }
     }

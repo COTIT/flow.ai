@@ -14,6 +14,11 @@
   - `http/list.rs`: `Page` (`page`, `page_size` default 50 max 100, junk falls back), `Paginated<T>` with Laravel `meta`, `contains_pattern` (ILIKE with `%` `_` `\` escaped). `http/json.rs` gains `present` for absent-vs-null fields in partial updates.
   - Teams, 8 routes under `/v1/workspace/{workspace}/users/teams`: create, list (search, sort whitelist, paging), get, update (single-statement patch), soft delete, add/remove users, permission delta (`x` adds, `-x` removes, only the owner grants `workspace_admin`). GET and DELETE check `team.get` / `team.delete` instead of Laravel's unassignable names. Contract: `docs/api/teams.md`.
   - `GET /v1/workspace/{workspace}/users` (`workspace.list`, search, `team_id`, paging) and `GET .../users/{user}` (`user.get`). Both show permissions and teams for this workspace only. Contract: `docs/api/users.md`.
+- Batch 3 phase C (workspace record + pending invites):
+  - Migration `workspace_profile`: `workspaces.profile` + `meta` jsonb (object CHECK).
+  - `GET /v1/workspace/{workspace}` (`workspace.get`) returns the record, pending invites and member counts, and a profile with `address`/`account` always as objects. `POST .../update` (`workspace.update`) validates any subset of profile keys (IBAN mod-97, BIC, phone shape, URL, en/nl, address required fields) and merges them in one UPDATE. `/me/workspaces` carries `workspace_profile` once saved. Contract: `docs/api/workspaces.md`.
+  - `GET /v1/workspace/{workspace}/invites` (`invite.list`, `filter[invite_status]`, paging, no codes echoed) and `DELETE .../invites/{invite}` (`invite.delete`).
+  - `http/json.rs`: `is_iban`, `is_bic`, `is_phone`, `is_url` for later batches.
 - Batch 3 review fixes (ecc:rust-reviewer + ecc:security-reviewer):
   - Admin-team gate. Laravel let `team.invite`, `invite.create` or `team.permissions` alone reach `workspace_admin`. Now a team holding `workspace_admin` changes only through an owner or admin: add/remove users, delete, revoke that grant, invite into it. Each path has a test.
   - `Can<P>` extractor with `permissions!` markers replaces `require()`, so 403 comes before 422 as in Laravel.

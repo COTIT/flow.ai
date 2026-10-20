@@ -101,6 +101,91 @@ pub fn optional(value: Option<String>) -> Option<String> {
     value.map(|v| v.trim().to_owned()).filter(|v| !v.is_empty())
 }
 
+/// Stored IBAN form: ASCII spaces dropped, ASCII uppercase.
+pub fn normalize_iban(value: &str) -> String {
+    value
+        .chars()
+        .filter(|c| *c != ' ')
+        .collect::<String>()
+        .to_ascii_uppercase()
+}
+
+/// IBAN: ASCII only, 15..=34 alphanumerics (spaces ignored), country letters, ISO 7064
+/// mod-97 == 1. ASCII check first: Unicode uppercasing turns `ﬆ` into `ST`.
+// shortcut: no per-country length table (Laravel had one); ~1/97 wrong-length typos pass.
+pub fn is_iban(value: &str) -> bool {
+    if !value.is_ascii() {
+        return false;
+    }
+    let s = normalize_iban(value.trim());
+    if !(15..=34).contains(&s.len())
+        || !s.chars().all(|c| c.is_ascii_alphanumeric())
+        || !s[..2].chars().all(|c| c.is_ascii_alphabetic())
+        || !s[2..4].chars().all(|c| c.is_ascii_digit())
+    {
+        return false;
+    }
+    // Move the first 4 chars to the end, letters -> 10..35, then mod 97 digit by digit.
+    let rotated = s[4..].chars().chain(s[..4].chars());
+    let rem = rotated.fold(0u32, |acc, c| {
+        let n = c.to_digit(36).unwrap_or(0);
+        if n >= 10 {
+            (acc * 100 + n) % 97
+        } else {
+            (acc * 10 + n) % 97
+        }
+    });
+    rem == 1
+}
+
+/// BIC/SWIFT: 4 letters bank, 2 letters country, 2 alnum location, optional 3 alnum branch.
+pub fn is_bic(value: &str) -> bool {
+    let b = value.trim().as_bytes();
+    (b.len() == 8 || b.len() == 11)
+        && b[..6].iter().all(u8::is_ascii_alphabetic)
+        && b[6..].iter().all(u8::is_ascii_alphanumeric)
+}
+
+/// International phone number: leading `+`, 8..=15 digits, separators ` -().` only.
+// shortcut: shape check only, Laravel ran libphonenumber validity; port it if bad numbers slip in.
+pub fn is_phone(value: &str) -> bool {
+    let v = value.trim();
+    let digits = v.chars().filter(char::is_ascii_digit).count();
+    v.starts_with('+')
+        && (8..=15).contains(&digits)
+        && v[1..]
+            .chars()
+            .all(|c| c.is_ascii_digit() || " -().".contains(c))
+}
+
+/// `http(s)://host[:port][...]` with a dotted host. No userinfo, whitespace, control chars,
+/// quotes or angle brackets: these URLs end up on PDFs and in emails.
+// shortcut: http(s) only; Laravel `url` also took ftp:// etc. Widen if a client sends them.
+pub fn is_url(value: &str) -> bool {
+    let v = value.trim();
+    if v.chars()
+        .any(|c| c.is_whitespace() || c.is_control() || "\"'<>`\\".contains(c))
+    {
+        return false;
+    }
+    let rest = v
+        .strip_prefix("https://")
+        .or_else(|| v.strip_prefix("http://"));
+    rest.is_some_and(|r| {
+        let authority = r.split(['/', '?', '#']).next().unwrap_or("");
+        if authority.contains('@') {
+            return false;
+        }
+        let (host, port) = authority.split_once(':').unwrap_or((authority, ""));
+        let port_ok = if authority.contains(':') {
+            (1..=5).contains(&port.len()) && port.bytes().all(|b| b.is_ascii_digit())
+        } else {
+            true
+        };
+        port_ok && host.contains('.') && !host.starts_with('.') && !host.ends_with('.')
+    })
+}
+
 /// `first_name` -> `first name`, matching Laravel attribute names in messages.
 pub fn human(field: &str) -> String {
     field.replace('_', " ")
@@ -323,5 +408,43 @@ mod tests {
             }
             other => panic!("expected validation, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn iban_checks_mod97() {
+        assert!(is_iban("NL91ABNA0417164300"));
+        assert!(is_iban("nl91 abna 0417 1643 00"));
+        assert!(is_iban("DE89370400440532013000"));
+        assert!(!is_iban("NL00ABNA0417164300"));
+        assert!(!is_iban("NL91"));
+        assert!(!is_iban("9191ABNA0417164300"));
+        // Unicode uppercasing must not turn a ligature into valid ASCII.
+        assert!(!is_iban("GB82WE\u{FB06}12345698765432"));
+        assert!(!is_iban("NL91\u{A0}ABNA0417164300"));
+        assert_eq!(
+            normalize_iban(" nl91 abna 0417 1643 00 "),
+            "NL91ABNA0417164300"
+        );
+    }
+
+    #[test]
+    fn bic_shape() {
+        assert!(is_bic("ABNANL2A") && is_bic("DEUTDEFF500"));
+        assert!(!is_bic("AB") && !is_bic("ABNA1L2A") && !is_bic("ABNANL2A5"));
+    }
+
+    #[test]
+    fn phone_needs_plus_and_8_to_15_digits() {
+        assert!(is_phone("+31 20 123 4567") && is_phone("+33123456789"));
+        assert!(!is_phone("0201234567") && !is_phone("+12") && !is_phone("+31 abc 1234567"));
+    }
+
+    #[test]
+    fn url_needs_scheme_and_dotted_host() {
+        assert!(is_url("https://acme.nl") && is_url("http://a.io/x?y=1"));
+        assert!(!is_url("acme.nl") && !is_url("https://localhost") && !is_url("https://a .io"));
+        assert!(!is_url("https://u:p@a.io") && !is_url("https://a.io:abc"));
+        assert!(!is_url("https://a.io/\"x") && !is_url("https://a.io/<script>"));
+        assert!(is_url("https://a.io:8443/p"));
     }
 }

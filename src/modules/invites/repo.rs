@@ -4,6 +4,8 @@ use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
+use crate::modules::teams::repo::TeamRow;
+
 /// Insert/rotate payload. `token_hash` = sha256 of emailed code.
 pub struct NewInvite<'a> {
     pub workspace_id: Uuid,
@@ -196,6 +198,124 @@ pub async fn prune_old_sends(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error
         .map(|done| done.rows_affected())
 }
 
+/// Invite as the settings pending-invites modal lists it, with its live team if any.
+pub struct WorkspaceInvite {
+    pub id: Uuid,
+    pub email: String,
+    pub status: String,
+    pub inviter_email: String,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub team: Option<TeamRow>,
+}
+
+/// One page of `workspace_id`'s invites, optionally one status, oldest first, + total.
+pub async fn list_in_workspace(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    status: Option<&str>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<WorkspaceInvite>, i64), sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT i.id, i.email, i.status, i.expires_at, i.created_at, i.updated_at,
+                  u.email AS inviter_email,
+                  t.id AS "team_id?", t.workspace_id AS "team_workspace_id?", t.name AS "team_name?",
+                  t.description AS "team_description?", t.meta AS "team_meta?",
+                  t.created_at AS "team_created_at?", t.updated_at AS "team_updated_at?",
+                  ARRAY(SELECT p.permission FROM team_permissions p
+                        WHERE p.team_id = t.id ORDER BY p.permission) AS "team_permissions!",
+                  count(*) OVER () AS "total!"
+           FROM invites i
+           JOIN users u ON u.id = i.invited_by_user_id
+           LEFT JOIN teams t ON t.id = i.team_id AND t.workspace_id = i.workspace_id
+                             AND t.deleted_at IS NULL
+           WHERE i.workspace_id = $1 AND ($2::text IS NULL OR i.status = $2)
+           ORDER BY i.created_at, i.id
+           LIMIT $3 OFFSET $4"#,
+        workspace_id,
+        status,
+        limit,
+        offset,
+    )
+    .fetch_all(db)
+    .await?;
+    // Empty page past the end has no row to carry the count: caller asks `count_in_workspace`.
+    let total = rows.first().map_or(0, |r| r.total);
+    let invites = rows
+        .into_iter()
+        .map(|r| {
+            // LEFT JOIN: all team columns are set together or not at all.
+            let team = match (
+                r.team_id,
+                r.team_workspace_id,
+                r.team_name,
+                r.team_description,
+                r.team_created_at,
+                r.team_updated_at,
+            ) {
+                (Some(id), Some(workspace_id), Some(name), Some(description), Some(c), Some(u)) => {
+                    Some(TeamRow {
+                        id,
+                        workspace_id,
+                        name,
+                        description,
+                        meta: r.team_meta,
+                        created_at: c,
+                        updated_at: u,
+                        permissions: r.team_permissions,
+                    })
+                }
+                _ => None,
+            };
+            WorkspaceInvite {
+                id: r.id,
+                email: r.email,
+                status: r.status,
+                inviter_email: r.inviter_email,
+                expires_at: r.expires_at,
+                created_at: r.created_at,
+                updated_at: r.updated_at,
+                team,
+            }
+        })
+        .collect();
+    Ok((invites, total))
+}
+
+/// Invites of `workspace_id` with `status` (all when None), ignoring paging.
+pub async fn count_in_workspace(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    status: Option<&str>,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM invites
+           WHERE workspace_id = $1 AND ($2::text IS NULL OR status = $2)"#,
+        workspace_id,
+        status,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// Delete an invite of `workspace_id` (any status); its emailed link stops working.
+/// False = no such invite here.
+pub async fn delete_in_workspace(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    invite_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query!(
+        "DELETE FROM invites WHERE id = $1 AND workspace_id = $2",
+        invite_id,
+        workspace_id,
+    )
+    .execute(db)
+    .await
+    .map(|done| done.rows_affected() == 1)
+}
 #[cfg(test)]
 mod tests {
     use super::*;

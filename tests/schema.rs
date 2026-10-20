@@ -397,3 +397,33 @@ async fn invite_team_must_exist_and_is_cleared_when_team_row_goes(pool: PgPool) 
         .unwrap();
     assert_eq!(team_id, None);
 }
+
+// ---- workspace_profile
+
+#[sqlx::test]
+async fn workspace_profile_and_meta_must_be_objects(pool: PgPool) {
+    let owner = insert_user(&pool, "o@x.io").await.unwrap();
+    let ws = insert_workspace(&pool, "acme", owner).await.unwrap();
+    let set = |col: &'static str, v: serde_json::Value| {
+        let sql = if col == "profile" {
+            "UPDATE workspaces SET profile = $2 WHERE id = $1"
+        } else {
+            "UPDATE workspaces SET meta = $2 WHERE id = $1"
+        };
+        sqlx::query(sql).bind(ws).bind(v).execute(&pool)
+    };
+
+    assert_eq!(
+        violated(set("profile", serde_json::json!([1])).await.unwrap_err()),
+        "workspaces_profile_check"
+    );
+    assert_eq!(
+        violated(set("meta", serde_json::json!("x")).await.unwrap_err()),
+        "workspaces_meta_check"
+    );
+    assert!(
+        set("profile", serde_json::json!({ "company_name": "A" }))
+            .await
+            .is_ok()
+    );
+}

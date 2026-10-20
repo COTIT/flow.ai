@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workspaces\n         SET profile = COALESCE(profile, '{}'::jsonb) || $2,\n             meta = CASE WHEN $3 THEN $4 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "19ac8ce8301adc35ebd70485a16487380a8e14be71244c6a8f62410fd6bc2c14"
+}

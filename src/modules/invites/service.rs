@@ -16,7 +16,7 @@ use crate::{
         },
         invites::{
             dto::{Answer, BAD_TEAM, NewInvitee, SendInvite},
-            repo::{self, InviteRow, NewInvite},
+            repo::{self, InviteRow, NewInvite, WorkspaceInvite},
         },
         teams::repo as teams,
         users::repo as users,
@@ -101,6 +101,31 @@ pub async fn send(
         ))
         .await?;
     Ok(invite_id)
+}
+
+/// One page of the workspace's invites, optionally one status (`filter[invite_status]`).
+pub async fn list(
+    state: &AppState,
+    workspace_id: Uuid,
+    status: Option<&str>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<WorkspaceInvite>, i64), AppError> {
+    let (invites, mut total) =
+        repo::list_in_workspace(&state.db, workspace_id, status, limit, offset).await?;
+    if invites.is_empty() && offset > 0 {
+        total = repo::count_in_workspace(&state.db, workspace_id, status).await?;
+    }
+    Ok((invites, total))
+}
+
+/// Withdraw an invite of this workspace (any status). Malformed or foreign id = 404.
+pub async fn delete(state: &AppState, workspace_id: Uuid, invite: &str) -> Result<(), AppError> {
+    let id = Uuid::parse_str(invite).map_err(|_| AppError::NotFound)?;
+    repo::delete_in_workspace(&state.db, workspace_id, id)
+        .await?
+        .then_some(())
+        .ok_or(AppError::NotFound)
 }
 
 /// Public status lookup by code.

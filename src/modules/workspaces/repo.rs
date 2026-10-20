@@ -130,6 +130,8 @@ pub struct MemberWorkspace {
     pub created_by_user_id: Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
+    /// Company details; None until first saved.
+    pub profile: Option<serde_json::Value>,
 }
 
 /// Active memberships in live workspaces, oldest membership first (same order as login's ids).
@@ -139,7 +141,8 @@ pub async fn active_for_user(
 ) -> Result<Vec<MemberWorkspace>, sqlx::Error> {
     sqlx::query_as!(
         MemberWorkspace,
-        "SELECT w.id, w.name, w.workspace_type, w.created_by_user_id, w.created_at, w.updated_at
+        "SELECT w.id, w.name, w.workspace_type, w.created_by_user_id, w.created_at, w.updated_at,
+                w.profile
          FROM workspace_members m
          JOIN workspaces w ON w.id = m.workspace_id
          WHERE m.user_id = $1 AND m.active AND w.deleted_at IS NULL
@@ -148,6 +151,66 @@ pub async fn active_for_user(
     )
     .fetch_all(db)
     .await
+}
+
+/// The workspace record (settings page) with its two counts, in one query.
+pub struct Record {
+    pub id: Uuid,
+    pub name: String,
+    pub workspace_type: String,
+    pub profile: Option<serde_json::Value>,
+    pub meta: Option<serde_json::Value>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    /// Pending rows, expired ones included (Laravel; the invite list shows them as pending).
+    pub pending_invites: i64,
+    /// Every membership row, active or not (Laravel users_count).
+    pub users: i64,
+}
+
+/// Live workspace record. None = unknown or deleted.
+pub async fn record(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Option<Record>, sqlx::Error> {
+    sqlx::query_as!(
+        Record,
+        r#"SELECT w.id, w.name, w.workspace_type, w.profile, w.meta, w.created_at, w.updated_at,
+                  (SELECT count(*) FROM invites i
+                   WHERE i.workspace_id = w.id AND i.status = 'pending')
+                    AS "pending_invites!",
+                  (SELECT count(*) FROM workspace_members m
+                   JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL
+                   WHERE m.workspace_id = w.id) AS "users!"
+           FROM workspaces w WHERE w.id = $1 AND w.deleted_at IS NULL"#,
+        workspace_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// Merge validated profile keys (top level, so a sent `address` replaces the old one, Laravel
+/// array_merge) and optionally set meta. One statement: concurrent saves can't drop each other's keys.
+pub async fn patch_profile(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    profile: &serde_json::Value,
+    meta: Option<Option<&serde_json::Value>>,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query!(
+        "UPDATE workspaces
+         SET profile = COALESCE(profile, '{}'::jsonb) || $2,
+             meta = CASE WHEN $3 THEN $4 ELSE meta END,
+             updated_at = now()
+         WHERE id = $1 AND deleted_at IS NULL",
+        workspace_id,
+        profile,
+        meta.is_some(),
+        meta.flatten(),
+    )
+    .execute(db)
+    .await
+    .map(|done| done.rows_affected() == 1)
 }
 
 #[cfg(test)]

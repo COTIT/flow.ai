@@ -9,7 +9,8 @@ use crate::{
     http::json::{Rules, Validate},
     modules::{
         auth::dto::{NewPerson, PersonFields, required_email},
-        invites::service::StatusView,
+        invites::{repo::WorkspaceInvite, service::StatusView},
+        teams::dto::TeamResource,
     },
 };
 
@@ -131,4 +132,52 @@ impl From<StatusView> for InviteStatusResponse {
             invited_on: view.invite.created_at,
         }
     }
+}
+
+/// One settings pending-invites row (Laravel InviteResource). `invite_code` is left out: only
+/// its hash is stored, and the link goes to the invitee alone.
+#[derive(Serialize)]
+pub struct InviteResource {
+    invite_id: Uuid,
+    email: String,
+    invite_status: String,
+    /// Inviter email (Laravel sent the email string).
+    invited_by: String,
+    expired_at: DateTime<Utc>,
+    meta: Option<Value>,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+    relationships: InviteRelationships,
+}
+
+#[derive(Serialize)]
+struct InviteRelationships {
+    team: Option<TeamResource>,
+}
+
+impl From<WorkspaceInvite> for InviteResource {
+    fn from(i: WorkspaceInvite) -> Self {
+        Self {
+            invite_id: i.id,
+            email: i.email,
+            invite_status: i.status,
+            invited_by: i.inviter_email,
+            expired_at: i.expires_at,
+            meta: None,
+            created_at: i.created_at,
+            last_updated_at: i.updated_at,
+            relationships: InviteRelationships {
+                team: i.team.map(Into::into),
+            },
+        }
+    }
+}
+
+/// GET /v1/workspace/{workspace}/invites query. Unknown params ignored.
+#[derive(Deserialize)]
+pub struct InvitesQuery {
+    #[serde(rename = "filter[invite_status]")]
+    pub status: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
 }
