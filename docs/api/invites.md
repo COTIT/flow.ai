@@ -19,7 +19,7 @@ Requires a Bearer token. Only the workspace owner may invite (roles and teams ar
 |---|---|
 | `201` | `{"data": {"invite_id": "<uuid>"}}`. Email sent to `email` with `{FRONTEND_URL}/accept-invitation?code=<code>`. |
 | `401` | no or bad token |
-| `403` | caller is a member but not the owner: `This action is unauthorized.` |
+| `403` | caller is a member but not the owner: `This action is unauthorized.` Or the owner's email isn't verified yet: `Verify your email address first.` |
 | `404` | unknown, deleted or malformed workspace id, or the caller isn't a member (so outsiders can't tell the workspace exists) |
 | `422` | email invalid, or already a member: `errors.email = ["user already exists in the workspace"]` |
 | `429` | `{"message": "Too Many Attempts."}`: caller sent `INVITES_PER_HOUR` invite emails (default 20) in the last hour. Re-sends and failed SMTP attempts count. |
@@ -62,18 +62,20 @@ Requires a Bearer token. The logged-in user answers an invite sent to their own 
 | Field | Rules |
 |---|---|
 | `accept` | required boolean |
-| `invite_code` | required |
+| `invite_code` | required. Either the emailed code (64 hex), or the invite id from `GET /v1/me` `pending_invites[].invite_code`. The id works only when the caller's email is verified. |
 
 | Status | When |
 |---|---|
 | `200` | `{"message": "ok"}`. Accept joins the workspace and decline only records the answer. Accepting an already accepted invite returns `200` only while the user is still a member (Laravel COT-241). It never re-adds a removed member. |
 | `401` | no or bad token |
-| `404` | unknown code, or the invite is for a different email |
+| `403` | invite id used by a caller whose email isn't verified: `Verify your email address first.` |
+| `404` | unknown code or id, or the invite is for a different email |
 | `422` | expired, or already answered (for example accept after decline) |
 
 ## Laravel differences
 
 - The code is random hex and stored hashed. Laravel used a raw UUID plus an `APP_KEY`-encrypted link value.
 - The link base comes from `FRONTEND_URL`. Laravel took it from the request `Origin` header, which a caller can spoof.
-- Existing users get the same `/accept-invitation` link. Laravel sent them to `/pending-invites`, which needs `/me` (not ported yet).
+- Existing users get the same `/accept-invitation` link. vimdesk-web sends them on to `/pending-invites`, which lists invites from `GET /v1/me` and accepts them by invite id (verified email required). Laravel sent an `APP_KEY`-encrypted code there instead.
+- A decline is stored and reported as `denied`, the word vimdesk-web checks.
 - Expiry is an exact timestamp. Laravel cut it at midnight because the column was cast to a date.

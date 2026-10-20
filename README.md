@@ -28,6 +28,7 @@ All read once at boot. A missing required var stops the server with the var name
 | `BIND_ADDR` | no | `0.0.0.0:8080` | |
 | `TOKEN_TTL_DAYS` | no | `30` | 1..=365 |
 | `FRONTEND_URL` | yes | | vimdesk-web origin for email links |
+| `API_PUBLIC_URL` | yes | | this API's public origin; verification links point here |
 | `SMTP_URL` | yes | | `smtp://127.0.0.1:1025` (Mailpit), Postmark: `smtp://TOKEN:TOKEN@smtp.postmarkapp.com:587?tls=required` |
 | `MAIL_FROM` | yes | | `Genesy <no-reply@...>` |
 | `RATE_LIMIT_BURST` | no | `10` | public auth routes, per client IP |

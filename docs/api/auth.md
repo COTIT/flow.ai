@@ -84,3 +84,20 @@ Requires `Authorization: Bearer <token>`. Deletes the token used for this reques
 | `200` | `{"message": "ok"}` |
 | `401` | missing, unknown, expired or already revoked token |
 
+## Email verification
+
+Signup (`create-workspace`) emails `{API_PUBLIC_URL}/v1/verify-email/{token}`. The token is 64 hex chars, stored as sha256 and valid 24 hours. It can be opened more than once: mail scanners (Outlook SafeLinks and the like) open links before the user does, so a second open still counts as success. If that mail fails, signup still returns `201`, and the user can ask for a resend.
+
+### GET /v1/verify-email/{token}
+
+Public and rate-limited, opened by a browser from the email. It always answers `303 See Other`:
+
+- valid (also on later opens): `{FRONTEND_URL}/login?email_verified=1`. The **first** verification logs out every session of that account. Someone who signed up with this address before its owner clicked loses access that way.
+- expired, unknown, or the user was deleted: `{FRONTEND_URL}/login?email_verified=0`
+
+### POST /v1/email/verification-notification
+
+Bearer. Sends a new link and returns `200 {"message":"ok"}`. If the email is already verified, it sends nothing and still returns `200`. Limits per user, counting the signup mail: one link per 60 seconds, 5 per hour, 10 per day, then `429`. A send that fails doesn't count against the limit.
+
+Other ways an email becomes verified: signing up through an invite (`POST /v1/register`), or answering an invite with the emailed code (`POST /v1/invites`). Either one proves the user reads that inbox.
+

@@ -123,6 +123,34 @@ pub async fn is_member_by_email(
     .await
 }
 
+/// A live workspace the user is an active member of.
+pub struct MemberWorkspace {
+    pub id: Uuid,
+    pub name: String,
+    pub workspace_type: String,
+    pub created_by_user_id: Uuid,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Active memberships in live workspaces, oldest membership first (same order as login's ids).
+pub async fn active_for_user(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+) -> Result<Vec<MemberWorkspace>, sqlx::Error> {
+    sqlx::query_as!(
+        MemberWorkspace,
+        "SELECT w.id, w.name, w.workspace_type, w.created_by_user_id, w.created_at, w.updated_at
+         FROM workspace_members m
+         JOIN workspaces w ON w.id = m.workspace_id
+         WHERE m.user_id = $1 AND m.active AND w.deleted_at IS NULL
+         ORDER BY m.created_at, m.workspace_id",
+        user_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -31,3 +31,12 @@
   - Runtime image `distroless/cc-debian13`, same Debian release as the build image `rust:1.99-slim-trixie`.
   - The timing test asserts a one-way floor.
 - Migration `verify_email_and_denied`: new `email_verification_tokens` table (sha256 only, cascades on user delete), and the invite status `declined` becomes `denied`, the word vimdesk-web compares against (`accept-invitation.vue`). Existing rows are converted in both directions.
+- Email verification: signup mails a 24h single-use link to `GET /v1/verify-email/{token}`, which redirects to the vimdesk-web login with `email_verified=1|0`. `POST /v1/email/verification-notification` resends (5/hour). Registering or answering with an emailed invite code also verifies. New required env `API_PUBLIC_URL`.
+- `GET /v1/me` and `GET /v1/me/workspaces` (Laravel-compatible shapes; contract in `docs/api/me.md`). The owner gets `workspace_owner`, and members get no permissions until roles are ported. Pending invites are listed only for verified emails, with the invite id as `invite_code`.
+- `POST /v1/invites` also accepts the invite id from `/me`, for verified users only (403 otherwise), so `/pending-invites` in vimdesk-web works unchanged.
+- Phase A review fixes:
+  - Verification links can be opened repeatedly (scanner prefetch no longer shows a failure). The first verification logs out all sessions of that account, which mitigates pre-account-hijack, and the mail tells non-owners not to click.
+  - Resend runs under a per-user row lock: at most one link per 60s, 5/hour, 10/day, and a failed send doesn't count.
+  - Inviting requires a verified owner email.
+  - Request spans show 64-hex path segments as `:token`.
+  - Index `invites_pending_email_idx` for the `/me` lookup.

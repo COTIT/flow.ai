@@ -14,6 +14,7 @@ use crate::{
             password, repo as tokens,
             token::{self, PlainSecret},
         },
+        email_verification::service as email_verification,
         users::repo as users,
         workspaces::repo as workspaces,
     },
@@ -59,6 +60,8 @@ pub async fn create_workspace(state: &AppState, input: NewSignup) -> Result<Sess
     workspaces::add_member(&mut *tx, workspace_id, user_id).await?;
     let token = issue_token(&mut *tx, user_id, state.token_ttl).await?;
     tx.commit().await?;
+    // After commit: a mail failure must not undo the account.
+    email_verification::send_after_signup(state, user_id, &person.email).await;
 
     Ok(Session {
         token,

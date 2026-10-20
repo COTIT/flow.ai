@@ -61,13 +61,79 @@ pub async fn exists_by_email(db: impl PgExecutor<'_>, email: &str) -> Result<boo
     .await
 }
 
-/// Email of live user, as stored.
-pub async fn find_email(
+/// Email + verification state of a live user.
+pub struct Contact {
+    pub email: String,
+    pub email_verified: bool,
+}
+
+/// Contact of live user, email as stored.
+pub async fn find_contact(
     db: impl PgExecutor<'_>,
     user_id: Uuid,
-) -> Result<Option<String>, sqlx::Error> {
-    sqlx::query_scalar!(
-        "SELECT email FROM users WHERE id = $1 AND deleted_at IS NULL",
+) -> Result<Option<Contact>, sqlx::Error> {
+    sqlx::query_as!(
+        Contact,
+        r#"SELECT email, email_verified_at IS NOT NULL AS "email_verified!"
+           FROM users WHERE id = $1 AND deleted_at IS NULL"#,
+        user_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// Set email_verified_at once; later calls keep the first timestamp.
+pub async fn mark_email_verified(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query!(
+        "UPDATE users SET email_verified_at = now(), updated_at = now()
+         WHERE id = $1 AND email_verified_at IS NULL",
+        user_id,
+    )
+    .execute(db)
+    .await
+    .map(|done| done.rows_affected() == 1)
+}
+
+/// `find_contact` + row lock until the transaction ends (serializes per-user quota checks).
+pub async fn lock_contact(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+) -> Result<Option<Contact>, sqlx::Error> {
+    sqlx::query_as!(
+        Contact,
+        r#"SELECT email, email_verified_at IS NOT NULL AS "email_verified!"
+           FROM users WHERE id = $1 AND deleted_at IS NULL
+           FOR UPDATE"#,
+        user_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// Fields /v1/me shows about a live user.
+pub struct Profile {
+    pub id: Uuid,
+    pub email: String,
+    pub first_name: String,
+    pub middle_name: Option<String>,
+    pub last_name: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub email_verified: bool,
+}
+
+pub async fn find_profile(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+) -> Result<Option<Profile>, sqlx::Error> {
+    sqlx::query_as!(
+        Profile,
+        r#"SELECT id, email, first_name, middle_name, last_name, created_at, updated_at,
+                  email_verified_at IS NOT NULL AS "email_verified!"
+           FROM users WHERE id = $1 AND deleted_at IS NULL"#,
         user_id,
     )
     .fetch_optional(db)
@@ -131,20 +197,54 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn find_email_live_users_only(pool: PgPool) {
+    async fn find_contact_live_users_only(pool: PgPool) {
         let id = insert(&pool, &ada()).await.unwrap();
-        assert_eq!(
-            find_email(&pool, id).await.unwrap().as_deref(),
-            Some("Ada@Example.com")
-        );
+        let contact = find_contact(&pool, id).await.unwrap().unwrap();
+        assert_eq!(contact.email, "Ada@Example.com");
+        assert!(!contact.email_verified);
 
         sqlx::query("UPDATE users SET deleted_at = now() WHERE id = $1")
             .bind(id)
             .execute(&pool)
             .await
             .unwrap();
-        assert_eq!(find_email(&pool, id).await.unwrap(), None);
-        assert_eq!(find_email(&pool, Uuid::nil()).await.unwrap(), None);
+        assert!(find_contact(&pool, id).await.unwrap().is_none());
+        assert!(find_contact(&pool, Uuid::nil()).await.unwrap().is_none());
+    }
+
+    #[sqlx::test]
+    async fn mark_email_verified_keeps_first_timestamp(pool: PgPool) {
+        let id = insert(&pool, &ada()).await.unwrap();
+        assert!(
+            mark_email_verified(&pool, id).await.unwrap(),
+            "first time reports true"
+        );
+        let first: chrono::DateTime<chrono::Utc> =
+            sqlx::query_scalar("SELECT email_verified_at FROM users WHERE id = $1")
+                .bind(id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+
+        assert!(
+            !mark_email_verified(&pool, id).await.unwrap(),
+            "repeat reports false"
+        );
+
+        let again: chrono::DateTime<chrono::Utc> =
+            sqlx::query_scalar("SELECT email_verified_at FROM users WHERE id = $1")
+                .bind(id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(first, again);
+        assert!(
+            find_contact(&pool, id)
+                .await
+                .unwrap()
+                .unwrap()
+                .email_verified
+        );
     }
 
     #[sqlx::test]

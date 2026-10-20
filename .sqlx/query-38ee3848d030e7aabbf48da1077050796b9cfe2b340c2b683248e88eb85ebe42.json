@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT email FROM users WHERE id = $1 AND deleted_at IS NULL",
+  "query": "SELECT email, email_verified_at IS NOT NULL AS \"email_verified!\"\n           FROM users WHERE id = $1 AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -13,6 +13,12 @@
             "name": "email"
           }
         }
+      },
+      {
+        "ordinal": 1,
+        "name": "email_verified!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -21,8 +27,9 @@
       ]
     },
     "nullable": [
-      false
+      false,
+      null
     ]
   },
-  "hash": "02f3a9f25f24f0082521f44191aae93a0c75caeb603f7e1909d5e16a11378b5b"
+  "hash": "38ee3848d030e7aabbf48da1077050796b9cfe2b340c2b683248e88eb85ebe42"
 }

@@ -72,6 +72,7 @@ mod tests {
                 token_ttl: Duration::days(30),
                 mailer: crate::mail::Mailer::capture().0,
                 frontend_url: "https://app.test".into(),
+                api_public_url: "https://api.test".into(),
                 rate_limit: crate::RateLimit {
                     burst: 1000,
                     replenish: std::time::Duration::from_millis(1),

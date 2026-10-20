@@ -37,6 +37,7 @@ async fn main() {
         token_ttl: chrono::Duration::days(config.token_ttl_days),
         mailer: Mailer::smtp(&config.smtp_url, &config.mail_from).expect("mailer config"),
         frontend_url: config.frontend_url.as_str().into(),
+        api_public_url: config.api_public_url.as_str().into(),
         rate_limit: RateLimit {
             burst: config.rate_limit_burst,
             replenish: Duration::from_secs(config.rate_limit_replenish_secs),

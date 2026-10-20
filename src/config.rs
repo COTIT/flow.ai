@@ -14,6 +14,8 @@ pub struct Config {
     pub token_ttl_days: i64,
     /// vimdesk-web origin for links in emails, no trailing slash. Laravel used request Origin (spoofable).
     pub frontend_url: String,
+    /// Public origin of this API, for links that must hit the API (email verification).
+    pub api_public_url: String,
     pub smtp_url: String,
     pub mail_from: String,
     /// Public auth routes: requests allowed at once per client IP.
@@ -34,6 +36,7 @@ impl fmt::Debug for Config {
             .field("bind_addr", &self.bind_addr)
             .field("token_ttl_days", &self.token_ttl_days)
             .field("frontend_url", &self.frontend_url)
+            .field("api_public_url", &self.api_public_url)
             .field("smtp_url", &"***") // may carry SMTP credentials
             .field("mail_from", &self.mail_from)
             .field("rate_limit_burst", &self.rate_limit_burst)
@@ -68,13 +71,8 @@ impl Config {
                 ))?,
         };
 
-        let frontend_url = get("FRONTEND_URL").ok_or("FRONTEND_URL not set")?;
-        if !(frontend_url.starts_with("https://") || frontend_url.starts_with("http://")) {
-            return Err(format!(
-                "FRONTEND_URL must start with http(s)://, got {frontend_url:?}"
-            ));
-        }
-        let frontend_url = frontend_url.trim_end_matches('/').to_owned();
+        let frontend_url = base_url(&get, "FRONTEND_URL")?;
+        let api_public_url = base_url(&get, "API_PUBLIC_URL")?;
         let smtp_url = get("SMTP_URL").ok_or("SMTP_URL not set")?;
         let mail_from = get("MAIL_FROM").ok_or("MAIL_FROM not set")?;
         // Default 10 at once, then 1 per 6s: ~10 attempts a minute per IP.
@@ -96,6 +94,7 @@ impl Config {
             bind_addr,
             token_ttl_days,
             frontend_url,
+            api_public_url,
             smtp_url,
             mail_from,
             rate_limit_burst,
@@ -104,6 +103,15 @@ impl Config {
             invites_per_hour,
         })
     }
+}
+
+/// Required http(s) origin, trailing `/` trimmed so callers can append paths.
+fn base_url(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<String, String> {
+    let url = get(key).ok_or(format!("{key} not set"))?;
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err(format!("{key} must start with http(s)://, got {url:?}"));
+    }
+    Ok(url.trim_end_matches('/').to_owned())
 }
 
 /// Optional integer env var, must be > 0.
@@ -126,8 +134,9 @@ mod tests {
     use super::*;
 
     /// Required vars besides DATABASE_URL, so each test only spells out what it checks.
-    const REQUIRED: [(&str, &str); 3] = [
+    const REQUIRED: [(&str, &str); 4] = [
         ("FRONTEND_URL", "https://app.test"),
+        ("API_PUBLIC_URL", "https://api.test"),
         ("SMTP_URL", "smtp://127.0.0.1:1025"),
         ("MAIL_FROM", "Genesy <no-reply@genesy.test>"),
     ];
@@ -198,7 +207,7 @@ mod tests {
 
     #[test]
     fn mail_and_frontend_vars_required() {
-        for var in ["FRONTEND_URL", "SMTP_URL", "MAIL_FROM"] {
+        for var in ["FRONTEND_URL", "API_PUBLIC_URL", "SMTP_URL", "MAIL_FROM"] {
             let err = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x"), (var, "")]))
                 .unwrap_err();
             assert_eq!(err, format!("{var} not set"));
@@ -220,6 +229,23 @@ mod tests {
         ]))
         .unwrap_err();
         assert!(err.starts_with("FRONTEND_URL must start"), "{err}");
+    }
+
+    #[test]
+    fn api_public_url_trimmed_and_scheme_checked() {
+        let cfg = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("API_PUBLIC_URL", "https://api.genesy.app/"),
+        ]))
+        .unwrap();
+        assert_eq!(cfg.api_public_url, "https://api.genesy.app");
+
+        let err = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("API_PUBLIC_URL", "api.genesy.app"),
+        ]))
+        .unwrap_err();
+        assert!(err.starts_with("API_PUBLIC_URL must start"), "{err}");
     }
 
     #[test]

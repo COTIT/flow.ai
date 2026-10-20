@@ -27,6 +27,7 @@ const EXPIRED: &str = "Workspace invite has expired";
 const USED: &str = "This invitation has already been used.";
 const ALREADY_MEMBER: &str = "user already exists in the workspace";
 const NOT_ALLOWED: &str = "This action is unauthorized.";
+const VERIFY_FIRST: &str = "Verify your email address first.";
 
 /// Invite plus derived fields for the status page.
 pub struct StatusView {
@@ -58,6 +59,13 @@ pub async fn send(
                 AppError::NotFound
             },
         );
+    }
+    // Each invite mails a stranger from our domain: only proven inbox owners may do that.
+    let owner_verified = users::find_contact(&state.db, inviter)
+        .await?
+        .is_some_and(|c| c.email_verified);
+    if !owner_verified {
+        return Err(AppError::Forbidden(VERIFY_FIRST));
     }
     if workspaces::is_member_by_email(&state.db, workspace_id, &email).await? {
         return Err(AppError::field("email", ALREADY_MEMBER));
@@ -127,6 +135,8 @@ pub async fn register(state: &AppState, input: NewInvitee) -> Result<Session, Ap
         return Err(AppError::field("invite_code", USED)); // tx dropped = rollback
     }
     workspaces::add_member(&mut *tx, invite.workspace_id, user_id).await?;
+    // Signed up with the emailed code, so the inbox is proven.
+    users::mark_email_verified(&mut *tx, user_id).await?;
     let token = auth::issue_token(&mut *tx, user_id, state.token_ttl).await?;
     tx.commit().await?;
 
@@ -136,26 +146,43 @@ pub async fn register(state: &AppState, input: NewInvitee) -> Result<Session, Ap
     })
 }
 
-/// Logged-in user accepts or declines. Repeating an accept is a no-op success while still a member.
+/// Logged-in user accepts or declines. `invite_code` is the emailed code, or the invite id from
+/// /v1/me (verified email required). Repeating an accept is a no-op success while still a member.
 pub async fn answer(state: &AppState, user_id: Uuid, input: Answer) -> Result<(), AppError> {
-    let invite = find(state, &input.invite_code).await?;
-    let email = users::find_email(&state.db, user_id)
+    let by_code = token::looks_valid(&input.invite_code);
+    let invite = if by_code {
+        find(state, &input.invite_code).await?
+    } else {
+        let id = Uuid::parse_str(&input.invite_code).map_err(|_| AppError::NotFound)?;
+        repo::find_by_id(&state.db, id)
+            .await?
+            .ok_or(AppError::NotFound)?
+    };
+    let contact = users::find_contact(&state.db, user_id)
         .await?
         .ok_or(AppError::Unauthorized)?;
-    if !same_email(&invite.email, &email) {
+    if !same_email(&invite.email, &contact.email) {
         return Err(AppError::NotFound);
+    }
+    // The id is no secret: only an account proven to own the inbox may use it, so a squatter
+    // who registered someone else's address can't take their invites.
+    if !by_code && !contact.email_verified {
+        return Err(AppError::Forbidden(VERIFY_FIRST));
     }
 
     match invite.status.as_str() {
         "pending" => {
             ensure_open(&invite)?;
             let mut tx = state.db.begin().await?;
-            let hash = token::hash(&input.invite_code);
-            if !repo::mark_answered(&mut *tx, invite.id, &hash, input.accept).await? {
+            if !repo::mark_answered(&mut *tx, invite.id, &invite.token_hash, input.accept).await? {
                 return Err(AppError::field("invite_code", USED));
             }
             if input.accept {
                 workspaces::add_member(&mut *tx, invite.workspace_id, user_id).await?;
+            }
+            if by_code {
+                // Holding the emailed code proves the inbox (Laravel verified here too).
+                users::mark_email_verified(&mut *tx, user_id).await?;
             }
             tx.commit().await?;
         }
@@ -229,6 +256,7 @@ mod tests {
             status: status.into(),
             expires_at: Utc::now() + expires_in,
             created_at: Utc::now(),
+            token_hash: vec![0; 32],
         }
     }
 

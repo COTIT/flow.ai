@@ -26,6 +26,7 @@ struct World {
 async fn world(pool: PgPool) -> World {
     let (app, outbox) = app_with_mail(pool.clone());
     let (owner_token, ws) = signup(&app, "ada@example.com", "acme").await;
+    common::verify_email(&pool, "ada@example.com").await; // inviting needs a verified owner
     World {
         app,
         outbox,
@@ -53,8 +54,8 @@ impl World {
 
     /// Code from the newest captured mail.
     fn last_code(&self) -> String {
-        let mails = self.outbox.lock().unwrap();
-        let body = &mails.last().expect("no mail sent").body;
+        let mails = common::invite_mails(&self.outbox);
+        let body = &mails.last().expect("no invite mail sent").body;
         let start = body.find("code=").expect("no code in mail") + 5;
         body[start..start + 64].to_owned()
     }
@@ -123,7 +124,7 @@ async fn owner_invite_stores_hash_and_mails_link(pool: PgPool) {
     let invite_id: uuid::Uuid = res["data"]["invite_id"].as_str().unwrap().parse().unwrap();
     let code = w.last_code();
     {
-        let mails = w.outbox.lock().unwrap();
+        let mails = common::invite_mails(&w.outbox);
         assert_eq!(mails.len(), 1);
         assert_eq!(mails[0].to, "new@example.com");
         assert!(mails[0].subject.contains("acme"), "{}", mails[0].subject);
@@ -219,7 +220,7 @@ async fn existing_member_rejected_ignoring_case(pool: PgPool) {
         json!(["user already exists in the workspace"])
     );
     assert!(
-        w.outbox.lock().unwrap().is_empty(),
+        common::invite_mails(&w.outbox).is_empty(),
         "no mail for rejected invite"
     );
 }
@@ -250,6 +251,7 @@ async fn invite_email_validated(pool: PgPool) {
 async fn smtp_failure_is_500_without_internals(pool: PgPool) {
     let (ok_app, _) = app_with_mail(pool.clone());
     let (token, ws) = signup(&ok_app, "ada@example.com", "acme").await;
+    common::verify_email(&pool, "ada@example.com").await;
     // Port 1: nothing listens, connect fails fast.
     let broken = Mailer::smtp("smtp://127.0.0.1:1", "Genesy <no-reply@genesy.test>").unwrap();
     let app = build_app(common::state(pool, broken));
@@ -578,6 +580,7 @@ async fn answer_requires_token_and_valid_body(pool: PgPool) {
 async fn invite_send_quota_per_user_per_hour(pool: PgPool) {
     let (ok_app, outbox) = app_with_mail(pool.clone());
     let (token, ws) = signup(&ok_app, "ada@example.com", "acme").await;
+    common::verify_email(&pool, "ada@example.com").await;
     let mut state = common::state(pool, Mailer::Capture(outbox.clone()));
     state.invites_per_hour = 2;
     let app = build_app(state);
@@ -606,7 +609,7 @@ async fn invite_send_quota_per_user_per_hour(pool: PgPool) {
 
     assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
     assert_eq!(res, json!({ "message": "Too Many Attempts." }));
-    assert_eq!(outbox.lock().unwrap().len(), 2, "no mail past quota");
+    assert_eq!(common::invite_mails(&outbox).len(), 2, "no mail past quota");
 }
 
 #[sqlx::test]
@@ -662,5 +665,189 @@ async fn invite_rejects_address_mail_parser_would_reject(pool: PgPool) {
     let (status, _) = w.invite("a\"b@example.com").await;
 
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(w.outbox.lock().unwrap().is_empty());
+    assert!(common::invite_mails(&w.outbox).is_empty());
+}
+
+// ================= email verification side effects
+
+async fn verified(pool: &PgPool, email: &str) -> bool {
+    sqlx::query_scalar("SELECT email_verified_at IS NOT NULL FROM users WHERE email = $1")
+        .bind(email)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+#[sqlx::test]
+async fn register_marks_email_verified(pool: PgPool) {
+    let w = world(pool).await;
+    w.invite("new@example.com").await;
+
+    w.register("new@example.com", &w.last_code()).await;
+
+    assert!(
+        verified(&w.pool, "new@example.com").await,
+        "emailed code proves inbox"
+    );
+}
+
+#[sqlx::test]
+async fn answering_with_emailed_code_marks_email_verified(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob_token, _) = signup(&w.app, "bob@example.com", "bobs").await;
+    assert!(!verified(&w.pool, "bob@example.com").await);
+    w.invite("bob@example.com").await;
+
+    w.answer(&bob_token, &w.last_code(), false).await;
+
+    assert!(verified(&w.pool, "bob@example.com").await);
+}
+
+// ================= answer by invite id (from /v1/me pending_invites)
+
+impl World {
+    async fn invite_id(&self, email: &str) -> String {
+        sqlx::query_scalar("SELECT id::text FROM invites WHERE lower(email) = lower($1)")
+            .bind(email)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap()
+    }
+
+    async fn verify(&self, email: &str) {
+        sqlx::query("UPDATE users SET email_verified_at = now() WHERE lower(email) = lower($1)")
+            .bind(email)
+            .execute(&self.pool)
+            .await
+            .unwrap();
+    }
+}
+
+#[sqlx::test]
+async fn verified_user_accepts_by_invite_id(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob_token, bobs) = signup(&w.app, "bob@example.com", "bobs").await;
+    w.verify("bob@example.com").await;
+    w.invite("bob@example.com").await;
+    let id = w.invite_id("bob@example.com").await;
+
+    let (status, res) = w.answer(&bob_token, &id, true).await;
+
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(
+        w.workspaces_of("bob@example.com").await,
+        json!([bobs, w.ws])
+    );
+}
+
+#[sqlx::test]
+async fn unverified_user_cannot_use_invite_id(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob_token, _) = signup(&w.app, "bob@example.com", "bobs").await;
+    w.invite("bob@example.com").await;
+    let id = w.invite_id("bob@example.com").await;
+
+    let (status, res) = w.answer(&bob_token, &id, true).await;
+
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert_eq!(
+        res,
+        json!({ "message": "Verify your email address first." })
+    );
+    assert_eq!(
+        w.status(&w.last_code()).await.1["data"]["status"],
+        "pending"
+    );
+}
+
+#[sqlx::test]
+async fn invite_id_of_someone_else_is_404(pool: PgPool) {
+    let w = world(pool).await;
+    let (eve_token, _) = signup(&w.app, "eve@example.com", "eves").await;
+    w.verify("eve@example.com").await;
+    w.invite("bob@example.com").await;
+    let id = w.invite_id("bob@example.com").await;
+
+    assert_eq!(
+        w.answer(&eve_token, &id, true).await.0,
+        StatusCode::NOT_FOUND
+    );
+}
+
+#[sqlx::test]
+async fn unknown_invite_id_is_404(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob_token, _) = signup(&w.app, "bob@example.com", "bobs").await;
+    w.verify("bob@example.com").await;
+
+    let (status, _) = w
+        .answer(&bob_token, "00000000-0000-7000-8000-000000000000", true)
+        .await;
+
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test]
+async fn deny_by_invite_id(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob_token, bobs) = signup(&w.app, "bob@example.com", "bobs").await;
+    w.verify("bob@example.com").await;
+    w.invite("bob@example.com").await;
+    let id = w.invite_id("bob@example.com").await;
+
+    assert_eq!(w.answer(&bob_token, &id, false).await.0, StatusCode::OK);
+    assert_eq!(w.status(&w.last_code()).await.1["data"]["status"], "denied");
+    assert_eq!(w.workspaces_of("bob@example.com").await, json!([bobs]));
+}
+
+#[sqlx::test]
+async fn invite_id_still_works_after_reinvite_rotates_code(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob_token, _) = signup(&w.app, "bob@example.com", "bobs").await;
+    w.verify("bob@example.com").await;
+    w.invite("bob@example.com").await;
+    let id = w.invite_id("bob@example.com").await;
+    w.invite("bob@example.com").await; // rotates code, same row
+
+    assert_eq!(w.answer(&bob_token, &id, true).await.0, StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn unverified_owner_cannot_invite(pool: PgPool) {
+    // Throwaway signups must not be able to mail strangers from our domain.
+    let (app, outbox) = app_with_mail(pool);
+    let (token, ws) = signup(&app, "ada@example.com", "acme").await;
+
+    let (status, res) = send(
+        &app,
+        Method::POST,
+        &format!("/v1/workspace/{ws}/invites"),
+        Some(json!({ "email": "new@example.com" })),
+        Some(&token),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert_eq!(
+        res,
+        json!({ "message": "Verify your email address first." })
+    );
+    assert!(common::invite_mails(&outbox).is_empty());
+}
+
+#[sqlx::test]
+async fn deny_by_invite_id_also_needs_verified_email(pool: PgPool) {
+    let w = world(pool).await;
+    let (bob_token, _) = signup(&w.app, "bob@example.com", "bobs").await;
+    w.invite("bob@example.com").await;
+    let id = w.invite_id("bob@example.com").await;
+
+    assert_eq!(
+        w.answer(&bob_token, &id, false).await.0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        w.status(&w.last_code()).await.1["data"]["status"],
+        "pending"
+    );
 }

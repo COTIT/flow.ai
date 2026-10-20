@@ -54,6 +54,17 @@ pub async fn delete(db: impl PgExecutor<'_>, token_id: Uuid) -> Result<(), sqlx:
         .map(|_| ())
 }
 
+/// Revoke every session of a user (first email verification, pre-hijack mitigation).
+pub async fn delete_all_for_user(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!("DELETE FROM access_tokens WHERE user_id = $1", user_id)
+        .execute(db)
+        .await
+        .map(|_| ())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

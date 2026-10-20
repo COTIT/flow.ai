@@ -24,6 +24,8 @@ pub struct InviteRow {
     pub status: String,
     pub expires_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
+    /// Current code hash; answering re-checks it so a code rotated meanwhile can't be used.
+    pub token_hash: Vec<u8>,
 }
 
 /// Create pending invite, or rotate code + expiry on existing pending one for same email.
@@ -60,11 +62,29 @@ pub async fn find_by_token_hash(
     sqlx::query_as!(
         InviteRow,
         "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,
-                i.expires_at, i.created_at
+                i.expires_at, i.created_at, i.token_hash
          FROM invites i
          JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
          WHERE i.token_hash = $1",
         &token_hash[..],
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// Invite by id, any status (for the /v1/me accept path). Caller checks email + verification.
+pub async fn find_by_id(
+    db: impl PgExecutor<'_>,
+    invite_id: Uuid,
+) -> Result<Option<InviteRow>, sqlx::Error> {
+    sqlx::query_as!(
+        InviteRow,
+        "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,
+                i.expires_at, i.created_at, i.token_hash
+         FROM invites i
+         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
+         WHERE i.id = $1",
+        invite_id,
     )
     .fetch_optional(db)
     .await
@@ -75,7 +95,7 @@ pub async fn find_by_token_hash(
 pub async fn mark_answered(
     db: impl PgExecutor<'_>,
     invite_id: Uuid,
-    token_hash: &[u8; 32],
+    token_hash: &[u8],
     accepted: bool,
 ) -> Result<bool, sqlx::Error> {
     sqlx::query!(
@@ -85,7 +105,7 @@ pub async fn mark_answered(
              updated_at = now()
          WHERE id = $1 AND token_hash = $2 AND status = 'pending'",
         invite_id,
-        &token_hash[..],
+        token_hash,
         accepted,
     )
     .execute(db)
@@ -117,6 +137,38 @@ pub async fn record_send(db: impl PgExecutor<'_>, inviter: Uuid) -> Result<(), s
     .execute(db)
     .await
     .map(|_| ())
+}
+
+/// Pending invite as /v1/me lists it.
+pub struct PendingInvite {
+    pub id: Uuid,
+    pub workspace_name: String,
+    pub created_at: DateTime<Utc>,
+    pub inviter_email: String,
+    pub inviter_first_name: String,
+    pub inviter_middle_name: Option<String>,
+    pub inviter_last_name: String,
+}
+
+/// Pending, unexpired invites to this email (any case) in live workspaces, newest first.
+pub async fn pending_for_email(
+    db: impl PgExecutor<'_>,
+    email: &str,
+) -> Result<Vec<PendingInvite>, sqlx::Error> {
+    sqlx::query_as!(
+        PendingInvite,
+        "SELECT i.id, w.name AS workspace_name, i.created_at,
+                u.email AS inviter_email, u.first_name AS inviter_first_name,
+                u.middle_name AS inviter_middle_name, u.last_name AS inviter_last_name
+         FROM invites i
+         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
+         JOIN users u ON u.id = i.invited_by_user_id
+         WHERE lower(i.email) = lower($1) AND i.status = 'pending' AND i.expires_at > now()
+         ORDER BY i.created_at DESC",
+        email,
+    )
+    .fetch_all(db)
+    .await
 }
 
 #[cfg(test)]

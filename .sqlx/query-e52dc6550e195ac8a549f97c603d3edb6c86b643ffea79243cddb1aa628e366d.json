@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,\n                i.expires_at, i.created_at\n         FROM invites i\n         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n         WHERE i.token_hash = $1",
+  "query": "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,\n                i.expires_at, i.created_at, i.token_hash\n         FROM invites i\n         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n         WHERE i.token_hash = $1",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,17 @@
             "name": "created_at"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "token_hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "invites",
+            "name": "token_hash"
+          }
+        }
       }
     ],
     "parameters": {
@@ -93,8 +104,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "41fdc1f19277316ac72a9f59fc31c09dc7d6fe2b146fc4eaac9a49e8d7009355"
+  "hash": "e52dc6550e195ac8a549f97c603d3edb6c86b643ffea79243cddb1aa628e366d"
 }

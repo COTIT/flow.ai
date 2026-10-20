@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.user_id FROM email_verification_tokens t\n         JOIN users u ON u.id = t.user_id AND u.deleted_at IS NULL\n         WHERE t.token_hash = $1 AND t.expires_at > now()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "email_verification_tokens",
+            "name": "user_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1e2243024c9538077a7a0fcdd52abdf232b5229cd86a05d48b201b6810f222b6"
+}
