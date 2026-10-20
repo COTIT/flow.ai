@@ -11,6 +11,7 @@ pub mod invites;
 pub mod permissions;
 pub mod product_brands;
 pub mod product_categories;
+pub mod product_variants;
 pub mod products;
 pub mod relations;
 pub mod sales_groups;

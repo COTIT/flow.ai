@@ -12,7 +12,10 @@ use sqlx::PgPool;
 async fn world(pool: PgPool) -> (Api, String) {
     let products = Api::new(pool, "/products").await;
     let product = products
-        .create(json!({ "name": "Shirt", "price": "220", "weight": "0.5" }), "product_id")
+        .create(
+            json!({ "name": "Shirt", "price": "220", "weight": "0.5" }),
+            "product_id",
+        )
         .await;
     let base: &'static str = Box::leak(format!("/products/{product}/variants").into_boxed_str());
     (products.with_base(base), product)
@@ -33,7 +36,10 @@ async fn product_starts_with_its_default_variant(pool: PgPool) {
     assert_eq!(v["is_default"], true);
     assert_eq!(v["product_id"], product.as_str());
     assert_eq!(v["price"], "220");
-    assert_eq!(v["impact_on_price"], "0", "normalised against the product price");
+    assert_eq!(
+        v["impact_on_price"], "0",
+        "normalised against the product price"
+    );
     assert_eq!(v["weight"], "0.5");
     assert_eq!(v["relationships"]["product"]["id"], product.as_str());
     assert_eq!(v["relationships"]["option_values"], json!([]));
@@ -43,18 +49,29 @@ async fn product_starts_with_its_default_variant(pool: PgPool) {
 #[sqlx::test]
 async fn create_get_update_delete(pool: PgPool) {
     let (api, _) = world(pool).await;
-    let first = rows(&api.list("").await)[0]["id"].as_str().unwrap().to_owned();
+    let first = rows(&api.list("").await)[0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
 
     let id = api
         .create(json!({ "sku": "S-1", "price": "250" }), "variant_id")
         .await;
     let v = api.get(&id).await;
-    assert_eq!((v["sku"].clone(), v["price"].clone()), (json!("S-1"), json!("250")));
+    assert_eq!(
+        (v["sku"].clone(), v["price"].clone()),
+        (json!("S-1"), json!("250"))
+    );
     assert_eq!(v["impact_on_price"], "13.6364", "250 vs product 220");
     assert_eq!(v["is_default"], false);
 
     let (status, res) = api
-        .call(Method::PUT, &format!("/{id}"), Some(json!({ "impact_on_price": 10, "is_default": true })), &api.owner)
+        .call(
+            Method::PUT,
+            &format!("/{id}"),
+            Some(json!({ "impact_on_price": 10, "is_default": true })),
+            &api.owner,
+        )
         .await;
     assert_eq!(status, StatusCode::OK, "{res}");
     assert_eq!(res["data"]["price"], "242");
@@ -64,7 +81,11 @@ async fn create_get_update_delete(pool: PgPool) {
     let (status, res) = api
         .call(Method::DELETE, &format!("/{id}"), None, &api.owner)
         .await;
-    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "default can't go: {res}");
+    assert_eq!(
+        status,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "default can't go: {res}"
+    );
     let (status, _) = api
         .call(Method::DELETE, &format!("/{first}"), None, &api.owner)
         .await;
@@ -75,7 +96,9 @@ async fn create_get_update_delete(pool: PgPool) {
 #[sqlx::test]
 async fn validation(pool: PgPool) {
     let (api, _) = world(pool).await;
-    let (status, res) = api.call(Method::POST, "", Some(json!({ "sku": "x" })), &api.owner).await;
+    let (status, res) = api
+        .call(Method::POST, "", Some(json!({ "sku": "x" })), &api.owner)
+        .await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(
         res["errors"]["price"],
@@ -85,7 +108,10 @@ async fn validation(pool: PgPool) {
         .call(Method::POST, "", Some(json!({ "price": -1 })), &api.owner)
         .await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(res["errors"]["price"], json!(["The price must be at least 0."]));
+    assert_eq!(
+        res["errors"]["price"],
+        json!(["The price must be at least 0."])
+    );
 }
 
 #[sqlx::test]
@@ -102,23 +128,33 @@ async fn generate_from_option_types(pool: PgPool) {
         "sku_pattern": "SH-{index}", "default_price": "9", "default_stock": 0
     });
 
-    let (status, res) = api.call(Method::POST, "/generate", Some(body.clone()), &api.owner).await;
+    let (status, res) = api
+        .call(Method::POST, "/generate", Some(body.clone()), &api.owner)
+        .await;
 
     assert_eq!(status, StatusCode::CREATED, "{res}");
     let made = rows(&res);
     assert_eq!(made.len(), 2, "unresolvable combination skipped");
-    assert_eq!((made[0]["sku"].clone(), made[0]["price"].clone()), (json!("R"), json!("10")));
-    assert_eq!(made[1]["sku"], "SH-2", "sku_pattern with the combination index");
+    assert_eq!(
+        (made[0]["sku"].clone(), made[0]["price"].clone()),
+        (json!("R"), json!("10"))
+    );
+    assert_eq!(
+        made[1]["sku"], "SH-2",
+        "sku_pattern with the combination index"
+    );
     assert_eq!(made[0]["meta"], json!({ "stock": 3 }));
     let ov = &made[0]["relationships"]["option_values"][0];
-    assert_eq!((ov["value"].clone(), ov["display_value"].clone()), (json!("red"), json!("Red")));
     assert_eq!(
-        ov["relationships"]["option_type"]["name"],
-        "color"
+        (ov["value"].clone(), ov["display_value"].clone()),
+        (json!("red"), json!("Red"))
     );
+    assert_eq!(ov["relationships"]["option_type"]["name"], "color");
 
     // Same names again reuse the option type and values.
-    let (status, _) = api.call(Method::POST, "/generate", Some(body), &api.owner).await;
+    let (status, _) = api
+        .call(Method::POST, "/generate", Some(body), &api.owner)
+        .await;
     assert_eq!(status, StatusCode::CREATED);
     let types: i64 = sqlx::query_scalar("SELECT count(*) FROM option_types")
         .fetch_one(&pool)
@@ -130,7 +166,10 @@ async fn generate_from_option_types(pool: PgPool) {
 #[sqlx::test]
 async fn variants_are_scoped_to_their_product_and_workspace(pool: PgPool) {
     let (api, _) = world(pool.clone()).await;
-    let variant = rows(&api.list("").await)[0]["id"].as_str().unwrap().to_owned();
+    let variant = rows(&api.list("").await)[0]["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
     let other = api
         .with_base("/products")
         .create(json!({ "name": "Other", "price": 1 }), "product_id")
@@ -139,9 +178,15 @@ async fn variants_are_scoped_to_their_product_and_workspace(pool: PgPool) {
     let wrong = api.with_base(base);
 
     for method in [Method::GET, Method::PUT, Method::DELETE] {
-        let body = (method == Method::PUT).then(|| json!({ "sku": "x" }));
-        let (status, _) = wrong.call(method.clone(), &format!("/{variant}"), body, &api.owner).await;
-        assert_eq!(status, StatusCode::NOT_FOUND, "{method} through another product");
+        let body = (method == Method::PUT).then(|| json!({ "sku": "x", "price": 1 }));
+        let (status, _) = wrong
+            .call(method.clone(), &format!("/{variant}"), body, &api.owner)
+            .await;
+        assert_eq!(
+            status,
+            StatusCode::NOT_FOUND,
+            "{method} through another product"
+        );
     }
 
     let (eve, eve_ws) = signup(&api.app, "eve@example.com", "evil").await;
@@ -149,7 +194,14 @@ async fn variants_are_scoped_to_their_product_and_workspace(pool: PgPool) {
     let (status, _) = common::send(&api.app, Method::GET, &uri, None, Some(&eve)).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 
-    let viewer = member_with(&api.app, &pool, &api.ws, "bob@example.com", &["product.view"]).await;
+    let viewer = member_with(
+        &api.app,
+        &pool,
+        &api.ws,
+        "bob@example.com",
+        &["product.view"],
+    )
+    .await;
     let (status, _) = api.call(Method::GET, "", None, &viewer).await;
     assert_eq!(status, StatusCode::OK);
     let (status, _) = api

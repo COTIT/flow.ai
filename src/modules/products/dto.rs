@@ -120,7 +120,8 @@ impl Validate for CreateProductRequest {
         f.kind.get_or_insert_with(|| "physical".into());
         f.status.get_or_insert_with(|| "active".into());
         f.wholesale_price.get_or_insert(Some(Decimal::ZERO));
-        f.supplier_wholesale_price.get_or_insert(Some(Decimal::ZERO));
+        f.supplier_wholesale_price
+            .get_or_insert(Some(Decimal::ZERO));
         Some(f)
     }
 }
@@ -182,7 +183,10 @@ fn int(r: &mut Rules, m: &Map<String, Value>, k: &str, min: i64) -> Option<Optio
 /// Laravel EnumExist: lowercased input, "The selected {attr}: {value} is invalid."
 fn enum_of(r: &mut Rules, m: &Map<String, Value>, k: &str, allowed: &[&str]) -> Option<String> {
     let v = key(m, k)??;
-    let s = v.as_str().map(str::to_lowercase).unwrap_or_else(|| v.to_string());
+    let s = v
+        .as_str()
+        .map(str::to_lowercase)
+        .unwrap_or_else(|| v.to_string());
     if allowed.contains(&s.as_str()) {
         Some(s)
     } else {
@@ -192,7 +196,12 @@ fn enum_of(r: &mut Rules, m: &Map<String, Value>, k: &str, allowed: &[&str]) -> 
 }
 
 /// `nullable|in:` on a plain list.
-fn choice(r: &mut Rules, m: &Map<String, Value>, k: &str, allowed: &[&str]) -> Option<Option<String>> {
+fn choice(
+    r: &mut Rules,
+    m: &Map<String, Value>,
+    k: &str,
+    allowed: &[&str],
+) -> Option<Option<String>> {
     text(r, m, k, usize::MAX).map(|v| v.and_then(|s| r.one_of(k, Some(s), allowed, None)))
 }
 
@@ -220,7 +229,10 @@ fn url(r: &mut Rules, m: &Map<String, Value>, k: &str, check: bool) -> Option<Op
 
 /// Laravel ValidateId message for `field` in `domain`.
 pub fn bad_id(field: &str, domain: &str) -> String {
-    format!("The {} is an invalid id for the {domain} domain.", human(field))
+    format!(
+        "The {} is an invalid id for the {domain} domain.",
+        human(field)
+    )
 }
 
 /// The CurrencyExist text.
@@ -264,10 +276,20 @@ fn fields(r: &mut Rules, m: &Map<String, Value>, create: bool) -> Fields {
         // Laravel `numeric` into an int column: MySQL rounded.
         stock_level_supplier: decimal(r, m, "stock_level_supplier", any, max)
             .map(|v| v.and_then(|d| money::round(d, 0).to_i32())),
-        supplier_relation_id: id(r, m, "supplier_relation_id", &bad_id("supplier_relation_id", "relation")),
+        supplier_relation_id: id(
+            r,
+            m,
+            "supplier_relation_id",
+            &bad_id("supplier_relation_id", "relation"),
+        ),
         currency_id,
         vat_group_id: id(r, m, "vat_group_id", &bad_id("vat_group_id", "vat_group")),
-        sales_group_id: id(r, m, "sales_group_id", &bad_id("sales_group_id", "sales_group")),
+        sales_group_id: id(
+            r,
+            m,
+            "sales_group_id",
+            &bad_id("sales_group_id", "sales_group"),
+        ),
         default_warehouse_id: id(
             r,
             m,
@@ -279,7 +301,13 @@ fn fields(r: &mut Rules, m: &Map<String, Value>, create: bool) -> Fields {
         wholesale_price: decimal(r, m, "wholesale_price", zero, max),
         supplier_wholesale_price: decimal(r, m, "supplier_wholesale_price", zero, max),
         impact_on_price: decimal(r, m, "impact_on_price", any, max),
-        impact_on_wholesale_price: decimal(r, m, "impact_on_wholesale_price", any, Decimal::ONE_HUNDRED),
+        impact_on_wholesale_price: decimal(
+            r,
+            m,
+            "impact_on_wholesale_price",
+            any,
+            Decimal::ONE_HUNDRED,
+        ),
         order_unit: decimal(r, m, "order_unit", zero, max).flatten(),
         sale_unit: decimal(r, m, "sale_unit", zero, max).flatten(),
         weight: decimal(r, m, "weight", zero, max),
@@ -328,7 +356,10 @@ fn object(r: &mut Rules, k: &str, v: Value) -> Option<Value> {
 /// `multi_set_product_ids`: [{id: uuid, quantity: numeric >= 1}], at most 100.
 fn set_children(r: &mut Rules, v: &Value) -> Option<Vec<(Uuid, Decimal)>> {
     let Value::Array(items) = v else {
-        r.add("multi_set_product_ids", "The multi set product ids must be an array.");
+        r.add(
+            "multi_set_product_ids",
+            "The multi set product ids must be an array.",
+        );
         return None;
     };
     if items.len() > 100 {
@@ -346,7 +377,10 @@ fn set_children(r: &mut Rules, v: &Value) -> Option<Vec<(Uuid, Decimal)>> {
             .and_then(Value::as_str)
             .and_then(|s| Uuid::parse_str(s).ok());
         if id.is_none() {
-            r.add(&format!("{k}.id"), format!("The {k}.id must be a valid UUID."));
+            r.add(
+                &format!("{k}.id"),
+                format!("The {k}.id must be a valid UUID."),
+            );
         }
         let qty = filled(item.get("quantity").cloned())
             .and_then(|q| r.decimal(&format!("{k}.quantity"), &q, Decimal::ONE, money::MAX));

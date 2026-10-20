@@ -49,13 +49,20 @@ pub async fn list(
 ) -> Result<Json<Paginated<Value>>, AppError> {
     let pattern = pattern_of(q.q.as_deref().or(q.search.as_deref()))?;
     // Laravel: `limit`, else `page_size`; vimdesk-web and the RN app send `per_page`.
-    let size = q.limit.as_deref().or(q.per_page.as_deref()).or(q.page_size.as_deref());
+    let size = q
+        .limit
+        .as_deref()
+        .or(q.per_page.as_deref())
+        .or(q.page_size.as_deref());
     let page = Page::parse(q.page.as_deref(), size);
-    let supplier = match q.supplier_id.as_deref().or(q.supplier_relation_id.as_deref()) {
-        Some(s) if !s.trim().is_empty() => Some(
-            Uuid::parse_str(s.trim())
-                .map_err(|_| AppError::field("supplier_id", "The supplier id must be a valid UUID."))?,
-        ),
+    let supplier = match q
+        .supplier_id
+        .as_deref()
+        .or(q.supplier_relation_id.as_deref())
+    {
+        Some(s) if !s.trim().is_empty() => Some(Uuid::parse_str(s.trim()).map_err(|_| {
+            AppError::field("supplier_id", "The supplier id must be a valid UUID.")
+        })?),
         _ => None,
     };
     let exclude: Vec<Uuid> = q
@@ -65,7 +72,12 @@ pub async fn list(
         .split(',')
         .filter_map(|s| Uuid::parse_str(s.trim()).ok())
         .collect();
-    let status = q.status.as_deref().map(str::trim).filter(|s| !s.is_empty()).unwrap_or("active");
+    let status = q
+        .status
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("active");
     let ean13 = q.ean13.as_deref().map(str::trim).filter(|s| !s.is_empty());
     let filter = ListFilter {
         status,
@@ -95,7 +107,9 @@ pub async fn search(
     access: Can<ProductList>,
     ValidatedJson(query): ValidatedJson<SearchBody>,
 ) -> Result<Data<Value>, AppError> {
-    Ok(Data(service::search(&state, access.workspace_id, &query).await?))
+    Ok(Data(
+        service::search(&state, access.workspace_id, &query).await?,
+    ))
 }
 
 /// POST /products -> 201 `{data:{product_id}}`.
@@ -155,7 +169,11 @@ pub async fn price_history(
     Query(q): Query<HistoryQuery>,
 ) -> Result<Json<Paginated<Value>>, AppError> {
     let mut page = Page::parse(q.page.as_deref(), q.per_page.as_deref());
-    if q.per_page.as_deref().and_then(|s| s.trim().parse::<i64>().ok()).is_none_or(|n| n < 1) {
+    if q.per_page
+        .as_deref()
+        .and_then(|s| s.trim().parse::<i64>().ok())
+        .is_none_or(|n| n < 1)
+    {
         page.size = 25;
     }
     let (data, total) = service::history(&state, access.workspace_id, &id, page).await?;

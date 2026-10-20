@@ -81,13 +81,23 @@ mod tests {
 
     #[test]
     fn impact_drives_price_like_laravel_update_test() {
-        let (p, i) = normalise(Some(d("200")), Some(d("100")), Some(d("10")), Priority::Impact);
+        let (p, i) = normalise(
+            Some(d("200")),
+            Some(d("100")),
+            Some(d("10")),
+            Priority::Impact,
+        );
         assert_eq!((p, i), (Some(d("220")), Some(d("10"))));
     }
 
     #[test]
     fn price_drives_impact_like_laravel_update_test() {
-        let (p, i) = normalise(Some(d("250")), Some(d("275")), Some(d("3")), Priority::Price);
+        let (p, i) = normalise(
+            Some(d("250")),
+            Some(d("275")),
+            Some(d("3")),
+            Priority::Price,
+        );
         assert_eq!((p, i), (Some(d("275")), Some(d("10"))));
     }
 
@@ -108,7 +118,10 @@ mod tests {
     fn no_gross_leaves_both_untouched() {
         let raw = (Some(d("743.057847")), Some(d("5")));
         assert_eq!(normalise(None, raw.0, raw.1, Priority::Price), raw);
-        assert_eq!(normalise(Some(Decimal::ZERO), raw.0, raw.1, Priority::Price), raw);
+        assert_eq!(
+            normalise(Some(Decimal::ZERO), raw.0, raw.1, Priority::Price),
+            raw
+        );
     }
 
     #[test]

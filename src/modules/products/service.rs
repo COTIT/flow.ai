@@ -25,8 +25,7 @@ use crate::{
         vat_groups::repo as vat_groups,
         warehouses::{
             dto::{WarehouseCompacted, WarehouseResource},
-            repo as warehouses,
-            service as warehouse_service,
+            repo as warehouses, service as warehouse_service,
         },
     },
 };
@@ -63,9 +62,27 @@ pub async fn search(state: &AppState, workspace_id: Uuid, code: &str) -> Result<
     render_one(state, workspace_id, row).await
 }
 
-async fn render_one(state: &AppState, workspace_id: Uuid, row: ProductRow) -> Result<Value, AppError> {
+async fn render_one(
+    state: &AppState,
+    workspace_id: Uuid,
+    row: ProductRow,
+) -> Result<Value, AppError> {
     let e = embeds(state, workspace_id, std::slice::from_ref(&row), true).await?;
     Ok(resource::render(&row, &e, true))
+}
+
+/// A product in list shape (embedded in variants), else 404.
+pub async fn render_index(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<(ProductRow, Value), AppError> {
+    let row = repo::find(&state.db, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let e = embeds(state, workspace_id, std::slice::from_ref(&row), false).await?;
+    let v = resource::render(&row, &e, false);
+    Ok((row, v))
 }
 
 /// One list page (rendered) plus total.
@@ -79,7 +96,12 @@ pub async fn list(
         total = repo::count(&state.db, workspace_id, f).await?;
     }
     let e = embeds(state, workspace_id, &rows, false).await?;
-    Ok((rows.iter().map(|p| resource::render(p, &e, false)).collect(), total))
+    Ok((
+        rows.iter()
+            .map(|p| resource::render(p, &e, false))
+            .collect(),
+        total,
+    ))
 }
 
 /// Create (Laravel CreateProduct + ProductCreated) in one transaction; returns the new id.
@@ -100,13 +122,36 @@ pub async fn create(
     let appendix = json!({ "prefix": "PRO-", "digits": 5, "suffix": null });
     row.id = repo::insert(&mut tx, workspace_id, &appendix, &row).await?;
     let changes = created_prices(&row);
-    repo::insert_history(&mut tx, workspace_id, row.id, None, &changes, Some(actor.user_id), actor.flow).await?;
+    repo::insert_history(
+        &mut tx,
+        workspace_id,
+        row.id,
+        None,
+        &changes,
+        Some(actor.user_id),
+        actor.flow,
+    )
+    .await?;
     // Default variant: the product price normalised against itself (impact 0 when price > 0).
-    let (_, variant_impact) = normalise(Some(row.price), Some(row.price), row.impact_on_price, Priority::Price);
+    let (_, variant_impact) = normalise(
+        Some(row.price),
+        Some(row.price),
+        row.impact_on_price,
+        Priority::Price,
+    );
     let variant = repo::insert_default_variant(&mut tx, workspace_id, &row, variant_impact).await?;
     let mut variant_changes = changes;
     variant_changes.retain(|c| c.2.is_some());
-    repo::insert_history(&mut tx, workspace_id, row.id, Some(variant), &variant_changes, Some(actor.user_id), actor.flow).await?;
+    repo::insert_history(
+        &mut tx,
+        workspace_id,
+        row.id,
+        Some(variant),
+        &variant_changes,
+        Some(actor.user_id),
+        actor.flow,
+    )
+    .await?;
     if let Some(children) = &f.set_children {
         repo::set_children(&mut tx, workspace_id, row.id, children).await?;
     }
@@ -143,7 +188,16 @@ pub async fn update(
     }
     repo::update(&mut tx, workspace_id, &row).await?;
     let changes = changed_prices(&before, &row);
-    repo::insert_history(&mut tx, workspace_id, id, None, &changes, Some(actor.user_id), actor.flow).await?;
+    repo::insert_history(
+        &mut tx,
+        workspace_id,
+        id,
+        None,
+        &changes,
+        Some(actor.user_id),
+        actor.flow,
+    )
+    .await?;
     if let Some(children) = &f.set_children {
         repo::set_children(&mut tx, workspace_id, id, children).await?;
     }
@@ -240,7 +294,8 @@ pub async fn history(
     if repo::find(&state.db, workspace_id, id).await?.is_none() {
         return Err(AppError::NotFound);
     }
-    let (rows, mut total) = repo::history(&state.db, workspace_id, id, page.size, page.offset()).await?;
+    let (rows, mut total) =
+        repo::history(&state.db, workspace_id, id, page.size, page.offset()).await?;
     if rows.is_empty() && page.offset() > 0 {
         total = repo::history_count(&state.db, workspace_id, id).await?;
     }
@@ -327,13 +382,39 @@ fn apply(p: &mut ProductRow, f: &Fields) {
         };
     }
     set!(
-        brand, warranty_default_mode, warranty_duration_value, warranty_duration_unit,
-        reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,
-        barcode, barcode_vendor, supplier_discount_code, short_description, description,
-        stock_level_supplier, supplier_relation_id, vat_group_id, sales_group_id,
-        default_warehouse_id, wholesale_price, supplier_wholesale_price, impact_on_price,
-        impact_on_wholesale_price, weight, unit, country_of_origin, url_vendor,
-        url_vendor_override, import_id, import_source, export_data, meta,
+        brand,
+        warranty_default_mode,
+        warranty_duration_value,
+        warranty_duration_unit,
+        reference,
+        reference_vendor,
+        reference_vendor2,
+        reference_vendor3,
+        ean13,
+        hs_code,
+        barcode,
+        barcode_vendor,
+        supplier_discount_code,
+        short_description,
+        description,
+        stock_level_supplier,
+        supplier_relation_id,
+        vat_group_id,
+        sales_group_id,
+        default_warehouse_id,
+        wholesale_price,
+        supplier_wholesale_price,
+        impact_on_price,
+        impact_on_wholesale_price,
+        weight,
+        unit,
+        country_of_origin,
+        url_vendor,
+        url_vendor_override,
+        import_id,
+        import_source,
+        export_data,
+        meta,
     );
     if let Some(v) = &f.name {
         p.name = v.clone();
@@ -358,7 +439,10 @@ fn apply(p: &mut ProductRow, f: &Fields) {
         }
     }
     for (src, dst) in [
-        (f.exclude_price_corrections, &mut p.exclude_price_corrections),
+        (
+            f.exclude_price_corrections,
+            &mut p.exclude_price_corrections,
+        ),
         (f.export_enabled, &mut p.export_enabled),
         (f.export_price_sync, &mut p.export_price_sync),
         (f.export_product_data, &mut p.export_product_data),
@@ -382,7 +466,12 @@ fn apply(p: &mut ProductRow, f: &Fields) {
 
 /// Laravel's saving hook: with a gross price, price and markup follow each other.
 fn normalise_row(p: &mut ProductRow, priority: Priority) {
-    let (price, impact) = normalise(Some(p.gross_price), Some(p.price), p.impact_on_price, priority);
+    let (price, impact) = normalise(
+        Some(p.gross_price),
+        Some(p.price),
+        p.impact_on_price,
+        priority,
+    );
     if let Some(price) = price {
         p.price = price;
     }
@@ -391,7 +480,12 @@ fn normalise_row(p: &mut ProductRow, priority: Priority) {
 
 /// References must be live rows of this workspace; bundle children live products other than
 /// this one.
-async fn check(state: &AppState, workspace_id: Uuid, p: &ProductRow, f: &Fields) -> Result<(), AppError> {
+async fn check(
+    state: &AppState,
+    workspace_id: Uuid,
+    p: &ProductRow,
+    f: &Fields,
+) -> Result<(), AppError> {
     let [supplier, vat, sales, warehouse, currency] = repo::refs_ok(
         &state.db,
         workspace_id,
@@ -454,7 +548,11 @@ fn changed_prices(a: &ProductRow, b: &ProductRow) -> Vec<PriceChange> {
     [
         ("gross_price", Some(a.gross_price), Some(b.gross_price)),
         ("price", Some(a.price), Some(b.price)),
-        ("supplier_wholesale_price", a.supplier_wholesale_price, b.supplier_wholesale_price),
+        (
+            "supplier_wholesale_price",
+            a.supplier_wholesale_price,
+            b.supplier_wholesale_price,
+        ),
         ("wholesale_price", a.wholesale_price, b.wholesale_price),
     ]
     .into_iter()
@@ -490,12 +588,14 @@ async fn embeds(
         .collect();
     for id in distinct(all.iter().map(|p| Some(p.currency_id))) {
         if let Some(c) = currencies::find(&state.db, workspace_id, id).await? {
-            e.currencies.insert(id, to_value(CurrencyResource::from(c))?);
+            e.currencies
+                .insert(id, to_value(CurrencyResource::from(c))?);
         }
     }
     for id in distinct(all.iter().map(|p| p.sales_group_id)) {
         if let Some(g) = sales_groups::find(&state.db, workspace_id, id).await? {
-            e.sales_groups.insert(id, to_value(SalesGroupResource::from(g))?);
+            e.sales_groups
+                .insert(id, to_value(SalesGroupResource::from(g))?);
         }
     }
     let suppliers = distinct(all.iter().map(|p| p.supplier_relation_id));
@@ -532,7 +632,10 @@ async fn embeds(
             .collect();
         for (parent, child, qty) in children {
             if let Some(v) = rendered.get(&child) {
-                e.set_children.entry(parent).or_default().push((v.clone(), qty));
+                e.set_children
+                    .entry(parent)
+                    .or_default()
+                    .push((v.clone(), qty));
             }
         }
     }
