@@ -7,7 +7,9 @@ use axum::{
     extract::{FromRequest, Request},
     http::StatusCode,
 };
+use rust_decimal::Decimal;
 use serde::{Deserialize, de::DeserializeOwned};
+use serde_json::Value;
 
 use crate::error::AppError;
 
@@ -75,6 +77,127 @@ impl Rules {
         }
     }
 
+    /// Laravel `numeric|min|max` on a sent value: JSON number or numeric string -> exact
+    /// `Decimal`. At most 8 decimals (columns are `numeric(24,8)`).
+    pub fn decimal(
+        &mut self,
+        field: &str,
+        value: &Value,
+        min: Decimal,
+        max: Decimal,
+    ) -> Option<Decimal> {
+        let f = human(field);
+        let text = match value {
+            Value::Number(n) => n.to_string(),
+            Value::String(s) => s.trim().to_owned(),
+            _ => String::new(),
+        };
+        let (negative, digits) = match text.strip_prefix('-') {
+            Some(rest) => (true, rest),
+            None => (false, text.strip_prefix('+').unwrap_or(&text)),
+        };
+        let (int, frac) = digits.split_once('.').unwrap_or((digits, ""));
+        if (int.is_empty() && frac.is_empty())
+            || !int.bytes().chain(frac.bytes()).all(|b| b.is_ascii_digit())
+        {
+            self.add(field, format!("The {f} field must be a number."));
+            return None;
+        }
+        if frac.len() > 8 {
+            self.add(
+                field,
+                format!("The {f} field must have 0-8 decimal places."),
+            );
+            return None;
+        }
+        let int = int.trim_start_matches('0');
+        let parsed = (int.len() <= 16)
+            .then(|| {
+                let sign = if negative { "-" } else { "" };
+                let int = if int.is_empty() { "0" } else { int };
+                Decimal::from_str_exact(&format!("{sign}{int}.{frac}0")).ok()
+            })
+            .flatten();
+        let Some(v) = parsed.map(|v| v.normalize()) else {
+            let max = max.normalize();
+            self.add(
+                field,
+                format!("The {f} field must not be greater than {max}."),
+            );
+            return None;
+        };
+        if v < min {
+            let min = min.normalize();
+            self.add(field, format!("The {f} field must be at least {min}."));
+            return None;
+        }
+        if v > max {
+            let max = max.normalize();
+            self.add(
+                field,
+                format!("The {f} field must not be greater than {max}."),
+            );
+            return None;
+        }
+        Some(v)
+    }
+
+    /// Laravel `boolean`: exactly true, false, 1, 0, "1", "0".
+    pub fn boolean(&mut self, field: &str, value: &Value) -> Option<bool> {
+        let b = match value {
+            Value::Bool(b) => Some(*b),
+            Value::Number(n) => match n.as_i64() {
+                Some(1) => Some(true),
+                Some(0) => Some(false),
+                _ => None,
+            },
+            Value::String(s) if s == "1" => Some(true),
+            Value::String(s) if s == "0" => Some(false),
+            _ => None,
+        };
+        if b.is_none() {
+            let msg = format!("The {} field must be true or false.", human(field));
+            self.add(field, msg);
+        }
+        b
+    }
+
+    /// Laravel `integer|min|max`: whole JSON number or digit string.
+    pub fn integer(&mut self, field: &str, value: &Value, min: i64, max: i64) -> Option<i64> {
+        let f = human(field);
+        let n = match value {
+            Value::Number(n) => n.as_i64().or_else(|| {
+                n.as_f64()
+                    .filter(|x| x.fract() == 0.0 && x.abs() < 9e15)
+                    .map(|x| x as i64)
+            }),
+            Value::String(s) => s.trim().parse::<i64>().ok(),
+            _ => None,
+        };
+        match n {
+            None => self.add(field, format!("The {f} field must be an integer.")),
+            Some(n) if n < min => self.add(field, format!("The {f} field must be at least {min}.")),
+            Some(n) if n > max => self.add(
+                field,
+                format!("The {f} field must not be greater than {max}."),
+            ),
+            Some(n) => return Some(n),
+        }
+        None
+    }
+
+    /// `meta`: a JSON object, or null/absent = none (Laravel MetaRule meant a keyed array).
+    pub fn meta(&mut self, value: Option<Value>) -> Option<Option<Value>> {
+        match value {
+            None | Some(Value::Null) => Some(None),
+            Some(object @ Value::Object(_)) => Some(Some(object)),
+            Some(_) => {
+                self.add("meta", "The meta field must be an array.");
+                None
+            }
+        }
+    }
+
     /// Ok when no rule failed, else 422 with every message.
     pub fn into_result(self) -> Result<(), AppError> {
         if self.errors.is_empty() {
@@ -99,6 +222,38 @@ where
 /// Trimmed value, blank -> None. Laravel TrimStrings + ConvertEmptyStringsToNull.
 pub fn optional(value: Option<String>) -> Option<String> {
     value.map(|v| v.trim().to_owned()).filter(|v| !v.is_empty())
+}
+
+/// Sent value with null and blank strings dropped (Laravel ConvertEmptyStringsToNull).
+pub fn filled(value: Option<Value>) -> Option<Value> {
+    value.filter(|v| !v.is_null() && !v.as_str().is_some_and(|s| s.trim().is_empty()))
+}
+
+/// ISO 3166-1 alpha-2 codes (league/iso3166, which Laravel ValidateCountry used), sorted.
+pub const COUNTRIES: [&str; 249] = [
+    "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
+    "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS",
+    "BT", "BV", "BW", "BY", "BZ", "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN",
+    "CO", "CR", "CU", "CV", "CW", "CX", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE",
+    "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK", "FM", "FO", "FR", "GA", "GB", "GD", "GE", "GF",
+    "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY", "HK", "HM",
+    "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT", "JE", "JM",
+    "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC",
+    "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY", "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK",
+    "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA",
+    "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG",
+    "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY", "QA", "RE", "RO", "RS", "RU", "RW",
+    "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS",
+    "ST", "SV", "SX", "SY", "SZ", "TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO",
+    "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI",
+    "VN", "VU", "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW",
+];
+
+/// ISO 3166-1 alpha-2 code, any case.
+pub fn is_country(code: &str) -> bool {
+    COUNTRIES
+        .binary_search(&code.to_ascii_uppercase().as_str())
+        .is_ok()
 }
 
 /// Stored IBAN form: ASCII spaces dropped, ASCII uppercase.
@@ -446,5 +601,177 @@ mod tests {
         assert!(!is_url("https://u:p@a.io") && !is_url("https://a.io:abc"));
         assert!(!is_url("https://a.io/\"x") && !is_url("https://a.io/<script>"));
         assert!(is_url("https://a.io:8443/p"));
+    }
+}
+
+#[cfg(test)]
+mod value_rule_tests {
+    use super::*;
+    use rust_decimal::Decimal;
+    use serde_json::{Value, json};
+    use std::str::FromStr;
+
+    fn dec(s: &str) -> Decimal {
+        Decimal::from_str(s).unwrap()
+    }
+
+    fn errors(r: Rules) -> BTreeMap<String, Vec<String>> {
+        match r.into_result() {
+            Ok(()) => BTreeMap::new(),
+            Err(AppError::Validation(e)) => e,
+            Err(other) => panic!("{other:?}"),
+        }
+    }
+
+    fn decimal(v: Value) -> (Option<Decimal>, BTreeMap<String, Vec<String>>) {
+        let mut r = Rules::default();
+        let out = r.decimal("vat_amount", &v, dec("0"), dec("100"));
+        (out, errors(r))
+    }
+
+    #[test]
+    fn decimal_takes_numbers_and_numeric_strings() {
+        for (v, want) in [
+            (json!(21), "21"),
+            (json!(12.5), "12.5"),
+            (json!("9.25"), "9.25"),
+            (json!(" 21 "), "21"),
+            (json!("0.00000001"), "0.00000001"),
+            (json!(".5"), "0.5"),
+            (json!("100"), "100"),
+            (json!("+7"), "7"),
+        ] {
+            let (out, e) = decimal(v.clone());
+            assert!(e.is_empty(), "{v}: {e:?}");
+            assert_eq!(out, Some(dec(want)), "{v}");
+        }
+    }
+
+    #[test]
+    fn decimal_rejects_junk_with_laravel_wording() {
+        for v in [
+            json!("abc"),
+            json!("1e3"),
+            json!("1_000"),
+            json!("1.2.3"),
+            json!("-"),
+            json!(true),
+            json!([1]),
+        ] {
+            let (out, e) = decimal(v.clone());
+            assert_eq!(out, None);
+            assert_eq!(
+                e["vat_amount"],
+                ["The vat amount field must be a number."],
+                "{v}"
+            );
+        }
+    }
+
+    #[test]
+    fn decimal_bounds_and_scale() {
+        assert_eq!(
+            decimal(json!("-0.01")).1["vat_amount"],
+            ["The vat amount field must be at least 0."]
+        );
+        assert_eq!(
+            decimal(json!("100.00000001")).1["vat_amount"],
+            ["The vat amount field must not be greater than 100."]
+        );
+        assert_eq!(
+            decimal(json!("1.123456789")).1["vat_amount"],
+            ["The vat amount field must have 0-8 decimal places."]
+        );
+        // Wider than numeric(24,8) never reaches Decimal parsing.
+        let mut r = Rules::default();
+        let huge = r.decimal(
+            "price",
+            &json!("12345678901234567890123456789012"),
+            dec("0"),
+            crate::money::MAX,
+        );
+        assert_eq!(huge, None);
+        assert_eq!(
+            errors(r)["price"],
+            ["The price field must not be greater than 9999999999999999.99999999."]
+        );
+    }
+
+    #[test]
+    fn boolean_accepts_laravel_set_only() {
+        for (v, want) in [
+            (json!(true), true),
+            (json!(false), false),
+            (json!(1), true),
+            (json!(0), false),
+            (json!("1"), true),
+            (json!("0"), false),
+        ] {
+            let mut r = Rules::default();
+            assert_eq!(r.boolean("active", &v), Some(want), "{v}");
+            assert!(errors(r).is_empty());
+        }
+        for v in [json!("true"), json!("yes"), json!(2), json!("")] {
+            let mut r = Rules::default();
+            assert_eq!(r.boolean("active", &v), None, "{v}");
+            assert_eq!(
+                errors(r)["active"],
+                ["The active field must be true or false."]
+            );
+        }
+    }
+
+    #[test]
+    fn integer_whole_numbers_in_range() {
+        let mut r = Rules::default();
+        assert_eq!(r.integer("decimals", &json!("2"), 0, 8), Some(2));
+        assert_eq!(r.integer("decimals", &json!(8), 0, 8), Some(8));
+        assert_eq!(r.integer("decimals", &json!(2.0), 0, 8), Some(2));
+        assert!(errors(r).is_empty());
+
+        for (v, msg) in [
+            (json!(2.5), "The decimals field must be an integer."),
+            (json!("x"), "The decimals field must be an integer."),
+            (json!(9), "The decimals field must not be greater than 8."),
+            (json!(-1), "The decimals field must be at least 0."),
+        ] {
+            let mut r = Rules::default();
+            assert_eq!(r.integer("decimals", &v, 0, 8), None, "{v}");
+            assert_eq!(errors(r)["decimals"], [msg], "{v}");
+        }
+    }
+
+    #[test]
+    fn meta_object_or_null() {
+        let mut r = Rules::default();
+        assert_eq!(r.meta(None), Some(None));
+        assert_eq!(r.meta(Some(Value::Null)), Some(None));
+        assert_eq!(r.meta(Some(json!({"a": 1}))), Some(Some(json!({"a": 1}))));
+        assert!(errors(r).is_empty());
+
+        let mut r = Rules::default();
+        assert_eq!(r.meta(Some(json!([1]))), None);
+        assert_eq!(errors(r)["meta"], ["The meta field must be an array."]);
+    }
+
+    #[test]
+    fn filled_treats_blank_as_missing() {
+        assert_eq!(filled(None), None);
+        assert_eq!(filled(Some(Value::Null)), None);
+        assert_eq!(filled(Some(json!("  "))), None);
+        assert_eq!(filled(Some(json!(0))), Some(json!(0)));
+        assert_eq!(filled(Some(json!(false))), Some(json!(false)));
+    }
+
+    #[test]
+    fn country_codes_iso_alpha2_any_case() {
+        assert_eq!(COUNTRIES.len(), 249);
+        assert!(COUNTRIES.windows(2).all(|w| w[0] < w[1]), "sorted");
+        for ok in ["NL", "nl", "Be", "GB", "AX", "ZW"] {
+            assert!(is_country(ok), "{ok}");
+        }
+        for bad in ["NO_LAND", "UK", "EU", "N", "NLD", "", "  "] {
+            assert!(!is_country(bad), "{bad}");
+        }
     }
 }

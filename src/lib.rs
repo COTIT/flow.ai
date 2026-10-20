@@ -8,6 +8,7 @@ pub mod healthcheck;
 mod http;
 pub mod mail;
 mod modules;
+mod money;
 
 use axum::{
     Router,

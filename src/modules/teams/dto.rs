@@ -143,18 +143,6 @@ fn optional_array(r: &mut Rules, field: &str, value: Option<Value>) -> Option<Ve
     }
 }
 
-/// `meta`: a JSON object, or null/absent = none (Laravel MetaRule meant a keyed array).
-fn meta(r: &mut Rules, value: Option<Value>) -> Option<Option<Value>> {
-    match value {
-        None | Some(Value::Null) => Some(None),
-        Some(object @ Value::Object(_)) => Some(Some(object)),
-        Some(_) => {
-            r.add("meta", "The meta field must be an array.");
-            None
-        }
-    }
-}
-
 /// Strings among `items`, others dropped (Laravel skips non-strings).
 fn strings(items: Vec<Value>) -> Vec<String> {
     items
@@ -196,7 +184,7 @@ impl Validate for CreateTeamRequest {
         let name = capped(r, "name", self.name, NAME_MAX);
         let description = capped(r, "description", self.description, DESCRIPTION_MAX);
         let permissions = optional_array(r, "permissions", self.permissions);
-        let meta = meta(r, self.meta);
+        let meta = r.meta(self.meta);
         Some(NewTeam {
             name: name?,
             description: description?,
@@ -236,7 +224,7 @@ impl Validate for UpdateTeamRequest {
         let description = sent("description", self.description, DESCRIPTION_MAX);
         let meta = match self.meta {
             None => Some(None),
-            Some(v) => meta(r, v).map(Some),
+            Some(v) => r.meta(v).map(Some),
         };
         Some(TeamPatch {
             name: name?,

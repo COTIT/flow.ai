@@ -71,6 +71,14 @@ impl<T> Paginated<T> {
     }
 }
 
+/// Laravel `$request->boolean()` on a query param: "1", "true", "on", "yes" (any case) = true.
+pub fn flag(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "on" | "yes"
+    )
+}
+
 /// `%q%` for `ILIKE`, with `\`, `%` and `_` escaped so user input matches literally.
 pub fn contains_pattern(q: &str) -> String {
     let mut out = String::with_capacity(q.len() + 2);
@@ -176,6 +184,16 @@ mod tests {
         let p = Paginated::<()>::new(vec![], 3, page);
 
         assert_eq!((p.meta.from, p.meta.to, p.meta.last_page), (None, None, 1));
+    }
+
+    #[test]
+    fn flag_follows_php_filter_validate_boolean() {
+        for yes in ["1", "true", "TRUE", " on ", "yes"] {
+            assert!(flag(yes), "{yes}");
+        }
+        for no in ["0", "false", "", "2", "no", "off"] {
+            assert!(!flag(no), "{no}");
+        }
     }
 
     #[test]

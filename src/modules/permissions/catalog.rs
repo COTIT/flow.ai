@@ -1,5 +1,6 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
-//! as `PermissionHelper` serves it (43 groups, 222 names). Name = `group.action`.
+//! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
+//! but never catalogued (46 / 237). Name = `group.action`.
 //! Regenerate when a ported module adds actions.
 
 /// Groups in key order, actions sorted (Laravel `ksort` + `sort`).
@@ -142,7 +143,13 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         &["create", "delete", "get", "history", "list", "update"],
     ),
     ("reminder", &["create", "delete", "get", "list", "update"]),
+    // salesgroup, shipmentmethod, vatgroup: added by genesy (Laravel checked them, never catalogued).
+    ("salesgroup", &["create", "delete", "get", "list", "update"]),
     ("setting", &["get", "update"]),
+    (
+        "shipmentmethod",
+        &["create", "delete", "get", "list", "update"],
+    ),
     (
         "stock",
         &[
@@ -177,6 +184,7 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         &["create", "delete", "list", "update", "view"],
     ),
     ("user", &["get"]),
+    ("vatgroup", &["create", "delete", "get", "list", "update"]),
     (
         "warehouse",
         &["create", "delete", "get", "list", "set_default", "update"],
@@ -233,8 +241,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 43);
-        assert_eq!(names().count(), 222);
+        assert_eq!(GROUPS.len(), 46);
+        assert_eq!(names().count(), 237);
     }
 
     #[test]
@@ -252,6 +260,16 @@ mod tests {
                 actions.iter().all(|a| *a == a.to_lowercase()),
                 "{group} has uppercase"
             );
+        }
+    }
+
+    /// Batch 4 groups Laravel never catalogued (it checked them, only owner/admin passed).
+    #[test]
+    fn reference_data_groups_assignable() {
+        for group in ["salesgroup", "shipmentmethod", "vatgroup"] {
+            for action in ["create", "delete", "get", "list", "update"] {
+                assert!(assignable(&format!("{group}.{action}")), "{group}.{action}");
+            }
         }
     }
 
