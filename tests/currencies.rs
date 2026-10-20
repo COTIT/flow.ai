@@ -363,9 +363,9 @@ async fn field_rules_use_laravel_wording(pool: PgPool) {
             "asset_type": ["Invalid asset type."],
             "decimals": ["The decimals must not be greater than 8."],
             "default_currency": ["The default currency field must be true or false."],
-            "meta": ["The meta field must be an array."],
-            "name": ["The name field must not be greater than 255 characters."],
-            "symbol_prefix": ["The symbol prefix field must not be greater than 10 characters."],
+            "meta": ["The meta must be an array."],
+            "name": ["The name must not be greater than 255 characters."],
+            "symbol_prefix": ["The symbol prefix must not be greater than 10 characters."],
         })
     );
 }
@@ -441,7 +441,7 @@ async fn search_query_is_capped_and_literal(pool: PgPool) {
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(
         res["errors"]["q"],
-        json!(["The q field must not be greater than 100 characters."])
+        json!(["The q must not be greater than 100 characters."])
     );
 }
 

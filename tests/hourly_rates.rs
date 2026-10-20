@@ -123,7 +123,7 @@ async fn validation_uses_laravel_wording(pool: PgPool) {
         json!({
             "business_price": ["The business price must be a number."],
             "consumer_price": ["The consumer price must be at least 0."],
-            "ledger_number": ["The ledger number field must not be greater than 55 characters."],
+            "ledger_number": ["The ledger number must not be greater than 55 characters."],
             "purchase_price": ["The purchase price must be at least 0."],
             "vat_group_id": ["The vat group id is an invalid id for the vat_group domain."],
         })

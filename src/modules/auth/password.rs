@@ -51,29 +51,27 @@ pub fn violations(field: &str, password: &str) -> Vec<String> {
     let mut out = Vec::new();
 
     if len < MIN_CHARS {
-        out.push(format!(
-            "The {f} field must be at least {MIN_CHARS} characters."
-        ));
+        out.push(format!("The {f} must be at least {MIN_CHARS} characters."));
     }
     if len > MAX_CHARS {
         out.push(format!(
-            "The {f} field must not be greater than {MAX_CHARS} characters."
+            "The {f} must not be greater than {MAX_CHARS} characters."
         ));
     }
     if !(has(char::is_uppercase) && has(char::is_lowercase)) {
         out.push(format!(
-            "The {f} field must contain at least one uppercase and one lowercase letter."
+            "The {f} must contain at least one uppercase and one lowercase letter."
         ));
     }
     if !has(char::is_alphabetic) {
-        out.push(format!("The {f} field must contain at least one letter."));
+        out.push(format!("The {f} must contain at least one letter."));
     }
     if !has(char::is_numeric) {
-        out.push(format!("The {f} field must contain at least one number."));
+        out.push(format!("The {f} must contain at least one number."));
     }
     // Laravel symbol = \p{Z}|\p{S}|\p{P}: anything printable that isn't a letter or digit, space included.
     if !has(|c| !c.is_alphanumeric() && !c.is_control()) {
-        out.push(format!("The {f} field must contain at least one symbol."));
+        out.push(format!("The {f} must contain at least one symbol."));
     }
     out
 }
@@ -190,25 +188,22 @@ mod tests {
     #[test]
     fn each_rule_has_laravel_message() {
         let cases = [
-            (
-                "Sh0rt!x",
-                "The password field must be at least 8 characters.",
-            ),
+            ("Sh0rt!x", "The password must be at least 8 characters."),
             (
                 "all-lower-1!",
-                "The password field must contain at least one uppercase and one lowercase letter.",
+                "The password must contain at least one uppercase and one lowercase letter.",
             ),
             (
                 "12345678!",
-                "The password field must contain at least one letter.",
+                "The password must contain at least one letter.",
             ),
             (
                 "NoNumbers!",
-                "The password field must contain at least one number.",
+                "The password must contain at least one number.",
             ),
             (
                 "NoSymb0ls",
-                "The password field must contain at least one symbol.",
+                "The password must contain at least one symbol.",
             ),
         ];
         for (pw, msg) in cases {
@@ -240,7 +235,7 @@ mod tests {
         assert_eq!(
             violations("password", &over),
             vec![format!(
-                "The password field must not be greater than {MAX_CHARS} characters."
+                "The password must not be greater than {MAX_CHARS} characters."
             )]
         );
     }

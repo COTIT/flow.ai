@@ -342,7 +342,7 @@ impl MembersQuery {
         let team_id =
             optional(self.team_id.as_deref().map(str::to_owned)).map(|t| Uuid::parse_str(&t));
         if matches!(team_id, Some(Err(_))) {
-            r.add("team_id", "The team id field must be a valid UUID.");
+            r.add("team_id", "The team id must be a valid UUID.");
         }
         // Laravel `boolean` accepts these four (query values are strings).
         let has_pin_code = match self.has_pin_code.as_deref().map(str::trim) {

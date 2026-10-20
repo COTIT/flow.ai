@@ -231,7 +231,7 @@ async fn invite_email_validated(pool: PgPool) {
 
     assert_eq!(
         w.invite("not-an-email").await.1["errors"]["email"],
-        json!(["The email field must be a valid email address."])
+        json!(["The email must be a valid email address."])
     );
     let (_, res) = send(
         &w.app,

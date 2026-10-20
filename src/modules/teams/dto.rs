@@ -137,7 +137,7 @@ fn optional_array(r: &mut Rules, field: &str, value: Option<Value>) -> Option<Ve
         None | Some(Value::Null) => Some(Vec::new()),
         Some(Value::Array(items)) => Some(items),
         Some(_) => {
-            r.add(field, format!("The {field} field must be an array."));
+            r.add(field, format!("The {field} must be an array."));
             None
         }
     }
@@ -290,7 +290,7 @@ impl Validate for PermissionsRequest {
                 return None;
             }
             Some(_) => {
-                r.add("permissions", "The permissions field must be an array.");
+                r.add("permissions", "The permissions must be an array.");
                 return None;
             }
         };

@@ -63,7 +63,7 @@ impl Rules {
     pub fn max_chars(&mut self, field: &str, value: &str, max: usize) {
         if value.chars().count() > max {
             let msg = format!(
-                "The {} field must not be greater than {max} characters.",
+                "The {} must not be greater than {max} characters.",
                 human(field)
             );
             self.add(field, msg);
@@ -72,7 +72,7 @@ impl Rules {
 
     pub fn email(&mut self, field: &str, value: &str) {
         if !is_email(value) {
-            let msg = format!("The {} field must be a valid email address.", human(field));
+            let msg = format!("The {} must be a valid email address.", human(field));
             self.add(field, msg);
         }
     }
@@ -246,7 +246,7 @@ impl Rules {
             None | Some(Value::Null) => Some(None),
             Some(object @ Value::Object(_)) => Some(Some(object)),
             Some(_) => {
-                self.add("meta", "The meta field must be an array.");
+                self.add("meta", "The meta must be an array.");
                 None
             }
         }
@@ -536,7 +536,7 @@ mod tests {
 
         assert_eq!(
             body["errors"]["email"],
-            json!(["The email field must be a valid email address."])
+            json!(["The email must be a valid email address."])
         );
     }
 
@@ -549,7 +549,7 @@ mod tests {
         assert_eq!(over, StatusCode::UNPROCESSABLE_ENTITY);
         assert_eq!(
             body["errors"]["name"],
-            json!(["The name field must not be greater than 5 characters."])
+            json!(["The name must not be greater than 5 characters."])
         );
     }
 
@@ -809,7 +809,7 @@ mod value_rule_tests {
 
         let mut r = Rules::default();
         assert_eq!(r.meta(Some(json!([1]))), None);
-        assert_eq!(errors(r)["meta"], ["The meta field must be an array."]);
+        assert_eq!(errors(r)["meta"], ["The meta must be an array."]);
     }
 
     #[test]
