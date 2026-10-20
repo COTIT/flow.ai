@@ -109,7 +109,7 @@ async fn missing_fields_and_bad_email_are_422(pool: PgPool) {
     let (_, res) = post(&app, LOGIN, creds("not-an-email", PASSWORD)).await;
     assert_eq!(
         res["errors"]["email"],
-        json!(["The email field must be a valid email address."])
+        json!(["The email must be a valid email address."])
     );
 }
 
@@ -298,7 +298,7 @@ async fn overlong_login_password_rejected_before_hashing(pool: PgPool) {
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(
         res["errors"]["password"],
-        json!(["The password field must not be greater than 255 characters."])
+        json!(["The password must not be greater than 255 characters."])
     );
 }
 

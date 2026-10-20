@@ -245,7 +245,7 @@ async fn countries_are_rebuilt_from_validated_fields(pool: PgPool) {
     assert_eq!(
         res["errors"],
         json!({
-            "countries.0.name": ["The countries.0.name field must not be greater than 255 characters."],
+            "countries.0.name": ["The countries.0.name must not be greater than 255 characters."],
             "countries.1.name": ["The countries.1.name must be a string."],
         })
     );

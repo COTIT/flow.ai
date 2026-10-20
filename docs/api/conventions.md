@@ -24,14 +24,15 @@ Every workspace CRUD module follows these rules. Batch 4 (reference data) set th
 ## Request bodies
 
 - `ValidatedJson<T>` + `impl Validate`. Errors are `{"message", "errors": {field: [text]}}`. Dot keys for nested fields: `properties.discount_percentage`, `countries.0.price`.
-- Wording comes from vimdesk-api `resources/lang/en/validation.php`:
+- Wording comes from vimdesk-api `resources/lang/en/validation.php`. Laravel reads `resources/lang` because the app has no root `lang/`. Only `required` and `boolean` say "field":
   - "The X field is required."
-  - "The X must be a number."
-  - "The X must be at least N."
-  - "The X must not be greater than N."
-  - "The X must be an integer."
   - "The X field must be true or false."
-  - Text length keeps the existing genesy wording "The X field must not be greater than N characters."
+  - "The X must not be greater than N characters." / "The X must be at least N characters."
+  - "The X must be a number." / "The X must be at least N." / "The X must not be greater than N."
+  - "The X must be an integer." / "The X must be a string." / "The X must be an array."
+  - "The X must be a valid email address." / "The X must be a valid URL." / "The X must be a valid UUID."
+  - "The selected X is invalid."
+  - Custom rule texts stay as Laravel's custom rules wrote them ("country is not valid", "The name is not unique", "Phone number is not valid", ...).
 - Helpers on `Rules`:
   - `text` (required trimmed text), `opt_text` (blank = null)
   - `patch_text`, `patch_opt_text`

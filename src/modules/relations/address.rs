@@ -452,7 +452,7 @@ mod tests {
         assert_eq!(e["house_number"], ["The house number must be a number."]);
         assert_eq!(
             e["zipcode"],
-            ["The zipcode field must not be greater than 20 characters."]
+            ["The zipcode must not be greater than 20 characters."]
         );
         assert_eq!(e["city"], ["The city field is required."]);
         assert_eq!(e["label"], ["The label must be a string."]);

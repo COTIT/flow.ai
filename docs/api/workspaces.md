@@ -41,11 +41,11 @@ Success: `{"message": "ok"}`.
 | `phone_number` | string ≤55, international: `+` and 8..=15 digits, separators ` -().` (`Phone number is not valid`) |
 | `language` | `en` or `nl` (`The selected language is invalid.`) |
 | `email` | valid email |
-| `website` | `http(s)://` URL with a dotted host (`The website field must be a valid URL.`) |
+| `website` | `http(s)://` URL with a dotted host (`The website must be a valid URL.`) |
 | `logo_file_id` | must be null: files aren't ported yet (`The selected logo file id is invalid.`) |
 | `address` | null, or an object. Required: `address` (≤255), `house_number` (numeric), `zipcode` (≤20), `city`, `country`. Optional: `house_number_addition` (≤10), `address2`, `state`. Errors are keyed `address.<field>`. |
 | `account` | null, or an object: `account_name` ≤255, `account_number` a valid IBAN (mod-97), `bic_swift` a valid BIC, `credit_limit` numeric ≥0. Errors are keyed `account.<field>`. |
-| `meta` | null or a JSON object (`The meta field must be an array.`) |
+| `meta` | null or a JSON object (`The meta must be an array.`) |
 
 The merge is one statement (`profile = profile || patch`), so two saves at once can't drop each other's keys. Values are stored normalized: IBAN without spaces and uppercase, `credit_limit` as a JSON number, `house_number` trimmed. Numeric strings are capped at 20 chars. A body with no known keys writes nothing.
 

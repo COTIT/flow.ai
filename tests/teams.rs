@@ -144,15 +144,15 @@ async fn create_validates_like_laravel(pool: PgPool) {
         .await;
     assert_eq!(
         res["errors"]["name"],
-        json!(["The name field must not be greater than 55 characters."])
+        json!(["The name must not be greater than 55 characters."])
     );
     assert_eq!(
         res["errors"]["description"],
-        json!(["The description field must not be greater than 225 characters."])
+        json!(["The description must not be greater than 225 characters."])
     );
     assert_eq!(
         res["errors"]["permissions"],
-        json!(["The permissions field must be an array."])
+        json!(["The permissions must be an array."])
     );
 }
 
@@ -239,7 +239,7 @@ async fn list_search_sort_and_paging(pool: PgPool) {
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(
         res["errors"]["q"],
-        json!(["The q field must not be greater than 100 characters."])
+        json!(["The q must not be greater than 100 characters."])
     );
 }
 
@@ -802,10 +802,7 @@ async fn meta_must_be_an_object(pool: PgPool) {
             )
             .await;
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{meta}");
-        assert_eq!(
-            res["errors"]["meta"],
-            json!(["The meta field must be an array."])
-        );
+        assert_eq!(res["errors"]["meta"], json!(["The meta must be an array."]));
     }
 }
 

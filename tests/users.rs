@@ -154,7 +154,7 @@ async fn list_filters_by_search_and_team(pool: PgPool) {
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(
         res["errors"]["team_id"],
-        json!(["The team id field must be a valid UUID."])
+        json!(["The team id must be a valid UUID."])
     );
 }
 

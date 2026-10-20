@@ -71,11 +71,7 @@ fn email(r: &mut Rules, key: &str, v: Option<&Value>) -> Option<String> {
 
 fn website(r: &mut Rules, v: Option<&Value>) -> Option<String> {
     opt_str(r, "website", v, 255).inspect(|w| {
-        r.check(
-            "website",
-            is_url(w),
-            "The website field must be a valid URL.",
-        );
+        r.check("website", is_url(w), "The website must be a valid URL.");
     })
 }
 

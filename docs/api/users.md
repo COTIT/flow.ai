@@ -9,7 +9,7 @@ Needs `workspace.list` (Laravel parity). This is the settings users tab (`tabs/u
 | Query | Rules |
 |---|---|
 | `q` | ≤100 chars. Case-insensitive match on email, `first middle last` or `first last`. `%` and `_` are matched literally. |
-| `team_id` | uuid; only members of that live team in this workspace. A bad uuid gives 422 `The team id field must be a valid UUID.` |
+| `team_id` | uuid; only members of that live team in this workspace. A bad uuid gives 422 `The team id must be a valid UUID.` |
 | `has_pin_code` | `1`/`true` matches no one (PIN login isn't ported); `0`/`false`/blank = no filter; anything else 422 `The has pin code field must be true or false.` |
 | `page`, `page_size` | default 50, max 100 |
 

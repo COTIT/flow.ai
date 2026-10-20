@@ -344,19 +344,16 @@ async fn field_rules_use_laravel_wording(pool: PgPool) {
     assert_eq!(e["type"], json!(["The selected type: company is invalid."]));
     assert_eq!(
         e["email"],
-        json!(["The email field must be a valid email address."])
+        json!(["The email must be a valid email address."])
     );
-    assert_eq!(
-        e["website"],
-        json!(["The website field must be a valid URL."])
-    );
+    assert_eq!(e["website"], json!(["The website must be a valid URL."]));
     assert_eq!(
         e["default_language"],
         json!(["The selected default language is invalid."])
     );
     assert_eq!(
         e["phone_number"],
-        json!(["The phone number field must not be greater than 55 characters."])
+        json!(["The phone number must not be greater than 55 characters."])
     );
     assert_eq!(
         e["vat_number"],
@@ -364,13 +361,13 @@ async fn field_rules_use_laravel_wording(pool: PgPool) {
     );
     assert_eq!(
         e["alias"],
-        json!(["The alias field must not be greater than 255 characters."])
+        json!(["The alias must not be greater than 255 characters."])
     );
     assert_eq!(
         e["allow_invoicing_on_account"],
         json!(["The allow invoicing on account field must be true or false."])
     );
-    assert_eq!(e["meta"], json!(["The meta field must be an array."]));
+    assert_eq!(e["meta"], json!(["The meta must be an array."]));
 }
 
 #[sqlx::test]
@@ -384,15 +381,15 @@ async fn nested_values_validated(pool: PgPool) {
 
     assert_eq!(
         e["account_number"],
-        json!(["The account number field must be a valid IBAN."])
+        json!(["The account number must be a valid IBAN."])
     );
     assert_eq!(
         e["credit_limit"],
-        json!(["The credit limit field must be at least 0."])
+        json!(["The credit limit must be at least 0."])
     );
     assert_eq!(
         e["contact.email"],
-        json!(["The contact.email field must be a valid email address."])
+        json!(["The contact.email must be a valid email address."])
     );
     assert_eq!(
         e["contact.phones.0.type"],
@@ -1397,7 +1394,7 @@ async fn contact_rules_and_scoping(pool: PgPool) {
     );
     assert_eq!(
         res["errors"]["email"],
-        json!(["The email field must be a valid email address."])
+        json!(["The email must be a valid email address."])
     );
     assert_eq!(
         res["errors"]["default_for"],
@@ -1597,7 +1594,7 @@ async fn inline_contact_meta_error_keyed_under_contact(pool: PgPool) {
 
     assert_eq!(
         e["contact.meta"],
-        json!(["The contact.meta field must be an array."])
+        json!(["The contact.meta must be an array."])
     );
     assert!(e.get("meta").is_none(), "{e}");
 }

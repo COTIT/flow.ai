@@ -177,11 +177,7 @@ impl Validate for UpdateWorkspaceRequest {
         if let Some(v) = body.remove("website") {
             let v = text_or_null(r, "website", v, 255);
             if let Value::String(s) = &v {
-                r.check(
-                    "website",
-                    is_url(s),
-                    "The website field must be a valid URL.",
-                );
+                r.check("website", is_url(s), "The website must be a valid URL.");
             }
             out.insert("website".into(), v);
         }
@@ -204,7 +200,7 @@ impl Validate for UpdateWorkspaceRequest {
             Value::Null => None,
             Value::Object(_) => Some(v),
             _ => {
-                r.add("meta", "The meta field must be an array.");
+                r.add("meta", "The meta must be an array.");
                 None
             }
         });
@@ -225,7 +221,7 @@ fn text(r: &mut Rules, field: &str, v: Value, max: usize) -> Option<Value> {
             let s = s.trim().to_owned();
             if s.chars().count() > max {
                 let msg = format!(
-                    "The {} field must not be greater than {max} characters.",
+                    "The {} must not be greater than {max} characters.",
                     human(name)
                 );
                 r.add(field, msg);
@@ -233,10 +229,7 @@ fn text(r: &mut Rules, field: &str, v: Value, max: usize) -> Option<Value> {
             Some(Value::String(s))
         }
         _ => {
-            r.add(
-                field,
-                format!("The {} field must be a string.", human(name)),
-            );
+            r.add(field, format!("The {} must be a string.", human(name)));
             None
         }
     }
@@ -260,10 +253,7 @@ fn numeric(r: &mut Rules, field: &str, v: Option<Value>) -> Option<f64> {
         _ => None,
     };
     if n.is_none() {
-        r.add(
-            field,
-            format!("The {} field must be a number.", human(name)),
-        );
+        r.add(field, format!("The {} must be a number.", human(name)));
     }
     n
 }
@@ -338,7 +328,7 @@ pub(crate) fn account(r: &mut Rules, key: &str, prefix: &str, v: Value) -> Value
         Value::String(s) => {
             r.add(
                 &k("account_number"),
-                "The account number field must be a valid IBAN.",
+                "The account number must be a valid IBAN.",
             );
             Value::String(s)
         }
@@ -349,7 +339,7 @@ pub(crate) fn account(r: &mut Rules, key: &str, prefix: &str, v: Value) -> Value
         r.check(
             &k("bic_swift"),
             is_bic(s),
-            "The bic swift field must be a valid BIC.",
+            "The bic swift must be a valid BIC.",
         );
     }
     let limit = match numeric(r, &k("credit_limit"), Some(limit)) {
@@ -357,7 +347,7 @@ pub(crate) fn account(r: &mut Rules, key: &str, prefix: &str, v: Value) -> Value
             r.check(
                 &k("credit_limit"),
                 n >= 0.0,
-                "The credit limit field must be at least 0.",
+                "The credit limit must be at least 0.",
             );
             serde_json::Number::from_f64(n).map_or(Value::Null, Value::Number)
         }

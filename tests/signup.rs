@@ -173,7 +173,7 @@ async fn weak_password_lists_every_failed_rule(pool: PgPool) {
     assert_eq!(res["errors"]["password"].as_array().unwrap().len(), 4);
     assert_eq!(
         res["errors"]["password"][0],
-        "The password field must be at least 8 characters."
+        "The password must be at least 8 characters."
     );
 }
 
@@ -235,7 +235,7 @@ async fn bad_email_and_workspace_type_rejected(pool: PgPool) {
 
     assert_eq!(
         res["errors"]["email"],
-        json!(["The email field must be a valid email address."])
+        json!(["The email must be a valid email address."])
     );
     assert_eq!(
         res["errors"]["workspace_type"],

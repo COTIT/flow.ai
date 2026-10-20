@@ -106,8 +106,8 @@ async fn rules_and_patch(pool: PgPool) {
     assert_eq!(
         res["errors"],
         json!({
-            "name": ["The name field must not be greater than 150 characters."],
-            "revenue_code": ["The revenue code field must not be greater than 150 characters."],
+            "name": ["The name must not be greater than 150 characters."],
+            "revenue_code": ["The revenue code must not be greater than 150 characters."],
         })
     );
 

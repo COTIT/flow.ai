@@ -183,7 +183,7 @@ async fn name_and_domain_rules(pool: PgPool) {
         errors(&a, json!({ "name": "n".repeat(56), "domain": "xyz" })).await,
         json!({
             "domain": ["The selected domain: xyz is invalid."],
-            "name": ["The name field must not be greater than 55 characters."],
+            "name": ["The name must not be greater than 55 characters."],
         })
     );
 
@@ -398,6 +398,6 @@ async fn property_values_are_trimmed_and_capped(pool: PgPool) {
             json!({ "name": "n", "domain": "activity", "properties": { "icon": "i".repeat(256), "color": "c" } })
         )
         .await,
-        json!({ "properties.icon": ["The properties.icon field must not be greater than 255 characters."] })
+        json!({ "properties.icon": ["The properties.icon must not be greater than 255 characters."] })
     );
 }

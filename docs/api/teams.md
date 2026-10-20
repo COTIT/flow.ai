@@ -43,8 +43,8 @@ Unknown, deleted, malformed or other-workspace `{team}` ids are all `404 {"messa
 
 Validation messages follow Laravel:
 
-- `The name field is required.` and `The name field must not be greater than 55 characters.` (the same for `description` with 225)
-- `The permissions field must be an array.`
+- `The name field is required.` and `The name must not be greater than 55 characters.` (the same for `description` with 225)
+- `The permissions must be an array.`
 - `user ids must be an array of valid user_ids`: not an array, a bad uuid, or someone outside the workspace
 - `The user ids field is required.`: missing or empty
 - `This user ids does not exist in the team`: on remove
