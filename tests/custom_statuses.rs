@@ -57,13 +57,13 @@ async fn rules_and_uniqueness(pool: PgPool) {
     );
 
     let id = a
-        .create(json!({ "name": "Won", "domain": "deal_pipeline" }), ID)
+        .create(json!({ "name": "Won", "domain": "deal" }), ID)
         .await;
     let (status, res) = a
         .call(
             Method::POST,
             "",
-            Some(json!({ "name": "won", "domain": "deal_pipeline" })),
+            Some(json!({ "name": "won", "domain": "deal" })),
             &a.owner,
         )
         .await;
@@ -72,18 +72,17 @@ async fn rules_and_uniqueness(pool: PgPool) {
 
     // Re-saving the unchanged name works (Laravel answered 422 here).
     let (status, res) = a
-        .update(&id, json!({ "name": "Won", "id": id, "domain": "deal" }))
+        .update(
+            &id,
+            json!({ "name": "Won", "id": id, "domain": "activity" }),
+        )
         .await;
     assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
-    assert_eq!(
-        a.get(&id).await["domain"],
-        "deal_pipeline",
-        "domain can't change"
-    );
+    assert_eq!(a.get(&id).await["domain"], "deal", "domain can't change");
 
     // An archived status still holds its name.
     sqlx::query(
-        "INSERT INTO custom_statuses (workspace_id, name, domain, archived) VALUES ($1::uuid, 'Lost', 'deal_pipeline', true)",
+        "INSERT INTO custom_statuses (workspace_id, name, domain, archived) VALUES ($1::uuid, 'Lost', 'deal', true)",
     )
     .bind(&a.ws)
     .execute(&a.pool)

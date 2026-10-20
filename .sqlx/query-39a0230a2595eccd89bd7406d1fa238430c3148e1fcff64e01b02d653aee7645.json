@@ -1,0 +1,158 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, asset_type, symbol_prefix, symbol_suffix, decimals, default_currency,\n                  active, meta, created_at, updated_at, count(*) OVER () AS \"total!\"\n           FROM currencies\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR name ILIKE $2)\n           ORDER BY id\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "asset_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "symbol_prefix",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "symbol_prefix"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "symbol_suffix",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "symbol_suffix"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "default_currency",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "default_currency"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "active"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "39a0230a2595eccd89bd7406d1fa238430c3148e1fcff64e01b02d653aee7645"
+}

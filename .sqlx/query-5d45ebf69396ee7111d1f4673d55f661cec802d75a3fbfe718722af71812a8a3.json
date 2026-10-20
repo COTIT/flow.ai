@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM custom_types\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR domain = $2)\n             AND ($3::text IS NULL OR name ILIKE $3)\n             AND ($4::text IS NULL OR properties->>'default_for_work_order' = $4)\n             AND ($5::text IS NULL OR properties->>'is_leave_hours_type' = $5)\n             AND ($6::text IS NULL OR properties->>'is_supplier' = $6)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5d45ebf69396ee7111d1f4673d55f661cec802d75a3fbfe718722af71812a8a3"
+}

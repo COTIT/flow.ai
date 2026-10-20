@@ -22,7 +22,7 @@ use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 pub use http::rate_limit::RateLimit;
 use modules::{
     auth, currencies, custom_statuses, custom_types, email_verification, hourly_rates, invites,
-    permissions, sales_groups, shipment_methods, teams, users, vat_groups, workspaces,
+    permissions, sales_groups, search, shipment_methods, teams, users, vat_groups, workspaces,
 };
 
 /// Largest JSON body any endpoint needs is a signup form; 64 KiB leaves plenty of room
@@ -77,6 +77,7 @@ pub fn build_app(state: AppState) -> Router {
         .merge(shipment_methods::routes::private())
         .merge(custom_types::routes::private())
         .merge(custom_statuses::routes::private())
+        .merge(search::routes::private())
         // Responses carry bearer tokens and invite data: never cache, never sniff.
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,

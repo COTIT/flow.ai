@@ -1,0 +1,114 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, domain, properties, meta, created_at, updated_at,\n                  count(*) OVER () AS \"total!\"\n           FROM custom_types\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR domain = $2)\n             AND ($3::text IS NULL OR name ILIKE $3)\n             AND ($4::text IS NULL OR properties->>'default_for_work_order' = $4)\n             AND ($5::text IS NULL OR properties->>'is_leave_hours_type' = $5)\n             AND ($6::text IS NULL OR properties->>'is_supplier' = $6)\n           ORDER BY id\n           LIMIT $7 OFFSET $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "domain",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "properties",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "properties"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "custom_types",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "6460c37176b7a8e5fcc4014b1f0e9b9a4e728452593a6db1b1d976444c10cb24"
+}

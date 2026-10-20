@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE vat_groups\n         SET name = $3,\n             vat_amount = $4,\n             default_group = COALESCE($5, default_group),\n             country = CASE WHEN $6 THEN $7 ELSE country END,\n             meta = CASE WHEN $8 THEN $9 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Numeric",
+        "Bool",
+        "Bool",
+        "Text",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9563f48d23eea3f3736119dcd739aac63da37fd5da64e91e6a6af65ac9b53ab5"
+}

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM sales_groups\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR name ILIKE $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3c7441eaf8b3b3f7a06b9eec6ab6c4be3cb992fef29cb67b74776f6bfcedf00f"
+}

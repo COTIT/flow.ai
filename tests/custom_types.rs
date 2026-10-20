@@ -173,18 +173,18 @@ async fn name_and_domain_rules(pool: PgPool) {
     );
 
     let id = a
-        .create(json!({ "name": "Supplier", "domain": "relation" }), ID)
+        .create(json!({ "name": "Partner", "domain": "relation" }), ID)
         .await;
     assert_eq!(
-        errors(&a, json!({ "name": " supplier ", "domain": "relation" })).await,
+        errors(&a, json!({ "name": " partner ", "domain": "relation" })).await,
         json!({ "name": [NOT_UNIQUE] })
     );
     // Same name, other domain: fine.
-    a.create(json!({ "name": "Supplier", "domain": "lead_source" }), ID)
+    a.create(json!({ "name": "Partner", "domain": "lead_source" }), ID)
         .await;
     // A deleted type frees its name.
     a.delete(&id).await;
-    a.create(json!({ "name": "SUPPLIER", "domain": "relation" }), ID)
+    a.create(json!({ "name": "PARTNER", "domain": "relation" }), ID)
         .await;
 }
 
@@ -192,10 +192,10 @@ async fn name_and_domain_rules(pool: PgPool) {
 async fn update_keeps_domain_and_rechecks_properties(pool: PgPool) {
     let a = Api::new(pool, BASE).await;
     let id = a
-        .create(json!({ "name": "Supplier", "domain": "relation", "properties": { "is_supplier": true } }), ID)
+        .create(json!({ "name": "Partner", "domain": "relation", "properties": { "is_supplier": true } }), ID)
         .await;
     let other = a
-        .create(json!({ "name": "Client", "domain": "relation" }), ID)
+        .create(json!({ "name": "Customer", "domain": "relation" }), ID)
         .await;
 
     // The settings form sends every flag, null for the ones that don't apply.
@@ -247,8 +247,8 @@ async fn update_keeps_domain_and_rechecks_properties(pool: PgPool) {
 async fn list_filters_by_domain_and_flags(pool: PgPool) {
     let a = Api::new(pool, BASE).await;
     for (name, domain, properties) in [
-        ("Supplier", "relation", json!({ "is_supplier": true })),
-        ("Client", "relation", json!({ "is_supplier": false })),
+        ("Partner", "relation", json!({ "is_supplier": true })),
+        ("Customer", "relation", json!({ "is_supplier": false })),
         (
             "Work",
             "hour_registration_type",
@@ -279,15 +279,15 @@ async fn list_filters_by_domain_and_flags(pool: PgPool) {
 
     assert_eq!(
         names(a.list("?domain=relation").await),
-        ["Z Supplier", "Z Client"]
+        ["Z Partner", "Z Customer"]
     );
     assert_eq!(
         names(a.list("?domain=relation&is_supplier=1").await),
-        ["Z Supplier"]
+        ["Z Partner"]
     );
     assert_eq!(
         names(a.list("?domain=relation&is_supplier=false").await),
-        ["Z Client"]
+        ["Z Customer"]
     );
     assert_eq!(
         names(

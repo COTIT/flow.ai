@@ -14,6 +14,9 @@ use crate::{
             password, repo as tokens,
             token::{self, PlainSecret},
         },
+        currencies::repo as currencies,
+        custom_statuses::repo as custom_statuses,
+        custom_types::repo as custom_types,
         email_verification::service as email_verification,
         permissions::catalog::WORKSPACE_ADMIN,
         teams::repo as teams,
@@ -82,6 +85,10 @@ pub async fn create_workspace(state: &AppState, input: NewSignup) -> Result<Sess
     )
     .await?;
     teams::add_members(&mut *tx, workspace_id, admins, &[user_id]).await?;
+    // Laravel WorkspaceSetup reference rows; money renders off the default currency.
+    currencies::seed_defaults(&mut *tx, workspace_id).await?;
+    custom_statuses::seed_defaults(&mut *tx, workspace_id).await?;
+    custom_types::seed_defaults(&mut *tx, workspace_id).await?;
     let token = issue_token(&mut *tx, user_id, state.token_ttl).await?;
     tx.commit().await?;
     // After commit: a mail failure must not undo the account.

@@ -1,0 +1,243 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT h.id, h.title, h.description, h.consumer_price, h.business_price,\n                  h.purchase_price, h.ledger_number, h.meta, h.created_at, h.updated_at,\n                  v.id AS \"v_id?\", v.name AS \"v_name?\", v.vat_amount AS \"v_vat_amount?\",\n                  v.default_group AS \"v_default_group?\", v.country AS \"v_country?\",\n                  v.meta AS \"v_meta?\", v.created_at AS \"v_created_at?\",\n                  v.updated_at AS \"v_updated_at?\",\n                  count(*) OVER () AS \"total!\"\n           FROM hourly_rates h\n           LEFT JOIN vat_groups v\n             ON v.workspace_id = h.workspace_id AND v.id = h.vat_group_id\n            AND v.deleted_at IS NULL\n           WHERE h.workspace_id = $1 AND h.deleted_at IS NULL\n             AND ($2::uuid IS NULL OR h.id = $2)\n             AND ($3::text IS NULL OR h.title ILIKE $3)\n           ORDER BY h.id\n           LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "consumer_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "consumer_price"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "business_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "business_price"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "purchase_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "purchase_price"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "ledger_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "ledger_number"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hourly_rates",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "v_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "v_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "v_vat_amount?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "vat_amount"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "v_default_group?",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "default_group"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "v_country?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "country"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "v_meta?",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "v_created_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "v_updated_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "4fd1a6921ac2d0604fbb03f516c581df1862d093246d4adff1edd559f07c45db"
+}

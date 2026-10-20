@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, vat_amount, default_group, country, meta, created_at, updated_at\n         FROM vat_groups\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "vat_amount",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "vat_amount"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "default_group",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "default_group"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "country",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "country"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "vat_groups",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "a064d3db5e70fc3c6d34778a5d664548c55f37933295460f0683398d762ff97a"
+}

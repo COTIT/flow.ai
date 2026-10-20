@@ -198,3 +198,18 @@ pub async fn soft_delete(
     .await
     .map(|done| done.rows_affected() == 1)
 }
+
+/// Laravel WorkspaceSetup currencies for a new workspace: Euro (default), UK Sterling, Dollar.
+pub async fn seed_defaults(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "INSERT INTO currencies (workspace_id, name, asset_type, symbol_prefix, symbol_suffix,
+                                 decimals, default_currency, active)
+         VALUES ($1, 'Euro', 'eur', '€', 'EUR', 2, true, true),
+                ($1, 'UK Sterling', 'gbp', '£', 'GBP', 2, false, true),
+                ($1, 'Dollar', 'usd', '$', 'USD', 2, false, true)",
+        workspace_id,
+    )
+    .execute(db)
+    .await
+    .map(drop)
+}

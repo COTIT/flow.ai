@@ -187,3 +187,11 @@ pub async fn soft_delete(
     .await
     .map(|done| done.rows_affected() == 1)
 }
+
+/// Laravel WorkspaceSetup deal pipeline statuses for a new workspace.
+pub async fn seed_defaults(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Result<(), sqlx::Error> {
+    let names = ["Won", "Lost", "In Progress", "To Do", "Completed"];
+    insert_many(db, workspace_id, "deal_pipeline", &names, None)
+        .await
+        .map(drop)
+}

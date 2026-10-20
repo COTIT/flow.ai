@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE custom_types\n         SET name = COALESCE($3, name),\n             properties = CASE WHEN $4 THEN $5 ELSE properties END,\n             meta = CASE WHEN $6 THEN $7 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "276d15963738f276fb44772afdc9eaabbcc7fc903d113f42baaca454fa14dd7a"
+}

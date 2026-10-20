@@ -9,6 +9,7 @@ pub mod hourly_rates;
 pub mod invites;
 pub mod permissions;
 pub mod sales_groups;
+pub mod search;
 pub mod shipment_methods;
 pub mod teams;
 pub mod users;

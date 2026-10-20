@@ -218,12 +218,12 @@ async fn new_default_replaces_old_one(pool: PgPool) {
     let first = w
         .create(json!({ "name": "A", "asset_type": "eur", "decimals": 2, "default_currency": true, "active": true }))
         .await;
-    assert_eq!(w.defaults().await, [first.clone()]);
+    assert_eq!(w.defaults().await, std::slice::from_ref(&first));
 
     let second = w
         .create(json!({ "name": "B", "asset_type": "usd", "decimals": 2, "default_currency": "1", "active": true }))
         .await;
-    assert_eq!(w.defaults().await, [second.clone()]);
+    assert_eq!(w.defaults().await, std::slice::from_ref(&second));
     assert_eq!(w.get(&first).await["default_currency"], false);
 
     // Switching back through update.
@@ -236,7 +236,7 @@ async fn new_default_replaces_old_one(pool: PgPool) {
         )
         .await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(w.defaults().await, [first.clone()]);
+    assert_eq!(w.defaults().await, std::slice::from_ref(&first));
 
     // Re-saving the current default keeps it.
     let (status, _) = w
@@ -248,7 +248,7 @@ async fn new_default_replaces_old_one(pool: PgPool) {
         )
         .await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(w.defaults().await, [first.clone()]);
+    assert_eq!(w.defaults().await, std::slice::from_ref(&first));
 
     // null = false, as Laravel's FilterValidateBoolean cast did.
     let (status, _) = w

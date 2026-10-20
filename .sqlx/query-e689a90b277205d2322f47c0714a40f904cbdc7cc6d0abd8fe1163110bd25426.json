@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM shipment_methods\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR name ILIKE $2)\n             AND ($3::bool IS NULL OR can_be_selected = $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e689a90b277205d2322f47c0714a40f904cbdc7cc6d0abd8fe1163110bd25426"
+}

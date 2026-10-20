@@ -209,3 +209,39 @@ pub async fn soft_delete(
     .await
     .map(|done| done.rows_affected() == 1)
 }
+
+/// Laravel WorkspaceSetup custom types for a new workspace, two bugs fixed: hour types use
+/// `hour_registration_type` (Laravel wrote `hour_registration`, which vimdesk-web never reads)
+/// and Supplier carries `is_supplier: true` (Laravel dropped it).
+pub async fn seed_defaults(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Result<(), sqlx::Error> {
+    let leave = Some(serde_json::json!({ "is_leave_hours_type": true }));
+    let rows: [(&str, &str, Option<Value>); 9] = [
+        (
+            "Supplier",
+            "relation",
+            Some(serde_json::json!({ "is_supplier": true })),
+        ),
+        (
+            "Client",
+            "relation",
+            Some(serde_json::json!({ "is_supplier": false })),
+        ),
+        ("Note", "activity", None),
+        (
+            "Ticket",
+            "activity",
+            Some(serde_json::json!({ "is_ticket_type": true })),
+        ),
+        ("Website", "lead_source", None),
+        ("Social media", "lead_source", None),
+        ("Work", "hour_registration_type", None),
+        ("Leave", "hour_registration_type", leave.clone()),
+        ("Sick leave", "hour_registration_type", leave),
+    ];
+    let names: Vec<&str> = rows.iter().map(|r| r.0).collect();
+    let domains: Vec<&str> = rows.iter().map(|r| r.1).collect();
+    let properties: Vec<Option<Value>> = rows.into_iter().map(|r| r.2).collect();
+    insert_many(db, workspace_id, &names, &domains, &properties, None)
+        .await
+        .map(drop)
+}

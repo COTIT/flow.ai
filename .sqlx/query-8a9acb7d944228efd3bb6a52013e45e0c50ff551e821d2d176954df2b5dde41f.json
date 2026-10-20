@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE vat_groups SET deleted_at = now(), updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a9acb7d944228efd3bb6a52013e45e0c50ff551e821d2d176954df2b5dde41f"
+}

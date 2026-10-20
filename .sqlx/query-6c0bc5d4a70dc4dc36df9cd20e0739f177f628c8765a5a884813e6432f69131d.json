@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, purchase_code, revenue_code, meta, created_at, updated_at\n         FROM sales_groups\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "sales_groups",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sales_groups",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "purchase_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sales_groups",
+            "name": "purchase_code"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "revenue_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "sales_groups",
+            "name": "revenue_code"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "sales_groups",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "sales_groups",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "sales_groups",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "6c0bc5d4a70dc4dc36df9cd20e0739f177f628c8765a5a884813e6432f69131d"
+}
