@@ -1,0 +1,5 @@
+# Own var name: sqlx macros walk every parent dir for .env and last match wins,
+# so a DATABASE_URL in repo-root .env (other apps) would hijack compile-time checks.
+# Runtime (app + #[sqlx::test]) still reads DATABASE_URL from nearest .env.
+[common]
+database-url-var = "GENESY_DATABASE_URL"

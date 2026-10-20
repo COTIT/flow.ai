@@ -1,0 +1,32 @@
+# Changelog
+
+## Unreleased
+
+- Project scaffold: Axum 0.8 + tokio + sqlx 0.9 (Postgres), env config (`DATABASE_URL`, `BIND_ADDR`), tracing, graceful shutdown on SIGINT/SIGTERM.
+- `GET /healthz`: `200 {"status":"ok"}` when the DB answers `SELECT 1`, `503 {"status":"unavailable"}` otherwise.
+- `postgres:18-alpine` service in `compose.local.yml` (host port 54320, reuses the local `db_password` secret).
+- Multi-stage `Dockerfile` (BuildKit cache mounts, distroless non-root runtime).
+- Migration `init_auth` (PostgreSQL 18): `users`, `workspaces`, `workspace_members`, `invites`, `access_tokens`, with uuidv7 PKs, a case-insensitive unique email, a slug CHECK on workspace names, one pending invite per email per workspace, and sha256-only token storage.
+- Repos: `users` (insert, credentials by email, exists), `workspaces` (insert, owner, name taken, members, active workspace ids, member by email), `invites` (upsert pending with code rotation, find by hash, answer once).
+- `sqlx.toml`: macros + CLI use `GENESY_DATABASE_URL`, so the repo-root `.env` can't override compile-time checks. `.sqlx/` offline cache committed for Docker builds.
+- Auth core: `AppError` (Laravel 422/401/500 bodies; 500 never leaks internals), `ValidatedJson` + `Rules` (Laravel-worded field errors, length counted in chars), `Password` policy (min 8, mixed case, letter, number, symbol, max 255, every failed rule listed), argon2id hash/verify on the blocking pool plus a dummy verify that evens out login timing, 256-bit hex secrets stored as sha256, `access_tokens` repo, `AuthUser` bearer extractor (rejects malformed tokens before hitting the DB).
+- `POST /v1/create-workspace`: signup creates user + workspace + owner membership + token in one transaction. Laravel field names and messages, `201` (Laravel sent `200`), both "taken" errors reported together, and a race-safe unique-index fallback, so concurrent signups get `422` instead of `500`. Contract: `docs/api/auth.md`.
+- `TOKEN_TTL_DAYS` (1..=365, default 30) sets the bearer token lifetime. `Config` Debug masks `database_url`.
+- `Validate` returns a typed input struct (`type Valid`), so handlers get non-`Option` fields with no `unwrap`.
+- `POST /v1/login`: argon2 verify, a dummy verify for unknown emails (a mutation test shows the gap without it: 1.8 ms vs 317 ms), `401 Invalid login details` for every credential failure, `403` when there is no active workspace (checked after the password, no token issued).
+- `POST /v1/logout`: revokes only the calling token and returns `{"message":"ok"}`.
+- Invites: `POST /v1/workspace/{workspace}/invites` (owner only, 404 for outsiders, re-invite rotates the code), `GET /v1/invites/get-invite-status/{code}`, `POST /v1/register` (one transaction, safe against a parallel register on the same code), `POST /v1/invites` (accept/decline, repeat accept succeeds). Contract: `docs/api/invites.md`.
+- Mail: `Mailer` (lettre SMTP with rustls, 10s timeout; in-memory capture for tests). New required env: `FRONTEND_URL`, `SMTP_URL`, `MAIL_FROM`.
+- `PersonFields` shared by signup and invite register. `AppError::NotFound`. Removed the temporary `dead_code` allows, since every repo fn now has a caller.
+- Rate limit (tower_governor) on public auth routes: one per-IP budget across signup/login/register/invite status, `429 {"message":"Too Many Attempts."}` with `Retry-After`, peer IP by default (`TRUST_PROXY_HEADERS=true` only behind Traefik), stale buckets dropped every 60s. Server now runs with connect info.
+- Review fixes (ecc:rust-reviewer + ecc:security-reviewer):
+  - Invite send quota: `INVITES_PER_HOUR` (default 20) per user, counted from the new `invite_sends` log table (migration `invite_send_log`), so re-sends count too. Returns 429.
+  - A replayed accepted invite never re-adds a removed member.
+  - `mark_answered` also matches the code hash, so a code rotated mid-request can't be used.
+  - Concurrent argon2 runs capped at the CPU count (semaphore). Login password capped at 255, and the body limit is 64 KiB (`413`).
+  - Email validation also requires a lettre `Address` parse.
+  - `Cache-Control: no-store` and `nosniff` on `/v1`.
+  - Shutdown listener failures no longer stop the server at boot. DB `acquire_timeout` is 5s.
+  - Migrations run at boot.
+  - Runtime image `distroless/cc-debian13`, same Debian release as the build image `rust:1.99-slim-trixie`.
+  - The timing test asserts a one-way floor.
