@@ -207,15 +207,26 @@ pub struct BinBody {
 #[derive(Deserialize)]
 pub struct CreateBinRequest(BinBody);
 
+/// Validated create: the code as a plain value, the rest in `fields`.
+pub struct NewBin {
+    pub code: String,
+    pub fields: Fields,
+}
+
 /// POST /bins/{bin}: absent keys keep the stored value.
 #[derive(Deserialize)]
 pub struct UpdateBinRequest(BinBody);
 
 impl Validate for CreateBinRequest {
-    type Valid = Fields;
+    type Valid = NewBin;
 
-    fn validate(self, r: &mut Rules) -> Option<Fields> {
-        Some(fields(r, self.0, true))
+    fn validate(self, r: &mut Rules) -> Option<NewBin> {
+        let mut f = fields(r, self.0, true);
+        // A missing code already recorded its error; the 422 discards the default.
+        Some(NewBin {
+            code: f.bin_code.take().unwrap_or_default(),
+            fields: f,
+        })
     }
 }
 

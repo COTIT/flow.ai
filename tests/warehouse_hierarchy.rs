@@ -595,6 +595,10 @@ async fn section_list_sorts_by_name_and_filters(pool: PgPool) {
     );
     assert_eq!(all["meta"]["per_page"], 15);
     assert_eq!(
+        w.sections().list("?per_page=0").await["meta"]["per_page"],
+        15
+    );
+    assert_eq!(
         field(
             &w.sections().list("?category=storage").await,
             "section_code"
@@ -630,13 +634,21 @@ async fn deleted_ancestor_hides_descendants(pool: PgPool) {
             assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
         }
     }
-    // A bin reached through the wrong shelf is a 404 too.
-    let sh2 = w.shelf(&s, &w.row(&s, "R2").await, "SH2").await;
+    // A bin reached through a live row whose shelf list doesn't hold it is a 404 too.
+    let r2 = w.row(&s, "R2").await;
+    let sh2 = w.shelf(&s, &r2, "SH2").await;
+    let b2 = w.bin(&s, &r2, &sh2, "B2").await;
     let (status, _) = w
-        .bins(&s, &r, &sh2)
-        .call(Method::GET, &format!("/{b}"), None, &w.api.owner)
+        .bins(&s, &r2, &sh2)
+        .call(Method::GET, &format!("/{b2}"), None, &w.api.owner)
         .await;
-    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert_eq!(status, StatusCode::OK, "control: right path works");
+    let sh3 = w.shelf(&s, &r2, "SH3").await;
+    let (status, _) = w
+        .bins(&s, &r2, &sh3)
+        .call(Method::GET, &format!("/{b2}"), None, &w.api.owner)
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "bin under another shelf");
 }
 
 #[sqlx::test]
@@ -714,4 +726,87 @@ async fn access_rules_every_level(pool: PgPool) {
         assert_eq!(status, StatusCode::NOT_FOUND, "{uri}");
     }
     assert_eq!(w.bins(&s, &r, &sh).get(&b).await["bin_code"], "B1");
+}
+
+#[sqlx::test]
+async fn huge_section_counts_never_overflow(pool: PgPool) {
+    let w = World::new(pool).await;
+    let s = w.section("S1").await;
+    let max = i32::MAX;
+
+    let (status, res) = w
+        .sections()
+        .update(
+            &s,
+            json!({ "section_name": "S1", "section_code": "S1", "rows": max,
+                    "shelves_per_row": max, "bins_per_shelf": max }),
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let sec = w.sections().get(&s).await;
+    assert_eq!(sec["layout"]["total_capacity"], i64::MAX);
+    assert_eq!(
+        sec["layout"]["total_shelves"],
+        i64::from(max) * i64::from(max)
+    );
+}
+
+#[sqlx::test]
+async fn update_of_unknown_id_is_404_even_with_a_taken_code(pool: PgPool) {
+    let w = World::new(pool).await;
+    let s = w.section("S1").await;
+    let r = w.row(&s, "R1").await;
+    let sh = w.shelf(&s, &r, "SH1").await;
+    w.bin(&s, &r, &sh, "B1").await;
+    let unknown = "01900000-0000-7000-8000-000000000001";
+
+    for (api, body) in [
+        (
+            w.sections(),
+            json!({ "section_name": "x", "section_code": "S1" }),
+        ),
+        (w.rows(&s), json!({ "row_code": "R1" })),
+        (w.shelves(&s, &r), json!({ "shelf_code": "SH1" })),
+        (w.bins(&s, &r, &sh), json!({ "bin_code": "B1" })),
+    ] {
+        let (status, res) = api.update(unknown, body).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{res}");
+    }
+}
+
+#[sqlx::test]
+async fn warehouse_bin_list_flags_truncation(pool: PgPool) {
+    let w = World::new(pool.clone()).await;
+    let s = w.section("S1").await;
+    let r = w.row(&s, "R1").await;
+    let sh = w.shelf(&s, &r, "SH1").await;
+    // One past the cap, straight in SQL.
+    sqlx::query(
+        "INSERT INTO warehouse_section_row_bins (workspace_id, warehouse_id, section_id, row_id,
+             shelf_id, bin_code)
+         SELECT $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'B' || g
+         FROM generate_series(1, 10001) g",
+    )
+    .bind(&w.api.ws)
+    .bind(&w.wh)
+    .bind(&s)
+    .bind(&r)
+    .bind(&sh)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let list = w.api.with_base(base(format!("/warehouses/{}/bins", w.wh)));
+
+    let res = list.list("").await;
+    assert_eq!(data(&res).len(), 10_000);
+    assert_eq!(res["meta"], json!({ "truncated": true }));
+
+    sqlx::query("UPDATE warehouse_section_row_bins SET deleted_at = now() WHERE bin_code = 'B1'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let res = list.list("").await;
+    assert_eq!(data(&res).len(), 10_000);
+    assert!(res.get("meta").is_none(), "exactly at the cap is complete");
 }

@@ -2,10 +2,13 @@
 //! Laravel had no catalog names here, so reads take `warehouse.get` and writes
 //! `warehouse.update` (user decision, docs/api/warehouses.md).
 
+use std::borrow::Cow;
+
 use axum::{
     Json,
     extract::{Path, Query, State},
     http::StatusCode,
+    response::{IntoResponse, Response},
 };
 
 use crate::{
@@ -17,9 +20,12 @@ use crate::{
         response::{Data, Message},
         workspace::{Can, permissions},
     },
-    modules::warehouse_locations::{
-        dto::{DeleteQuery, ListQuery, LocationBody, LocationCreated, LocationResource},
-        service,
+    modules::{
+        warehouse_locations::{
+            dto::{DeleteQuery, ListQuery, LocationBody, LocationCreated, LocationResource},
+            service,
+        },
+        warehouses::dto::WarehouseCompacted,
     },
 };
 
@@ -42,7 +48,7 @@ pub async fn list(
     access: Can<LocationRead>,
     Path((_, wh)): WarehousePath,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Paginated<LocationResource>>, AppError> {
+) -> Result<Response, AppError> {
     let warehouse = service::warehouse(&state, access.workspace_id, &wh).await?;
     let pattern = search(query.q.as_deref())?;
     let mut page = Page::parse(query.page.as_deref(), None);
@@ -61,11 +67,12 @@ pub async fn list(
         page,
     )
     .await?;
+    let compact = WarehouseCompacted::from(&warehouse);
     let data = rows
         .into_iter()
-        .map(|l| LocationResource::new(l, &warehouse))
+        .map(|l| LocationResource::new(l, Cow::Borrowed(&compact)))
         .collect();
-    Ok(Json(Paginated::new(data, total, page)))
+    Ok(Json(Paginated::new(data, total, page)).into_response())
 }
 
 /// GET /locations/{location}.
@@ -73,10 +80,11 @@ pub async fn get(
     State(state): State<AppState>,
     access: Can<LocationRead>,
     Path((_, wh, id)): LocationPath,
-) -> Result<Data<LocationResource>, AppError> {
+) -> Result<Response, AppError> {
     let warehouse = service::warehouse(&state, access.workspace_id, &wh).await?;
     let row = service::get(&state, access.workspace_id, warehouse.id, &id).await?;
-    Ok(Data(LocationResource::new(row, &warehouse)))
+    let compact = WarehouseCompacted::from(&warehouse);
+    Ok(Data(LocationResource::new(row, Cow::Owned(compact))).into_response())
 }
 
 /// POST /locations -> 201 `{data:{warehouse_location_id}}`.

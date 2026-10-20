@@ -51,6 +51,16 @@ impl AppError {
     pub fn field(field: &str, message: impl Into<String>) -> Self {
         Self::Validation(BTreeMap::from([(field.to_owned(), vec![message.into()])]))
     }
+
+    /// `e` as the one-field 422 when it violated unique index `constraint` (a race the
+    /// service pre-check missed, or no pre-check at all), else a 500.
+    pub fn unique(e: sqlx::Error, constraint: &str, field: &str, message: &str) -> Self {
+        if e.as_database_error().and_then(|d| d.constraint()) == Some(constraint) {
+            Self::field(field, message)
+        } else {
+            Self::Database(e)
+        }
+    }
 }
 
 const NUL_TEXT: &str = "Text must not contain NUL characters.";

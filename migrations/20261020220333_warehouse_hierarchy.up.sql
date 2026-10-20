@@ -20,7 +20,8 @@ CREATE TABLE warehouse_sections (
     temperature_control text        NOT NULL DEFAULT 'ambient'
                                     CHECK (temperature_control IN ('ambient', 'cold', 'freezer', 'heated')),
     restricted_access   boolean     NOT NULL DEFAULT false,
-    assigned_manager    uuid        REFERENCES users (id) ON DELETE SET NULL,
+    -- A workspace member (composite FK below); leaving the workspace clears it.
+    assigned_manager    uuid,
     priority_level      text        NOT NULL DEFAULT 'standard'
                                     CHECK (priority_level IN ('low', 'standard', 'high', 'critical')),
     created_at          timestamptz NOT NULL DEFAULT now(),
@@ -29,7 +30,9 @@ CREATE TABLE warehouse_sections (
     CONSTRAINT warehouse_sections_workspace_id_id_key UNIQUE (workspace_id, id),
     CONSTRAINT warehouse_sections_chain_key UNIQUE (workspace_id, warehouse_id, id),
     CONSTRAINT warehouse_sections_warehouse_fk FOREIGN KEY (workspace_id, warehouse_id)
-        REFERENCES warehouses (workspace_id, id)
+        REFERENCES warehouses (workspace_id, id),
+    CONSTRAINT warehouse_sections_manager_member_fk FOREIGN KEY (workspace_id, assigned_manager)
+        REFERENCES workspace_members (workspace_id, user_id) ON DELETE SET NULL (assigned_manager)
 );
 CREATE UNIQUE INDEX warehouse_sections_code_unique ON warehouse_sections (warehouse_id, lower(section_code))
     WHERE deleted_at IS NULL;
@@ -141,6 +144,9 @@ CREATE TABLE warehouse_section_row_bins (
 -- Laravel's DB key was (row_id, bin_code): unique per row, not per shelf.
 CREATE UNIQUE INDEX warehouse_section_row_bins_code_unique
     ON warehouse_section_row_bins (row_id, lower(bin_code)) WHERE deleted_at IS NULL;
+-- Bin list of one shelf.
+CREATE INDEX warehouse_section_row_bins_shelf_idx ON warehouse_section_row_bins (shelf_id, id)
+    WHERE deleted_at IS NULL;
 -- GET /warehouses/{id}/bins reads a whole warehouse.
 CREATE INDEX warehouse_section_row_bins_warehouse_idx
     ON warehouse_section_row_bins (workspace_id, warehouse_id) WHERE deleted_at IS NULL;

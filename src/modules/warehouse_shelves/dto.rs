@@ -104,15 +104,28 @@ pub struct ShelfBody {
 #[derive(Deserialize)]
 pub struct CreateShelfRequest(ShelfBody);
 
+/// Validated create: required columns as plain values, the rest in `fields`.
+pub struct NewShelf {
+    pub code: String,
+    pub level: i32,
+    pub fields: Fields,
+}
+
 /// POST /shelves/{shelf}: absent keys keep the stored value.
 #[derive(Deserialize)]
 pub struct UpdateShelfRequest(ShelfBody);
 
 impl Validate for CreateShelfRequest {
-    type Valid = Fields;
+    type Valid = NewShelf;
 
-    fn validate(self, r: &mut Rules) -> Option<Fields> {
-        Some(fields(r, self.0, true))
+    fn validate(self, r: &mut Rules) -> Option<NewShelf> {
+        let mut f = fields(r, self.0, true);
+        // A missing value already recorded its error; the 422 discards these defaults.
+        Some(NewShelf {
+            code: f.shelf_code.take().unwrap_or_default(),
+            level: f.shelf_level.take().unwrap_or(1),
+            fields: f,
+        })
     }
 }
 

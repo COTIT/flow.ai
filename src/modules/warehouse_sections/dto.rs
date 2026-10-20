@@ -7,7 +7,10 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{
-    http::json::{Rules, Validate, filled, present},
+    http::{
+        json::{Rules, Validate, filled, present},
+        list::Page,
+    },
     modules::warehouse_sections::repo::SectionRow,
 };
 
@@ -71,7 +74,10 @@ struct Relationships {
 impl From<SectionRow> for SectionResource {
     fn from(s: SectionRow) -> Self {
         let n = |v: Option<i32>| i64::from(v.unwrap_or_default());
-        let capacity = n(s.rows) * n(s.shelves_per_row) * n(s.bins_per_shelf);
+        // Saturating: an update may store i32::MAX in all three (no layout runs then).
+        let capacity = n(s.rows)
+            .saturating_mul(n(s.shelves_per_row))
+            .saturating_mul(n(s.bins_per_shelf));
         Self {
             id: s.id,
             section_id: s.id,
@@ -81,7 +87,7 @@ impl From<SectionRow> for SectionResource {
                 shelves_per_row: s.shelves_per_row,
                 bins_per_shelf: s.bins_per_shelf,
                 total_rows: n(s.rows),
-                total_shelves: n(s.rows) * n(s.shelves_per_row),
+                total_shelves: n(s.rows).saturating_mul(n(s.shelves_per_row)),
                 total_bins: s.total_bins.map_or(capacity, i64::from),
                 total_capacity: capacity,
                 location_format: format!(
@@ -132,6 +138,21 @@ pub struct ListQuery {
     pub priority_level: Option<String>,
     pub restricted_access: Option<String>,
     pub search: Option<String>,
+}
+
+impl ListQuery {
+    /// Laravel `per_page` default 15, max 100; missing, junk or < 1 falls back to 15.
+    pub fn page(&self) -> Page {
+        let size = self
+            .per_page
+            .as_deref()
+            .and_then(|s| s.trim().parse::<i64>().ok())
+            .filter(|n| *n > 0)
+            .map_or(15, |n| n.min(100));
+        let mut page = Page::parse(self.page.as_deref(), None);
+        page.size = size;
+        page
+    }
 }
 
 /// Columns create writes and update patches. `None` = keep (update) / default (create).

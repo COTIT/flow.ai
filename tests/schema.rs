@@ -900,3 +900,52 @@ async fn hierarchy_codes_unique_per_parent_among_live_rows(pool: PgPool) {
         .unwrap();
     assert!(insert_row(&pool, a, wh, s, "R1").await.is_ok());
 }
+
+#[sqlx::test]
+async fn warehouse_people_must_be_members_and_leaving_clears_them(pool: PgPool) {
+    let (a, _) = warehouse_world(&pool).await;
+    let ada: Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email = 'ada@example.com'")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let bob = insert_user(&pool, "bob@example.com").await.unwrap();
+    let wh = insert_warehouse(&pool, a, "main", false, None)
+        .await
+        .unwrap();
+    let set_manager = |user: Uuid| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query("UPDATE warehouses SET manager_id = $1 WHERE id = $2")
+                .bind(user)
+                .bind(wh)
+                .execute(&pool)
+                .await
+        }
+    };
+
+    assert_eq!(
+        violated(set_manager(bob).await.unwrap_err()),
+        "warehouses_manager_member_fk"
+    );
+    sqlx::query("INSERT INTO workspace_members (workspace_id, user_id) VALUES ($1, $2), ($1, $3)")
+        .bind(a)
+        .bind(ada)
+        .bind(bob)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(set_manager(bob).await.is_ok());
+    sqlx::query("DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2")
+        .bind(a)
+        .bind(bob)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let manager: Option<Uuid> =
+        sqlx::query_scalar("SELECT manager_id FROM warehouses WHERE id = $1")
+            .bind(wh)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(manager, None);
+}

@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
-use crate::modules::warehouse_rows::dto::Fields;
+use crate::modules::warehouse_rows::dto::{Fields, NewRow};
 
 /// Live row.
 pub struct RowRow {
@@ -40,8 +40,9 @@ pub async fn insert(
     workspace_id: Uuid,
     warehouse_id: Uuid,
     section_id: Uuid,
-    f: &Fields,
+    n: &NewRow,
 ) -> Result<Uuid, sqlx::Error> {
+    let f = &n.fields;
     sqlx::query_scalar!(
         "INSERT INTO warehouse_section_rows (workspace_id, warehouse_id, section_id, row_code,
              row_name, length_meters, width_meters, height_meters, orientation, row_type,
@@ -55,11 +56,11 @@ pub async fn insert(
         workspace_id,
         warehouse_id,
         section_id,
-        f.row_code.as_deref().unwrap_or_default(),
-        f.row_name.as_deref().unwrap_or_default(),
-        f.length_meters.unwrap_or_default(),
-        f.width_meters.unwrap_or_default(),
-        f.height_meters.unwrap_or_default(),
+        n.code,
+        n.name,
+        n.length_meters,
+        n.width_meters,
+        n.height_meters,
         f.orientation.clone().flatten(),
         f.row_type.clone().flatten(),
         f.calculated_volume_cubic_meters.flatten(),
@@ -75,27 +76,6 @@ pub async fn insert(
         f.notes.clone().flatten(),
         f.enable_automatic_bin_labeling,
         f.generate_qr_codes_for_shelves,
-    )
-    .fetch_one(db)
-    .await
-}
-
-/// True when a live row of this section uses `code` (any case), other than `except`.
-pub async fn code_taken(
-    db: impl PgExecutor<'_>,
-    section_id: Uuid,
-    code: &str,
-    except: Option<Uuid>,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"SELECT EXISTS (
-               SELECT 1 FROM warehouse_section_rows
-               WHERE section_id = $1 AND lower(row_code) = lower($2) AND deleted_at IS NULL
-                 AND ($3::uuid IS NULL OR id <> $3)
-           ) AS "e!""#,
-        section_id,
-        code,
-        except,
     )
     .fetch_one(db)
     .await

@@ -248,3 +248,28 @@ async fn access_rules(pool: PgPool) {
     }
     assert_eq!(api.get(&id).await["location"], "A", "row untouched");
 }
+
+#[sqlx::test]
+async fn search_domain_lists_locations(pool: PgPool) {
+    let (api, wh) = world(pool).await;
+    api.create(json!({ "location": "A.1" }), "warehouse_location_id")
+        .await;
+    let other = api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Other" }), "warehouse_id")
+        .await;
+    let other_base: &'static str =
+        Box::leak(format!("/erp/warehouses/{other}/locations").into_boxed_str());
+    api.with_base(other_base)
+        .create(json!({ "location": "A.2" }), "warehouse_location_id")
+        .await;
+    let search = api.with_base("/searches");
+
+    let all = search.list("?domain=warehouse_location&q=a.").await;
+    assert_eq!(all["data"].as_array().unwrap().len(), 2);
+    let one = search
+        .list(&format!("?domain=warehouse_location&warehouse_id={wh}"))
+        .await;
+    assert_eq!(ids(&one).len(), 1);
+    assert_eq!(one["data"][0]["warehouse"]["id"], wh.as_str());
+}

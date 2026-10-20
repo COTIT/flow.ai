@@ -46,7 +46,11 @@ impl From<CategoryRow> for CategoryResource {
 
 impl CategoryResource {
     /// GET one: the category with its parent and live children.
-    pub fn with_family(c: CategoryRow, parent: Option<CategoryRow>, children: Vec<CategoryRow>) -> Self {
+    pub fn with_family(
+        c: CategoryRow,
+        parent: Option<CategoryRow>,
+        children: Vec<CategoryRow>,
+    ) -> Self {
         Self::build(
             c,
             Relationships::Loaded {

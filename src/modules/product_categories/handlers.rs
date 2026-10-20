@@ -47,7 +47,12 @@ pub async fn list(
 ) -> Result<Json<Paginated<CategoryResource>>, AppError> {
     let pattern = search(q.q.as_deref())?;
     let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
-    let parent_id = match q.parent_id.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+    let parent_id = match q
+        .parent_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
         None => None,
         Some(raw) => Some(Uuid::parse_str(raw).map_err(|_| {
             AppError::Validation(BTreeMap::from([(
@@ -85,7 +90,12 @@ pub async fn create(
     ValidatedJson(input): ValidatedJson<CreateCategoryRequest>,
 ) -> Result<(StatusCode, Data<CategoryCreated>), AppError> {
     let product_category_id = service::create(&state, access.workspace_id, input).await?;
-    Ok((StatusCode::CREATED, Data(CategoryCreated { product_category_id })))
+    Ok((
+        StatusCode::CREATED,
+        Data(CategoryCreated {
+            product_category_id,
+        }),
+    ))
 }
 
 /// POST /product-categories/{category} -> `{"message":"ok"}`.

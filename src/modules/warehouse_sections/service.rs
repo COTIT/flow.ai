@@ -10,6 +10,7 @@ use crate::{
     error::AppError,
     modules::{
         users::repo as users,
+        warehouse_bins::service as bins,
         warehouse_sections::{
             dto::{CODE_TAKEN, Fields, SectionInput},
             repo::{self, Layout, ListFilter, SectionRow},
@@ -65,10 +66,13 @@ pub async fn create(
 ) -> Result<Uuid, AppError> {
     check_manager(state, workspace_id, &input.fields).await?;
     let layout = layout(&input.section_code, &input.fields)?;
-    let mut tx = state.db.begin().await?;
-    if repo::code_taken(&mut *tx, warehouse_id, &input.section_code, None).await? {
-        return Err(AppError::field("section_code", CODE_TAKEN));
+    if let Some(l) = &layout {
+        let adding = i64::try_from(l.bins.codes.len()).unwrap_or(i64::MAX);
+        if !bins::quota_allows(state, workspace_id, adding).await? {
+            return Err(bins::quota_error("rows"));
+        }
     }
+    let mut tx = state.db.begin().await?;
     let id = repo::insert(
         &mut *tx,
         workspace_id,
@@ -78,7 +82,7 @@ pub async fn create(
         &input.fields,
     )
     .await
-    .map_err(code_race)?;
+    .map_err(code_clash)?;
     if let Some(l) = layout {
         let temperature = input
             .fields
@@ -101,9 +105,7 @@ pub async fn update(
 ) -> Result<(), AppError> {
     let id = parse(id)?;
     check_manager(state, workspace_id, &input.fields).await?;
-    if repo::code_taken(&state.db, warehouse_id, &input.section_code, Some(id)).await? {
-        return Err(AppError::field("section_code", CODE_TAKEN));
-    }
+    // No code pre-check: an unknown id must stay a 404; the index catches a clash.
     let found = repo::update(
         &state.db,
         workspace_id,
@@ -114,7 +116,7 @@ pub async fn update(
         &input.fields,
     )
     .await
-    .map_err(code_race)?;
+    .map_err(code_clash)?;
     found.then_some(()).ok_or(AppError::NotFound)
 }
 
@@ -153,29 +155,31 @@ fn layout(code: &str, f: &Fields) -> Result<Option<Layout>, AppError> {
     for row in 0..rows {
         let letter = row_letters(row);
         let row_code = format!("{code}-ROW-{letter}");
-        l.rows.push((row_code.clone(), format!("Row {letter}")));
+        l.rows
+            .push(None, row_code.clone(), format!("Row {letter}"), None);
         for shelf in 1..=shelves {
             let shelf_code = format!("{row_code}-SHELF-{shelf}");
             let level = i32::try_from(shelf).unwrap_or_default();
-            l.shelves.push((
-                row_code.clone(),
+            l.shelves.push(
+                Some(&row_code),
                 shelf_code.clone(),
                 format!("Shelf {shelf}"),
-                level,
-            ));
+                Some(level),
+            );
             for bin in 1..=bins {
                 let tag = format!("{letter}{shelf}{bin:02}");
-                l.bins.push((
-                    shelf_code.clone(),
+                l.bins.push(
+                    Some(&shelf_code),
                     format!("{code}-{tag}"),
                     format!("Bin {tag}"),
-                ));
+                    None,
+                );
             }
         }
     }
     // Laravel's scheme repeats a code when shelves >= 11 and bins >= 101 ("A1101" twice).
-    let mut seen = HashSet::with_capacity(l.bins.len());
-    if !l.bins.iter().all(|b| seen.insert(b.1.to_lowercase())) {
+    let mut seen = HashSet::with_capacity(l.bins.codes.len());
+    if !l.bins.codes.iter().all(|c| seen.insert(c.to_lowercase())) {
         return Err(AppError::field(
             "bins_per_shelf",
             "The section layout generates duplicate bin codes.",
@@ -213,12 +217,14 @@ async fn check_manager(state: &AppState, workspace_id: Uuid, f: &Fields) -> Resu
     Ok(())
 }
 
-/// The unique index caught a race the pre-check missed: same 422.
-fn code_race(e: sqlx::Error) -> AppError {
-    match e.as_database_error().and_then(|d| d.constraint()) {
-        Some("warehouse_sections_code_unique") => AppError::field("section_code", CODE_TAKEN),
-        _ => AppError::Database(e),
-    }
+/// The live-code unique index fired: same 422 as the pre-check.
+fn code_clash(e: sqlx::Error) -> AppError {
+    AppError::unique(
+        e,
+        "warehouse_sections_code_unique",
+        "section_code",
+        CODE_TAKEN,
+    )
 }
 
 /// Malformed id = unknown id = 404.

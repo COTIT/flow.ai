@@ -58,7 +58,9 @@ pub async fn get(
     access: Can<BrandGet>,
     Path((_, id)): BrandPath,
 ) -> Result<Data<BrandResource>, AppError> {
-    Ok(Data(service::get(&state, access.workspace_id, &id).await?.into()))
+    Ok(Data(
+        service::get(&state, access.workspace_id, &id).await?.into(),
+    ))
 }
 
 /// POST /product-brands -> 201 `{data:{product_brand_id}}`.

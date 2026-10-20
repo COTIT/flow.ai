@@ -85,7 +85,7 @@ struct Relationships {
 }
 
 /// Laravel WarehouseCompactedResource (children of a warehouse).
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct WarehouseCompacted {
     id: Uuid,
     name: String,

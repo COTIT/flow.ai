@@ -42,9 +42,13 @@ async fn brand_crud_round_trip(pool: PgPool) {
     let (status, res) = api.update(&id, json!({ "website": null })).await;
     assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
     let b = api.get(&id).await;
-    assert_eq!((b["name"].clone(), b["website"].clone()), (json!("Bosch"), Value::Null));
+    assert_eq!(
+        (b["name"].clone(), b["website"].clone()),
+        (json!("Bosch"), Value::Null)
+    );
 
-    api.create(json!({ "name": "Makita" }), "product_brand_id").await;
+    api.create(json!({ "name": "Makita" }), "product_brand_id")
+        .await;
     assert_eq!(names(&api.list("?tab=x").await), vec!["Bosch", "Makita"]);
     assert_eq!(names(&api.list("?q=mak").await), vec!["Makita"]);
     api.delete(&id).await;
@@ -56,31 +60,56 @@ async fn brand_validation(pool: PgPool) {
     let api = Api::new(pool, "/erp/product-brands").await;
     for (body, key, msg) in [
         (json!({}), "name", "The name field is required."),
-        (json!({ "name": "x".repeat(256) }), "name", "The name must not be greater than 255 characters."),
-        (json!({ "name": "a", "logo": "not a url" }), "logo", "The logo must be a valid URL."),
-        (json!({ "name": "a", "website": "ftp:/x" }), "website", "The website must be a valid URL."),
+        (
+            json!({ "name": "x".repeat(256) }),
+            "name",
+            "The name must not be greater than 255 characters.",
+        ),
+        (
+            json!({ "name": "a", "logo": "not a url" }),
+            "logo",
+            "The logo must be a valid URL.",
+        ),
+        (
+            json!({ "name": "a", "website": "ftp:/x" }),
+            "website",
+            "The website must be a valid URL.",
+        ),
         (
             json!({ "name": "a", "website": format!("https://a.test/{}", "x".repeat(2040)) }),
             "website",
             "The website must not be greater than 2048 characters.",
         ),
-        (json!({ "name": "a", "meta": [1] }), "meta", "The meta must be an array."),
+        (
+            json!({ "name": "a", "meta": [1] }),
+            "meta",
+            "The meta must be an array.",
+        ),
     ] {
-        let (status, res) = api.call(Method::POST, "", Some(body.clone()), &api.owner).await;
+        let (status, res) = api
+            .call(Method::POST, "", Some(body.clone()), &api.owner)
+            .await;
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
         assert_eq!(res["errors"][key], json!([msg]), "{body}: {res}");
     }
     let id = api.create(json!({ "name": "a" }), "product_brand_id").await;
     let (status, res) = api.update(&id, json!({ "name": null })).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(res["errors"]["name"], json!(["The name field is required."]));
+    assert_eq!(
+        res["errors"]["name"],
+        json!(["The name field is required."])
+    );
 }
 
 #[sqlx::test]
 async fn brand_access(pool: PgPool) {
     let api = Api::new(pool, "/erp/product-brands").await;
-    let id = api.create(json!({ "name": "Main" }), "product_brand_id").await;
-    let gone = api.create(json!({ "name": "Gone" }), "product_brand_id").await;
+    let id = api
+        .create(json!({ "name": "Main" }), "product_brand_id")
+        .await;
+    let gone = api
+        .create(json!({ "name": "Gone" }), "product_brand_id")
+        .await;
     api.delete(&gone).await;
 
     api.assert_member_forbidden(&id).await;
@@ -104,13 +133,22 @@ async fn brand_access(pool: PgPool) {
 async fn category_tree(pool: PgPool) {
     let api = Api::new(pool, "/erp/product-categories").await;
     let root = api
-        .create(json!({ "name": "Tools", "description": "d" }), "product_category_id")
+        .create(
+            json!({ "name": "Tools", "description": "d" }),
+            "product_category_id",
+        )
         .await;
     let child = api
-        .create(json!({ "name": "Drills", "parent_id": root }), "product_category_id")
+        .create(
+            json!({ "name": "Drills", "parent_id": root }),
+            "product_category_id",
+        )
         .await;
     let grand = api
-        .create(json!({ "name": "Cordless", "parent_id": child }), "product_category_id")
+        .create(
+            json!({ "name": "Cordless", "parent_id": child }),
+            "product_category_id",
+        )
         .await;
 
     let c = api.get(&child).await;
@@ -133,26 +171,49 @@ async fn category_tree(pool: PgPool) {
 
     let all = api.list("").await;
     assert_eq!(names(&all), vec!["Tools", "Drills", "Cordless"]);
-    assert_eq!(all["data"][0]["relationships"], json!([]), "Laravel list loads nothing");
+    assert_eq!(
+        all["data"][0]["relationships"],
+        json!([]),
+        "Laravel list loads nothing"
+    );
     assert_eq!(names(&api.list("?root_only=1").await), vec!["Tools"]);
-    assert_eq!(names(&api.list(&format!("?parent_id={child}")).await), vec!["Cordless"]);
+    assert_eq!(
+        names(&api.list(&format!("?parent_id={child}")).await),
+        vec!["Cordless"]
+    );
 }
 
 #[sqlx::test]
 async fn category_parent_rules(pool: PgPool) {
     let api = Api::new(pool.clone(), "/erp/product-categories").await;
-    let root = api.create(json!({ "name": "Tools" }), "product_category_id").await;
+    let root = api
+        .create(json!({ "name": "Tools" }), "product_category_id")
+        .await;
     let child = api
-        .create(json!({ "name": "Drills", "parent_id": root }), "product_category_id")
+        .create(
+            json!({ "name": "Drills", "parent_id": root }),
+            "product_category_id",
+        )
         .await;
     let bad = "The parent id is an invalid id for the product_category domain.";
 
     for parent in [json!("nope"), json!("01900000-0000-7000-8000-000000000001")] {
         let (status, res) = api
-            .call(Method::POST, "", Some(json!({ "name": "x", "parent_id": parent })), &api.owner)
+            .call(
+                Method::POST,
+                "",
+                Some(json!({ "name": "x", "parent_id": parent })),
+                &api.owner,
+            )
             .await;
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
-        assert!(res["errors"]["parent_id"].as_array().unwrap().contains(&json!(bad)), "{res}");
+        assert!(
+            res["errors"]["parent_id"]
+                .as_array()
+                .unwrap()
+                .contains(&json!(bad)),
+            "{res}"
+        );
     }
     // A category can't become its own ancestor.
     for parent in [&root, &child] {
@@ -175,14 +236,21 @@ async fn category_parent_rules(pool: PgPool) {
     // Moving to root again is fine.
     let (status, _) = api.update(&child, json!({ "parent_id": null })).await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(api.get(&child).await["relationships"]["parent"], Value::Null);
+    assert_eq!(
+        api.get(&child).await["relationships"]["parent"],
+        Value::Null
+    );
 }
 
 #[sqlx::test]
 async fn category_access(pool: PgPool) {
     let api = Api::new(pool, "/erp/product-categories").await;
-    let id = api.create(json!({ "name": "Main" }), "product_category_id").await;
-    let gone = api.create(json!({ "name": "Gone" }), "product_category_id").await;
+    let id = api
+        .create(json!({ "name": "Main" }), "product_category_id")
+        .await;
+    let gone = api
+        .create(json!({ "name": "Gone" }), "product_category_id")
+        .await;
     api.delete(&gone).await;
 
     api.assert_member_forbidden(&id).await;
@@ -205,12 +273,17 @@ async fn category_access(pool: PgPool) {
 #[sqlx::test]
 async fn search_domains(pool: PgPool) {
     let api = Api::new(pool, "/erp/product-brands").await;
-    api.create(json!({ "name": "Bosch" }), "product_brand_id").await;
+    api.create(json!({ "name": "Bosch" }), "product_brand_id")
+        .await;
     let cats = api.with_base("/erp/product-categories");
-    cats.create(json!({ "name": "Drills" }), "product_category_id").await;
+    cats.create(json!({ "name": "Drills" }), "product_category_id")
+        .await;
     let search = api.with_base("/searches");
 
-    assert_eq!(names(&search.list("?domain=product_brand&q=bos").await), vec!["Bosch"]);
+    assert_eq!(
+        names(&search.list("?domain=product_brand&q=bos").await),
+        vec!["Bosch"]
+    );
     let res = search.list("?domain=product_category&q=*").await;
     assert_eq!(names(&res), vec!["Drills"]);
     assert_eq!(res["data"][0]["product_category_id"], res["data"][0]["id"]);

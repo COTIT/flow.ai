@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
-use crate::modules::warehouse_shelves::dto::Fields;
+use crate::modules::warehouse_shelves::dto::{Fields, NewShelf};
 
 /// Live shelf with its parent chain.
 pub struct ShelfRow {
@@ -35,7 +35,12 @@ pub struct Parent {
 }
 
 /// New shelf; returns its id.
-pub async fn insert(db: impl PgExecutor<'_>, p: &Parent, f: &Fields) -> Result<Uuid, sqlx::Error> {
+pub async fn insert(
+    db: impl PgExecutor<'_>,
+    p: &Parent,
+    n: &NewShelf,
+) -> Result<Uuid, sqlx::Error> {
+    let f = &n.fields;
     sqlx::query_scalar!(
         "INSERT INTO warehouse_section_row_shelves (workspace_id, warehouse_id, section_id,
              row_id, shelf_code, shelf_level, shelf_name, side, bins_per_shelf,
@@ -46,35 +51,14 @@ pub async fn insert(db: impl PgExecutor<'_>, p: &Parent, f: &Fields) -> Result<U
         p.warehouse_id,
         p.section_id,
         p.row_id,
-        f.shelf_code.as_deref().unwrap_or_default(),
-        f.shelf_level.unwrap_or(1),
+        n.code,
+        n.level,
         f.shelf_name.clone().flatten(),
         f.side.clone().flatten(),
         f.bins_per_shelf.flatten(),
         f.total_storage_bins.flatten(),
         f.max_weight_kg.flatten(),
         f.notes.clone().flatten(),
-    )
-    .fetch_one(db)
-    .await
-}
-
-/// True when a live shelf of this row uses `code` (any case), other than `except`.
-pub async fn code_taken(
-    db: impl PgExecutor<'_>,
-    row_id: Uuid,
-    code: &str,
-    except: Option<Uuid>,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"SELECT EXISTS (
-               SELECT 1 FROM warehouse_section_row_shelves
-               WHERE row_id = $1 AND lower(shelf_code) = lower($2) AND deleted_at IS NULL
-                 AND ($3::uuid IS NULL OR id <> $3)
-           ) AS "e!""#,
-        row_id,
-        code,
-        except,
     )
     .fetch_one(db)
     .await

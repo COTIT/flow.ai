@@ -1,6 +1,8 @@
 //! Warehouse location bodies: Laravel WarehouseLocationResource and
 //! Store/Update/DeleteWarehouseLocationsRequest (vimdesk-web warehouse-locations-table.vue).
 
+use std::borrow::Cow;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -9,34 +11,32 @@ use uuid::Uuid;
 use crate::{
     error::AppError,
     http::json::{Rules, Validate, present},
-    modules::{
-        warehouse_locations::repo::LocationRow,
-        warehouses::{dto::WarehouseCompacted, repo::CompactRow},
-    },
+    modules::{warehouse_locations::repo::LocationRow, warehouses::dto::WarehouseCompacted},
 };
 
 const LOCATION_MAX: usize = 500;
 /// Bulk delete cap; Laravel had none.
 const DELETE_MAX: usize = 100;
 
-/// Laravel WarehouseLocationResource.
+/// Laravel WarehouseLocationResource. A page of one warehouse borrows its compact warehouse
+/// instead of copying it per row.
 #[derive(Serialize)]
-pub struct LocationResource {
+pub struct LocationResource<'a> {
     id: Uuid,
     location: String,
-    warehouse: WarehouseCompacted,
+    warehouse: Cow<'a, WarehouseCompacted>,
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
 }
 
-impl LocationResource {
-    /// `warehouse` is the same for every row of one request.
-    pub fn new(l: LocationRow, warehouse: &CompactRow) -> Self {
+impl<'a> LocationResource<'a> {
+    /// `warehouse` from `WarehouseCompacted::from(&CompactRow)`.
+    pub fn new(l: LocationRow, warehouse: Cow<'a, WarehouseCompacted>) -> Self {
         Self {
             id: l.id,
             location: l.location,
-            warehouse: WarehouseCompacted::from(warehouse),
+            warehouse,
             meta: l.meta,
             created_at: l.created_at,
             last_updated_at: l.updated_at,

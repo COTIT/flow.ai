@@ -5,12 +5,38 @@ use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
-use crate::modules::{warehouse_bins::dto::Fields, warehouse_shelves::repo::ShelfRow};
+use crate::modules::{
+    warehouse_bins::dto::{Fields, NewBin},
+    warehouse_shelves::repo::ShelfRow,
+};
 
-/// Bins `GET /warehouses/{id}/bins` returns at most. Laravel had no cap; a section layout is
-/// capped at 10000 bins, so this covers a typical warehouse.
-// shortcut: hard cap instead of paging; page it if a warehouse outgrows it.
+/// Bins `GET /warehouses/{id}/bins` returns at most. Laravel had no cap. One maximal section
+/// layout already fills it, so a bigger warehouse gets `meta.truncated`.
+// shortcut: cap + flag instead of paging; page it once bin pickers can page.
 pub const WAREHOUSE_BINS_MAX: i64 = 10_000;
+
+/// Live bins one workspace may hold. Laravel had no limit; this bounds what self-signup
+/// accounts can write (a section layout alone may add 10000).
+pub const WORKSPACE_BINS_MAX: i64 = 200_000;
+
+/// True when adding `adding` bins stays within `WORKSPACE_BINS_MAX`.
+pub fn fits_quota(existing: i64, adding: i64) -> bool {
+    existing.saturating_add(adding) <= WORKSPACE_BINS_MAX
+}
+
+/// Live bins of the workspace (index-only on `warehouse_section_row_bins_warehouse_idx`).
+pub async fn count_in_workspace(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM warehouse_section_row_bins
+           WHERE workspace_id = $1 AND deleted_at IS NULL"#,
+        workspace_id,
+    )
+    .fetch_one(db)
+    .await
+}
 
 /// Live bin with its parent chain.
 pub struct BinRow {
@@ -64,8 +90,9 @@ pub struct HierarchyRow {
 pub async fn insert(
     db: impl PgExecutor<'_>,
     shelf: &ShelfRow,
-    f: &Fields,
+    n: &NewBin,
 ) -> Result<Uuid, sqlx::Error> {
+    let f = &n.fields;
     sqlx::query_scalar!(
         "INSERT INTO warehouse_section_row_bins (workspace_id, warehouse_id, section_id, row_id,
              shelf_id, bin_code, bin_name, side, position, bin_type, length_cm, width_cm,
@@ -80,7 +107,7 @@ pub async fn insert(
         shelf.section_id,
         shelf.row_id,
         shelf.id,
-        f.bin_code.as_deref().unwrap_or_default(),
+        n.code,
         f.bin_name.clone().flatten(),
         f.side.clone().flatten(),
         f.position.clone().flatten(),
@@ -98,28 +125,6 @@ pub async fn insert(
         f.rfid_enabled,
         f.security_lock,
         f.notes.clone().flatten(),
-    )
-    .fetch_one(db)
-    .await
-}
-
-/// True when a live bin of this row uses `code` (any case), other than `except`. Laravel's
-/// DB key was per row, not per shelf.
-pub async fn code_taken(
-    db: impl PgExecutor<'_>,
-    row_id: Uuid,
-    code: &str,
-    except: Option<Uuid>,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"SELECT EXISTS (
-               SELECT 1 FROM warehouse_section_row_bins
-               WHERE row_id = $1 AND lower(bin_code) = lower($2) AND deleted_at IS NULL
-                 AND ($3::uuid IS NULL OR id <> $3)
-           ) AS "e!""#,
-        row_id,
-        code,
-        except,
     )
     .fetch_one(db)
     .await
@@ -224,12 +229,13 @@ pub async fn count(
     .await
 }
 
-/// Every bin of a live warehouse whose whole path is live, in Laravel's order (section, row,
-/// shelf, code), capped at `WAREHOUSE_BINS_MAX`.
+/// Bins of a live warehouse whose whole path is live, in Laravel's order (section, row,
+/// shelf, code), at most `limit`.
 pub async fn of_warehouse(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     warehouse_id: Uuid,
+    limit: i64,
 ) -> Result<Vec<HierarchyRow>, sqlx::Error> {
     sqlx::query_as!(
         HierarchyRow,
@@ -246,7 +252,7 @@ pub async fn of_warehouse(
          LIMIT $3",
         workspace_id,
         warehouse_id,
-        WAREHOUSE_BINS_MAX,
+        limit,
     )
     .fetch_all(db)
     .await
@@ -336,4 +342,17 @@ pub async fn soft_delete(
     .execute(db)
     .await
     .map(|done| done.rows_affected() == 1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quota_boundary() {
+        assert!(fits_quota(0, WORKSPACE_BINS_MAX));
+        assert!(fits_quota(WORKSPACE_BINS_MAX - 1, 1));
+        assert!(!fits_quota(WORKSPACE_BINS_MAX, 1));
+        assert!(!fits_quota(1, i64::MAX));
+    }
 }

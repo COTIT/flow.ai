@@ -10,6 +10,19 @@
   - Section, row, shelf and bin CRUD. A section's auto-layout runs in one transaction with three batched inserts: row letters continue past Z, a layout is capped at 10000 bins, and a layout that would repeat a bin code is refused. Also `GET /warehouses/{id}/bins`.
   - The hierarchy and locations had no Laravel catalog names, so they now use `warehouse.get` for reads and `warehouse.update` for writes (user decision). This widens access.
   - Shared: `users::dto::UserEmailResource` (teams reuse it), `users::repo::members_among`, `Rules::{custom_sections, one_of, number}`, `address::validate_one`, and `Api::with_base` for tests.
+  - Review fixes (ecc:rust-reviewer + ecc:security-reviewer):
+    - Moving the default warehouse through create or update now needs `warehouse.set_default`. Echoing the stored value doesn't.
+    - A section's layout totals saturate instead of overflowing i64.
+    - A per-workspace quota of 200 000 live bins.
+    - `GET /warehouses/{id}/bins` adds `meta.truncated` when its cap cuts the list.
+    - Warehouse people and the section manager use composite FKs into `workspace_members`.
+    - New index for the bin list by shelf.
+    - Hierarchy updates of an unknown id are a 404, even with a taken code; the code checks moved to the unique indexes (`AppError::unique`).
+    - The layout insert fails on a missing parent code instead of misaligning columns.
+    - Typed create inputs (`NewRow`, `NewShelf`, `NewBin`).
+    - Sections `per_page` < 1 means 15.
+    - `/searches?domain=warehouse_location`.
+    - `WorkspaceAccess::allows`.
 - Batch 5 (CRM relations + contacts, contract `docs/api/relations.md`):
   - Migration `crm_relations`: `relations` and `contacts` with composite tenant FKs (contact → relation, relation → relation/source custom type), per-workspace unique relation numbers that are never reused, one live default contact per relation, and indexes for the FKs and the newest-first list.
   - `POST /relations` (and `/relations/`): the relation, its `RE-0001` number (advisory lock per workspace, so parallel creates never share a number) and the inline default contact in one transaction. Phones are normalized to `+31…` with the main address country, `created_from_pos` needs a display name, and a missing `relation_type_id` takes the workspace's first relation type.

@@ -6,7 +6,10 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
-    http::json::{Rules, human},
+    http::{
+        json::{Rules, human},
+        workspace::NOT_ALLOWED,
+    },
     modules::{
         users::repo::{self as users, UserRef},
         warehouses::{
@@ -55,7 +58,11 @@ async fn embed(
 ) -> Result<Page, AppError> {
     let ids: Vec<Uuid> = rows.iter().map(|w| w.id).collect();
     let people_ids: Vec<Uuid> = rows.iter().flat_map(WarehouseRow::people).collect();
-    let children = repo::children_of(&state.db, workspace_id, &ids).await?;
+    let children = if ids.is_empty() {
+        Vec::new()
+    } else {
+        repo::children_of(&state.db, workspace_id, &ids).await?
+    };
     let people = if people_ids.is_empty() {
         Vec::new()
     } else {
@@ -70,10 +77,13 @@ async fn embed(
 }
 
 /// Create; the first warehouse of a workspace becomes its default unless sent `false`.
+/// `may_set_default`: caller holds `warehouse.set_default`, needed to take the default
+/// from another warehouse.
 pub async fn create(
     state: &AppState,
     workspace_id: Uuid,
     input: NewWarehouse,
+    may_set_default: bool,
 ) -> Result<Uuid, AppError> {
     check_people(state, workspace_id, &input.fields).await?;
     check_parent(state, workspace_id, input.parent_id).await?;
@@ -83,13 +93,17 @@ pub async fn create(
     if repo::slug_taken(&mut *tx, workspace_id, &slug).await? {
         return Err(AppError::field("slug", SLUG_TAKEN));
     }
+    let has_default = repo::has_default(&mut *tx, workspace_id).await?;
     let default = match input.default_warehouse {
+        Some(true) if has_default && !may_set_default => {
+            return Err(AppError::Forbidden(NOT_ALLOWED));
+        }
         Some(true) => {
             repo::clear_default(&mut *tx, workspace_id, None).await?;
             true
         }
         Some(false) => false,
-        None => !repo::has_default(&mut *tx, workspace_id).await?,
+        None => !has_default,
     };
     let id = repo::insert(
         &mut *tx,
@@ -106,34 +120,58 @@ pub async fn create(
     Ok(id)
 }
 
-/// Patch a live warehouse; `default_warehouse: true` moves the default here.
+/// Patch a live warehouse; `default_warehouse: true` moves the default here. Changing the
+/// flag needs `may_set_default` (`warehouse.set_default`); echoing the stored value doesn't,
+/// since vimdesk-web sends it on every save.
 pub async fn update(
     state: &AppState,
     workspace_id: Uuid,
     id: &str,
     patch: WarehousePatch,
+    may_set_default: bool,
 ) -> Result<(), AppError> {
     let id = parse(id)?;
     check_people(state, workspace_id, &patch.fields).await?;
-    let mut tx = state.db.begin().await?;
-    if patch.default_warehouse == Some(true) {
+    if let Some(wanted) = patch.default_warehouse
+        && !may_set_default
+    {
+        let stored = repo::default_flag(&state.db, workspace_id, id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        if stored != wanted {
+            return Err(AppError::Forbidden(NOT_ALLOWED));
+        }
+    }
+    let found = if patch.default_warehouse == Some(true) {
+        let mut tx = state.db.begin().await?;
         repo::lock_default(&mut tx, workspace_id).await?;
         repo::clear_default(&mut *tx, workspace_id, Some(id)).await?;
-    }
-    let found = repo::update(
-        &mut *tx,
+        let found = update_row(&mut *tx, workspace_id, id, &patch).await?;
+        if found {
+            tx.commit().await?;
+        }
+        found
+    } else {
+        update_row(&state.db, workspace_id, id, &patch).await?
+    };
+    found.then_some(()).ok_or(AppError::NotFound)
+}
+
+async fn update_row(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+    p: &WarehousePatch,
+) -> Result<bool, AppError> {
+    Ok(repo::update(
+        db,
         workspace_id,
         id,
-        &patch.name,
-        patch.default_warehouse,
-        &patch.fields,
+        &p.name,
+        p.default_warehouse,
+        &p.fields,
     )
-    .await?;
-    if !found {
-        return Err(AppError::NotFound);
-    }
-    tx.commit().await?;
-    Ok(())
+    .await?)
 }
 
 /// Laravel SetDefaultWarehouse: unset the old default, set this one.
@@ -214,10 +252,7 @@ fn slugify(name: &str) -> String {
 
 /// The live-slug unique index caught a race the pre-check missed: same 422.
 fn slug_race(e: sqlx::Error) -> AppError {
-    match e.as_database_error().and_then(|d| d.constraint()) {
-        Some("warehouses_slug_unique") => AppError::field("slug", SLUG_TAKEN),
-        _ => AppError::Database(e),
-    }
+    AppError::unique(e, "warehouses_slug_unique", "slug", SLUG_TAKEN)
 }
 
 /// Malformed id = unknown id = 404.

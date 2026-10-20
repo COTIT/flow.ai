@@ -8,7 +8,7 @@ use crate::{
     error::AppError,
     modules::{
         warehouse_bins::{
-            dto::{CODE_TAKEN, Fields},
+            dto::{CODE_TAKEN, Fields, NewBin},
             repo::{self, BinRow, HierarchyRow},
         },
         warehouse_sections::service::{parse, warehouse},
@@ -59,23 +59,26 @@ pub async fn list(
     Ok((rows, total))
 }
 
-/// All live bins of a live warehouse, else 404.
+/// Live bins of a live warehouse (else 404), plus whether the cap cut the list.
 pub async fn of_warehouse(
     state: &AppState,
     workspace_id: Uuid,
     warehouse_id: &str,
-) -> Result<Vec<HierarchyRow>, AppError> {
+) -> Result<(Vec<HierarchyRow>, bool), AppError> {
     let id = warehouse(state, workspace_id, warehouse_id).await?;
-    Ok(repo::of_warehouse(&state.db, workspace_id, id).await?)
+    let mut rows =
+        repo::of_warehouse(&state.db, workspace_id, id, repo::WAREHOUSE_BINS_MAX + 1).await?;
+    let truncated = rows.len() as i64 > repo::WAREHOUSE_BINS_MAX;
+    rows.truncate(repo::WAREHOUSE_BINS_MAX as usize);
+    Ok((rows, truncated))
 }
 
 /// Insert; returns the new id.
-pub async fn create(state: &AppState, sh: &ShelfRow, f: Fields) -> Result<Uuid, AppError> {
-    let code = f.bin_code.as_deref().unwrap_or_default();
-    if repo::code_taken(&state.db, sh.row_id, code, None).await? {
-        return Err(AppError::field("bin_code", CODE_TAKEN));
+pub async fn create(state: &AppState, sh: &ShelfRow, n: NewBin) -> Result<Uuid, AppError> {
+    if !quota_allows(state, sh.workspace_id, 1).await? {
+        return Err(quota_error("bin_code"));
     }
-    repo::insert(&state.db, sh, &f).await.map_err(code_race)
+    repo::insert(&state.db, sh, &n).await.map_err(code_clash)
 }
 
 /// Patch; 404 when the bin is gone.
@@ -87,14 +90,10 @@ pub async fn update(
     f: Fields,
 ) -> Result<(), AppError> {
     let id = parse(id)?;
-    if let Some(code) = f.bin_code.as_deref()
-        && repo::code_taken(&state.db, sh.row_id, code, Some(id)).await?
-    {
-        return Err(AppError::field("bin_code", CODE_TAKEN));
-    }
+    // No code pre-check: an unknown id must stay a 404; the index catches a clash.
     repo::update(&state.db, workspace_id, sh.id, id, &f)
         .await
-        .map_err(code_race)?
+        .map_err(code_clash)?
         .then_some(())
         .ok_or(AppError::NotFound)
 }
@@ -112,10 +111,33 @@ pub async fn delete(
         .ok_or(AppError::NotFound)
 }
 
-/// The unique index caught a race the pre-check missed: same 422.
-fn code_race(e: sqlx::Error) -> AppError {
-    match e.as_database_error().and_then(|d| d.constraint()) {
-        Some("warehouse_section_row_bins_code_unique") => AppError::field("bin_code", CODE_TAKEN),
-        _ => AppError::Database(e),
-    }
+/// True when the workspace can take `adding` more bins.
+pub async fn quota_allows(
+    state: &AppState,
+    workspace_id: Uuid,
+    adding: i64,
+) -> Result<bool, AppError> {
+    let existing = repo::count_in_workspace(&state.db, workspace_id).await?;
+    Ok(repo::fits_quota(existing, adding))
+}
+
+/// The quota 422, on `field`.
+pub fn quota_error(field: &str) -> AppError {
+    AppError::field(
+        field,
+        format!(
+            "The workspace can't hold more than {} bins.",
+            repo::WORKSPACE_BINS_MAX
+        ),
+    )
+}
+
+/// The live-code unique index fired: same 422 as the pre-check.
+fn code_clash(e: sqlx::Error) -> AppError {
+    AppError::unique(
+        e,
+        "warehouse_section_row_bins_code_unique",
+        "bin_code",
+        CODE_TAKEN,
+    )
 }
