@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 # Runtime: distroless, no shell, non-root.
 # Same Debian release as build stage (trixie = 13): binary links against its glibc.
-FROM gcr.io/distroless/cc-debian13:nonroot
+FROM gcr.io/distroless/cc-debian13:nonroot AS runtime
 COPY --from=build /genesy-360-api /genesy-360-api
 ENV BIND_ADDR=0.0.0.0:8080
 EXPOSE 8080

@@ -66,3 +66,31 @@ docker build -t genesy-360-api:local .
 ```
 
 The runtime image is distroless and runs as non-root.
+
+## Deploy (preview + prod)
+
+`genesy-api` is a compose service behind the **`genesy` profile**, in `compose.yml` with Traefik labels in `compose.preview.yml`. Its Postgres is the shared `postgres` service in `deploy/shared/docker-compose.yml`, behind the same profile. Without the profile nothing changes for the other services.
+
+`deploy/deploy.sh` turns it on per environment once both shared secrets exist (chmod 644):
+
+- `/home/deploy/shared/secrets/pg_root_password`: the shared Postgres superuser password
+- `/home/deploy/shared/secrets/genesy_smtp_url`: the full SMTP URL with TLS, e.g. `smtp://TOKEN:TOKEN@smtp.postmarkapp.com:587?tls=required`
+
+Then for each preview, `deploy.sh`:
+
+1. generates a database password and writes the `genesy_database_url` secret file
+2. creates the role and database with `deploy/genesy/provision-db.sh`, which is idempotent, owned by the app role, and revokes public connect
+3. starts `genesy-api` at `https://genesy-api-<slug>.dev.360.cotit.io`, or `HOST_GENESY_API` in prod, and waits for `/healthz`
+
+The app runs its own migrations at boot. Its compose healthcheck is `/genesy-360-api healthcheck` (distroless has no shell).
+
+One-time ops setup:
+
+```bash
+cd /home/deploy/shared && docker compose --profile genesy up -d postgres
+```
+
+Before production, check these. They live in the VPS setup, not in this repo:
+
+- add `HOST_GENESY_API` to `deploy/monitor` `CERT_HOSTS`
+- add a `pg_dump` loop to `deploy/backup` (backups are MariaDB-only today)

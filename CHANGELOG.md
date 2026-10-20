@@ -48,3 +48,11 @@
   - Only an active owner may invite.
   - `Password`/`PlainSecret` and the raw random bytes are zeroized on drop. This is best effort: request buffers and response copies aren't covered. The dummy argon2 hash is built at boot.
 - Phase B review fixes: `SMTP_URL` TLS needs an exact `tls=required` query pair (a substring anywhere no longer passes), and the cleanup SQL moved into each module's repo.
+- Phase C deploy + CI:
+  - `DATABASE_URL_FILE` / `SMTP_URL_FILE` secret files.
+  - `genesy-360-api healthcheck` self-probe.
+  - `genesy-api` compose service and a shared Postgres, both behind the `genesy` profile.
+  - `deploy.sh` provisions each environment's role and database (`deploy/genesy/provision-db.sh`) and deploys only when its shared secrets exist.
+  - Traefik router `<pr>-genesy-api`.
+  - CI: a docker-images matrix entry and profile-aware compose validation, plus a new `genesy-360-api.yml` workflow (fmt, clippy, test against postgres:18, sqlx prepare check, cargo audit).
+  - Dockerfile final stage named `runtime`.
