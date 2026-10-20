@@ -26,6 +26,7 @@
     - Kept on purpose: `/searches` checks only `workspace.global-search`, as Laravel does. Requiring each module's `*.list` would break dropdowns for every member, since nobody holds the new catalog names yet.
     - Left for a platform-wide follow-up: there's no rate limit or per-workspace row quota on authenticated writes, in any module.
   - Validation wording aligned platform-wide to vimdesk-api `resources/lang/en/validation.php`: only `required` and `boolean` say "field". This covers `Rules::max_chars`, `Rules::email` and `Rules::meta`, the password rules, and the teams, users and workspace profile messages (URL, UUID, string, array, number, min, IBAN, BIC). Custom rule texts are unchanged.
+  - `rustls-webpki` 0.103.15 → 0.103.16 (RUSTSEC-2026-0382: certificate verification could accept distrusted intermediates). It arrives through rustls, used by SMTP and the DB driver; lockfile-only bump.
   - Not ported: LabelTemplate, VAT import, hourly-rate user links, custom status archive/unarchive, currency `filter[]`/`sort`, Meilisearch.
 - Batch 3 phase A (permission core):
   - Migration `teams`: `teams` (soft delete, Laravel length caps), `team_permissions` (lowercase names, one row per grant), `team_members`, and `invites.team_id` (set null if the team row goes).
