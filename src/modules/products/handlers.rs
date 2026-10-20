@@ -161,3 +161,38 @@ pub async fn price_history(
     let (data, total) = service::history(&state, access.workspace_id, &id, page).await?;
     Ok(Json(Paginated::new(data, total, page)))
 }
+
+/// GET /products/{product}/sale-statics: sales figures from invoices. No invoices exist until
+/// the final batch, so the answer is Laravel's empty-result shape.
+pub async fn sale_statics(
+    State(state): State<AppState>,
+    access: Can<ProductView>,
+    Path((_, id)): ProductPath,
+) -> Result<Data<Value>, AppError> {
+    service::exists(&state, access.workspace_id, &id).await?;
+    Ok(Data(json!({
+        "units_sold": 0, "revenue": 0.0, "avg_monthly_sales": null, "last_sale": null,
+        "customer_orders": 0, "last_order": null, "months_active": null,
+    })))
+}
+
+/// GET /products/{product}/linked-products: links can't be created in genesy yet, so none.
+pub async fn linked_products(
+    State(state): State<AppState>,
+    access: Can<ProductView>,
+    Path((_, id)): ProductPath,
+) -> Result<Data<Value>, AppError> {
+    service::exists(&state, access.workspace_id, &id).await?;
+    Ok(Data(json!({ "products": [] })))
+}
+
+/// POST /products/{product}/sync-product-stock-locations-from-external-service: Picqer isn't
+/// ported, which is Laravel's "credentials not configured" case: `{"message":"ok"}`.
+pub async fn sync_external(
+    State(state): State<AppState>,
+    access: Can<ProductView>,
+    Path((_, id)): ProductPath,
+) -> Result<crate::http::response::Message, AppError> {
+    service::exists(&state, access.workspace_id, &id).await?;
+    Ok(crate::http::response::Message("ok"))
+}

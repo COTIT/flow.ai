@@ -47,6 +47,14 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
     render_one(state, workspace_id, row).await
 }
 
+/// Ok when `id` is a live product of the workspace, else 404.
+pub async fn exists(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
+    repo::find(&state.db, workspace_id, parse(id)?)
+        .await?
+        .map(|_| ())
+        .ok_or(AppError::NotFound)
+}
+
 /// Exact barcode/EAN/id lookup (POS scan), else 404.
 pub async fn search(state: &AppState, workspace_id: Uuid, code: &str) -> Result<Value, AppError> {
     let row = repo::by_code(&state.db, workspace_id, code)

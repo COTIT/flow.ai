@@ -377,3 +377,26 @@ async fn list_page_of_100_is_one_round_of_queries(pool: PgPool) {
     assert_eq!(res["data"].as_array().unwrap().len(), 100);
     assert!(elapsed.as_millis() < 1_000, "list took {elapsed:?}");
 }
+
+#[sqlx::test]
+async fn product_page_companions_answer_truthfully(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let id = api.create(json!({ "name": "A", "price": 1 }), "product_id").await;
+
+    let stats = api.get(&format!("{id}/sale-statics")).await;
+    assert_eq!(
+        stats,
+        json!({ "units_sold": 0, "revenue": 0.0, "avg_monthly_sales": null, "last_sale": null,
+                "customer_orders": 0, "last_order": null, "months_active": null })
+    );
+    assert_eq!(api.get(&format!("{id}/linked-products")).await, json!({ "products": [] }));
+    let path = format!("/{id}/sync-product-stock-locations-from-external-service");
+    let (status, res) = api
+        .call(Method::POST, &path, Some(json!({ "warehouse_ids": [] })), &api.owner)
+        .await;
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    let (status, _) = api
+        .call(Method::GET, "/01900000-0000-7000-8000-000000000001/sale-statics", None, &api.owner)
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
