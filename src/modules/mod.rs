@@ -3,6 +3,7 @@
 pub mod auth;
 pub mod currencies;
 pub mod email_verification;
+pub mod hourly_rates;
 pub mod invites;
 pub mod permissions;
 pub mod teams;

@@ -85,14 +85,14 @@ async fn rules_and_bounds(pool: PgPool) {
     for (vat, msg) in [
         (
             json!("100.00000001"),
-            "The vat amount field must not be greater than 100.",
+            "The vat amount must not be greater than 100.",
         ),
-        (json!(-1), "The vat amount field must be at least 0."),
+        (json!(-1), "The vat amount must be at least 0."),
         (
             json!("1.123456789"),
-            "The vat amount field must have 0-8 decimal places.",
+            "The vat amount must have 0-8 decimal places.",
         ),
-        (json!("abc"), "The vat amount field must be a number."),
+        (json!("abc"), "The vat amount must be a number."),
     ] {
         let (status, res) = a
             .call(

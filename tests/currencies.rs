@@ -361,7 +361,7 @@ async fn field_rules_use_laravel_wording(pool: PgPool) {
         res["errors"],
         json!({
             "asset_type": ["Invalid asset type."],
-            "decimals": ["The decimals field must not be greater than 8."],
+            "decimals": ["The decimals must not be greater than 8."],
             "default_currency": ["The default currency field must be true or false."],
             "meta": ["The meta field must be an array."],
             "name": ["The name field must not be greater than 255 characters."],

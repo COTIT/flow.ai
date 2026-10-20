@@ -135,7 +135,8 @@ impl Rules {
     }
 
     /// Laravel `numeric|min|max` on a sent value: JSON number or numeric string -> exact
-    /// `Decimal`. At most 8 decimals (columns are `numeric(24,8)`).
+    /// `Decimal`. At most 8 decimals (columns are `numeric(24,8)`). Wording follows
+    /// vimdesk-api `resources/lang/en/validation.php` (no "field" in number rules).
     pub fn decimal(
         &mut self,
         field: &str,
@@ -157,14 +158,11 @@ impl Rules {
         if (int.is_empty() && frac.is_empty())
             || !int.bytes().chain(frac.bytes()).all(|b| b.is_ascii_digit())
         {
-            self.add(field, format!("The {f} field must be a number."));
+            self.add(field, format!("The {f} must be a number."));
             return None;
         }
         if frac.len() > 8 {
-            self.add(
-                field,
-                format!("The {f} field must have 0-8 decimal places."),
-            );
+            self.add(field, format!("The {f} must have 0-8 decimal places."));
             return None;
         }
         let int = int.trim_start_matches('0');
@@ -177,23 +175,17 @@ impl Rules {
             .flatten();
         let Some(v) = parsed.map(|v| v.normalize()) else {
             let max = max.normalize();
-            self.add(
-                field,
-                format!("The {f} field must not be greater than {max}."),
-            );
+            self.add(field, format!("The {f} must not be greater than {max}."));
             return None;
         };
         if v < min {
             let min = min.normalize();
-            self.add(field, format!("The {f} field must be at least {min}."));
+            self.add(field, format!("The {f} must be at least {min}."));
             return None;
         }
         if v > max {
             let max = max.normalize();
-            self.add(
-                field,
-                format!("The {f} field must not be greater than {max}."),
-            );
+            self.add(field, format!("The {f} must not be greater than {max}."));
             return None;
         }
         Some(v)
@@ -232,12 +224,11 @@ impl Rules {
             _ => None,
         };
         match n {
-            None => self.add(field, format!("The {f} field must be an integer.")),
-            Some(n) if n < min => self.add(field, format!("The {f} field must be at least {min}.")),
-            Some(n) if n > max => self.add(
-                field,
-                format!("The {f} field must not be greater than {max}."),
-            ),
+            None => self.add(field, format!("The {f} must be an integer.")),
+            Some(n) if n < min => self.add(field, format!("The {f} must be at least {min}.")),
+            Some(n) if n > max => {
+                self.add(field, format!("The {f} must not be greater than {max}."))
+            }
             Some(n) => return Some(n),
         }
         None
@@ -717,11 +708,7 @@ mod value_rule_tests {
         ] {
             let (out, e) = decimal(v.clone());
             assert_eq!(out, None);
-            assert_eq!(
-                e["vat_amount"],
-                ["The vat amount field must be a number."],
-                "{v}"
-            );
+            assert_eq!(e["vat_amount"], ["The vat amount must be a number."], "{v}");
         }
     }
 
@@ -729,15 +716,15 @@ mod value_rule_tests {
     fn decimal_bounds_and_scale() {
         assert_eq!(
             decimal(json!("-0.01")).1["vat_amount"],
-            ["The vat amount field must be at least 0."]
+            ["The vat amount must be at least 0."]
         );
         assert_eq!(
             decimal(json!("100.00000001")).1["vat_amount"],
-            ["The vat amount field must not be greater than 100."]
+            ["The vat amount must not be greater than 100."]
         );
         assert_eq!(
             decimal(json!("1.123456789")).1["vat_amount"],
-            ["The vat amount field must have 0-8 decimal places."]
+            ["The vat amount must have 0-8 decimal places."]
         );
         // Wider than numeric(24,8) never reaches Decimal parsing.
         let mut r = Rules::default();
@@ -750,7 +737,7 @@ mod value_rule_tests {
         assert_eq!(huge, None);
         assert_eq!(
             errors(r)["price"],
-            ["The price field must not be greater than 9999999999999999.99999999."]
+            ["The price must not be greater than 9999999999999999.99999999."]
         );
     }
 
@@ -787,10 +774,10 @@ mod value_rule_tests {
         assert!(errors(r).is_empty());
 
         for (v, msg) in [
-            (json!(2.5), "The decimals field must be an integer."),
-            (json!("x"), "The decimals field must be an integer."),
-            (json!(9), "The decimals field must not be greater than 8."),
-            (json!(-1), "The decimals field must be at least 0."),
+            (json!(2.5), "The decimals must be an integer."),
+            (json!("x"), "The decimals must be an integer."),
+            (json!(9), "The decimals must not be greater than 8."),
+            (json!(-1), "The decimals must be at least 0."),
         ] {
             let mut r = Rules::default();
             assert_eq!(r.integer("decimals", &v, 0, 8), None, "{v}");
