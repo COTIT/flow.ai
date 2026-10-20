@@ -100,25 +100,30 @@ pub async fn mutate(
     cause: &Cause<'_>,
 ) -> Result<Mutated, sqlx::Error> {
     let change = round(change, 2);
-    let existing = locked(conn, workspace_id, slot).await?;
-    let (level, reserved) = existing
-        .as_ref()
-        .map_or((Decimal::ZERO, Decimal::ZERO), |r| {
-            (r.stock_lvl, r.reserved)
-        });
-    let after = level + change;
+    let row = match locked(conn, workspace_id, slot).await? {
+        Some(row) => row,
+        // Nothing to take from a slot without a row.
+        None if change < Decimal::ZERO && floor != Floor::None => {
+            return Ok(Mutated::Short {
+                level: Decimal::ZERO,
+                reserved: Decimal::ZERO,
+            });
+        }
+        None => lock_or_create(conn, workspace_id, slot).await?.0,
+    };
+    // Always from the locked row: a concurrent first write may have created it meanwhile.
+    let after = row.stock_lvl + change;
     let refused = match floor {
         Floor::None => false,
         Floor::Zero => after < Decimal::ZERO,
-        Floor::Available => after - reserved < Decimal::ZERO,
+        Floor::Available => after - row.reserved < Decimal::ZERO,
     };
     if refused && change < Decimal::ZERO {
-        return Ok(Mutated::Short { level, reserved });
+        return Ok(Mutated::Short {
+            level: row.stock_lvl,
+            reserved: row.reserved,
+        });
     }
-    let row = match existing {
-        Some(row) => row,
-        None => lock_or_create(conn, workspace_id, slot).await?,
-    };
     set_quantities(
         conn,
         row.id,
@@ -177,32 +182,46 @@ pub async fn locked(
     .await
 }
 
-/// The slot's row under a lock, created with zeros when missing. Two creators meet on
-/// `stocks_slot_unique`: the loser's insert does nothing and its second read waits for and
-/// locks the winner's row.
+/// The slot's row under a lock, created with zeros when missing; `true` = this call created
+/// it. Two creators meet on `stocks_slot_unique`: the loser's insert does nothing and its
+/// second read waits for and locks the winner's row.
 pub async fn lock_or_create(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     slot: Slot,
-) -> Result<StockRow, sqlx::Error> {
+) -> Result<(StockRow, bool), sqlx::Error> {
     if let Some(row) = locked(conn, workspace_id, slot).await? {
-        return Ok(row);
+        return Ok((row, false));
     }
-    sqlx::query!(
+    let created = sqlx::query_scalar!(
         "INSERT INTO stocks (workspace_id, product_id, warehouse_id, shelf_id, bin_id)
          VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (product_id, warehouse_id, bin_id) WHERE deleted_at IS NULL DO NOTHING",
+         ON CONFLICT (product_id, warehouse_id, bin_id) WHERE deleted_at IS NULL DO NOTHING
+         RETURNING id",
         workspace_id,
         slot.product_id,
         slot.warehouse_id,
         slot.bin.map(|b| b.shelf_id),
         slot.bin.map(|b| b.bin_id),
     )
-    .execute(&mut *conn)
-    .await?;
-    locked(conn, workspace_id, slot)
+    .fetch_optional(&mut *conn)
+    .await?
+    .is_some();
+    let row = locked(conn, workspace_id, slot)
         .await?
-        .ok_or(sqlx::Error::RowNotFound)
+        .ok_or(sqlx::Error::RowNotFound)?;
+    Ok((row, created))
+}
+
+/// Soft-delete a row the caller holds locked.
+pub async fn soft_delete(conn: &mut PgConnection, id: Uuid) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE stocks SET deleted_at = now(), updated_at = now() WHERE id = $1",
+        id
+    )
+    .execute(&mut *conn)
+    .await
+    .map(|_| ())
 }
 
 /// Write level and requirements of a row the caller holds locked.

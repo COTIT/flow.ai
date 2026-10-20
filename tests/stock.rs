@@ -395,3 +395,305 @@ async fn mutate_access(pool: PgPool) {
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
+
+impl World {
+    async fn post(&self, action: &str, body: Value) -> (StatusCode, Value) {
+        let path = format!("/{}/{action}", self.product);
+        self.api
+            .call(Method::POST, &path, Some(body), &self.api.owner)
+            .await
+    }
+
+    async fn delete(&self, query: &str) -> (StatusCode, Value) {
+        let path = format!("/{}/stocks?{query}", self.product);
+        self.api
+            .call(Method::DELETE, &path, None, &self.api.owner)
+            .await
+    }
+
+    /// `(min, max)` of the warehouse-level row in `wh`.
+    async fn requirements(&self, wh: &str) -> (i32, i32) {
+        sqlx::query_as(
+            "SELECT minimal_stock_level, maximum_stock_level FROM stocks
+             WHERE product_id = $1::uuid AND warehouse_id = $2::uuid AND bin_id IS NULL
+               AND deleted_at IS NULL",
+        )
+        .bind(&self.product)
+        .bind(wh)
+        .fetch_one(&self.api.pool)
+        .await
+        .unwrap()
+    }
+}
+
+#[sqlx::test]
+async fn set_stock_levels_records_what_changed(pool: PgPool) {
+    let w = world(pool).await;
+    let set = |entries: Value| w.post("set-stock-levels", json!({ "warehouses": entries }));
+
+    let (status, res) =
+        set(json!([{ "warehouse_id": w.main, "stock_lvl": 10, "reason": "count" }])).await;
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    set(
+        json!([{ "warehouse_id": w.main, "stock_lvl": "10.00", "minimal_stock_level": 2,
+                 "maximum_stock_level": "7.5", "reason": "req" }]),
+    )
+    .await;
+    set(
+        json!([{ "warehouse_id": w.main, "stock_lvl": 10, "minimal_stock_level": 2,
+                 "maximum_stock_level": 8, "reason": "same" }]),
+    )
+    .await;
+
+    assert_eq!(w.levels().await, [(w.main.clone(), None, s("10.00"))]);
+    assert_eq!(
+        w.requirements(&w.main).await,
+        (2, 8),
+        "MySQL int column rounds 7.5 up"
+    );
+    assert_eq!(
+        w.movements().await,
+        [
+            (
+                s("set_level"),
+                Some(s("10.00")),
+                s("0.00"),
+                s("10.00"),
+                Some(s("count"))
+            ),
+            (
+                s("set_requirements"),
+                None,
+                s("10.00"),
+                s("10.00"),
+                Some(s("Min: 0.00 → 2.00, Max: 0.00 → 8.00. req"))
+            ),
+        ],
+        "an unchanged entry writes no movement"
+    );
+
+    // Laravel reused the previous entry's bin for the next one; each entry is its own slot.
+    let (bin, _) = &w.bins[0];
+    let (status, _) = set(json!([
+        { "warehouse_id": w.main, "bin_id": bin, "stock_lvl": 3, "reason": "bin" },
+        { "warehouse_id": w.main, "stock_lvl": 4, "reason": "warehouse" },
+    ]))
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        w.levels().await,
+        [
+            (w.main.clone(), Some(bin.clone()), s("3.00")),
+            (w.main.clone(), None, s("4.00")),
+        ]
+    );
+}
+
+#[sqlx::test]
+async fn set_stock_levels_validation_and_access(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    let cases = [
+        (json!({}), "warehouses", "The warehouses field is required."),
+        (
+            json!({ "warehouses": [{ "warehouse_id": w.main, "stock_lvl": -1, "reason": "r" }] }),
+            "warehouses.0.stock_lvl",
+            "The warehouses.0.stock lvl must be at least 0.",
+        ),
+        (
+            json!({ "warehouses": [{ "warehouse_id": w.main, "stock_lvl": 1 }] }),
+            "warehouses.0.reason",
+            "The warehouses.0.reason field is required.",
+        ),
+        (
+            json!({ "warehouses": [{ "warehouse_id": w.main, "stock_lvl": 1, "reason": "r",
+                                     "minimal_stock_level": 5, "maximum_stock_level": 4 }] }),
+            "warehouses.0.maximum_stock_level",
+            "The warehouses.0.maximum stock level must be greater than or equal 5.",
+        ),
+        (
+            json!({ "warehouses": [{ "warehouse_id": "01900000-0000-7000-8000-000000000001",
+                                     "stock_lvl": 1, "reason": "r" }] }),
+            "warehouses.0.warehouse_id",
+            "This warehouses.0.warehouse id does not exist",
+        ),
+        (
+            json!({ "warehouses": [{ "warehouse_id": w.shop, "bin_id": w.bins[0].0,
+                                     "stock_lvl": 1, "reason": "r" }] }),
+            "warehouses.0.bin_id",
+            "The selected warehouses.0.bin id is invalid.",
+        ),
+    ];
+    for (body, field, message) in cases {
+        let (status, res) = w.post("set-stock-levels", body).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+        assert_eq!(res["errors"][field], json!([message]), "{res}");
+    }
+    let mutator = member_with(
+        &w.api.app,
+        &pool,
+        &w.api.ws,
+        "bob@example.com",
+        &["stock.mutate"],
+    )
+    .await;
+    let path = format!("/{}/set-stock-levels", w.product);
+    let (status, _) = w
+        .api
+        .call(Method::POST, &path, Some(json!({})), &mutator)
+        .await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+}
+
+#[sqlx::test]
+async fn set_stock_requirements_and_default_warehouse(pool: PgPool) {
+    let w = world(pool).await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 6 }))
+        .await;
+
+    let (status, res) = w
+        .post(
+            "set-stock-requirements",
+            json!({ "warehouses": [{ "warehouse_id": w.main, "minimal_stock_level": 1,
+                                     "maximum_stock_level": 5 }],
+                    "default_warehouse_id": w.shop }),
+        )
+        .await;
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    assert_eq!(w.requirements(&w.main).await, (1, 5));
+    assert_eq!(
+        w.movements().await.last().unwrap(),
+        &(s("set_requirements"), None, s("6.00"), s("6.00"), None)
+    );
+    let p = w.api.get(&w.product).await;
+    assert_eq!(p["default_warehouse"]["id"], w.shop.as_str());
+
+    let (status, res) = w
+        .post(
+            "set-stock-requirements",
+            json!({ "warehouses": [{ "warehouse_id": w.main, "minimal_stock_level": 1 }] }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["warehouses.0.maximum_stock_level"],
+        json!(["The warehouses.0.maximum stock level field is required."])
+    );
+}
+
+#[sqlx::test]
+async fn delete_stock_only_at_zero(pool: PgPool) {
+    let w = world(pool).await;
+
+    let (status, res) = w.delete(&format!("warehouse_id={}", w.main)).await;
+    assert_eq!(
+        (status, res),
+        (
+            StatusCode::BAD_REQUEST,
+            json!({ "message": "Stock not found" })
+        )
+    );
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 2 }))
+        .await;
+    let (status, res) = w.delete(&format!("warehouse_id={}", w.main)).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{res}");
+    assert_eq!(res["message"], "Only stock at level 0 can be deleted");
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": -2 }))
+        .await;
+    let (status, res) = w.delete(&format!("warehouse_id={}", w.main)).await;
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    assert!(w.levels().await.is_empty());
+    assert_eq!(w.movements().await.len(), 2, "the ledger stays");
+
+    let (status, res) = w.delete("").await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["warehouse_id"],
+        json!(["The warehouse id field is required."])
+    );
+}
+
+#[sqlx::test]
+async fn move_between_bins(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    let (a, b) = (&w.bins[0].0, &w.bins[1].0);
+    w.mutate(json!({ "warehouse_id": w.main, "bin_id": a, "mutation_value": 5 }))
+        .await;
+    let mv = |from: Option<&String>, to: Option<&String>, quantity: Value| {
+        w.post(
+            "move-stock-between-bins",
+            json!({ "warehouse_id": w.main, "bin_id_from": from, "bin_id_to": to,
+                    "quantity": quantity, "reason": "move" }),
+        )
+    };
+
+    let (status, res) = mv(Some(a), Some(b), json!(2)).await;
+    assert_eq!((status, res), (StatusCode::OK, json!({ "message": "ok" })));
+    let (status, _) = mv(Some(b), None, json!("0.5")).await;
+    assert_eq!(status, StatusCode::OK, "to the warehouse-level row");
+    assert_eq!(
+        w.levels()
+            .await
+            .iter()
+            .map(|r| r.2.as_str())
+            .collect::<Vec<_>>()
+            .len(),
+        3
+    );
+    let (status, res) = mv(Some(a), Some(b), json!(10)).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{res}");
+    assert_eq!(
+        res["message"],
+        "Insufficient stock for product  - A in Main for move Available stock: 3. Required: 10"
+    );
+    let (status, res) = mv(Some(a), Some(&w.shop), json!(1)).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["bin_id_to"],
+        json!(["The selected bin id to is invalid."])
+    );
+    let (status, res) = mv(Some(a), Some(b), json!(0)).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["quantity"],
+        json!(["The quantity must be at least 0.01."])
+    );
+
+    // Opposite moves at once lock rows in one order: both finish, totals stay.
+    let mut set = tokio::task::JoinSet::new();
+    for (from, to) in [(a, b), (b, a), (a, b), (b, a)] {
+        let (app, token) = (w.api.app.clone(), w.api.owner.clone());
+        let uri = format!(
+            "/v1/workspace/{}/products/{}/move-stock-between-bins",
+            w.api.ws, w.product
+        );
+        let body = json!({ "warehouse_id": w.main, "bin_id_from": from, "bin_id_to": to,
+                           "quantity": "0.5", "reason": "swap" });
+        set.spawn(async move { send(&app, Method::POST, &uri, Some(body), Some(&token)).await });
+    }
+    let results = set.join_all().await;
+    assert!(
+        results.iter().all(|(s, _)| *s == StatusCode::OK),
+        "{results:?}"
+    );
+    let total: String =
+        sqlx::query_scalar("SELECT sum(stock_lvl)::text FROM stocks WHERE deleted_at IS NULL")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(total, "5.00");
+
+    let mover = member_with(
+        &w.api.app,
+        &pool,
+        &w.api.ws,
+        "bob@example.com",
+        &["stock.mutate"],
+    )
+    .await;
+    let path = format!("/{}/move-stock-between-bins", w.product);
+    let (status, _) = w
+        .api
+        .call(Method::POST, &path, Some(json!({})), &mover)
+        .await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+}

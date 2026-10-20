@@ -795,3 +795,22 @@ pub async fn live_ids(
     .fetch_all(db)
     .await
 }
+
+/// Point the product at another default warehouse (Laravel SetProductStockRequirements).
+pub async fn set_default_warehouse(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    warehouse_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE products SET default_warehouse_id = $3, updated_at = now()
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+        id,
+        workspace_id,
+        warehouse_id,
+    )
+    .execute(&mut *conn)
+    .await
+    .map(|_| ())
+}

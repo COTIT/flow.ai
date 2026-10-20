@@ -6,9 +6,22 @@ use crate::{AppState, modules::stock::handlers};
 
 /// Routes for this module; each handler runs the workspace guard.
 pub fn private() -> Router<AppState> {
-    let base = "/workspace/{workspace}/products";
-    Router::new().route(
-        &format!("{base}/{{product}}/stocks"),
-        post(handlers::mutate),
-    )
+    let product = "/workspace/{workspace}/products/{product}";
+    Router::new()
+        .route(
+            &format!("{product}/stocks"),
+            post(handlers::mutate).delete(handlers::delete),
+        )
+        .route(
+            &format!("{product}/set-stock-levels"),
+            post(handlers::set_levels),
+        )
+        .route(
+            &format!("{product}/set-stock-requirements"),
+            post(handlers::set_requirements),
+        )
+        .route(
+            &format!("{product}/move-stock-between-bins"),
+            post(handlers::move_between_bins),
+        )
 }

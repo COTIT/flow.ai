@@ -29,6 +29,9 @@ pub enum AppError {
     /// 403 with a fixed, client-safe message.
     #[error("{0}")]
     Forbidden(&'static str),
+    /// 400 with a client-safe message (Laravel exceptions with `statusCode` 400).
+    #[error("{0}")]
+    BadRequest(String),
     /// 404. Same body for "missing" and "exists but not yours", so ids can't be probed.
     #[error("not found")]
     NotFound,
@@ -110,6 +113,9 @@ impl IntoResponse for AppError {
                 .into_response(),
             Self::Forbidden(message) => {
                 (StatusCode::FORBIDDEN, Json(json!({ "message": message }))).into_response()
+            }
+            Self::BadRequest(message) => {
+                (StatusCode::BAD_REQUEST, Json(json!({ "message": message }))).into_response()
             }
             Self::NotFound => (
                 StatusCode::NOT_FOUND,
