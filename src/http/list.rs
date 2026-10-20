@@ -2,6 +2,8 @@
 
 use serde::Serialize;
 
+use crate::{error::AppError, http::json::Rules};
+
 const DEFAULT_SIZE: i64 = 50;
 const MAX_SIZE: i64 = 100;
 
@@ -69,6 +71,18 @@ impl<T> Paginated<T> {
             data,
         }
     }
+}
+
+/// `q` -> escaped ILIKE pattern. Blank or `*` (vimdesk-web's "match all") = no filter;
+/// past 100 chars = 422 (Laravel `q` max:100).
+pub fn search(q: Option<&str>) -> Result<Option<String>, AppError> {
+    let q = q.map(str::trim).filter(|q| !q.is_empty() && *q != "*");
+    if let Some(q) = q {
+        let mut r = Rules::default();
+        r.max_chars("q", q, 100);
+        r.into_result()?;
+    }
+    Ok(q.map(contains_pattern))
 }
 
 /// Laravel `$request->boolean()` on a query param: "1", "true", "on", "yes" (any case) = true.
@@ -184,6 +198,16 @@ mod tests {
         let p = Paginated::<()>::new(vec![], 3, page);
 
         assert_eq!((p.meta.from, p.meta.to, p.meta.last_page), (None, None, 1));
+    }
+
+    #[test]
+    fn search_blank_star_and_cap() {
+        assert_eq!(search(None).unwrap(), None);
+        assert_eq!(search(Some("  ")).unwrap(), None);
+        assert_eq!(search(Some("*")).unwrap(), None);
+        assert_eq!(search(Some(" eu ")).unwrap().as_deref(), Some("%eu%"));
+        assert!(search(Some(&"é".repeat(100))).is_ok());
+        assert!(search(Some(&"é".repeat(101))).is_err());
     }
 
     #[test]

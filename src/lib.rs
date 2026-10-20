@@ -20,7 +20,9 @@ use sqlx::PgPool;
 use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 
 pub use http::rate_limit::RateLimit;
-use modules::{auth, email_verification, invites, permissions, teams, users, workspaces};
+use modules::{
+    auth, currencies, email_verification, invites, permissions, teams, users, workspaces,
+};
 
 /// Largest JSON body any endpoint needs is a signup form; 64 KiB leaves plenty of room
 /// and keeps junk bodies (axum default 2 MB) off the parser.
@@ -67,6 +69,7 @@ pub fn build_app(state: AppState) -> Router {
         .merge(permissions::routes::private())
         .merge(teams::routes::private())
         .merge(workspaces::routes::private())
+        .merge(currencies::routes::private())
         // Responses carry bearer tokens and invite data: never cache, never sniff.
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,

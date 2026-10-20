@@ -77,6 +77,52 @@ impl Rules {
         }
     }
 
+    /// Required trimmed text, at most `max` chars. Missing gives "" plus the error (a 422
+    /// discards the value anyway).
+    pub fn text(&mut self, field: &str, value: Option<String>, max: usize) -> String {
+        let v = self.required(field, value).unwrap_or_default();
+        self.max_chars(field, &v, max);
+        v
+    }
+
+    /// Optional trimmed text, at most `max` chars; blank = None.
+    pub fn opt_text(&mut self, field: &str, value: Option<String>, max: usize) -> Option<String> {
+        let v = optional(value);
+        if let Some(v) = &v {
+            self.max_chars(field, v, max);
+        }
+        v
+    }
+
+    /// Patch of a NOT NULL text column: absent = keep (None), null or blank = "required".
+    pub fn patch_text(
+        &mut self,
+        field: &str,
+        value: Option<Option<String>>,
+        max: usize,
+    ) -> Option<String> {
+        value.map(|v| self.text(field, v, max))
+    }
+
+    /// Patch of a nullable text column: absent = keep (None), null or blank = clear (Some(None)).
+    pub fn patch_opt_text(
+        &mut self,
+        field: &str,
+        value: Option<Option<String>>,
+        max: usize,
+    ) -> Option<Option<String>> {
+        value.map(|v| self.opt_text(field, v, max))
+    }
+
+    /// Sent, non-blank value, else "required".
+    pub fn required_value(&mut self, field: &str, value: Option<Value>) -> Option<Value> {
+        let v = filled(value);
+        if v.is_none() {
+            self.missing(field);
+        }
+        v
+    }
+
     /// Laravel `numeric|min|max` on a sent value: JSON number or numeric string -> exact
     /// `Decimal`. At most 8 decimals (columns are `numeric(24,8)`).
     pub fn decimal(
