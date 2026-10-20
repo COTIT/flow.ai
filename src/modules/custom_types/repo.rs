@@ -247,3 +247,39 @@ pub async fn seed_defaults(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Resul
         .await
         .map(drop)
 }
+
+/// True when `id` is a live custom type of the workspace, in `domain` when one is given.
+pub async fn is_live(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+    domain: Option<&str>,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM custom_types
+                          WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+                            AND ($3::text IS NULL OR domain = $3)) AS "found!""#,
+        id,
+        workspace_id,
+        domain,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// Oldest live type of `domain` (Laravel's "first relation type" default), if any.
+pub async fn first_of_domain(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    domain: &str,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM custom_types
+         WHERE workspace_id = $1 AND domain = $2 AND deleted_at IS NULL
+         ORDER BY id LIMIT 1",
+        workspace_id,
+        domain,
+    )
+    .fetch_optional(db)
+    .await
+}

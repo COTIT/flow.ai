@@ -252,6 +252,16 @@ impl Rules {
         }
     }
 
+    /// Move these errors into `into`; true when there were any. Lets a nested value be
+    /// checked on its own and stop at the first bad item.
+    pub fn merge_into(self, into: &mut Rules) -> bool {
+        let had = !self.errors.is_empty();
+        for (field, messages) in self.errors {
+            into.errors.entry(field).or_default().extend(messages);
+        }
+        had
+    }
+
     /// Ok when no rule failed, else 422 with every message.
     pub fn into_result(self) -> Result<(), AppError> {
         if self.errors.is_empty() {

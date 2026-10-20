@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::modules::vat_groups::dto::{NewVatGroup, VatGroupPatch};
 
 /// Live VAT group.
+#[derive(Clone)]
 pub struct VatGroupRow {
     pub id: Uuid,
     pub name: String,
@@ -105,6 +106,24 @@ pub async fn list(
         })
         .collect();
     Ok((rows, total))
+}
+
+/// Every live group of the workspace, oldest first. Reference data: a few dozen rows at most,
+/// so relation views filter it in memory instead of one query per address country.
+pub async fn all(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Vec<VatGroupRow>, sqlx::Error> {
+    sqlx::query_as!(
+        VatGroupRow,
+        "SELECT id, name, vat_amount, default_group, country, meta, created_at, updated_at
+         FROM vat_groups
+         WHERE workspace_id = $1 AND deleted_at IS NULL
+         ORDER BY id",
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
 }
 
 /// Matching count, for a page past the end.

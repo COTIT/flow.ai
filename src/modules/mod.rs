@@ -1,6 +1,7 @@
 //! Feature modules. Each owns its routes, handlers, service, repo, DTOs.
 
 pub mod auth;
+pub mod contacts;
 pub mod currencies;
 pub mod custom_statuses;
 pub mod custom_types;
@@ -8,6 +9,7 @@ pub mod email_verification;
 pub mod hourly_rates;
 pub mod invites;
 pub mod permissions;
+pub mod relations;
 pub mod sales_groups;
 pub mod search;
 pub mod shipment_methods;

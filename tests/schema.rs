@@ -427,3 +427,204 @@ async fn workspace_profile_and_meta_must_be_objects(pool: PgPool) {
             .is_ok()
     );
 }
+
+// ---- relations + contacts
+
+/// Two workspaces with one relation type each. Returns (ws_a, type_a, ws_b, type_b).
+async fn crm_world(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
+    let owner = insert_user(pool, "o@x.io").await.unwrap();
+    let mut out = Vec::new();
+    for name in ["acme", "evil"] {
+        let ws = insert_workspace(pool, name, owner).await.unwrap();
+        let ty: Uuid = sqlx::query_scalar(
+            "INSERT INTO custom_types (workspace_id, name, domain) VALUES ($1, 'Client', 'relation')
+             RETURNING id",
+        )
+        .bind(ws)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+        out.push((ws, ty));
+    }
+    (out[0].0, out[0].1, out[1].0, out[1].1)
+}
+
+async fn insert_relation(
+    pool: &PgPool,
+    ws: Uuid,
+    ty: Uuid,
+    number: Option<i64>,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar(
+        "INSERT INTO relations (workspace_id, relation_type_id, relation_number)
+         VALUES ($1, $2, $3) RETURNING id",
+    )
+    .bind(ws)
+    .bind(ty)
+    .bind(number)
+    .fetch_one(pool)
+    .await
+}
+
+async fn insert_contact(
+    pool: &PgPool,
+    ws: Uuid,
+    relation: Uuid,
+    default_contact: bool,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar(
+        "INSERT INTO contacts (workspace_id, relation_id, default_contact)
+         VALUES ($1, $2, $3) RETURNING id",
+    )
+    .bind(ws)
+    .bind(relation)
+    .bind(default_contact)
+    .fetch_one(pool)
+    .await
+}
+
+#[sqlx::test]
+async fn relation_type_must_belong_to_same_workspace(pool: PgPool) {
+    let (ws_a, type_a, _, type_b) = crm_world(&pool).await;
+
+    assert!(insert_relation(&pool, ws_a, type_a, None).await.is_ok());
+    assert_eq!(
+        violated(
+            insert_relation(&pool, ws_a, type_b, None)
+                .await
+                .unwrap_err()
+        ),
+        "relations_relation_type_fk"
+    );
+}
+
+#[sqlx::test]
+async fn relation_number_unique_per_workspace_even_after_delete(pool: PgPool) {
+    let (ws_a, type_a, ws_b, type_b) = crm_world(&pool).await;
+    let first = insert_relation(&pool, ws_a, type_a, Some(1)).await.unwrap();
+    sqlx::query("UPDATE relations SET deleted_at = now() WHERE id = $1")
+        .bind(first)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        violated(
+            insert_relation(&pool, ws_a, type_a, Some(1))
+                .await
+                .unwrap_err()
+        ),
+        "relations_number_unique"
+    );
+    assert!(insert_relation(&pool, ws_b, type_b, Some(1)).await.is_ok());
+    assert!(insert_relation(&pool, ws_a, type_a, None).await.is_ok());
+    assert!(insert_relation(&pool, ws_a, type_a, None).await.is_ok());
+}
+
+#[sqlx::test]
+async fn relation_enums_and_json_shapes_checked(pool: PgPool) {
+    let (ws, ty, _, _) = crm_world(&pool).await;
+    let id = insert_relation(&pool, ws, ty, None).await.unwrap();
+    let set =
+        |sql: &'static str, v: serde_json::Value| sqlx::query(sql).bind(id).bind(v).execute(&pool);
+
+    let (kind, addresses): (String, serde_json::Value) =
+        sqlx::query_as("SELECT type, addresses FROM relations WHERE id = $1")
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        (kind.as_str(), addresses),
+        ("personal", serde_json::json!([]))
+    );
+    for (sql, value, constraint) in [
+        (
+            "UPDATE relations SET type = $2 #>> '{}' WHERE id = $1",
+            serde_json::json!("company"),
+            "relations_type_check",
+        ),
+        (
+            "UPDATE relations SET default_language = $2 #>> '{}' WHERE id = $1",
+            serde_json::json!("du"),
+            "relations_default_language_check",
+        ),
+        (
+            "UPDATE relations SET addresses = $2 WHERE id = $1",
+            serde_json::json!({}),
+            "relations_addresses_check",
+        ),
+        (
+            "UPDATE relations SET meta = $2 WHERE id = $1",
+            serde_json::json!([1]),
+            "relations_meta_check",
+        ),
+    ] {
+        assert_eq!(violated(set(sql, value).await.unwrap_err()), constraint);
+    }
+}
+
+#[sqlx::test]
+async fn contact_cannot_point_at_another_workspaces_relation(pool: PgPool) {
+    let (ws_a, type_a, ws_b, _) = crm_world(&pool).await;
+    let relation = insert_relation(&pool, ws_a, type_a, None).await.unwrap();
+
+    assert!(insert_contact(&pool, ws_a, relation, false).await.is_ok());
+    assert_eq!(
+        violated(
+            insert_contact(&pool, ws_b, relation, false)
+                .await
+                .unwrap_err()
+        ),
+        "contacts_relation_fk"
+    );
+}
+
+#[sqlx::test]
+async fn one_live_default_contact_per_relation(pool: PgPool) {
+    let (ws, ty, _, _) = crm_world(&pool).await;
+    let relation = insert_relation(&pool, ws, ty, None).await.unwrap();
+    let first = insert_contact(&pool, ws, relation, true).await.unwrap();
+
+    assert_eq!(
+        violated(insert_contact(&pool, ws, relation, true).await.unwrap_err()),
+        "contacts_one_default"
+    );
+    assert!(insert_contact(&pool, ws, relation, false).await.is_ok());
+    sqlx::query("UPDATE contacts SET deleted_at = now() WHERE id = $1")
+        .bind(first)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(insert_contact(&pool, ws, relation, true).await.is_ok());
+}
+
+#[sqlx::test]
+async fn contact_default_for_and_phones_checked(pool: PgPool) {
+    let (ws, ty, _, _) = crm_world(&pool).await;
+    let relation = insert_relation(&pool, ws, ty, None).await.unwrap();
+    let id = insert_contact(&pool, ws, relation, false).await.unwrap();
+
+    let bad_for = sqlx::query("UPDATE contacts SET default_for = 'invoice' WHERE id = $1")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap_err();
+    let bad_phones = sqlx::query("UPDATE contacts SET phones = '{}' WHERE id = $1")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .unwrap_err();
+
+    assert_eq!(violated(bad_for), "contacts_default_for_check");
+    assert_eq!(violated(bad_phones), "contacts_phones_check");
+}
+
+#[sqlx::test]
+async fn trigram_extension_installed(pool: PgPool) {
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM pg_extension WHERE extname = 'pg_trgm'")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(n, 1);
+}

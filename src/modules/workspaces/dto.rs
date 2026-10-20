@@ -198,7 +198,7 @@ impl Validate for UpdateWorkspaceRequest {
             out.insert("address".into(), address(r, v));
         }
         if let Some(v) = body.remove("account") {
-            out.insert("account".into(), account(r, v));
+            out.insert("account".into(), account(r, "account", "account.", v));
         }
         let meta = body.remove("meta").map(|v| match v {
             Value::Null => None,
@@ -315,45 +315,47 @@ fn address(r: &mut Rules, v: Value) -> Value {
 }
 
 /// Laravel Account::rules: iban, bic, credit_limit numeric ≥ 0, all nullable. IBAN stored
-/// normalized (no spaces, uppercase), credit_limit as a JSON number.
-fn account(r: &mut Rules, v: Value) -> Value {
+/// normalized (no spaces, uppercase), credit_limit as a JSON number. `key` names the whole
+/// object, `prefix` goes before inner error keys (relations report them bare, as Laravel did).
+pub(crate) fn account(r: &mut Rules, key: &str, prefix: &str, v: Value) -> Value {
     let Value::Object(mut a) = v else {
         if !v.is_null() {
-            r.add("account", "The account is not valid");
+            r.add(key, format!("The {} is not valid", human(key)));
         }
         return Value::Null;
     };
-    let mut take = |key: &str| a.remove(key).unwrap_or(Value::Null);
+    let k = |field: &str| format!("{prefix}{field}");
+    let mut take = |name: &str| a.remove(name).unwrap_or(Value::Null);
     let (name, number, bic, limit) = (
         take("account_name"),
         take("account_number"),
         take("bic_swift"),
         take("credit_limit"),
     );
-    let name = text_or_null(r, "account.account_name", name, 255);
-    let number = match text_or_null(r, "account.account_number", number, 255) {
+    let name = text_or_null(r, &k("account_name"), name, 255);
+    let number = match text_or_null(r, &k("account_number"), number, 255) {
         Value::String(s) if is_iban(&s) => Value::String(normalize_iban(&s)),
         Value::String(s) => {
             r.add(
-                "account.account_number",
+                &k("account_number"),
                 "The account number field must be a valid IBAN.",
             );
             Value::String(s)
         }
         other => other,
     };
-    let bic = text_or_null(r, "account.bic_swift", bic, 255);
+    let bic = text_or_null(r, &k("bic_swift"), bic, 255);
     if let Value::String(s) = &bic {
         r.check(
-            "account.bic_swift",
+            &k("bic_swift"),
             is_bic(s),
             "The bic swift field must be a valid BIC.",
         );
     }
-    let limit = match numeric(r, "account.credit_limit", Some(limit)) {
+    let limit = match numeric(r, &k("credit_limit"), Some(limit)) {
         Some(n) => {
             r.check(
-                "account.credit_limit",
+                &k("credit_limit"),
                 n >= 0.0,
                 "The credit limit field must be at least 0.",
             );

@@ -189,6 +189,21 @@ pub async fn record(
     .await
 }
 
+/// Profile `address.country` and `language` of a live workspace (relation VAT rules, locale).
+pub async fn locale(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<(Option<String>, Option<String>), sqlx::Error> {
+    let row = sqlx::query!(
+        r#"SELECT profile #>> '{address,country}' AS country, profile ->> 'language' AS language
+           FROM workspaces WHERE id = $1"#,
+        workspace_id,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map_or((None, None), |r| (r.country, r.language)))
+}
+
 /// Merge validated profile keys (top level, so a sent `address` replaces the old one, Laravel
 /// array_merge) and optionally set meta. One statement: concurrent saves can't drop each other's keys.
 pub async fn patch_profile(
