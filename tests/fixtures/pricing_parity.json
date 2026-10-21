@@ -1,0 +1,2065 @@
+{
+    "generator": "PHP 8.4.12 vimdesk-api BuildItemsSummary + BuildItemsMargeCalculationSummary",
+    "cases": [
+        {
+            "name": "three_at_9_99_vat21",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 3,
+                    "price": 9.99,
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": 29.97,
+                "total_discount": 0,
+                "sub_total": 29.97,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 6.29
+                    }
+                },
+                "total_vat": 6.29,
+                "total": 36.26,
+                "total_excl": 29.97,
+                "total_excl_materials": 29.97,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 29.97,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 29.97,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 29.97,
+                            "margin_amount": 29.97,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 29.97,
+                        "margin_amount": 29.97,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "three_at_9_99_vat21_discount10",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 3,
+                    "price": 9.99,
+                    "vat": 21,
+                    "productDiscount": 10
+                }
+            ],
+            "summary": {
+                "sum_total": 29.97,
+                "total_discount": 2.997,
+                "sub_total": 29.97,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 5.66
+                    }
+                },
+                "total_vat": 5.66,
+                "total": 32.64,
+                "total_excl": 26.973,
+                "total_excl_materials": 26.973,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": [
+                    {
+                        "id": 1,
+                        "title": "",
+                        "quantity": 3,
+                        "price": 9.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 26.973,
+                        "subtotal": 29.97,
+                        "productDiscount": "10",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    }
+                ]
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 26.973,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 26.973,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 26.973,
+                            "margin_amount": 26.973,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 26.973,
+                        "margin_amount": 26.973,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "three_lines_0_07_vat21",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1,
+                    "price": 0.07,
+                    "vat": 21
+                },
+                {
+                    "id": 2,
+                    "quantity": 1,
+                    "price": 0.07,
+                    "vat": 21
+                },
+                {
+                    "id": 3,
+                    "quantity": 1,
+                    "price": 0.07,
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": 0.21000000000000002,
+                "total_discount": 0,
+                "sub_total": 0.21000000000000002,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 0.03
+                    }
+                },
+                "total_vat": 0.03,
+                "total": 0.25,
+                "total_excl": 0.21000000000000002,
+                "total_excl_materials": 0.21000000000000002,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 0.21000000000000002,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 0.21000000000000002,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0.21000000000000002,
+                            "margin_amount": 0.21000000000000002,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 0.21000000000000002,
+                        "margin_amount": 0.21000000000000002,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "mixed_rates_0_9_21",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 2,
+                    "price": 12.5,
+                    "vat": 21
+                },
+                {
+                    "id": 2,
+                    "quantity": 1,
+                    "price": 3.99,
+                    "vat": 9
+                },
+                {
+                    "id": 3,
+                    "quantity": 4,
+                    "price": 1.25,
+                    "vat": 0
+                }
+            ],
+            "summary": {
+                "sum_total": 33.99,
+                "total_discount": 0,
+                "sub_total": 33.99,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 5.25
+                    },
+                    "9": {
+                        "percentage": 9,
+                        "total_amount": 0.36
+                    },
+                    "0": {
+                        "percentage": 0,
+                        "total_amount": 0
+                    }
+                },
+                "total_vat": 5.61,
+                "total": 39.6,
+                "total_excl": 33.99,
+                "total_excl_materials": 33.99,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 33.99,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 33.99,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 33.99,
+                            "margin_amount": 33.99,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 33.99,
+                        "margin_amount": 33.99,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "string_inputs",
+            "items": [
+                {
+                    "id": "a",
+                    "quantity": "2",
+                    "price": "9.9900",
+                    "vat": "21",
+                    "productDiscount": "5"
+                }
+            ],
+            "summary": {
+                "sum_total": 19.98,
+                "total_discount": 0.9990000000000001,
+                "sub_total": 19.98,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 3.99
+                    }
+                },
+                "total_vat": 3.99,
+                "total": 22.97,
+                "total_excl": 18.981,
+                "total_excl_materials": 18.981,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": [
+                    {
+                        "id": "a",
+                        "title": "",
+                        "quantity": 2,
+                        "price": 9.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 18.981,
+                        "subtotal": 19.98,
+                        "productDiscount": "5",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    }
+                ]
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 18.981,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 18.981,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 18.981,
+                            "margin_amount": 18.981,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 18.981,
+                        "margin_amount": 18.981,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "negative_quantity_credit",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": -3,
+                    "price": 9.99,
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": -29.97,
+                "total_discount": 0,
+                "sub_total": -29.97,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": -6.29
+                    }
+                },
+                "total_vat": -6.29,
+                "total": -36.26,
+                "total_excl": -29.97,
+                "total_excl_materials": -29.97,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": -29.97,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": -29.97,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": -29.97,
+                            "margin_amount": -29.97,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": -29.97,
+                        "margin_amount": -29.97,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "negative_quantity_credit_discount",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": -3,
+                    "price": 9.99,
+                    "vat": 21,
+                    "productDiscount": 10
+                }
+            ],
+            "summary": {
+                "sum_total": -29.97,
+                "total_discount": -2.997,
+                "sub_total": -29.97,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": -5.66
+                    }
+                },
+                "total_vat": -5.66,
+                "total": -32.64,
+                "total_excl": -26.973,
+                "total_excl_materials": -26.973,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": -26.973,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": -26.973,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": -26.973,
+                            "margin_amount": -26.973,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": -26.973,
+                        "margin_amount": -26.973,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "full_discount",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 2,
+                    "price": 50,
+                    "vat": 21,
+                    "productDiscount": 100
+                }
+            ],
+            "summary": {
+                "sum_total": 100,
+                "total_discount": 100,
+                "sub_total": 100,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 0
+                    }
+                },
+                "total_vat": 0,
+                "total": 0,
+                "total_excl": 0,
+                "total_excl_materials": 0,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": [
+                    {
+                        "id": 1,
+                        "title": "",
+                        "quantity": 2,
+                        "price": 50,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0,
+                        "subtotal": 100,
+                        "productDiscount": "100",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    }
+                ]
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 0,
+                "marge_total_amount": 0,
+                "extra_data": {
+                    "items_percentage": 0,
+                    "items_purchase_price": 0,
+                    "items_amount": 0,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 0,
+                        "margin_amount": 0,
+                        "margin_percentage": 0
+                    }
+                }
+            }
+        },
+        {
+            "name": "zero_quantity",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 0,
+                    "price": 19.95,
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": 0,
+                "total_discount": 0,
+                "sub_total": 0,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 0
+                    }
+                },
+                "total_vat": 0,
+                "total": 0,
+                "total_excl": 0,
+                "total_excl_materials": 0,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 0,
+                "marge_total_amount": 0,
+                "extra_data": {
+                    "items_percentage": 0,
+                    "items_purchase_price": 0,
+                    "items_amount": 0,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 0,
+                        "margin_amount": 0,
+                        "margin_percentage": 0
+                    }
+                }
+            }
+        },
+        {
+            "name": "empty_values",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": "",
+                    "price": "",
+                    "vat": ""
+                }
+            ],
+            "summary": {
+                "sum_total": 0,
+                "total_discount": 0,
+                "sub_total": 0,
+                "total_vats": [
+                    {
+                        "percentage": 0,
+                        "total_amount": 0
+                    }
+                ],
+                "total_vat": 0,
+                "total": 0,
+                "total_excl": 0,
+                "total_excl_materials": 0,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 0,
+                "marge_total_amount": 0,
+                "extra_data": {
+                    "items_percentage": 0,
+                    "items_purchase_price": 0,
+                    "items_amount": 0,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 0,
+                        "margin_amount": 0,
+                        "margin_percentage": 0
+                    }
+                }
+            }
+        },
+        {
+            "name": "fractional_quantity",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1.5,
+                    "price": 3.33,
+                    "vat": 9
+                }
+            ],
+            "summary": {
+                "sum_total": 4.995,
+                "total_discount": 0,
+                "sub_total": 4.995,
+                "total_vats": {
+                    "9": {
+                        "percentage": 9,
+                        "total_amount": 0.45
+                    }
+                },
+                "total_vat": 0.45,
+                "total": 5.44,
+                "total_excl": 4.995,
+                "total_excl_materials": 4.995,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 4.995,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 4.995,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 4.995,
+                            "margin_amount": 4.995,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 4.995,
+                        "margin_amount": 4.995,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "four_dp_price_from_incl",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1,
+                    "price": "8.2562",
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": 8.2562,
+                "total_discount": 0,
+                "sub_total": 8.2562,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 1.73
+                    }
+                },
+                "total_vat": 1.73,
+                "total": 9.99,
+                "total_excl": 8.2562,
+                "total_excl_materials": 8.2562,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 8.2562,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 8.2562,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 8.2562,
+                            "margin_amount": 8.2562,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 8.2562,
+                        "margin_amount": 8.2562,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "half_cent_vat_tie",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1,
+                    "price": 0.5,
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": 0.5,
+                "total_discount": 0,
+                "sub_total": 0.5,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 0.11
+                    }
+                },
+                "total_vat": 0.11,
+                "total": 0.61,
+                "total_excl": 0.5,
+                "total_excl_materials": 0.5,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 0.5,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 0.5,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0.5,
+                            "margin_amount": 0.5,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 0.5,
+                        "margin_amount": 0.5,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "half_cent_line_tie",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 3,
+                    "price": 0.335,
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": 1.0050000000000001,
+                "total_discount": 0,
+                "sub_total": 1.0050000000000001,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 0.21
+                    }
+                },
+                "total_vat": 0.21,
+                "total": 1.22,
+                "total_excl": 1.0050000000000001,
+                "total_excl_materials": 1.0050000000000001,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 1.0050000000000001,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 1.0050000000000001,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 1.0050000000000001,
+                            "margin_amount": 1.0050000000000001,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 1.0050000000000001,
+                        "margin_amount": 1.0050000000000001,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "discount_12_5",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 7,
+                    "price": 14.99,
+                    "vat": 21,
+                    "productDiscount": 12.5
+                }
+            ],
+            "summary": {
+                "sum_total": 104.93,
+                "total_discount": 13.11625,
+                "sub_total": 104.93,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 19.28
+                    }
+                },
+                "total_vat": 19.28,
+                "total": 111.09,
+                "total_excl": 91.81375,
+                "total_excl_materials": 91.81375,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": [
+                    {
+                        "id": 1,
+                        "title": "",
+                        "quantity": 7,
+                        "price": 14.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 91.81375,
+                        "subtotal": 104.93,
+                        "productDiscount": "12.5",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    }
+                ]
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 91.81375,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 91.81375,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 91.81375,
+                            "margin_amount": 91.81375,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 91.81375,
+                        "margin_amount": 91.81375,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "many_small_discounted_lines",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 2,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 3,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 4,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 5,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 6,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 7,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 8,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 9,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                },
+                {
+                    "id": 10,
+                    "quantity": 1,
+                    "price": 0.99,
+                    "vat": 21,
+                    "productDiscount": 7
+                }
+            ],
+            "summary": {
+                "sum_total": 9.9,
+                "total_discount": 0.6930000000000002,
+                "sub_total": 9.9,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 1.8999999999999997
+                    }
+                },
+                "total_vat": 1.8999999999999997,
+                "total": 11.14,
+                "total_excl": 9.206999999999999,
+                "total_excl_materials": 9.206999999999999,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": [
+                    {
+                        "id": 1,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 2,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 3,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 4,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 5,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 6,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 7,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 8,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 9,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    },
+                    {
+                        "id": 10,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 0.99,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 0.9207,
+                        "subtotal": 0.99,
+                        "productDiscount": "7",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    }
+                ]
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 9.206999999999999,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 9.206999999999999,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 9.206999999999999,
+                            "margin_amount": 9.206999999999999,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 9.206999999999999,
+                        "margin_amount": 9.206999999999999,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "vat_5_5_and_5",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1,
+                    "price": 100,
+                    "vat": 5.5
+                },
+                {
+                    "id": 2,
+                    "quantity": 1,
+                    "price": 100,
+                    "vat": 5
+                }
+            ],
+            "summary": {
+                "sum_total": 200,
+                "total_discount": 0,
+                "sub_total": 200,
+                "total_vats": {
+                    "5": {
+                        "percentage": 5,
+                        "total_amount": 10.5
+                    }
+                },
+                "total_vat": 10.5,
+                "total": 210.5,
+                "total_excl": 200,
+                "total_excl_materials": 200,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 200,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 200,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 200,
+                            "margin_amount": 200,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 200,
+                        "margin_amount": 200,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "large_amounts",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1000,
+                    "price": 123456.78,
+                    "vat": 21,
+                    "productDiscount": 3
+                }
+            ],
+            "summary": {
+                "sum_total": 123456780,
+                "total_discount": 3703703.4,
+                "sub_total": 123456780,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 25148146.09
+                    }
+                },
+                "total_vat": 25148146.09,
+                "total": 144901222.69,
+                "total_excl": 119753076.6,
+                "total_excl_materials": 119753076.6,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": [
+                    {
+                        "id": 1,
+                        "title": "",
+                        "quantity": 1000,
+                        "price": 123456.78,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 119753076.6,
+                        "subtotal": 123456780,
+                        "productDiscount": "3",
+                        "purchase_price": null,
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    }
+                ]
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 119753076.6,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 119753076.6,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 119753076.6,
+                            "margin_amount": 119753076.6,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 119753076.6,
+                        "margin_amount": 119753076.6,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "only_zero_vat",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 2,
+                    "price": 10,
+                    "vat": 0
+                }
+            ],
+            "summary": {
+                "sum_total": 20,
+                "total_discount": 0,
+                "sub_total": 20,
+                "total_vats": [
+                    {
+                        "percentage": 0,
+                        "total_amount": 0
+                    }
+                ],
+                "total_vat": 0,
+                "total": 20,
+                "total_excl": 20,
+                "total_excl_materials": 20,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 20,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 20,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 20,
+                            "margin_amount": 20,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 20,
+                        "margin_amount": 20,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "margin_with_purchase_price",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 2,
+                    "price": 25,
+                    "vat": 21,
+                    "purchase_price": 15
+                },
+                {
+                    "id": 2,
+                    "quantity": 1,
+                    "price": 10,
+                    "vat": 21,
+                    "productDiscount": 10,
+                    "purchase_price": "4.5"
+                }
+            ],
+            "summary": {
+                "sum_total": 60,
+                "total_discount": 1,
+                "sub_total": 60,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 12.39
+                    }
+                },
+                "total_vat": 12.39,
+                "total": 71.39,
+                "total_excl": 59,
+                "total_excl_materials": 59,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": [
+                    {
+                        "id": 2,
+                        "title": "",
+                        "quantity": 1,
+                        "price": 10,
+                        "vat": 21,
+                        "description": "",
+                        "product_id": null,
+                        "total": 9,
+                        "subtotal": 10,
+                        "productDiscount": "10",
+                        "purchase_price": "4.5",
+                        "client_default_discount": "0.00",
+                        "multi_set_item_id": null
+                    }
+                ]
+            },
+            "marge": {
+                "total_purchase_price": 34.5,
+                "marge_percentage": 41.52542372881356,
+                "marge_total_amount": 24.5,
+                "extra_data": {
+                    "items_percentage": 41.52542372881356,
+                    "items_purchase_price": 34.5,
+                    "items_amount": 24.5,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 34.5,
+                            "revenue_excl": 59,
+                            "margin_amount": 24.5,
+                            "margin_percentage": 41.52542372881356
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 34.5,
+                        "revenue_excl": 59,
+                        "margin_amount": 24.5,
+                        "margin_percentage": 41.52542372881356
+                    }
+                }
+            }
+        },
+        {
+            "name": "margin_zero_revenue",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1,
+                    "price": 0,
+                    "vat": 21,
+                    "purchase_price": 5
+                }
+            ],
+            "summary": {
+                "sum_total": 0,
+                "total_discount": 0,
+                "sub_total": 0,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 0
+                    }
+                },
+                "total_vat": 0,
+                "total": 0,
+                "total_excl": 0,
+                "total_excl_materials": 0,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 5,
+                "marge_percentage": -500,
+                "marge_total_amount": -5,
+                "extra_data": {
+                    "items_percentage": -500,
+                    "items_purchase_price": 5,
+                    "items_amount": -5,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 5,
+                            "revenue_excl": 0,
+                            "margin_amount": -5,
+                            "margin_percentage": -500
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 5,
+                        "revenue_excl": 0,
+                        "margin_amount": -5,
+                        "margin_percentage": -500
+                    }
+                }
+            }
+        },
+        {
+            "name": "margin_skips_set_children",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 1,
+                    "price": 30,
+                    "vat": 21,
+                    "purchase_price": 10
+                },
+                {
+                    "id": 2,
+                    "quantity": 1,
+                    "price": 30,
+                    "vat": 21,
+                    "purchase_price": 10,
+                    "multi_set_item_id": 1
+                }
+            ],
+            "summary": {
+                "sum_total": 60,
+                "total_discount": 0,
+                "sub_total": 60,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 12.6
+                    }
+                },
+                "total_vat": 12.6,
+                "total": 72.6,
+                "total_excl": 60,
+                "total_excl_materials": 60,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 10,
+                "marge_percentage": 66.66666666666666,
+                "marge_total_amount": 20,
+                "extra_data": {
+                    "items_percentage": 66.66666666666666,
+                    "items_purchase_price": 10,
+                    "items_amount": 20,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 10,
+                            "revenue_excl": 30,
+                            "margin_amount": 20,
+                            "margin_percentage": 66.66666666666666
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 10,
+                        "revenue_excl": 30,
+                        "margin_amount": 20,
+                        "margin_percentage": 66.66666666666666
+                    }
+                }
+            }
+        },
+        {
+            "name": "mixed_signs",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 2,
+                    "price": 19.99,
+                    "vat": 21
+                },
+                {
+                    "id": 2,
+                    "quantity": -1,
+                    "price": 19.99,
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": 19.99,
+                "total_discount": 0,
+                "sub_total": 19.99,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 4.2
+                    }
+                },
+                "total_vat": 4.2,
+                "total": 24.19,
+                "total_excl": 19.99,
+                "total_excl_materials": 19.99,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 19.99,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 19.99,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 19.99,
+                            "margin_amount": 19.99,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 19.99,
+                        "margin_amount": 19.99,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        },
+        {
+            "name": "price_three_dp",
+            "items": [
+                {
+                    "id": 1,
+                    "quantity": 3,
+                    "price": 1.005,
+                    "vat": 21
+                }
+            ],
+            "summary": {
+                "sum_total": 3.0149999999999997,
+                "total_discount": 0,
+                "sub_total": 3.0149999999999997,
+                "total_vats": {
+                    "21": {
+                        "percentage": 21,
+                        "total_amount": 0.63
+                    }
+                },
+                "total_vat": 0.63,
+                "total": 3.65,
+                "total_excl": 3.0149999999999997,
+                "total_excl_materials": 3.0149999999999997,
+                "total_excl_hours": 0,
+                "total_excl_hours_users": [],
+                "discounts": []
+            },
+            "marge": {
+                "total_purchase_price": 0,
+                "marge_percentage": 100,
+                "marge_total_amount": 3.0149999999999997,
+                "extra_data": {
+                    "items_percentage": 100,
+                    "items_purchase_price": 0,
+                    "items_amount": 3.0149999999999997,
+                    "transfer_lists_percentage": 0,
+                    "transfer_lists_purchase_price": 0,
+                    "transfer_lists_amount": 0,
+                    "hours_purchase_price": 0,
+                    "hours_sale_price": 0,
+                    "components": {
+                        "items": {
+                            "cost_excl": 0,
+                            "revenue_excl": 3.0149999999999997,
+                            "margin_amount": 3.0149999999999997,
+                            "margin_percentage": 100
+                        },
+                        "transfer_lists": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        },
+                        "hours": {
+                            "cost_excl": 0,
+                            "revenue_excl": 0,
+                            "margin_amount": 0,
+                            "margin_percentage": 0
+                        }
+                    },
+                    "totals": {
+                        "cost_excl": 0,
+                        "revenue_excl": 3.0149999999999997,
+                        "margin_amount": 3.0149999999999997,
+                        "margin_percentage": 100
+                    }
+                }
+            }
+        }
+    ]
+}
