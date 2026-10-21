@@ -101,7 +101,8 @@ pub struct GetFlags {
     pub include_unpaid_invoices: bool,
 }
 
-/// Detail view of a live relation of this workspace, else 404. Five fixed queries.
+/// Detail view of a live relation of this workspace, else 404. Five fixed queries (four with
+/// `slim`).
 pub async fn get(
     state: &AppState,
     workspace_id: Uuid,
@@ -115,8 +116,11 @@ pub async fn get(
     let contacts = contacts::repo::for_relations(&state.db, workspace_id, &[id]).await?;
     let (country, language) = workspaces::repo::locale(&state.db, workspace_id).await?;
     let vat_groups = vat_groups::repo::all(&state.db, workspace_id).await?;
-    let (supplier_discount_groups, relation_discount_groups) =
-        discount_groups::repo::for_relation(&state.db, workspace_id, id).await?;
+    let (supplier_discount_groups, relation_discount_groups) = if flags.slim {
+        (Vec::new(), Vec::new())
+    } else {
+        discount_groups::repo::for_relation(&state.db, workspace_id, id).await?
+    };
     Ok(Detail {
         supplier_discount_groups,
         relation_discount_groups,

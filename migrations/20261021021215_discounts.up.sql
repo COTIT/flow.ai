@@ -16,8 +16,8 @@ CREATE TABLE discount_groups (
     CONSTRAINT discount_groups_workspace_id_id_key UNIQUE (workspace_id, id),
     FOREIGN KEY (workspace_id, supplier_relation_id) REFERENCES relations (workspace_id, id)
 );
-CREATE INDEX discount_groups_supplier_idx ON discount_groups (workspace_id, supplier_relation_id)
-    WHERE deleted_at IS NULL;
+-- Plain (not partial): FK checks on a relation hard delete can't use a partial index.
+CREATE INDEX discount_groups_supplier_idx ON discount_groups (workspace_id, supplier_relation_id);
 
 CREATE TABLE discounts (
     id                    uuid          PRIMARY KEY DEFAULT uuidv7(),
@@ -41,9 +41,8 @@ CREATE TABLE discounts (
     CONSTRAINT discounts_window CHECK (valid_from IS NULL OR valid_to IS NULL OR valid_from <= valid_to),
     FOREIGN KEY (workspace_id, discount_group_id) REFERENCES discount_groups (workspace_id, id)
 );
-CREATE INDEX discounts_group_idx ON discounts (discount_group_id) WHERE deleted_at IS NULL;
-CREATE INDEX discounts_code_idx ON discounts (workspace_id, discount_product_code)
-    WHERE deleted_at IS NULL AND active;
+-- Lookups go group first, then code; also serves the group FK check and group delete.
+CREATE INDEX discounts_group_code_idx ON discounts (discount_group_id, lower(discount_product_code));
 
 -- Customer relations a (non-internal) group applies to. Laravel's pivot had no unique key.
 CREATE TABLE discount_group_relation (

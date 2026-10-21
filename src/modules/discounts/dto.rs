@@ -1,6 +1,6 @@
 //! Discount request/response bodies (Laravel Store/UpdateDiscountRequest, DiscountResource).
 
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -212,6 +212,8 @@ fn date(r: &mut Rules, field: &str, v: Option<Option<Value>>) -> Option<Option<N
     match v
         .as_str()
         .and_then(|s| NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d").ok())
+        // Postgres `date` has no year 0 and Laravel's `Y` is four digits.
+        .filter(|d| (1..=9999).contains(&d.year()))
     {
         Some(d) => Some(Some(d)),
         None => {

@@ -90,7 +90,8 @@ pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
     found(retired)
 }
 
-/// Link (`attach`) or unlink relations; every id must be a live relation of the workspace.
+/// Link (`attach`) or unlink relations under the group lock; every id must be a live relation
+/// of the workspace.
 pub async fn link(
     state: &AppState,
     workspace_id: Uuid,
@@ -98,19 +99,24 @@ pub async fn link(
     relation_ids: &[Uuid],
     attach: bool,
 ) -> Result<(), AppError> {
-    let group = get(state, workspace_id, id).await?;
+    let id = parse(id)?;
     let mut unique = relation_ids.to_vec();
     unique.sort_unstable();
     unique.dedup();
-    let live = repo::live_relations(&state.db, workspace_id, &unique).await?;
+    let mut tx = state.db.begin().await?;
+    if !repo::lock_live(&mut tx, workspace_id, id).await? {
+        return Err(AppError::NotFound);
+    }
+    let live = repo::live_relations(&mut *tx, workspace_id, &unique).await?;
     if usize::try_from(live).ok() != Some(unique.len()) {
         return Err(AppError::field("relation_ids", INVALID_RELATIONS));
     }
     if attach {
-        repo::attach(&state.db, workspace_id, group.id, &unique).await?;
+        repo::attach(&mut *tx, workspace_id, id, &unique).await?;
     } else {
-        repo::detach(&state.db, workspace_id, group.id, &unique).await?;
+        repo::detach(&mut *tx, workspace_id, id, &unique).await?;
     }
+    tx.commit().await?;
     Ok(())
 }
 

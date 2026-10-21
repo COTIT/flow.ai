@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, max(d.percentage) AS \"pct!\"\n           FROM products p\n           JOIN discount_groups g ON g.workspace_id = p.workspace_id\n                AND g.supplier_relation_id = p.supplier_relation_id\n                AND g.internal AND g.active AND g.deleted_at IS NULL\n           JOIN discounts d ON d.workspace_id = g.workspace_id AND d.discount_group_id = g.id\n                AND lower(d.discount_product_code) = lower(p.supplier_discount_code)\n                AND d.active AND d.deleted_at IS NULL\n                AND (d.valid_from IS NULL OR d.valid_from <= (now() AT TIME ZONE 'UTC')::date)\n                AND (d.valid_to IS NULL OR d.valid_to >= (now() AT TIME ZONE 'UTC')::date)\n           WHERE p.id = ANY($1) AND p.workspace_id = $2\n           GROUP BY p.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "pct!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "e2737be7fb6aa0ecc117a41638f7a9ea1ee9864feee5bd6f810226bd6a58c59c"
+}

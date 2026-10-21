@@ -47,35 +47,41 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Disco
         .ok_or(AppError::NotFound)
 }
 
-/// Create inside a live group; returns the new id.
+/// Create inside a live group, holding the group lock so a concurrent delete can't orphan it.
 pub async fn create(
     state: &AppState,
     workspace_id: Uuid,
     d: DiscountInput,
 ) -> Result<Uuid, AppError> {
-    let group = match d.discount_group_id {
-        Some(id) => discount_groups::repo::find(&state.db, workspace_id, id)
-            .await?
-            .map(|g| g.id),
-        None => None,
+    let invalid = || AppError::field("discount_group_id", GROUP_INVALID);
+    let group = d.discount_group_id.ok_or_else(invalid)?;
+    let mut tx = state.db.begin().await?;
+    if !discount_groups::repo::lock_live(&mut tx, workspace_id, group).await? {
+        return Err(invalid());
     }
-    .ok_or_else(|| AppError::field("discount_group_id", GROUP_INVALID))?;
     window(d.valid_from.flatten(), d.valid_to.flatten())?;
-    Ok(repo::insert(&state.db, workspace_id, group, &d).await?)
+    let id = repo::insert(&mut *tx, workspace_id, group, &d).await?;
+    tx.commit().await?;
+    Ok(id)
 }
 
-/// Patch a live discount (window checked on the merged row), else 404.
+/// Patch a live discount, else 404. The row stays locked from read to write, so the window
+/// check sees the latest committed row.
 pub async fn update(
     state: &AppState,
     workspace_id: Uuid,
     id: &str,
     d: DiscountInput,
 ) -> Result<(), AppError> {
-    let current = get(state, workspace_id, id).await?;
-    let from = d.valid_from.unwrap_or(current.valid_from);
-    let to = d.valid_to.unwrap_or(current.valid_to);
-    window(from, to)?;
-    found(repo::update(&state.db, workspace_id, current.id, &d).await?)
+    let id = parse(id)?;
+    let mut tx = state.db.begin().await?;
+    let (from, to) = repo::lock_window(&mut tx, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    window(d.valid_from.unwrap_or(from), d.valid_to.unwrap_or(to))?;
+    found(repo::update(&mut *tx, workspace_id, id, &d).await?)?;
+    tx.commit().await?;
+    Ok(())
 }
 
 /// Soft delete a live discount, else 404.

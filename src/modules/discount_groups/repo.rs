@@ -183,6 +183,24 @@ pub async fn retire(
     Ok(true)
 }
 
+/// Lock a live group of the workspace until the caller's transaction ends, so a concurrent
+/// delete (`retire`) waits or wins first. False when the group isn't live.
+pub async fn lock_live(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    let row = sqlx::query_scalar!(
+        "SELECT id FROM discount_groups
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL FOR SHARE",
+        id,
+        workspace_id,
+    )
+    .fetch_optional(conn)
+    .await?;
+    Ok(row.is_some())
+}
+
 /// How many of `ids` are live relations of the workspace.
 pub async fn live_relations(
     db: impl PgExecutor<'_>,
@@ -274,12 +292,14 @@ pub async fn for_relation(
     let rows = sqlx::query!(
         r#"SELECT g.id, g.name, g.meta, g.supplier_relation_id = $2 AS "supplied!",
                   EXISTS (SELECT 1 FROM discount_group_relation gr
-                          WHERE gr.discount_group_id = g.id AND gr.relation_id = $2) AS "attached!"
+                          WHERE gr.workspace_id = $1 AND gr.discount_group_id = g.id
+                            AND gr.relation_id = $2) AS "attached!"
            FROM discount_groups g
            WHERE g.workspace_id = $1 AND g.deleted_at IS NULL
              AND (g.supplier_relation_id = $2
                   OR EXISTS (SELECT 1 FROM discount_group_relation gr
-                             WHERE gr.discount_group_id = g.id AND gr.relation_id = $2))
+                             WHERE gr.workspace_id = $1 AND gr.discount_group_id = g.id
+                               AND gr.relation_id = $2))
            ORDER BY g.id"#,
         workspace_id,
         relation_id,

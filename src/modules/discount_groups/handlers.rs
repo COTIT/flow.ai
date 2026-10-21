@@ -58,6 +58,9 @@ pub async fn list(
         None => None,
         Some(raw) => match raw.parse::<i64>() {
             Ok(n) if (0..=MAX_LIMIT).contains(&n) => (n > 0).then_some(n),
+            Ok(n) if n < 0 => {
+                return Err(AppError::field("limit", "The limit must be at least 0."));
+            }
             Ok(_) => {
                 return Err(AppError::field(
                     "limit",

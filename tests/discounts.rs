@@ -174,6 +174,16 @@ async fn group_list_filters(pool: PgPool) {
     let limited = api.list("?limit=1").await;
     assert_eq!(limited["data"].as_array().unwrap().len(), 1);
     assert!(limited.get("meta").is_none());
+    for (limit, msg) in [
+        ("-1", "The limit must be at least 0."),
+        ("101", "The limit must not be greater than 100."),
+    ] {
+        let (status, res) = api
+            .call(Method::GET, &format!("?limit={limit}"), None, &api.owner)
+            .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(res["errors"]["limit"][0], msg);
+    }
 }
 
 #[sqlx::test]
@@ -423,6 +433,94 @@ async fn deleting_a_group_retires_its_discounts(pool: PgPool) {
     assert_eq!(links, 0);
 }
 
+#[sqlx::test]
+async fn adding_to_a_group_being_deleted_leaves_no_orphans(pool: PgPool) {
+    let groups_api = groups(pool.clone()).await;
+    let supplier = relation(&groups_api, "Supplier BV").await;
+    let customer = relation(&groups_api, "Customer").await;
+    let g = group(&groups_api, &supplier, false).await;
+    // A delete in flight: the group row is updated, not committed yet.
+    let mut deleting = pool.begin().await.unwrap();
+    sqlx::query("UPDATE discount_groups SET deleted_at = now() WHERE id = $1::uuid")
+        .bind(&g)
+        .execute(&mut *deleting)
+        .await
+        .unwrap();
+    let (d, body) = (
+        groups_api.with_base("/products/discounts"),
+        discount_body(&g),
+    );
+    let create = tokio::spawn(async move { d.call(Method::POST, "", Some(body), &d.owner).await });
+    let (a, path) = (
+        groups_api.with_base("/products/discount-groups"),
+        format!("/{g}/attach-to-relations"),
+    );
+    let body = json!({ "relation_ids": [customer] });
+    let attach =
+        tokio::spawn(async move { a.call(Method::POST, &path, Some(body), &a.owner).await });
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    deleting.commit().await.unwrap();
+
+    let (status, res) = create.await.unwrap();
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    let (status, res) = attach.await.unwrap();
+    assert_eq!(status, StatusCode::NOT_FOUND, "{res}");
+    let orphans: i64 = sqlx::query_scalar(
+        "SELECT (SELECT count(*) FROM discounts WHERE deleted_at IS NULL)
+              + (SELECT count(*) FROM discount_group_relation)",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(orphans, 0);
+}
+
+#[sqlx::test]
+async fn window_edits_are_checked_on_the_latest_row(pool: PgPool) {
+    let groups_api = groups(pool.clone()).await;
+    let supplier = relation(&groups_api, "Supplier BV").await;
+    let g = group(&groups_api, &supplier, false).await;
+    let api = groups_api.with_base("/products/discounts");
+    let id = api.create(discount_body(&g), "discount_id").await;
+    // Another edit in flight sets the end of the window.
+    let mut editing = pool.begin().await.unwrap();
+    sqlx::query("UPDATE discounts SET valid_to = '2099-01-10' WHERE id = $1::uuid")
+        .bind(&id)
+        .execute(&mut *editing)
+        .await
+        .unwrap();
+    let path = format!("/{id}");
+    let body = json!({ "valid_from": "2099-02-01" });
+    let edit =
+        tokio::spawn(async move { api.call(Method::POST, &path, Some(body), &api.owner).await });
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    editing.commit().await.unwrap();
+    let (status, res) = edit.await.unwrap();
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["valid_to"][0],
+        "The valid to must be a date after valid from."
+    );
+}
+
+#[sqlx::test]
+async fn dates_postgres_cannot_store_are_refused(pool: PgPool) {
+    let groups_api = groups(pool).await;
+    let supplier = relation(&groups_api, "Supplier BV").await;
+    let g = group(&groups_api, &supplier, false).await;
+    let api = groups_api.with_base("/products/discounts");
+    for bad in ["-5000-01-01", "0000-01-01", "10000-01-01"] {
+        let mut body = discount_body(&g);
+        body["valid_to"] = json!(bad);
+        let (status, res) = api.call(Method::POST, "", Some(body), &api.owner).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{bad}: {res}");
+        assert_eq!(
+            res["errors"]["valid_to"][0], "The valid to does not match the format Y-m-d.",
+            "{bad}"
+        );
+    }
+}
+
 // --- wiring: purchase price, relation detail, calculate-items ------------------------------
 
 /// Supplier S, product P (code CAB, gross 100, supplier wholesale 95), customer C.
@@ -485,6 +583,15 @@ async fn purchase_price_takes_the_best_internal_discount(pool: PgPool) {
     assert_eq!(p["purchase_price"], "85");
     assert_eq!(p["purchase_discount_percentage"], "15.00000000");
     assert_eq!(p["supplier_purchase_price_from_discount"], "85");
+    // Codes match ignoring case, as MySQL's utf8mb4_unicode_ci join did.
+    discount(
+        &w,
+        &internal,
+        "20",
+        json!({ "discount_product_code": "cab" }),
+    )
+    .await;
+    assert_eq!(product_get(&w).await["purchase_price"], "80");
 }
 
 #[sqlx::test]

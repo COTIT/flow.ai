@@ -8,6 +8,13 @@
   - **Applied:** the product resource's `purchase_price`, `purchase_discount_percentage` and `supplier_purchase_price_from_discount` (internal groups, Laravel `buildPurchasePrice`); relation detail's `supplier_discount_groups` / `relation_discount_groups`; `calculate-items` with `relation_id` fills `productDiscount` and `client_default_discount` from the customer's groups, for every member.
   - **Laravel differences** (user decisions 2026-10-21; prices can differ from Laravel, check at cutover): highest percentage wins on both paths, group `active` is respected, the customer path uses non-internal groups only, the date window includes both days and each null end is open.
   - Special offers (F3b) don't cancel a customer discount yet.
+  - Review fixes (rust, security, database reviewers):
+    - Discount create and attach take a share lock on the live group, so a group delete running at the same moment can't leave a live discount or link behind.
+    - Discount update locks the row from read to write: a concurrent window edit gives the 422, not a CHECK 500.
+    - Years outside 1..9999 are a date-format 422 (Postgres can't store them; was a 500).
+    - Codes match ignoring case (MySQL collation parity); the window uses the UTC date explicitly.
+    - Indexes: plain `(workspace_id, supplier_relation_id)` for FK checks, `(discount_group_id, lower(code))` for lookups.
+    - Relation detail with `slim=1` skips the group query; pivot subqueries filter `workspace_id`; `limit` below 0 has Laravel's message.
 
 - DB hardening (app-wide starvation risk from the F2 database review):
   - `DATABASE_MAX_CONNECTIONS` (default 20, 1..=500) sizes the request pool; sqlx's default 10 let one workspace's lock waiters starve every tenant.

@@ -1,11 +1,12 @@
 //! SQL for discounts, plus the two lookups that apply them: the purchase discount (internal
 //! supplier groups) and a customer relation's discount (its non-internal groups). Both take
-//! the highest live percentage whose date window holds today (user decisions 2026-10-21).
+//! the highest live percentage whose date window holds today, UTC as Laravel (user decisions
+//! 2026-10-21). Codes match ignoring case, as Laravel's MySQL collation did.
 
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde_json::Value;
-use sqlx::PgExecutor;
+use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
 use crate::modules::discounts::dto::DiscountInput;
@@ -163,6 +164,23 @@ pub async fn update(
     Ok(n > 0)
 }
 
+/// Lock a live discount for an update and read its window. None when it isn't live.
+pub async fn lock_window(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<(Option<NaiveDate>, Option<NaiveDate>)>, sqlx::Error> {
+    let row = sqlx::query!(
+        "SELECT valid_from, valid_to FROM discounts
+         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
+        id,
+        workspace_id,
+    )
+    .fetch_optional(conn)
+    .await?;
+    Ok(row.map(|r| (r.valid_from, r.valid_to)))
+}
+
 /// Soft delete a live discount. True when it was live.
 pub async fn soft_delete(
     db: impl PgExecutor<'_>,
@@ -194,10 +212,10 @@ pub async fn purchase_discounts(
                 AND g.supplier_relation_id = p.supplier_relation_id
                 AND g.internal AND g.active AND g.deleted_at IS NULL
            JOIN discounts d ON d.workspace_id = g.workspace_id AND d.discount_group_id = g.id
-                AND d.discount_product_code = p.supplier_discount_code
+                AND lower(d.discount_product_code) = lower(p.supplier_discount_code)
                 AND d.active AND d.deleted_at IS NULL
-                AND (d.valid_from IS NULL OR d.valid_from <= current_date)
-                AND (d.valid_to IS NULL OR d.valid_to >= current_date)
+                AND (d.valid_from IS NULL OR d.valid_from <= (now() AT TIME ZONE 'UTC')::date)
+                AND (d.valid_to IS NULL OR d.valid_to >= (now() AT TIME ZONE 'UTC')::date)
            WHERE p.id = ANY($1) AND p.workspace_id = $2
            GROUP BY p.id"#,
         product_ids,
@@ -225,10 +243,10 @@ pub async fn relation_discounts(
                 AND g.supplier_relation_id = p.supplier_relation_id
                 AND NOT g.internal AND g.active AND g.deleted_at IS NULL
            JOIN discounts d ON d.workspace_id = g.workspace_id AND d.discount_group_id = g.id
-                AND d.discount_product_code = p.supplier_discount_code
+                AND lower(d.discount_product_code) = lower(p.supplier_discount_code)
                 AND d.active AND d.deleted_at IS NULL
-                AND (d.valid_from IS NULL OR d.valid_from <= current_date)
-                AND (d.valid_to IS NULL OR d.valid_to >= current_date)
+                AND (d.valid_from IS NULL OR d.valid_from <= (now() AT TIME ZONE 'UTC')::date)
+                AND (d.valid_to IS NULL OR d.valid_to >= (now() AT TIME ZONE 'UTC')::date)
            WHERE p.id = ANY($1) AND p.workspace_id = $2
            GROUP BY p.id"#,
         product_ids,
