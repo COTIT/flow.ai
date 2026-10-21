@@ -107,13 +107,16 @@ async fn a_stuck_request_gets_503_and_frees_its_slot(pool: PgPool) {
         .await
         .unwrap();
     let mut state = common::state(app_pool, Mailer::capture().0);
-    state.request_timeout = Duration::from_millis(500);
     state.slots = Slots::new(WorkspaceSlots {
         per_workspace: 1,
         per_user: 10,
         wait: Duration::from_millis(100),
     });
-    let app = build_app(state);
+    // Setup and the follow-up run on the default timeout (signup's argon2 is slow in a debug
+    // build on CI); only the stuck request gets the short one. Both share pool and slots.
+    let app = build_app(state.clone());
+    state.request_timeout = Duration::from_millis(500);
+    let short = build_app(state);
     let (token, ws) = common::signup(&app, "ada@example.com", "acme").await;
 
     // Workspace numbering lock held elsewhere: the create waits on it (lock timeout 5s).
@@ -133,7 +136,7 @@ async fn a_stuck_request_gets_503_and_frees_its_slot(pool: PgPool) {
         ))
         .unwrap();
     let started = Instant::now();
-    let (status, headers, body) = send(&app, req).await;
+    let (status, headers, body) = send(&short, req).await;
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
     assert_eq!(
         body,
