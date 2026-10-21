@@ -44,6 +44,10 @@ pub struct Config {
     pub workspace_max_inflight: u32,
     /// Requests one user may have in flight; default a quarter of the request pool, at least 2.
     pub user_max_inflight: u32,
+    /// Seconds a `/v1` request may run before it answers 503.
+    pub request_timeout_secs: u64,
+    /// Seconds a request body may take to arrive before it answers 408.
+    pub request_body_deadline_secs: u64,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -77,6 +81,11 @@ impl fmt::Debug for Config {
             )
             .field("workspace_max_inflight", &self.workspace_max_inflight)
             .field("user_max_inflight", &self.user_max_inflight)
+            .field("request_timeout_secs", &self.request_timeout_secs)
+            .field(
+                "request_body_deadline_secs",
+                &self.request_body_deadline_secs,
+            )
             .finish()
     }
 }
@@ -152,6 +161,10 @@ impl Config {
         )?;
         let user_max_inflight =
             positive(&get, "USER_MAX_INFLIGHT", (db_max_connections / 4).max(2))?;
+        // Above statement (30s) + pool (5s) + slot (5s) waits, so a slow but legal request ends
+        // on its own error first. A body (64 KiB, 2 MiB for item totals) has 20s.
+        let request_timeout_secs = positive(&get, "REQUEST_TIMEOUT_SECS", 45)?;
+        let request_body_deadline_secs = positive(&get, "REQUEST_BODY_DEADLINE_SECS", 20)?;
 
         Ok(Self {
             database_url,
@@ -172,6 +185,8 @@ impl Config {
             private_ip_rate_limit_replenish_ms,
             workspace_max_inflight,
             user_max_inflight,
+            request_timeout_secs,
+            request_body_deadline_secs,
         })
     }
 }
@@ -489,6 +504,10 @@ mod tests {
             ),
             (5, 600, 5)
         );
+        assert_eq!(
+            (cfg.request_timeout_secs, cfg.request_body_deadline_secs),
+            (45, 20)
+        );
         let cfg = Config::from_lookup(lookup(&[
             ("DATABASE_URL", "postgres://x"),
             ("DATABASE_MAX_CONNECTIONS", "1"),
@@ -515,6 +534,8 @@ mod tests {
             "PRIVATE_RATE_LIMIT_REPLENISH_MS",
             "PRIVATE_IP_RATE_LIMIT_BURST",
             "USER_MAX_INFLIGHT",
+            "REQUEST_TIMEOUT_SECS",
+            "REQUEST_BODY_DEADLINE_SECS",
         ] {
             let err = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x"), (key, "0")]))
                 .unwrap_err();

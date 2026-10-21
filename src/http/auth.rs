@@ -96,6 +96,8 @@ mod tests {
                     per_user: 1000,
                     wait: std::time::Duration::from_secs(5),
                 }),
+                request_timeout: std::time::Duration::from_secs(60),
+                body_deadline: std::time::Duration::from_secs(60),
             });
         let mut req = Request::get("/probe");
         if let Some(value) = auth {

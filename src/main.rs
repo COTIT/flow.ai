@@ -77,6 +77,8 @@ async fn main() {
             // Same as the pool's acquire timeout: a queued request gives up when a pooled one would.
             wait: db::ACQUIRE_TIMEOUT,
         }),
+        request_timeout: Duration::from_secs(config.request_timeout_secs),
+        body_deadline: Duration::from_secs(config.request_body_deadline_secs),
     };
     // connect info: rate limit keys on peer IP.
     axum::serve(

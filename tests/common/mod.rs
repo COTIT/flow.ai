@@ -55,6 +55,8 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
             per_user: 1_000,
             wait: std::time::Duration::from_secs(5),
         }),
+        request_timeout: std::time::Duration::from_secs(60),
+        body_deadline: std::time::Duration::from_secs(60),
     }
 }
 

@@ -510,6 +510,7 @@ where
             .await
             .map_err(|rejection| match rejection.status() {
                 StatusCode::PAYLOAD_TOO_LARGE => AppError::PayloadTooLarge,
+                _ if crate::http::timeout::is_body_timeout(&rejection) => AppError::BodyTimeout,
                 _ => AppError::field("body", rejection.body_text()),
             })?;
         let mut rules = Rules::default();

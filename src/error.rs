@@ -41,7 +41,11 @@ pub enum AppError {
     /// 429. Same body as the IP rate limiter (Laravel ThrottleRequests text).
     #[error("too many requests")]
     TooManyRequests,
-    /// 503 with Retry-After: the workspace's request slots stayed full (`http::slots`).
+    /// 408: the request body didn't arrive before the body deadline (`http::timeout`).
+    #[error("request body timeout")]
+    BodyTimeout,
+    /// 503 with Retry-After: request slots stayed full (`http::slots`) or the request ran past
+    /// the request timeout (`http::timeout`).
     #[error("server busy")]
     Overloaded,
     /// 500. Logged, never sent to client.
@@ -168,6 +172,11 @@ impl IntoResponse for AppError {
             )
                 .into_response(),
             Self::Overloaded => busy(SERVER_BUSY),
+            Self::BodyTimeout => (
+                StatusCode::REQUEST_TIMEOUT,
+                Json(json!({ "message": "The request body took too long to arrive." })),
+            )
+                .into_response(),
             // Postgres refuses NUL in text (22021) and \u0000 in jsonb (22P05): bad input, not a fault.
             Self::Database(e) if is_nul_rejection(&e) => {
                 Self::field("input", NUL_TEXT).into_response()

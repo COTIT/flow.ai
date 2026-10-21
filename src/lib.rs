@@ -62,6 +62,10 @@ pub struct AppState {
     pub private_ip_rate_limit: RateLimit,
     /// Requests in flight per workspace and per user, taken by `WorkspaceAccess`.
     pub slots: Slots,
+    /// Longest a `/v1` request may run (then 503).
+    pub request_timeout: std::time::Duration,
+    /// Longest a request body may take to arrive (then 408).
+    pub body_deadline: std::time::Duration,
     /// Max invites one user may create or re-send per hour.
     pub invites_per_hour: i64,
 }
@@ -136,6 +140,7 @@ pub fn build_app(state: AppState) -> Router {
             HeaderValue::from_static("nosniff"),
         ))
         .layer(DefaultBodyLimit::max(BODY_LIMIT));
+    let v1 = http::timeout::apply(v1, state.request_timeout, state.body_deadline);
     Router::new()
         .route("/healthz", get(health::healthz))
         .nest("/v1", v1)
