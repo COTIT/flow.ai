@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM items WHERE invoice_id = $1 AND id = ANY($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c5edd3f34d70650bde1569d2b1f6f389f7f7f6bdbd03122675f66a2bbf32e25d"
+}

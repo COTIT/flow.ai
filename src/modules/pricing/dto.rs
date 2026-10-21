@@ -187,15 +187,6 @@ impl SummaryResource {
     /// Shape `s` (computed from `items`, same order) like Laravel. Hours stay 0: hour lines
     /// only exist on stored work orders, never in a calculate request.
     pub fn new(items: &[ItemInput], s: &Summary) -> Self {
-        let total_vats = s
-            .vats
-            .iter()
-            .map(|v| {
-                let entry =
-                    json!({ "percentage": php_number(v.rate), "total_amount": php_number(v.vat) });
-                (v.rate.normalize().to_string(), entry)
-            })
-            .collect();
         let discounts = items
             .iter()
             .zip(&s.lines)
@@ -218,6 +209,24 @@ impl SummaryResource {
                         format_decimals(i.client_default_discount, 2, true, Zero::Falsy),
                     "multi_set_item_id": i.multi_set_item_id,
                 })
+            })
+            .collect();
+        Self::with_discounts(s, discounts)
+    }
+
+    /// A stored document's summary: Laravel listed one null per discounted Eloquent line.
+    pub fn of_document(s: &Summary, discounted: usize) -> Self {
+        Self::with_discounts(s, vec![Value::Null; discounted])
+    }
+
+    fn with_discounts(s: &Summary, discounts: Vec<Value>) -> Self {
+        let total_vats = s
+            .vats
+            .iter()
+            .map(|v| {
+                let entry =
+                    json!({ "percentage": php_number(v.rate), "total_amount": php_number(v.vat) });
+                (v.rate.normalize().to_string(), entry)
             })
             .collect();
         Self {

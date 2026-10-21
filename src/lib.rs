@@ -32,7 +32,7 @@ pub use http::{
 };
 use modules::{
     auth, contacts, currencies, custom_statuses, custom_types, discount_groups, discounts,
-    email_verification, hourly_rates, invites, permissions, price_corrections, pricing,
+    email_verification, hourly_rates, invites, invoices, permissions, price_corrections, pricing,
     product_brands, product_categories, product_variants, products, relations, sales_groups,
     search, settings, shipment_methods, special_offers, stock, storage_locations, teams, users,
     vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
@@ -126,9 +126,10 @@ pub fn build_app(state: AppState) -> Router {
         .merge(discounts::routes::private())
         .merge(price_corrections::routes::private())
         .merge(special_offers::routes::private());
-    // Item totals take bodies up to 2 MiB: twice the deadline of the 64 KiB routes.
+    // Item totals and invoices take bodies up to 2 MiB: twice the deadline of the 64 KiB routes.
+    let documents = pricing::routes::private().merge(invoices::routes::private());
     let private = http::timeout::body_deadline(private, state.body_deadline).merge(
-        http::timeout::body_deadline(pricing::routes::private(), state.body_deadline * 2),
+        http::timeout::body_deadline(documents, state.body_deadline * 2),
     );
     let private = http::rate_limit::apply_private(
         private,

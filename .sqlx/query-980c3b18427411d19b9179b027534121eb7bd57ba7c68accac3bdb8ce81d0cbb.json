@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT addresses FROM relations\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR KEY SHARE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "addresses",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "addresses"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "980c3b18427411d19b9179b027534121eb7bd57ba7c68accac3bdb8ce81d0cbb"
+}

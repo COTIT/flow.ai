@@ -15,7 +15,7 @@ use crate::{
     http::list::Page,
     modules::{
         currencies::{dto::CurrencyResource, repo as currencies},
-        discounts, price_corrections,
+        discounts, invoices, price_corrections,
         products::{
             dto::{BAD_CURRENCY, Fields, PHYSICAL, SET_TYPES, bad_id},
             pricing::{Priority, normalise, out_of_range},
@@ -324,10 +324,15 @@ pub async fn duplicate(
 // shortcut: Laravel refused a product used in order items (422); items arrive with the final
 // batch, which must add that guard here.
 pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
-    repo::soft_delete(&state.db, workspace_id, parse(id)?)
-        .await?
-        .then_some(())
-        .ok_or(AppError::NotFound)
+    let id = parse(id)?;
+    let mut tx = state.db.begin().await?;
+    if !repo::lock_for_delete(&mut *tx, workspace_id, id).await? {
+        return Err(AppError::NotFound);
+    }
+    invoices::service::product_deletable(&mut tx, workspace_id, id).await?;
+    repo::soft_delete(&mut *tx, workspace_id, id).await?;
+    tx.commit().await?;
+    Ok(())
 }
 
 /// One page of a live product's price history, else 404.

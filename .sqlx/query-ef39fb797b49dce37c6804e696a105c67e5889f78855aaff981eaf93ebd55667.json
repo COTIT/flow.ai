@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoices SET\n            relation_id = $3,\n            reference = CASE WHEN $4 THEN $5 ELSE reference END,\n            note = CASE WHEN $6 THEN $7 ELSE note END,\n            due_date = CASE WHEN $8 THEN $9 ELSE due_date END,\n            billing_address = CASE WHEN $10 THEN $11 ELSE billing_address END,\n            addressed_contact = CASE WHEN $12 THEN $13 ELSE addressed_contact END,\n            customer_ref = CASE WHEN $14 THEN $15 ELSE customer_ref END,\n            meta = CASE WHEN $16 THEN $17 ELSE meta END,\n            updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Timestamptz",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ef39fb797b49dce37c6804e696a105c67e5889f78855aaff981eaf93ebd55667"
+}

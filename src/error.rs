@@ -32,6 +32,9 @@ pub enum AppError {
     /// 400 with a client-safe message (Laravel exceptions with `statusCode` 400).
     #[error("{0}")]
     BadRequest(String),
+    /// 422 with only a message (Laravel exceptions with `statusCode` 422, no field errors).
+    #[error("{0}")]
+    Unprocessable(String),
     /// 404. Same body for "missing" and "exists but not yours", so ids can't be probed.
     #[error("not found")]
     NotFound,
@@ -156,6 +159,11 @@ impl IntoResponse for AppError {
             Self::BadRequest(message) => {
                 (StatusCode::BAD_REQUEST, Json(json!({ "message": message }))).into_response()
             }
+            Self::Unprocessable(message) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                Json(json!({ "message": message })),
+            )
+                .into_response(),
             Self::NotFound => (
                 StatusCode::NOT_FOUND,
                 Json(json!({ "message": "The requested resource could not be found." })),
@@ -219,6 +227,13 @@ mod tests {
                 .map(|(f, msgs)| (f.to_string(), msgs.iter().map(|m| m.to_string()).collect()))
                 .collect(),
         )
+    }
+
+    #[tokio::test]
+    async fn unprocessable_is_422_with_only_a_message() {
+        let (status, body) = render(AppError::Unprocessable("Nope.".into())).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(body, json!({ "message": "Nope." }));
     }
 
     #[tokio::test]

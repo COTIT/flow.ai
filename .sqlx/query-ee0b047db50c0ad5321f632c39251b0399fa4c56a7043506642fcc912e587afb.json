@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status, is_credit, currency_id FROM invoices\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "is_credit",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "is_credit"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "currency_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ee0b047db50c0ad5321f632c39251b0399fa4c56a7043506642fcc912e587afb"
+}

@@ -10,6 +10,7 @@ pub mod discounts;
 pub mod email_verification;
 pub mod hourly_rates;
 pub mod invites;
+pub mod invoices;
 pub mod permissions;
 pub mod price_corrections;
 pub mod pricing;

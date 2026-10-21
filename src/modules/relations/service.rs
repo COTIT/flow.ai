@@ -13,7 +13,7 @@ use crate::{
         list::{Page, Paginated},
     },
     modules::{
-        contacts, custom_types, discount_groups,
+        contacts, custom_types, discount_groups, invoices,
         relations::{
             address,
             dto::{
@@ -302,10 +302,15 @@ pub async fn update(
 // shortcut: no invoices/orders/estimates/work orders yet, so Laravel's "has documents" 422
 // can't trigger; the order/invoice batch adds that guard.
 pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
-    repo::soft_delete(&state.db, workspace_id, parse(id)?)
-        .await?
-        .then_some(())
-        .ok_or(AppError::NotFound)
+    let id = parse(id)?;
+    let mut tx = state.db.begin().await?;
+    if !repo::lock_for_delete(&mut *tx, workspace_id, id).await? {
+        return Err(AppError::NotFound);
+    }
+    invoices::service::relation_deletable(&mut tx, workspace_id, id).await?;
+    repo::soft_delete(&mut *tx, workspace_id, id).await?;
+    tx.commit().await?;
+    Ok(())
 }
 
 /// Laravel GetRelationFinancialSummary with no documents: every amount is 0, credit comes from

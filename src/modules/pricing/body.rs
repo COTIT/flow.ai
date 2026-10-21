@@ -2,13 +2,16 @@
 //! while parsing, and lines past the cap are counted, never kept: as `serde_json::Value`, a
 //! 2 MiB body of `[0,0,…]` grows to ~32 MiB.
 
-use std::fmt;
+use std::{cell::Cell, fmt};
 
 use serde::{
     Deserialize, Deserializer,
-    de::{Error, IgnoredAny, MapAccess, SeqAccess, Visitor, value::MapAccessDeserializer},
+    de::{
+        DeserializeSeed, Error, IgnoredAny, MapAccess, SeqAccess, Visitor,
+        value::MapAccessDeserializer,
+    },
 };
-use serde_json::{Number, Value};
+use serde_json::{Map, Number, Value};
 
 /// Most lines one request may carry. Laravel had no cap; a document never comes close.
 pub const MAX_ITEMS: usize = 1000;
@@ -128,7 +131,7 @@ fn drain_map<'de, A: MapAccess<'de>>(mut map: A) -> Result<bool, A::Error> {
     Ok(any)
 }
 
-/// One item row; keys the calculation never reads are skipped.
+/// One item row (calculate requests and stored document lines); other keys are skipped.
 #[derive(Debug, Default, Deserialize)]
 #[serde(default)]
 pub struct RawItem {
@@ -144,6 +147,117 @@ pub struct RawItem {
     pub product_id: Scalar,
     pub multi_set_item_id: Scalar,
     pub client_default_discount: Scalar,
+    pub position: Scalar,
+    pub deleted: Scalar,
+    pub parent_deleted: Scalar,
+    pub product_variant_id: Scalar,
+    pub mutate_from_warehouse_id: Scalar,
+    pub multi_set_product_id: Scalar,
+}
+
+/// Most nodes (values, keys included) a `Capped` keeps.
+pub const MAX_NODES: usize = 1000;
+
+/// A JSON value kept only while it has at most `MAX_NODES` nodes; a bigger one is skipped
+/// while parsing (never built), so a 2 MiB body can't grow into tens of MiB of `Value`.
+#[derive(Debug, Default, Clone, PartialEq)]
+pub enum Capped {
+    #[default]
+    Absent,
+    Value(Value),
+    TooLarge,
+}
+
+impl<'de> Deserialize<'de> for Capped {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let budget = Cell::new(MAX_NODES);
+        Ok(match Budget(&budget).deserialize(d)? {
+            Some(v) => Self::Value(v),
+            None => Self::TooLarge,
+        })
+    }
+}
+
+/// Builds a `Value` while the shared budget lasts; None (rest skipped) once it runs out.
+struct Budget<'a>(&'a Cell<usize>);
+
+impl Budget<'_> {
+    fn spend(&self) -> bool {
+        let left = self.0.get();
+        self.0.set(left.saturating_sub(1));
+        left > 0
+    }
+}
+
+impl<'de> DeserializeSeed<'de> for Budget<'_> {
+    type Value = Option<Value>;
+
+    fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<Option<Value>, D::Error> {
+        if self.0.get() == 0 {
+            IgnoredAny::deserialize(d)?;
+            return Ok(None);
+        }
+        d.deserialize_any(self)
+    }
+}
+
+impl<'de> Visitor<'de> for Budget<'_> {
+    type Value = Option<Value>;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("a JSON value")
+    }
+    fn visit_bool<E: Error>(self, v: bool) -> Result<Self::Value, E> {
+        Ok(self.spend().then_some(Value::Bool(v)))
+    }
+    fn visit_i64<E: Error>(self, v: i64) -> Result<Self::Value, E> {
+        Ok(self.spend().then(|| Value::from(v)))
+    }
+    fn visit_u64<E: Error>(self, v: u64) -> Result<Self::Value, E> {
+        Ok(self.spend().then(|| Value::from(v)))
+    }
+    fn visit_f64<E: Error>(self, v: f64) -> Result<Self::Value, E> {
+        Ok(self
+            .spend()
+            .then(|| Number::from_f64(v).map_or(Value::Null, Value::Number)))
+    }
+    fn visit_str<E: Error>(self, v: &str) -> Result<Self::Value, E> {
+        Ok(self.spend().then(|| Value::String(v.to_owned())))
+    }
+    fn visit_unit<E: Error>(self) -> Result<Self::Value, E> {
+        Ok(self.spend().then_some(Value::Null))
+    }
+    fn visit_none<E: Error>(self) -> Result<Self::Value, E> {
+        Ok(self.spend().then_some(Value::Null))
+    }
+    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+        let mut out = self.spend().then(Vec::new);
+        while let Some(v) = seq.next_element_seed(Budget(self.0))? {
+            match (&mut out, v) {
+                (Some(list), Some(v)) => list.push(v),
+                _ => out = None,
+            }
+        }
+        Ok(out.map(Value::Array))
+    }
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+        let mut out = self.spend().then(Map::new);
+        while let Some(k) = map.next_key::<String>()? {
+            let v = if self.spend() {
+                map.next_value_seed(Budget(self.0))?
+            } else {
+                map.next_value::<IgnoredAny>()?;
+                None
+            };
+            match (&mut out, v) {
+                (Some(obj), Some(v)) => {
+                    obj.insert(k, v);
+                }
+                _ => out = None,
+            }
+        }
+        Ok(out.map(Value::Object))
+    }
 }
 
 /// One entry of `items`.
@@ -325,6 +439,40 @@ mod tests {
         assert!(
             matches!(serde_json::from_str::<Items>(&body), Ok(Items::List(r)) if r.len() == MAX_ITEMS)
         );
+    }
+
+    #[derive(Deserialize)]
+    struct CappedProbe {
+        #[serde(default)]
+        v: Capped,
+    }
+
+    fn capped(json: &str) -> Capped {
+        serde_json::from_str::<CappedProbe>(json).unwrap().v
+    }
+
+    #[test]
+    fn capped_keeps_small_values_and_skips_big_ones() {
+        assert_eq!(capped("{}"), Capped::Absent);
+        assert_eq!(capped(r#"{"v":null}"#), Capped::Value(Value::Null));
+        let small = r#"{"v":{"a":[1,2,{"b":"c"}],"d":true}}"#;
+        assert_eq!(
+            capped(small),
+            Capped::Value(serde_json::json!({"a":[1,2,{"b":"c"}],"d":true}))
+        );
+        let list = |n: usize| format!(r#"{{"v":[{}]}}"#, vec!["0"; n].join(","));
+        assert!(matches!(capped(&list(MAX_NODES - 1)), Capped::Value(_)));
+        assert_eq!(capped(&list(MAX_NODES)), Capped::TooLarge);
+        let wide = format!(
+            r#"{{"v":{{{}}}}}"#,
+            (0..MAX_NODES)
+                .map(|i| format!(r#""k{i}":0"#))
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        assert_eq!(capped(&wide), Capped::TooLarge);
+        let deep = format!(r#"{{"v":{}1{}}}"#, "[".repeat(100), "]".repeat(100));
+        assert!(matches!(capped(&deep), Capped::Value(_)));
     }
 
     #[test]

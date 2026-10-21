@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.default_warehouse_id,\n                  (SELECT v.id FROM product_variants v\n                   WHERE v.workspace_id = p.workspace_id AND v.product_id = p.id\n                     AND v.is_default AND v.deleted_at IS NULL) AS default_variant_id\n           FROM products p\n           WHERE p.workspace_id = $1 AND p.id = ANY($2) AND p.deleted_at IS NULL\n           ORDER BY p.id\n           FOR KEY SHARE OF p",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "default_warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "default_warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "default_variant_id",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "1160828c54a89a4c397d9ecd543e75051321c23b8d84802f93aa5d6035bf3b6f"
+}
