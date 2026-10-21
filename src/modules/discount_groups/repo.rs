@@ -263,3 +263,38 @@ pub async fn relation_page(
     let total = rows.first().map_or(0, |r| r.total);
     Ok((rows.into_iter().map(|r| r.id).collect(), total))
 }
+
+/// Laravel DiscountGroupForRelationResource rows of `relation_id`: the groups it supplies and
+/// the groups attached to it, each `{id, name, status, meta}` (`status` has no column: null).
+pub async fn for_relation(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    relation_id: Uuid,
+) -> Result<(Vec<Value>, Vec<Value>), sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT g.id, g.name, g.meta, g.supplier_relation_id = $2 AS "supplied!",
+                  EXISTS (SELECT 1 FROM discount_group_relation gr
+                          WHERE gr.discount_group_id = g.id AND gr.relation_id = $2) AS "attached!"
+           FROM discount_groups g
+           WHERE g.workspace_id = $1 AND g.deleted_at IS NULL
+             AND (g.supplier_relation_id = $2
+                  OR EXISTS (SELECT 1 FROM discount_group_relation gr
+                             WHERE gr.discount_group_id = g.id AND gr.relation_id = $2))
+           ORDER BY g.id"#,
+        workspace_id,
+        relation_id,
+    )
+    .fetch_all(db)
+    .await?;
+    let (mut supplied, mut attached) = (Vec::new(), Vec::new());
+    for r in rows {
+        let v = serde_json::json!({ "id": r.id, "name": r.name, "status": null, "meta": r.meta });
+        if r.attached {
+            attached.push(v.clone());
+        }
+        if r.supplied {
+            supplied.push(v);
+        }
+    }
+    Ok((supplied, attached))
+}

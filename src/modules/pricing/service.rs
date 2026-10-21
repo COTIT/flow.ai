@@ -3,6 +3,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
+use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::{
@@ -10,7 +11,7 @@ use crate::{
     error::AppError,
     http::json::human,
     modules::{
-        currencies,
+        currencies, discounts,
         pricing::{dto::Calculate, engine, repo},
         products,
     },
@@ -33,7 +34,7 @@ pub struct Priced {
 
 /// Price `input` in `workspace_id`. Every id must be a live row of this workspace (422 else).
 /// Product name and purchase price are catalog data: applied only when `view_products`
-/// (`product.view`); otherwise product lines keep what was sent and nothing is looked up.
+/// (`product.view`); a relation's discount applies for everyone.
 pub async fn price(
     state: &AppState,
     workspace_id: Uuid,
@@ -53,9 +54,7 @@ pub async fn price(
             ));
         }
     }
-    if view_products {
-        apply_products(state, workspace_id, &mut input).await?;
-    }
+    apply_products(state, workspace_id, &mut input, view_products).await?;
     let lines: Vec<engine::Line> = input.items.iter().map(|i| i.line).collect();
     let summary = engine::summarise(&lines, dp).map_err(out_of_range)?;
     Ok(Priced {
@@ -96,12 +95,15 @@ async fn decimals(
     u32::try_from(row.decimals).map_err(|_| AppError::Internal("negative currency decimals".into()))
 }
 
-/// Laravel Values\Item constructor: a product line takes the product's name as description and
-/// its purchase price when none (or 0) was sent. One query for all lines.
+/// Laravel Values\Item constructor. Every product line must name a live product. With a
+/// `relation_id`, the customer's discount fills `productDiscount` when none was sent (Laravel
+/// GetProductPrice; for every member, since it decides the total). Name and purchase price are
+/// catalog data: only with `view_products`. Three queries at most, whatever the line count.
 async fn apply_products(
     state: &AppState,
     workspace_id: Uuid,
     input: &mut Calculate,
+    view_products: bool,
 ) -> Result<(), AppError> {
     let wanted: Vec<Uuid> = input
         .items
@@ -114,14 +116,31 @@ async fn apply_products(
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect();
-    let found: HashMap<Uuid, repo::PricingProduct> = if wanted.is_empty() {
-        HashMap::new()
-    } else {
+    if input.items.iter().all(|i| i.product_id.is_none()) {
+        return Ok(());
+    }
+    let found: HashMap<Uuid, repo::PricingProduct> =
         repo::products(&state.db, workspace_id, &wanted)
             .await?
             .into_iter()
             .map(|p| (p.id, p))
+            .collect();
+    let purchase: HashMap<Uuid, Decimal> = if view_products {
+        discounts::repo::purchase_discounts(&state.db, workspace_id, &wanted)
+            .await?
+            .into_iter()
             .collect()
+    } else {
+        HashMap::new()
+    };
+    let relation_discounts: Option<HashMap<Uuid, Decimal>> = match input.relation_id {
+        Some(Some(relation)) => Some(
+            discounts::repo::relation_discounts(&state.db, workspace_id, relation, &wanted)
+                .await?
+                .into_iter()
+                .collect(),
+        ),
+        _ => None,
     };
     let mut errors = BTreeMap::new();
     for (n, item) in input.items.iter_mut().enumerate() {
@@ -134,13 +153,30 @@ async fn apply_products(
             errors.insert(key, vec![msg]);
             continue;
         };
-        item.description = Some(p.name.clone());
-        if item.line.purchase_price.is_none_or(|v| v.is_zero()) {
-            item.line.purchase_price = products::pricing::purchase_price(
-                p.impact_on_wholesale_price,
-                p.wholesale_price,
-                p.supplier_wholesale_price,
-            );
+        if view_products {
+            item.description = Some(p.name.clone());
+            if item.line.purchase_price.is_none_or(|v| v.is_zero()) {
+                item.line.purchase_price = products::pricing::purchase_price(
+                    p.impact_on_wholesale_price,
+                    p.wholesale_price,
+                    p.supplier_wholesale_price,
+                    purchase.get(&p.id).copied(),
+                    p.gross_price,
+                );
+            }
+        }
+        if let Some(by_product) = &relation_discounts {
+            let customer = by_product.get(&p.id).copied().unwrap_or_default();
+            if !item.discount_sent {
+                item.line.discount = customer;
+            }
+            if item.client_default_discount.is_none_or(|d| d.is_zero()) {
+                item.client_default_discount = Some(customer);
+            }
+            // Laravel: a line discount (typed or filled) replaces the default one.
+            if item.line.discount > Decimal::ZERO {
+                item.client_default_discount = Some(Decimal::ZERO);
+            }
         }
     }
     if errors.is_empty() {

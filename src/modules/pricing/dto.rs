@@ -46,6 +46,8 @@ pub struct ItemInput {
     pub multi_set_item_id: Value,
     /// Echoed through `formatDecimals`; vimdesk-web writes it back onto the row.
     pub client_default_discount: Option<Decimal>,
+    /// `productDiscount` was sent (Laravel fills a relation's discount only when it wasn't).
+    pub discount_sent: bool,
     pub line: Line,
 }
 
@@ -102,6 +104,7 @@ fn item(r: &mut Rules, key: &str, raw: RawItem) -> ItemInput {
         v.filled().and_then(|v| r.decimal(&f, &v, min, max))
     };
     let zero = Decimal::ZERO;
+    let discount_sent = raw.product_discount.filled().is_some();
     let quantity = num("quantity", &raw.quantity, -MAX, MAX).unwrap_or(zero);
     let price = num("price", &raw.price, -MAX, MAX).unwrap_or(zero);
     let vat = num("vat", &raw.vat, zero, MAX).unwrap_or(zero);
@@ -144,6 +147,7 @@ fn item(r: &mut Rules, key: &str, raw: RawItem) -> ItemInput {
         },
         multi_set_item_id: raw.multi_set_item_id.echo(),
         client_default_discount,
+        discount_sent,
     }
 }
 

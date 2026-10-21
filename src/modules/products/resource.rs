@@ -12,7 +12,7 @@ use crate::{
     modules::{
         products::{
             dto::PHYSICAL,
-            pricing::{column, computed, incl, purchase_price},
+            pricing::{column, computed, discounted, incl, purchase_price},
             repo::ProductRow,
         },
         stock::repo::StockLine,
@@ -40,6 +40,8 @@ pub struct Embeds {
     pub stocks: HashMap<Uuid, Vec<StockLine>>,
     /// `?warehouse_id=` for the `pos_*` pick (Laravel read it from the request).
     pub pos_warehouse: Option<Uuid>,
+    /// Best live internal supplier discount per product (purchase price).
+    pub purchase_discounts: HashMap<Uuid, Decimal>,
 }
 
 /// One product. `detail`: GET one (Laravel loaded more there).
@@ -51,10 +53,13 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
     let pos = if mutates { pos_pick(p, lines, e) } else { None };
     let price = computed(p.price, 4);
     let price_incl = computed(incl(p.price, vat_pct), 2);
+    let discount = e.purchase_discounts.get(&p.id).copied();
     let purchase = purchase_price(
         p.impact_on_wholesale_price,
         p.wholesale_price,
         p.supplier_wholesale_price,
+        discount,
+        p.gross_price,
     );
     let children = e.set_children.get(&p.id).map_or_else(Vec::new, |c| {
         c.iter()
@@ -112,8 +117,11 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "gross_price": column(Some(p.gross_price), 4),
         "gross_price_incl": computed(incl(p.gross_price, vat_pct), 2),
         "supplier_wholesale_price": column(p.supplier_wholesale_price, 4),
-        "purchase_discount_percentage": null,
-        "supplier_purchase_price_from_discount": column(p.supplier_wholesale_price, 4),
+        "purchase_discount_percentage": discount.map(|d| raw(d, 8)),
+        "supplier_purchase_price_from_discount": match discount.filter(|d| !d.is_zero()) {
+            Some(d) => computed(discounted(p.gross_price, d), 4),
+            None => column(p.supplier_wholesale_price, 4),
+        },
         "archived": i32::from(p.archived),
         "country_of_origin": p.country_of_origin,
         "weight": p.weight.map_or_else(|| "0.1".to_owned(), |w| column(Some(w), 2)),

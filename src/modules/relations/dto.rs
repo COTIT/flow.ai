@@ -508,9 +508,9 @@ struct Relationships {
     source_type: Option<CustomTypeResource>,
     contacts: Vec<ContactResource>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    supplier_discount_groups: Option<[(); 0]>,
+    supplier_discount_groups: Option<Vec<Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    relation_discount_groups: Option<[(); 0]>,
+    relation_discount_groups: Option<Vec<Value>>,
     custom_sections: [(); 0],
     custom_section_forms: [(); 0],
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -567,6 +567,10 @@ pub struct Detail {
     /// `slim=1`: no discount groups or unpaid invoice counters (Laravel `$withForGetSlim`).
     pub slim: bool,
     pub include_unpaid_invoices: bool,
+    /// Discount groups this relation supplies (DiscountGroupForRelationResource).
+    pub supplier_discount_groups: Vec<Value>,
+    /// Discount groups attached to this relation as a customer.
+    pub relation_discount_groups: Vec<Value>,
 }
 
 impl From<Detail> for RelationResource {
@@ -658,8 +662,8 @@ impl From<Detail> for RelationResource {
                 relation_type: d.relation_type.map(Into::into),
                 source_type: d.source_type.map(Into::into),
                 contacts,
-                supplier_discount_groups: full.then_some([]),
-                relation_discount_groups: full.then_some([]),
+                supplier_discount_groups: full.then_some(d.supplier_discount_groups),
+                relation_discount_groups: full.then_some(d.relation_discount_groups),
                 custom_sections: [],
                 custom_section_forms: [],
                 unpaid_invoices: (full && d.include_unpaid_invoices).then_some(UnpaidInvoices {

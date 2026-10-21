@@ -13,7 +13,7 @@ use crate::{
         list::{Page, Paginated},
     },
     modules::{
-        contacts, custom_types,
+        contacts, custom_types, discount_groups,
         relations::{
             address,
             dto::{
@@ -101,7 +101,7 @@ pub struct GetFlags {
     pub include_unpaid_invoices: bool,
 }
 
-/// Detail view of a live relation of this workspace, else 404. Four fixed queries.
+/// Detail view of a live relation of this workspace, else 404. Five fixed queries.
 pub async fn get(
     state: &AppState,
     workspace_id: Uuid,
@@ -115,7 +115,11 @@ pub async fn get(
     let contacts = contacts::repo::for_relations(&state.db, workspace_id, &[id]).await?;
     let (country, language) = workspaces::repo::locale(&state.db, workspace_id).await?;
     let vat_groups = vat_groups::repo::all(&state.db, workspace_id).await?;
+    let (supplier_discount_groups, relation_discount_groups) =
+        discount_groups::repo::for_relation(&state.db, workspace_id, id).await?;
     Ok(Detail {
+        supplier_discount_groups,
+        relation_discount_groups,
         row,
         relation_type,
         source_type,

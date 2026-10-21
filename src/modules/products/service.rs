@@ -15,6 +15,7 @@ use crate::{
     http::list::Page,
     modules::{
         currencies::{dto::CurrencyResource, repo as currencies},
+        discounts,
         products::{
             dto::{BAD_CURRENCY, Fields, PHYSICAL, SET_TYPES, bad_id},
             pricing::{Priority, normalise, out_of_range},
@@ -668,6 +669,10 @@ async fn embeds(
     e.stock_refs = refs.into_iter().map(|w| (w.id, w)).collect();
     e.store = store;
     let ids: Vec<Uuid> = all.iter().map(|p| p.id).collect();
+    e.purchase_discounts = discounts::repo::purchase_discounts(&state.db, workspace_id, &ids)
+        .await?
+        .into_iter()
+        .collect();
     for line in stock::lines(&state.db, workspace_id, &ids).await? {
         e.stocks.entry(line.product_id).or_default().push(line);
     }

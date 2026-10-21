@@ -422,3 +422,178 @@ async fn deleting_a_group_retires_its_discounts(pool: PgPool) {
         .unwrap();
     assert_eq!(links, 0);
 }
+
+// --- wiring: purchase price, relation detail, calculate-items ------------------------------
+
+/// Supplier S, product P (code CAB, gross 100, supplier wholesale 95), customer C.
+struct World {
+    api: Api,
+    supplier: String,
+    product: String,
+    customer: String,
+}
+
+async fn world(pool: PgPool) -> World {
+    let api = groups(pool).await;
+    let supplier = relation(&api, "Supplier BV").await;
+    let customer = relation(&api, "Customer BV").await;
+    let product = api
+        .with_base("/products")
+        .create(
+            json!({ "name": "Cable", "price": "150", "gross_price": "100",
+                    "supplier_wholesale_price": "95", "supplier_relation_id": supplier,
+                    "supplier_discount_code": "CAB" }),
+            "product_id",
+        )
+        .await;
+    World {
+        api,
+        supplier,
+        product,
+        customer,
+    }
+}
+
+async fn discount(w: &World, group: &str, pct: &str, extra: Value) -> String {
+    let mut body = json!({ "discount_group_id": group, "name": "D", "active": true,
+                           "discount_product_code": "CAB", "percentage": pct });
+    for (k, v) in extra.as_object().unwrap() {
+        body[k] = v.clone();
+    }
+    w.api
+        .with_base("/products/discounts")
+        .create(body, "discount_id")
+        .await
+}
+
+async fn product_get(w: &World) -> Value {
+    w.api.with_base("/products").get(&w.product).await
+}
+
+#[sqlx::test]
+async fn purchase_price_takes_the_best_internal_discount(pool: PgPool) {
+    let w = world(pool).await;
+    let p = product_get(&w).await;
+    assert_eq!(p["purchase_price"], "95", "no discount: supplier wholesale");
+    assert_eq!(p["purchase_discount_percentage"], Value::Null);
+
+    let internal = group(&w.api, &w.supplier, true).await;
+    discount(&w, &internal, "10", json!({})).await;
+    discount(&w, &internal, "15", json!({})).await;
+    let p = product_get(&w).await;
+    // MAX of the live discounts (Laravel's first-match join could pick either).
+    assert_eq!(p["purchase_price"], "85");
+    assert_eq!(p["purchase_discount_percentage"], "15.00000000");
+    assert_eq!(p["supplier_purchase_price_from_discount"], "85");
+}
+
+#[sqlx::test]
+async fn purchase_discount_respects_group_active_and_dates(pool: PgPool) {
+    let w = world(pool).await;
+    let internal = group(&w.api, &w.supplier, true).await;
+    let today = chrono::Utc::now().date_naive();
+    // Ends today: still counts (Laravel dropped it at midnight on its last day).
+    discount(&w, &internal, "10", json!({ "valid_from": today.to_string(), "valid_to": (today + chrono::Days::new(1)).to_string() })).await;
+    assert_eq!(product_get(&w).await["purchase_price"], "90");
+    let (status, _) = w.api.update(&internal, json!({ "active": false })).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        product_get(&w).await["purchase_price"],
+        "95",
+        "inactive group ignored"
+    );
+    // A customer (non-internal) group never touches the purchase price.
+    let sales = group(&w.api, &w.supplier, false).await;
+    discount(&w, &sales, "40", json!({})).await;
+    assert_eq!(product_get(&w).await["purchase_price"], "95");
+}
+
+#[sqlx::test]
+async fn relation_detail_lists_its_discount_groups(pool: PgPool) {
+    let w = world(pool).await;
+    let internal = group(&w.api, &w.supplier, true).await;
+    let sales = group(&w.api, &w.supplier, false).await;
+    w.api
+        .call(
+            Method::POST,
+            &format!("/{sales}/attach-to-relations"),
+            Some(json!({ "relation_ids": [w.customer] })),
+            &w.api.owner,
+        )
+        .await;
+    let supplier = w.api.with_base("/relations").get(&w.supplier).await;
+    let mut supplied: Vec<String> = supplier["relationships"]["supplier_discount_groups"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|g| g["id"].as_str().unwrap().to_owned())
+        .collect();
+    supplied.sort();
+    let mut want = vec![internal.clone(), sales.clone()];
+    want.sort();
+    assert_eq!(supplied, want);
+    let customer = w.api.with_base("/relations").get(&w.customer).await;
+    assert_eq!(
+        customer["relationships"]["relation_discount_groups"],
+        json!([{ "id": sales, "name": "Supplier A", "status": null, "meta": null }])
+    );
+}
+
+#[sqlx::test]
+async fn calculate_items_applies_the_customers_discount(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    let sales = group(&w.api, &w.supplier, false).await;
+    discount(&w, &sales, "10", json!({})).await;
+    discount(&w, &sales, "12.5", json!({})).await;
+    let internal = group(&w.api, &w.supplier, true).await;
+    discount(&w, &internal, "50", json!({})).await;
+    w.api
+        .call(
+            Method::POST,
+            &format!("/{sales}/attach-to-relations"),
+            Some(json!({ "relation_ids": [w.customer] })),
+            &w.api.owner,
+        )
+        .await;
+    let calc = w.api.with_base("/calculate-items");
+    let line = |extra: Value| {
+        let mut l =
+            json!({ "id": 1, "product_id": w.product, "quantity": 2, "price": 100, "vat": 21 });
+        for (k, v) in extra.as_object().unwrap() {
+            l[k] = v.clone();
+        }
+        json!({ "relation_id": w.customer, "items": [l] })
+    };
+    let (status, res) = calc
+        .call(Method::POST, "", Some(line(json!({}))), &w.api.owner)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    // Best customer discount 12.5 % (the internal 50 % is the supplier's, not the customer's).
+    assert_eq!(res["data"]["total_discount"], json!(25));
+    assert_eq!(res["data"]["discounts"][0]["productDiscount"], "12.5");
+    assert_eq!(
+        res["data"]["discounts"][0]["client_default_discount"],
+        "0.00"
+    );
+    // A discount the user typed wins.
+    let (_, res) = calc
+        .call(
+            Method::POST,
+            "",
+            Some(line(json!({ "productDiscount": 5 }))),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(res["data"]["total_discount"], json!(10));
+    // No relation: no discount.
+    let (_, res) = calc
+        .call(Method::POST, "", Some(json!({ "items": [{ "id": 1, "product_id": w.product, "quantity": 2, "price": 100, "vat": 21 }] })), &w.api.owner)
+        .await;
+    assert_eq!(res["data"]["total_discount"], json!(0));
+    // A cashier without product.view gets the same total (pricing is not catalog data).
+    let cashier = common::member_with(&w.api.app, &pool, &w.api.ws, "cash@example.com", &[]).await;
+    let (_, res) = calc
+        .call(Method::POST, "", Some(line(json!({}))), &cashier)
+        .await;
+    assert_eq!(res["data"]["total_discount"], json!(25));
+}

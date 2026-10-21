@@ -65,19 +65,35 @@ pub fn incl(net: Decimal, vat_pct: Decimal) -> Decimal {
     net * (Decimal::ONE_HUNDRED + vat_pct) / Decimal::ONE_HUNDRED
 }
 
-/// Laravel `buildPurchasePrice` without supplier discounts: wholesale when it has a markup,
-/// else wholesale when > 0, else the supplier's wholesale price.
+/// Laravel `buildPurchasePrice`. `discount` is the best live internal supplier discount
+/// (`discounts::repo::purchase_discounts`). A wholesale markup above it wins; without a
+/// discount: wholesale when > 0, else the supplier's wholesale price; with one: gross price
+/// minus the discount, or the supplier's wholesale price when that comes to 0.
 pub fn purchase_price(
     impact_on_wholesale: Option<Decimal>,
     wholesale: Option<Decimal>,
     supplier_wholesale: Option<Decimal>,
+    discount: Option<Decimal>,
+    gross: Decimal,
 ) -> Option<Decimal> {
     let positive = |v: Option<Decimal>| v.is_some_and(|v| v > Decimal::ZERO);
-    if positive(impact_on_wholesale) || positive(wholesale) {
-        wholesale
-    } else {
-        supplier_wholesale
+    let pct = discount.filter(|d| *d > Decimal::ZERO);
+    if positive(impact_on_wholesale) && impact_on_wholesale > Some(pct.unwrap_or_default()) {
+        return wholesale;
     }
+    match pct {
+        None if positive(wholesale) => wholesale,
+        None => supplier_wholesale,
+        Some(d) => Some(discounted(gross, d))
+            .filter(|p| !p.is_zero())
+            .or(supplier_wholesale),
+    }
+}
+
+/// Laravel CalculateProductPurchasePrice with a discount: gross × (1 − d/100). `d` is a
+/// stored percentage (0..=100), so this stays inside the gross price's range.
+pub fn discounted(gross: Decimal, d: Decimal) -> Decimal {
+    gross * (Decimal::ONE - d / Decimal::ONE_HUNDRED)
 }
 
 /// A `buildPrice` value: PHP `(string) $float`, so an exact zero is falsy -> `"0.00"`.
@@ -217,9 +233,37 @@ mod tests {
     #[test]
     fn purchase_price_without_discounts() {
         let some = |s| Some(d(s));
-        assert_eq!(purchase_price(some("5"), some("10"), some("8")), some("10"));
-        assert_eq!(purchase_price(None, some("10"), some("8")), some("10"));
-        assert_eq!(purchase_price(None, some("0"), some("8")), some("8"));
-        assert_eq!(purchase_price(None, None, None), None);
+        assert_eq!(
+            purchase_price(some("5"), some("10"), some("8"), None, Decimal::ZERO),
+            some("10")
+        );
+        assert_eq!(
+            purchase_price(None, some("10"), some("8"), None, Decimal::ZERO),
+            some("10")
+        );
+        assert_eq!(
+            purchase_price(None, some("0"), some("8"), None, Decimal::ZERO),
+            some("8")
+        );
+        assert_eq!(purchase_price(None, None, None, None, Decimal::ZERO), None);
+        // With a supplier discount: gross minus it, unless a bigger wholesale markup wins.
+        let gross = d("100");
+        assert_eq!(
+            purchase_price(None, some("70"), some("95"), some("10"), gross),
+            some("90")
+        );
+        assert_eq!(
+            purchase_price(some("20"), some("70"), some("95"), some("10"), gross),
+            some("70")
+        );
+        assert_eq!(
+            purchase_price(some("5"), some("70"), some("95"), some("10"), gross),
+            some("90")
+        );
+        assert_eq!(
+            purchase_price(None, None, some("95"), some("100"), gross),
+            some("95"),
+            "0 falls back"
+        );
     }
 }

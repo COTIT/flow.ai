@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.id, g.name, g.meta, g.supplier_relation_id = $2 AS \"supplied!\",\n                  EXISTS (SELECT 1 FROM discount_group_relation gr\n                          WHERE gr.discount_group_id = g.id AND gr.relation_id = $2) AS \"attached!\"\n           FROM discount_groups g\n           WHERE g.workspace_id = $1 AND g.deleted_at IS NULL\n             AND (g.supplier_relation_id = $2\n                  OR EXISTS (SELECT 1 FROM discount_group_relation gr\n                             WHERE gr.discount_group_id = g.id AND gr.relation_id = $2))\n           ORDER BY g.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "supplied!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "attached!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "6fea42c1f1f16019ce50d87b1fc5bef04acac38d436747858bac444e15db003c"
+}

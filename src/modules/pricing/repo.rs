@@ -12,6 +12,7 @@ pub struct PricingProduct {
     pub impact_on_wholesale_price: Option<Decimal>,
     pub wholesale_price: Option<Decimal>,
     pub supplier_wholesale_price: Option<Decimal>,
+    pub gross_price: Decimal,
 }
 
 /// Live products of `workspace_id` among `ids`, in one query.
@@ -22,7 +23,8 @@ pub async fn products(
 ) -> Result<Vec<PricingProduct>, sqlx::Error> {
     sqlx::query_as!(
         PricingProduct,
-        "SELECT id, name, impact_on_wholesale_price, wholesale_price, supplier_wholesale_price
+        "SELECT id, name, impact_on_wholesale_price, wholesale_price, supplier_wholesale_price,
+                gross_price
          FROM products
          WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
         ids,
