@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE price_corrections SET\n             value_from = COALESCE($3, value_from), value_to = COALESCE($4, value_to),\n             round_on = CASE WHEN $5 THEN $6 ELSE round_on END,\n             remove_amount = CASE WHEN $7 THEN $8 ELSE remove_amount END,\n             meta = CASE WHEN $9 THEN $10 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Numeric",
+        "Bool",
+        "Numeric",
+        "Bool",
+        "Numeric",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "19d5ac48ab415073fa333b1b40798ad7f6e7279e8e2c4178ee9f132bd79e5d0b"
+}

@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT value_from, value_to, round_on, remove_amount FROM price_corrections\n         WHERE workspace_id = $1 AND deleted_at IS NULL ORDER BY value_from, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "value_from",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "price_corrections",
+            "name": "value_from"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "value_to",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "price_corrections",
+            "name": "value_to"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "round_on",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "price_corrections",
+            "name": "round_on"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "remove_amount",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "price_corrections",
+            "name": "remove_amount"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "4911b3836d4e9a9d72dee8e723740cea26bd7a755b856386f0e542c138cf4e7d"
+}

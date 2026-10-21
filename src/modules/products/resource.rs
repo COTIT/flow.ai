@@ -12,7 +12,7 @@ use crate::{
     modules::{
         products::{
             dto::PHYSICAL,
-            pricing::{column, computed, discounted, incl, purchase_price},
+            pricing::{Band, column, computed, discounted, incl, prices, purchase_price},
             repo::ProductRow,
         },
         stock::repo::StockLine,
@@ -42,6 +42,10 @@ pub struct Embeds {
     pub pos_warehouse: Option<Uuid>,
     /// Best live internal supplier discount per product (purchase price).
     pub purchase_discounts: HashMap<Uuid, Decimal>,
+    /// Live price correction bands of the workspace, in pick order.
+    pub bands: Vec<Band>,
+    /// Setting `product.disable_double_discount_for_business`.
+    pub business_from_gross: bool,
 }
 
 /// One product. `detail`: GET one (Laravel loaded more there).
@@ -51,8 +55,19 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
     let mutates = PHYSICAL.contains(&p.kind.as_str()) && p.has_stock;
     let lines = e.stocks.get(&p.id).map_or(&[][..], Vec::as_slice);
     let pos = if mutates { pos_pick(p, lines, e) } else { None };
-    let price = computed(p.price, 4);
-    let price_incl = computed(incl(p.price, vat_pct), 2);
+    let net = prices(
+        p.price,
+        p.gross_price,
+        p.impact_on_price,
+        p.exclude_price_corrections,
+        e.business_from_gross,
+        vat_pct,
+        &e.bands,
+    );
+    let fmt = |v: Decimal| (computed(v, 4), computed(incl(v, vat_pct), 2));
+    let (price, price_incl) = fmt(net.consumer);
+    let (business, business_incl) = fmt(net.business);
+    let (uncorrected, uncorrected_incl) = fmt(net.uncorrected);
     let discount = e.purchase_discounts.get(&p.id).copied();
     let purchase = purchase_price(
         p.impact_on_wholesale_price,
@@ -98,16 +113,15 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "should_mutate_stock": mutates,
         "vat_group": null,
         "status": p.status,
-        // shortcut: no special offers, corrections or business discount settings until the
-        // final batch (F3), so every consumer/business variant is the stored net price.
-        "business_price": price,
-        "business_price_incl": price_incl,
+        // shortcut: no special offers until F3b, so `original_price` equals `price`.
+        "business_price": business,
+        "business_price_incl": business_incl,
         "impact_on_price": column(p.impact_on_price, 4),
         "impact_on_wholesale_price": column(p.impact_on_wholesale_price, 4),
         "price": price,
         "price_incl": price_incl,
-        "price_without_correction": price,
-        "price_without_correction_incl": price_incl,
+        "price_without_correction": uncorrected,
+        "price_without_correction_incl": uncorrected_incl,
         "import_id": p.import_id,
         "import_source": p.import_source,
         "import_links": [],

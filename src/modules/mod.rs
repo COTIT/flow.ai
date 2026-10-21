@@ -11,6 +11,7 @@ pub mod email_verification;
 pub mod hourly_rates;
 pub mod invites;
 pub mod permissions;
+pub mod price_corrections;
 pub mod pricing;
 pub mod product_brands;
 pub mod product_categories;

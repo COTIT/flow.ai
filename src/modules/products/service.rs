@@ -15,7 +15,7 @@ use crate::{
     http::list::Page,
     modules::{
         currencies::{dto::CurrencyResource, repo as currencies},
-        discounts,
+        discounts, price_corrections,
         products::{
             dto::{BAD_CURRENCY, Fields, PHYSICAL, SET_TYPES, bad_id},
             pricing::{Priority, normalise, out_of_range},
@@ -673,6 +673,10 @@ async fn embeds(
         .await?
         .into_iter()
         .collect();
+    e.bands = price_corrections::repo::bands(&state.db, workspace_id).await?;
+    e.business_from_gross = settings::repo::section(&state.db, workspace_id, "product")
+        .await?
+        .is_some_and(|s| s["disable_double_discount_for_business"] == Value::Bool(true));
     for line in stock::lines(&state.db, workspace_id, &ids).await? {
         e.stocks.entry(line.product_id).or_default().push(line);
     }

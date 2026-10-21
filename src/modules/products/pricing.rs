@@ -1,6 +1,6 @@
-//! Product price rules from Laravel ProductPriceTrait + Product saving hook, in exact decimals.
-//! No special offers, price corrections or discount groups yet (final batch F3), so the
-//! consumer price is the stored net price.
+//! Product price rules from Laravel ProductPriceTrait + Product saving hook, in exact decimals:
+//! net/impact normalisation, purchase price with supplier discounts, and price corrections
+//! (bands). No special offers yet (F3b), so the consumer price starts from the stored net price.
 
 use rust_decimal::Decimal;
 
@@ -96,6 +96,86 @@ pub fn discounted(gross: Decimal, d: Decimal) -> Decimal {
     gross * (Decimal::ONE - d / Decimal::ONE_HUNDRED)
 }
 
+/// One live price correction band (Laravel PriceCorrection).
+pub struct Band {
+    pub value_from: Decimal,
+    pub value_to: Decimal,
+    pub round_on: Option<Decimal>,
+    pub remove_amount: Option<Decimal>,
+}
+
+/// Laravel GetPriceCorrectionForValue: the band holding `net` (both ends included) with the
+/// lowest `value_from`. `bands` come sorted by `value_from`, then id.
+pub fn band_for(bands: &[Band], net: Decimal) -> Option<&Band> {
+    bands
+        .iter()
+        .find(|b| b.value_from <= net && net <= b.value_to)
+}
+
+/// Laravel buildPrice with a band: round the incl-VAT price to the nearest `round_on` step (a
+/// tie goes down, GetRoundedPrice), back to excl, then take off `remove_amount` (incl VAT).
+/// None only on overflow, which stored values can't reach.
+pub fn correct(net: Decimal, vat_pct: Decimal, b: &Band) -> Option<Decimal> {
+    let mult = (Decimal::ONE_HUNDRED + vat_pct).checked_div(Decimal::ONE_HUNDRED)?;
+    let rounded = match b.round_on.filter(|r| !r.is_zero()) {
+        None => net,
+        Some(step) => {
+            let gross = net.checked_mul(mult)?;
+            let steps = gross.checked_div(step)?;
+            let up = steps.ceil().checked_mul(step)?;
+            let down = steps.floor().checked_mul(step)?;
+            let nearest = if (gross - up).abs() < (gross - down).abs() {
+                up
+            } else {
+                down
+            };
+            nearest.checked_div(mult)?
+        }
+    };
+    rounded.checked_sub(b.remove_amount.unwrap_or_default().checked_div(mult)?)
+}
+
+/// Laravel's four net prices before special offers (F3b).
+pub struct Prices {
+    /// `price` (getConsumerPrice) and `original_price` (getOriginalPrice): equal until offers.
+    pub consumer: Decimal,
+    /// `business_price` (getBusinessPrice).
+    pub business: Decimal,
+    /// `price_without_correction` (getPriceWithoutCorrection).
+    pub uncorrected: Decimal,
+}
+
+/// Laravel ProductPriceTrait getters. With `business_from_gross` (setting
+/// `product.disable_double_discount_for_business`) a product priced below gross starts its
+/// business price from gross.
+pub fn prices(
+    net: Decimal,
+    gross: Decimal,
+    impact_on_price: Option<Decimal>,
+    excluded: bool,
+    business_from_gross: bool,
+    vat_pct: Decimal,
+    bands: &[Band],
+) -> Prices {
+    let build = |v: Decimal| {
+        band_for(bands, v)
+            .filter(|_| !excluded)
+            .and_then(|b| correct(v, vat_pct, b))
+            .unwrap_or(v)
+    };
+    let below_gross = impact_on_price.is_some_and(|i| i < Decimal::ZERO);
+    let business_base = if below_gross && business_from_gross {
+        gross
+    } else {
+        net
+    };
+    Prices {
+        consumer: build(net),
+        business: build(business_base),
+        uncorrected: business_base,
+    }
+}
+
 /// A `buildPrice` value: PHP `(string) $float`, so an exact zero is falsy -> `"0.00"`.
 pub fn computed(v: Decimal, dp: u32) -> String {
     format_decimals(Some(v), dp, true, Zero::Falsy)
@@ -114,6 +194,104 @@ mod tests {
 
     fn d(s: &str) -> Decimal {
         Decimal::from_str(s).unwrap()
+    }
+
+    /// Every case in `price_correction_parity.json` (PHP 8.4 running vimdesk-api's real
+    /// GetRoundedPrice + MoneyHelper, `tests/fixtures/price_correction_oracle.php`).
+    #[test]
+    fn corrections_match_laravel() {
+        let cases: Vec<Value> = serde_json::from_str(include_str!(
+            "../../../tests/fixtures/price_correction_parity.json"
+        ))
+        .unwrap();
+        assert_eq!(cases.len(), 14);
+        let opt = |v: &Value| v.as_str().map(d);
+        for c in cases {
+            let (net, vat) = (
+                d(c["amount"].as_str().unwrap()),
+                d(c["vat"].as_str().unwrap()),
+            );
+            let band = Band {
+                value_from: Decimal::ZERO,
+                value_to: MAX,
+                round_on: opt(&c["round_on"]),
+                remove_amount: opt(&c["remove_amount"]),
+            };
+            let got = correct(net, vat, &band).unwrap();
+            assert_eq!(computed(got, 4), c["price"], "{}", c["name"]);
+            assert_eq!(
+                computed(incl(got, vat), 2),
+                c["price_incl"],
+                "{}",
+                c["name"]
+            );
+        }
+    }
+
+    #[test]
+    fn band_pick_and_opt_out() {
+        let b = |from: &str, to: &str, step: &str| Band {
+            value_from: d(from),
+            value_to: d(to),
+            round_on: Some(d(step)),
+            remove_amount: None,
+        };
+        let bands = [b("0", "10", "1"), b("5", "20", "0.5"), b("30", "40", "1")];
+        assert_eq!(
+            band_for(&bands, d("10")).map(|b| b.value_from),
+            Some(d("0"))
+        );
+        assert_eq!(
+            band_for(&bands, d("10.01")).map(|b| b.value_from),
+            Some(d("5"))
+        );
+        assert!(band_for(&bands, d("25")).is_none());
+        let p = prices(
+            d("10.3"),
+            d("10.3"),
+            None,
+            false,
+            false,
+            Decimal::ZERO,
+            &bands,
+        );
+        // 10.3 is in the second band only: 0.5 steps, 10.5 is nearer than 10.
+        assert_eq!(
+            (p.consumer, p.business, p.uncorrected),
+            (d("10.5"), d("10.5"), d("10.3"))
+        );
+        let p = prices(
+            d("10.3"),
+            d("10.3"),
+            None,
+            true,
+            false,
+            Decimal::ZERO,
+            &bands,
+        );
+        assert_eq!(p.consumer, d("10.3"), "excluded");
+        // Below gross with the setting: business from gross, consumer from net.
+        let p = prices(
+            d("9.4"),
+            d("12.2"),
+            Some(d("-23")),
+            false,
+            true,
+            Decimal::ZERO,
+            &bands,
+        );
+        assert_eq!(
+            (p.consumer, p.business, p.uncorrected),
+            (d("9"), d("12"), d("12.2"))
+        );
+        // Overflow keeps the price instead of panicking.
+        let huge = Band {
+            value_from: Decimal::ZERO,
+            value_to: Decimal::MAX,
+            round_on: Some(d("0.00000001")),
+            remove_amount: None,
+        };
+        assert!(correct(Decimal::MAX, d("21"), &huge).is_none());
     }
 
     #[test]

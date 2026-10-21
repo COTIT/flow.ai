@@ -1,0 +1,128 @@
+[
+    {
+        "name": "nines_on_5ct",
+        "amount": "9.99",
+        "vat": "21",
+        "round_on": "0.05",
+        "remove_amount": "0.01",
+        "price": "9.9917",
+        "price_incl": "12.09"
+    },
+    {
+        "name": "whole_euro_minus_cent",
+        "amount": "10",
+        "vat": "21",
+        "round_on": "1",
+        "remove_amount": "0.01",
+        "price": "9.9091",
+        "price_incl": "11.99"
+    },
+    {
+        "name": "tie_rounds_down",
+        "amount": "12.5",
+        "vat": "0",
+        "round_on": "1",
+        "remove_amount": null,
+        "price": "12",
+        "price_incl": "12"
+    },
+    {
+        "name": "half_step_tie",
+        "amount": "3.25",
+        "vat": "0",
+        "round_on": "0.5",
+        "remove_amount": null,
+        "price": "3",
+        "price_incl": "3"
+    },
+    {
+        "name": "round_up_nearer",
+        "amount": "3.30",
+        "vat": "0",
+        "round_on": "0.5",
+        "remove_amount": null,
+        "price": "3.5",
+        "price_incl": "3.5"
+    },
+    {
+        "name": "no_round_on",
+        "amount": "10",
+        "vat": "21",
+        "round_on": null,
+        "remove_amount": "0.05",
+        "price": "9.9587",
+        "price_incl": "12.05"
+    },
+    {
+        "name": "zero_round_on",
+        "amount": "10",
+        "vat": "21",
+        "round_on": "0",
+        "remove_amount": "0.05",
+        "price": "9.9587",
+        "price_incl": "12.05"
+    },
+    {
+        "name": "no_remove",
+        "amount": "7.77",
+        "vat": "9",
+        "round_on": "0.1",
+        "remove_amount": null,
+        "price": "7.7982",
+        "price_incl": "8.5"
+    },
+    {
+        "name": "vat_9",
+        "amount": "4.99",
+        "vat": "9",
+        "round_on": "0.1",
+        "remove_amount": "0.01",
+        "price": "4.945",
+        "price_incl": "5.39"
+    },
+    {
+        "name": "large",
+        "amount": "123456.789",
+        "vat": "21",
+        "round_on": "5",
+        "remove_amount": "0.05",
+        "price": "123458.6364",
+        "price_incl": "149384.95"
+    },
+    {
+        "name": "zero_amount",
+        "amount": "0",
+        "vat": "21",
+        "round_on": "1",
+        "remove_amount": "0.01",
+        "price": "-0.0083",
+        "price_incl": "-0.01"
+    },
+    {
+        "name": "negative_round_on",
+        "amount": "10.3",
+        "vat": "0",
+        "round_on": "-1",
+        "remove_amount": null,
+        "price": "10",
+        "price_incl": "10"
+    },
+    {
+        "name": "tiny_step",
+        "amount": "1.23456789",
+        "vat": "21",
+        "round_on": "0.00000001",
+        "remove_amount": null,
+        "price": "1.2346",
+        "price_incl": "1.49"
+    },
+    {
+        "name": "odd_vat",
+        "amount": "19.95",
+        "vat": "5.5",
+        "round_on": "0.25",
+        "remove_amount": "0.02",
+        "price": "19.8863",
+        "price_incl": "20.98"
+    }
+]

@@ -27,11 +27,11 @@ use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 pub use http::rate_limit::RateLimit;
 use modules::{
     auth, contacts, currencies, custom_statuses, custom_types, discount_groups, discounts,
-    email_verification, hourly_rates, invites, permissions, pricing, product_brands,
-    product_categories, product_variants, products, relations, sales_groups, search, settings,
-    shipment_methods, stock, storage_locations, teams, users, vat_groups, warehouse_bins,
-    warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves, warehouses,
-    workspaces,
+    email_verification, hourly_rates, invites, permissions, price_corrections, pricing,
+    product_brands, product_categories, product_variants, products, relations, sales_groups,
+    search, settings, shipment_methods, stock, storage_locations, teams, users, vat_groups,
+    warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves,
+    warehouses, workspaces,
 };
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
@@ -107,6 +107,7 @@ pub fn build_app(state: AppState) -> Router {
         .merge(settings::routes::private())
         .merge(discount_groups::routes::private())
         .merge(discounts::routes::private())
+        .merge(price_corrections::routes::private())
         // Responses carry bearer tokens and invite data: never cache, never sniff.
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
