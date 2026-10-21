@@ -101,9 +101,11 @@ impl CredentialKey {
                 },
             )
             .map_err(|_| failed())?;
-        String::from_utf8(plain)
-            .map(PlainSecret::new)
-            .map_err(|_| failed())
+        String::from_utf8(plain).map(PlainSecret::new).map_err(|e| {
+            // Authentic but not text: wipe the plaintext before the buffer is freed.
+            zeroize::Zeroize::zeroize(&mut e.into_bytes());
+            failed()
+        })
     }
 }
 
@@ -159,6 +161,24 @@ mod tests {
         }
         assert!(key().open(ws, PATH, &sealed[..NONCE_LEN + 15]).is_err());
         assert!(key().open(ws, PATH, &[]).is_err());
+    }
+
+    #[test]
+    fn non_text_plaintext_fails_to_open() {
+        let ws = Uuid::from_u128(7);
+        let nonce = [9u8; NONCE_LEN];
+        let body = key()
+            .cipher
+            .encrypt(
+                &XNonce::from(nonce),
+                Payload {
+                    msg: &[0xff, 0xfe],
+                    aad: &aad(ws, PATH),
+                },
+            )
+            .unwrap();
+        let sealed = [nonce.as_slice(), &body].concat();
+        assert!(key().open(ws, PATH, &sealed).is_err());
     }
 
     #[test]
