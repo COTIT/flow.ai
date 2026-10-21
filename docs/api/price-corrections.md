@@ -30,7 +30,7 @@ Amounts print like Laravel's `MoneyHelper::formatDecimals` on uncast columns: 2 
   |---|---|
   | `value_from`, `value_to` | required number (net price, excl VAT) |
   | `round_on` | number or null: the incl-VAT step to round to; null or 0 = no rounding |
-  | `remove_amount` | number or null: incl-VAT amount taken off after rounding |
+  | `remove_amount` | number or null: incl-VAT amount taken off after rounding; left out = 0 (Laravel's model default) |
   | `meta` | object or null |
 
   Numbers: JSON numbers or numeric strings, at most 8 decimals, within `numeric(24,8)` (`The <field> must be a number.`, `… must have 0-8 decimal places.`).
@@ -69,4 +69,4 @@ Each has an `_incl` twin (× (100 + v) / 100, 2 dp). `original_price` equals `pr
 | Bands are read on every render; an edit shows at once | `Cache::rememberForever` per workspace, never cleared on create, update or delete: edits showed only after a cache flush |
 | At most 1000 live bands per workspace | No cap |
 | A band end sent as null on update is a 422 | 500 (NOT NULL column) |
-| Exact decimals | Floats; all 14 oracle cases match, but a tie that float error moves off the exact midpoint can round the other way |
+| Exact decimals: an exact tie always goes down | Floats: float noise sent some exact ties up (a 30 000-case random comparison: every non-tie matched; 66 of 2000 ties at a 0.1 step went up, about 0.02 % of random 2-dp prices) |

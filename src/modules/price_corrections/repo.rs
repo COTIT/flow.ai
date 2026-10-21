@@ -36,7 +36,8 @@ pub async fn insert(
         c.value_from,
         c.value_to,
         c.round_on.flatten(),
-        c.remove_amount.flatten(),
+        // Laravel's model default: left out = 0, sent null = null.
+        c.remove_amount.unwrap_or(Some(Decimal::ZERO)),
         c.meta.clone().flatten(),
     )
     .fetch_one(db)
