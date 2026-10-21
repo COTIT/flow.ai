@@ -35,7 +35,8 @@ Shared rules (guard order, 404s, list `meta`) are in `conventions.md`. Every rou
 | `items` | list of item rows, see below; may be left out, null or `[]` |
 
 - The invoice starts as `draft`. It has no dates: `send_date` and `due_date` are set when it is sent.
-- `meta`, `billing_address` and `customer_ref` are refused with `The X is too large.` past 1000 JSON nodes. The bound is applied while parsing, so a 2 MiB body never grows into a big tree.
+- `meta`, `billing_address` and `customer_ref` are refused with `The X is too large.` past 1000 JSON nodes or 16 KiB of keys and strings. The bound is applied while parsing, so a 2 MiB body never grows into a big tree; the database also caps `meta` and `customer_ref` at 16 KiB of JSON text.
+- Strings are trimmed and a blank one is null (Laravel TrimStrings + ConvertEmptyStringsToNull).
 - `custom_sections` are not stored: custom fields aren't ported.
 
 ## Item rows
@@ -52,11 +53,11 @@ Each row of `items`:
 | `vat` | required number ≥ 0 |
 | `productDiscount` | number 0..100: the line's discount percentage |
 | `purchase_price` | number; stored as sent, else 0 |
-| `description` | string ≤ 5000 |
+| `description` | string ≤ 5000; on an update row, left out keeps it and null clears it |
 | `position` | integer; else the row's index in `items` |
 | `product_id` | a live product of this workspace (new lines only; the product of a line never changes) |
-| `product_variant_id` | a live variant; an unknown one is dropped (Laravel). A new product line takes the product's default variant |
-| `mutate_from_warehouse_id` | a live warehouse; a new product line takes the product's default warehouse |
+| `product_variant_id` | a live variant of the line's product; any other is dropped (Laravel dropped unknown ones). A new product line takes the product's default variant |
+| `mutate_from_warehouse_id` | a live warehouse; on an update row, left out keeps it and null clears it. A new product line takes the product's default warehouse while it is live |
 
 Numbers follow the shared decimal rules: at most 8 decimals, ±10¹⁶. `items.*.discount_percentage` is not read (Laravel dropped it too).
 
@@ -67,6 +68,8 @@ Numbers follow the shared decimal rules: at most 8 decimals, ±10¹⁶. `items.*
 - Lines the body doesn't mention stay as they are (Laravel did no full-set diff).
 - An `id` that isn't a line of this invoice is a 422 `The selected items.N.id is invalid.`; deleting such an id is a no-op. Laravel updated or deleted another invoice's line.
 - Set children (`multi_set_product_id`) and rows whose set parent was deleted are skipped. genesy has no product sets yet.
+- Several rows with one `id`: the last one wins (Laravel applied them in order).
+- A sent line equal to the stored one is not rewritten (no new row version per save).
 
 ## Update `POST /invoices/{id}`
 
@@ -77,10 +80,12 @@ Only a `draft` can change; anything else is a 422 `{"message": "This Invoice doe
 | `relation_id` | required, as on create |
 | `reference`, `note`, `meta`, `billing_address`, `addressed_contact_id` | as on create; a key left out keeps the stored value, null clears it |
 | `due_date` | date, today or later (`The due date must be a date after yesterday.`) |
-| `customer_ref` | object `{ordered_by, po_number, reference}` (`po_no` is read as `po_number`) |
+| `customer_ref` | object `{ordered_by, po_number, reference}`, each a string ≤ 255 (`po_no` is read as `po_number`) |
 | `items` | item rows, see above |
 
 `currency_id`, `payment_method` and `is_credit` are not updatable (Laravel).
+
+Another `relation_id` without a new `addressed_contact_id` / `billing_address` clears the contact and takes the new relation's default billing address, so the old relation's contact never stays on the invoice (Laravel kept both).
 
 ## Delete `DELETE /invoices/{id}`
 
@@ -88,7 +93,7 @@ Cancels a draft: status `cancelled`, the row and its lines stay (Laravel never d
 
 ## Duplicate `POST /invoices/{id}/duplicate`
 
-A new draft from any live invoice, whatever its status:
+A new draft from any live invoice, whatever its status (the source is share locked while it is copied):
 - **Copied:** relation, currency, credit flag, note and meta, plus every line (title, description, quantity, price, VAT, discount, purchase price, product, variant, warehouse), with positions renumbered from 0.
 - **Not copied:** reference, billing address, addressed contact, payment method, dates and customer reference (Laravel). Laravel also reset the purchase prices to 0; genesy keeps them, so the margin stays right.
 
@@ -98,6 +103,9 @@ Lines price with `pricing::engine` at the currency's decimals: each line's amoun
 
 - `invoices.subtotal` / `total`: minor units (excl / incl), as Laravel's columns.
 - `invoices.summary`: exact decimals and the per-rate breakdown `vats: [{rate, base, vat}]`.
+
+- The margin is computed too: a line whose margin leaves the number range (`purchase_price × quantity` past ~10²⁸) is a 422 `The item totals are out of range.` on save, so the detail can always price what is stored.
+- The totals keep the currency decimals they were computed with (`summary.dp`): editing the currency later doesn't change a stored invoice's detail or list row until it is saved again.
 
 Laravel created lines without recomputing, so its stored totals of a fresh draft stayed 0 until a later save.
 
@@ -116,7 +124,7 @@ Laravel InvoiceResource:
 - `price`, `price_incl`, `total_each_price_incl` and `vat_amount` at 4 places.
 - `purchase_price` falls back to the product's purchase price when the line's is 0.
 - These per-line figures are exact until printed (Laravel's floats were). Summed per-line VAT can differ from the document VAT by half a cent per line.
-- `relationships.product` (product list shape) is there only for product lines; `relationships.mutate_from_warehouse` is the compact warehouse or null.
+- `relationships.product` is there only for product lines, with the fields vimdesk-web reads: `id`, `name`, `product_nr`, `reference`, `reference_vendor`, `sale_unit`, `should_mutate_stock`, `purchase_price`, `price_incl`, `original_price_incl`, `total_available_stock` (Laravel embedded the whole list resource per line). `relationships.mutate_from_warehouse` is the compact warehouse or null.
 - Stock, credit and set fields print their Laravel defaults (`"0.00"`, `false`, `[]`).
 
 ## List `GET /invoices`

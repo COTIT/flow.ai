@@ -94,7 +94,8 @@ pub enum RowKind {
 /// Fields of a new or updated line.
 pub struct ItemFields {
     pub title: String,
-    pub description: Option<String>,
+    /// None = not sent (an update keeps it), Some(None) = null or blank.
+    pub description: Patch<String>,
     pub quantity: Decimal,
     /// None: a product line left the price out (stored as 0, Laravel did no lookup).
     pub price: Option<Decimal>,
@@ -105,7 +106,8 @@ pub struct ItemFields {
     pub position: Option<i32>,
     pub product_id: RefId,
     pub product_variant_id: RefId,
-    pub mutate_from_warehouse_id: RefId,
+    /// None = not sent (an update keeps it), Some(None) = null (clears).
+    pub mutate_from_warehouse_id: Patch<Option<Uuid>>,
 }
 
 /// `{data:{invoice_id}}` of create and duplicate.
@@ -183,7 +185,10 @@ fn header(r: &mut Rules, b: &InvoiceBody, create: bool) -> InvoiceInput {
         due_date: (!create).then(|| due_date(r, &b.due_date)).flatten(),
         billing_address: billing_address(r, &b.billing_address),
         customer_ref: (!create)
-            .then(|| object(r, "customer_ref", &b.customer_ref).map(|v| v.map(customer_ref)))
+            .then(|| {
+                let v = object(r, "customer_ref", &b.customer_ref)?;
+                Some(v.map(|v| customer_ref(r, &v)))
+            })
             .flatten(),
         meta: object(r, "meta", &b.meta),
         items: Vec::new(),
@@ -206,11 +211,12 @@ fn ref_id(v: &Scalar) -> RefId {
     v.filled().map(|v| uuid_of(&v))
 }
 
-/// Laravel `nullable|string|max:N`, patch semantics.
+/// Laravel `nullable|string|max:N` after TrimStrings (blank = null), patch semantics.
 fn text(r: &mut Rules, field: &str, v: &Scalar, max: usize) -> Patch<String> {
     match patch(v)? {
         None => Some(None),
         Some(Value::String(s)) => {
+            let s = s.trim().to_owned();
             r.max_chars(field, &s, max);
             Some(Some(s))
         }
@@ -234,20 +240,29 @@ fn object(r: &mut Rules, field: &str, v: &Capped) -> Patch<Value> {
 }
 
 /// Laravel CustomerRef value: `ordered_by`, `po_number` (sent as `po_no` or `po_number`),
-/// `reference`, each a string or null.
-fn customer_ref(v: Value) -> Value {
-    let pick = |k: &str| {
-        v.get(k)
-            .filter(|x| x.is_string())
-            .cloned()
-            .unwrap_or(Value::Null)
+/// `reference`, each a trimmed string of at most 255 chars or null.
+fn customer_ref(r: &mut Rules, v: &Value) -> Value {
+    let mut pick = |out: &str, sent: &[&str]| {
+        let key = format!("customer_ref.{out}");
+        let found = sent.iter().find_map(|k| v.get(*k).filter(|x| !x.is_null()));
+        match found {
+            Some(Value::String(s)) if !s.trim().is_empty() => {
+                let s = s.trim();
+                r.max_chars(&key, s, 255);
+                Value::from(s)
+            }
+            Some(Value::String(_)) | None => Value::Null,
+            Some(_) => {
+                r.add(&key, format!("The {} must be a string.", human(&key)));
+                Value::Null
+            }
+        }
     };
-    let po = match pick("po_number") {
-        Value::Null => pick("po_no"),
-        po => po,
-    };
-    serde_json::json!({ "ordered_by": pick("ordered_by"), "po_number": po,
-                        "reference": pick("reference") })
+    serde_json::json!({
+        "ordered_by": pick("ordered_by", &["ordered_by"]),
+        "po_number": pick("po_number", &["po_number", "po_no"]),
+        "reference": pick("reference", &["reference"]),
+    })
 }
 
 /// Laravel `Address` rule on `billing_address` (bare field keys, as Laravel's errors).
@@ -384,6 +399,7 @@ fn item(r: &mut Rules, key: &str, raw: RawItem) -> RowKind {
             String::new()
         }
         Some(Value::String(s)) => {
+            let s = s.trim().to_owned();
             r.max_chars(&f("title"), &s, 255);
             s
         }
@@ -395,18 +411,7 @@ fn item(r: &mut Rules, key: &str, raw: RawItem) -> RowKind {
             String::new()
         }
     };
-    let description = match raw.description.filled() {
-        None => None,
-        Some(Value::String(s)) => {
-            r.max_chars(&f("description"), &s, 5000);
-            Some(s)
-        }
-        Some(_) => {
-            let d = f("description");
-            r.add(&d, format!("The {} must be a string.", human(&d)));
-            None
-        }
-    };
+    let description = text(r, &f("description"), &raw.description, 5000);
     let position = raw
         .position
         .filled()
@@ -423,11 +428,10 @@ fn item(r: &mut Rules, key: &str, raw: RawItem) -> RowKind {
         position,
         product_id,
         product_variant_id: item_ref(r, &f("product_variant_id"), &raw.product_variant_id),
-        mutate_from_warehouse_id: item_ref(
-            r,
-            &f("mutate_from_warehouse_id"),
-            &raw.mutate_from_warehouse_id,
-        ),
+        mutate_from_warehouse_id: match raw.mutate_from_warehouse_id {
+            Scalar::Absent => None,
+            ref v => Some(item_ref(r, &f("mutate_from_warehouse_id"), v)),
+        },
     };
     match id {
         Some(id) => RowKind::Update(id, fields),

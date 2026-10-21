@@ -801,3 +801,323 @@ async fn a_product_delete_waits_for_an_invoice_write(pool: PgPool) {
     let (status, res) = delete.await.unwrap();
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
 }
+
+// --- review fixes --------------------------------------------------------------------------
+
+/// `meta` and `customer_ref` are capped in bytes too (list rows print `meta`): one 2 MiB
+/// string is one node.
+#[sqlx::test]
+async fn header_objects_are_capped_in_bytes(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, _) = relation(&api, "Acme").await;
+    let big = "x".repeat(17_000);
+    assert_eq!(
+        error(
+            &api,
+            "",
+            json!({ "relation_id": rel, "meta": { "x": big } }),
+            "meta"
+        )
+        .await,
+        "The meta is too large."
+    );
+    let id = api
+        .create(
+            json!({ "relation_id": rel, "meta": { "x": "y".repeat(8_000) } }),
+            "invoice_id",
+        )
+        .await;
+    let long = json!({ "relation_id": rel, "customer_ref": { "po_number": "p".repeat(256) } });
+    assert_eq!(
+        error(&api, &format!("/{id}"), long, "customer_ref.po_number").await,
+        "The customer ref.po number must not be greater than 255 characters."
+    );
+}
+
+/// Moving a draft to another relation without new snapshots drops the old relation's
+/// contact and takes the new relation's billing address.
+#[sqlx::test]
+async fn a_new_relation_resets_the_snapshots(pool: PgPool) {
+    let api = api(pool).await;
+    let (acme, contact) = relation(&api, "Acme").await;
+    let beta = api
+        .with_base("/relations")
+        .create(
+            json!({ "company_name": "Beta", "type": "business",
+                    "addresses": [{ "address": "Side", "house_number": "2", "zipcode": "2000BB",
+                                    "city": "Utrecht", "country": "NL", "type": "billing" }] }),
+            "relation_id",
+        )
+        .await;
+    let id = api
+        .create(
+            json!({ "relation_id": acme, "addressed_contact_id": contact }),
+            "invoice_id",
+        )
+        .await;
+    post(
+        &api,
+        &format!("/{id}"),
+        json!({ "relation_id": acme, "reference": "same" }),
+    )
+    .await;
+    let inv = get(&api, &id).await;
+    assert_eq!(
+        inv["addressed_contact"]["uuid"], contact,
+        "same relation keeps it"
+    );
+    post(&api, &format!("/{id}"), json!({ "relation_id": beta })).await;
+    let inv = get(&api, &id).await;
+    assert_eq!(inv["addressed_contact"], Value::Null);
+    assert_eq!(inv["billing_address"]["city"], "Utrecht");
+}
+
+/// A variant must belong to the line's product; another product's variant is dropped and the
+/// product's default variant is taken (Laravel dropped unknown variants).
+#[sqlx::test]
+async fn a_variant_belongs_to_its_product(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, _) = relation(&api, "Acme").await;
+    let (one, two) = (product(&api, "One").await, product(&api, "Two").await);
+    let variant = |p: String| {
+        let pool = api.pool.clone();
+        async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT id::text FROM product_variants WHERE product_id = $1::uuid AND is_default",
+            )
+            .bind(p)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    let (v1, v2) = (variant(one.clone()).await, variant(two.clone()).await);
+    let mut l = line("W", json!(1), json!(1), json!(21));
+    l["product_id"] = json!(one);
+    l["product_variant_id"] = json!(v2);
+    let id = api
+        .create(json!({ "relation_id": rel, "items": [l] }), "invoice_id")
+        .await;
+    assert_eq!(get(&api, &id).await["items"][0]["product_variant_id"], v1);
+}
+
+/// An update row without `description` keeps it; null clears it (Laravel updated sent keys).
+#[sqlx::test]
+async fn an_update_row_patches_description(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, _) = relation(&api, "Acme").await;
+    let mut l = line("A", json!(1), json!(1), json!(21));
+    l["description"] = json!("kept");
+    let id = api
+        .create(json!({ "relation_id": rel, "items": [l] }), "invoice_id")
+        .await;
+    let item = get(&api, &id).await["items"][0]["id"].clone();
+    let row = |extra: Value| {
+        let mut r = json!({ "id": item, "title": "A", "quantity": 2, "price": 1, "vat": 21 });
+        if let Value::Object(m) = extra {
+            r.as_object_mut().unwrap().extend(m);
+        }
+        json!({ "relation_id": rel, "items": [r] })
+    };
+    post(&api, &format!("/{id}"), row(json!({}))).await;
+    assert_eq!(get(&api, &id).await["items"][0]["description"], "kept");
+    post(&api, &format!("/{id}"), row(json!({ "description": null }))).await;
+    assert_eq!(get(&api, &id).await["items"][0]["description"], Value::Null);
+}
+
+/// Totals keep the decimals they were computed with: editing the currency afterwards doesn't
+/// change a stored invoice's detail or list row.
+#[sqlx::test]
+async fn totals_keep_their_decimals(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, _) = relation(&api, "Acme").await;
+    let id = api
+        .create(
+            json!({ "relation_id": rel, "items": [line("T", json!(3), json!(0.07), json!(21))] }),
+            "invoice_id",
+        )
+        .await;
+    sqlx::query("UPDATE currencies SET decimals = 0 WHERE workspace_id = $1::uuid")
+        .bind(&api.ws)
+        .execute(&api.pool)
+        .await
+        .unwrap();
+    assert_eq!(get(&api, &id).await["summary"]["total"], json!(0.25));
+    assert_eq!(
+        api.list("").await["data"][0]["summary"]["total"],
+        json!(0.25)
+    );
+}
+
+/// A line whose margin leaves Decimal's range is refused on save, so the detail can always
+/// price what is stored.
+#[sqlx::test]
+async fn an_unpriceable_line_is_refused_on_save(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, _) = relation(&api, "Acme").await;
+    let mut l = line("Big", json!("9999999999999999"), json!(1), json!(0));
+    l["purchase_price"] = json!("9999999999999999");
+    assert_eq!(
+        error(
+            &api,
+            "",
+            json!({ "relation_id": rel, "items": [l] }),
+            "items"
+        )
+        .await,
+        "The item totals are out of range."
+    );
+}
+
+/// Several rows with one id: the last one wins (Laravel applied them in order).
+#[sqlx::test]
+async fn the_last_row_of_an_id_wins(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, _) = relation(&api, "Acme").await;
+    let id = api
+        .create(
+            json!({ "relation_id": rel, "items": [line("A", json!(1), json!(1), json!(21))] }),
+            "invoice_id",
+        )
+        .await;
+    let item = get(&api, &id).await["items"][0]["id"].clone();
+    let row = |t: &str| json!({ "id": item, "title": t, "quantity": 1, "price": 1, "vat": 21 });
+    post(
+        &api,
+        &format!("/{id}"),
+        json!({ "relation_id": rel, "items": [row("first"), row("last")] }),
+    )
+    .await;
+    assert_eq!(get(&api, &id).await["items"][0]["title"], "last");
+    post(
+        &api,
+        &format!("/{id}"),
+        json!({ "relation_id": rel,
+        "items": [row("kept"), { "id": item, "deleted": true }] }),
+    )
+    .await;
+    assert_eq!(get(&api, &id).await["items"], json!([]));
+}
+
+#[sqlx::test]
+async fn header_patch_rules(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, contact) = relation(&api, "Acme").await;
+    let id = api
+        .create(
+            json!({ "relation_id": rel, "reference": "  R1  ", "addressed_contact_id": contact,
+                        "meta": { "a": 1 } }),
+            "invoice_id",
+        )
+        .await;
+    let inv = get(&api, &id).await;
+    assert_eq!(inv["reference"], "R1", "trimmed (Laravel TrimStrings)");
+    let today = chrono::Utc::now().date_naive().to_string();
+    let (status, res) = post(
+        &api,
+        &format!("/{id}"),
+        json!({
+        "relation_id": rel, "reference": "   ", "meta": null, "addressed_contact_id": null,
+        "due_date": today, "customer_ref": { "po_no": " PO-7 ", "ordered_by": "Ada" } }),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let inv = get(&api, &id).await;
+    assert_eq!(inv["reference"], Value::Null, "blank clears");
+    assert_eq!(inv["meta"], Value::Null);
+    assert_eq!(inv["addressed_contact"], Value::Null);
+    assert!(inv["due_date"].as_str().unwrap().starts_with(&today));
+    assert_eq!(
+        inv["customer_ref"],
+        json!({ "ordered_by": "Ada", "po_number": "PO-7", "reference": null })
+    );
+    let yesterday = (chrono::Utc::now() - chrono::Duration::days(1))
+        .date_naive()
+        .to_string();
+    assert_eq!(
+        error(
+            &api,
+            &format!("/{id}"),
+            json!({ "relation_id": rel, "due_date": yesterday }),
+            "due_date"
+        )
+        .await,
+        "The due date must be a date after yesterday."
+    );
+    // Left out: kept.
+    post(&api, &format!("/{id}"), json!({ "relation_id": rel })).await;
+    assert_eq!(get(&api, &id).await["customer_ref"]["po_number"], "PO-7");
+    let huge = json!({ "relation_id": rel, "billing_address": { "address": "x".repeat(17_000) } });
+    assert_eq!(
+        error(&api, &format!("/{id}"), huge, "billing_address").await,
+        "The billing address is too large."
+    );
+}
+
+/// Set children and rows whose set parent was deleted are skipped (no product sets yet).
+#[sqlx::test]
+async fn set_rows_are_skipped(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, _) = relation(&api, "Acme").await;
+    let mut child = line("child", json!(1), json!(0), json!(0));
+    child["multi_set_product_id"] = json!("01900000-0000-7000-8000-000000000001");
+    let id = api
+        .create(json!({ "relation_id": rel, "items": [line("A", json!(1), json!(1), json!(21)), child] }), "invoice_id")
+        .await;
+    let items = get(&api, &id).await["items"].clone();
+    assert_eq!(items.as_array().unwrap().len(), 1);
+    let orphan = json!({ "id": items[0]["id"], "title": "changed", "quantity": 1, "price": 1,
+                         "vat": 21, "parent_deleted": true });
+    post(
+        &api,
+        &format!("/{id}"),
+        json!({ "relation_id": rel, "items": [orphan] }),
+    )
+    .await;
+    assert_eq!(get(&api, &id).await["items"][0]["title"], "A");
+}
+
+/// A relation delete that starts while an invoice write holds the relation waits for it, then
+/// refuses.
+#[sqlx::test]
+async fn a_relation_delete_waits_for_an_invoice_write(pool: PgPool) {
+    let api = api(pool).await;
+    let (rel, _) = relation(&api, "Acme").await;
+    let currency: String = sqlx::query_scalar(
+        "SELECT id::text FROM currencies WHERE workspace_id = $1::uuid AND default_currency",
+    )
+    .bind(&api.ws)
+    .fetch_one(&api.pool)
+    .await
+    .unwrap();
+    let mut writer = api.pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM relations WHERE id = $1::uuid FOR KEY SHARE")
+        .bind(&rel)
+        .execute(&mut *writer)
+        .await
+        .unwrap();
+    let (app, uri, owner) = (
+        api.app.clone(),
+        format!("/v1/workspace/{}/relations/{rel}", api.ws),
+        api.owner.clone(),
+    );
+    let delete =
+        tokio::spawn(
+            async move { common::send(&app, Method::DELETE, &uri, None, Some(&owner)).await },
+        );
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    assert!(!delete.is_finished(), "the delete waits for the writer");
+    sqlx::query(
+        "INSERT INTO invoices (workspace_id, relation_id, currency_id)
+         VALUES ($1::uuid, $2::uuid, $3::uuid)",
+    )
+    .bind(&api.ws)
+    .bind(&rel)
+    .bind(&currency)
+    .execute(&mut *writer)
+    .await
+    .unwrap();
+    writer.commit().await.unwrap();
+    let (status, res) = delete.await.unwrap();
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+}

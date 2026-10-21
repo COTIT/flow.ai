@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT status, is_credit, currency_id FROM invoices\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
+  "query": "SELECT status, relation_id, currency_id FROM invoices\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,12 @@
       },
       {
         "ordinal": 1,
-        "name": "is_credit",
-        "type_info": "Bool",
+        "name": "relation_id",
+        "type_info": "Uuid",
         "origin": {
           "Table": {
             "table": "invoices",
-            "name": "is_credit"
+            "name": "relation_id"
           }
         }
       },
@@ -49,5 +49,5 @@
       false
     ]
   },
-  "hash": "ee0b047db50c0ad5321f632c39251b0399fa4c56a7043506642fcc912e587afb"
+  "hash": "38d5c245214c24757f75dcff5586122f416db9c04347687bf7e148425fb3a93d"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_id, product_variant_id, mutate_from_warehouse_id, title, description,\n                quantity, price, vat, discount_percentage, purchase_price, position, created_at,\n                updated_at\n         FROM items WHERE invoice_id = $1 ORDER BY position, id",
+  "query": "SELECT id, product_id, product_variant_id, mutate_from_warehouse_id, title, description,\n                quantity, price, vat, discount_percentage, purchase_price, position, created_at,\n                updated_at\n         FROM items WHERE workspace_id = $1 AND invoice_id = $2 ORDER BY position, id",
   "describe": {
     "columns": [
       {
@@ -160,6 +160,7 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Uuid"
       ]
     },
@@ -180,5 +181,5 @@
       false
     ]
   },
-  "hash": "82f65d99c0e0893a7714fa632f6f19fc79c01cad88698a5d1dd4dde8605ec8ea"
+  "hash": "7a23424386ed51e88c34884dbe5e0960bee9e5943d5645afe294effef9443352"
 }

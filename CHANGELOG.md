@@ -10,6 +10,13 @@
   - Bodies up to 2 MiB with the allocation-bounded parse of `calculate-items`. `meta`, `billing_address` and `customer_ref` are capped at 1000 JSON nodes while parsing.
   - **Guards:** a product on a line and a relation with invoices can't be deleted (Laravel's messages). The delete locks the row `FOR UPDATE` and the invoice write key-shares it, so a delete running alongside a write waits for it and then sees the new rows.
   - `AppError::Unprocessable`: a 422 with only a message (Laravel exceptions with `statusCode` 422).
+  - Review fixes (rust, security, database):
+    - `meta` / `customer_ref` / `billing_address` capped at 16 KiB of text as well as 1000 nodes (a single 2 MiB string printed on every list row), plus a DB size CHECK; `customer_ref` fields ≤ 255.
+    - A line whose margin overflows is refused on save (the detail returned 422 for it).
+    - An update row without `description` keeps it (it was cleared); the warehouse is a patch too.
+    - Strings are trimmed; another relation clears the old contact and takes its billing address; a variant must belong to the line's product; a product's default warehouse is used only while live.
+    - Unchanged lines aren't rewritten; the last row of an id wins; duplicate share-locks its source.
+    - Totals keep their currency decimals; the detail embeds a slim product per line; no count query with `limit`; every line query is workspace-scoped; the relation index is not partial (FK checks) and carries the list order.
   - **Laravel differences:**
     - Stored totals are always current (Laravel left a new draft's at 0).
     - A missing `items` key, an unknown product or a malformed id no longer give a 500.

@@ -95,13 +95,16 @@ pub struct NewLines {
     pub position: Vec<i32>,
 }
 
-/// Changed lines; a None keeps that column (Laravel updated only the sent keys).
+/// Changed lines; a None keeps that column, a false `set_*` keeps the paired one (Laravel
+/// updated only the sent keys).
 #[derive(Default)]
 pub struct LineChanges {
     pub id: Vec<Uuid>,
     pub product_variant_id: Vec<Option<Uuid>>,
+    pub set_warehouse: Vec<bool>,
     pub warehouse_id: Vec<Option<Uuid>>,
     pub title: Vec<String>,
+    pub set_description: Vec<bool>,
     pub description: Vec<Option<String>>,
     pub quantity: Vec<Decimal>,
     pub price: Vec<Option<Decimal>>,
@@ -109,6 +112,12 @@ pub struct LineChanges {
     pub discount: Vec<Option<Decimal>>,
     pub purchase_price: Vec<Decimal>,
     pub position: Vec<Option<i32>>,
+}
+
+/// A live variant and its product.
+pub struct VariantRow {
+    pub id: Uuid,
+    pub product_id: Uuid,
 }
 
 /// A live product as an item line takes it.
@@ -164,6 +173,9 @@ pub async fn lock_products(
     workspace_id: Uuid,
     ids: &[Uuid],
 ) -> Result<Vec<ProductDefaults>, sqlx::Error> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
     sqlx::query_as!(
         ProductDefaults,
         r#"SELECT p.id, p.default_warehouse_id,
@@ -181,16 +193,19 @@ pub async fn lock_products(
     .await
 }
 
-/// Live variants among `ids` (key-share locked).
-pub async fn lock_variants(
+/// Live variants among `ids`. No lock: variant and warehouse deletes have no "in use" guard.
+pub async fn variants(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     ids: &[Uuid],
-) -> Result<Vec<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
-        "SELECT id FROM product_variants
-         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL
-         ORDER BY id FOR KEY SHARE",
+) -> Result<Vec<VariantRow>, sqlx::Error> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    sqlx::query_as!(
+        VariantRow,
+        "SELECT id, product_id FROM product_variants
+         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL",
         workspace_id,
         ids,
     )
@@ -198,16 +213,18 @@ pub async fn lock_variants(
     .await
 }
 
-/// Live warehouses among `ids` (key-share locked).
-pub async fn lock_warehouses(
+/// Live warehouses among `ids`.
+pub async fn warehouses(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     ids: &[Uuid],
 ) -> Result<Vec<Uuid>, sqlx::Error> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
     sqlx::query_scalar!(
         "SELECT id FROM warehouses
-         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL
-         ORDER BY id FOR KEY SHARE",
+         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL",
         workspace_id,
         ids,
     )
@@ -243,22 +260,49 @@ pub async fn insert(
     .await
 }
 
-/// `(status, is_credit, currency_id)` of the live invoice `id`, row locked until commit: one
-/// writer per invoice, so item writes and totals can't interleave.
+/// What a write needs from the locked invoice.
+pub struct Locked {
+    pub status: String,
+    pub relation_id: Uuid,
+    pub currency_id: Uuid,
+}
+
+/// The live invoice `id`, row locked until commit: one writer per invoice, so item writes and
+/// totals can't interleave.
 pub async fn lock(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     id: Uuid,
-) -> Result<Option<(String, bool, Uuid)>, sqlx::Error> {
-    let row = sqlx::query!(
-        "SELECT status, is_credit, currency_id FROM invoices
+) -> Result<Option<Locked>, sqlx::Error> {
+    sqlx::query_as!(
+        Locked,
+        "SELECT status, relation_id, currency_id FROM invoices
          WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
         workspace_id,
         id,
     )
     .fetch_optional(conn)
-    .await?;
-    Ok(row.map(|r| (r.status, r.is_credit, r.currency_id)))
+    .await
+}
+
+/// The live invoice `id`, share locked until commit: its lines can't change while a copy reads
+/// them, so the products on them stay guarded.
+pub async fn find_for_share(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<InvoiceRow>, sqlx::Error> {
+    sqlx::query_as!(
+        InvoiceRow,
+        "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,
+                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,
+                summary, created_at, updated_at
+         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(conn)
+    .await
 }
 
 /// Apply `p` to the header.
@@ -321,11 +365,20 @@ pub async fn set_status(
     Ok(())
 }
 
-/// Ids of the invoice's lines.
-pub async fn item_ids(conn: &mut PgConnection, invoice_id: Uuid) -> Result<Vec<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!("SELECT id FROM items WHERE invoice_id = $1", invoice_id)
-        .fetch_all(conn)
-        .await
+/// `(id, product_id)` of the invoice's lines.
+pub async fn item_products(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+) -> Result<Vec<(Uuid, Option<Uuid>)>, sqlx::Error> {
+    let rows = sqlx::query!(
+        "SELECT id, product_id FROM items WHERE workspace_id = $1 AND invoice_id = $2",
+        workspace_id,
+        invoice_id,
+    )
+    .fetch_all(conn)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.id, r.product_id)).collect())
 }
 
 /// Insert `l` as lines of `invoice_id`, one statement.
@@ -368,9 +421,11 @@ pub async fn insert_lines(
     Ok(())
 }
 
-/// Apply `c` to lines of `invoice_id`, one statement. The product never changes (Laravel).
+/// Apply `c` to lines of `invoice_id`, one statement; a line equal to what is sent is left
+/// alone (no new row version). The product never changes (Laravel).
 pub async fn update_lines(
     conn: &mut PgConnection,
+    workspace_id: Uuid,
     invoice_id: Uuid,
     c: &LineChanges,
 ) -> Result<(), sqlx::Error> {
@@ -379,28 +434,47 @@ pub async fn update_lines(
     }
     sqlx::query!(
         "UPDATE items i SET
-            product_variant_id = COALESCE(u.variant_id, i.product_variant_id),
-            mutate_from_warehouse_id = COALESCE(u.warehouse_id, i.mutate_from_warehouse_id),
-            title = u.title,
-            description = u.description,
-            quantity = u.quantity,
-            price = COALESCE(u.price, i.price),
-            vat = u.vat,
-            discount_percentage = COALESCE(u.discount, i.discount_percentage),
-            purchase_price = u.purchase_price,
-            position = COALESCE(u.position, i.position),
+            product_variant_id = n.variant_id,
+            mutate_from_warehouse_id = n.warehouse_id,
+            title = n.title,
+            description = n.description,
+            quantity = n.quantity,
+            price = n.price,
+            vat = n.vat,
+            discount_percentage = n.discount,
+            purchase_price = n.purchase_price,
+            position = n.position,
             updated_at = now()
-         FROM unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::text[], $6::text[],
-                     $7::numeric[], $8::numeric[], $9::numeric[], $10::numeric[],
-                     $11::numeric[], $12::int4[])
-              AS u(id, variant_id, warehouse_id, title, description, quantity, price, vat,
-                   discount, purchase_price, position)
-         WHERE i.id = u.id AND i.invoice_id = $1",
+         FROM (SELECT u.id,
+                      COALESCE(u.variant_id, c.product_variant_id) AS variant_id,
+                      CASE WHEN u.set_warehouse THEN u.warehouse_id
+                           ELSE c.mutate_from_warehouse_id END AS warehouse_id,
+                      u.title,
+                      CASE WHEN u.set_description THEN u.description
+                           ELSE c.description END AS description,
+                      u.quantity, COALESCE(u.price, c.price) AS price, u.vat,
+                      COALESCE(u.discount, c.discount_percentage) AS discount,
+                      u.purchase_price, COALESCE(u.position, c.position) AS position
+               FROM unnest($3::uuid[], $4::uuid[], $5::bool[], $6::uuid[], $7::text[],
+                           $8::bool[], $9::text[], $10::numeric[], $11::numeric[],
+                           $12::numeric[], $13::numeric[], $14::numeric[], $15::int4[])
+                    AS u(id, variant_id, set_warehouse, warehouse_id, title, set_description,
+                         description, quantity, price, vat, discount, purchase_price, position)
+               JOIN items c ON c.id = u.id) AS n
+         WHERE i.id = n.id AND i.workspace_id = $1 AND i.invoice_id = $2
+           AND (i.product_variant_id, i.mutate_from_warehouse_id, i.title, i.description,
+                i.quantity, i.price, i.vat, i.discount_percentage, i.purchase_price, i.position)
+               IS DISTINCT FROM
+               (n.variant_id, n.warehouse_id, n.title, n.description, n.quantity, n.price,
+                n.vat, n.discount, n.purchase_price, n.position)",
+        workspace_id,
         invoice_id,
         &c.id,
         &c.product_variant_id as &[Option<Uuid>],
+        &c.set_warehouse,
         &c.warehouse_id as &[Option<Uuid>],
         &c.title,
+        &c.set_description,
         &c.description as &[Option<String>],
         &c.quantity,
         &c.price as &[Option<Decimal>],
@@ -417,6 +491,7 @@ pub async fn update_lines(
 /// Remove lines `ids` of `invoice_id`.
 pub async fn delete_lines(
     conn: &mut PgConnection,
+    workspace_id: Uuid,
     invoice_id: Uuid,
     ids: &[Uuid],
 ) -> Result<(), sqlx::Error> {
@@ -424,7 +499,8 @@ pub async fn delete_lines(
         return Ok(());
     }
     sqlx::query!(
-        "DELETE FROM items WHERE invoice_id = $1 AND id = ANY($2)",
+        "DELETE FROM items WHERE workspace_id = $1 AND invoice_id = $2 AND id = ANY($3)",
+        workspace_id,
         invoice_id,
         ids,
     )
@@ -434,13 +510,18 @@ pub async fn delete_lines(
 }
 
 /// The invoice's lines in display order.
-pub async fn lines(db: impl PgExecutor<'_>, invoice_id: Uuid) -> Result<Vec<ItemRow>, sqlx::Error> {
+pub async fn lines(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+) -> Result<Vec<ItemRow>, sqlx::Error> {
     sqlx::query_as!(
         ItemRow,
         "SELECT id, product_id, product_variant_id, mutate_from_warehouse_id, title, description,
                 quantity, price, vat, discount_percentage, purchase_price, position, created_at,
                 updated_at
-         FROM items WHERE invoice_id = $1 ORDER BY position, id",
+         FROM items WHERE workspace_id = $1 AND invoice_id = $2 ORDER BY position, id",
+        workspace_id,
         invoice_id,
     )
     .fetch_all(db)
@@ -450,13 +531,16 @@ pub async fn lines(db: impl PgExecutor<'_>, invoice_id: Uuid) -> Result<Vec<Item
 /// Store the totals computed from the lines.
 pub async fn set_totals(
     conn: &mut PgConnection,
+    workspace_id: Uuid,
     id: Uuid,
     subtotal: i64,
     total: i64,
     summary: &Value,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "UPDATE invoices SET subtotal = $2, total = $3, summary = $4 WHERE id = $1",
+        "UPDATE invoices SET subtotal = $3, total = $4, summary = $5
+         WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
         id,
         subtotal,
         total,
@@ -512,13 +596,15 @@ pub struct ListFilter<'a> {
     pub search: Option<&'a str>,
 }
 
-/// One page of live invoices, newest first, plus the total count.
+/// One page of live invoices, newest first, plus the total count when `count` (a short first
+/// page counts itself).
 pub async fn list(
     db: &sqlx::PgPool,
     workspace_id: Uuid,
     f: &ListFilter<'_>,
     limit: i64,
     offset: i64,
+    count: bool,
 ) -> Result<(Vec<InvoiceRow>, i64), sqlx::Error> {
     // Laravel on_account: the in_status set, or on-account invoices still open.
     let rows = sqlx::query_as!(
@@ -554,6 +640,10 @@ pub async fn list(
     )
     .fetch_all(db)
     .await?;
+    let shown = i64::try_from(rows.len()).unwrap_or(i64::MAX);
+    if !count || (offset == 0 && shown < limit) {
+        return Ok((rows, shown));
+    }
     let total = sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM invoices i
            WHERE i.workspace_id = $1 AND i.deleted_at IS NULL

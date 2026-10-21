@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE items i SET\n            product_variant_id = n.variant_id,\n            mutate_from_warehouse_id = n.warehouse_id,\n            title = n.title,\n            description = n.description,\n            quantity = n.quantity,\n            price = n.price,\n            vat = n.vat,\n            discount_percentage = n.discount,\n            purchase_price = n.purchase_price,\n            position = n.position,\n            updated_at = now()\n         FROM (SELECT u.id,\n                      COALESCE(u.variant_id, c.product_variant_id) AS variant_id,\n                      CASE WHEN u.set_warehouse THEN u.warehouse_id\n                           ELSE c.mutate_from_warehouse_id END AS warehouse_id,\n                      u.title,\n                      CASE WHEN u.set_description THEN u.description\n                           ELSE c.description END AS description,\n                      u.quantity, COALESCE(u.price, c.price) AS price, u.vat,\n                      COALESCE(u.discount, c.discount_percentage) AS discount,\n                      u.purchase_price, COALESCE(u.position, c.position) AS position\n               FROM unnest($3::uuid[], $4::uuid[], $5::bool[], $6::uuid[], $7::text[],\n                           $8::bool[], $9::text[], $10::numeric[], $11::numeric[],\n                           $12::numeric[], $13::numeric[], $14::numeric[], $15::int4[])\n                    AS u(id, variant_id, set_warehouse, warehouse_id, title, set_description,\n                         description, quantity, price, vat, discount, purchase_price, position)\n               JOIN items c ON c.id = u.id) AS n\n         WHERE i.id = n.id AND i.workspace_id = $1 AND i.invoice_id = $2\n           AND (i.product_variant_id, i.mutate_from_warehouse_id, i.title, i.description,\n                i.quantity, i.price, i.vat, i.discount_percentage, i.purchase_price, i.position)\n               IS DISTINCT FROM\n               (n.variant_id, n.warehouse_id, n.title, n.description, n.quantity, n.price,\n                n.vat, n.discount, n.purchase_price, n.position)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "BoolArray",
+        "UuidArray",
+        "TextArray",
+        "BoolArray",
+        "TextArray",
+        "NumericArray",
+        "NumericArray",
+        "NumericArray",
+        "NumericArray",
+        "NumericArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8f8a0b500d1cba86dffb5f40aba9691926f8075260d597476f98858e46f74f6a"
+}

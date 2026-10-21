@@ -320,9 +320,7 @@ pub async fn duplicate(
     create(state, workspace_id, f, actor).await
 }
 
-/// Soft delete, else 404.
-// shortcut: Laravel refused a product used in order items (422); items arrive with the final
-// batch, which must add that guard here.
+/// Soft delete, else 404; 422 while an item line uses it.
 pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
     let id = parse(id)?;
     let mut tx = state.db.begin().await?;

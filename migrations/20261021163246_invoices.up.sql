@@ -19,8 +19,11 @@ CREATE TABLE invoices (
     -- Snapshots taken when the invoice is written (Laravel Address / AddressedContact values).
     billing_address   jsonb       CHECK (billing_address IS NULL OR jsonb_typeof(billing_address) = 'object'),
     addressed_contact jsonb       CHECK (addressed_contact IS NULL OR jsonb_typeof(addressed_contact) = 'object'),
-    customer_ref      jsonb       CHECK (customer_ref IS NULL OR jsonb_typeof(customer_ref) = 'object'),
-    meta              jsonb       CHECK (meta IS NULL OR jsonb_typeof(meta) = 'object'),
+    -- Size caps back the API's (list rows print `meta`): 16 KiB of JSON text each.
+    customer_ref      jsonb       CHECK (customer_ref IS NULL OR (jsonb_typeof(customer_ref) = 'object'
+                                         AND octet_length(customer_ref::text) <= 16384)),
+    meta              jsonb       CHECK (meta IS NULL OR (jsonb_typeof(meta) = 'object'
+                                         AND octet_length(meta::text) <= 16384)),
     due_date          timestamptz,
     send_date         timestamptz,
     subtotal          bigint      NOT NULL DEFAULT 0,
@@ -40,9 +43,9 @@ CREATE TABLE invoices (
 -- The list: newest first per workspace.
 CREATE INDEX invoices_list_idx ON invoices (workspace_id, created_at DESC, id DESC)
     WHERE deleted_at IS NULL;
--- Relation filter, the relation delete guard and the FK check on relations.
-CREATE INDEX invoices_relation_idx ON invoices (workspace_id, relation_id)
-    WHERE deleted_at IS NULL;
+-- Relation filter (in list order), the relation delete guard and the FK check on relations
+-- (not partial: the FK check has no deleted_at predicate).
+CREATE INDEX invoices_relation_idx ON invoices (workspace_id, relation_id, created_at DESC, id DESC);
 CREATE INDEX invoices_currency_idx ON invoices (workspace_id, currency_id);
 
 -- Item lines of a document. One parent column per document type; exactly one is set

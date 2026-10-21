@@ -13,7 +13,7 @@ use crate::{
         invoices::repo::{InvoiceRow, ItemRow},
         pricing::{
             dto::{MarginResource, SummaryResource},
-            engine::{Margin, RateTotal, Summary},
+            engine::{Amounts, Margin, RateTotal, Summary},
         },
         relations::address::{Address, AddressView},
     },
@@ -29,21 +29,22 @@ pub struct Embeds {
     pub warehouses: HashMap<Uuid, Value>,
 }
 
-/// `summary` as stored on the invoice: exact decimals as text, plus how many lines carry a
-/// discount (Laravel's `discounts` list has one null per such line).
-pub fn stored_summary(s: &Summary, discounted: usize) -> Value {
+/// `summary` as stored on the invoice: exact decimals as text, how many lines carry a discount
+/// (Laravel's `discounts` list has one null per such line) and the decimals used.
+pub fn stored_summary(s: &Summary, discounted: usize, dp: u32) -> Value {
     let text = |d: Decimal| Value::String(d.normalize().to_string());
     json!({
         "gross": text(s.gross), "discount": text(s.discount), "excl": text(s.excl),
-        "vat": text(s.vat), "total": text(s.total), "discounted": discounted,
+        "vat": text(s.vat), "total": text(s.total), "discounted": discounted, "dp": dp,
         "vats": s.vats.iter()
             .map(|v| json!({ "rate": text(v.rate), "base": text(v.base), "vat": text(v.vat) }))
             .collect::<Vec<_>>(),
     })
 }
 
-/// Read back `stored_summary` (an empty object for an invoice never written is all zero).
-pub fn read_summary(v: &Value) -> (Summary, usize) {
+/// Read back `stored_summary`: totals, discounted lines, decimals (an empty object is all zero
+/// with no decimals).
+pub fn read_summary(v: &Value) -> (Summary, usize, Option<u32>) {
     let num = |v: &Value, k: &str| {
         v.get(k)
             .and_then(Value::as_str)
@@ -73,7 +74,16 @@ pub fn read_summary(v: &Value) -> (Summary, usize) {
         lines: Vec::new(),
     };
     let discounted = v.get("discounted").and_then(Value::as_u64).unwrap_or(0);
-    (summary, usize::try_from(discounted).unwrap_or(0))
+    let dp = v
+        .get("dp")
+        .and_then(Value::as_u64)
+        .and_then(|d| u32::try_from(d).ok());
+    (summary, usize::try_from(discounted).unwrap_or(0), dp)
+}
+
+/// A line counted in `discounts`: a discount on a positive rounded gross (as calculate-items).
+pub fn discounted(l: &ItemRow, a: &Amounts) -> bool {
+    l.discount_percentage > Decimal::ZERO && a.gross > Decimal::ZERO
 }
 
 /// Laravel `invoice_nr`: drafts have no number yet; a cancelled invoice prints "N/A".
@@ -108,7 +118,11 @@ pub fn detail(
     margin: &Margin,
     e: &Embeds,
 ) -> Value {
-    let discounted = lines.iter().filter(|l| discounted(l)).count();
+    let discounted = lines
+        .iter()
+        .zip(&summary.lines)
+        .filter(|(l, a)| discounted(l, a))
+        .count();
     let items: Vec<Value> = lines.iter().map(|l| item(l, e)).collect();
     // shortcut: no payments until F7, so nothing is paid and the whole total is open.
     let balance = json!({ "open": php_number(summary.total), "paid": 0,
@@ -157,7 +171,7 @@ pub fn detail(
 
 /// One list row (Laravel InvoiceIndexResource), from the stored totals.
 pub fn index(row: &InvoiceRow, e: &Embeds) -> Value {
-    let (summary, discounted) = read_summary(&row.summary);
+    let (summary, discounted, _) = read_summary(&row.summary);
     let on_account = row
         .meta
         .as_ref()
@@ -194,26 +208,37 @@ pub fn index(row: &InvoiceRow, e: &Embeds) -> Value {
     })
 }
 
-fn discounted(l: &ItemRow) -> bool {
-    l.discount_percentage > Decimal::ZERO
-        && l.quantity
-            .checked_mul(l.price)
-            .is_some_and(|g| g > Decimal::ZERO)
-}
-
 /// Laravel MoneyHelper::formatDecimals.
 fn fd(v: Decimal, dp: u32) -> String {
     format_decimals(Some(v), dp, true, Zero::Falsy)
 }
 
+/// Fields of the product a line embeds (vimdesk-web reads these; the whole list resource per
+/// line made a 1000-line invoice megabytes long).
+const PRODUCT_FIELDS: &[&str] = &[
+    "id",
+    "name",
+    "product_nr",
+    "reference",
+    "reference_vendor",
+    "sale_unit",
+    "should_mutate_stock",
+    "purchase_price",
+    "price_incl",
+    "original_price_incl",
+    "total_available_stock",
+];
+
 /// One line (Laravel ItemResource). Display numbers are exact until printed, as Laravel's
-/// floats were; overflowing ones print as 0 (the stored lines summed without overflow).
+/// floats were. Every op is checked; a figure that leaves Decimal's range prints 0 (stored
+/// lines are within numeric(24,8) and priced without overflow, so only display products of two
+/// big columns can).
 fn item(l: &ItemRow, e: &Embeds) -> Value {
-    let hundred = Decimal::ONE_HUNDRED;
     let mul = |a: Decimal, b: Decimal| a.checked_mul(b).unwrap_or_default();
     let sub = |a: Decimal, b: Decimal| a.checked_sub(b).unwrap_or_default();
-    let vat_calc = Decimal::ONE + l.vat / hundred;
-    let pct = l.discount_percentage / hundred;
+    let percent = |v: Decimal| v.checked_div(Decimal::ONE_HUNDRED).unwrap_or_default();
+    let vat_calc = Decimal::ONE.checked_add(percent(l.vat)).unwrap_or_default();
+    let pct = percent(l.discount_percentage);
     let sum = mul(l.quantity, l.price);
     let discount = mul(sum, pct);
     let total = sub(sum, discount);
@@ -233,7 +258,7 @@ fn item(l: &ItemRow, e: &Embeds) -> Value {
     } else {
         product_purchase
     };
-    let single = mul(l.price, Decimal::ONE - pct);
+    let single = mul(l.price, sub(Decimal::ONE, pct));
     let marge_each = if purchase_each > Decimal::ZERO {
         sub(single, purchase_each)
     } else {
@@ -242,14 +267,18 @@ fn item(l: &ItemRow, e: &Embeds) -> Value {
     let marge_percentage = (!purchase_each.is_zero() && !single.is_zero())
         .then(|| sub(single, purchase_each).checked_div(single))
         .flatten()
-        .map(|r| fd(mul(r, hundred), 2));
+        .map(|r| fd(mul(r, Decimal::ONE_HUNDRED), 2));
     let available_stock = product
         .and_then(|p| p.get("total_available_stock"))
         .cloned()
         .unwrap_or(Value::from(0));
     let mut relationships = serde_json::Map::new();
     if let Some(p) = product {
-        relationships.insert("product".into(), p.clone());
+        let slim: serde_json::Map<String, Value> = PRODUCT_FIELDS
+            .iter()
+            .filter_map(|k| p.get(*k).map(|v| ((*k).to_owned(), v.clone())))
+            .collect();
+        relationships.insert("product".into(), Value::Object(slim));
     }
     relationships.insert(
         "mutate_from_warehouse".into(),
@@ -266,7 +295,7 @@ fn item(l: &ItemRow, e: &Embeds) -> Value {
         "price": fd(l.price, 4),
         "price_incl": fd(price_incl, 4),
         "price_incl_vat": fd(price_incl, 2),
-        "total_each_price_incl": fd(mul(price_incl, Decimal::ONE - pct), 4),
+        "total_each_price_incl": fd(mul(price_incl, sub(Decimal::ONE, pct)), 4),
         "marge": fd(marge_each, 2),
         "marge_percentage": marge_percentage,
         "marge_total": fd(mul(marge_each, l.quantity), 2),
@@ -326,14 +355,12 @@ mod tests {
             }],
             lines: Vec::new(),
         };
-        let v = stored_summary(&s, 1);
+        let v = stored_summary(&s, 1, 2);
         assert_eq!(
             v["vats"],
             json!([{ "rate": "21", "base": "9.21", "vat": "1.93" }])
         );
-        let (back, n) = read_summary(&v);
-        assert_eq!((back, n), (s, 1));
-        let (zero, n) = read_summary(&json!({}));
-        assert_eq!((zero, n), (Summary::default(), 0));
+        assert_eq!(read_summary(&v), (s, 1, Some(2)));
+        assert_eq!(read_summary(&json!({})), (Summary::default(), 0, None));
     }
 }

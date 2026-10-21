@@ -158,9 +158,12 @@ pub struct RawItem {
 
 /// Most nodes (values, keys included) a `Capped` keeps.
 pub const MAX_NODES: usize = 1000;
+/// Most bytes of keys and strings a `Capped` keeps (one node can be a 2 MiB string).
+pub const MAX_BYTES: usize = 16 * 1024;
 
-/// A JSON value kept only while it has at most `MAX_NODES` nodes; a bigger one is skipped
-/// while parsing (never built), so a 2 MiB body can't grow into tens of MiB of `Value`.
+/// A JSON value kept only while it has at most `MAX_NODES` nodes and `MAX_BYTES` of text; a
+/// bigger one is skipped while parsing (never built), so a 2 MiB body can't grow into tens of
+/// MiB of `Value`, nor fill every list row.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub enum Capped {
     #[default]
@@ -171,22 +174,44 @@ pub enum Capped {
 
 impl<'de> Deserialize<'de> for Capped {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let budget = Cell::new(MAX_NODES);
-        Ok(match Budget(&budget).deserialize(d)? {
-            Some(v) => Self::Value(v),
-            None => Self::TooLarge,
-        })
+        let (nodes, bytes) = (Cell::new(MAX_NODES), Cell::new(MAX_BYTES));
+        Ok(
+            match (Budget {
+                nodes: &nodes,
+                bytes: &bytes,
+            })
+            .deserialize(d)?
+            {
+                Some(v) => Self::Value(v),
+                None => Self::TooLarge,
+            },
+        )
     }
 }
 
-/// Builds a `Value` while the shared budget lasts; None (rest skipped) once it runs out.
-struct Budget<'a>(&'a Cell<usize>);
+/// Builds a `Value` while the shared budgets last; None (rest skipped) once one runs out.
+#[derive(Clone, Copy)]
+struct Budget<'a> {
+    nodes: &'a Cell<usize>,
+    bytes: &'a Cell<usize>,
+}
 
 impl Budget<'_> {
     fn spend(&self) -> bool {
-        let left = self.0.get();
-        self.0.set(left.saturating_sub(1));
+        let left = self.nodes.get();
+        self.nodes.set(left.saturating_sub(1));
         left > 0
+    }
+
+    /// One node of `len` bytes of text; once over, both budgets read as spent.
+    fn spend_text(&self, len: usize) -> bool {
+        let ok = self.spend() && len <= self.bytes.get();
+        if ok {
+            self.bytes.set(self.bytes.get() - len);
+        } else {
+            self.nodes.set(0);
+        }
+        ok
     }
 }
 
@@ -194,7 +219,7 @@ impl<'de> DeserializeSeed<'de> for Budget<'_> {
     type Value = Option<Value>;
 
     fn deserialize<D: Deserializer<'de>>(self, d: D) -> Result<Option<Value>, D::Error> {
-        if self.0.get() == 0 {
+        if self.nodes.get() == 0 {
             IgnoredAny::deserialize(d)?;
             return Ok(None);
         }
@@ -223,7 +248,9 @@ impl<'de> Visitor<'de> for Budget<'_> {
             .then(|| Number::from_f64(v).map_or(Value::Null, Value::Number)))
     }
     fn visit_str<E: Error>(self, v: &str) -> Result<Self::Value, E> {
-        Ok(self.spend().then(|| Value::String(v.to_owned())))
+        Ok(self
+            .spend_text(v.len())
+            .then(|| Value::String(v.to_owned())))
     }
     fn visit_unit<E: Error>(self) -> Result<Self::Value, E> {
         Ok(self.spend().then_some(Value::Null))
@@ -233,7 +260,7 @@ impl<'de> Visitor<'de> for Budget<'_> {
     }
     fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
         let mut out = self.spend().then(Vec::new);
-        while let Some(v) = seq.next_element_seed(Budget(self.0))? {
+        while let Some(v) = seq.next_element_seed(self)? {
             match (&mut out, v) {
                 (Some(list), Some(v)) => list.push(v),
                 _ => out = None,
@@ -244,8 +271,8 @@ impl<'de> Visitor<'de> for Budget<'_> {
     fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
         let mut out = self.spend().then(Map::new);
         while let Some(k) = map.next_key::<String>()? {
-            let v = if self.spend() {
-                map.next_value_seed(Budget(self.0))?
+            let v = if self.spend_text(k.len()) {
+                map.next_value_seed(self)?
             } else {
                 map.next_value::<IgnoredAny>()?;
                 None
@@ -474,6 +501,12 @@ mod tests {
         assert_eq!(capped(&wide), Capped::TooLarge);
         let deep = format!(r#"{{"v":{}1{}}}"#, "[".repeat(100), "]".repeat(100));
         assert!(matches!(capped(&deep), Capped::Value(_)));
+        // One node, too many bytes; a sibling after the oversized value is still skipped.
+        let long = |n: usize| format!(r#"{{"v":{{"a":"{}","b":1}}}}"#, "x".repeat(n));
+        assert!(matches!(capped(&long(MAX_BYTES - 2)), Capped::Value(_)));
+        assert_eq!(capped(&long(MAX_BYTES)), Capped::TooLarge);
+        let key = format!(r#"{{"v":{{"{}":1}}}}"#, "k".repeat(MAX_BYTES + 1));
+        assert_eq!(capped(&key), Capped::TooLarge);
     }
 
     #[test]

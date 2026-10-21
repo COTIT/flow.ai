@@ -298,9 +298,8 @@ pub async fn update(
     Ok(())
 }
 
-/// Soft delete, else 404.
-// shortcut: no invoices/orders/estimates/work orders yet, so Laravel's "has documents" 422
-// can't trigger; the order/invoice batch adds that guard.
+/// Soft delete, else 404; 422 while it has invoices (orders, estimates and work orders join
+/// the check when they are ported).
 pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
     let id = parse(id)?;
     let mut tx = state.db.begin().await?;

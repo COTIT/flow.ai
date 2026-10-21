@@ -561,7 +561,6 @@ pub async fn update(
     .map(|done| done.rows_affected() == 1)
 }
 
-/// Soft delete. False = no such live row. Contacts stay (Laravel parity).
 /// Lock the live relation `id` before a delete; false when there is none. FOR UPDATE conflicts
 /// with the key-share lock an invoice write holds on it, so the delete waits for that write
 /// and its guard then sees the new rows.
@@ -581,6 +580,7 @@ pub async fn lock_for_delete(
     .await
 }
 
+/// Soft delete. False = no such live row. Contacts stay (Laravel parity).
 pub async fn soft_delete(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
