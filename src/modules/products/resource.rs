@@ -183,7 +183,12 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "relationships": {
             "currency": e.currencies.get(&p.currency_id),
             "active_special_offer": active.map(OfferResource::from),
-            "special_offers": offers.iter().map(OfferResource::from).collect::<Vec<_>>(),
+            // Laravel loaded them on the detail only; list rows load today's offers.
+            "special_offers": if detail {
+                offers.iter().map(OfferResource::from).collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            },
             "sales_group": p.sales_group_id.and_then(|id| e.sales_groups.get(&id)),
             "vat_group": vat.map(|v| VatGroupResource::from(v.clone())),
             "custom_sections": [],

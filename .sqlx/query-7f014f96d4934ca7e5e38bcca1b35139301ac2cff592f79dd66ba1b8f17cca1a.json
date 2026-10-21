@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_id, from_date, to_date, always_active, value, type AS kind,\n                  base_price, discount_rule_type, condition_quantity, discount_quantity,\n                  condition_brand, condition_supplier_relation_id, condition_category_id,\n                  target_brand, target_supplier_relation_id, target_category_id,\n                  target_product_id, discount_value, discount_type, priority, apply_to_cheapest,\n                  meta, created_at, updated_at, NULL::bigint AS total\n           FROM special_offers\n           WHERE workspace_id = $1 AND product_id = ANY($2) AND deleted_at IS NULL\n           ORDER BY product_id, priority DESC, created_at DESC, id DESC",
+  "query": "SELECT id, product_id, from_date, to_date, always_active, value, type AS kind,\n                  base_price, discount_rule_type, condition_quantity, discount_quantity,\n                  condition_brand, condition_supplier_relation_id, condition_category_id,\n                  target_brand, target_supplier_relation_id, target_category_id,\n                  target_product_id, discount_value, discount_type, priority, apply_to_cheapest,\n                  meta, created_at, updated_at, NULL::bigint AS total\n           FROM special_offers\n           WHERE workspace_id = $1 AND product_id = ANY($2) AND deleted_at IS NULL\n             AND ($3::date IS NULL OR always_active OR $3 BETWEEN from_date AND to_date)\n           ORDER BY product_id, priority DESC, created_at DESC, id DESC",
   "describe": {
     "columns": [
       {
@@ -288,7 +288,8 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "UuidArray"
+        "UuidArray",
+        "Date"
       ]
     },
     "nullable": [
@@ -320,5 +321,5 @@
       null
     ]
   },
-  "hash": "30cd41bd93fda8b0955a830fbec0e72c3622ebf74756da4f97dcf6cbadbeab74"
+  "hash": "7f014f96d4934ca7e5e38bcca1b35139301ac2cff592f79dd66ba1b8f17cca1a"
 }

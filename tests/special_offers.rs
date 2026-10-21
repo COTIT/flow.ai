@@ -382,6 +382,45 @@ async fn access(pool: PgPool) {
         .await;
 }
 
+#[sqlx::test]
+async fn a_product_holds_at_most_100_offers(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    sqlx::query(
+        "INSERT INTO special_offers (workspace_id, product_id, value, type, from_date, to_date)
+         SELECT $1::uuid, $2::uuid, 1, 'fixed', DATE '2000-01-01' + 2 * n, DATE '2000-01-02' + 2 * n
+         FROM generate_series(1, 100) n",
+    )
+    .bind(&w.api.ws)
+    .bind(&w.product)
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        error(
+            &on(&w),
+            "",
+            legacy("fixed", "1", json!({})),
+            "special_offers"
+        )
+        .await,
+        "The product can't hold more than 100 special offers."
+    );
+    // Lists and calculate-items only load today's offers; the detail loads them all.
+    let list = w.api.with_base("/products").list("").await;
+    assert_eq!(
+        list["data"][0]["relationships"]["special_offers"],
+        json!([])
+    );
+    let p = w.api.with_base("/products").get(&w.product).await;
+    assert_eq!(
+        p["relationships"]["special_offers"]
+            .as_array()
+            .unwrap()
+            .len(),
+        100
+    );
+}
+
 // --- product prices -----------------------------------------------------------------------
 
 const FIELDS: [&str; 4] = [
@@ -512,6 +551,10 @@ async fn advanced_offers_set_the_price(pool: PgPool) {
     // Cart rules on a product listing use the offer's own discount (20 % inferred).
     let id = create(&api, json!({ "discount_rule_type": "global_discount", "discount_value": "20", "always_active": true })).await;
     assert_eq!(prices(&w, &w.product).await, want("80", "100"));
+    api.delete(&id).await;
+    // A percentage over 100 never makes the price negative (Laravel printed it below 0).
+    let id = create(&api, json!({ "discount_rule_type": "brand_discount", "type": "percentage", "value": "500", "always_active": true })).await;
+    assert_eq!(prices(&w, &w.product).await, want("0.00", "100"));
     api.delete(&id).await;
     // A free-item rule takes the whole price off.
     create(&api, json!({ "discount_rule_type": "bogo", "condition_quantity": 1, "discount_quantity": 1, "discount_type": "free", "discount_value": "1", "always_active": true })).await;

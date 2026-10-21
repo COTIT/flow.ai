@@ -240,11 +240,12 @@ pub fn prices(i: &PriceInputs) -> Prices {
             .and_then(|b| correct(v, i.vat_pct, b))
             .unwrap_or(v)
     };
+    // A special price never goes below 0 (Laravel could print a negative one).
     let special_ = |v: Decimal| {
         i.offer
             .as_ref()
             .and_then(|o| special(v, i.net, o))
-            .unwrap_or(v)
+            .map_or(v, |s| s.max(Decimal::ZERO))
     };
     let from_gross = i.impact_on_price.is_some_and(|v| v < Decimal::ZERO) && i.business_from_gross;
     let business_base = if from_gross { i.gross } else { i.net };

@@ -142,15 +142,17 @@ async fn apply_products(
         ),
         _ => None,
     };
+    let today = chrono::Utc::now().date_naive();
     let mut offers: HashMap<Uuid, Vec<special_offers::repo::OfferRow>> = HashMap::new();
     if relation_discounts.is_some() {
-        for o in special_offers::repo::for_products(&state.db, workspace_id, &wanted).await? {
+        let active =
+            special_offers::repo::for_products(&state.db, workspace_id, &wanted, Some(today));
+        for o in active.await? {
             if let Some(product) = o.product_id {
                 offers.entry(product).or_default().push(o);
             }
         }
     }
-    let today = chrono::Utc::now().date_naive();
     let mut errors = BTreeMap::new();
     for (n, item) in input.items.iter_mut().enumerate() {
         let Some(raw) = item.product_id.as_deref() else {

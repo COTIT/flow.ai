@@ -674,7 +674,9 @@ async fn embeds(
         .into_iter()
         .collect();
     e.bands = price_corrections::repo::bands(&state.db, workspace_id).await?;
-    for o in special_offers::repo::for_products(&state.db, workspace_id, &ids).await? {
+    // Lists price from today's offers; only the detail prints every offer.
+    let today = (!detail).then(|| chrono::Utc::now().date_naive());
+    for o in special_offers::repo::for_products(&state.db, workspace_id, &ids, today).await? {
         if let Some(product) = o.product_id {
             e.offers.entry(product).or_default().push(o);
         }

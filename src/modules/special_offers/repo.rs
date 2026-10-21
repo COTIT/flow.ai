@@ -367,6 +367,22 @@ pub async fn overlaps(
     .await
 }
 
+/// Live offers of one product (the per-product cap).
+pub async fn count_for_product(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    product: Uuid,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM special_offers
+           WHERE workspace_id = $1 AND product_id = $2 AND deleted_at IS NULL"#,
+        workspace_id,
+        product,
+    )
+    .fetch_one(db)
+    .await
+}
+
 /// Net price of a live product of the workspace (None: no such product).
 pub async fn product_price(
     db: impl PgExecutor<'_>,
@@ -414,11 +430,13 @@ pub async fn category_live(
     .await
 }
 
-/// Every live offer of these products, best first per product (priority, then newest).
+/// Live offers of these products, best first per product (priority, then newest); with
+/// `active_on`, only those active that day.
 pub async fn for_products(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     products: &[Uuid],
+    active_on: Option<NaiveDate>,
 ) -> Result<Vec<OfferRow>, sqlx::Error> {
     sqlx::query_as!(
         OfferRow,
@@ -430,9 +448,11 @@ pub async fn for_products(
                   meta, created_at, updated_at, NULL::bigint AS total
            FROM special_offers
            WHERE workspace_id = $1 AND product_id = ANY($2) AND deleted_at IS NULL
+             AND ($3::date IS NULL OR always_active OR $3 BETWEEN from_date AND to_date)
            ORDER BY product_id, priority DESC, created_at DESC, id DESC"#,
         workspace_id,
         products,
+        active_on,
     )
     .fetch_all(db)
     .await

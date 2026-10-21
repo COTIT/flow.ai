@@ -29,6 +29,9 @@ const OVERLAP: &str = "There is already an special offer active between the give
 const OVER_PRICE: &str = "The selected value is higher then the current product price.";
 const PERCENT: &str = "Only values between 1 and 99 are available";
 
+/// Live offers one product may hold; every product detail loads them all. Laravel had no cap.
+pub const MAX_PER_PRODUCT: i64 = 100;
+
 /// The offer that sets a product's price today: the first active one of `rows` (best first:
 /// priority, then newest; user decision 2026-10-21).
 pub fn active(rows: &[OfferRow], today: NaiveDate) -> Option<&OfferRow> {
@@ -101,6 +104,7 @@ pub async fn create(
         repo::lock_product(&mut tx, workspace_id, p).await?;
     }
     check(&mut tx, workspace_id, &mut f, &patch, None).await?;
+    room(&mut tx, workspace_id, f.product_id).await?;
     let id = repo::insert(&mut *tx, workspace_id, &f).await?;
     tx.commit().await?;
     Ok(id)
@@ -121,12 +125,16 @@ pub async fn update(
     let row = repo::find_locked(&mut tx, workspace_id, id, route)
         .await?
         .ok_or(AppError::NotFound)?;
+    let before = row.product_id;
     let mut f = OfferFields::from(row);
     apply(&mut f, &patch, route);
     if let Some(p) = f.product_id {
         repo::lock_product(&mut tx, workspace_id, p).await?;
     }
     check(&mut tx, workspace_id, &mut f, &patch, Some(id)).await?;
+    if f.product_id != before {
+        room(&mut tx, workspace_id, f.product_id).await?;
+    }
     repo::update(&mut *tx, workspace_id, id, &f).await?;
     tx.commit().await?;
     Ok(())
@@ -144,6 +152,24 @@ pub async fn delete(
         .await?
         .then_some(())
         .ok_or(AppError::NotFound)
+}
+
+/// 422 when `product` already holds `MAX_PER_PRODUCT` offers (caller holds its lock).
+async fn room(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    product: Option<Uuid>,
+) -> Result<(), AppError> {
+    let Some(product) = product else {
+        return Ok(());
+    };
+    if repo::count_for_product(&mut *conn, workspace_id, product).await? >= MAX_PER_PRODUCT {
+        return Err(AppError::field(
+            "special_offers",
+            format!("The product can't hold more than {MAX_PER_PRODUCT} special offers."),
+        ));
+    }
+    Ok(())
 }
 
 /// The product of a product route: a live product of the workspace, else 404.
