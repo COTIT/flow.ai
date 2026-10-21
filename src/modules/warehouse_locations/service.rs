@@ -100,8 +100,7 @@ pub async fn update(
     found.then_some(()).ok_or(AppError::NotFound)
 }
 
-/// Soft delete one, else 404.
-// shortcut: storage locations (6F) must be soft-deleted with it once that table exists.
+/// Soft delete one (and its storage locations), else 404.
 pub async fn delete(
     state: &AppState,
     workspace_id: Uuid,

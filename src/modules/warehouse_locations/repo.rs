@@ -152,16 +152,27 @@ pub async fn soft_delete(
     warehouse_id: Uuid,
     ids: &[Uuid],
 ) -> Result<u64, sqlx::Error> {
-    sqlx::query!(
-        "UPDATE warehouse_locations SET deleted_at = now(), updated_at = now()
-         WHERE id = ANY($3) AND workspace_id = $1 AND warehouse_id = $2 AND deleted_at IS NULL",
+    // One statement: the storage locations pointing here go too (Laravel `deleted` hook).
+    sqlx::query_scalar!(
+        r#"WITH gone AS (
+               UPDATE warehouse_locations SET deleted_at = now(), updated_at = now()
+               WHERE id = ANY($3) AND workspace_id = $1 AND warehouse_id = $2
+                 AND deleted_at IS NULL
+               RETURNING id
+           ),
+           places AS (
+               UPDATE storage_locations SET deleted_at = now(), updated_at = now()
+               WHERE workspace_id = $1 AND deleted_at IS NULL
+                 AND warehouse_location_id IN (SELECT id FROM gone)
+           )
+           SELECT count(*) AS "n!" FROM gone"#,
         workspace_id,
         warehouse_id,
         ids,
     )
-    .execute(db)
+    .fetch_one(db)
     .await
-    .map(|done| done.rows_affected())
+    .map(|n| u64::try_from(n).unwrap_or_default())
 }
 
 /// Live locations of live warehouses in the workspace, optionally one warehouse's, matching

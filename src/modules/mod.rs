@@ -18,6 +18,7 @@ pub mod sales_groups;
 pub mod search;
 pub mod shipment_methods;
 pub mod stock;
+pub mod storage_locations;
 pub mod teams;
 pub mod users;
 pub mod vat_groups;
