@@ -42,20 +42,23 @@ pub async fn get(
         .ok_or(AppError::NotFound)
 }
 
-/// Create under the quota; returns the new id.
+/// Create under the quota, creates serialised per workspace; returns the new id.
 pub async fn create(
     state: &AppState,
     workspace_id: Uuid,
     c: CorrectionInput,
 ) -> Result<Uuid, AppError> {
-    // shortcut: count then insert, so parallel creates can pass the cap by a few rows.
-    if repo::count(&state.db, workspace_id).await? >= MAX_BANDS {
+    let mut tx = state.db.begin().await?;
+    repo::lock_quota(&mut tx, workspace_id).await?;
+    if repo::count(&mut *tx, workspace_id).await? >= MAX_BANDS {
         return Err(AppError::field(
             "price_corrections",
             format!("The workspace can't hold more than {MAX_BANDS} price corrections."),
         ));
     }
-    Ok(repo::insert(&state.db, workspace_id, &c).await?)
+    let id = repo::insert(&mut *tx, workspace_id, &c).await?;
+    tx.commit().await?;
+    Ok(id)
 }
 
 /// Patch a live band, else 404.

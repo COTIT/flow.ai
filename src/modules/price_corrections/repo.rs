@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde_json::Value;
-use sqlx::PgExecutor;
+use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
 use crate::modules::{price_corrections::dto::CorrectionInput, products::pricing::Band};
@@ -80,6 +80,21 @@ pub async fn list(
     )
     .fetch_all(db)
     .await
+}
+
+/// Serialise band creates per workspace for the quota check (caller's transaction).
+pub async fn lock_quota(conn: &mut PgConnection, workspace_id: Uuid) -> Result<(), sqlx::Error> {
+    // A waiter holds a pooled connection; give up instead of starving the pool.
+    sqlx::query!("SET LOCAL lock_timeout = '5s'")
+        .execute(&mut *conn)
+        .await?;
+    sqlx::query!(
+        "SELECT pg_advisory_xact_lock(hashtext('price_corrections'), hashtext($1::text))",
+        workspace_id.to_string(),
+    )
+    .execute(&mut *conn)
+    .await
+    .map(|_| ())
 }
 
 /// Live bands of the workspace (the quota and the empty-page total).

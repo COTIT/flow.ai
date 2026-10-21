@@ -183,6 +183,44 @@ async fn workspace_holds_at_most_1000_bands(pool: PgPool) {
     );
 }
 
+#[sqlx::test]
+async fn parallel_creates_never_pass_the_cap(pool: PgPool) {
+    let api = bands(pool.clone()).await;
+    sqlx::query(
+        "INSERT INTO price_corrections (workspace_id, value_from, value_to)
+         SELECT $1::uuid, n, n FROM generate_series(1, 990) n",
+    )
+    .bind(&api.ws)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let tasks: Vec<_> = (0..30)
+        .map(|_| {
+            let api = api.with_base("/products/price-corrections");
+            tokio::spawn(async move {
+                let body = band("0", "1", Value::Null, Value::Null);
+                api.call(Method::POST, "", Some(body), &api.owner).await.0
+            })
+        })
+        .collect();
+    let mut created = 0;
+    for t in tasks {
+        match t.await.unwrap() {
+            StatusCode::CREATED => created += 1,
+            s => assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY),
+        }
+    }
+    assert_eq!(created, 10);
+    let live: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM price_corrections WHERE workspace_id = $1::uuid AND deleted_at IS NULL",
+    )
+    .bind(&api.ws)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(live, 1000);
+}
+
 // --- product prices -----------------------------------------------------------------------
 
 /// Workspace with a default 21 % VAT group; returns the bands API.
