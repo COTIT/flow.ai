@@ -30,7 +30,7 @@ pub struct Amounts {
     /// gross − discount.
     pub excl: Decimal,
     /// This line's own VAT, rounded on its own: for per-line display only. Document VAT is
-    /// per rate (`Summary::vats`) and can differ from the sum of these by a cent per rate.
+    /// per rate (`Summary::vats`); the sum of these can differ from it by half a cent per line.
     pub line_vat: Decimal,
 }
 
@@ -241,6 +241,7 @@ mod tests {
                 line("1", "100", "5.5", "0"),
                 line("1", "100", "5", "0"),
                 line("1", "10", "5.5", "0"),
+                line("1", "10", "5.50", "0"),
             ],
             2,
         )
@@ -249,11 +250,33 @@ mod tests {
         assert_eq!(
             got,
             vec![
-                (d("5.5"), d("110"), d("6.05")),
+                (d("5.5"), d("120"), d("6.60")),
                 (d("5"), d("100"), d("5.00"))
             ]
         );
         assert_eq!(s.total, s.excl + s.vat);
+    }
+
+    /// One line per rate: per-line and per-rate rounding agree exactly.
+    #[test]
+    fn one_line_per_rate_matches_line_vat() {
+        let lines = [line("3", "9.99", "21", "10"), line("2", "4.35", "9", "0")];
+        let s = summarise(&lines, 2).unwrap();
+        let by_line: Decimal = s.lines.iter().map(|a| a.line_vat).sum();
+        assert_eq!(s.vat, by_line);
+    }
+
+    /// A rate's base can pass every line check and still overflow when taxed.
+    #[test]
+    fn rate_vat_overflow_names_the_last_line() {
+        let big = Line {
+            quantity: d("1"),
+            price: d("30000000000000000000000000000"),
+            vat: d("2"),
+            ..Line::default()
+        };
+        assert!(amounts(&big, 2).is_some(), "each line fits");
+        assert_eq!(summarise(&[big, big], 2).map(|s| s.vat), Err(1));
     }
 
     #[test]

@@ -25,7 +25,7 @@ vat  = round(base × rate / 100)
 
 `total_excl = Σ excl`, `total_vat = Σ vat per rate`, `total = total_excl + total_vat`. The total always adds up.
 
-**Per-line VAT:** the response prints no VAT amount per line; `items` echo only the rate (`vat`), the line's `subtotal` (gross) and `total` (excl). The engine keeps each line's own VAT (`Amounts::line_vat`) for screens that show a per-line incl price (stored invoice items, F4); those per-line figures are informational and can differ from the document's VAT by up to a cent per rate.
+**Per-line VAT:** the response prints no VAT amount per line; `items` echo only the rate (`vat`), the line's `subtotal` (gross) and `total` (excl). The engine keeps each line's own VAT (`Amounts::line_vat`) for screens that show a per-line incl price (stored invoice items, F4); those per-line figures are informational: summed, they can differ from the document's VAT by up to half a cent per line (1000 × €0.01 at 21 %: lines say 0.00, the document 2.10).
 
 **Laravel differences:**
 - Laravel rounded VAT on each line and summed those, and rounded its float grand total on its own. For 3 × 0.07 at 21 % its VAT said 0.03 and its total 0.25. Genesy says VAT 0.04 and total 0.25: per-rate VAT agrees with Laravel's own total.
