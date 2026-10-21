@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Final batch F3c (price corrections, contract `docs/api/price-corrections.md`):
+  - **Migration `price_corrections`:** price bands (`value_from`..`value_to`, `round_on`, `remove_amount`), at most 1000 live per workspace.
+  - 5 routes under `/products/price-corrections` (`pricecorrection.*`).
+  - **Product prices:** `price`, `original_price` and `business_price` (and their `_incl`) are corrected: the incl-VAT price rounds to the nearest `round_on` step (a tie goes down), minus `remove_amount`. `price_without_correction` is not. `exclude_price_corrections` opts a product out. Setting `product.disable_double_discount_for_business` makes a product below gross take its business prices from gross.
+  - `products::pricing::{band_for, correct, prices}` in exact decimals; `tests/fixtures/price_correction_parity.json` holds 14 cases from PHP 8.4 running vimdesk-api's `GetRoundedPrice`, all matched.
+  - **Laravel differences:** bands are read live (Laravel cached them forever, so edits never showed until a cache flush); the 1000-band cap; a null band end on update is a 422 (was a 500).
+
 - Final batch F3a (discount groups and discounts, contract `docs/api/discounts.md`):
   - **Migration `discounts`:** `discount_groups` (supplier, `internal`), `discounts` (percentage per `discount_product_code`, CHECK 0..100, date window), `discount_group_relation` (unique per group and relation). Composite tenant FKs throughout.
   - 13 routes under `/products/discount-groups` and `/products/discounts` (`discountgroup.*`, `discount.*`): CRUD, the group's relations, attach and detach. Deleting a group retires its discounts and links in one transaction.

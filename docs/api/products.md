@@ -64,7 +64,8 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - `supplier_purchase_price_from_discount`: `gross_price × (1 − d/100)`, else the supplier's wholesale price.
   - `purchase_price` (Laravel `buildPurchasePrice`): wholesale when its markup is above `d`; else, without `d`, wholesale when > 0, else the supplier's wholesale price; with `d`, the discounted gross price, or the supplier's wholesale price when that comes to 0.
   - One query for the whole page.
-- **Not ported yet** (final batch F3b/F3c): special offers and price corrections. Until then `price == original_price == price_without_correction == business_price`.
+- **Price corrections** (`price-corrections.md`): `price`, `original_price` and `business_price` go through the workspace's price bands; `price_without_correction` doesn't. With setting `product.disable_double_discount_for_business`, a product priced below gross takes `business_price` and `price_without_correction` from `gross_price`. Bands load once per page.
+- **Not ported yet** (final batch F3b): special offers. Until then `original_price == price`.
 - **Stock** (`stocks`, `total_available_stock`, `pos_*`, `?warehouse_id=`): see `stock.md`, "Product resource stock fields".
 - **Product create seeds zero stock rows** in the main warehouse and every store (see `stock.md`).
 - **Other keys:**
@@ -177,4 +178,4 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - labels, second chance, order/store advice, statics
 - **Link routes:** linked-products POST/DELETE.
 - **Variant routes:** `variants/by-options` (always 403 in Laravel) and option-type CRUD (no callers).
-- **Features:** special offers, price corrections, serial numbers, images, custom fields, the activity log and Meilisearch.
+- **Features:** special offers, serial numbers, images, custom fields, the activity log and Meilisearch.
