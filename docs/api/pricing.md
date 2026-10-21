@@ -6,7 +6,7 @@ Shared rules (guard order, 404s, 422 wording) are in `conventions.md`. Both rout
 
 ## How the maths works
 
-Think of a till receipt: every line is rounded to whole cents as it's printed, and the bottom line is the sum of what's printed.
+Think of an invoice's VAT box: every line's amount is printed in whole cents, then the VAT is worked out once per rate on the sum of those lines, the usual way for EU invoices (user decision 2026-10-21).
 
 For each line, rounded to the currency's decimals (2 for EUR), half away from zero:
 
@@ -14,14 +14,24 @@ For each line, rounded to the currency's decimals (2 for EUR), half away from ze
 gross    = round(quantity × price)
 discount = round(gross × productDiscount / 100)
 excl     = gross − discount
-vat      = round(excl × vat / 100)
 ```
 
-Totals are sums of the rounded lines, so `total = total_excl + total_vat` always holds.
+Then per VAT rate, over the lines with that rate:
 
-**Laravel difference (user decision 2026-10-21):** Laravel summed unrounded floats and rounded the grand total on its own. For 3 × 0.07 at 21 % it answered `total: 0.25` while its lines add up to 0.21 + 0.03 = 0.24; for 3 × 9.99 at 21 % with 10 % off it answered 32.64 against 26.97 + 5.66 = 32.63. Genesy answers 0.24 and 32.63. Where Laravel's own figures agree, genesy matches them exactly (`pricing::engine::tests::matches_laravel_within_per_line_rounding` runs all 24 cases of `tests/fixtures/pricing_parity.json`, produced by PHP 8.4 running Laravel's real classes via `tests/fixtures/pricing_oracle.php`).
+```
+base = Σ excl
+vat  = round(base × rate / 100)
+```
 
-**Known limit of per-line VAT (open question for the user):** VAT is rounded on each line, the way Laravel's VAT breakdown already did. Lines whose VAT is under half a cent lose it: 1000 lines of €0.01 at 21 % show €0.00 VAT (Laravel showed €0.00 VAT too but slipped €2.10 into its total). Computing VAT once per rate on the summed lines would collect it. Real documents rarely have such lines; the choice is recorded in `docs/ai/risk-register.md`.
+`total_excl = Σ excl`, `total_vat = Σ vat per rate`, `total = total_excl + total_vat`. The total always adds up.
+
+**Per-line VAT:** the response prints no VAT amount per line; `items` echo only the rate (`vat`), the line's `subtotal` (gross) and `total` (excl). The engine keeps each line's own VAT (`Amounts::line_vat`) for screens that show a per-line incl price (stored invoice items, F4); those per-line figures are informational and can differ from the document's VAT by up to a cent per rate.
+
+**Laravel differences:**
+- Laravel rounded VAT on each line and summed those, and rounded its float grand total on its own. For 3 × 0.07 at 21 % its VAT said 0.03 and its total 0.25. Genesy says VAT 0.04 and total 0.25: per-rate VAT agrees with Laravel's own total.
+- For 3 × 9.99 at 21 % with 10 % off, Laravel answered 32.64 against 26.97 + 5.66 = 32.63. Genesy answers 32.63.
+- 1000 lines of €0.01 at 21 %: Laravel showed VAT €0.00 (and slipped €2.10 into its total); genesy shows VAT €2.10 and total €12.10.
+- `pricing::engine::tests::matches_laravel_within_rounding` runs all 24 cases of `tests/fixtures/pricing_parity.json`, produced by PHP 8.4 running Laravel's real classes (`tests/fixtures/pricing_oracle.php`). Line sums match exactly for whole-cent inputs, and so does the total whenever one VAT rate is used. With several rates the total can differ by half a cent per rate, and `total_vat` differs where Laravel's per-line rounding lost or gained cents.
 
 ## Request (both routes)
 

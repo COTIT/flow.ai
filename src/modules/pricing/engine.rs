@@ -1,5 +1,6 @@
-//! Item line maths (Laravel HasItemPricing + BuildItemsSummary), exact decimals. Each line
-//! rounds to the currency's decimals; totals sum rounded lines, so total = excl + VAT always.
+//! Item line maths (Laravel HasItemPricing + BuildItemsSummary), exact decimals. Each line's
+//! amounts round to the currency's decimals; VAT is computed once per rate on the summed line
+//! amounts (user decision 2026-10-21), so total = excl + VAT always.
 
 use rust_decimal::Decimal;
 
@@ -28,7 +29,9 @@ pub struct Amounts {
     pub discount: Decimal,
     /// gross − discount.
     pub excl: Decimal,
-    pub vat: Decimal,
+    /// This line's own VAT, rounded on its own: for per-line display only. Document VAT is
+    /// per rate (`Summary::vats`) and can differ from the sum of these by a cent per rate.
+    pub line_vat: Decimal,
 }
 
 /// Rounded `Amounts` of `line` at `dp` decimals. None: a value left Decimal's range.
@@ -40,13 +43,22 @@ pub fn amounts(line: &Line, dp: u32) -> Option<Amounts> {
     let gross = round(line.quantity.checked_mul(line.price)?, dp);
     let discount = percent(gross, line.discount)?;
     let excl = gross.checked_sub(discount)?;
-    let vat = percent(excl, line.vat)?;
+    let line_vat = percent(excl, line.vat)?;
     Some(Amounts {
         gross,
         discount,
         excl,
-        vat,
+        line_vat,
     })
+}
+
+/// VAT of one rate: `round(base × rate / 100)` over the summed line amounts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RateTotal {
+    pub rate: Decimal,
+    /// Σ line excl at this rate.
+    pub base: Decimal,
+    pub vat: Decimal,
 }
 
 /// Totals over all lines, VAT grouped by exact rate in first-seen order.
@@ -55,16 +67,18 @@ pub struct Summary {
     pub gross: Decimal,
     pub discount: Decimal,
     pub excl: Decimal,
+    /// Σ VAT per rate.
     pub vat: Decimal,
     /// excl + vat.
     pub total: Decimal,
-    /// (rate, VAT amount) per distinct rate.
-    pub vats: Vec<(Decimal, Decimal)>,
+    /// One entry per distinct rate, first-seen order.
+    pub vats: Vec<RateTotal>,
     /// Per line, same order as the input.
     pub lines: Vec<Amounts>,
 }
 
-/// Sum `lines`. Err(index) names the first line whose amounts or running totals overflowed.
+/// Sum `lines`, then VAT once per rate. Err(index) names the first line whose amounts or
+/// running totals overflowed (the last line when a rate's VAT does).
 pub fn summarise(lines: &[Line], dp: u32) -> Result<Summary, usize> {
     let mut s = Summary::default();
     for (i, line) in lines.iter().enumerate() {
@@ -73,14 +87,23 @@ pub fn summarise(lines: &[Line], dp: u32) -> Result<Summary, usize> {
         s.gross = add(s.gross, a.gross)?;
         s.discount = add(s.discount, a.discount)?;
         s.excl = add(s.excl, a.excl)?;
-        s.vat = add(s.vat, a.vat)?;
-        s.total = add(s.excl, s.vat)?;
-        match s.vats.iter_mut().find(|(rate, _)| *rate == line.vat) {
-            Some((_, v)) => *v = add(*v, a.vat)?,
-            None => s.vats.push((line.vat, a.vat)),
+        match s.vats.iter_mut().find(|v| v.rate == line.vat) {
+            Some(v) => v.base = add(v.base, a.excl)?,
+            None => s.vats.push(RateTotal {
+                rate: line.vat,
+                base: a.excl,
+                vat: Decimal::ZERO,
+            }),
         }
         s.lines.push(a);
     }
+    let last = lines.len().saturating_sub(1);
+    for v in &mut s.vats {
+        let raw = v.base.checked_mul(v.rate).ok_or(last)?;
+        v.vat = round(raw.checked_div(Decimal::ONE_HUNDRED).ok_or(last)?, dp);
+        s.vat = s.vat.checked_add(v.vat).ok_or(last)?;
+    }
+    s.total = s.excl.checked_add(s.vat).ok_or(last)?;
     Ok(s)
 }
 
@@ -169,12 +192,16 @@ mod tests {
         assert_eq!(t, ("26.97".into(), "5.66".into(), "32.63".into()));
     }
 
-    /// Laravel says 0.25 (rounds the float total); lines say 0.21 + 0.03.
+    /// VAT once per rate on the summed lines (user decision 2026-10-21): 0.21 × 21 % = 0.04,
+    /// where three lines rounded on their own gave 0.03. Laravel's total also says 0.25.
     #[test]
-    fn small_lines_add_up() {
+    fn vat_rounds_once_per_rate() {
         let l = line("1", "0.07", "21", "0");
         let t = totals(&[l, l, l]);
-        assert_eq!(t, ("0.21".into(), "0.03".into(), "0.24".into()));
+        assert_eq!(t, ("0.21".into(), "0.04".into(), "0.25".into()));
+        let cents = line("1", "0.01", "21", "0");
+        let t = totals(&[cents; 1000]);
+        assert_eq!(t, ("10.00".into(), "2.10".into(), "12.10".into()));
     }
 
     #[test]
@@ -188,11 +215,9 @@ mod tests {
 
     #[test]
     fn ties_round_away_from_zero() {
-        // 0.5 × 21% = 0.105 -> 0.11; 3 × 0.335 = 1.005 -> 1.01.
-        assert_eq!(
-            amounts(&line("1", "0.5", "21", "0"), 2).unwrap().vat,
-            d("0.11")
-        );
+        // 0.5 × 21% = 0.105 -> 0.11 (and -0.11 on a credit); 3 × 0.335 = 1.005 -> 1.01.
+        let vat = |q: &str| summarise(&[line(q, "0.5", "21", "0")], 2).unwrap().vat;
+        assert_eq!((vat("1"), vat("-1")), (d("0.11"), d("-0.11")));
         assert_eq!(
             amounts(&line("3", "0.335", "21", "0"), 2).unwrap().gross,
             d("1.01")
@@ -220,14 +245,21 @@ mod tests {
             2,
         )
         .unwrap();
-        assert_eq!(s.vats, vec![(d("5.5"), d("6.05")), (d("5"), d("5.00"))]);
+        let got: Vec<_> = s.vats.iter().map(|v| (v.rate, v.base, v.vat)).collect();
+        assert_eq!(
+            got,
+            vec![
+                (d("5.5"), d("110"), d("6.05")),
+                (d("5"), d("100"), d("5.00"))
+            ]
+        );
         assert_eq!(s.total, s.excl + s.vat);
     }
 
     #[test]
     fn currency_decimals_drive_rounding() {
         let a = amounts(&line("3", "9.99", "21", "0"), 0).unwrap();
-        assert_eq!((a.gross, a.vat), (d("30"), d("6")));
+        assert_eq!((a.gross, a.line_vat), (d("30"), d("6")));
     }
 
     #[test]
@@ -257,12 +289,13 @@ mod tests {
     }
 
     /// Every case in `pricing_parity.json` (PHP 8.4 running vimdesk-api's real
-    /// BuildItemsSummary). Per-line rounding may move each sum by at most half a cent per
-    /// line. Whole-cent inputs (2-dp prices, whole quantities, no discount) match exactly,
-    /// except `total`: Laravel rounds the float total on its own, genesy adds excl + VAT.
+    /// BuildItemsSummary). Line rounding moves each sum by at most half a cent per line, VAT per
+    /// rate by half a cent per rate. Whole-cent inputs (2-dp prices, whole quantities, no
+    /// discount) match the line sums exactly, and with one VAT rate also Laravel's total (it
+    /// rounds Σ incl once, as one rate does).
     #[test]
-    fn matches_laravel_within_per_line_rounding() {
-        let mut total_differs = Vec::new();
+    fn matches_laravel_within_rounding() {
+        let mut vat_differs = Vec::new();
         let fixture: serde_json::Value =
             serde_json::from_str(include_str!("../../../tests/fixtures/pricing_parity.json"))
                 .unwrap();
@@ -284,8 +317,8 @@ mod tests {
             let whole_cents = lines.iter().all(|l| {
                 l.discount.is_zero() && l.quantity.fract().is_zero() && l.price.scale() <= 2
             });
-            let tolerance = d("0.005") * Decimal::from(lines.len() + 1);
             let s = summarise(&lines, 2).unwrap();
+            let tolerance = d("0.005") * Decimal::from(lines.len() + s.vats.len() + 1);
             let laravel = &case["summary"];
             for (field, ours) in [
                 ("sum_total", s.gross),
@@ -297,25 +330,22 @@ mod tests {
                 let theirs = fixture_number(&laravel[field]);
                 let diff = (ours - theirs).abs();
                 assert!(diff <= tolerance, "{name} {field}: {ours} vs {theirs}");
-                if field == "total" {
-                    if ours != theirs {
-                        // Only where per-line rounding applies or Laravel contradicts itself.
-                        let excl = crate::money::round(fixture_number(&laravel["total_excl"]), 2);
-                        let own = excl + fixture_number(&laravel["total_vat"]);
-                        assert!(
-                            !whole_cents || own != theirs,
-                            "{name}: total {ours} vs {theirs}"
-                        );
-                        total_differs.push(name);
+                match field {
+                    "total" if whole_cents && s.vats.len() == 1 => {
+                        assert_eq!(ours, crate::money::round(theirs, 2), "{name} total");
                     }
-                } else if whole_cents {
-                    assert_eq!(ours, crate::money::round(theirs, 2), "{name} {field}");
+                    "total_vat" if ours != crate::money::round(theirs, 2) => vat_differs.push(name),
+                    "total" | "total_vat" => {}
+                    _ if whole_cents => {
+                        assert_eq!(ours, crate::money::round(theirs, 2), "{name} {field}")
+                    }
+                    _ => {}
                 }
             }
             assert_eq!(s.total, s.excl + s.vat, "{name}: total must add up");
         }
-        // The user-approved fix is visible: Laravel says 0.25 where its lines say 0.24.
-        assert!(total_differs.contains(&"three_lines_0_07_vat21"));
+        // Per-rate VAT shows where Laravel's lines undercount: 0.04 here, Laravel's lines 0.03.
+        assert!(vat_differs.contains(&"three_lines_0_07_vat21"));
     }
 
     fn margin_of(lines: &[Line]) -> Margin {

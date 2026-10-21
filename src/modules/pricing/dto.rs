@@ -190,10 +190,10 @@ impl SummaryResource {
         let total_vats = s
             .vats
             .iter()
-            .map(|(rate, amount)| {
-                let v =
-                    json!({ "percentage": php_number(*rate), "total_amount": php_number(*amount) });
-                (rate.normalize().to_string(), v)
+            .map(|v| {
+                let entry =
+                    json!({ "percentage": php_number(v.rate), "total_amount": php_number(v.vat) });
+                (v.rate.normalize().to_string(), entry)
             })
             .collect();
         let discounts = items

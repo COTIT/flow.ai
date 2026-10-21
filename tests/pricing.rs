@@ -122,6 +122,23 @@ async fn vat_grouped_per_rate(pool: PgPool) {
     assert_eq!(d["total"], json!(39.6));
 }
 
+/// VAT once per rate on the summed lines (user decision 2026-10-21): three lines of 0.07 at
+/// 21 % give VAT 0.04 (each line on its own would round to 0.01), and the total adds up.
+#[sqlx::test]
+async fn vat_is_computed_once_per_rate(pool: PgPool) {
+    let api = api(pool).await;
+    let line = || item(json!(1), json!(0.07), json!(21));
+    let d = ok(&api, json!({ "items": [line(), line(), line()] })).await;
+    assert_eq!(
+        (&d["total_excl"], &d["total_vat"], &d["total"]),
+        (&json!(0.21), &json!(0.04), &json!(0.25))
+    );
+    assert_eq!(
+        d["total_vats"],
+        json!({ "21": { "percentage": 21, "total_amount": 0.04 } })
+    );
+}
+
 #[sqlx::test]
 async fn product_line_takes_name_and_purchase_price(pool: PgPool) {
     let api = api(pool).await;
