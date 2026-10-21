@@ -1,6 +1,6 @@
 //! Product price rules from Laravel ProductPriceTrait + Product saving hook, in exact decimals:
-//! net/impact normalisation, purchase price with supplier discounts, and price corrections
-//! (bands). No special offers yet (F3b), so the consumer price starts from the stored net price.
+//! net/impact normalisation, purchase price with supplier discounts, price corrections (bands)
+//! and the product's active special offer.
 
 use rust_decimal::Decimal;
 
@@ -135,44 +135,129 @@ pub fn correct(net: Decimal, vat_pct: Decimal, b: &Band) -> Option<Decimal> {
     rounded.checked_sub(b.remove_amount.unwrap_or_default().checked_div(mult)?)
 }
 
-/// Laravel's four net prices before special offers (F3b).
+/// What a product's active special offer needs for its price (Laravel SpecialOffer).
+#[derive(Clone, Copy)]
+pub struct Offer<'a> {
+    pub kind: &'a str,
+    pub value: Decimal,
+    pub base_price: Option<Decimal>,
+    pub rule: Option<&'a str>,
+    pub discount_value: Option<Decimal>,
+    pub discount_type: Option<&'a str>,
+    pub condition_quantity: Option<i32>,
+}
+
+/// Laravel `calculateSpecialPrice` without a cart, for the product's own active offer: `base`
+/// is the price being built, `raw` the stored net price (cart-rule amounts use it). None on
+/// overflow.
+pub fn special(base: Decimal, raw: Decimal, o: &Offer) -> Option<Decimal> {
+    let hundred = Decimal::ONE_HUNDRED;
+    let off = |b: Decimal, pct: Decimal| {
+        b.checked_mul(hundred.checked_sub(pct)?)?
+            .checked_div(hundred)
+    };
+    // Laravel's fallback for rule-type offers: `type` against `value`.
+    let by_type = || match o.kind {
+        "percentage" => off(base, o.value),
+        "exact" => Some(o.value),
+        _ => base.checked_sub(o.value),
+    };
+    let Some(rule) = o.rule else {
+        // calculateLegacyPromotionalPrice: percentage and fixed use the frozen base price.
+        return match (o.kind, o.base_price) {
+            ("percentage", frozen) => off(frozen.unwrap_or(base), o.value),
+            ("fixed", frozen) => frozen.unwrap_or(base).checked_sub(o.value),
+            _ => Some(o.value),
+        };
+    };
+    if !matches!(rule, "global_discount" | "cross_product_discount" | "bogo") {
+        return match (o.kind, o.discount_value, o.discount_type) {
+            ("percentage", ..) => off(base, o.value),
+            ("exact", ..) => Some(o.value),
+            (_, Some(dv), Some("percentage")) => off(base, dv),
+            (_, Some(dv), Some("fixed")) => Some(base.checked_sub(dv)?.max(Decimal::ZERO)),
+            _ => base.checked_sub(o.value),
+        };
+    }
+    // Cart rules: CalculateSpecialOfferDiscount's amount for this offer (a 0..100 value
+    // without a discount type counts as a percentage).
+    let kind = o.discount_type.or_else(|| {
+        o.discount_value
+            .filter(|v| (Decimal::ZERO..=hundred).contains(v))
+            .map(|_| "percentage")
+    });
+    let amount = match (o.discount_value, kind) {
+        (Some(dv), Some("percentage")) => raw.checked_mul(dv)?.checked_div(hundred)?,
+        (Some(dv), Some("fixed")) => dv,
+        (Some(_), Some("free")) => raw,
+        (Some(dv), Some("bundle_price")) => match o.condition_quantity.filter(|q| *q > 0) {
+            Some(q) => raw.checked_sub(dv.checked_div(Decimal::from(q))?)?,
+            None => Decimal::ZERO,
+        },
+        (None, Some("percentage")) => raw.checked_mul(o.value)?.checked_div(hundred)?,
+        (dv, _) => dv.unwrap_or(o.value),
+    };
+    if amount > Decimal::ZERO {
+        Some(base.checked_sub(amount)?.max(Decimal::ZERO))
+    } else {
+        by_type()
+    }
+}
+
+/// Laravel's four net prices.
 pub struct Prices {
-    /// `price` (getConsumerPrice) and `original_price` (getOriginalPrice): equal until offers.
+    /// `price` (getConsumerPrice).
     pub consumer: Decimal,
+    /// `original_price` (getOriginalPrice): no special offer.
+    pub original: Decimal,
     /// `business_price` (getBusinessPrice).
     pub business: Decimal,
     /// `price_without_correction` (getPriceWithoutCorrection).
     pub uncorrected: Decimal,
 }
 
-/// Laravel ProductPriceTrait getters. With `business_from_gross` (setting
-/// `product.disable_double_discount_for_business`) a product priced below gross starts its
-/// business price from gross.
-pub fn prices(
-    net: Decimal,
-    gross: Decimal,
-    impact_on_price: Option<Decimal>,
-    excluded: bool,
-    business_from_gross: bool,
-    vat_pct: Decimal,
-    bands: &[Band],
-) -> Prices {
-    let build = |v: Decimal| {
-        band_for(bands, v)
-            .filter(|_| !excluded)
-            .and_then(|b| correct(v, vat_pct, b))
+/// What `prices` reads from a product and its workspace.
+pub struct PriceInputs<'a> {
+    pub net: Decimal,
+    pub gross: Decimal,
+    pub impact_on_price: Option<Decimal>,
+    /// `exclude_price_corrections`.
+    pub excluded: bool,
+    /// Setting `product.disable_double_discount_for_business`.
+    pub business_from_gross: bool,
+    pub vat_pct: Decimal,
+    pub bands: &'a [Band],
+    /// The product's active special offer.
+    pub offer: Option<Offer<'a>>,
+}
+
+/// Laravel ProductPriceTrait getters. With `business_from_gross`, a product priced below gross
+/// starts its business price from gross, and its consumer price too while an offer is active.
+pub fn prices(i: &PriceInputs) -> Prices {
+    let correct_ = |v: Decimal| {
+        band_for(i.bands, v)
+            .filter(|_| !i.excluded)
+            .and_then(|b| correct(v, i.vat_pct, b))
             .unwrap_or(v)
     };
-    let below_gross = impact_on_price.is_some_and(|i| i < Decimal::ZERO);
-    let business_base = if below_gross && business_from_gross {
-        gross
+    let special_ = |v: Decimal| {
+        i.offer
+            .as_ref()
+            .and_then(|o| special(v, i.net, o))
+            .unwrap_or(v)
+    };
+    let from_gross = i.impact_on_price.is_some_and(|v| v < Decimal::ZERO) && i.business_from_gross;
+    let business_base = if from_gross { i.gross } else { i.net };
+    let consumer_base = if from_gross && i.offer.is_some() {
+        i.gross
     } else {
-        net
+        i.net
     };
     Prices {
-        consumer: build(net),
-        business: build(business_base),
-        uncorrected: business_base,
+        consumer: correct_(special_(consumer_base)),
+        original: correct_(i.net),
+        business: correct_(special_(business_base)),
+        uncorrected: special_(business_base),
     }
 }
 
@@ -246,40 +331,43 @@ mod tests {
             Some(d("5"))
         );
         assert!(band_for(&bands, d("25")).is_none());
-        let p = prices(
-            d("10.3"),
-            d("10.3"),
-            None,
-            false,
-            false,
-            Decimal::ZERO,
-            &bands,
-        );
+        let p = prices(&PriceInputs {
+            net: d("10.3"),
+            gross: d("10.3"),
+            impact_on_price: None,
+            excluded: false,
+            business_from_gross: false,
+            vat_pct: Decimal::ZERO,
+            bands: &bands,
+            offer: None,
+        });
         // 10.3 is in the second band only: 0.5 steps, 10.5 is nearer than 10.
         assert_eq!(
             (p.consumer, p.business, p.uncorrected),
             (d("10.5"), d("10.5"), d("10.3"))
         );
-        let p = prices(
-            d("10.3"),
-            d("10.3"),
-            None,
-            true,
-            false,
-            Decimal::ZERO,
-            &bands,
-        );
+        let p = prices(&PriceInputs {
+            net: d("10.3"),
+            gross: d("10.3"),
+            impact_on_price: None,
+            excluded: true,
+            business_from_gross: false,
+            vat_pct: Decimal::ZERO,
+            bands: &bands,
+            offer: None,
+        });
         assert_eq!(p.consumer, d("10.3"), "excluded");
         // Below gross with the setting: business from gross, consumer from net.
-        let p = prices(
-            d("9.4"),
-            d("12.2"),
-            Some(d("-23")),
-            false,
-            true,
-            Decimal::ZERO,
-            &bands,
-        );
+        let p = prices(&PriceInputs {
+            net: d("9.4"),
+            gross: d("12.2"),
+            impact_on_price: Some(d("-23")),
+            excluded: false,
+            business_from_gross: true,
+            vat_pct: Decimal::ZERO,
+            bands: &bands,
+            offer: None,
+        });
         assert_eq!(
             (p.consumer, p.business, p.uncorrected),
             (d("9"), d("12"), d("12.2"))
@@ -292,6 +380,169 @@ mod tests {
             remove_amount: None,
         };
         assert!(correct(Decimal::MAX, d("21"), &huge).is_none());
+    }
+
+    /// Laravel calculateSpecialPrice branches (ProductPriceTrait) for an offer on the product.
+    #[test]
+    fn special_price_branches() {
+        let offer = |kind, value: &str, rule, dv: Option<&str>, dt| Offer {
+            kind,
+            value: d(value),
+            base_price: None,
+            rule,
+            discount_value: dv.map(d),
+            discount_type: dt,
+            condition_quantity: Some(3),
+        };
+        let at = |o: &Offer| special(d("100"), d("100"), o).unwrap();
+        // Legacy.
+        assert_eq!(at(&offer("percentage", "10", None, None, None)), d("90"));
+        assert_eq!(at(&offer("fixed", "10", None, None, None)), d("90"));
+        assert_eq!(at(&offer("exact", "70", None, None, None)), d("70"));
+        let frozen = Offer {
+            base_price: Some(d("50")),
+            ..offer("percentage", "10", None, None, None)
+        };
+        assert_eq!(at(&frozen), d("45"), "frozen base price");
+        // Rules without a cart: type first, then discount_value / discount_type.
+        assert_eq!(
+            at(&offer(
+                "percentage",
+                "25",
+                Some("brand_discount"),
+                None,
+                None
+            )),
+            d("75")
+        );
+        assert_eq!(
+            at(&offer(
+                "fixed",
+                "15",
+                Some("brand_discount"),
+                Some("15"),
+                Some("fixed")
+            )),
+            d("85")
+        );
+        assert_eq!(
+            at(&offer(
+                "fixed",
+                "500",
+                Some("brand_discount"),
+                Some("500"),
+                Some("fixed")
+            )),
+            d("0")
+        );
+        assert_eq!(
+            at(&offer(
+                "free",
+                "5",
+                Some("brand_discount"),
+                Some("5"),
+                Some("free")
+            )),
+            d("95"),
+            "else: price - value"
+        );
+        // Cart rules: the offer's own amount from the stored price.
+        assert_eq!(
+            at(&offer(
+                "percentage",
+                "20",
+                Some("global_discount"),
+                Some("20"),
+                None
+            )),
+            d("80")
+        );
+        assert_eq!(
+            at(&offer("free", "1", Some("bogo"), Some("1"), Some("free"))),
+            d("0")
+        );
+        assert_eq!(
+            at(&offer(
+                "bundle_price",
+                "150",
+                Some("bogo"),
+                Some("150"),
+                Some("bundle_price")
+            )),
+            d("50"),
+            "100 - 150/3"
+        );
+        assert_eq!(
+            at(&offer(
+                "fixed",
+                "250",
+                Some("global_discount"),
+                Some("250"),
+                None
+            )),
+            d("0"),
+            "over 100: an amount"
+        );
+        // Amount 0 falls back to type/value.
+        assert_eq!(
+            at(&offer(
+                "exact",
+                "60",
+                Some("global_discount"),
+                Some("0"),
+                Some("fixed")
+            )),
+            d("60")
+        );
+        // Overflow: None (the caller keeps the price).
+        assert!(
+            special(
+                MAX,
+                MAX,
+                &offer(
+                    "percentage",
+                    "0",
+                    Some("global_discount"),
+                    Some(&MAX.to_string()),
+                    Some("percentage")
+                )
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn offer_feeds_consumer_business_and_uncorrected() {
+        let bands: [Band; 0] = [];
+        let o = Offer {
+            kind: "percentage",
+            value: d("10"),
+            base_price: None,
+            rule: Some("brand_discount"),
+            discount_value: Some(d("10")),
+            discount_type: Some("percentage"),
+            condition_quantity: None,
+        };
+        let i = |bfg| PriceInputs {
+            net: d("90"),
+            gross: d("100"),
+            impact_on_price: Some(d("-10")),
+            excluded: false,
+            business_from_gross: bfg,
+            vat_pct: Decimal::ZERO,
+            bands: &bands,
+            offer: Some(o),
+        };
+        let p = prices(&i(false));
+        assert_eq!(
+            (p.consumer, p.original, p.business, p.uncorrected),
+            (d("81"), d("90"), d("81"), d("81"))
+        );
+        let p = prices(&i(true));
+        assert_eq!(
+            (p.consumer, p.original, p.business, p.uncorrected),
+            (d("90"), d("90"), d("90"), d("90"))
+        );
     }
 
     #[test]

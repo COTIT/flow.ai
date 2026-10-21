@@ -1,0 +1,327 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, product_id, from_date, to_date, always_active, value, type AS kind,\n                  base_price, discount_rule_type, condition_quantity, discount_quantity,\n                  condition_brand, condition_supplier_relation_id, condition_category_id,\n                  target_brand, target_supplier_relation_id, target_category_id,\n                  target_product_id, discount_value, discount_type, priority, apply_to_cheapest,\n                  meta, created_at, updated_at, count(*) OVER () AS total\n           FROM special_offers\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::uuid IS NULL OR product_id = $2)\n             AND ($3::text IS NULL OR ($3 = 'legacy' AND discount_rule_type IS NULL)\n                  OR discount_rule_type = $3)\n           ORDER BY id LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "from_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "from_date"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "to_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "to_date"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "always_active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "always_active"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "value",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "base_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "base_price"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "discount_rule_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "discount_rule_type"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "condition_quantity",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "condition_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "discount_quantity",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "discount_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "condition_brand",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "condition_brand"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "condition_supplier_relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "condition_supplier_relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "condition_category_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "condition_category_id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "target_brand",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "target_brand"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "target_supplier_relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "target_supplier_relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "target_category_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "target_category_id"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "target_product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "target_product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "discount_value",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "discount_value"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "discount_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "discount_type"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "priority",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "priority"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "apply_to_cheapest",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "apply_to_cheapest"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "special_offers",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "total",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "cb5d075919154cbcc6785b450d15e23e12abc76836f1503a090c4aa995add173"
+}

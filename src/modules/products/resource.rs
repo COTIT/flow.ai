@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use chrono::Utc;
 use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -12,9 +13,12 @@ use crate::{
     modules::{
         products::{
             dto::PHYSICAL,
-            pricing::{Band, column, computed, discounted, incl, prices, purchase_price},
+            pricing::{
+                Band, PriceInputs, column, computed, discounted, incl, prices, purchase_price,
+            },
             repo::ProductRow,
         },
+        special_offers::{self, dto::OfferResource, repo::OfferRow},
         stock::repo::StockLine,
         vat_groups::{dto::VatGroupResource, repo::VatGroupRow},
         warehouses::repo::StockRef,
@@ -46,6 +50,8 @@ pub struct Embeds {
     pub bands: Vec<Band>,
     /// Setting `product.disable_double_discount_for_business`.
     pub business_from_gross: bool,
+    /// Live special offers per product, best first.
+    pub offers: HashMap<Uuid, Vec<OfferRow>>,
 }
 
 /// One product. `detail`: GET one (Laravel loaded more there).
@@ -55,17 +61,21 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
     let mutates = PHYSICAL.contains(&p.kind.as_str()) && p.has_stock;
     let lines = e.stocks.get(&p.id).map_or(&[][..], Vec::as_slice);
     let pos = if mutates { pos_pick(p, lines, e) } else { None };
-    let net = prices(
-        p.price,
-        p.gross_price,
-        p.impact_on_price,
-        p.exclude_price_corrections,
-        e.business_from_gross,
+    let offers = e.offers.get(&p.id).map_or(&[][..], Vec::as_slice);
+    let active = special_offers::service::active(offers, Utc::now().date_naive());
+    let net = prices(&PriceInputs {
+        net: p.price,
+        gross: p.gross_price,
+        impact_on_price: p.impact_on_price,
+        excluded: p.exclude_price_corrections,
+        business_from_gross: e.business_from_gross,
         vat_pct,
-        &e.bands,
-    );
+        bands: &e.bands,
+        offer: active.map(special_offers::service::pricing),
+    });
     let fmt = |v: Decimal| (computed(v, 4), computed(incl(v, vat_pct), 2));
     let (price, price_incl) = fmt(net.consumer);
+    let (original, original_incl) = fmt(net.original);
     let (business, business_incl) = fmt(net.business);
     let (uncorrected, uncorrected_incl) = fmt(net.uncorrected);
     let discount = e.purchase_discounts.get(&p.id).copied();
@@ -113,7 +123,6 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "should_mutate_stock": mutates,
         "vat_group": null,
         "status": p.status,
-        // shortcut: no special offers until F3b, so `original_price` equals `price`.
         "business_price": business,
         "business_price_incl": business_incl,
         "impact_on_price": column(p.impact_on_price, 4),
@@ -125,8 +134,8 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "import_id": p.import_id,
         "import_source": p.import_source,
         "import_links": [],
-        "original_price": price,
-        "original_price_incl": price_incl,
+        "original_price": original,
+        "original_price_incl": original_incl,
         "wholesale_price": column(p.wholesale_price, 4),
         "gross_price": column(Some(p.gross_price), 4),
         "gross_price_incl": computed(incl(p.gross_price, vat_pct), 2),
@@ -173,8 +182,8 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "last_updated_at": p.updated_at,
         "relationships": {
             "currency": e.currencies.get(&p.currency_id),
-            "active_special_offer": null,
-            "special_offers": [],
+            "active_special_offer": active.map(OfferResource::from),
+            "special_offers": offers.iter().map(OfferResource::from).collect::<Vec<_>>(),
             "sales_group": p.sales_group_id.and_then(|id| e.sales_groups.get(&id)),
             "vat_group": vat.map(|v| VatGroupResource::from(v.clone())),
             "custom_sections": [],

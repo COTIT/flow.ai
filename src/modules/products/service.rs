@@ -24,7 +24,7 @@ use crate::{
         },
         relations::service as relations,
         sales_groups::{dto::SalesGroupResource, repo as sales_groups},
-        settings,
+        settings, special_offers,
         stock::repo as stock,
         vat_groups::repo as vat_groups,
         warehouses::{dto::WarehouseCompacted, repo as warehouses, service as warehouse_service},
@@ -674,6 +674,11 @@ async fn embeds(
         .into_iter()
         .collect();
     e.bands = price_corrections::repo::bands(&state.db, workspace_id).await?;
+    for o in special_offers::repo::for_products(&state.db, workspace_id, &ids).await? {
+        if let Some(product) = o.product_id {
+            e.offers.entry(product).or_default().push(o);
+        }
+    }
     e.business_from_gross = settings::repo::section(&state.db, workspace_id, "product")
         .await?
         .and_then(|s| s.get("disable_double_discount_for_business")?.as_bool())

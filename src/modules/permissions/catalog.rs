@@ -1,6 +1,6 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued (46 / 237). Name = `group.action`.
+//! but never catalogued, plus `specialoffer` (47 / 242). Name = `group.action`.
 //! Regenerate when a ported module adds actions.
 
 /// Groups in key order, actions sorted (Laravel `ksort` + `sort`).
@@ -150,6 +150,11 @@ pub const GROUPS: &[(&str, &[&str])] = &[
         "shipmentmethod",
         &["create", "delete", "get", "list", "update"],
     ),
+    // specialoffer: added by genesy in F3b (Laravel checked it, never catalogued).
+    (
+        "specialoffer",
+        &["create", "delete", "list", "update", "view"],
+    ),
     (
         "stock",
         &[
@@ -241,8 +246,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 46);
-        assert_eq!(names().count(), 237);
+        assert_eq!(GROUPS.len(), 47);
+        assert_eq!(names().count(), 242);
     }
 
     #[test]
@@ -270,6 +275,12 @@ mod tests {
             for action in ["create", "delete", "get", "list", "update"] {
                 assert!(assignable(&format!("{group}.{action}")), "{group}.{action}");
             }
+        }
+        for action in ["create", "delete", "list", "update", "view"] {
+            assert!(
+                assignable(&format!("specialoffer.{action}")),
+                "specialoffer.{action}"
+            );
         }
     }
 

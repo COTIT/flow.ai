@@ -44,13 +44,14 @@ Any active member. No permission name needed (Laravel had no policy here either)
   "workspace": ["get", "global-search", "list", "send-message", "update", "view-event"],
   "__classification": {
     "frontend_only": ["product.view_price", "product.view_purchase_price", "product.view_margin"],
-    "api_enforced": ["association.create", "…all 237 catalog names…"]
+    "api_enforced": ["association.create", "…all 242 catalog names…"]
   }
 } }
 ```
 
-- 46 groups and 237 names. 43 groups / 222 names are frozen from Laravel's `src/Domain/**/V1/Permissions/permissions.json` exactly as `PermissionHelper` serves them: groups sorted, actions sorted, `__classification` last. Source: `src/modules/permissions/catalog.rs`.
+- 47 groups and 242 names. 43 groups / 222 names are frozen from Laravel's `src/Domain/**/V1/Permissions/permissions.json` exactly as `PermissionHelper` serves them: groups sorted, actions sorted, `__classification` last. Source: `src/modules/permissions/catalog.rs`.
 - `salesgroup`, `shipmentmethod` and `vatgroup` (`create, delete, get, list, update`) are added by genesy. Laravel checked these names but had no catalog file for them, so only the owner or a `workspace_admin` could pass.
+- `specialoffer` (`create, delete, list, update, view`) is added the same way (F3b). vimdesk-web already gates its discounts page on `specialoffer.list`.
 - `workspace_admin` isn't in the catalog. Only the owner may grant it.
 - vimdesk-web drops `__classification` when it builds the editor.
 

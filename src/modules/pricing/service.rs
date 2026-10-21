@@ -13,7 +13,7 @@ use crate::{
     modules::{
         currencies, discounts,
         pricing::{dto::Calculate, engine, repo},
-        products,
+        products, special_offers,
     },
 };
 
@@ -142,6 +142,15 @@ async fn apply_products(
         ),
         _ => None,
     };
+    let mut offers: HashMap<Uuid, Vec<special_offers::repo::OfferRow>> = HashMap::new();
+    if relation_discounts.is_some() {
+        for o in special_offers::repo::for_products(&state.db, workspace_id, &wanted).await? {
+            if let Some(product) = o.product_id {
+                offers.entry(product).or_default().push(o);
+            }
+        }
+    }
+    let today = chrono::Utc::now().date_naive();
     let mut errors = BTreeMap::new();
     for (n, item) in input.items.iter_mut().enumerate() {
         let Some(raw) = item.product_id.as_deref() else {
@@ -167,6 +176,14 @@ async fn apply_products(
         }
         if let Some(by_product) = &relation_discounts {
             let customer = by_product.get(&p.id).copied().unwrap_or_default();
+            // Laravel GetProductPrice: a bigger percentage offer cancels the customer discount.
+            let offer = offers
+                .get(&p.id)
+                .and_then(|o| special_offers::service::active(o, today));
+            let customer = match offer {
+                Some(o) if o.kind == "percentage" && o.value > customer => Decimal::ZERO,
+                _ => customer,
+            };
             if !item.discount_sent {
                 item.line.discount = customer;
             }
