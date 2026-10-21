@@ -3,6 +3,10 @@
 ## Unreleased
 
 - **VAT per rate** (user decision 2026-10-21, replaces per-line VAT; contract `docs/api/pricing.md`): `calculate-items` and `calculate-marge` round each line's amounts as before, then compute VAT once per rate on the summed line amounts. `total = total_excl + total_vat` still holds exactly. 3 × €0.07 at 21 % now gives VAT 0.04 (was 0.03), matching Laravel's own total; 1000 × €0.01 at 21 % gives VAT 2.10 (was 0.00). No per-line VAT amount is printed; `pricing::engine::Amounts::line_vat` stays for per-line display (F4) and is informational. `Summary::vats` now carries each rate's base. Parity test renamed `matches_laravel_within_rounding`.
+- Request time limits on `/v1` (follow-up of the private-route limits):
+  - **Body deadline:** a request body must arrive within `REQUEST_BODY_DEADLINE_SECS` (20), else `408 The request body took too long to arrive.` (tower-http `RequestBodyDeadlineLayer`; `ValidatedJson` maps the timeout instead of a 422). A client trickling its body can no longer pin request slots.
+  - **Request timeout:** a request must finish within `REQUEST_TIMEOUT_SECS` (45), else `503` server busy with `Retry-After: 5`; the request is cancelled, so its slots and pooled connection return and an open transaction rolls back.
+  - `Cargo.toml`: tower-http feature `timeout` (a feature flag on the existing crate; `Cargo.lock` gains no package).
 
 - Private-route limits (risk-register follow-up from the DB hardening PR):
   - **Per session:** a token bucket per bearer token on every authenticated route (`PRIVATE_RATE_LIMIT_BURST` 120, `PRIVATE_RATE_LIMIT_REPLENISH_MS` 50), keyed on the token as authentication parses it; `429 Too Many Attempts.` with `Retry-After`, as the public limiter.

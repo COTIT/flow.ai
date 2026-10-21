@@ -29,6 +29,11 @@ Rate limited, `429`: `{"message": "Too Many Attempts."}` plus a `Retry-After` he
 - Invite send has its own hourly limit (see `invites.md`).
 - **In flight, per workspace and per user:** after the membership check, a `/v1/workspace/{id}/…` request takes one of the workspace's `WORKSPACE_MAX_INFLIGHT` slots (default half the request pool, `DATABASE_MAX_CONNECTIONS` / 2, at least 1) and one of the user's `USER_MAX_INFLIGHT` (default a quarter of the pool, at least 2). Requests beyond that wait in order for up to 5 seconds, then answer `503 {"message": "The server is busy, please try again."}` with `Retry-After: 5`. One tenant's or one user's slow requests can't hold every database connection, and only members take a workspace's slots (an outsider gets its 404 first). Routes outside a workspace (`/v1/me`, users, logout) are only rate-limited.
 
+Every `/v1` request also has time limits:
+
+- **Body deadline:** the whole request body must arrive within `REQUEST_BODY_DEADLINE_SECS` (default 20), else `408 {"message": "The request body took too long to arrive."}`. A client trickling its body can't hold a slot.
+- **Request timeout:** a request must finish within `REQUEST_TIMEOUT_SECS` (default 45, above the 30s statement, 5s pool and 5s slot waits), else `503 {"message": "The server is busy, please try again."}` with `Retry-After: 5`. The request is cancelled: its slots and pooled connection go back and an open transaction rolls back. A write that committed just before the deadline still answers 503, so a client retrying a create may make it twice (idempotency keys come with the POS sub-batches).
+
 Body too large, `413`: `{"message": "The request body is too large."}`. Limit 64 KiB.
 
 Every `/v1` response sets `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`.
