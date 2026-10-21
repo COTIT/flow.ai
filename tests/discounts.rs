@@ -491,10 +491,55 @@ async fn purchase_price_takes_the_best_internal_discount(pool: PgPool) {
 async fn purchase_discount_respects_group_active_and_dates(pool: PgPool) {
     let w = world(pool).await;
     let internal = group(&w.api, &w.supplier, true).await;
-    let today = chrono::Utc::now().date_naive();
-    // Ends today: still counts (Laravel dropped it at midnight on its last day).
-    discount(&w, &internal, "10", json!({ "valid_from": today.to_string(), "valid_to": (today + chrono::Days::new(1)).to_string() })).await;
-    assert_eq!(product_get(&w).await["purchase_price"], "90");
+    let id = discount(&w, &internal, "10", json!({})).await;
+    let discounts = w.api.with_base("/products/discounts");
+    let day = |n: i64| (chrono::Utc::now().date_naive() + chrono::Duration::days(n)).to_string();
+    let price_with = |window: Value| {
+        let (discounts, w, id) = (&discounts, &w, &id);
+        async move {
+            let (status, res) = discounts.update(id, window).await;
+            assert_eq!(status, StatusCode::OK, "{res}");
+            product_get(w).await["purchase_price"].clone()
+        }
+    };
+    // Both ends count: Laravel dropped the discount after midnight on its last day.
+    assert_eq!(
+        price_with(json!({ "valid_from": day(-1), "valid_to": day(0) })).await,
+        "90"
+    );
+    assert_eq!(
+        price_with(json!({ "valid_from": day(0), "valid_to": day(1) })).await,
+        "90"
+    );
+    assert_eq!(
+        price_with(json!({ "valid_from": day(-1), "valid_to": null })).await,
+        "90"
+    );
+    assert_eq!(
+        price_with(json!({ "valid_from": null, "valid_to": day(0) })).await,
+        "90"
+    );
+    assert_eq!(
+        price_with(json!({ "valid_from": day(-3), "valid_to": day(-1) })).await,
+        "95",
+        "past"
+    );
+    assert_eq!(
+        price_with(json!({ "valid_from": day(1), "valid_to": null })).await,
+        "95",
+        "future"
+    );
+    assert_eq!(
+        price_with(json!({ "valid_from": null, "valid_to": day(-1) })).await,
+        "95",
+        "ended"
+    );
+    assert_eq!(
+        price_with(json!({ "valid_from": null, "valid_to": null, "active": false })).await,
+        "95",
+        "inactive discount ignored"
+    );
+    assert_eq!(price_with(json!({ "active": true })).await, "90");
     let (status, _) = w.api.update(&internal, json!({ "active": false })).await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(
@@ -585,6 +630,31 @@ async fn calculate_items_applies_the_customers_discount(pool: PgPool) {
         )
         .await;
     assert_eq!(res["data"]["total_discount"], json!(10));
+    assert_eq!(
+        res["data"]["discounts"][0]["client_default_discount"],
+        "0.00"
+    );
+    // A typed 0 stays 0.
+    let (_, res) = calc
+        .call(
+            Method::POST,
+            "",
+            Some(line(json!({ "productDiscount": 0 }))),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(res["data"]["total_discount"], json!(0));
+    assert_eq!(res["data"]["total"], json!(242));
+    // Blank counts as not sent (Laravel ConvertEmptyStringsToNull).
+    let (_, res) = calc
+        .call(
+            Method::POST,
+            "",
+            Some(line(json!({ "productDiscount": "" }))),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(res["data"]["total_discount"], json!(25));
     // No relation: no discount.
     let (_, res) = calc
         .call(Method::POST, "", Some(json!({ "items": [{ "id": 1, "product_id": w.product, "quantity": 2, "price": 100, "vat": 21 }] })), &w.api.owner)
@@ -596,4 +666,11 @@ async fn calculate_items_applies_the_customers_discount(pool: PgPool) {
         .call(Method::POST, "", Some(line(json!({}))), &cashier)
         .await;
     assert_eq!(res["data"]["total_discount"], json!(25));
+    // An inactive group gives nothing (Laravel's relation path ignored group `active`).
+    let (status, _) = w.api.update(&sales, json!({ "active": false })).await;
+    assert_eq!(status, StatusCode::OK);
+    let (_, res) = calc
+        .call(Method::POST, "", Some(line(json!({}))), &w.api.owner)
+        .await;
+    assert_eq!(res["data"]["total_discount"], json!(0));
 }

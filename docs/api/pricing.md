@@ -47,12 +47,12 @@ Totals are sums of the rounded lines, so `total = total_excl + total_vat` always
 | `items.N.purchase_price` | number | Margin only. |
 | `items.N.title` | string ≤ 500 | Echoed. |
 | `items.N.description` | string ≤ 5000 | Echoed; a product line gets the product's name. |
-| `items.N.product_id` | uuid of a live product of this workspace | One query for all lines. Looked up only for callers with `product.view` (see Auth). |
+| `items.N.product_id` | uuid of a live product of this workspace | One query for all lines. |
 | `items.N.multi_set_item_id` | any | PHP-truthy = child line of a product set; margin skips it (`{}` and `[]` are falsy, as PHP decodes them). |
 | `items.N.client_default_discount` | number | Echoed back formatted (vimdesk-web writes it onto the row). |
 | `items.N.id` | any scalar | Echoed; an array or object echoes as null. |
 | `currency_id` | live currency of this workspace | Missing = the workspace's default currency, else its oldest. |
-| `relation_id` | live relation of this workspace | Only validated for now (see below). |
+| `relation_id` | live relation of this workspace | Applies the relation's discounts (see below). |
 
 Unknown keys (`disable_client_discounts`, `drag_key`, `relationships`, …) are ignored, because vimdesk-web posts whole item rows. The body limit on these two routes is 2 MiB (the app-wide limit is 64 KiB, which a 50-line invoice can exceed). The parser (`pricing::body`) skips unknown keys and nested values without keeping them and stops collecting lines past 1000, so a 2 MiB body costs about its own size in memory.
 
@@ -75,7 +75,7 @@ Laravel reported a bad line differently: spatie Data's validator threw with item
 
 **Auth:** bearer token, then any active member of the workspace. 401 without a token, 404 for an outsider, 403 for an inactive member. No permission is needed for the maths: Laravel's `authorize()` returned true.
 
-**Product details need `product.view`.** A product line's name and purchase price are catalog data that `GET /products/{id}` guards. Without `product.view`, `product_id` is echoed but not looked up: the description stays as sent and margin uses the sent purchase price. Laravel filled them for any caller.
+**Product details need `product.view`.** A product line's name and purchase price are catalog data that `GET /products/{id}` guards. Without `product.view`, the description stays as sent and margin uses the sent purchase price. Laravel filled them for any caller. The product id is still checked, and relation discounts still apply, because they change the total a cashier charges.
 
 ## `POST /calculate-items`
 
@@ -120,6 +120,16 @@ Laravel reported a bad line differently: spatie Data's validator threw with item
 - Set children (`multi_set_item_id` truthy) are skipped.
 - Transfer lists and hours come from a stored work order; a calculate request never has one, so they are 0.
 
+## Relation discounts
+
+With `relation_id`, each product line takes the relation's discount for that product: the highest live percentage of the non-internal discount groups attached to the relation for the product's supplier and `supplier_discount_code` (rules in `discounts.md`). One query for all lines. As in Laravel `CalculateItemsController`:
+
+1. `productDiscount` not sent (missing, null or blank): the relation's discount, 0 when it has none. A sent value, 0 included, stays.
+2. `client_default_discount` missing or 0: the relation's discount.
+3. A line whose discount ends up above 0 gets `client_default_discount` 0.
+
+Without `relation_id` nothing changes. Lines without `product_id` are never touched.
+
 ## Not ported yet
 
-- **Relation discounts (F3):** with `relation_id` and a `product_id`, Laravel filled `productDiscount` (when not sent) and `client_default_discount` from the relation's discount groups and the product's special offer. Genesy validates the relation but applies no discount and echoes the sent `client_default_discount`. F3 must land before the cutover.
+- **Special offers (F3b):** Laravel cancelled the relation discount when the product's percentage offer was higher. Until F3b, the discount always applies.

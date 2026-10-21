@@ -129,7 +129,8 @@ Query: `slim=1` drops `supplier_discount_groups`, `relation_discount_groups` and
   - A company whose default address is outside the workspace country gets `"0"`; with no workspace country set, every addressed company counts as foreign, as in Laravel.
   - Otherwise it is the default VAT group of the default address country, printed by `format_decimals` (2 dp).
 - **`used_terms_and_periods`.** Blanks are filled with Laravel's empty-settings defaults: invoice none; credit, collective invoice and estimate 14 days (personal) or 30 days (company).
-- **Stubbed relationships.** Discount groups, custom sections and unpaid invoice counts are empty or zero until those modules are ported.
+- **Discount groups.** `supplier_discount_groups` lists the groups this relation supplies, `relation_discount_groups` the groups attached to it, each `{id, name, status: null, meta}` (`discounts.md`; Laravel's DiscountGroupForRelationResource read a `status` column that doesn't exist).
+- **Stubbed relationships.** Custom sections and unpaid invoice counts are empty or zero until those modules are ported.
 
 ### ContactResource
 
@@ -225,7 +226,7 @@ The same keys as Laravel. Every amount is 0, because genesy has no invoices yet;
   - audit history and workflows (no webhooks or AFAS sync for relations written here)
   - email validation checks (`email_validation` is always null)
   - custom fields, tags, files, activities (empty or zero values)
-  - discount groups, purchase-order counts, loyalty
+  - purchase-order counts, loyalty
 
 ## Laravel differences
 

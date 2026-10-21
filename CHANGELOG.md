@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Final batch F3a (discount groups and discounts, contract `docs/api/discounts.md`):
+  - **Migration `discounts`:** `discount_groups` (supplier, `internal`), `discounts` (percentage per `discount_product_code`, CHECK 0..100, date window), `discount_group_relation` (unique per group and relation). Composite tenant FKs throughout.
+  - 13 routes under `/products/discount-groups` and `/products/discounts` (`discountgroup.*`, `discount.*`): CRUD, the group's relations, attach and detach. Deleting a group retires its discounts and links in one transaction.
+  - **Applied:** the product resource's `purchase_price`, `purchase_discount_percentage` and `supplier_purchase_price_from_discount` (internal groups, Laravel `buildPurchasePrice`); relation detail's `supplier_discount_groups` / `relation_discount_groups`; `calculate-items` with `relation_id` fills `productDiscount` and `client_default_discount` from the customer's groups, for every member.
+  - **Laravel differences** (user decisions 2026-10-21; prices can differ from Laravel, check at cutover): highest percentage wins on both paths, group `active` is respected, the customer path uses non-internal groups only, the date window includes both days and each null end is open.
+  - Special offers (F3b) don't cancel a customer discount yet.
+
 - DB hardening (app-wide starvation risk from the F2 database review):
   - `DATABASE_MAX_CONNECTIONS` (default 20, 1..=500) sizes the request pool; sqlx's default 10 let one workspace's lock waiters starve every tenant.
   - Every request connection starts with `statement_timeout` 30s, `idle_in_transaction_session_timeout` 60s and `lock_timeout` 10s (startup options). The numbering `SET LOCAL lock_timeout = '5s'` still wins inside its transaction.
