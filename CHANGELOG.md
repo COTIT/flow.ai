@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Final batch F3b (special offers, contract `docs/api/special-offers.md`):
+  - **Migration `special_offers`:** legacy offers (`type`/`value`, frozen `base_price`) and Laravel's advanced rule fields (rule type, conditions, targets, discount value/type, priority, `apply_to_cheapest`), composite tenant FKs.
+  - 10 routes: `/erp/products/{product}/special-offers` and `/erp/special-offers` (list with `?discount_rule_type=`, create, get, update, delete). New catalog group `specialoffer.*` (47 groups / 242 names).
+  - Rules from Laravel Store/UpdateSpecialOfferRequest on the merged row; overlapping dates per product checked under a per-product lock.
+  - **Prices:** the product's active offer (highest priority, then newest) sets `price`, `business_price` and `price_without_correction` (`products::pricing::special`, Laravel `calculateSpecialPrice` without a cart); `original_price` skips it; price bands apply after the offer. `relationships.active_special_offer` / `special_offers` are real.
+  - `calculate-items`: a bigger percentage offer cancels the customer discount.
+  - **Laravel differences:** offer pick by priority then newest; global/cross-product/BOGO offers apply their own discount (Laravel's empty-cart engine could pick another workspace offer); update is a patch (Laravel reset `always_active` and detached the product); two dead Laravel rules enforced; 422 instead of 500 for a missing type; uuids for every id.
+
 - Final batch F3c (price corrections, contract `docs/api/price-corrections.md`):
   - **Migration `price_corrections`:** price bands (`value_from`..`value_to`, `round_on`, `remove_amount`), at most 1000 live per workspace.
   - 5 routes under `/products/price-corrections` (`pricecorrection.*`).

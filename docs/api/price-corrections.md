@@ -56,11 +56,12 @@ Example: `p = 10`, 21 % VAT, band `0..100`, `round_on 1`, `remove_amount 0.01`: 
 
 | Field | Base | Corrected |
 |---|---|---|
-| `price`, `original_price` | net price | yes |
-| `business_price` | net price, or `gross_price` when the product is priced below gross and setting `product.disable_double_discount_for_business` is on | yes |
-| `price_without_correction` | the business base | no |
+| `price` | net price after the special offer | yes |
+| `original_price` | net price | yes |
+| `business_price` | net price after the special offer, or `gross_price` when the product is priced below gross and setting `product.disable_double_discount_for_business` is on | yes |
+| `price_without_correction` | the business base after the special offer | no |
 
-Each has an `_incl` twin (× (100 + v) / 100, 2 dp). `original_price` equals `price` until special offers (F3b).
+Each has an `_incl` twin (× (100 + v) / 100, 2 dp). Offers: `special-offers.md`.
 
 ## Laravel differences
 

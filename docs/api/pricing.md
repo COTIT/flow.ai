@@ -130,6 +130,4 @@ With `relation_id`, each product line takes the relation's discount for that pro
 
 Without `relation_id` nothing changes. Lines without `product_id` are never touched.
 
-## Not ported yet
-
-- **Special offers (F3b):** Laravel cancelled the relation discount when the product's percentage offer was higher. Until F3b, the discount always applies.
+**Special offers** (`special-offers.md`): when the product's active offer is a `percentage` above the customer's discount, the customer discount is 0 (Laravel `GetProductPrice`), before steps 1-3.

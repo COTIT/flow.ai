@@ -122,4 +122,4 @@ Prices can differ from Laravel for the same data. Cutover QA compares a few cust
 | An attached relation is linked once (primary key) | The pivot had no unique key |
 | Codes match ignoring case on both paths | The purchase path (a MySQL join, `utf8mb4_unicode_ci`) ignored case; the relation path (a PHP collection filter) compared exactly |
 
-Special offers (F3b) can still zero a relation discount; until F3b lands, a percentage offer above the discount does not cancel it.
+A product's active percentage offer above the customer discount cancels it in `calculate-items` (`special-offers.md`).
