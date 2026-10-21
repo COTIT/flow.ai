@@ -61,6 +61,9 @@ pub async fn verify(state: &AppState, plain: &str) -> Result<bool, AppError> {
     Ok(true)
 }
 
+/// Longest a resend may wait on SMTP while holding its transaction.
+const SEND_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// Logged-in resend. Already verified = no mail, still success.
 /// Runs under a row lock on the user, so parallel requests can't all pass the quota check,
 /// and a failed send rolls its token back instead of eating the quota.
@@ -82,14 +85,13 @@ pub async fn resend(state: &AppState, user_id: Uuid) -> Result<(), AppError> {
 
     let (plain, hash) = token::generate()?;
     repo::insert(&mut *tx, user_id, &hash, expiry()).await?;
-    state
-        .mailer
-        .send(verification_mail(
-            &state.api_public_url,
-            &contact.email,
-            plain.expose(),
-        ))
-        .await?;
+    let mail = verification_mail(&state.api_public_url, &contact.email, plain.expose());
+    // The send runs inside the transaction (a failed send rolls the token back). Cap it well
+    // under the connection's 60s idle-in-transaction limit, so a slow SMTP server can't get
+    // the session killed after the mail went out.
+    tokio::time::timeout(SEND_TIMEOUT, state.mailer.send(mail))
+        .await
+        .map_err(|_| AppError::Internal("verification mail send timed out".into()))??;
     tx.commit().await?;
     Ok(())
 }

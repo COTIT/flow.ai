@@ -25,6 +25,7 @@ All read once at boot. A missing required var stops the server with the var name
 |---|---|---|---|
 | `DATABASE_URL` | yes | | app + `#[sqlx::test]` |
 | `GENESY_DATABASE_URL` | dev/CI | | same value; `query!` macros + sqlx-cli (see `sqlx.toml`) |
+| `DATABASE_MAX_CONNECTIONS` | no | `20` | 1..=100 (empty = default), request pool size. Each connection runs with `statement_timeout` 30s, `idle_in_transaction_session_timeout` 60s, `lock_timeout` 10s; a full pool answers 503 (with `Retry-After: 5`) after 5s. `/healthz` and the hourly cleanup each have one connection of their own; migrations use their own connection at boot. On the VPS the role's `CONNECTION LIMIT` (`GENESY_PG_CONNECTION_LIMIT`, default 44) must cover both blue/green colors: 2 × (pool + 2). |
 | `BIND_ADDR` | no | `0.0.0.0:8080` | |
 | `TOKEN_TTL_DAYS` | no | `30` | 1..=365 |
 | `FRONTEND_URL` | yes | | vimdesk-web origin for email links |

@@ -4,6 +4,7 @@
 
 pub mod cleanup;
 pub mod config;
+pub mod db;
 mod error;
 mod health;
 pub mod healthcheck;
@@ -40,6 +41,8 @@ const BODY_LIMIT: usize = 64 * 1024;
 #[derive(Clone)]
 pub struct AppState {
     pub db: PgPool,
+    /// One connection for /healthz (`db::health`), apart from the request pool.
+    pub health_db: PgPool,
     /// Lifetime of newly issued bearer tokens.
     pub token_ttl: chrono::Duration,
     pub mailer: mail::Mailer,

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- DB hardening (app-wide starvation risk from the F2 database review):
+  - `DATABASE_MAX_CONNECTIONS` (default 20, 1..=500) sizes the request pool; sqlx's default 10 let one workspace's lock waiters starve every tenant.
+  - Every request connection starts with `statement_timeout` 30s, `idle_in_transaction_session_timeout` 60s and `lock_timeout` 10s (startup options). The numbering `SET LOCAL lock_timeout = '5s'` still wins inside its transaction.
+  - Boot migrations run on their own plain connection (`db::migrate`), so the statement timeout can't cut a long migration short.
+  - Pool exhaustion (5s acquire timeout) and a statement cancelled by those timeouts answer **503** `The server is busy, please try again.` instead of 500.
+  - Review fixes: `/healthz` and the hourly cleanup each get one connection of their own (`db::health`, `db::background`; cleanup without a statement timeout), migrations run through a one-connection pool that retries the connect for 30s and caps lock waits at 30s, the SMTP send in verification resend is capped at 30s (under the 60s idle-in-transaction limit), 503s carry `Retry-After: 5`, statement timeouts log at error, the pool cap is 100. Deploy: `provision-db.sh` sets the role's `CONNECTION LIMIT` from `GENESY_PG_CONNECTION_LIMIT` (default 44 = 2 colors × 22) instead of a fixed 10.
+  - `tests/db.rs`: the limits apply to every connection; a workspace whose numbering lock is held elsewhere gets 503 within the lock timeout while another workspace's create goes through; a full pool answers 503 after the acquire timeout.
+
 - Final batch F2 (workspace settings + numbering, contract `docs/api/settings.md`):
   - **Migration `settings`:** one row per workspace, `data jsonb` keyed by section (Laravel's 15 longtext columns).
   - `GET /v1/workspace/{ws}/settings` (`setting.get`): every section over Laravel's defaults, or `?type=` a section or dotted path. A falsy value falls back to its default; scalars are wrapped as `[v]` and null as `[]`, like Laravel's `(array)` cast.

@@ -68,6 +68,7 @@ mod tests {
                 get(|u: AuthUser| async move { u.user_id.to_string() }),
             )
             .with_state(AppState {
+                health_db: pool.clone(),
                 db: pool,
                 token_ttl: Duration::days(30),
                 mailer: crate::mail::Mailer::capture().0,

@@ -3,13 +3,10 @@
 use std::{net::SocketAddr, time::Duration};
 
 use genesy_360_api::{
-    AppState, RateLimit, build_app, cleanup, config::Config, healthcheck, mail::Mailer, warm_up,
+    AppState, RateLimit, build_app, cleanup, config::Config, db, healthcheck, mail::Mailer, warm_up,
 };
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::PgConnectOptions;
 use tracing_subscriber::EnvFilter;
-
-/// Saturated pool fails fast instead of hanging requests (and /healthz) for sqlx's 30s default.
-const DB_ACQUIRE_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[tokio::main]
 async fn main() {
@@ -30,16 +27,20 @@ async fn main() {
         .init();
 
     let config = Config::from_env().expect("config");
-    let db = PgPoolOptions::new()
-        .acquire_timeout(DB_ACQUIRE_TIMEOUT)
-        .connect(&config.database_url)
+    let base: PgConnectOptions = config.database_url.parse().expect("DATABASE_URL");
+    // Migrations are embedded in the binary and run on their own connection, before the pool.
+    db::migrate(&base).await.expect("run migrations");
+    let health_db = db::health(base.clone())
+        .await
+        .expect("connect postgres (health)");
+    let background_db = db::background(base.clone())
+        .await
+        .expect("connect postgres (background)");
+    let db = db::connect(base, config.db_max_connections)
         .await
         .expect("connect postgres");
-    // Migrations are embedded in the binary; sqlx holds an advisory lock, so parallel replicas
-    // booting together apply them once.
-    sqlx::migrate!().run(&db).await.expect("run migrations");
     warm_up().await;
-    cleanup::spawn(db.clone());
+    cleanup::spawn(background_db);
 
     let listener = tokio::net::TcpListener::bind(config.bind_addr)
         .await
@@ -48,6 +49,7 @@ async fn main() {
 
     let state = AppState {
         db,
+        health_db,
         token_ttl: chrono::Duration::days(config.token_ttl_days),
         mailer: Mailer::smtp(&config.smtp_url, &config.mail_from).expect("mailer config"),
         frontend_url: config.frontend_url.as_str().into(),

@@ -28,6 +28,7 @@ pub const API_PUBLIC_URL: &str = "https://api.test";
 /// tests/rate_limit.rs (which sets its own) ever hits it.
 pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
     AppState {
+        health_db: pool.clone(),
         db: pool,
         token_ttl: Duration::days(30),
         mailer,

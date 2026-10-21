@@ -5,10 +5,16 @@ use std::{fmt, net::SocketAddr};
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:8080";
 const DEFAULT_TOKEN_TTL_DAYS: i64 = 30;
 const MAX_TOKEN_TTL_DAYS: i64 = 365;
+/// Request pool size: sqlx's default 10 let one workspace's lock waiters starve every tenant.
+const DEFAULT_DB_MAX_CONNECTIONS: u32 = 20;
+/// Shared Postgres `max_connections` is 100.
+const MAX_DB_MAX_CONNECTIONS: u32 = 100;
 
 /// Runtime settings. Dev loads `.env`, prod injects real env.
 pub struct Config {
     pub database_url: String,
+    /// Request pool size (`DATABASE_MAX_CONNECTIONS`).
+    pub db_max_connections: u32,
     pub bind_addr: SocketAddr,
     /// Bearer token lifetime. Laravel tokens never expired; ours do.
     pub token_ttl_days: i64,
@@ -33,6 +39,7 @@ impl fmt::Debug for Config {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Config")
             .field("database_url", &"***")
+            .field("db_max_connections", &self.db_max_connections)
             .field("bind_addr", &self.bind_addr)
             .field("token_ttl_days", &self.token_ttl_days)
             .field("frontend_url", &self.frontend_url)
@@ -58,6 +65,17 @@ impl Config {
     // Lookup fn instead of env::var so tests skip global env mutation (unsafe in edition 2024).
     fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Result<Self, String> {
         let database_url = get("DATABASE_URL").ok_or("DATABASE_URL not set")?;
+        // Empty counts as unset: compose passes `${GENESY_DATABASE_MAX_CONNECTIONS:-}`.
+        let db_max_connections = match get("DATABASE_MAX_CONNECTIONS").filter(|v| !v.is_empty()) {
+            None => DEFAULT_DB_MAX_CONNECTIONS,
+            Some(raw) => raw
+                .parse()
+                .ok()
+                .filter(|n| (1..=MAX_DB_MAX_CONNECTIONS).contains(n))
+                .ok_or(format!(
+                    "DATABASE_MAX_CONNECTIONS must be 1..={MAX_DB_MAX_CONNECTIONS}, got {raw:?}"
+                ))?,
+        };
         let bind_addr = get("BIND_ADDR")
             .unwrap_or_else(|| DEFAULT_BIND_ADDR.into())
             .parse()
@@ -92,6 +110,7 @@ impl Config {
 
         Ok(Self {
             database_url,
+            db_max_connections,
             bind_addr,
             token_ttl_days,
             frontend_url,
@@ -206,6 +225,23 @@ mod tests {
 
         assert_eq!(cfg.database_url, "postgres://u:p@h/db");
         assert_eq!(cfg.bind_addr, "127.0.0.1:9000".parse().unwrap());
+    }
+
+    #[test]
+    fn db_pool_size_defaults_and_bounds() {
+        let with = |v: &'static str| {
+            Config::from_lookup(lookup(&[
+                ("DATABASE_URL", "postgres://x"),
+                ("DATABASE_MAX_CONNECTIONS", v),
+            ]))
+        };
+        let default = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x")])).unwrap();
+        assert_eq!(default.db_max_connections, 20);
+        assert_eq!(with("50").unwrap().db_max_connections, 50);
+        for bad in ["0", "-1", "abc", "101"] {
+            let err = with(bad).unwrap_err();
+            assert!(err.contains("DATABASE_MAX_CONNECTIONS"), "{bad}: {err}");
+        }
     }
 
     #[test]

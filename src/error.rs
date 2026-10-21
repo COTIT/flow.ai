@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use axum::{
     Json,
-    http::StatusCode,
+    http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use serde_json::json;
@@ -69,12 +69,35 @@ impl AppError {
 const NUL_TEXT: &str = "Text must not contain NUL characters.";
 /// 503 body when a row stayed locked past `lock_timeout`, or a deadlock/serialization abort.
 const BUSY: &str = "The record is busy, please try again.";
+/// 503 body when no pooled connection freed up in time, or a statement hit statement_timeout.
+const SERVER_BUSY: &str = "The server is busy, please try again.";
 
 /// lock_timeout (55P03), deadlock (40P01), serialization failure (40001): safe to retry.
 fn is_contention(e: &sqlx::Error) -> bool {
     e.as_database_error()
         .and_then(|d| d.code())
         .is_some_and(|c| c == "55P03" || c == "40P01" || c == "40001")
+}
+
+/// Pool exhausted past the acquire timeout, or a statement cancelled by statement_timeout
+/// (57014): overload, retry later.
+fn is_overload(e: &sqlx::Error) -> bool {
+    matches!(e, sqlx::Error::PoolTimedOut)
+        || e.as_database_error()
+            .and_then(|d| d.code())
+            .is_some_and(|c| c == "57014")
+}
+
+/// 503 with `Retry-After`, so clients back off instead of re-pinning a connection at once.
+fn busy(message: &str) -> Response {
+    let mut res = (
+        StatusCode::SERVICE_UNAVAILABLE,
+        Json(json!({ "message": message })),
+    )
+        .into_response();
+    res.headers_mut()
+        .insert(header::RETRY_AFTER, HeaderValue::from_static("5"));
+    res
 }
 
 fn is_nul_rejection(e: &sqlx::Error) -> bool {
@@ -145,10 +168,14 @@ impl IntoResponse for AppError {
             Self::Database(e) if is_nul_rejection(&e) => {
                 Self::field("input", NUL_TEXT).into_response()
             }
+            Self::Database(e) if is_overload(&e) => {
+                // A statement timeout names a slow query to fix; pool waits are load.
+                tracing::error!(error = %e, "database overloaded");
+                busy(SERVER_BUSY)
+            }
             Self::Database(e) if is_contention(&e) => {
                 tracing::warn!(error = %e, "lock contention");
-                let body = json!({ "message": BUSY });
-                (StatusCode::SERVICE_UNAVAILABLE, Json(body)).into_response()
+                busy(BUSY)
             }
             other => {
                 tracing::error!(error = %other, "request failed");
@@ -264,10 +291,30 @@ mod tests {
 
     #[tokio::test]
     async fn database_error_is_500_without_internals() {
-        let (status, body) = render(AppError::from(sqlx::Error::PoolTimedOut)).await;
+        let err = sqlx::Error::Protocol("secret detail".into());
+        let (status, body) = render(AppError::from(err)).await;
 
         assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
         assert_eq!(body, json!({ "message": "Server error." }));
+    }
+
+    #[tokio::test]
+    async fn busy_answers_say_when_to_retry() {
+        let res = AppError::from(sqlx::Error::PoolTimedOut).into_response();
+        assert_eq!(res.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(res.headers()["retry-after"], "5");
+    }
+
+    /// Every pooled connection busy past the acquire timeout: retryable, not a fault.
+    #[tokio::test]
+    async fn exhausted_pool_is_503() {
+        let (status, body) = render(AppError::from(sqlx::Error::PoolTimedOut)).await;
+
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(
+            body,
+            json!({ "message": "The server is busy, please try again." })
+        );
     }
 
     #[tokio::test]
