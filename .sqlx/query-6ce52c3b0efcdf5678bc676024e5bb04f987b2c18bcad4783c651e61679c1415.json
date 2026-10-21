@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO settings (workspace_id, data) VALUES ($1, $2)\n         ON CONFLICT (workspace_id)\n         DO UPDATE SET data = settings.data || EXCLUDED.data, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6ce52c3b0efcdf5678bc676024e5bb04f987b2c18bcad4783c651e61679c1415"
+}

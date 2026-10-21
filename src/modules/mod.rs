@@ -17,6 +17,7 @@ pub mod products;
 pub mod relations;
 pub mod sales_groups;
 pub mod search;
+pub mod settings;
 pub mod shipment_methods;
 pub mod stock;
 pub mod storage_locations;

@@ -11,6 +11,7 @@ mod http;
 pub mod mail;
 mod modules;
 mod money;
+mod numbering;
 mod php;
 
 use axum::{
@@ -26,8 +27,8 @@ pub use http::rate_limit::RateLimit;
 use modules::{
     auth, contacts, currencies, custom_statuses, custom_types, email_verification, hourly_rates,
     invites, permissions, pricing, product_brands, product_categories, product_variants, products,
-    relations, sales_groups, search, shipment_methods, stock, storage_locations, teams, users,
-    vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
+    relations, sales_groups, search, settings, shipment_methods, stock, storage_locations, teams,
+    users, vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
     warehouse_shelves, warehouses, workspaces,
 };
 
@@ -99,6 +100,7 @@ pub fn build_app(state: AppState) -> Router {
         .merge(stock::routes::private())
         .merge(storage_locations::routes::private())
         .merge(pricing::routes::private())
+        .merge(settings::routes::private())
         // Responses carry bearer tokens and invite data: never cache, never sniff.
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,

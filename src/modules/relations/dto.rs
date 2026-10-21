@@ -25,6 +25,7 @@ use crate::{
         workspaces::dto::account,
     },
     money::{Zero, format_decimals},
+    numbering::Appendix,
     php::truthy,
 };
 
@@ -414,18 +415,7 @@ pub struct RelationCreated {
 /// Laravel RelationNr::format: prefix + number zero-padded to `digits` (default 1) + suffix.
 pub fn relation_nr(number: Option<i64>, appendix: Option<&Value>) -> Option<String> {
     let n = number.filter(|n| *n != 0)?;
-    let part = |k: &str| {
-        appendix
-            .and_then(|a| a.get(k))
-            .and_then(Value::as_str)
-            .unwrap_or("")
-    };
-    let digits = appendix
-        .and_then(|a| a.get("digits"))
-        .and_then(Value::as_u64)
-        .unwrap_or(1)
-        .min(20) as usize;
-    Some(format!("{}{n:0>digits$}{}", part("prefix"), part("suffix")))
+    Some(Appendix::from_section(appendix.unwrap_or(&Value::Null)).format(n))
 }
 
 /// Workspace facts the resource needs: profile `address.country` and `language`.

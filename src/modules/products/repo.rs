@@ -96,8 +96,13 @@ pub struct ListFilter<'a> {
 }
 
 /// Next product number, serialized per workspace (Laravel MAX+1 had no lock). Deleted rows
-/// count: numbers are never reused.
-pub async fn next_number(conn: &mut PgConnection, workspace_id: Uuid) -> Result<i64, sqlx::Error> {
+/// count: numbers are never reused. `start` (settings) applies only to the first numbered
+/// product, as in Laravel GetHighestNumber.
+pub async fn next_number(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    start: i64,
+) -> Result<i64, sqlx::Error> {
     // A waiter holds a pooled connection; give up instead of starving the pool.
     sqlx::query!("SET LOCAL lock_timeout = '5s'")
         .execute(&mut *conn)
@@ -114,7 +119,7 @@ pub async fn next_number(conn: &mut PgConnection, workspace_id: Uuid) -> Result<
     )
     .fetch_one(&mut *conn)
     .await?;
-    max.map_or(Ok(1), |n| {
+    max.map_or(Ok(start), |n| {
         n.checked_add(1)
             .ok_or_else(|| sqlx::Error::Protocol("product number overflow".into()))
     })

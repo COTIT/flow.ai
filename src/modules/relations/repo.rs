@@ -13,8 +13,6 @@ use crate::modules::{
 
 /// Laravel RelationSetting::start_number default; used while a workspace has no numbered row.
 // shortcut: settings module not ported, so start number / prefix / digits are Laravel defaults.
-pub const START_NUMBER: i64 = 1;
-
 /// Live relation. `addresses` decoded from the JSON array column.
 pub struct RelationRow {
     pub id: Uuid,
@@ -49,8 +47,13 @@ pub fn decode_addresses(v: Value) -> Result<Vec<Address>, sqlx::Error> {
 
 /// Next relation number for the workspace, serialized per workspace by a transaction-scoped
 /// advisory lock (Laravel had none, so parallel creates got the same number). MAX counts
-/// soft-deleted rows too: numbers are never reused.
-pub async fn next_number(conn: &mut PgConnection, workspace_id: Uuid) -> Result<i64, sqlx::Error> {
+/// soft-deleted rows too: numbers are never reused. `start` (settings) applies only to the
+/// workspace's first numbered row, as in Laravel GetHighestNumber.
+pub async fn next_number(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    start: i64,
+) -> Result<i64, sqlx::Error> {
     // A waiter holds a pooled connection; give up instead of starving the pool.
     sqlx::query!("SET LOCAL lock_timeout = '5s'")
         .execute(&mut *conn)
@@ -67,7 +70,7 @@ pub async fn next_number(conn: &mut PgConnection, workspace_id: Uuid) -> Result<
     )
     .fetch_one(&mut *conn)
     .await?;
-    max.map_or(Ok(START_NUMBER), |n| {
+    max.map_or(Ok(start), |n| {
         n.checked_add(1)
             .ok_or_else(|| sqlx::Error::Protocol("relation number overflow".into()))
     })

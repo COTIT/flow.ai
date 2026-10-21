@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use chrono::Utc;
 use rust_decimal::Decimal;
-use serde_json::{Value, json};
+use serde_json::Value;
 use sqlx::PgConnection;
 use uuid::Uuid;
 
@@ -23,6 +23,7 @@ use crate::{
         },
         relations::service as relations,
         sales_groups::{dto::SalesGroupResource, repo as sales_groups},
+        settings,
         stock::repo as stock,
         vat_groups::repo as vat_groups,
         warehouses::{dto::WarehouseCompacted, repo as warehouses, service as warehouse_service},
@@ -141,11 +142,11 @@ pub async fn create(
     check(&mut *state.db.acquire().await?, workspace_id, &row, &f).await?;
     normalise_row(&mut row, Priority::Price)?;
     let mut tx = state.db.begin().await?;
-    row.product_number = repo::next_number(&mut tx, workspace_id).await?;
-    row.product_nr_formatted = format!("PRO-{:05}", row.product_number);
-    // Laravel ProductSetting defaults, snapshotted per row like product_appendix.
-    let appendix = json!({ "prefix": "PRO-", "digits": 5, "suffix": null });
-    row.id = repo::insert(&mut tx, workspace_id, &appendix, &row).await?;
+    // The workspace's product series, snapshotted per row like Laravel's product_appendix.
+    let (appendix, start) = settings::service::numbering(&mut *tx, workspace_id, "product").await?;
+    row.product_number = repo::next_number(&mut tx, workspace_id, start).await?;
+    row.product_nr_formatted = appendix.format(row.product_number);
+    row.id = repo::insert(&mut tx, workspace_id, &appendix.to_json(), &row).await?;
     repo::insert_history(
         &mut tx,
         workspace_id,
