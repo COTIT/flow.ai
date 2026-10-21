@@ -32,6 +32,12 @@ pub struct Config {
     pub trust_proxy_headers: bool,
     /// Invites one user may create or re-send per hour.
     pub invites_per_hour: i64,
+    /// Authenticated routes: requests allowed at once per session (bearer token).
+    pub private_rate_limit_burst: u32,
+    /// Milliseconds until one more request is allowed per session.
+    pub private_rate_limit_replenish_ms: u64,
+    /// Requests one workspace may have in flight; default half the request pool.
+    pub workspace_max_inflight: u32,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -50,6 +56,12 @@ impl fmt::Debug for Config {
             .field("rate_limit_replenish_secs", &self.rate_limit_replenish_secs)
             .field("trust_proxy_headers", &self.trust_proxy_headers)
             .field("invites_per_hour", &self.invites_per_hour)
+            .field("private_rate_limit_burst", &self.private_rate_limit_burst)
+            .field(
+                "private_rate_limit_replenish_ms",
+                &self.private_rate_limit_replenish_ms,
+            )
+            .field("workspace_max_inflight", &self.workspace_max_inflight)
             .finish()
     }
 }
@@ -107,6 +119,16 @@ impl Config {
         let rate_limit_replenish_secs = positive(&get, "RATE_LIMIT_REPLENISH_SECS", 6)?;
         let trust_proxy_headers = flag(&get, "TRUST_PROXY_HEADERS")?;
         let invites_per_hour = positive(&get, "INVITES_PER_HOUR", 20)?;
+        // Default 120 at once, then 20 a second per session: a page load fires ~20 requests.
+        let private_rate_limit_burst = positive(&get, "PRIVATE_RATE_LIMIT_BURST", 120)?;
+        let private_rate_limit_replenish_ms =
+            positive(&get, "PRIVATE_RATE_LIMIT_REPLENISH_MS", 50)?;
+        // Half the pool: one tenant's slow requests leave the other half to everyone else.
+        let workspace_max_inflight = positive(
+            &get,
+            "WORKSPACE_MAX_INFLIGHT",
+            (db_max_connections / 2).max(1),
+        )?;
 
         Ok(Self {
             database_url,
@@ -121,6 +143,9 @@ impl Config {
             rate_limit_replenish_secs,
             trust_proxy_headers,
             invites_per_hour,
+            private_rate_limit_burst,
+            private_rate_limit_replenish_ms,
+            workspace_max_inflight,
         })
     }
 }
@@ -415,6 +440,45 @@ mod tests {
             let err = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x"), (key, bad)]))
                 .unwrap_err();
             assert!(err.starts_with(key), "{key}={bad}: {err}");
+        }
+    }
+
+    #[test]
+    fn private_limits_default_from_the_pool() {
+        let cfg = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x")])).unwrap();
+        assert_eq!(
+            (
+                cfg.private_rate_limit_burst,
+                cfg.private_rate_limit_replenish_ms,
+                cfg.workspace_max_inflight
+            ),
+            (120, 50, 10),
+            "half the default pool of 20"
+        );
+        let cfg = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("DATABASE_MAX_CONNECTIONS", "1"),
+        ]))
+        .unwrap();
+        assert_eq!(cfg.workspace_max_inflight, 1, "never 0");
+        let cfg = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("WORKSPACE_MAX_INFLIGHT", "4"),
+            ("PRIVATE_RATE_LIMIT_BURST", "30"),
+        ]))
+        .unwrap();
+        assert_eq!(
+            (cfg.workspace_max_inflight, cfg.private_rate_limit_burst),
+            (4, 30)
+        );
+        for key in [
+            "WORKSPACE_MAX_INFLIGHT",
+            "PRIVATE_RATE_LIMIT_BURST",
+            "PRIVATE_RATE_LIMIT_REPLENISH_MS",
+        ] {
+            let err = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x"), (key, "0")]))
+                .unwrap_err();
+            assert!(err.starts_with(key), "{key}: {err}");
         }
     }
 

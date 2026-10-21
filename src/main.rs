@@ -3,7 +3,8 @@
 use std::{net::SocketAddr, time::Duration};
 
 use genesy_360_api::{
-    AppState, RateLimit, build_app, cleanup, config::Config, db, healthcheck, mail::Mailer, warm_up,
+    AppState, RateLimit, WorkspaceSlots, build_app, cleanup, config::Config, db, healthcheck,
+    mail::Mailer, warm_up,
 };
 use sqlx::postgres::PgConnectOptions;
 use tracing_subscriber::EnvFilter;
@@ -60,6 +61,16 @@ async fn main() {
             trust_forwarded: config.trust_proxy_headers,
         },
         invites_per_hour: config.invites_per_hour,
+        private_rate_limit: RateLimit {
+            burst: config.private_rate_limit_burst,
+            replenish: Duration::from_millis(config.private_rate_limit_replenish_ms),
+            trust_forwarded: config.trust_proxy_headers,
+        },
+        workspace_slots: WorkspaceSlots {
+            per_workspace: config.workspace_max_inflight,
+            // Same as the pool's acquire timeout: a queued request gives up when a pooled one would.
+            wait: db::ACQUIRE_TIMEOUT,
+        },
     };
     // connect info: rate limit keys on peer IP.
     axum::serve(

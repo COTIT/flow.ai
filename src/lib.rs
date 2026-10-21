@@ -24,7 +24,7 @@ use axum::{
 use sqlx::PgPool;
 use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 
-pub use http::rate_limit::RateLimit;
+pub use http::{rate_limit::RateLimit, slots::WorkspaceSlots};
 use modules::{
     auth, contacts, currencies, custom_statuses, custom_types, discount_groups, discounts,
     email_verification, hourly_rates, invites, permissions, price_corrections, pricing,
@@ -51,8 +51,12 @@ pub struct AppState {
     pub frontend_url: std::sync::Arc<str>,
     /// This API's public origin, for links that must hit the API (email verification).
     pub api_public_url: std::sync::Arc<str>,
-    /// Applied to public auth routes only.
+    /// Applied to public auth routes only, per client IP.
     pub rate_limit: RateLimit,
+    /// Applied to authenticated routes, per session (bearer token).
+    pub private_rate_limit: RateLimit,
+    /// Requests in flight per workspace on `/workspace/{id}/…` routes.
+    pub workspace_slots: WorkspaceSlots,
     /// Max invites one user may create or re-send per hour.
     pub invites_per_hour: i64,
 }
@@ -73,7 +77,7 @@ pub fn build_app(state: AppState) -> Router {
             .merge(email_verification::routes::public()),
         state.rate_limit,
     );
-    let v1 = public
+    let private = Router::new()
         .merge(auth::routes::private())
         .merge(invites::routes::private())
         .merge(email_verification::routes::private())
@@ -108,7 +112,12 @@ pub fn build_app(state: AppState) -> Router {
         .merge(discount_groups::routes::private())
         .merge(discounts::routes::private())
         .merge(price_corrections::routes::private())
-        .merge(special_offers::routes::private())
+        .merge(special_offers::routes::private());
+    // The rate limit sits outside the slots, so a flood is refused before it queues.
+    let private = http::slots::apply(private, state.workspace_slots);
+    let private = http::rate_limit::apply_private(private, state.private_rate_limit);
+    let v1 = public
+        .merge(private)
         // Responses carry bearer tokens and invite data: never cache, never sniff.
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,

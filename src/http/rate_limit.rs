@@ -1,4 +1,5 @@
-//! Per-IP rate limit for public auth routes (signup, login, register, invite status).
+//! Rate limits: per client IP on public auth routes (signup, login, register, invite status),
+//! per session (bearer token) on authenticated routes.
 
 use std::{
     net::{IpAddr, Ipv6Addr},
@@ -8,10 +9,14 @@ use std::{
 use axum::{
     Json, Router,
     body::Body,
-    http::{HeaderValue, Request, Response, StatusCode, header::RETRY_AFTER},
+    http::{
+        HeaderValue, Request, Response, StatusCode,
+        header::{AUTHORIZATION, RETRY_AFTER},
+    },
     response::IntoResponse,
 };
 use serde_json::json;
+use sha2::{Digest, Sha256};
 use tower_governor::{
     GovernorError, GovernorLayer,
     governor::GovernorConfigBuilder,
@@ -70,15 +75,66 @@ fn bucket(ip: IpAddr) -> IpAddr {
     }
 }
 
-/// Wrap `router` in the limit. Spawns a cleanup task, so call inside a tokio runtime.
+/// Bucket of an authenticated request: its bearer token (hashed), so users behind one office
+/// NAT don't share a bucket. Without a token: the client IP, or one shared bucket when unknown.
+#[derive(Debug, Clone, Copy)]
+struct Session {
+    ip: ClientIp,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum SessionKey {
+    Token([u8; 32]),
+    Ip(IpAddr),
+    Unknown,
+}
+
+impl KeyExtractor for Session {
+    type Key = SessionKey;
+
+    fn extract<T>(&self, req: &Request<T>) -> Result<SessionKey, GovernorError> {
+        let token = req
+            .headers()
+            .get(AUTHORIZATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .filter(|t| !t.is_empty());
+        Ok(match token {
+            Some(t) => SessionKey::Token(Sha256::digest(t.as_bytes()).into()),
+            None => self
+                .ip
+                .extract(req)
+                .map_or(SessionKey::Unknown, SessionKey::Ip),
+        })
+    }
+}
+
+/// Wrap `router` in the per-IP limit. Spawns a cleanup task, so call inside a tokio runtime.
 pub fn apply(router: Router<AppState>, limit: RateLimit) -> Router<AppState> {
+    let key = ClientIp {
+        trust_forwarded: limit.trust_forwarded,
+    };
+    layer(router, limit, key)
+}
+
+/// Wrap authenticated routes in the per-session limit. Spawns a cleanup task.
+pub fn apply_private(router: Router<AppState>, limit: RateLimit) -> Router<AppState> {
+    let ip = ClientIp {
+        trust_forwarded: limit.trust_forwarded,
+    };
+    layer(router, limit, Session { ip })
+}
+
+fn layer<K>(router: Router<AppState>, limit: RateLimit, key: K) -> Router<AppState>
+where
+    K: KeyExtractor + Send + Sync + 'static,
+    K::Key: Send + Sync + 'static,
+{
     // Clamped: governor rejects zero burst/period, so finish() below can't return None.
     let config = GovernorConfigBuilder::default()
         .period(limit.replenish.max(Duration::from_millis(1)))
         .burst_size(limit.burst.max(1))
-        .key_extractor(ClientIp {
-            trust_forwarded: limit.trust_forwarded,
-        })
+        .key_extractor(key)
         .finish();
     let Some(config) = config else {
         unreachable!("burst and period clamped to >= 1");

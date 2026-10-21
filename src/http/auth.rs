@@ -80,6 +80,15 @@ mod tests {
                     trust_forwarded: false,
                 },
                 invites_per_hour: 1000,
+                private_rate_limit: crate::RateLimit {
+                    burst: 1000,
+                    replenish: std::time::Duration::from_millis(1),
+                    trust_forwarded: false,
+                },
+                workspace_slots: crate::WorkspaceSlots {
+                    per_workspace: 1000,
+                    wait: std::time::Duration::from_secs(5),
+                },
             });
         let mut req = Request::get("/probe");
         if let Some(value) = auth {
