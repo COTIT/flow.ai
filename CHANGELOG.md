@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Private-route limits (risk-register follow-up from the DB hardening PR):
+  - **Per session:** a token bucket per bearer token on every authenticated route (`PRIVATE_RATE_LIMIT_BURST` 120, `PRIVATE_RATE_LIMIT_REPLENISH_MS` 50); `429 Too Many Attempts.` with `Retry-After`, as the public limiter.
+  - **Per workspace:** at most `WORKSPACE_MAX_INFLIGHT` requests in flight on `/workspace/{id}/…` (default half the request pool); one more waits up to 5 s, then `503` server busy with `Retry-After: 5`. One tenant can no longer fill the pool and push every other tenant into 503s.
+  - The new variables aren't passed by `compose.yml` yet, so deployments run on the defaults (prod: 10 slots per workspace; previews: 2).
 - Final batch F3b (special offers, contract `docs/api/special-offers.md`):
   - **Migration `special_offers`:** legacy offers (`type`/`value`, frozen `base_price`) and Laravel's advanced rule fields (rule type, conditions, targets, discount value/type, priority, `apply_to_cheapest`), composite tenant FKs.
   - 10 routes: `/erp/products/{product}/special-offers` and `/erp/special-offers` (list with `?discount_rule_type=`, create, get, update, delete). New catalog group `specialoffer.*` (47 groups / 242 names).

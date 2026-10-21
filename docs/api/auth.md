@@ -22,7 +22,10 @@ Unauthenticated, `401`: `{"message": "You are not authorized to perform this act
 
 Server error, `500`: `{"message": "Server error."}`. The cause is logged and never returned.
 
-Rate limited, `429`: `{"message": "Too Many Attempts."}` plus a `Retry-After` header in seconds. Applies to the public routes (`create-workspace`, `login`, `register`, `invites/get-invite-status/{code}`, `verify-email/{token}`), which share one budget per client IP (IPv6: per /64 block, since one customer usually gets a whole /64): `RATE_LIMIT_BURST` requests at once (default 10), then one more every `RATE_LIMIT_REPLENISH_SECS` (default 6). Routes behind a Bearer token aren't limited, except invite send (see `invites.md`).
+Rate limited, `429`: `{"message": "Too Many Attempts."}` plus a `Retry-After` header in seconds. Applies to the public routes (`create-workspace`, `login`, `register`, `invites/get-invite-status/{code}`, `verify-email/{token}`), which share one budget per client IP (IPv6: per /64 block, since one customer usually gets a whole /64): `RATE_LIMIT_BURST` requests at once (default 10), then one more every `RATE_LIMIT_REPLENISH_SECS` (default 6). Routes behind a Bearer token have their own limits:
+
+- **Per session:** each bearer token has its own budget, `PRIVATE_RATE_LIMIT_BURST` requests at once (default 120), then one more every `PRIVATE_RATE_LIMIT_REPLENISH_MS` (default 50, so 20 a second). The same `429` body and `Retry-After`. The key is the token's sha256, so colleagues behind one office IP don't share a budget. A request without a token is counted per client IP. Invite send has its own hourly limit (see `invites.md`).
+- **Per workspace:** at most `WORKSPACE_MAX_INFLIGHT` requests to `/v1/workspace/{id}/…` run at once (default half the request pool, `DATABASE_MAX_CONNECTIONS` / 2, at least 1). Requests beyond that wait in order for up to 5 seconds, then answer `503 {"message": "The server is busy, please try again."}` with `Retry-After: 5`. One tenant's slow requests can't hold every database connection. Routes outside a workspace (`/v1/me`, users, logout) are not capped.
 
 Body too large, `413`: `{"message": "The request body is too large."}`. Limit 64 KiB.
 
