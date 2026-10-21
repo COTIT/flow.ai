@@ -10,6 +10,11 @@ use crate::{
     money,
 };
 
+/// Largest quantity one request may set or move (Laravel had none; the column holds 1e17).
+pub const QTY_MAX: Decimal = Decimal::from_parts(3_567_587_328, 232, 0, false, 0);
+/// Largest serialized `meta` a movement may carry; the ledger keeps every row.
+const META_MAX: usize = 4096;
+
 /// Laravel WarehouseExist rule message.
 pub const NO_WAREHOUSE: &str = "This warehouse id does not exist";
 
@@ -36,7 +41,7 @@ impl Validate for MutateBody {
         let bin_id = uuid_of(r, m, "bin_id", "The selected bin id is invalid.", false);
         let mutation_value = r
             .required_value("mutation_value", m.get("mutation_value").cloned())
-            .and_then(|v| r.decimal("mutation_value", &v, -money::MAX, money::MAX));
+            .and_then(|v| r.decimal("mutation_value", &v, -QTY_MAX, QTY_MAX));
         let is_correction = filled(m.get("is_correction").cloned())
             .and_then(|v| r.boolean("is_correction", &v))
             .unwrap_or_default();
@@ -48,6 +53,15 @@ impl Validate for MutateBody {
             );
         }
         let meta = r.meta(m.get("meta").cloned()).flatten();
+        if meta
+            .as_ref()
+            .is_some_and(|v| v.to_string().len() > META_MAX)
+        {
+            r.add(
+                "meta",
+                format!("The meta must not be greater than {META_MAX} characters."),
+            );
+        }
         Some(Mutate {
             warehouse_id: warehouse_id?,
             bin_id,
@@ -211,7 +225,7 @@ fn entries(r: &mut Rules, m: &Map<String, Value>, levels: bool) -> Option<Vec<En
         if levels {
             stock_lvl = r
                 .required_value(&k("stock_lvl"), get("stock_lvl"))
-                .and_then(|v| r.decimal(&k("stock_lvl"), &v, Decimal::ZERO, money::MAX));
+                .and_then(|v| r.decimal(&k("stock_lvl"), &v, Decimal::ZERO, QTY_MAX));
             reason = match get("reason") {
                 Some(Value::String(s)) => r.opt_text(&k("reason"), Some(s), 255),
                 Some(_) => {
@@ -249,16 +263,31 @@ fn entries(r: &mut Rules, m: &Map<String, Value>, levels: bool) -> Option<Vec<En
                 format!("The {} must be greater than or equal {shown}.", human(&key)),
             );
         }
-        // MySQL rounded numeric input into the int columns.
-        let int = |d: Option<Decimal>| d.and_then(|d| money::round(d, 0).to_i32());
+        // MySQL rounded numeric input into the int columns; past i32 after rounding is a 422.
+        let mut int = |f: &str, d: Option<Decimal>| {
+            let d = d?;
+            let n = money::round(d, 0).to_i32();
+            if n.is_none() {
+                let key = k(f);
+                r.add(
+                    &key,
+                    format!("The {} must not be greater than {}.", human(&key), i32::MAX),
+                );
+            }
+            n
+        };
+        let (minimal, maximum) = (
+            int("minimal_stock_level", minimal),
+            int("maximum_stock_level", maximum),
+        );
         if let Some(warehouse_id) = warehouse_id {
             out.push(Entry {
                 warehouse_id,
                 bin_id,
                 stock_lvl,
                 reason,
-                minimal: int(minimal),
-                maximum: int(maximum),
+                minimal,
+                maximum,
             });
         }
     }
@@ -300,7 +329,7 @@ impl Validate for MoveBody {
         );
         let quantity = r
             .required_value("quantity", m.get("quantity").cloned())
-            .and_then(|v| r.decimal("quantity", &v, Decimal::new(1, 2), money::MAX));
+            .and_then(|v| r.decimal("quantity", &v, Decimal::new(1, 2), QTY_MAX));
         let reason = text(r, m, "reason", 255);
         if reason.is_none() {
             r.missing("reason");
@@ -373,10 +402,13 @@ impl MovementQuery {
                 .filter(|s| !s.is_empty())
                 .map(|s| Uuid::parse_str(s).unwrap_or(Uuid::nil()))
         };
-        let page = crate::http::list::Page::parse(
-            self.page.as_deref(),
-            Some(self.per_page.as_deref().unwrap_or("15")),
-        );
+        // Laravel's default here was 15 (the shared parser defaults to 50).
+        let size = self
+            .per_page
+            .as_deref()
+            .filter(|s| s.trim().parse::<i64>().is_ok_and(|n| n > 0))
+            .unwrap_or("15");
+        let page = crate::http::list::Page::parse(self.page.as_deref(), Some(size));
         let f = crate::modules::stock::repo::MovementFilter {
             warehouse_id: id(&self.warehouse_id),
             shelf_id: id(&self.shelf_id),

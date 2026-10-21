@@ -18,7 +18,7 @@ use crate::{
         },
         stock::{
             dto::{Entry, Move, Mutate, NO_WAREHOUSE, SetRequirements},
-            repo::{self, Cause, Floor, ListFilter, Movement, MovementFilter, Mutated, Slot},
+            repo::{self, Bin, Cause, Floor, ListFilter, Movement, MovementFilter, Mutated, Slot},
             resource,
         },
         warehouses::{repo as warehouses, service as warehouse_service},
@@ -28,6 +28,8 @@ use crate::{
 
 /// Laravel EnoughStockRule message.
 const NOT_AVAILABLE: &str = "The mutation value is higher then the available stock";
+/// The new level would leave the column's range.
+const OUT_OF_RANGE: &str = "The stock level would be out of range.";
 
 /// Laravel Product::shouldMutateStock.
 pub fn tracks_stock(p: &ProductRow) -> bool {
@@ -45,7 +47,8 @@ pub async fn mutate(
 ) -> Result<(), AppError> {
     let product = product(state, workspace_id, product_id).await?;
     let slot = slot(state, workspace_id, product.id, m.warehouse_id, m.bin_id).await?;
-    if !tracks_stock(&product) || m.mutation_value.is_zero() {
+    // The column keeps 2 places: a change that rounds to 0 is a no-op, not an empty movement.
+    if !tracks_stock(&product) || round(m.mutation_value, 2).is_zero() {
         return Ok(());
     }
     let cause = Cause {
@@ -67,6 +70,7 @@ pub async fn mutate(
     .await?
     {
         Mutated::Short { .. } => Err(AppError::field("mutation_value", NOT_AVAILABLE)),
+        Mutated::OutOfRange => Err(AppError::field("mutation_value", OUT_OF_RANGE)),
         Mutated::Done { .. } => Ok(tx.commit().await?),
     }
 }
@@ -119,60 +123,87 @@ fn number_format(n: i32) -> String {
     format!("{sign}{out}.00")
 }
 
-/// Laravel StockLevelsSet reason: when only min/max changed, a "Min: a → b, Max: c → d."
-/// prefix before the user's reason.
+/// Laravel StockLevelsSet reason: when only min/max changed (`Some(before, after)`), a
+/// "Min: a → b, Max: c → d." prefix before the user's reason.
 fn levels_reason(
-    min: (Option<i32>, i32),
-    max: (Option<i32>, i32),
+    min: Option<(Option<i32>, i32)>,
+    max: Option<(Option<i32>, i32)>,
     level_changed: bool,
     reason: Option<&str>,
 ) -> Option<String> {
     let shown = |v: Option<i32>| v.map_or_else(|| "Not set".to_owned(), number_format);
     let mut parts = Vec::new();
     if !level_changed {
-        if min.0 != Some(min.1) {
-            parts.push(format!("Min: {} → {}", shown(min.0), number_format(min.1)));
+        if let Some((before, after)) = min {
+            parts.push(format!("Min: {} → {}", shown(before), number_format(after)));
         }
-        if max.0 != Some(max.1) {
-            parts.push(format!("Max: {} → {}", shown(max.0), number_format(max.1)));
+        if let Some((before, after)) = max {
+            parts.push(format!("Max: {} → {}", shown(before), number_format(after)));
         }
     }
-    match (parts.is_empty(), reason) {
+    let reason = match (parts.is_empty(), reason) {
         (true, r) => r.map(str::to_owned),
         // Laravel glued ". " and " " into a double space; one is meant.
         (false, Some(r)) => Some(format!("{}. {r}", parts.join(", "))),
         (false, None) => Some(format!("{}.", parts.join(", "))),
-    }
+    };
+    // The prefix plus a full 255-char reason would break the column's limit.
+    reason.map(|r| r.chars().take(255).collect())
 }
 
-/// Every entry's warehouse and bin must be live rows of the workspace (422 per entry).
+/// Every entry's warehouse and bin must be live rows of the workspace, the bin inside that
+/// warehouse (422 per entry). One query for the warehouses, one for the bins.
 async fn entry_slots(
     state: &AppState,
     workspace_id: Uuid,
     product_id: Uuid,
     entries: &[Entry],
 ) -> Result<Vec<Slot>, AppError> {
+    let warehouse_ids: Vec<Uuid> = entries.iter().map(|e| e.warehouse_id).collect();
+    let bin_ids: Vec<Uuid> = entries.iter().filter_map(|e| e.bin_id).collect();
+    let live = repo::live_warehouses(&state.db, workspace_id, &warehouse_ids).await?;
+    let bins = if bin_ids.is_empty() {
+        Vec::new()
+    } else {
+        repo::live_bins(&state.db, workspace_id, &bin_ids).await?
+    };
     let mut errors: BTreeMap<String, Vec<String>> = BTreeMap::new();
     let mut slots = Vec::with_capacity(entries.len());
     for (i, e) in entries.iter().enumerate() {
-        match slot(state, workspace_id, product_id, e.warehouse_id, e.bin_id).await {
-            Ok(s) => slots.push(s),
-            Err(AppError::Validation(found)) => {
-                for (field, messages) in found {
-                    let key = format!("warehouses.{i}.{field}");
-                    let message = if field == "bin_id" {
-                        format!("The selected {} is invalid.", human(&key))
-                    } else {
-                        format!("This {} does not exist", human(&key))
-                    };
-                    errors
-                        .entry(key)
-                        .or_default()
-                        .extend(messages.iter().map(|_| message.clone()));
-                }
-            }
-            Err(e) => return Err(e),
+        let key = |f: &str| format!("warehouses.{i}.{f}");
+        if !live.contains(&e.warehouse_id) {
+            let k = key("warehouse_id");
+            errors.insert(
+                k.clone(),
+                vec![format!("This {} does not exist", human(&k))],
+            );
+            continue;
         }
+        let bin = match e.bin_id {
+            None => None,
+            Some(b) => match bins
+                .iter()
+                .find(|x| x.bin_id == b && x.warehouse_id == e.warehouse_id)
+            {
+                Some(x) => Some(Bin {
+                    shelf_id: x.shelf_id,
+                    bin_id: x.bin_id,
+                }),
+                None => {
+                    let k = key("bin_id");
+                    errors.insert(
+                        k.clone(),
+                        vec![format!("The selected {} is invalid.", human(&k))],
+                    );
+                    continue;
+                }
+            },
+        };
+        slots.push(Slot {
+            product_id,
+            warehouse_id: e.warehouse_id,
+            bin,
+        });
     }
     if errors.is_empty() {
         Ok(slots)
@@ -193,9 +224,10 @@ pub async fn set_levels(
     let product = product(state, workspace_id, product_id).await?;
     let slots = entry_slots(state, workspace_id, product.id, &entries).await?;
     let mut tx = state.db.begin().await?;
+    let mut created = repo::lock_all(&mut tx, workspace_id, &slots).await?;
     for (e, slot) in entries.iter().zip(slots) {
-        let (row, created) = repo::lock_or_create(&mut tx, workspace_id, slot).await?;
-        let existing = (!created).then_some(&row);
+        let (row, _) = repo::lock_or_create(&mut tx, workspace_id, slot).await?;
+        let existing = (!take(&mut created, &slot)).then_some(&row);
         let level = round(e.stock_lvl.unwrap_or_default(), 2);
         let min = e.minimal.unwrap_or(row.minimal_stock_level);
         let max = e.maximum.unwrap_or(row.maximum_stock_level);
@@ -204,14 +236,16 @@ pub async fn set_levels(
             existing.map(|r| r.maximum_stock_level),
         );
         let level_changed = level != row.stock_lvl;
-        let req_changed = before.0 != Some(min) || before.1 != Some(max);
-        repo::set_quantities(&mut tx, row.id, level, min, max).await?;
-        if !level_changed && !req_changed {
+        // Only a sent min/max can change (Laravel compared absent ones as null).
+        let min_changed = e.minimal.is_some() && before.0 != Some(min);
+        let max_changed = e.maximum.is_some() && before.1 != Some(max);
+        if !level_changed && !min_changed && !max_changed {
             continue;
         }
+        repo::set_quantities(&mut tx, workspace_id, row.id, level, min, max).await?;
         let reason = levels_reason(
-            (before.0, min),
-            (before.1, max),
+            min_changed.then_some((before.0, min)),
+            max_changed.then_some((before.1, max)),
             level_changed,
             e.reason.as_deref(),
         );
@@ -264,18 +298,19 @@ pub async fn set_requirements(
         ));
     }
     let mut tx = state.db.begin().await?;
+    let mut created = repo::lock_all(&mut tx, workspace_id, &slots).await?;
     for (e, slot) in req.entries.iter().zip(slots) {
-        let (row, created) = repo::lock_or_create(&mut tx, workspace_id, slot).await?;
-        let existing = (!created).then_some(&row);
+        let (row, _) = repo::lock_or_create(&mut tx, workspace_id, slot).await?;
+        let existing = (!take(&mut created, &slot)).then_some(&row);
         let (min, max) = (e.minimal.unwrap_or_default(), e.maximum.unwrap_or_default());
         let before = (
             existing.map(|r| r.minimal_stock_level),
             existing.map(|r| r.maximum_stock_level),
         );
-        repo::set_quantities(&mut tx, row.id, row.stock_lvl, min, max).await?;
         if before == (Some(min), Some(max)) {
             continue;
         }
+        repo::set_quantities(&mut tx, workspace_id, row.id, row.stock_lvl, min, max).await?;
         let cause = Cause {
             user_id: Some(user_id),
             ..Cause::default()
@@ -321,7 +356,7 @@ pub async fn delete(
             "Only stock at level 0 can be deleted".into(),
         ));
     }
-    repo::soft_delete(&mut tx, row.id).await?;
+    repo::soft_delete(&mut tx, workspace_id, row.id).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -337,29 +372,56 @@ pub async fn move_between_bins(
     user_id: Uuid,
 ) -> Result<(), AppError> {
     let product = product(state, workspace_id, product_id).await?;
-    let from = slot(state, workspace_id, product.id, m.warehouse_id, m.bin_from)
-        .await
-        .map_err(|e| rename(e, "bin_id", "bin_id_from"))?;
-    let to = slot(state, workspace_id, product.id, m.warehouse_id, m.bin_to)
-        .await
-        .map_err(|e| rename(e, "bin_id", "bin_id_to"))?;
-    let warehouse = warehouses::find(&state.db, workspace_id, m.warehouse_id)
-        .await?
-        .ok_or_else(|| AppError::field("warehouse_id", NO_WAREHOUSE))?;
+    if !warehouses::exists(&state.db, workspace_id, m.warehouse_id).await? {
+        return Err(AppError::field("warehouse_id", NO_WAREHOUSE));
+    }
+    let ids: Vec<Uuid> = [m.bin_from, m.bin_to].into_iter().flatten().collect();
+    let bins = if ids.is_empty() {
+        Vec::new()
+    } else {
+        repo::live_bins(&state.db, workspace_id, &ids).await?
+    };
+    // Laravel MoveStockBetweenBinsRequest wording.
+    let bin = |id: Option<Uuid>, which: &str, field: &str| match id {
+        None => Ok(None),
+        Some(b) => match bins.iter().find(|x| x.bin_id == b) {
+            None => Err(AppError::field(
+                field,
+                format!("The selected {which} bin does not exist."),
+            )),
+            Some(x) if x.warehouse_id != m.warehouse_id => Err(AppError::field(
+                field,
+                format!("The selected {which} bin does not belong to the selected warehouse."),
+            )),
+            Some(x) => Ok(Some(Bin {
+                shelf_id: x.shelf_id,
+                bin_id: x.bin_id,
+            })),
+        },
+    };
+    let slot = |bin| Slot {
+        product_id: product.id,
+        warehouse_id: m.warehouse_id,
+        bin,
+    };
+    let from = slot(bin(m.bin_from, "source", "bin_id_from")?);
+    let to = slot(bin(m.bin_to, "target", "bin_id_to")?);
+    if m.bin_from == m.bin_to {
+        return Err(AppError::field(
+            "bin_id_to",
+            "Source and target bins must be different.",
+        ));
+    }
     let cause = Cause {
         reason: Some(&m.reason),
         user_id: Some(user_id),
         ..Cause::default()
     };
     let mut tx = state.db.begin().await?;
-    // Lock both rows in one order (warehouse row first, then by bin id), so opposite moves
-    // queue instead of deadlocking.
-    let mut order = [from, to];
-    order.sort_by_key(|s| s.bin.map(|b| b.bin_id));
-    for s in order {
-        repo::locked(&mut tx, workspace_id, s).await?;
-    }
-    if let Mutated::Short { level, .. } = repo::mutate(
+    // Both rows in the shared lock order, so opposite moves and set-levels queue.
+    repo::lock_all(&mut tx, workspace_id, &[from, to]).await?;
+    // Laravel checked this in the request, before any lock; here it holds under the lock.
+    if let Mutated::Short { level, reserved } = repo::mutate(
         &mut tx,
         workspace_id,
         from,
@@ -369,29 +431,33 @@ pub async fn move_between_bins(
     )
     .await?
     {
-        return Err(AppError::BadRequest(format!(
-            "Insufficient stock for product {} - {} in {} for {} Available stock: {}. Required: {}",
-            product.reference_vendor.as_deref().unwrap_or_default(),
-            product.name,
-            warehouse.name,
-            m.reason,
-            level.normalize(),
-            m.quantity.normalize(),
-        )));
+        return Err(AppError::field(
+            "quantity",
+            format!(
+                "Insufficient stock available. Available: {}, Reserved: {}, Requested: {}",
+                level.normalize(),
+                reserved.normalize(),
+                m.quantity.normalize()
+            ),
+        ));
     }
-    repo::mutate(&mut tx, workspace_id, to, m.quantity, Floor::None, &cause).await?;
+    if let Mutated::OutOfRange =
+        repo::mutate(&mut tx, workspace_id, to, m.quantity, Floor::None, &cause).await?
+    {
+        return Err(AppError::field("quantity", OUT_OF_RANGE));
+    }
     tx.commit().await?;
     Ok(())
 }
 
-/// The same 422 under another field name.
-fn rename(e: AppError, from: &str, to: &str) -> AppError {
-    match e {
-        AppError::Validation(found) if found.contains_key(from) => {
-            AppError::field(to, format!("The selected {} is invalid.", human(to)))
-        }
-        e => e,
-    }
+/// True the first time `slot` is taken out of `created` (rows this request made).
+fn take(created: &mut Vec<repo::SlotKey>, slot: &Slot) -> bool {
+    let key = repo::key(slot);
+    created
+        .iter()
+        .position(|k| *k == key)
+        .map(|i| created.swap_remove(i))
+        .is_some()
 }
 
 /// GET /products/{id}/stock-with-bins.
@@ -425,11 +491,7 @@ pub async fn movements(
 ) -> Result<(Vec<Value>, i64), AppError> {
     let p = product(state, workspace_id, product_id).await?;
     let rows = repo::movements(&state.db, workspace_id, p.id, f).await?;
-    let total = match rows.first() {
-        Some(r) => r.total,
-        None if f.offset > 0 => repo::movements_count(&state.db, workspace_id, p.id, f).await?,
-        None => 0,
-    };
+    let total = repo::movements_count(&state.db, workspace_id, p.id, f).await?;
     Ok((rows.iter().map(resource::movement).collect(), total))
 }
 

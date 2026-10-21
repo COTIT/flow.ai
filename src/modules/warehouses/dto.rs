@@ -220,8 +220,11 @@ impl WarehouseResource {
                             w.bins_per_shelf,
                         ]
                         .iter()
-                        .map(|n| i64::from(n.unwrap_or_default()))
-                        .product(),
+                        // Unchecked, four large i32 columns overflow i64.
+                        .try_fold(1_i64, |acc, n| {
+                            acc.checked_mul(n.unwrap_or_default().into())
+                        })
+                        .unwrap_or(i64::MAX),
                     ),
                     management_contact: w.management_contact,
                     operating_hours: w.operating_hours,

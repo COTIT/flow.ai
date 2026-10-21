@@ -31,14 +31,16 @@ CREATE TABLE stocks (
         REFERENCES warehouses (workspace_id, id),
     CONSTRAINT stocks_bin_fk FOREIGN KEY (workspace_id, warehouse_id, shelf_id, bin_id)
         REFERENCES warehouse_section_row_bins (workspace_id, warehouse_id, shelf_id, id)
-);
+-- Room on each page for HOT updates: every stock write rewrites its row.
+) WITH (fillfactor = 85);
 -- One live row per product, warehouse and bin (Laravel had none: mutate picked "first").
 CREATE UNIQUE INDEX stocks_slot_unique ON stocks (product_id, warehouse_id, bin_id)
     NULLS NOT DISTINCT WHERE deleted_at IS NULL;
-CREATE INDEX stocks_warehouse_idx ON stocks (warehouse_id) WHERE deleted_at IS NULL;
-CREATE INDEX stocks_bin_idx ON stocks (bin_id) WHERE deleted_at IS NULL AND bin_id IS NOT NULL;
-CREATE INDEX stocks_negative_idx ON stocks (workspace_id, stock_lvl)
-    WHERE deleted_at IS NULL AND stock_lvl < 0;
+-- Plain (not partial) indexes: FK checks and cascades can't use partial ones. No index
+-- mentions stock_lvl, so level writes stay HOT updates.
+CREATE INDEX stocks_product_idx ON stocks (workspace_id, product_id);
+CREATE INDEX stocks_warehouse_idx ON stocks (workspace_id, warehouse_id);
+CREATE INDEX stocks_bin_idx ON stocks (bin_id) WHERE bin_id IS NOT NULL;
 
 -- Append-only: every stock change writes one row in the same transaction.
 CREATE TABLE stock_movements (
@@ -75,6 +77,8 @@ CREATE TABLE stock_movements (
 );
 CREATE INDEX stock_movements_product_idx ON stock_movements (product_id, created_at DESC, id DESC);
 CREATE INDEX stock_movements_stock_idx ON stock_movements (stock_id);
+CREATE INDEX stock_movements_warehouse_idx ON stock_movements (warehouse_id);
+CREATE INDEX stock_movements_user_idx ON stock_movements (user_id) WHERE user_id IS NOT NULL;
 
 -- A product's place in a warehouse location (Laravel parent_domain is always 'product').
 CREATE TABLE storage_locations (

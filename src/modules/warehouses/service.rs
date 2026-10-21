@@ -43,7 +43,7 @@ pub async fn list(state: &AppState, workspace_id: Uuid, f: &ListFilter) -> Resul
     if rows.is_empty() && f.offset > 0 {
         total = repo::count(&state.db, workspace_id, f).await?;
     }
-    let mut page = embed(state, workspace_id, rows).await?;
+    let mut page = embed(state, workspace_id, rows, true).await?;
     page.total = total;
     Ok(page)
 }
@@ -53,14 +53,17 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Page,
     let row = repo::find(&state.db, workspace_id, parse(id)?)
         .await?
         .ok_or(AppError::NotFound)?;
-    embed(state, workspace_id, vec![row]).await
+    embed(state, workspace_id, vec![row], true).await
 }
 
 /// Children and people of `rows`: one query each, whatever the page size.
+/// `occupancy`: count occupied bins (warehouse GET/list). Embedded warehouses skip it, as
+/// Laravel's plain `with('warehouse')` did (utilization 0 there).
 async fn embed(
     state: &AppState,
     workspace_id: Uuid,
     rows: Vec<WarehouseRow>,
+    occupancy: bool,
 ) -> Result<Page, AppError> {
     let ids: Vec<Uuid> = rows.iter().map(|w| w.id).collect();
     let people_ids: Vec<Uuid> = rows.iter().flat_map(WarehouseRow::people).collect();
@@ -74,7 +77,7 @@ async fn embed(
     } else {
         users::members_among(&state.db, workspace_id, &people_ids).await?
     };
-    let occupied = if ids.is_empty() {
+    let occupied = if ids.is_empty() || !occupancy {
         HashMap::new()
     } else {
         stock::occupied_by_warehouse(&state.db, workspace_id, &ids)
@@ -91,7 +94,8 @@ async fn embed(
     })
 }
 
-/// Full WarehouseResource JSON of the live warehouses among `ids`, in one batch.
+/// Full WarehouseResource JSON of the live warehouses among `ids`, in one batch, for embedding
+/// (no occupancy count).
 pub async fn resources(
     state: &AppState,
     workspace_id: Uuid,
@@ -102,7 +106,7 @@ pub async fn resources(
     }
     let rows = repo::find_many(&state.db, workspace_id, ids).await?;
     let order: Vec<Uuid> = rows.iter().map(|w| w.id).collect();
-    let p = embed(state, workspace_id, rows).await?;
+    let p = embed(state, workspace_id, rows, false).await?;
     let built = WarehouseResource::build(p.rows, p.children, &p.people, &p.occupied);
     order
         .into_iter()

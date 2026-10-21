@@ -75,7 +75,12 @@ pub enum Mutated {
     },
     /// Refused by the floor; nothing written. `level`/`reserved` are 0 when the slot has no row.
     Short { level: Decimal, reserved: Decimal },
+    /// The new level would leave ±[`LEVEL_MAX`]; nothing written.
+    OutOfRange,
 }
+
+/// Largest level a row may reach: 1e15 (the `numeric(19,2)` column holds 17 integer digits).
+pub const LEVEL_MAX: Decimal = Decimal::from_parts(2_764_472_320, 232_830, 0, false, 0);
 
 /// One ledger row.
 pub struct Movement<'a> {
@@ -91,7 +96,9 @@ pub struct Movement<'a> {
 
 /// THE stock writer (HTTP routes and order flows): add `change` (rounded to the column's 2
 /// places) to the slot's row under a row lock and append an increase/decrease movement.
-/// Creates the row on first use; refuses past `floor` without writing anything.
+/// Creates the row on first use; refuses past `floor` or [`LEVEL_MAX`] without writing.
+/// Callers skip a change that rounds to 0 (it would log an empty movement). A caller locking
+/// several slots takes them through [`lock_all`] first.
 pub async fn mutate(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -114,6 +121,9 @@ pub async fn mutate(
     };
     // Always from the locked row: a concurrent first write may have created it meanwhile.
     let after = row.stock_lvl + change;
+    if after.abs() > LEVEL_MAX {
+        return Ok(Mutated::OutOfRange);
+    }
     let refused = match floor {
         Floor::None => false,
         Floor::Zero => after < Decimal::ZERO,
@@ -127,6 +137,7 @@ pub async fn mutate(
     }
     set_quantities(
         conn,
+        workspace_id,
         row.id,
         after,
         row.minimal_stock_level,
@@ -262,10 +273,11 @@ pub async fn lock_or_create(
     .fetch_optional(&mut *conn)
     .await?
     .is_some();
-    let row = locked(conn, workspace_id, slot)
-        .await?
-        .ok_or(sqlx::Error::RowNotFound)?;
-    Ok((row, created))
+    match locked(conn, workspace_id, slot).await? {
+        Some(row) => Ok((row, created)),
+        // The row it met was soft-deleted and committed in between: try once more.
+        None => Box::pin(lock_or_create(conn, workspace_id, slot)).await,
+    }
 }
 
 /// Laravel EnsureProductWarehouseStockEntries for a new product: zero warehouse-level rows in
@@ -295,11 +307,48 @@ pub async fn seed(
     .await
 }
 
+/// Lock (creating when missing) every slot in [`SlotKey`] order, so writers touching the same
+/// slots queue instead of deadlocking. Returns the slots this call created.
+pub async fn lock_all(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    slots: &[Slot],
+) -> Result<Vec<SlotKey>, sqlx::Error> {
+    let mut keyed: Vec<(SlotKey, Slot)> = slots.iter().map(|s| (key(s), *s)).collect();
+    keyed.sort_by_key(|k| k.0);
+    keyed.dedup_by_key(|k| k.0);
+    let mut created = Vec::new();
+    for (k, slot) in keyed {
+        if lock_or_create(conn, workspace_id, slot).await?.1 {
+            created.push(k);
+        }
+    }
+    Ok(created)
+}
+
+/// A slot's identity and lock order: product, warehouse, then bin (the warehouse row first).
+pub type SlotKey = (Uuid, Uuid, Option<Uuid>);
+
+/// The [`SlotKey`] of `slot`.
+pub fn key(slot: &Slot) -> SlotKey {
+    (
+        slot.product_id,
+        slot.warehouse_id,
+        slot.bin.map(|b| b.bin_id),
+    )
+}
+
 /// Soft-delete a row the caller holds locked.
-pub async fn soft_delete(conn: &mut PgConnection, id: Uuid) -> Result<(), sqlx::Error> {
+pub async fn soft_delete(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "UPDATE stocks SET deleted_at = now(), updated_at = now() WHERE id = $1",
-        id
+        "UPDATE stocks SET deleted_at = now(), updated_at = now()
+         WHERE id = $1 AND workspace_id = $2",
+        id,
+        workspace_id,
     )
     .execute(&mut *conn)
     .await
@@ -309,16 +358,18 @@ pub async fn soft_delete(conn: &mut PgConnection, id: Uuid) -> Result<(), sqlx::
 /// Write level and requirements of a row the caller holds locked.
 pub async fn set_quantities(
     conn: &mut PgConnection,
+    workspace_id: Uuid,
     id: Uuid,
     stock_lvl: Decimal,
     minimal: i32,
     maximum: i32,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "UPDATE stocks SET stock_lvl = $2, minimal_stock_level = $3, maximum_stock_level = $4,
+        "UPDATE stocks SET stock_lvl = $3, minimal_stock_level = $4, maximum_stock_level = $5,
                            updated_at = now()
-         WHERE id = $1",
+         WHERE id = $1 AND workspace_id = $2",
         id,
+        workspace_id,
         stock_lvl,
         minimal,
         maximum,
@@ -368,6 +419,49 @@ pub async fn record(
     .execute(&mut *conn)
     .await
     .map(|_| ())
+}
+
+/// The live warehouses of the workspace among `ids`.
+pub async fn live_warehouses(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM warehouses WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
+        ids,
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// A live bin (live section, row and shelf) with its warehouse and shelf.
+pub struct LiveBin {
+    pub bin_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub shelf_id: Uuid,
+}
+
+/// The live bins of the workspace among `ids`.
+pub async fn live_bins(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<LiveBin>, sqlx::Error> {
+    sqlx::query_as!(
+        LiveBin,
+        "SELECT b.id AS bin_id, b.warehouse_id, b.shelf_id
+         FROM warehouse_section_row_bins b
+         JOIN warehouse_section_row_shelves sh ON sh.id = b.shelf_id AND sh.deleted_at IS NULL
+         JOIN warehouse_section_rows r ON r.id = b.row_id AND r.deleted_at IS NULL
+         JOIN warehouse_sections s ON s.id = b.section_id AND s.deleted_at IS NULL
+         WHERE b.id = ANY($1) AND b.workspace_id = $2 AND b.deleted_at IS NULL",
+        ids,
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
 }
 
 /// The live bin of this warehouse (its section, row and shelf live too), with its shelf.
@@ -550,10 +644,9 @@ pub struct MovementRow {
     pub st_meta: Option<Value>,
     pub st_created: Option<DateTime<Utc>>,
     pub st_updated: Option<DateTime<Utc>>,
-    pub total: i64,
 }
 
-/// One page of the product's movements, newest first, with the total in every row.
+/// One page of the product's movements, newest first. The page is cut before the joins.
 pub async fn movements(
     db: impl sqlx::PgExecutor<'_>,
     workspace_id: Uuid,
@@ -578,9 +671,14 @@ pub async fn movements(
                   st.bin_id AS "st_bin?", st.stock_lvl AS "st_lvl?", st.reserved AS "st_reserved?",
                   st.maximum_stock_level AS "st_max?", st.minimal_stock_level AS "st_min?",
                   st.meta AS "st_meta?", st.created_at AS "st_created?",
-                  st.updated_at AS "st_updated?",
-                  count(*) OVER () AS "total!"
-           FROM stock_movements m
+                  st.updated_at AS "st_updated?"
+           FROM (SELECT * FROM stock_movements
+                 WHERE workspace_id = $1 AND product_id = $2
+                   AND ($3::uuid IS NULL OR warehouse_id = $3)
+                   AND ($4::uuid IS NULL OR shelf_id = $4)
+                   AND ($5::uuid IS NULL OR bin_id = $5)
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT $6 OFFSET $7) m
            LEFT JOIN warehouses w ON w.id = m.warehouse_id AND w.deleted_at IS NULL
            LEFT JOIN warehouse_section_row_shelves sh ON sh.id = m.shelf_id AND sh.deleted_at IS NULL
            LEFT JOIN warehouse_section_rows r ON r.id = sh.row_id AND r.deleted_at IS NULL
@@ -588,12 +686,7 @@ pub async fn movements(
            LEFT JOIN warehouse_section_row_bins b ON b.id = m.bin_id AND b.deleted_at IS NULL
            LEFT JOIN users u ON u.id = m.user_id
            LEFT JOIN stocks st ON st.id = m.stock_id AND st.deleted_at IS NULL
-           WHERE m.workspace_id = $1 AND m.product_id = $2
-             AND ($3::uuid IS NULL OR m.warehouse_id = $3)
-             AND ($4::uuid IS NULL OR m.shelf_id = $4)
-             AND ($5::uuid IS NULL OR m.bin_id = $5)
-           ORDER BY m.created_at DESC, m.id DESC
-           LIMIT $6 OFFSET $7"#,
+           ORDER BY m.created_at DESC, m.id DESC"#,
         workspace_id,
         product_id,
         f.warehouse_id,
@@ -606,7 +699,7 @@ pub async fn movements(
     .await
 }
 
-/// Movements matching the filter (for a page past the end).
+/// Movements matching the filter.
 pub async fn movements_count(
     db: impl sqlx::PgExecutor<'_>,
     workspace_id: Uuid,
@@ -651,12 +744,31 @@ pub struct ListFilter<'a> {
     pub offset: i64,
 }
 
-/// One page of stock rows (insertion order, or lowest level first when `negative`).
+/// One page of stock rows: insertion order, or lowest level first when `negative`. Two
+/// statements, so each sorts on its own index.
 pub async fn list(
     db: impl sqlx::PgExecutor<'_>,
     workspace_id: Uuid,
     f: &ListFilter<'_>,
 ) -> Result<Vec<ListRow>, sqlx::Error> {
+    if !f.negative {
+        return sqlx::query_as!(
+            ListRow,
+            r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
+                      s.maximum_stock_level, s.meta, count(*) OVER () AS "total!"
+               FROM stocks s
+               JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL
+               JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+               WHERE s.workspace_id = $1 AND s.deleted_at IS NULL
+               ORDER BY s.id
+               LIMIT $2 OFFSET $3"#,
+            workspace_id,
+            f.limit,
+            f.offset,
+        )
+        .fetch_all(db)
+        .await;
+    }
     sqlx::query_as!(
         ListRow,
         r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
@@ -664,15 +776,13 @@ pub async fn list(
            FROM stocks s
            JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL
            JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
-           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL
-             AND (NOT $2 OR (s.stock_lvl < 0 AND w.is_store))
-             AND ($3::text IS NULL OR p.name ILIKE $3 OR p.reference ILIKE $3
-                  OR p.reference_vendor ILIKE $3 OR p.product_nr_formatted ILIKE $3
-                  OR p.ean13 ILIKE $3 OR w.name ILIKE $3 OR w.alias ILIKE $3)
-           ORDER BY CASE WHEN $2 THEN s.stock_lvl END, s.id
-           LIMIT $4 OFFSET $5"#,
+           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL AND s.stock_lvl < 0 AND w.is_store
+             AND ($2::text IS NULL OR p.name ILIKE $2 OR p.reference ILIKE $2
+                  OR p.reference_vendor ILIKE $2 OR p.product_nr_formatted ILIKE $2
+                  OR p.ean13 ILIKE $2 OR w.name ILIKE $2 OR w.alias ILIKE $2)
+           ORDER BY s.stock_lvl, s.id
+           LIMIT $3 OFFSET $4"#,
         workspace_id,
-        f.negative,
         f.pattern,
         f.limit,
         f.offset,
@@ -681,44 +791,56 @@ pub async fn list(
     .await
 }
 
-/// Rows matching the filter (for a page past the end).
+/// Rows matching the filter (for a page past the end); one statement per list, as `list`.
 pub async fn count(
     db: impl sqlx::PgExecutor<'_>,
     workspace_id: Uuid,
     f: &ListFilter<'_>,
 ) -> Result<i64, sqlx::Error> {
+    if !f.negative {
+        return sqlx::query_scalar!(
+            r#"SELECT count(*) AS "n!"
+               FROM stocks s
+               JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL
+               JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+               WHERE s.workspace_id = $1 AND s.deleted_at IS NULL"#,
+            workspace_id,
+        )
+        .fetch_one(db)
+        .await;
+    }
     sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!"
            FROM stocks s
            JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL
            JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
-           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL
-             AND (NOT $2 OR (s.stock_lvl < 0 AND w.is_store))
-             AND ($3::text IS NULL OR p.name ILIKE $3 OR p.reference ILIKE $3
-                  OR p.reference_vendor ILIKE $3 OR p.product_nr_formatted ILIKE $3
-                  OR p.ean13 ILIKE $3 OR w.name ILIKE $3 OR w.alias ILIKE $3)"#,
+           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL AND s.stock_lvl < 0 AND w.is_store
+             AND ($2::text IS NULL OR p.name ILIKE $2 OR p.reference ILIKE $2
+                  OR p.reference_vendor ILIKE $2 OR p.product_nr_formatted ILIKE $2
+                  OR p.ean13 ILIKE $2 OR w.name ILIKE $2 OR w.alias ILIKE $2)"#,
         workspace_id,
-        f.negative,
         f.pattern,
     )
     .fetch_one(db)
     .await
 }
 
-/// Occupied bins per warehouse: distinct live bins holding stock with level − reserved > 0.
-/// (Laravel's withCount dropped its DISTINCT and counted rows.)
+/// Occupied bins per warehouse: live bins holding stock with level − reserved > 0. Counted
+/// from the bins side, so the cost follows the bins, not products × bins. (Laravel's
+/// withCount lost its DISTINCT and counted stock rows.)
 pub async fn occupied_by_warehouse(
     db: impl sqlx::PgExecutor<'_>,
     workspace_id: Uuid,
     warehouse_ids: &[Uuid],
 ) -> Result<Vec<(Uuid, i64)>, sqlx::Error> {
     let rows = sqlx::query!(
-        r#"SELECT s.warehouse_id, count(DISTINCT s.bin_id) AS "n!"
-           FROM stocks s
-           JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL
-           WHERE s.workspace_id = $1 AND s.warehouse_id = ANY($2) AND s.deleted_at IS NULL
-             AND s.stock_lvl - s.reserved > 0
-           GROUP BY s.warehouse_id"#,
+        r#"SELECT b.warehouse_id, count(*) AS "n!"
+           FROM warehouse_section_row_bins b
+           WHERE b.workspace_id = $1 AND b.warehouse_id = ANY($2) AND b.deleted_at IS NULL
+             AND EXISTS (SELECT 1 FROM stocks s
+                         WHERE s.bin_id = b.id AND s.deleted_at IS NULL
+                           AND s.stock_lvl - s.reserved > 0)
+           GROUP BY b.warehouse_id"#,
         workspace_id,
         warehouse_ids,
     )
@@ -734,11 +856,12 @@ pub async fn occupied_by_row(
     row_ids: &[Uuid],
 ) -> Result<Vec<(Uuid, i64)>, sqlx::Error> {
     let rows = sqlx::query!(
-        r#"SELECT b.row_id, count(DISTINCT b.id) AS "n!"
+        r#"SELECT b.row_id, count(*) AS "n!"
            FROM warehouse_section_row_bins b
-           JOIN stocks s ON s.bin_id = b.id AND s.deleted_at IS NULL
-                        AND s.stock_lvl - s.reserved > 0
            WHERE b.workspace_id = $1 AND b.row_id = ANY($2) AND b.deleted_at IS NULL
+             AND EXISTS (SELECT 1 FROM stocks s
+                         WHERE s.bin_id = b.id AND s.deleted_at IS NULL
+                           AND s.stock_lvl - s.reserved > 0)
            GROUP BY b.row_id"#,
         workspace_id,
         row_ids,

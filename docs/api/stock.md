@@ -18,6 +18,8 @@ Shared rules (guard order, 404s, list `meta`, money printing) are in `convention
 - **Locking:** every write locks its row (`FOR NO KEY UPDATE`, 5 s lock timeout) before it reads the level.
   - Parallel writes on one slot queue up; none is lost.
   - The first write on an empty slot creates the row. Two creators meet on the unique index.
+  - A write that touches several rows (set levels, requirements, move) locks them all first in one order: product, warehouse, then bin with the warehouse row first. Opposite-order writers queue instead of deadlocking.
+  - A row still locked after 5 s, or a deadlock, answers **503** `{"message":"The record is busy, please try again."}`.
 - **The shared writer `stock::repo::mutate(&mut PgConnection, …)`** is the only increase/decrease path; order flows (final batch) reuse it. Its `Floor` sets how far a decrease may go:
   - `None`: stores (Laravel `MutateStock` let them go negative)
   - `Zero`: other warehouses
@@ -42,15 +44,16 @@ Every write answers `{"message":"ok"}`.
 
 - **Body:**
   - `warehouse_id` (required; a live warehouse of the workspace, else "This warehouse id does not exist")
-  - `mutation_value` (required number, may be negative)
+  - `mutation_value` (required number, may be negative, at most ±1 000 000 000 000; a change that rounds to 0.00 is a no-op)
   - `reason` (≤255; required when `is_correction` is true)
   - `is_correction` (bool)
-  - `meta` (object)
+  - `meta` (object, at most 4096 characters serialized: the ledger keeps every row)
   - `bin_id` (a live bin of that warehouse). Laravel's request dropped `bin_id`, so its HTTP mutate always hit the "first" row.
 - **Rules:**
   - The available stock (level − reserved) must cover a decrease, in every warehouse, stores included. Otherwise 422 on `mutation_value`: "The mutation value is higher then the available stock" (Laravel `EnoughStockRule`).
   - Laravel checked that before the write; here it is checked under the row lock, so two parallel decreases can't both pass.
   - An increase is always allowed. Laravel's rule also refused an increase that left a negative level below 0.
+  - A level past ±1e15 is 422 "The stock level would be out of range." (the column holds 17 digits; Laravel answered 500).
   - A product that doesn't track stock (not physical, or `has_stock` off), or a zero change, is a no-op.
   - `reserved` in the body is ignored: reservations come with orders. Laravel also required `stock.reserve` for every mutate; that check isn't copied.
 
@@ -58,7 +61,7 @@ Every write answers `{"message":"ok"}`.
 
 - **Body:** `warehouses[]` (1–100 entries), each with:
   - `warehouse_id`
-  - `stock_lvl` (≥ 0)
+  - `stock_lvl` (0 … 1e12)
   - `reason` (required, ≤255)
   - optional `bin_id`
   - optional `minimal_stock_level` / `maximum_stock_level` (≥ 0; max ≥ min)
@@ -66,8 +69,11 @@ Every write answers `{"message":"ok"}`.
 - **Behaviour:**
   - All entries run in one transaction. Each entry is its own slot: Laravel leaked one entry's `bin_id` into the next.
   - An absent min or max keeps its value. Laravel logged it as changed to "not set".
+  - Min/max are rounded to integers; past 2147483647 after rounding is a 422.
+  - An entry that changes nothing writes nothing.
   - **Movement:** `set_level` when the level changed, `set_requirements` when only min/max changed, none when nothing changed.
-  - **Reason when only min/max changed:** `Min: 0.00 → 2.00, Max: 0.00 → 8.00. <reason>`. Laravel glued in a double space; it is one space here.
+  - **Reason when only min/max changed:** `Min: 0.00 → 2.00, Max: 0.00 → 8.00. <reason>`, naming only the fields sent. Laravel glued in a double space; it is one space here.
+  - The combined reason is cut at 255 characters, the column limit. Laravel answered 500 past it.
 - **Not copied:** Laravel's hard-coded user list for workspace 3.
 
 ### `POST /products/{id}/set-stock-requirements`
@@ -94,12 +100,16 @@ Every write answers `{"message":"ok"}`.
 - **Body:**
   - `warehouse_id`
   - `bin_id_from` / `bin_id_to` (bins of that warehouse; null = the warehouse-level row)
-  - `quantity` (≥ 0.01)
+  - `quantity` (0.01 … 1e12)
   - `reason` (required, ≤255)
-- **Behaviour:**
-  - A `decrease` on the source and an `increase` on the target, in one transaction.
-  - Both rows are locked in one order (warehouse row first, then by bin id), so opposite moves queue instead of deadlocking.
-- **Short source** (level − reserved < quantity): 400 `{message}` in Laravel's text, e.g. `Insufficient stock for product  - A in Main for move Available stock: 3. Required: 10`.
+- **Behaviour:** a `decrease` on the source and an `increase` on the target, in one transaction, under the shared lock order.
+- **422s** (Laravel `MoveStockBetweenBinsRequest` wording):
+  - `bin_id_from` / `bin_id_to`:
+    - "The selected source bin does not exist." (or "target")
+    - "The selected source bin does not belong to the selected warehouse." (or "target")
+  - `bin_id_to`: "Source and target bins must be different." (null to null counts as the same)
+  - `quantity`: "Insufficient stock available. Available: 3, Reserved: 0, Requested: 10", when level − reserved < quantity.
+    - Laravel checked this before taking any lock; here it is checked under the row lock.
 
 ## Reads
 
@@ -185,7 +195,8 @@ Every write answers `{"message":"ok"}`.
   - occupied = distinct live bins of the warehouse holding stock with level − reserved > 0.
   - Laravel's `withCount` lost its `DISTINCT` and counted rows, so two products in one bin counted twice.
 - **Row:** the same over `number_of_shelves × section.bins_per_shelf`; `0` without bins.
-- **Elsewhere** (a warehouse embedded in a product or stock row), occupancy is counted as well. Laravel showed 0 there.
+- **Elsewhere** (a warehouse embedded in a product or stock row), occupancy isn't counted: `0` (or null without a grid), as Laravel showed.
+- **Cost:** occupied bins are counted from the bins side (one EXISTS per live bin), so the cost follows the bin count, not products × bins.
 
 ## Storage locations `/erp/storage-locations`
 

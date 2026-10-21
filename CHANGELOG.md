@@ -26,6 +26,17 @@
     - Whole floats print as PHP did (`money::php_number`).
   - **Storage locations:** create (also from a bin's code path, with `replace`), delete, and list by product. Deleting a warehouse location drops its storage locations.
   - **Not ported:** the `stock.view` lookups (`/stocks/{id}`, `/ean`, `/reference`, `/id`: no callers) and `move-stocks` (no callers).
+  - **Review fixes:**
+    - Multi-row writes lock in one product/warehouse/bin order (a deadlock was reproduced).
+    - Lock timeout, deadlock and serialization aborts answer 503 with a retry message.
+    - Quantities are capped at 1e12 and levels at 1e15 (the column overflowed into a 500).
+    - A change that rounds to 0 is a no-op.
+    - Reasons are cut at 255 characters, and min/max past i32 is a 422.
+    - Set levels names only the min/max that were sent, and skips unchanged entries.
+    - Move answers Laravel's request-level 422s: same bin, bin wording, insufficient stock on `quantity`.
+    - Occupancy counts from the bins side, and only on warehouse GET/list.
+    - The negative list has its own statement.
+    - Indexes: no stock index mentions `stock_lvl`, so level writes stay HOT, with fillfactor 85; plain FK indexes for cascades; validation runs as one batch.
   - **Shared:**
     - `AppError::BadRequest` (Laravel 400 `{message}`)
     - `warehouses::service::resources` and `repo::find_many`

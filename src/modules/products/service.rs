@@ -25,10 +25,7 @@ use crate::{
         sales_groups::{dto::SalesGroupResource, repo as sales_groups},
         stock::repo as stock,
         vat_groups::repo as vat_groups,
-        warehouses::{
-            dto::{WarehouseCompacted, WarehouseResource},
-            repo as warehouses, service as warehouse_service,
-        },
+        warehouses::{dto::WarehouseCompacted, repo as warehouses, service as warehouse_service},
     },
 };
 
@@ -689,19 +686,9 @@ async fn embeds(
                 .push((v.clone(), qty));
         }
     }
-    for id in distinct(rows.iter().map(|p| p.default_warehouse_id)) {
-        match warehouse_service::get(state, workspace_id, &id.to_string()).await {
-            Ok(p) => {
-                if let Some(w) =
-                    WarehouseResource::build(p.rows, p.children, &p.people, &p.occupied).pop()
-                {
-                    e.warehouses.insert(id, to_value(w)?);
-                }
-            }
-            Err(AppError::NotFound) => {}
-            Err(err) => return Err(err),
-        }
-    }
+    let full = distinct(rows.iter().map(|p| p.default_warehouse_id));
+    e.warehouses
+        .extend(warehouse_service::resources(state, workspace_id, &full).await?);
     Ok(e)
 }
 

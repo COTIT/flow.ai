@@ -67,6 +67,15 @@ impl AppError {
 }
 
 const NUL_TEXT: &str = "Text must not contain NUL characters.";
+/// 503 body when a row stayed locked past `lock_timeout`, or a deadlock/serialization abort.
+const BUSY: &str = "The record is busy, please try again.";
+
+/// lock_timeout (55P03), deadlock (40P01), serialization failure (40001): safe to retry.
+fn is_contention(e: &sqlx::Error) -> bool {
+    e.as_database_error()
+        .and_then(|d| d.code())
+        .is_some_and(|c| c == "55P03" || c == "40P01" || c == "40001")
+}
 
 fn is_nul_rejection(e: &sqlx::Error) -> bool {
     e.as_database_error()
@@ -135,6 +144,11 @@ impl IntoResponse for AppError {
             // Postgres refuses NUL in text (22021) and \u0000 in jsonb (22P05): bad input, not a fault.
             Self::Database(e) if is_nul_rejection(&e) => {
                 Self::field("input", NUL_TEXT).into_response()
+            }
+            Self::Database(e) if is_contention(&e) => {
+                tracing::warn!(error = %e, "lock contention");
+                let body = json!({ "message": BUSY });
+                (StatusCode::SERVICE_UNAVAILABLE, Json(body)).into_response()
             }
             other => {
                 tracing::error!(error = %other, "request failed");

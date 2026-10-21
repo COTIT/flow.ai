@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT b.row_id, count(DISTINCT b.id) AS \"n!\"\n           FROM warehouse_section_row_bins b\n           JOIN stocks s ON s.bin_id = b.id AND s.deleted_at IS NULL\n                        AND s.stock_lvl - s.reserved > 0\n           WHERE b.workspace_id = $1 AND b.row_id = ANY($2) AND b.deleted_at IS NULL\n           GROUP BY b.row_id",
+  "query": "SELECT b.row_id, count(*) AS \"n!\"\n           FROM warehouse_section_row_bins b\n           WHERE b.workspace_id = $1 AND b.row_id = ANY($2) AND b.deleted_at IS NULL\n             AND EXISTS (SELECT 1 FROM stocks s\n                         WHERE s.bin_id = b.id AND s.deleted_at IS NULL\n                           AND s.stock_lvl - s.reserved > 0)\n           GROUP BY b.row_id",
   "describe": {
     "columns": [
       {
@@ -32,5 +32,5 @@
       null
     ]
   },
-  "hash": "ccca471fd18f5088ab55fa578580b8d8dd35b917b625358a4a1cb573a7ca5c8d"
+  "hash": "31efcecd29cdb3577c2f7e639b441bdeab87b8404fcd59cfba6a2688d7ea51ad"
 }

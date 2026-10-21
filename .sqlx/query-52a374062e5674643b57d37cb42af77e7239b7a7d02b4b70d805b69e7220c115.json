@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE stocks SET stock_lvl = $3, minimal_stock_level = $4, maximum_stock_level = $5,\n                           updated_at = now()\n         WHERE id = $1 AND workspace_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "52a374062e5674643b57d37cb42af77e7239b7a7d02b4b70d805b69e7220c115"
+}

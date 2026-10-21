@@ -640,18 +640,46 @@ async fn move_between_bins(pool: PgPool) {
             .len(),
         3
     );
+    // Laravel MoveStockBetweenBinsRequest: request-level 422s (checked under the lock here).
     let (status, res) = mv(Some(a), Some(b), json!(10)).await;
-    assert_eq!(status, StatusCode::BAD_REQUEST, "{res}");
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert_eq!(
-        res["message"],
-        "Insufficient stock for product  - A in Main for move Available stock: 3. Required: 10"
+        res["errors"]["quantity"],
+        json!(["Insufficient stock available. Available: 3, Reserved: 0, Requested: 10"])
     );
     let (status, res) = mv(Some(a), Some(&w.shop), json!(1)).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert_eq!(
         res["errors"]["bin_id_to"],
-        json!(["The selected bin id to is invalid."])
+        json!(["The selected target bin does not exist."])
     );
+    let other = sqlx::query_scalar::<_, String>(
+        "INSERT INTO warehouses (workspace_id, name, slug) VALUES ($1::uuid, 'Other', 'other')
+         RETURNING id::text",
+    )
+    .bind(&w.api.ws)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let (status, res) = w
+        .post(
+            "move-stock-between-bins",
+            json!({ "warehouse_id": other, "bin_id_from": a, "quantity": 1, "reason": "x" }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["bin_id_from"],
+        json!(["The selected source bin does not belong to the selected warehouse."])
+    );
+    for (from, to) in [(Some(a), Some(a)), (None, None)] {
+        let (status, res) = mv(from, to, json!(1)).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+        assert_eq!(
+            res["errors"]["bin_id_to"],
+            json!(["Source and target bins must be different."])
+        );
+    }
     let (status, res) = mv(Some(a), Some(b), json!(0)).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert_eq!(
@@ -1110,4 +1138,206 @@ async fn utilization_counts_bins_with_available_stock(pool: PgPool) {
         json!(0),
         "fully reserved = not occupied"
     );
+}
+
+/// Review round 1: bounds that used to end in a 500 or a silent change.
+#[sqlx::test]
+async fn stock_inputs_stay_in_range(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    let (status, res) = w
+        .mutate(json!({ "warehouse_id": w.main, "mutation_value": "10000000000000" }))
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["mutation_value"],
+        json!(["The mutation value must not be greater than 1000000000000."])
+    );
+
+    let (status, _) = w
+        .mutate(json!({ "warehouse_id": w.main, "mutation_value": "0.004" }))
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(w.movements().await.is_empty(), "rounds to 0.00: no-op");
+
+    let (status, res) = w
+        .post(
+            "set-stock-requirements",
+            json!({ "warehouses": [{ "warehouse_id": w.main, "minimal_stock_level": 1,
+                                     "maximum_stock_level": "2147483647.5" }] }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["warehouses.0.maximum_stock_level"],
+        json!(["The warehouses.0.maximum stock level must not be greater than 2147483647."])
+    );
+
+    // A full-length reason plus the min/max prefix still fits the 255-char column.
+    let (status, res) = w
+        .post(
+            "set-stock-levels",
+            json!({ "warehouses": [{ "warehouse_id": w.main, "stock_lvl": 0,
+                                     "minimal_stock_level": 3, "reason": "r".repeat(255) }] }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let reason = w.movements().await.last().unwrap().4.clone().unwrap();
+    assert_eq!(reason.chars().count(), 255);
+    assert!(reason.starts_with("Min: Not set → 3.00. rrr"), "{reason}");
+
+    // A huge grid can't overflow the utilization maths.
+    let (status, res) = w
+        .api
+        .with_base("/warehouses")
+        .update(
+            &w.main,
+            json!({ "name": "Main", "sections": 2147483647, "rows_per_sections": 2147483647,
+                    "shelves_per_row": 2147483647, "bins_per_shelf": 2147483647 }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let wh = w.api.with_base("/warehouses").get(&w.main).await;
+    assert_eq!(wh["utilization"], json!(0));
+}
+
+/// Entries lock in one order (warehouse row first, then by bin), like moves: two calls with
+/// the same slots in opposite order queue instead of deadlocking.
+#[sqlx::test]
+async fn parallel_set_levels_in_opposite_order_finish(pool: PgPool) {
+    let w = world(pool).await;
+    let (a, b) = (&w.bins[0].0, &w.bins[1].0);
+    for (bin, value) in [(a, 5), (b, 5)] {
+        w.mutate(json!({ "warehouse_id": w.main, "bin_id": bin, "mutation_value": value }))
+            .await;
+    }
+    let mut set = tokio::task::JoinSet::new();
+    for i in 0..12 {
+        let (first, second) = if i % 2 == 0 { (a, b) } else { (b, a) };
+        let entries = json!([
+            { "warehouse_id": w.main, "bin_id": first, "stock_lvl": i, "reason": "x" },
+            { "warehouse_id": w.main, "bin_id": second, "stock_lvl": i, "reason": "x" },
+            { "warehouse_id": w.main, "stock_lvl": i, "reason": "x" },
+        ]);
+        let (app, token) = (w.api.app.clone(), w.api.owner.clone());
+        let uri = format!(
+            "/v1/workspace/{}/products/{}/set-stock-levels",
+            w.api.ws, w.product
+        );
+        set.spawn(async move {
+            send(
+                &app,
+                Method::POST,
+                &uri,
+                Some(json!({ "warehouses": entries })),
+                Some(&token),
+            )
+            .await
+        });
+        let (app, token) = (w.api.app.clone(), w.api.owner.clone());
+        let uri = format!(
+            "/v1/workspace/{}/products/{}/move-stock-between-bins",
+            w.api.ws, w.product
+        );
+        let body = json!({ "warehouse_id": w.main, "bin_id_from": second, "bin_id_to": first,
+                           "quantity": "0.01", "reason": "m" });
+        set.spawn(async move { send(&app, Method::POST, &uri, Some(body), Some(&token)).await });
+    }
+    let results = set.join_all().await;
+    assert!(
+        results
+            .iter()
+            .all(|(s, _)| *s == StatusCode::OK || *s == StatusCode::UNPROCESSABLE_ENTITY),
+        "no deadlock 500s: {results:?}"
+    );
+}
+
+/// Ids of another workspace never reach a write: 422 (or 404 for a storage location place).
+#[sqlx::test]
+async fn foreign_ids_are_rejected(pool: PgPool) {
+    let w = world(pool).await;
+    let (eve, eve_ws) = signup(&w.api.app, "eve@example.com", "evil").await;
+    let uri = format!("/v1/workspace/{eve_ws}/warehouses");
+    let (_, res) = send(
+        &w.api.app,
+        Method::POST,
+        &uri,
+        Some(json!({ "name": "Eve" })),
+        Some(&eve),
+    )
+    .await;
+    let foreign = res["data"]["warehouse_id"].as_str().unwrap().to_owned();
+
+    let (status, res) = w
+        .mutate(json!({ "warehouse_id": foreign, "mutation_value": 1 }))
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    let (status, res) = w
+        .post(
+            "set-stock-levels",
+            json!({ "warehouses": [{ "warehouse_id": foreign, "stock_lvl": 1, "reason": "x" }] }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    let (status, res) = w
+        .post(
+            "set-stock-requirements",
+            json!({ "warehouses": [{ "warehouse_id": w.main, "minimal_stock_level": 0,
+                                     "maximum_stock_level": 1 }], "default_warehouse_id": foreign }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    let (status, res) = w
+        .post(
+            "move-stock-between-bins",
+            json!({ "warehouse_id": foreign, "bin_id_to": w.bins[0].0, "quantity": 1, "reason": "x" }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    let (status, res) = w.delete(&format!("warehouse_id={foreign}")).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(w.levels().await.is_empty());
+}
+
+/// Parallel first writes on a slot without a row meet on the unique index: no lost update.
+#[sqlx::test]
+async fn parallel_first_writes_on_an_empty_slot(pool: PgPool) {
+    let w = world(pool).await;
+    let bin = w.bins[1].0.clone();
+    let mut set = tokio::task::JoinSet::new();
+    for _ in 0..16 {
+        let (app, token) = (w.api.app.clone(), w.api.owner.clone());
+        let uri = format!("/v1/workspace/{}/products/{}/stocks", w.api.ws, w.product);
+        let body = json!({ "warehouse_id": w.main, "bin_id": bin, "mutation_value": 1 });
+        set.spawn(async move { send(&app, Method::POST, &uri, Some(body), Some(&token)).await });
+    }
+    let results = set.join_all().await;
+    assert!(
+        results.iter().all(|(s, _)| *s == StatusCode::OK),
+        "{results:?}"
+    );
+    assert_eq!(w.levels().await, [(w.main.clone(), Some(bin), s("16.00"))]);
+}
+
+/// A row held past `lock_timeout` answers 503 with a retry hint instead of a logged 500.
+#[sqlx::test]
+async fn a_long_held_row_answers_busy(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 1 }))
+        .await;
+    let mut holder = pool.begin().await.unwrap();
+    sqlx::query("SELECT 1 FROM stocks FOR UPDATE")
+        .execute(&mut *holder)
+        .await
+        .unwrap();
+
+    let (status, res) = w
+        .mutate(json!({ "warehouse_id": w.main, "mutation_value": 1 }))
+        .await;
+
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{res}");
+    assert_eq!(
+        res,
+        json!({ "message": "The record is busy, please try again." })
+    );
+    holder.rollback().await.unwrap();
 }

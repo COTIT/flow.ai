@@ -42,7 +42,6 @@ pub fn format_decimals(value: Option<Decimal>, dp: u32, rtrim: bool, zero: Zero)
     s
 }
 
-/// PHP `round($v, $dp)`: half away from zero.
 /// A PHP float as `json_encode` printed it: whole numbers without a fraction (`5`, not `5.0`).
 pub fn php_number(d: Decimal) -> serde_json::Value {
     use rust_decimal::prelude::ToPrimitive;
@@ -55,6 +54,7 @@ pub fn php_number(d: Decimal) -> serde_json::Value {
     }
 }
 
+/// PHP `round($v, $dp)`: half away from zero.
 pub fn round(v: Decimal, dp: u32) -> Decimal {
     v.round_dp_with_strategy(dp, RoundingStrategy::MidpointAwayFromZero)
 }
