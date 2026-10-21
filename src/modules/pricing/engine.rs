@@ -82,6 +82,48 @@ pub fn summarise(lines: &[Line], dp: u32) -> Result<Summary, usize> {
     Ok(s)
 }
 
+/// Margin of the item lines (Laravel BuildItemsMargeCalculationSummary, `items` part).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Margin {
+    /// Σ purchase price × quantity, each rounded.
+    pub cost: Decimal,
+    /// Σ line excl.
+    pub revenue: Decimal,
+    /// revenue − cost.
+    pub amount: Decimal,
+    /// amount / revenue × 100, unrounded. Laravel divides by 1 when revenue is 0.
+    pub percentage: Decimal,
+}
+
+/// Margin over `lines` priced as `amounts` (same order). Set children are skipped (their
+/// set line carries the price). Err(index) names the line that overflowed.
+pub fn margin(lines: &[Line], amounts: &[Amounts], dp: u32) -> Result<Margin, usize> {
+    let mut m = Margin::default();
+    let mut last = 0;
+    for (i, (line, a)) in lines.iter().zip(amounts).enumerate() {
+        if line.set_child {
+            continue;
+        }
+        last = i;
+        let purchase = line.purchase_price.unwrap_or_default();
+        let cost = purchase.checked_mul(line.quantity).ok_or(i)?;
+        m.cost = m.cost.checked_add(round(cost, dp)).ok_or(i)?;
+        m.revenue = m.revenue.checked_add(a.excl).ok_or(i)?;
+    }
+    m.amount = m.revenue.checked_sub(m.cost).ok_or(last)?;
+    let divisor = if m.revenue.is_zero() {
+        Decimal::ONE
+    } else {
+        m.revenue
+    };
+    m.percentage = m
+        .amount
+        .checked_div(divisor)
+        .and_then(|r| r.checked_mul(Decimal::ONE_HUNDRED))
+        .ok_or(last)?;
+    Ok(m)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -271,6 +313,106 @@ mod tests {
         }
         // The user-approved fix is visible: Laravel says 0.25 where its lines say 0.24.
         assert!(total_differs.contains(&"three_lines_0_07_vat21"));
+    }
+
+    fn margin_of(lines: &[Line]) -> Margin {
+        let s = summarise(lines, 2).unwrap();
+        margin(lines, &s.lines, 2).unwrap()
+    }
+
+    fn bought(q: &str, p: &str, disc: &str, purchase: &str) -> Line {
+        Line {
+            purchase_price: Some(d(purchase)),
+            ..line(q, p, "21", disc)
+        }
+    }
+
+    #[test]
+    fn margin_uses_excl_after_discount() {
+        let m = margin_of(&[bought("2", "25", "0", "15"), bought("1", "10", "10", "4.5")]);
+        assert_eq!(
+            (m.cost, m.revenue, m.amount),
+            (d("34.5"), d("59"), d("24.5"))
+        );
+        assert_eq!(m.percentage.round_dp(6), d("41.525424"));
+    }
+
+    #[test]
+    fn margin_without_revenue_divides_by_one() {
+        let m = margin_of(&[bought("1", "0", "0", "5")]);
+        assert_eq!((m.amount, m.percentage), (d("-5"), d("-500")));
+    }
+
+    #[test]
+    fn margin_skips_set_children_and_missing_purchase() {
+        let child = Line {
+            set_child: true,
+            ..bought("1", "30", "0", "10")
+        };
+        let m = margin_of(&[
+            bought("1", "30", "0", "10"),
+            child,
+            line("1", "5", "21", "0"),
+        ]);
+        assert_eq!((m.cost, m.revenue), (d("10"), d("35")));
+    }
+
+    #[test]
+    fn margin_overflow_names_the_line() {
+        let max = crate::money::MAX;
+        let big = Line {
+            quantity: max,
+            purchase_price: Some(max),
+            ..Line::default()
+        };
+        let lines = [line("1", "1", "0", "0"), big];
+        let amounts = [Amounts::default(), Amounts::default()];
+        assert_eq!(margin(&lines, &amounts, 2), Err(1));
+    }
+
+    /// Margin side of `pricing_parity.json`: cost, revenue and amount within per-line
+    /// rounding of Laravel, percentage within 0.01 points.
+    #[test]
+    fn margin_matches_laravel() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../../../tests/fixtures/pricing_parity.json"))
+                .unwrap();
+        for case in fixture["cases"].as_array().unwrap() {
+            let name = case["name"].as_str().unwrap();
+            let lines: Vec<Line> = case["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|i| Line {
+                    quantity: fixture_dec(i.get("quantity")),
+                    price: fixture_dec(i.get("price")),
+                    vat: fixture_dec(i.get("vat")),
+                    discount: fixture_dec(i.get("productDiscount")),
+                    purchase_price: i.get("purchase_price").map(|v| fixture_dec(Some(v))),
+                    set_child: i.get("multi_set_item_id").is_some_and(|v| !v.is_null()),
+                })
+                .collect();
+            let tolerance = d("0.005") * Decimal::from(lines.len() + 1);
+            let m = margin_of(&lines);
+            let items = &case["marge"]["extra_data"]["components"]["items"];
+            for (field, ours) in [
+                ("cost_excl", m.cost),
+                ("revenue_excl", m.revenue),
+                ("margin_amount", m.amount),
+            ] {
+                let theirs = fixture_number(&items[field]);
+                assert!(
+                    (ours - theirs).abs() <= tolerance,
+                    "{name} {field}: {ours} vs {theirs}"
+                );
+            }
+            let theirs = fixture_number(&items["margin_percentage"]);
+            assert!(
+                (m.percentage - theirs).abs() <= d("0.01"),
+                "{name} margin_percentage: {} vs {theirs}",
+                m.percentage
+            );
+        }
     }
 
     #[test]
