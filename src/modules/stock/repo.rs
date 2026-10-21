@@ -629,6 +629,125 @@ pub async fn movements_count(
     .await
 }
 
+/// A stock row of a list page, with the total in every row.
+pub struct ListRow {
+    pub id: Uuid,
+    pub product_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub stock_lvl: Decimal,
+    pub minimal_stock_level: i32,
+    pub maximum_stock_level: i32,
+    pub meta: Option<Value>,
+    pub total: i64,
+}
+
+/// Stock list filter: `negative` = store rows below 0 (Laravel ListNegativeStock), lowest
+/// first, with `pattern` (escaped `%q%`) on product codes/name and warehouse name/alias.
+/// Rows of deleted products or warehouses are left out.
+pub struct ListFilter<'a> {
+    pub negative: bool,
+    pub pattern: Option<&'a str>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+/// One page of stock rows (insertion order, or lowest level first when `negative`).
+pub async fn list(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    f: &ListFilter<'_>,
+) -> Result<Vec<ListRow>, sqlx::Error> {
+    sqlx::query_as!(
+        ListRow,
+        r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
+                  s.maximum_stock_level, s.meta, count(*) OVER () AS "total!"
+           FROM stocks s
+           JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL
+           JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL
+             AND (NOT $2 OR (s.stock_lvl < 0 AND w.is_store))
+             AND ($3::text IS NULL OR p.name ILIKE $3 OR p.reference ILIKE $3
+                  OR p.reference_vendor ILIKE $3 OR p.product_nr_formatted ILIKE $3
+                  OR p.ean13 ILIKE $3 OR w.name ILIKE $3 OR w.alias ILIKE $3)
+           ORDER BY CASE WHEN $2 THEN s.stock_lvl END, s.id
+           LIMIT $4 OFFSET $5"#,
+        workspace_id,
+        f.negative,
+        f.pattern,
+        f.limit,
+        f.offset,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Rows matching the filter (for a page past the end).
+pub async fn count(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    f: &ListFilter<'_>,
+) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!"
+           FROM stocks s
+           JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL
+           JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL
+             AND (NOT $2 OR (s.stock_lvl < 0 AND w.is_store))
+             AND ($3::text IS NULL OR p.name ILIKE $3 OR p.reference ILIKE $3
+                  OR p.reference_vendor ILIKE $3 OR p.product_nr_formatted ILIKE $3
+                  OR p.ean13 ILIKE $3 OR w.name ILIKE $3 OR w.alias ILIKE $3)"#,
+        workspace_id,
+        f.negative,
+        f.pattern,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// Occupied bins per warehouse: distinct live bins holding stock with level − reserved > 0.
+/// (Laravel's withCount dropped its DISTINCT and counted rows.)
+pub async fn occupied_by_warehouse(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    warehouse_ids: &[Uuid],
+) -> Result<Vec<(Uuid, i64)>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT s.warehouse_id, count(DISTINCT s.bin_id) AS "n!"
+           FROM stocks s
+           JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL
+           WHERE s.workspace_id = $1 AND s.warehouse_id = ANY($2) AND s.deleted_at IS NULL
+             AND s.stock_lvl - s.reserved > 0
+           GROUP BY s.warehouse_id"#,
+        workspace_id,
+        warehouse_ids,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.warehouse_id, r.n)).collect())
+}
+
+/// Occupied bins per section row, same rule.
+pub async fn occupied_by_row(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    row_ids: &[Uuid],
+) -> Result<Vec<(Uuid, i64)>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT b.row_id, count(DISTINCT b.id) AS "n!"
+           FROM warehouse_section_row_bins b
+           JOIN stocks s ON s.bin_id = b.id AND s.deleted_at IS NULL
+                        AND s.stock_lvl - s.reserved > 0
+           WHERE b.workspace_id = $1 AND b.row_id = ANY($2) AND b.deleted_at IS NULL
+           GROUP BY b.row_id"#,
+        workspace_id,
+        row_ids,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.row_id, r.n)).collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

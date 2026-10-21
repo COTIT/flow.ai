@@ -12,14 +12,16 @@ use crate::{
     error::AppError,
     http::{
         json::ValidatedJson,
-        list::Paginated,
+        list::{Page, Paginated, search},
         response::Message,
         workspace::{Can, permissions},
     },
     modules::stock::{
         dto::{
-            DeleteQuery, MoveBody, MovementQuery, MutateBody, SetLevelsBody, SetRequirementsBody,
+            DeleteQuery, ListQuery, MoveBody, MovementQuery, MutateBody, SetLevelsBody,
+            SetRequirementsBody,
         },
+        repo::ListFilter,
         service,
     },
 };
@@ -121,5 +123,46 @@ pub async fn movements(
 ) -> Result<Json<Paginated<Value>>, AppError> {
     let (f, page) = q.filter();
     let (data, total) = service::movements(&state, access.workspace_id, &p, &f).await?;
+    Ok(Json(Paginated::new(data, total, page)))
+}
+
+/// GET /products/stocks -> `{data, meta}` (Laravel ListStock, insertion order).
+pub async fn list(
+    State(state): State<AppState>,
+    access: Can<StockList>,
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    page_of(&state, access.workspace_id, &q, false).await
+}
+
+/// GET /products/stocks/negative -> store rows below 0, lowest first, `q` on product codes
+/// and warehouse name (Laravel ListNegativeStock; `meta` gains `total`).
+pub async fn negative(
+    State(state): State<AppState>,
+    access: Can<StockList>,
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    page_of(&state, access.workspace_id, &q, true).await
+}
+
+async fn page_of(
+    state: &AppState,
+    workspace_id: uuid::Uuid,
+    q: &ListQuery,
+    negative: bool,
+) -> Result<Json<Paginated<Value>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let pattern = if negative {
+        search(q.q.as_deref())?
+    } else {
+        None
+    };
+    let f = ListFilter {
+        negative,
+        pattern: pattern.as_deref(),
+        limit: page.size,
+        offset: page.offset(),
+    };
+    let (data, total) = service::list(state, workspace_id, &f).await?;
     Ok(Json(Paginated::new(data, total, page)))
 }

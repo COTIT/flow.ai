@@ -9,8 +9,11 @@ use crate::{AppState, modules::stock::handlers};
 
 /// Routes for this module; each handler runs the workspace guard.
 pub fn private() -> Router<AppState> {
-    let product = "/workspace/{workspace}/products/{product}";
+    let base = "/workspace/{workspace}/products";
+    let product = format!("{base}/{{product}}");
     Router::new()
+        .route(&format!("{base}/stocks"), get(handlers::list))
+        .route(&format!("{base}/stocks/negative"), get(handlers::negative))
         .route(
             &format!("{product}/stocks"),
             post(handlers::mutate).delete(handlers::delete),

@@ -973,3 +973,141 @@ async fn stock_movements_list(pool: PgPool) {
         "bin filter works without shelf_id (Laravel dropped it)"
     );
 }
+
+#[sqlx::test]
+async fn stock_lists_all_and_negative(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 2 }))
+        .await;
+    w.mutate(json!({ "warehouse_id": w.shop, "mutation_value": 1 }))
+        .await;
+    let list = |path: &'static str| {
+        let api = w.api.with_base("/products/stocks");
+        async move { api.list(path).await }
+    };
+
+    let all = list("").await;
+    let rows = all["data"].as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(all["meta"]["total"], 2);
+    let first = &rows[0];
+    assert_eq!(first["stock_lvl"], "2.00");
+    assert_eq!(
+        first["reserved"],
+        json!(0),
+        "the product's reservations: none before orders"
+    );
+    assert_eq!(first["relationships"]["product"]["id"], w.product.as_str());
+    assert_eq!(first["relationships"]["product"]["name"], "A");
+    assert_eq!(first["relationships"]["warehouse"]["id"], w.main.as_str());
+    assert_eq!(
+        first["relationships"]["warehouse"]["slug"], "main",
+        "full WarehouseResource"
+    );
+
+    // Only stores go negative (via order flows); a negative non-store row is left out.
+    sqlx::query(
+        "UPDATE stocks SET stock_lvl = CASE warehouse_id WHEN $1::uuid THEN -3 ELSE -1 END",
+    )
+    .bind(&w.shop)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let negative = list("/negative").await;
+    assert_eq!(negative["data"].as_array().unwrap().len(), 1);
+    assert_eq!(negative["data"][0]["stock_lvl"], "-3.00");
+    assert_eq!(
+        negative["data"][0]["relationships"]["warehouse"]["name"],
+        "Shop"
+    );
+    for (q, n) in [("zzz", 0), ("a", 1), ("SHO", 1), ("PRO-0", 1)] {
+        let res = list(Box::leak(format!("/negative?q={q}").into_boxed_str())).await;
+        assert_eq!(res["data"].as_array().unwrap().len(), n, "q={q}");
+    }
+
+    let viewer = member_with(
+        &w.api.app,
+        &pool,
+        &w.api.ws,
+        "bob@example.com",
+        &["stock.mutate"],
+    )
+    .await;
+    for path in ["/stocks", "/stocks/negative"] {
+        let (status, _) = w.api.call(Method::GET, path, None, &viewer).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{path}");
+    }
+}
+
+#[sqlx::test]
+async fn utilization_counts_bins_with_available_stock(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    let wh = w.api.with_base("/warehouses");
+    let (status, res) = wh
+        .update(
+            &w.main,
+            json!({ "name": "Main", "sections": 1, "rows_per_sections": 1, "shelves_per_row": 1,
+                    "bins_per_shelf": 4 }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(wh.get(&w.main).await["utilization"], json!(0));
+    assert_eq!(wh.get(&w.shop).await["utilization"], Value::Null, "no grid");
+
+    let (bin, _) = &w.bins[0];
+    w.mutate(json!({ "warehouse_id": w.main, "bin_id": bin, "mutation_value": 1 }))
+        .await;
+    let other = w
+        .api
+        .create(json!({ "name": "B", "price": 1 }), "product_id")
+        .await;
+    let (status, _) = w
+        .api
+        .call(
+            Method::POST,
+            &format!("/{other}/stocks"),
+            Some(json!({ "warehouse_id": w.main, "bin_id": bin, "mutation_value": 1 })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        wh.get(&w.main).await["utilization"],
+        json!(25),
+        "one bin of 4, counted once for two products"
+    );
+    let listed = wh.list("?roots_only=0").await;
+    let main = listed["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == w.main.as_str())
+        .unwrap()
+        .clone();
+    assert_eq!(main["utilization"], json!(25));
+
+    let section: String = sqlx::query_scalar("SELECT id::text FROM warehouse_sections LIMIT 1")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let rows = wh
+        .list(Box::leak(
+            format!("/{}/sections/{section}/rows", w.main).into_boxed_str(),
+        ))
+        .await;
+    assert_eq!(
+        rows["data"][0]["utilization"],
+        json!(50),
+        "1 of the row's 2 bins"
+    );
+
+    sqlx::query("UPDATE stocks SET reserved = stock_lvl")
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        wh.get(&w.main).await["utilization"],
+        json!(0),
+        "fully reserved = not occupied"
+    );
+}

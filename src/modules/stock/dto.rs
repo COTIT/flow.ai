@@ -387,3 +387,11 @@ impl MovementQuery {
         (f, page)
     }
 }
+
+/// GET /products/stocks[/negative] query.
+#[derive(Deserialize)]
+pub struct ListQuery {
+    pub q: Option<String>,
+    pub page: Option<String>,
+    pub page_size: Option<String>,
+}

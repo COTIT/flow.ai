@@ -375,6 +375,30 @@ pub async fn find(
     .await
 }
 
+/// Live warehouses of the workspace among `ids`.
+pub async fn find_many(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<WarehouseRow>, sqlx::Error> {
+    sqlx::query_as!(
+        WarehouseRow,
+        r#"SELECT id, name, slug, alias, description, is_store, default_warehouse,
+                  stock_count_enabled, pickup_enabled, auto_generate_transfer_list,
+                  total_sum_enabled, user_id, manager_id, manager_assistant_id, location,
+                  status, type AS kind, dimensions, loading_docks, sections, rows_per_sections,
+                  shelves_per_row, bins_per_shelf, management_contact, operating_hours,
+                  additional_settings, meta, created_at, updated_at
+           FROM warehouses
+           WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL
+           ORDER BY id"#,
+        ids,
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
 /// One page, oldest first, plus the total matching count (0 when the page is empty).
 pub async fn list(
     db: impl PgExecutor<'_>,

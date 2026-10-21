@@ -5,7 +5,20 @@ use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-use crate::modules::stock::repo::{BinsRow, ConfiguredBin, MovementRow};
+use crate::{
+    modules::stock::repo::{BinsRow, ConfiguredBin, MovementRow},
+    money::{php_number, round},
+};
+
+/// Laravel `utilizationPct`: `round(min(100, occupied / total × 100), 2)` as a PHP float;
+/// None when the grid has no bins.
+pub fn utilization(occupied: i64, total: i64) -> Option<Value> {
+    if total <= 0 {
+        return None;
+    }
+    let pct = Decimal::from(occupied) * Decimal::ONE_HUNDRED / Decimal::from(total);
+    Some(php_number(round(pct.min(Decimal::ONE_HUNDRED), 2)))
+}
 
 /// A `decimal(19,2)` column as PDO printed it: always 2 places.
 pub fn qty(v: Decimal) -> String {

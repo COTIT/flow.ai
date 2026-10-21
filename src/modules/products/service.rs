@@ -94,6 +94,23 @@ pub async fn render_index(
     Ok((row, v))
 }
 
+/// Live products among `ids` in list shape, by id (stock lists embed them).
+pub async fn render_many(
+    state: &AppState,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<HashMap<Uuid, Value>, AppError> {
+    if ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let rows = repo::find_many(&state.db, workspace_id, ids).await?;
+    let e = embeds(state, workspace_id, &rows, false).await?;
+    Ok(rows
+        .iter()
+        .map(|p| (p.id, resource::render(p, &e, false)))
+        .collect())
+}
+
 /// One list page (rendered) plus total; `pos_warehouse` shapes the `pos_*` fields.
 pub async fn list(
     state: &AppState,
@@ -675,7 +692,9 @@ async fn embeds(
     for id in distinct(rows.iter().map(|p| p.default_warehouse_id)) {
         match warehouse_service::get(state, workspace_id, &id.to_string()).await {
             Ok(p) => {
-                if let Some(w) = WarehouseResource::build(p.rows, p.children, &p.people).pop() {
+                if let Some(w) =
+                    WarehouseResource::build(p.rows, p.children, &p.people, &p.occupied).pop()
+                {
                     e.warehouses.insert(id, to_value(w)?);
                 }
             }

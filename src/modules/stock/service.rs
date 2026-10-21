@@ -13,13 +13,15 @@ use crate::{
     error::AppError,
     http::json::human,
     modules::{
-        products::{dto::PHYSICAL, repo as products, repo::ProductRow},
+        products::{
+            dto::PHYSICAL, repo as products, repo::ProductRow, service as products_service,
+        },
         stock::{
             dto::{Entry, Move, Mutate, NO_WAREHOUSE, SetRequirements},
-            repo::{self, Cause, Floor, Movement, MovementFilter, Mutated, Slot},
+            repo::{self, Cause, Floor, ListFilter, Movement, MovementFilter, Mutated, Slot},
             resource,
         },
-        warehouses::repo as warehouses,
+        warehouses::{repo as warehouses, service as warehouse_service},
     },
     money::round,
 };
@@ -429,4 +431,48 @@ pub async fn movements(
         None => 0,
     };
     Ok((rows.iter().map(resource::movement).collect(), total))
+}
+
+/// GET /products/stocks and /products/stocks/negative: one page of StockResource rows with
+/// the product (list shape) and the full warehouse, plus the total.
+pub async fn list(
+    state: &AppState,
+    workspace_id: Uuid,
+    f: &ListFilter<'_>,
+) -> Result<(Vec<Value>, i64), AppError> {
+    let rows = repo::list(&state.db, workspace_id, f).await?;
+    let total = match rows.first() {
+        Some(r) => r.total,
+        None if f.offset > 0 => repo::count(&state.db, workspace_id, f).await?,
+        None => 0,
+    };
+    let distinct = |ids: Vec<Uuid>| {
+        let mut ids = ids;
+        ids.sort_unstable();
+        ids.dedup();
+        ids
+    };
+    let product_ids = distinct(rows.iter().map(|r| r.product_id).collect());
+    let warehouse_ids = distinct(rows.iter().map(|r| r.warehouse_id).collect());
+    let products = products_service::render_many(state, workspace_id, &product_ids).await?;
+    let warehouses = warehouse_service::resources(state, workspace_id, &warehouse_ids).await?;
+    let data = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id": r.id,
+                "stock_lvl": resource::qty(r.stock_lvl),
+                // shortcut: the product's reservations come with orders (final batch).
+                "reserved": 0,
+                "minimal_stock_level": r.minimal_stock_level,
+                "maximum_stock_level": r.maximum_stock_level,
+                "meta": r.meta,
+                "relationships": {
+                    "product": products.get(&r.product_id),
+                    "warehouse": warehouses.get(&r.warehouse_id),
+                },
+            })
+        })
+        .collect();
+    Ok((data, total))
 }

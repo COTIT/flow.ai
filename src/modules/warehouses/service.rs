@@ -1,6 +1,9 @@
 //! Warehouse rules: slug at create, one default per workspace, people must be members,
 //! soft delete without cascade (Laravel parity).
 
+use std::collections::HashMap;
+
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{
@@ -11,9 +14,10 @@ use crate::{
         workspace::NOT_ALLOWED,
     },
     modules::{
+        stock::repo as stock,
         users::repo::{self as users, UserRef},
         warehouses::{
-            dto::{BAD_PARENT, Fields, NewWarehouse, WarehousePatch},
+            dto::{BAD_PARENT, Fields, NewWarehouse, WarehousePatch, WarehouseResource},
             repo::{self, ChildRow, ListFilter, WarehouseRow},
         },
     },
@@ -27,6 +31,8 @@ pub struct Page {
     pub rows: Vec<WarehouseRow>,
     pub children: Vec<ChildRow>,
     pub people: Vec<UserRef>,
+    /// Occupied bins per warehouse, for `utilization`.
+    pub occupied: HashMap<Uuid, i64>,
     pub total: i64,
 }
 
@@ -68,12 +74,44 @@ async fn embed(
     } else {
         users::members_among(&state.db, workspace_id, &people_ids).await?
     };
+    let occupied = if ids.is_empty() {
+        HashMap::new()
+    } else {
+        stock::occupied_by_warehouse(&state.db, workspace_id, &ids)
+            .await?
+            .into_iter()
+            .collect()
+    };
     Ok(Page {
         total: rows.len() as i64,
         rows,
         children,
         people,
+        occupied,
     })
+}
+
+/// Full WarehouseResource JSON of the live warehouses among `ids`, in one batch.
+pub async fn resources(
+    state: &AppState,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<HashMap<Uuid, Value>, AppError> {
+    if ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let rows = repo::find_many(&state.db, workspace_id, ids).await?;
+    let order: Vec<Uuid> = rows.iter().map(|w| w.id).collect();
+    let p = embed(state, workspace_id, rows).await?;
+    let built = WarehouseResource::build(p.rows, p.children, &p.people, &p.occupied);
+    order
+        .into_iter()
+        .zip(built)
+        .map(|(id, w)| {
+            let v = serde_json::to_value(w).map_err(|e| AppError::Internal(e.to_string()))?;
+            Ok((id, v))
+        })
+        .collect()
 }
 
 /// Create; the first warehouse of a workspace becomes its default unless sent `false`.

@@ -104,3 +104,20 @@ fn code_clash(e: sqlx::Error) -> AppError {
         CODE_TAKEN,
     )
 }
+
+/// Occupied bins per row (bins holding stock with level − reserved > 0).
+pub async fn occupied(
+    state: &AppState,
+    workspace_id: Uuid,
+    row_ids: &[Uuid],
+) -> Result<std::collections::HashMap<Uuid, i64>, AppError> {
+    if row_ids.is_empty() {
+        return Ok(Default::default());
+    }
+    Ok(
+        crate::modules::stock::repo::occupied_by_row(&state.db, workspace_id, row_ids)
+            .await?
+            .into_iter()
+            .collect(),
+    )
+}

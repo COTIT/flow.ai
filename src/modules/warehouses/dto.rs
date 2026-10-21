@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use uuid::Uuid;
 
+use crate::modules::stock::resource::utilization;
 use crate::{
     http::json::{Rules, Validate, filled, human, present},
     modules::{
@@ -63,8 +64,8 @@ pub struct WarehouseResource {
     rows_per_sections: Option<i32>,
     shelves_per_row: Option<i32>,
     bins_per_shelf: Option<i32>,
-    // shortcut: null until stock (6F) can count occupied bins.
-    utilization: Option<f64>,
+    /// Occupied bins of the grid, %, as a PHP float; null without a grid.
+    utilization: Option<Value>,
     management_contact: Option<Value>,
     operating_hours: Option<Value>,
     additional_settings: Option<Value>,
@@ -156,6 +157,7 @@ impl WarehouseResource {
         rows: Vec<WarehouseRow>,
         children: Vec<ChildRow>,
         people: &[UserRef],
+        occupied: &HashMap<Uuid, i64>,
     ) -> Vec<Self> {
         let people: HashMap<Uuid, &UserRef> = people.iter().map(|u| (u.id, u)).collect();
         let person = |id: Option<Uuid>| {
@@ -209,7 +211,18 @@ impl WarehouseResource {
                     rows_per_sections: w.rows_per_sections,
                     shelves_per_row: w.shelves_per_row,
                     bins_per_shelf: w.bins_per_shelf,
-                    utilization: None,
+                    utilization: utilization(
+                        occupied.get(&w.id).copied().unwrap_or_default(),
+                        [
+                            w.sections,
+                            w.rows_per_sections,
+                            w.shelves_per_row,
+                            w.bins_per_shelf,
+                        ]
+                        .iter()
+                        .map(|n| i64::from(n.unwrap_or_default()))
+                        .product(),
+                    ),
                     management_contact: w.management_contact,
                     operating_hours: w.operating_hours,
                     additional_settings: w.additional_settings,

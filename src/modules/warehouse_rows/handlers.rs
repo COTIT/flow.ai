@@ -54,9 +54,14 @@ pub async fn list(
         page.offset(),
     )
     .await?;
+    let ids: Vec<_> = rows.iter().map(|r| r.id).collect();
+    let occupied = service::occupied(&state, access.workspace_id, &ids).await?;
     let data = rows
         .into_iter()
-        .map(|r| RowResource::new(r, access.workspace_id, &section))
+        .map(|r| {
+            let n = occupied.get(&r.id).copied().unwrap_or_default();
+            RowResource::new(r, access.workspace_id, &section, n)
+        })
         .collect();
     Ok(Json(Paginated::new(data, total, page)))
 }
@@ -68,7 +73,14 @@ pub async fn get(
     Path((_, wh, s, id)): RowPath,
 ) -> Result<Data<RowResource>, AppError> {
     let (section, row) = service::find(&state, access.workspace_id, (&wh, &s, &id)).await?;
-    Ok(Data(RowResource::new(row, access.workspace_id, &section)))
+    let occupied = service::occupied(&state, access.workspace_id, &[row.id]).await?;
+    let n = occupied.get(&row.id).copied().unwrap_or_default();
+    Ok(Data(RowResource::new(
+        row,
+        access.workspace_id,
+        &section,
+        n,
+    )))
 }
 
 /// POST /rows -> 201 `{data:{row_id, warehouse_section_row_id}}`.

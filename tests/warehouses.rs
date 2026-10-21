@@ -92,7 +92,7 @@ async fn create_then_get_round_trips_laravel_resource(pool: PgPool) {
         (w["loading_docks"].clone(), w["bins_per_shelf"].clone()),
         (json!(2), json!(6))
     );
-    assert_eq!(w["utilization"], Value::Null);
+    assert_eq!(w["utilization"], json!(0), "a grid with no occupied bins");
     assert_eq!(w["management_contact"]["primary_phone"], "+3120");
     assert_eq!(w["operating_hours"]["weekend_ops"], true);
     assert_eq!(w["additional_settings"]["security_level"], "medium");

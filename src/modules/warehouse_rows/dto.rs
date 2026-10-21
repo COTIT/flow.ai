@@ -38,8 +38,8 @@ pub struct RowResource {
     shelf_configuration: Value,
     bins_per_shelf: i32,
     total_bins: i64,
-    // shortcut: 0.0 until stock (6F) can count occupied bins.
-    utilization: f64,
+    /// Occupied bins of the row, %, as a PHP float (0 without bins).
+    utilization: serde_json::Value,
     location_access: Value,
     additional_settings: Value,
     created_at: DateTime<Utc>,
@@ -56,8 +56,10 @@ struct Relationships {
 
 impl RowResource {
     /// `section` supplies the warehouse name and `bins_per_shelf`.
-    pub fn new(r: RowRow, workspace_id: Uuid, section: &SectionRow) -> Self {
+    pub fn new(r: RowRow, workspace_id: Uuid, section: &SectionRow, occupied: i64) -> Self {
         let bins_per_shelf = section.bins_per_shelf.unwrap_or_default();
+        let total_bins =
+            i64::from(r.number_of_shelves.unwrap_or_default()) * i64::from(bins_per_shelf);
         Self {
             id: r.id,
             workspace_id,
@@ -75,9 +77,9 @@ impl RowResource {
                 "number_of_shelves": r.number_of_shelves, "shelf_spacing_cm": r.shelf_spacing_cm,
             }),
             bins_per_shelf,
-            total_bins: i64::from(r.number_of_shelves.unwrap_or_default())
-                * i64::from(bins_per_shelf),
-            utilization: 0.0,
+            total_bins,
+            utilization: crate::modules::stock::resource::utilization(occupied, total_bins)
+                .unwrap_or_else(|| serde_json::Value::from(0)),
             location_access: serde_json::json!({
                 "starting_position": { "x": r.position_x, "y": r.position_y },
                 "access_side": r.access_side, "aisle_width_cm": r.aisle_width_cm,

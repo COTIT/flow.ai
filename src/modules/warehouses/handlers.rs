@@ -57,7 +57,7 @@ pub async fn list(
         offset: page.offset(),
     };
     let p = service::list(&state, access.workspace_id, &filter).await?;
-    let data = WarehouseResource::build(p.rows, p.children, &p.people);
+    let data = WarehouseResource::build(p.rows, p.children, &p.people, &p.occupied);
     Ok(Json(Paginated::new(data, p.total, page)))
 }
 
@@ -84,7 +84,7 @@ pub async fn get(
     Path((_, id)): WarehousePath,
 ) -> Result<Data<WarehouseResource>, AppError> {
     let p = service::get(&state, access.workspace_id, &id).await?;
-    WarehouseResource::build(p.rows, p.children, &p.people)
+    WarehouseResource::build(p.rows, p.children, &p.people, &p.occupied)
         .pop()
         .map(Data)
         .ok_or(AppError::NotFound)
