@@ -9,7 +9,7 @@ use axum::{
 };
 use chrono::Duration;
 use genesy_360_api::{
-    AppState, RateLimit, WorkspaceSlots, build_app,
+    AppState, RateLimit, Slots, WorkspaceSlots, build_app,
     mail::{Mailer, Outbox},
 };
 use std::net::SocketAddr;
@@ -45,10 +45,16 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
             replenish: std::time::Duration::from_millis(1),
             trust_forwarded: false,
         },
-        workspace_slots: WorkspaceSlots {
-            per_workspace: 1_000,
-            wait: std::time::Duration::from_secs(5),
+        private_ip_rate_limit: RateLimit {
+            burst: 100_000,
+            replenish: std::time::Duration::from_millis(1),
+            trust_forwarded: false,
         },
+        slots: Slots::new(WorkspaceSlots {
+            per_workspace: 1_000,
+            per_user: 1_000,
+            wait: std::time::Duration::from_secs(5),
+        }),
     }
 }
 

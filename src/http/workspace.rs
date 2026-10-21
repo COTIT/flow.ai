@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
-    http::auth::AuthUser,
+    http::{auth::AuthUser, slots::Slot},
     modules::permissions::{model::Granted, repo},
 };
 
@@ -27,6 +27,8 @@ pub struct WorkspaceAccess {
     pub user_id: Uuid,
     pub workspace_id: Uuid,
     granted: Granted,
+    /// This request's slots (per workspace and per user), held until the handler returns.
+    _slot: Slot,
 }
 
 impl WorkspaceAccess {
@@ -65,10 +67,13 @@ impl FromRequestParts<AppState> for WorkspaceAccess {
         if !access.active {
             return Err(AppError::Forbidden(NOT_ALLOWED));
         }
+        // After the membership check: only members can take a workspace's slots.
+        let slot = state.slots.take(user.user_id, workspace_id).await?;
         Ok(Self {
             user_id: user.user_id,
             workspace_id,
             granted: Granted::new(access.owner, access.permissions),
+            _slot: slot,
         })
     }
 }

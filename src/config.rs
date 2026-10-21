@@ -36,8 +36,14 @@ pub struct Config {
     pub private_rate_limit_burst: u32,
     /// Milliseconds until one more request is allowed per session.
     pub private_rate_limit_replenish_ms: u64,
+    /// Authenticated routes: ceiling per client IP around the per-session limit.
+    pub private_ip_rate_limit_burst: u32,
+    /// Milliseconds until one more request is allowed per client IP.
+    pub private_ip_rate_limit_replenish_ms: u64,
     /// Requests one workspace may have in flight; default half the request pool.
     pub workspace_max_inflight: u32,
+    /// Requests one user may have in flight; default a quarter of the request pool, at least 2.
+    pub user_max_inflight: u32,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -61,7 +67,16 @@ impl fmt::Debug for Config {
                 "private_rate_limit_replenish_ms",
                 &self.private_rate_limit_replenish_ms,
             )
+            .field(
+                "private_ip_rate_limit_burst",
+                &self.private_ip_rate_limit_burst,
+            )
+            .field(
+                "private_ip_rate_limit_replenish_ms",
+                &self.private_ip_rate_limit_replenish_ms,
+            )
             .field("workspace_max_inflight", &self.workspace_max_inflight)
+            .field("user_max_inflight", &self.user_max_inflight)
             .finish()
     }
 }
@@ -123,12 +138,20 @@ impl Config {
         let private_rate_limit_burst = positive(&get, "PRIVATE_RATE_LIMIT_BURST", 120)?;
         let private_rate_limit_replenish_ms =
             positive(&get, "PRIVATE_RATE_LIMIT_REPLENISH_MS", 50)?;
-        // Half the pool: one tenant's slow requests leave the other half to everyone else.
+        // Default 600 at once, then 200 a second per IP: an office of users fits, a client
+        // rotating made-up tokens doesn't.
+        let private_ip_rate_limit_burst = positive(&get, "PRIVATE_IP_RATE_LIMIT_BURST", 600)?;
+        let private_ip_rate_limit_replenish_ms =
+            positive(&get, "PRIVATE_IP_RATE_LIMIT_REPLENISH_MS", 5)?;
+        // Half the pool per workspace, a quarter per user (at least 2): one tenant's or one
+        // user's slow requests leave the rest to everyone else.
         let workspace_max_inflight = positive(
             &get,
             "WORKSPACE_MAX_INFLIGHT",
             (db_max_connections / 2).max(1),
         )?;
+        let user_max_inflight =
+            positive(&get, "USER_MAX_INFLIGHT", (db_max_connections / 4).max(2))?;
 
         Ok(Self {
             database_url,
@@ -145,7 +168,10 @@ impl Config {
             invites_per_hour,
             private_rate_limit_burst,
             private_rate_limit_replenish_ms,
+            private_ip_rate_limit_burst,
+            private_ip_rate_limit_replenish_ms,
             workspace_max_inflight,
+            user_max_inflight,
         })
     }
 }
@@ -455,12 +481,24 @@ mod tests {
             (120, 50, 10),
             "half the default pool of 20"
         );
+        assert_eq!(
+            (
+                cfg.user_max_inflight,
+                cfg.private_ip_rate_limit_burst,
+                cfg.private_ip_rate_limit_replenish_ms
+            ),
+            (5, 600, 5)
+        );
         let cfg = Config::from_lookup(lookup(&[
             ("DATABASE_URL", "postgres://x"),
             ("DATABASE_MAX_CONNECTIONS", "1"),
         ]))
         .unwrap();
-        assert_eq!(cfg.workspace_max_inflight, 1, "never 0");
+        assert_eq!(
+            (cfg.workspace_max_inflight, cfg.user_max_inflight),
+            (1, 2),
+            "never 0; a user keeps 2"
+        );
         let cfg = Config::from_lookup(lookup(&[
             ("DATABASE_URL", "postgres://x"),
             ("WORKSPACE_MAX_INFLIGHT", "4"),
@@ -475,6 +513,8 @@ mod tests {
             "WORKSPACE_MAX_INFLIGHT",
             "PRIVATE_RATE_LIMIT_BURST",
             "PRIVATE_RATE_LIMIT_REPLENISH_MS",
+            "PRIVATE_IP_RATE_LIMIT_BURST",
+            "USER_MAX_INFLIGHT",
         ] {
             let err = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x"), (key, "0")]))
                 .unwrap_err();

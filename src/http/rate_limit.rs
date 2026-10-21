@@ -9,10 +9,7 @@ use std::{
 use axum::{
     Json, Router,
     body::Body,
-    http::{
-        HeaderValue, Request, Response, StatusCode,
-        header::{AUTHORIZATION, RETRY_AFTER},
-    },
+    http::{HeaderValue, Request, Response, StatusCode, header::RETRY_AFTER},
     response::IntoResponse,
 };
 use serde_json::json;
@@ -26,6 +23,7 @@ use tower_governor::{
 use crate::{
     AppState,
     error::{AppError, TOO_MANY},
+    http::auth::bearer,
 };
 
 /// How often stale per-IP buckets are dropped, so limiter memory can't grow without bound.
@@ -75,36 +73,40 @@ fn bucket(ip: IpAddr) -> IpAddr {
     }
 }
 
-/// Bucket of an authenticated request: its bearer token (hashed), so users behind one office
-/// NAT don't share a bucket. Without a token: the client IP, or one shared bucket when unknown.
+/// Client IP, or one shared bucket when the peer is unknown (server without connect info).
 #[derive(Debug, Clone, Copy)]
-struct Session {
-    ip: ClientIp,
+struct AnyIp(ClientIp);
+
+impl KeyExtractor for AnyIp {
+    type Key = IpAddr;
+
+    fn extract<T>(&self, req: &Request<T>) -> Result<IpAddr, GovernorError> {
+        Ok(self
+            .0
+            .extract(req)
+            .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED)))
+    }
 }
+
+/// Bucket of an authenticated request: its bearer token (hashed, parsed exactly as auth parses
+/// it), so users behind one office NAT don't share a bucket. Malformed or missing token: the
+/// client IP.
+#[derive(Debug, Clone, Copy)]
+struct Session(AnyIp);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum SessionKey {
     Token([u8; 32]),
     Ip(IpAddr),
-    Unknown,
 }
 
 impl KeyExtractor for Session {
     type Key = SessionKey;
 
     fn extract<T>(&self, req: &Request<T>) -> Result<SessionKey, GovernorError> {
-        let token = req
-            .headers()
-            .get(AUTHORIZATION)
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .filter(|t| !t.is_empty());
-        Ok(match token {
+        Ok(match bearer(req.headers()) {
             Some(t) => SessionKey::Token(Sha256::digest(t.as_bytes()).into()),
-            None => self
-                .ip
-                .extract(req)
-                .map_or(SessionKey::Unknown, SessionKey::Ip),
+            None => SessionKey::Ip(self.0.extract(req)?),
         })
     }
 }
@@ -117,12 +119,21 @@ pub fn apply(router: Router<AppState>, limit: RateLimit) -> Router<AppState> {
     layer(router, limit, key)
 }
 
-/// Wrap authenticated routes in the per-session limit. Spawns a cleanup task.
-pub fn apply_private(router: Router<AppState>, limit: RateLimit) -> Router<AppState> {
-    let ip = ClientIp {
-        trust_forwarded: limit.trust_forwarded,
+/// Wrap authenticated routes in the per-session limit, inside a generous per-IP ceiling: a
+/// client rotating made-up tokens gets a fresh session bucket each time, never a fresh IP one.
+/// Spawns cleanup tasks.
+pub fn apply_private(
+    router: Router<AppState>,
+    session: RateLimit,
+    per_ip: RateLimit,
+) -> Router<AppState> {
+    let any_ip = |l: RateLimit| {
+        AnyIp(ClientIp {
+            trust_forwarded: l.trust_forwarded,
+        })
     };
-    layer(router, limit, Session { ip })
+    let router = layer(router, session, Session(any_ip(session)));
+    layer(router, per_ip, any_ip(per_ip))
 }
 
 fn layer<K>(router: Router<AppState>, limit: RateLimit, key: K) -> Router<AppState>

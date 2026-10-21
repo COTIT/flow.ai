@@ -1,125 +1,144 @@
-//! Cap on requests in flight per workspace (`/workspace/{id}/…`): one tenant can't hold the
-//! whole DB pool. A request over the cap waits (FIFO) for a slot, then answers 503.
+//! Requests in flight per workspace and per user, taken by `WorkspaceAccess` after the
+//! membership check: one tenant or user can't hold the whole DB pool, and only members can
+//! take a workspace's slots. A request over a cap waits (FIFO) for a slot, then answers 503.
 
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, Weak},
     time::Duration,
 };
 
-use axum::{
-    Router,
-    extract::Request,
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
-};
-use tokio::sync::Semaphore;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use uuid::Uuid;
 
-use crate::{AppState, error::AppError};
+use crate::error::AppError;
 
-/// How often idle workspace entries are dropped, so the map can't grow without bound.
+/// How often idle entries are dropped, so the maps hold only keys in use.
 const CLEANUP_EVERY: Duration = Duration::from_secs(60);
 
-/// Requests one workspace may have in flight, and how long one more waits for a slot.
+/// Caps: requests one workspace and one user may have in flight, and how long one more waits.
 #[derive(Debug, Clone, Copy)]
 pub struct WorkspaceSlots {
     pub per_workspace: u32,
+    pub per_user: u32,
     pub wait: Duration,
 }
 
-struct Slots {
-    limit: WorkspaceSlots,
-    open: Mutex<HashMap<Uuid, Arc<Semaphore>>>,
+/// The shared slot registry (cheap to clone).
+#[derive(Clone)]
+pub struct Slots(Arc<Registry>);
+
+struct Registry {
+    limits: WorkspaceSlots,
+    workspaces: Mutex<HashMap<Uuid, Arc<Semaphore>>>,
+    users: Mutex<HashMap<Uuid, Arc<Semaphore>>>,
+}
+
+/// A request's slots; released on drop (when the handler's `WorkspaceAccess` goes).
+#[derive(Debug)]
+pub struct Slot {
+    _user: OwnedSemaphorePermit,
+    _workspace: OwnedSemaphorePermit,
 }
 
 impl Slots {
-    fn semaphore(&self, workspace: Uuid) -> Arc<Semaphore> {
-        let mut open = self.open.lock().unwrap_or_else(|e| e.into_inner());
-        let permits = usize::try_from(self.limit.per_workspace.max(1)).unwrap_or(1);
-        open.entry(workspace)
-            .or_insert_with(|| Arc::new(Semaphore::new(permits)))
-            .clone()
+    /// Empty registry with these caps.
+    pub fn new(limits: WorkspaceSlots) -> Self {
+        Self(Arc::new(Registry {
+            limits,
+            workspaces: Mutex::new(HashMap::new()),
+            users: Mutex::new(HashMap::new()),
+        }))
     }
 
-    /// Drop entries nobody holds or waits on.
-    fn retain_busy(&self) {
-        let mut open = self.open.lock().unwrap_or_else(|e| e.into_inner());
-        open.retain(|_, s| Arc::strong_count(s) > 1);
-    }
-}
-
-/// Wrap `router` in the cap. Spawns a cleanup task, so call inside a tokio runtime.
-pub fn apply(router: Router<AppState>, limit: WorkspaceSlots) -> Router<AppState> {
-    let slots = Arc::new(Slots {
-        limit,
-        open: Mutex::new(HashMap::new()),
-    });
-    let cleanup = Arc::clone(&slots);
-    tokio::spawn(async move {
-        let mut tick = tokio::time::interval(CLEANUP_EVERY);
-        loop {
-            tick.tick().await;
-            cleanup.retain_busy();
-        }
-    });
-    router.layer(middleware::from_fn(move |req: Request, next: Next| {
-        let slots = Arc::clone(&slots);
-        async move { run(&slots, req, next).await }
-    }))
-}
-
-async fn run(slots: &Slots, req: Request, next: Next) -> Response {
-    let Some(workspace) = workspace_of(req.uri().path()) else {
-        return next.run(req).await;
-    };
-    let semaphore = slots.semaphore(workspace);
-    match tokio::time::timeout(slots.limit.wait, semaphore.acquire_owned()).await {
-        Ok(Ok(_permit)) => next.run(req).await,
-        _ => {
-            tracing::warn!(%workspace, "workspace request slots full");
-            AppError::Overloaded.into_response()
+    /// One slot of `user` and one of `workspace`, waiting up to the configured time; else 503.
+    pub async fn take(&self, user: Uuid, workspace: Uuid) -> Result<Slot, AppError> {
+        let r = &self.0;
+        let user_sem = semaphore(&r.users, user, r.limits.per_user);
+        let workspace_sem = semaphore(&r.workspaces, workspace, r.limits.per_workspace);
+        let both = async {
+            let user = user_sem.acquire_owned().await.ok()?;
+            let workspace = workspace_sem.acquire_owned().await.ok()?;
+            Some(Slot {
+                _user: user,
+                _workspace: workspace,
+            })
+        };
+        match tokio::time::timeout(r.limits.wait, both).await {
+            Ok(Some(slot)) => Ok(slot),
+            _ => {
+                tracing::warn!(%user, %workspace, "request slots full");
+                Err(AppError::Overloaded)
+            }
         }
     }
+
+    /// Drop idle entries every minute while the registry lives. Needs a tokio runtime.
+    pub fn spawn_cleanup(&self) {
+        let registry: Weak<Registry> = Arc::downgrade(&self.0);
+        tokio::spawn(async move {
+            let mut tick = tokio::time::interval(CLEANUP_EVERY);
+            loop {
+                tick.tick().await;
+                let Some(r) = registry.upgrade() else { break };
+                retain_busy(&r.workspaces);
+                retain_busy(&r.users);
+            }
+        });
+    }
 }
 
-/// The workspace id of a `/workspace/{id}/…` path (prefix-stripped inside `/v1`).
-fn workspace_of(path: &str) -> Option<Uuid> {
-    let mut segments = path.split('/');
-    segments.find(|s| *s == "workspace")?;
-    segments.next().and_then(|id| Uuid::parse_str(id).ok())
+fn semaphore(map: &Mutex<HashMap<Uuid, Arc<Semaphore>>>, key: Uuid, cap: u32) -> Arc<Semaphore> {
+    let mut map = map.lock().unwrap_or_else(|e| e.into_inner());
+    map.entry(key)
+        .or_insert_with(|| Arc::new(Semaphore::new(cap.max(1) as usize)))
+        .clone()
+}
+
+/// Keep entries someone holds or waits on (an `Arc` clone outside the map).
+fn retain_busy(map: &Mutex<HashMap<Uuid, Arc<Semaphore>>>) {
+    let mut map = map.lock().unwrap_or_else(|e| e.into_inner());
+    map.retain(|_, s| Arc::strong_count(s) > 1);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn finds_the_workspace_segment() {
-        let id = "01900000-0000-7000-8000-000000000001";
-        let want = Uuid::parse_str(id).ok();
-        assert_eq!(workspace_of(&format!("/workspace/{id}/relations")), want);
-        assert_eq!(workspace_of(&format!("/v1/workspace/{id}")), want);
-        assert_eq!(workspace_of("/me"), None);
-        assert_eq!(workspace_of("/workspace/not-a-uuid/relations"), None);
-        assert_eq!(workspace_of("/workspace"), None);
+    fn slots(per_workspace: u32, per_user: u32) -> Slots {
+        Slots::new(WorkspaceSlots {
+            per_workspace,
+            per_user,
+            wait: Duration::from_millis(20),
+        })
     }
 
-    #[test]
-    fn idle_entries_are_dropped() {
-        let slots = Slots {
-            limit: WorkspaceSlots {
-                per_workspace: 2,
-                wait: Duration::from_millis(1),
-            },
-            open: Mutex::new(HashMap::new()),
-        };
-        let held = slots.semaphore(Uuid::nil());
-        slots.semaphore(Uuid::max());
-        slots.retain_busy();
-        let open = slots.open.lock().unwrap();
-        assert_eq!(open.len(), 1, "only the held entry stays");
-        assert!(open.contains_key(&Uuid::nil()));
+    #[tokio::test]
+    async fn caps_per_workspace_and_per_user() {
+        let s = slots(1, 2);
+        let (ada, bob) = (Uuid::from_u128(1), Uuid::from_u128(2));
+        let (a, b) = (Uuid::from_u128(10), Uuid::from_u128(20));
+        let held = s.take(ada, a).await.unwrap();
+        assert!(s.take(bob, a).await.is_err(), "workspace A full");
+        let other = s.take(ada, b).await.unwrap();
+        assert!(
+            s.take(ada, Uuid::from_u128(30)).await.is_err(),
+            "Ada's 2 slots used"
+        );
+        drop(held);
+        assert!(s.take(bob, a).await.is_ok(), "freed");
+        drop(other);
+    }
+
+    #[tokio::test]
+    async fn idle_entries_are_dropped() {
+        let s = slots(2, 2);
+        let held = s.take(Uuid::nil(), Uuid::nil()).await.unwrap();
+        drop(s.take(Uuid::max(), Uuid::max()).await.unwrap());
+        retain_busy(&s.0.workspaces);
+        retain_busy(&s.0.users);
+        assert_eq!(s.0.workspaces.lock().unwrap().len(), 1);
+        assert_eq!(s.0.users.lock().unwrap().len(), 1);
         drop(held);
     }
 }

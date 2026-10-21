@@ -2,7 +2,7 @@
 
 use axum::{
     extract::FromRequestParts,
-    http::{header::AUTHORIZATION, request::Parts},
+    http::{HeaderMap, header::AUTHORIZATION, request::Parts},
 };
 use uuid::Uuid;
 
@@ -24,7 +24,7 @@ impl FromRequestParts<AppState> for AuthUser {
     type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
-        let plain = bearer(parts).ok_or(AppError::Unauthorized)?;
+        let plain = bearer(&parts.headers).ok_or(AppError::Unauthorized)?;
         let row = tokens::find_active_by_hash(&state.db, &token::hash(plain))
             .await?
             .ok_or(AppError::Unauthorized)?;
@@ -36,9 +36,10 @@ impl FromRequestParts<AppState> for AuthUser {
 }
 
 /// Token from `Authorization: Bearer <t>`. Scheme case-insensitive (RFC 9110). Malformed tokens
-/// rejected here so garbage never costs a DB round trip.
-fn bearer(parts: &Parts) -> Option<&str> {
-    let value = parts.headers.get(AUTHORIZATION)?.to_str().ok()?;
+/// rejected here so garbage never costs a DB round trip. The private rate limit keys on the
+/// same value.
+pub(crate) fn bearer(headers: &HeaderMap) -> Option<&str> {
+    let value = headers.get(AUTHORIZATION)?.to_str().ok()?;
     let (scheme, token) = value.split_once(' ')?;
     let token = token.trim();
     (scheme.eq_ignore_ascii_case("bearer") && token::looks_valid(token)).then_some(token)
@@ -85,10 +86,16 @@ mod tests {
                     replenish: std::time::Duration::from_millis(1),
                     trust_forwarded: false,
                 },
-                workspace_slots: crate::WorkspaceSlots {
-                    per_workspace: 1000,
-                    wait: std::time::Duration::from_secs(5),
+                private_ip_rate_limit: crate::RateLimit {
+                    burst: 1000,
+                    replenish: std::time::Duration::from_millis(1),
+                    trust_forwarded: false,
                 },
+                slots: crate::Slots::new(crate::WorkspaceSlots {
+                    per_workspace: 1000,
+                    per_user: 1000,
+                    wait: std::time::Duration::from_secs(5),
+                }),
             });
         let mut req = Request::get("/probe");
         if let Some(value) = auth {
