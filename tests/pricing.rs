@@ -532,10 +532,10 @@ async fn at_most_1000_lines(pool: PgPool) {
 
 // --- performance ---------------------------------------------------------------------------
 
-/// Products load in one batched query whatever the line count; a per-line lookup over 1000
-/// lines blows well past the bound.
+/// Smoke check: 1000 product lines answer well within a second. The one-query product load
+/// is a code property (`pricing::repo::products`, `id = ANY($1)`), not proven by timing.
 #[sqlx::test]
-async fn thousand_product_lines_stay_fast(pool: PgPool) {
+async fn thousand_product_lines_answer_quickly(pool: PgPool) {
     let api = api(pool).await;
     let mut products = Vec::new();
     for i in 0..20 {
@@ -675,4 +675,169 @@ async fn marge_guards_and_validation_match_calculate_items(pool: PgPool) {
     .await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(res["errors"]["items.0"][0], "The items.0 is out of range.");
+}
+
+// --- review fixes --------------------------------------------------------------------------
+
+/// Product name and purchase price are catalog data: only a member who may view products
+/// gets them filled in. Without `product.view` the line keeps what was sent.
+#[sqlx::test]
+async fn product_details_need_product_view(pool: PgPool) {
+    let api = api(pool.clone()).await;
+    let drill = product(&api, "Drill", "6").await;
+    let line = json!({ "items": [{ "id": 1, "product_id": drill, "quantity": 1, "price": 10,
+                                   "vat": 21, "productDiscount": 10 }] });
+    let carl = common::member_with(&api.app, &pool, &api.ws, "carl@example.com", &[]).await;
+    let (_, res) = api.call(Method::POST, "", Some(line.clone()), &carl).await;
+    assert_eq!(res["data"]["discounts"][0]["description"], "");
+    assert_eq!(res["data"]["discounts"][0]["purchase_price"], Value::Null);
+    let (_, res) = api
+        .with_base("/calculate-marge")
+        .call(Method::POST, "", Some(line.clone()), &carl)
+        .await;
+    assert_eq!(res["data"]["total_purchase_price"], json!(0));
+
+    let dana = common::member_with(
+        &api.app,
+        &pool,
+        &api.ws,
+        "dana@example.com",
+        &["product.view"],
+    )
+    .await;
+    let (_, res) = api.call(Method::POST, "", Some(line), &dana).await;
+    assert_eq!(res["data"]["discounts"][0]["description"], "Drill");
+    assert_eq!(res["data"]["discounts"][0]["purchase_price"], json!(6));
+}
+
+#[sqlx::test]
+async fn relation_must_be_a_live_relation_of_this_workspace(pool: PgPool) {
+    let api = api(pool).await;
+    let body =
+        |rel: &str| json!({ "relation_id": rel, "items": [item(json!(1), json!(1), json!(21))] });
+    let rel = api
+        .with_base("/relations")
+        .create(
+            json!({ "company_name": "COTIT", "type": "business" }),
+            "relation_id",
+        )
+        .await;
+    ok(&api, body(&rel)).await;
+
+    let (mallory, mal_ws) = signup(&api.app, "mallory@example.com", "mal").await;
+    let (_, res) = send(
+        &api.app,
+        Method::POST,
+        &format!("/v1/workspace/{mal_ws}/relations"),
+        Some(json!({ "company_name": "Theirs", "type": "business" })),
+        Some(&mallory),
+    )
+    .await;
+    let theirs = res["data"]["relation_id"].as_str().unwrap().to_owned();
+    let msg = "The relation id is an invalid id for the relation domain.";
+    assert_eq!(error(&api, body(&theirs), "relation_id").await, msg);
+
+    sqlx::query("UPDATE relations SET deleted_at = now() WHERE id = $1::uuid")
+        .bind(&rel)
+        .execute(&api.pool)
+        .await
+        .unwrap();
+    assert_eq!(error(&api, body(&rel), "relation_id").await, msg);
+}
+
+#[sqlx::test]
+async fn deleted_product_is_unknown(pool: PgPool) {
+    let api = api(pool).await;
+    let drill = product(&api, "Drill", "6").await;
+    sqlx::query("UPDATE products SET deleted_at = now() WHERE id = $1::uuid")
+        .bind(&drill)
+        .execute(&api.pool)
+        .await
+        .unwrap();
+    let body = json!({ "items": [{ "product_id": drill, "quantity": 1, "price": 1 }] });
+    assert_eq!(
+        error(&api, body, "items.0.product_id").await,
+        "The selected items.0.product id is invalid."
+    );
+}
+
+/// 1e10 × 1e10 = 1e20 is past i64; it must still print as a number, never null.
+#[sqlx::test]
+async fn huge_whole_totals_stay_numbers(pool: PgPool) {
+    let api = api(pool).await;
+    let d = ok(
+        &api,
+        json!({ "items": [item(json!("10000000000"), json!("10000000000"), json!(0))] }),
+    )
+    .await;
+    assert_eq!(d["sum_total"].as_f64(), Some(1e20));
+    assert_eq!(d["total"].as_f64(), Some(1e20));
+}
+
+/// vimdesk-web writes `client_default_discount` back onto the row (Items.vue), so the sent
+/// value must come back, formatted like Laravel.
+#[sqlx::test]
+async fn sent_client_default_discount_is_echoed(pool: PgPool) {
+    let api = api(pool).await;
+    let d = ok(
+        &api,
+        json!({ "items": [{ "id": 1, "quantity": 1, "price": 10, "vat": 21,
+                            "productDiscount": 5, "client_default_discount": "7.50" }] }),
+    )
+    .await;
+    assert_eq!(d["discounts"][0]["client_default_discount"], "7.5");
+}
+
+/// PHP decodes `{}` to `[]`, which is falsy: not a set child.
+#[sqlx::test]
+async fn empty_object_set_parent_is_not_a_child(pool: PgPool) {
+    let api = api(pool).await;
+    let (_, res) = marge(
+        &api,
+        json!({ "items": [{ "id": 1, "quantity": 1, "price": 30, "vat": 21,
+                            "purchase_price": 10, "multi_set_item_id": {} }] }),
+    )
+    .await;
+    assert_eq!(res["data"]["total_purchase_price"], json!(10));
+}
+
+/// Unknown keys and nested junk are skipped while parsing; ids echo only when scalar.
+#[sqlx::test]
+async fn nested_junk_is_ignored_and_ids_must_be_scalar(pool: PgPool) {
+    let api = api(pool).await;
+    let d = ok(
+        &api,
+        json!({ "items": [{ "id": { "deep": [1, 2, 3] }, "quantity": 1, "price": 10, "vat": 21,
+                            "productDiscount": 5, "relationships": { "product": { "x": [1] } },
+                            "multi_set_item_id": [] }] }),
+    )
+    .await;
+    assert_eq!(d["discounts"][0]["id"], Value::Null);
+    assert_eq!(d["discounts"][0]["multi_set_item_id"], Value::Null);
+}
+
+/// These two routes take 2 MiB (whole item rows); every other route keeps 64 KiB.
+#[sqlx::test]
+async fn body_limit_is_two_mib_here_only(pool: PgPool) {
+    let api = api(pool).await;
+    let row =
+        |n: usize| json!({ "id": 1, "quantity": 1, "price": 1, "vat": 21, "pad": "x".repeat(n) });
+    let (status, _) = calc(&api, json!({ "items": vec![row(700); 100] })).await;
+    assert_eq!(status, StatusCode::OK, "70 KiB must pass");
+    let (status, _) = calc(&api, json!({ "items": vec![row(2200); 1000] })).await;
+    assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE, "past 2 MiB");
+    let (status, _) = api
+        .with_base("/users/teams")
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "name": "x".repeat(70 * 1024) })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "other routes keep 64 KiB"
+    );
 }

@@ -6,7 +6,7 @@ use rust_decimal::Decimal;
 use crate::money::round;
 
 /// One validated item line.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Line {
     pub quantity: Decimal,
     /// Unit price excl VAT.
@@ -33,8 +33,10 @@ pub struct Amounts {
 
 /// Rounded `Amounts` of `line` at `dp` decimals. None: a value left Decimal's range.
 pub fn amounts(line: &Line, dp: u32) -> Option<Amounts> {
-    let percent =
-        |v: Decimal, rate: Decimal| Some(round(v.checked_mul(rate)? / Decimal::ONE_HUNDRED, dp));
+    let percent = |v: Decimal, rate: Decimal| {
+        let r = v.checked_mul(rate)?.checked_div(Decimal::ONE_HUNDRED)?;
+        Some(round(r, dp))
+    };
     let gross = round(line.quantity.checked_mul(line.price)?, dp);
     let discount = percent(gross, line.discount)?;
     let excl = gross.checked_sub(discount)?;
@@ -96,7 +98,8 @@ pub struct Margin {
 }
 
 /// Margin over `lines` priced as `amounts` (same order). Set children are skipped (their
-/// set line carries the price). Err(index) names the line that overflowed.
+/// set line carries the price). Err(index) names the line whose cost or running sum
+/// overflowed; an overflow in the final amount or percentage names the last line counted.
 pub fn margin(lines: &[Line], amounts: &[Amounts], dp: u32) -> Result<Margin, usize> {
     let mut m = Margin::default();
     let mut last = 0;
@@ -170,7 +173,7 @@ mod tests {
     #[test]
     fn small_lines_add_up() {
         let l = line("1", "0.07", "21", "0");
-        let t = totals(&[l.clone(), l.clone(), l]);
+        let t = totals(&[l, l, l]);
         assert_eq!(t, ("0.21".into(), "0.03".into(), "0.24".into()));
     }
 
@@ -423,6 +426,6 @@ mod tests {
             ..Line::default()
         };
         assert!(amounts(&near, 2).is_some());
-        assert_eq!(summarise(&[near.clone(), near], 2), Err(1));
+        assert_eq!(summarise(&[near, near], 2), Err(1));
     }
 }

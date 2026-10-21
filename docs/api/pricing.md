@@ -47,12 +47,14 @@ Totals are sums of the rounded lines, so `total = total_excl + total_vat` always
 | `items.N.purchase_price` | number | Margin only. |
 | `items.N.title` | string ≤ 500 | Echoed. |
 | `items.N.description` | string ≤ 5000 | Echoed; a product line gets the product's name. |
-| `items.N.product_id` | uuid of a live product of this workspace | One query for all lines. |
-| `items.N.multi_set_item_id` | any | Truthy = child line of a product set; margin skips it. |
+| `items.N.product_id` | uuid of a live product of this workspace | One query for all lines. Looked up only for callers with `product.view` (see Auth). |
+| `items.N.multi_set_item_id` | any | PHP-truthy = child line of a product set; margin skips it (`{}` and `[]` are falsy, as PHP decodes them). |
+| `items.N.client_default_discount` | number | Echoed back formatted (vimdesk-web writes it onto the row). |
+| `items.N.id` | any scalar | Echoed; an array or object echoes as null. |
 | `currency_id` | live currency of this workspace | Missing = the workspace's default currency, else its oldest. |
 | `relation_id` | live relation of this workspace | Only validated for now (see below). |
 
-Unknown keys (`disable_client_discounts`, `drag_key`, `relationships`, …) are ignored, because vimdesk-web posts whole item rows. The body limit on these two routes is 2 MiB (the app-wide limit is 64 KiB, which a 50-line invoice can exceed).
+Unknown keys (`disable_client_discounts`, `drag_key`, `relationships`, …) are ignored, because vimdesk-web posts whole item rows. The body limit on these two routes is 2 MiB (the app-wide limit is 64 KiB, which a 50-line invoice can exceed). The parser (`pricing::body`) skips unknown keys and nested values without keeping them and stops collecting lines past 1000, so a 2 MiB body costs about its own size in memory.
 
 **Errors (422):**
 
@@ -71,7 +73,9 @@ Unknown keys (`disable_client_discounts`, `drag_key`, `relationships`, …) are 
 
 Laravel reported a bad line differently: spatie Data's validator threw with item-level keys. vimdesk-web shows none of these errors; it only keeps the previous totals.
 
-**Auth:** bearer token, then any active member of the workspace. 401 without a token, 404 for an outsider, 403 for an inactive member. No permission is needed: Laravel's `authorize()` returned true.
+**Auth:** bearer token, then any active member of the workspace. 401 without a token, 404 for an outsider, 403 for an inactive member. No permission is needed for the maths: Laravel's `authorize()` returned true.
+
+**Product details need `product.view`.** A product line's name and purchase price are catalog data that `GET /products/{id}` guards. Without `product.view`, `product_id` is echoed but not looked up: the description stays as sent and margin uses the sent purchase price. Laravel filled them for any caller.
 
 ## `POST /calculate-items`
 
@@ -118,4 +122,4 @@ Laravel reported a bad line differently: spatie Data's validator threw with item
 
 ## Not ported yet
 
-- **Relation discounts (F3):** with `relation_id` and a `product_id`, Laravel filled `productDiscount` (when not sent) and `client_default_discount` from the relation's discount groups and the product's special offer. Genesy validates the relation but applies no discount and prints `client_default_discount: "0.00"`. F3 must land before the cutover.
+- **Relation discounts (F3):** with `relation_id` and a `product_id`, Laravel filled `productDiscount` (when not sent) and `client_default_discount` from the relation's discount groups and the product's special offer. Genesy validates the relation but applies no discount and echoes the sent `client_default_discount`. F3 must land before the cutover.

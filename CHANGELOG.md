@@ -10,6 +10,7 @@
   - At most 1000 lines; 2 MiB body limit on these two routes (vimdesk-web posts whole item rows).
   - `tests/fixtures/pricing_parity.json`: 24 cases from PHP 8.4 running vimdesk-api's real `BuildItemsSummary` / `BuildItemsMargeCalculationSummary` (`pricing_oracle.php`).
   - Relation discounts (discount groups, special offers) come with F3; until then `relation_id` is only validated.
+  - Review fixes: product name and purchase price fill in only for callers with `product.view` (they are catalog data; Laravel filled them for anyone). `pricing::body` parses the body without keeping unknown keys or nested values and stops at 1000 lines. Narrow product/relation queries (`pricing::repo`). `money::php_number` prints a whole number past i64 as a float instead of null. The sent `client_default_discount` is echoed. `{}` as `multi_set_item_id` is falsy, as in PHP.
 
 - Batch 6 PR-3 (stock, contract `docs/api/stock.md`):
   - **Migration `stock`:**

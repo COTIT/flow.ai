@@ -9,7 +9,11 @@ use crate::{
     AppState,
     error::AppError,
     http::json::human,
-    modules::{currencies, pricing::dto::Calculate, pricing::engine, products, relations},
+    modules::{
+        currencies,
+        pricing::{dto::Calculate, engine, repo},
+        products,
+    },
 };
 
 /// Laravel CurrencyExist text.
@@ -20,23 +24,26 @@ const NO_MAIN_CURRENCY: &str = "No default currency has been found. Please creat
 /// A calculate request with products applied and every line priced.
 pub struct Priced {
     pub input: Calculate,
+    /// The lines of `input.items`, same order.
+    pub lines: Vec<engine::Line>,
     pub summary: engine::Summary,
     /// Currency decimals the amounts are rounded to.
     pub dp: u32,
 }
 
 /// Price `input` in `workspace_id`. Every id must be a live row of this workspace (422 else).
+/// Product name and purchase price are catalog data: applied only when `view_products`
+/// (`product.view`); otherwise product lines keep what was sent and nothing is looked up.
 pub async fn price(
     state: &AppState,
     workspace_id: Uuid,
+    view_products: bool,
     mut input: Calculate,
 ) -> Result<Priced, AppError> {
     let dp = decimals(state, workspace_id, input.currency_id).await?;
     if let Some(id) = input.relation_id {
         let found = match id {
-            Some(id) => !relations::repo::find_many(&state.db, workspace_id, &[id])
-                .await?
-                .is_empty(),
+            Some(id) => repo::relation_exists(&state.db, workspace_id, id).await?,
             None => false,
         };
         if !found {
@@ -46,16 +53,22 @@ pub async fn price(
             ));
         }
     }
-    apply_products(state, workspace_id, &mut input).await?;
-    let lines: Vec<engine::Line> = input.items.iter().map(|i| i.line.clone()).collect();
+    if view_products {
+        apply_products(state, workspace_id, &mut input).await?;
+    }
+    let lines: Vec<engine::Line> = input.items.iter().map(|i| i.line).collect();
     let summary = engine::summarise(&lines, dp).map_err(out_of_range)?;
-    Ok(Priced { input, summary, dp })
+    Ok(Priced {
+        input,
+        lines,
+        summary,
+        dp,
+    })
 }
 
 /// Margin of a priced request; 422 on the line whose cost overflowed.
 pub fn margin(priced: &Priced) -> Result<engine::Margin, AppError> {
-    let lines: Vec<engine::Line> = priced.input.items.iter().map(|i| i.line.clone()).collect();
-    engine::margin(&lines, &priced.summary.lines, priced.dp).map_err(out_of_range)
+    engine::margin(&priced.lines, &priced.summary.lines, priced.dp).map_err(out_of_range)
 }
 
 fn out_of_range(n: usize) -> AppError {
@@ -101,10 +114,10 @@ async fn apply_products(
         .collect::<std::collections::BTreeSet<_>>()
         .into_iter()
         .collect();
-    let found: HashMap<Uuid, products::repo::ProductRow> = if wanted.is_empty() {
+    let found: HashMap<Uuid, repo::PricingProduct> = if wanted.is_empty() {
         HashMap::new()
     } else {
-        products::repo::find_many(&state.db, workspace_id, &wanted)
+        repo::products(&state.db, workspace_id, &wanted)
             .await?
             .into_iter()
             .map(|p| (p.id, p))

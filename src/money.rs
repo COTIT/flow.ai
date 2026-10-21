@@ -43,15 +43,14 @@ pub fn format_decimals(value: Option<Decimal>, dp: u32, rtrim: bool, zero: Zero)
 }
 
 /// A PHP float as `json_encode` printed it: whole numbers without a fraction (`5`, not `5.0`).
+/// A whole number past i64 prints as a float, the way PHP held it.
 pub fn php_number(d: Decimal) -> serde_json::Value {
     use rust_decimal::prelude::ToPrimitive;
-    if d.fract().is_zero() {
-        d.to_i64()
-            .map_or(serde_json::Value::Null, serde_json::Value::from)
-    } else {
+    let whole = d.fract().is_zero().then(|| d.to_i64()).flatten();
+    whole.map(serde_json::Value::from).unwrap_or_else(|| {
         d.to_f64()
             .map_or(serde_json::Value::Null, serde_json::Value::from)
-    }
+    })
 }
 
 /// PHP `round($v, $dp)`: half away from zero.
@@ -109,6 +108,17 @@ mod tests {
     fn negative_zero_after_rounding_has_no_sign() {
         let v = Decimal::from_str("-0.004").unwrap();
         assert_eq!(format_decimals(Some(v), 2, false, Zero::Column), "0.00");
+    }
+
+    #[test]
+    fn php_number_never_prints_null() {
+        let whole = Decimal::from_str("100000000000000000000").unwrap();
+        assert_eq!(php_number(whole).as_f64(), Some(1e20));
+        assert_eq!(php_number(Decimal::from(5)), serde_json::json!(5));
+        assert_eq!(
+            php_number(Decimal::from_str("0.1").unwrap()),
+            serde_json::json!(0.1)
+        );
     }
 
     #[test]

@@ -1,5 +1,6 @@
 //! HTTP edge for /v1/workspace/{workspace}/calculate-items and /calculate-marge. Any active
-//! member may call them (Laravel `authorize()` returned true).
+//! member may call them (Laravel `authorize()` returned true); product details on the lines
+//! need `product.view`.
 
 use axum::extract::State;
 
@@ -19,7 +20,13 @@ pub async fn calculate_items(
     access: WorkspaceAccess,
     ValidatedJson(input): ValidatedJson<CalculateRequest>,
 ) -> Result<Data<SummaryResource>, AppError> {
-    let priced = service::price(&state, access.workspace_id, input).await?;
+    let priced = service::price(
+        &state,
+        access.workspace_id,
+        access.allows("product.view"),
+        input,
+    )
+    .await?;
     Ok(Data(SummaryResource::new(
         &priced.input.items,
         &priced.summary,
@@ -32,6 +39,12 @@ pub async fn calculate_marge(
     access: WorkspaceAccess,
     ValidatedJson(input): ValidatedJson<CalculateRequest>,
 ) -> Result<Data<MarginResource>, AppError> {
-    let priced = service::price(&state, access.workspace_id, input).await?;
+    let priced = service::price(
+        &state,
+        access.workspace_id,
+        access.allows("product.view"),
+        input,
+    )
+    .await?;
     Ok(Data(MarginResource::new(&service::margin(&priced)?)))
 }

@@ -1,5 +1,5 @@
 //! calculate-items / calculate-marge request (lines as vimdesk-web and the POS send them) and
-//! the calculate-items response (Laravel ItemsSummary: JSON numbers, per-line rounded).
+//! the responses (Laravel ItemsSummary / ItemsMargeCalculationSummary: JSON numbers).
 
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -7,20 +7,23 @@ use serde_json::{Map, Value, json};
 use uuid::Uuid;
 
 use crate::{
-    http::json::{Rules, Validate, filled, human},
-    modules::pricing::engine::{Line, Margin, Summary},
+    http::json::{Rules, Validate, human},
+    modules::pricing::{
+        body::{Items, MAX_ITEMS, RawItem, Row, Scalar},
+        engine::{Line, Margin, Summary},
+    },
     money::{MAX, Zero, format_decimals, php_number},
 };
 
-/// Most lines one request may carry. Laravel had no cap; a document never comes close.
-pub const MAX_ITEMS: usize = 1000;
-
-/// Body of both routes. Unknown keys (`disable_client_discounts`, row UI state) are ignored.
+/// Body of both routes. Unknown keys (`disable_client_discounts`, row UI state) are skipped.
 #[derive(Deserialize)]
 pub struct CalculateRequest {
-    items: Option<Value>,
-    currency_id: Option<Value>,
-    relation_id: Option<Value>,
+    #[serde(default)]
+    items: Items,
+    #[serde(default)]
+    currency_id: Scalar,
+    #[serde(default)]
+    relation_id: Scalar,
 }
 
 /// A reference id as sent: None = not sent, Some(None) = sent but not a uuid (never matches).
@@ -41,6 +44,8 @@ pub struct ItemInput {
     /// Raw `product_id`; the service resolves it.
     pub product_id: Option<String>,
     pub multi_set_item_id: Value,
+    /// Echoed through `formatDecimals`; vimdesk-web writes it back onto the row.
+    pub client_default_discount: Option<Decimal>,
     pub line: Line,
 }
 
@@ -48,68 +53,69 @@ impl Validate for CalculateRequest {
     type Valid = Calculate;
 
     fn validate(self, r: &mut Rules) -> Option<Calculate> {
-        let items = match filled(self.items) {
-            None => {
+        let rows = match self.items {
+            Items::List(rows) if !rows.is_empty() => rows,
+            Items::List(_) | Items::Missing => {
                 r.missing("items");
                 Vec::new()
             }
-            Some(Value::Array(a)) if a.is_empty() => {
-                r.missing("items");
+            Items::TooMany => {
+                let msg = format!("The items must not have more than {MAX_ITEMS} items.");
+                r.add("items", msg);
                 Vec::new()
             }
-            Some(Value::Array(a)) if a.len() > MAX_ITEMS => {
-                r.add(
-                    "items",
-                    format!("The items must not have more than {MAX_ITEMS} items."),
-                );
-                Vec::new()
-            }
-            Some(Value::Array(a)) => a,
-            Some(_) => {
+            Items::NotList => {
                 r.add("items", "The items must be an array.");
                 Vec::new()
             }
         };
-        let items = items
+        let items = rows
             .into_iter()
             .enumerate()
-            .filter_map(|(n, v)| item(r, &format!("items.{n}"), v))
+            .filter_map(|(n, row)| {
+                let key = format!("items.{n}");
+                match row {
+                    Row::Item(raw) => Some(item(r, &key, *raw)),
+                    Row::NotObject => {
+                        r.add(&key, format!("The {key} must be an array."));
+                        None
+                    }
+                }
+            })
             .collect();
         Some(Calculate {
             items,
-            currency_id: ref_id(self.currency_id),
-            relation_id: ref_id(self.relation_id),
+            currency_id: ref_id(&self.currency_id),
+            relation_id: ref_id(&self.relation_id),
         })
     }
 }
 
-fn ref_id(v: Option<Value>) -> RefId {
-    filled(v).map(|v| v.as_str().and_then(|s| Uuid::parse_str(s.trim()).ok()))
+fn ref_id(v: &Scalar) -> RefId {
+    v.filled()
+        .map(|v| v.as_str().and_then(|s| Uuid::parse_str(s.trim()).ok()))
 }
 
-fn item(r: &mut Rules, key: &str, v: Value) -> Option<ItemInput> {
-    let Value::Object(mut o) = v else {
-        r.add(key, format!("The {key} must be an array."));
-        return None;
-    };
-    let mut num = |field: &str, min: Decimal, max: Decimal| {
+fn item(r: &mut Rules, key: &str, raw: RawItem) -> ItemInput {
+    let mut num = |field: &str, v: &Scalar, min: Decimal, max: Decimal| {
         let f = format!("{key}.{field}");
-        filled(o.remove(field)).and_then(|v| r.decimal(&f, &v, min, max))
+        v.filled().and_then(|v| r.decimal(&f, &v, min, max))
     };
     let zero = Decimal::ZERO;
-    let quantity = num("quantity", -MAX, MAX).unwrap_or(zero);
-    let price = num("price", -MAX, MAX).unwrap_or(zero);
-    let vat = num("vat", zero, MAX).unwrap_or(zero);
-    let discount = num("productDiscount", zero, Decimal::ONE_HUNDRED).unwrap_or(zero);
-    let purchase_price = num("purchase_price", -MAX, MAX);
-    let title = text(r, &format!("{key}.title"), o.remove("title"), 500);
-    let description = text(
-        r,
-        &format!("{key}.description"),
-        o.remove("description"),
-        5000,
-    );
-    let product_id = match filled(o.remove("product_id")) {
+    let quantity = num("quantity", &raw.quantity, -MAX, MAX).unwrap_or(zero);
+    let price = num("price", &raw.price, -MAX, MAX).unwrap_or(zero);
+    let vat = num("vat", &raw.vat, zero, MAX).unwrap_or(zero);
+    let discount = num(
+        "productDiscount",
+        &raw.product_discount,
+        zero,
+        Decimal::ONE_HUNDRED,
+    )
+    .unwrap_or(zero);
+    let purchase_price = num("purchase_price", &raw.purchase_price, -MAX, MAX);
+    let title = text(r, &format!("{key}.title"), raw.title, 500);
+    let description = text(r, &format!("{key}.description"), raw.description, 5000);
+    let product_id = match raw.product_id.filled() {
         None => None,
         Some(Value::String(s)) => Some(s.trim().to_owned()),
         Some(_) => {
@@ -118,9 +124,13 @@ fn item(r: &mut Rules, key: &str, v: Value) -> Option<ItemInput> {
             None
         }
     };
-    let multi_set_item_id = o.remove("multi_set_item_id").unwrap_or(Value::Null);
-    Some(ItemInput {
-        id: o.remove("id").unwrap_or(Value::Null),
+    // Laravel never validated it; an unparsable value printed like zero.
+    let client_default_discount = raw
+        .client_default_discount
+        .filled()
+        .and_then(|v| Rules::default().decimal("x", &v, -MAX, MAX));
+    ItemInput {
+        id: raw.id.echo(),
         title,
         description,
         product_id,
@@ -130,37 +140,26 @@ fn item(r: &mut Rules, key: &str, v: Value) -> Option<ItemInput> {
             vat,
             discount,
             purchase_price,
-            set_child: php_truthy(&multi_set_item_id),
+            set_child: raw.multi_set_item_id.truthy(),
         },
-        multi_set_item_id,
-    })
-}
-
-/// Laravel `?string $x = ''`: absent -> "", null -> null, else a string of at most `max` chars.
-fn text(r: &mut Rules, field: &str, v: Option<Value>, max: usize) -> Option<String> {
-    match v {
-        None => Some(String::new()),
-        Some(Value::Null) => None,
-        Some(Value::String(s)) => {
-            r.max_chars(field, &s, max);
-            Some(s)
-        }
-        Some(_) => {
-            r.add(field, format!("The {} must be a string.", human(field)));
-            None
-        }
+        multi_set_item_id: raw.multi_set_item_id.echo(),
+        client_default_discount,
     }
 }
 
-/// PHP truthiness of a JSON value (`if ($item->multi_set_item_id)`).
-fn php_truthy(v: &Value) -> bool {
+/// Laravel `?string $x = ''`: absent -> "", null -> null, else a string of at most `max` chars.
+fn text(r: &mut Rules, field: &str, v: Scalar, max: usize) -> Option<String> {
     match v {
-        Value::Null => false,
-        Value::Bool(b) => *b,
-        Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0),
-        Value::String(s) => !s.is_empty() && s != "0",
-        Value::Array(a) => !a.is_empty(),
-        Value::Object(_) => true,
+        Scalar::Absent => Some(String::new()),
+        Scalar::Null => None,
+        Scalar::Str(s) => {
+            r.max_chars(field, &s, max);
+            Some(s)
+        }
+        _ => {
+            r.add(field, format!("The {} must be a string.", human(field)));
+            None
+        }
     }
 }
 
@@ -210,8 +209,9 @@ impl SummaryResource {
                     "subtotal": php_number(a.gross),
                     "productDiscount": format_decimals(Some(i.line.discount), 2, true, Zero::Falsy),
                     "purchase_price": i.line.purchase_price.map(php_number),
-                    // shortcut: relation discount groups arrive with F3; until then always none.
-                    "client_default_discount": "0.00",
+                    // shortcut: F3 adds the relation's discount group here; until then as sent.
+                    "client_default_discount":
+                        format_decimals(i.client_default_discount, 2, true, Zero::Falsy),
                     "multi_set_item_id": i.multi_set_item_id,
                 })
             })
