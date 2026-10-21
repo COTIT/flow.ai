@@ -31,8 +31,8 @@ Rate limited, `429`: `{"message": "Too Many Attempts."}` plus a `Retry-After` he
 
 Every `/v1` request also has time limits:
 
-- **Body deadline:** the whole request body must arrive within `REQUEST_BODY_DEADLINE_SECS` (default 20), else `408 {"message": "The request body took too long to arrive."}`. A client trickling its body can't hold a slot.
-- **Request timeout:** a request must finish within `REQUEST_TIMEOUT_SECS` (default 45, above the 30s statement, 5s pool and 5s slot waits), else `503 {"message": "The server is busy, please try again."}` with `Retry-After: 5`. The request is cancelled: its slots and pooled connection go back and an open transaction rolls back. A write that committed just before the deadline still answers 503, so a client retrying a create may make it twice (idempotency keys come with the POS sub-batches).
+- **Body deadline:** the whole request body must arrive within `REQUEST_BODY_DEADLINE_SECS` (default 20) of the request reaching the API, twice that for `calculate-items` / `calculate-marge` (2 MiB bodies), else `408 {"message": "The request body took too long to arrive."}`. The time includes the auth and slot waits before the body is read. A client trickling its body holds a slot at most that long.
+- **Request timeout:** a request must finish within `REQUEST_TIMEOUT_SECS` (default 60, above twice the body deadline; the API refuses to start otherwise), else `503 {"message": "The server is busy, please try again."}` with `Retry-After: 5`. The request is cancelled: its slots go back and an open transaction rolls back; a statement already sent keeps its pooled connection until it ends (30s statement timeout at most). A write that committed just before the deadline still answers 503, so a client retrying a create may make it twice (idempotency keys come with the POS sub-batches).
 
 Body too large, `413`: `{"message": "The request body is too large."}`. Limit 64 KiB.
 

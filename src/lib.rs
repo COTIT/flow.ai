@@ -64,7 +64,7 @@ pub struct AppState {
     pub slots: Slots,
     /// Longest a `/v1` request may run (then 503).
     pub request_timeout: std::time::Duration,
-    /// Longest a request body may take to arrive (then 408).
+    /// Longest a request body may take to arrive (then 408); item totals get twice this.
     pub body_deadline: std::time::Duration,
     /// Max invites one user may create or re-send per hour.
     pub invites_per_hour: i64,
@@ -86,6 +86,7 @@ pub fn build_app(state: AppState) -> Router {
             .merge(email_verification::routes::public()),
         state.rate_limit,
     );
+    let public = http::timeout::body_deadline(public, state.body_deadline);
     let private = Router::new()
         .merge(auth::routes::private())
         .merge(invites::routes::private())
@@ -116,20 +117,22 @@ pub fn build_app(state: AppState) -> Router {
         .merge(product_variants::routes::private())
         .merge(stock::routes::private())
         .merge(storage_locations::routes::private())
-        .merge(pricing::routes::private())
         .merge(settings::routes::private())
         .merge(discount_groups::routes::private())
         .merge(discounts::routes::private())
         .merge(price_corrections::routes::private())
         .merge(special_offers::routes::private());
+    // Item totals take bodies up to 2 MiB: twice the deadline of the 64 KiB routes.
+    let private = http::timeout::body_deadline(private, state.body_deadline).merge(
+        http::timeout::body_deadline(pricing::routes::private(), state.body_deadline * 2),
+    );
     let private = http::rate_limit::apply_private(
         private,
         state.private_rate_limit,
         state.private_ip_rate_limit,
     );
     state.slots.spawn_cleanup();
-    let v1 = public
-        .merge(private)
+    let v1 = http::timeout::request_timeout(public.merge(private), state.request_timeout)
         // Responses carry bearer tokens and invite data: never cache, never sniff.
         .layer(SetResponseHeaderLayer::overriding(
             header::CACHE_CONTROL,
@@ -140,7 +143,6 @@ pub fn build_app(state: AppState) -> Router {
             HeaderValue::from_static("nosniff"),
         ))
         .layer(DefaultBodyLimit::max(BODY_LIMIT));
-    let v1 = http::timeout::apply(v1, state.request_timeout, state.body_deadline);
     Router::new()
         .route("/healthz", get(health::healthz))
         .nest("/v1", v1)

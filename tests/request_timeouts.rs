@@ -76,6 +76,27 @@ async fn a_stalled_body_gets_408_at_the_deadline(pool: PgPool) {
         "{text}"
     );
     assert!(started.elapsed() < Duration::from_secs(3));
+
+    // Item totals take bodies up to 2 MiB: twice the deadline. A body that would be too slow
+    // elsewhere (450 ms here) still arrives in time.
+    let body = r#"{"items":[{"id":1,"quantity":1,"price":10,"vat":21}]}"#;
+    let (first, rest) = body.split_at(10);
+    let mut socket = tokio::net::TcpStream::connect(addr).await.unwrap();
+    let head = format!(
+        "POST /v1/workspace/{ws}/calculate-items HTTP/1.1\r\nhost: test\r\n\
+         authorization: Bearer {token}\r\ncontent-type: application/json\r\n\
+         content-length: {}\r\n\r\n{first}",
+        body.len()
+    );
+    socket.write_all(head.as_bytes()).await.unwrap();
+    tokio::time::sleep(Duration::from_millis(450)).await;
+    socket.write_all(rest.as_bytes()).await.unwrap();
+    let n = tokio::time::timeout(Duration::from_secs(3), socket.read(&mut response))
+        .await
+        .unwrap()
+        .unwrap();
+    let text = String::from_utf8_lossy(&response[..n]);
+    assert!(text.starts_with("HTTP/1.1 200"), "{text}");
 }
 
 /// A request stuck past the request timeout answers 503 with Retry-After, and its workspace

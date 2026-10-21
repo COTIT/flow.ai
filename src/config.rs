@@ -161,10 +161,17 @@ impl Config {
         )?;
         let user_max_inflight =
             positive(&get, "USER_MAX_INFLIGHT", (db_max_connections / 4).max(2))?;
-        // Above statement (30s) + pool (5s) + slot (5s) waits, so a slow but legal request ends
-        // on its own error first. A body (64 KiB, 2 MiB for item totals) has 20s.
-        let request_timeout_secs = positive(&get, "REQUEST_TIMEOUT_SECS", 45)?;
-        let request_body_deadline_secs = positive(&get, "REQUEST_BODY_DEADLINE_SECS", 20)?;
+        // A body (64 KiB) has 20s from arrival, item totals (2 MiB) 40s; both include the auth,
+        // pool and slot waits before the body is read. The request timeout sits above the
+        // longer one, so an upload in time is never cut by it.
+        let request_timeout_secs: u64 = positive(&get, "REQUEST_TIMEOUT_SECS", 60)?;
+        let request_body_deadline_secs: u64 = positive(&get, "REQUEST_BODY_DEADLINE_SECS", 20)?;
+        if request_timeout_secs <= request_body_deadline_secs.saturating_mul(2) {
+            return Err(format!(
+                "REQUEST_TIMEOUT_SECS ({request_timeout_secs}) must be above twice \
+                 REQUEST_BODY_DEADLINE_SECS ({request_body_deadline_secs})"
+            ));
+        }
 
         Ok(Self {
             database_url,
@@ -506,7 +513,16 @@ mod tests {
         );
         assert_eq!(
             (cfg.request_timeout_secs, cfg.request_body_deadline_secs),
-            (45, 20)
+            (60, 20)
+        );
+        let err = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("REQUEST_TIMEOUT_SECS", "40"),
+        ]))
+        .unwrap_err();
+        assert!(
+            err.starts_with("REQUEST_TIMEOUT_SECS (40) must be above"),
+            "{err}"
         );
         let cfg = Config::from_lookup(lookup(&[
             ("DATABASE_URL", "postgres://x"),
