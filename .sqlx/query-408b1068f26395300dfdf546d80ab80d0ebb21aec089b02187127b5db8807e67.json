@@ -1,0 +1,221 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sl.id, sl.description, sl.meta,\n                  l.id AS \"l_id?\", l.location AS \"l_location?\", l.meta AS \"l_meta?\",\n                  l.created_at AS \"l_created?\", l.updated_at AS \"l_updated?\",\n                  w.id AS \"w_id?\", w.name AS \"w_name?\", w.slug AS \"w_slug?\",\n                  w.alias AS \"w_alias?\", w.is_store AS \"w_is_store?\",\n                  w.pickup_enabled AS \"w_pickup?\", pw.name AS \"w_parent_name?\",\n                  w.status AS \"w_status?\", w.type AS \"w_type?\"\n           FROM storage_locations sl\n           LEFT JOIN warehouse_locations l ON l.id = sl.warehouse_location_id\n                                          AND l.deleted_at IS NULL\n           LEFT JOIN warehouses w ON w.id = l.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN warehouses pw ON pw.id = w.parent_id AND pw.deleted_at IS NULL\n           WHERE sl.workspace_id = $1 AND sl.parent_domain = 'product' AND sl.parent_id = $2\n             AND sl.deleted_at IS NULL\n           ORDER BY sl.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "storage_locations",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "storage_locations",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "storage_locations",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "l_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_locations",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "l_location?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_locations",
+            "name": "location"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "l_meta?",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "warehouse_locations",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "l_created?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_locations",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "l_updated?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_locations",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "w_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "w_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "w_slug?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "w_alias?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "alias"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "w_is_store?",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "is_store"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "w_pickup?",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "pickup_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "w_parent_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "w_status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "w_type?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "type"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "408b1068f26395300dfdf546d80ab80d0ebb21aec089b02187127b5db8807e67"
+}

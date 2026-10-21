@@ -34,7 +34,7 @@ Deletes are soft and don't cascade, as in Laravel. A child of a deleted parent s
   "auto_generate_transfer_list": false, "total_sum_enabled": false,
   "manager_id": "<user uuid>", "manager_assistant_id": null, "status": "active", "type": "storage",
   "dimensions": { "total_area": 120.5, "storage_height": 8.0 }, "loading_docks": 2, "sections": 3,
-  "rows_per_sections": 4, "shelves_per_row": 5, "bins_per_shelf": 6, "utilization": null,
+  "rows_per_sections": 4, "shelves_per_row": 5, "bins_per_shelf": 6, "utilization": 0,
   "management_contact": {}, "operating_hours": {}, "additional_settings": {}, "meta": null,
   "created_at": "…", "last_updated_at": "…",
   "relationships": { "custom_sections": [], "children": [<compact>],
@@ -45,7 +45,7 @@ Deletes are soft and don't cascade, as in Laravel. A child of a deleted parent s
   - `formatted_location` is left out when there is no location, as in Laravel.
   - `location` is Laravel `Address::toSingleArray`: the zipcode is uppercased, and `""` when missing.
   - `is_store` is null, true or false. The POS treats only `true` as a store.
-  - `utilization` is null until stock is ported (6F).
+  - `utilization`: occupied bins over the grid, % (see `stock.md`, "Utilization"); null without a grid.
   - `parent_id` and `user_id` are not printed; Laravel didn't print them either.
 - **Embedded objects:**
   - `<compact>` is WarehouseCompactedResource: `{id, name, slug, alias, is_store, pickup_enabled, parent_name, status, type}`.
@@ -85,6 +85,7 @@ Flat, free-text scan labels such as `A.01.02`. They are separate from the bin hi
 - **Create / update:** `location` is required, ≤500 characters. `meta` is an object; on update it is a patch.
 - **List:** `q` matches the label (ILIKE, ≤100 characters; Laravel used Meilisearch). `limit` is the page size: default 50, capped at 5000 for the reconciliation screen's one-call load. Use `page` for later pages.
 - **`DELETE /locations?locations=<uuid>,<uuid>`** soft-deletes the listed ids of this warehouse. Unknown ids are skipped, as in Laravel.
+- **A deleted location (one or in bulk) takes its storage locations with it**, in the same statement (Laravel model `deleted` hook; see `stock.md`).
   - An empty list gives 422 "The locations.0 field is required."
   - A malformed id gives "The locations.0 must be a valid UUID."
   - More than 100 ids gives 422; Laravel had no cap.
@@ -133,7 +134,7 @@ Flat, free-text scan labels such as `A.01.02`. They are separate from the bin hi
 - **Response:** `201 {"data": {"row_id", "warehouse_section_row_id"}}`, the same uuid twice, as in Laravel.
 - **Resource:** Laravel's grouped shape. It has `basic_information`, `physical_dimensions`, `shelf_configuration`, `location_access.starting_position{x,y}` and `additional_settings`. It also has:
   - `bins_per_shelf` (the section's) and `total_bins = number_of_shelves × section bins_per_shelf`
-  - `utilization: 0.0` until stock is ported
+  - `utilization`: occupied bins of the row, % as a PHP float (`0`, `50`; see `stock.md`)
   - `relationships{warehouse{id,name}, assigned_manager: null}`
 - **Update** is a patch. Null on a required column is 422 "required".
 

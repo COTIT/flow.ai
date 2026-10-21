@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- Batch 6 PR-3 (stock, contract `docs/api/stock.md`):
+  - **Migration `stock`:**
+    - `stocks`: one live row per product, warehouse and bin; quantities `numeric(19,2)` like Laravel's `decimal(19,2)`; a composite bin FK inside the warehouse.
+    - `stock_movements`: the append-only ledger.
+    - `storage_locations`.
+  - **`stock::repo::mutate(&mut PgConnection, …)`:** the one stock writer; order flows (final batch) reuse it.
+    - It locks the slot's row (or creates it), applies the change, and appends a movement.
+    - A `Floor` decides how far a decrease may go: none for stores, 0, or level − reserved for the HTTP route's EnoughStockRule.
+  - **Writes:**
+    - Routes: `POST /products/{id}/stocks`, `set-stock-levels`, `set-stock-requirements`, `DELETE /stocks` (level 0 only), `move-stock-between-bins`.
+    - All under row locks, in one transaction each.
+    - Fixed:
+      - set-levels no longer leaks a bin between entries
+      - absent min/max keep their value
+      - opposite moves can't deadlock
+      - parallel first writes can't lose an update
+  - **Product create seeds zero rows** in the main warehouse and every store; the main warehouse becomes the default only when none was chosen.
+  - **Reads:**
+    - Routes: `stock-with-bins`, `configured-bins`, `stock-movements` (with `meta`, which Laravel dropped), `GET /products/stocks`, `/products/stocks/negative`.
+    - The product resource shows real stock rows, the sum, and the `pos_*` pick (`?warehouse_id=`).
+    - Warehouse and row `utilization` count distinct occupied bins.
+    - Whole floats print as PHP did (`money::php_number`).
+  - **Storage locations:** create (also from a bin's code path, with `replace`), delete, and list by product. Deleting a warehouse location drops its storage locations.
+  - **Not ported:** the `stock.view` lookups (`/stocks/{id}`, `/ean`, `/reference`, `/id`: no callers) and `move-stocks` (no callers).
+  - **Shared:**
+    - `AppError::BadRequest` (Laravel 400 `{message}`)
+    - `warehouses::service::resources` and `repo::find_many`
+    - `products::service::render_many`
+    - `currencies`/`sales_groups` `find_many` (PR-2)
 - Batch 6 PR-2 (product catalog, contract `docs/api/products.md`):
   - Migrations:
     - `product_brands_categories`

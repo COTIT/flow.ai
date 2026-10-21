@@ -63,10 +63,8 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - `price == original_price == price_without_correction == business_price`
   - `purchase_price` is wholesale when it has a markup or is > 0, else the supplier's wholesale price
   - `purchase_discount_percentage` is null
-- **Stock is not ported yet (6F):**
-  - `stocks` holds zero fallback rows (`"id": "fallback-<warehouse>"`) for the default warehouse and the workspace's first store.
-  - `total_available_stock` is 0.
-  - `pos_stock_status` is `unavailable` when the product should keep stock, otherwise `not_applicable`.
+- **Stock** (`stocks`, `total_available_stock`, `pos_*`, `?warehouse_id=`): see `stock.md`, "Product resource stock fields".
+- **Product create seeds zero stock rows** in the main warehouse and every store (see `stock.md`).
 - **Other keys:**
   - `has_stock` and `archived` print 0/1, as Laravel left them uncast.
   - `images`, `special_offers` and `custom_sections` are `[]`.
@@ -177,4 +175,4 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - labels, second chance, order/store advice, statics
 - **Link routes:** linked-products POST/DELETE.
 - **Variant routes:** `variants/by-options` (always 403 in Laravel) and option-type CRUD (no callers).
-- **Features:** special offers, discounts, discount groups, price corrections, serial numbers, stock (6F), images, custom fields, the activity log and Meilisearch.
+- **Features:** special offers, discounts, discount groups, price corrections, serial numbers, images, custom fields, the activity log and Meilisearch.
