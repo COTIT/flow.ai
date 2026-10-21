@@ -5,6 +5,8 @@ pub mod contacts;
 pub mod currencies;
 pub mod custom_statuses;
 pub mod custom_types;
+pub mod discount_groups;
+pub mod discounts;
 pub mod email_verification;
 pub mod hourly_rates;
 pub mod invites;
