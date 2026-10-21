@@ -195,7 +195,7 @@ Row shape (RelationIndexResource): `id, alias, company_name, type, email, email_
 
 ## Delete `DELETE /relations/{relation}`
 
-Soft delete. Its contacts stay, and its number stays taken. Laravel refused (422) to delete a relation with invoices, orders, estimates or work orders. genesy has none of those tables yet, so delete always succeeds until the order/invoice batch adds the check.
+Soft delete. Its contacts stay, and its number stays taken. A relation with a live invoice (cancelled ones included) can't be deleted: 422 on `relation_id`, `This relation cannot be deleted because it has invoices, orders, estimates, or work orders.` (Laravel). Orders, estimates and work orders join the check when they are ported.
 
 ## Contacts
 

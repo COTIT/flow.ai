@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- Final batch F4 (invoice drafts, contract `docs/api/invoices.md`):
+  - **Migration `invoices`:** `invoices` (draft header; composite tenant FKs to relation and currency; `subtotal`/`total` in minor units; `summary` with exact totals and the per-rate VAT breakdown) and `items` (one parent column per document type, `invoice_id` for now; composite FKs to product, variant and warehouse).
+  - 6 routes under `/invoices` (`invoice.*`): list (relation, status, `in_status`, `is_credit`, `on_account`, `q`, `limit`, paging), get, create, update (POST), delete (cancels a draft), duplicate.
+  - Item diff as Laravel HandleItems: `id` updates, `deleted` removes, no id adds, rows not sent stay. Item ids are scoped to their invoice (Laravel changed another invoice's line).
+  - Lines are written with one `UNNEST` statement per kind and the totals are stored in the same transaction, under the invoice row lock. Parallel saves of one draft lose no line. At most 1000 lines per invoice.
+  - Bodies up to 2 MiB with the allocation-bounded parse of `calculate-items`. `meta`, `billing_address` and `customer_ref` are capped at 1000 JSON nodes while parsing.
+  - **Guards:** a product on a line and a relation with invoices can't be deleted (Laravel's messages). The delete locks the row `FOR UPDATE` and the invoice write key-shares it, so a delete running alongside a write waits for it and then sees the new rows.
+  - `AppError::Unprocessable`: a 422 with only a message (Laravel exceptions with `statusCode` 422).
+  - **Laravel differences:**
+    - Stored totals are always current (Laravel left a new draft's at 0).
+    - A missing `items` key, an unknown product or a malformed id no longer give a 500.
+    - Duplicate keeps purchase prices (Laravel reset them to 0).
+    - Credit invoices change only as drafts until F6.
+    - `q` is ILIKE on reference and relation name (Laravel: Meilisearch).
+    - Custom sections and product sets are not ported.
+
 - **VAT per rate** (user decision 2026-10-21, replaces per-line VAT; contract `docs/api/pricing.md`): `calculate-items` and `calculate-marge` round each line's amounts as before, then compute VAT once per rate on the summed line amounts. `total = total_excl + total_vat` still holds exactly. 3 × €0.07 at 21 % now gives VAT 0.04 (was 0.03), matching Laravel's own total; 1000 × €0.01 at 21 % gives VAT 2.10 (was 0.00). No per-line VAT amount is printed; `pricing::engine::Amounts::line_vat` stays for per-line display (F4) and is informational. `Summary::vats` now carries each rate's base. Parity test renamed `matches_laravel_within_rounding`.
 - Request time limits on `/v1` (follow-up of the private-route limits):
   - **Body deadline:** a request body must arrive within `REQUEST_BODY_DEADLINE_SECS` (20; 40 for the 2 MiB item-total routes) of reaching the API, else `408 The request body took too long to arrive.` (tower-http `RequestBodyDeadlineLayer`; `ValidatedJson` maps the timeout instead of a 422). A client trickling its body holds a slot at most that long.

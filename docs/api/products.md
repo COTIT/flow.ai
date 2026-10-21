@@ -118,7 +118,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - Update writes only the changed fields.
   - The flow is `manual` from the API and `system` for duplicate.
 - **Duplicate** creates the product again from its stored columns, with a new number.
-- **Delete** is soft. **There is no "used in items" guard yet:** order items arrive in the final batch, which must add it.
+- **Delete** is soft. A product used on an item line (invoices, `invoices.md`) can't be deleted: 422 `{"message": "Product can not be deleted because it is used in items."}`.
 
 ### List and search
 

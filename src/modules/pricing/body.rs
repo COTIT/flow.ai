@@ -1,6 +1,7 @@
-//! Allocation-bounded parse of the calculate body. Unknown keys and nested values are skipped
-//! while parsing, and lines past the cap are counted, never kept: as `serde_json::Value`, a
-//! 2 MiB body of `[0,0,…]` grows to ~32 MiB.
+//! Allocation-bounded parse of the calculate and document (invoice) bodies. Unknown keys and
+//! nested values are skipped while parsing, lines past the cap are counted, never kept, and
+//! free objects are capped (`Capped`): as `serde_json::Value`, a 2 MiB body of `[0,0,…]`
+//! grows to ~32 MiB.
 
 use std::{cell::Cell, fmt};
 
