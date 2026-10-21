@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Final batch F1 (item totals preview, contract `docs/api/pricing.md`):
+  - `POST /v1/workspace/{ws}/calculate-items` and `/calculate-marge`, open to every active member (Laravel `authorize()` returned true). Nothing is stored.
+  - `pricing::engine`: exact-decimal line maths. Each line rounds to the currency's decimals, half away from zero; totals sum the rounded lines, so `total = total_excl + total_vat` always (user decision: Laravel rounded its float total on its own and could be a cent off). Checked arithmetic: an overflowing line is a 422, never a panic.
+  - VAT grouped by the exact rate (`"5.5"`); Laravel int-cast the key and merged 5.5 % into 5 %.
+  - Currency, relation and products must be live rows of the workspace. Products load in one query; a product line takes the product's name and, without a purchase price, the product's.
+  - At most 1000 lines; 2 MiB body limit on these two routes (vimdesk-web posts whole item rows).
+  - `tests/fixtures/pricing_parity.json`: 24 cases from PHP 8.4 running vimdesk-api's real `BuildItemsSummary` / `BuildItemsMargeCalculationSummary` (`pricing_oracle.php`).
+  - Relation discounts (discount groups, special offers) come with F3; until then `relation_id` is only validated.
+
 - Batch 6 PR-3 (stock, contract `docs/api/stock.md`):
   - **Migration `stock`:**
     - `stocks`: one live row per product, warehouse and bin; quantities `numeric(19,2)` like Laravel's `decimal(19,2)`; a composite bin FK inside the warehouse.
