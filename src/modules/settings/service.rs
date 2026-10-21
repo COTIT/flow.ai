@@ -1,5 +1,5 @@
-//! Workspace settings: read with Laravel's defaults, write whole sections, and the numbering
-//! fields other modules snapshot onto their rows.
+//! Workspace settings: read with Laravel's defaults, write whole sections with their sealed
+//! credentials, and the numbering fields other modules snapshot onto their rows.
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -12,25 +12,28 @@ use crate::{
     error::AppError,
     http::json::human,
     modules::settings::{
-        dto::SettingsUpdate,
+        credentials::{BOUND, NO_KEY, PATHS, RE_ENTER},
+        dto::{Change, SettingsUpdate},
         repo,
         schema::{self, READABLE},
     },
     numbering::{self, Appendix},
 };
 
-/// Every section with defaults filled in, credentials nulled (Laravel SettingResource).
+/// Every section with defaults filled in, credentials masked or null (Laravel
+/// SettingResource printed them in plaintext).
 pub async fn all(state: &AppState, workspace_id: Uuid) -> Result<Value, AppError> {
     let stored = repo::data(&state.db, workspace_id)
         .await?
         .unwrap_or(Value::Null);
+    let sealed = repo::credential_paths(&state.db, workspace_id).await?;
     let mut out = Map::new();
     for name in READABLE {
         out.insert((*name).to_owned(), read_section(name, &stored[*name]));
     }
     out.insert("meta".to_owned(), stored["meta"].clone());
     let mut out = Value::Object(out);
-    schema::redact(&mut out, "");
+    schema::redact(&mut out, "", &sealed);
     Ok(out)
 }
 
@@ -46,8 +49,17 @@ pub async fn by_type(state: &AppState, workspace_id: Uuid, key: &str) -> Result<
         .await?
         .unwrap_or(Value::Null);
     // Redact before any lookup, so no path spelling can reach a credential.
-    schema::redact(&mut stored, "");
+    schema::redact(&mut stored, "", &[]);
     let (name, rest) = key.split_once('.').unwrap_or((key, ""));
+    // Only sections that hold credentials need to know which are stored.
+    let sealed = if PATHS
+        .iter()
+        .any(|p| p.split_once('.').is_some_and(|(s, _)| s == name))
+    {
+        repo::credential_paths(&state.db, workspace_id).await?
+    } else {
+        Vec::new()
+    };
     let mut value = match schema::defaults(name) {
         None if name == "meta" => at(&stored["meta"], rest).clone(),
         None => Value::Null,
@@ -65,7 +77,7 @@ pub async fn by_type(state: &AppState, workspace_id: Uuid, key: &str) -> Result<
     if key == "cash_register.cash_drawer_link_mode" && php_falsy(&value) {
         value = Value::String("flexible".into());
     }
-    schema::redact(&mut value, key);
+    schema::redact(&mut value, key, &sealed);
     Ok(match value {
         Value::Null => Value::Array(Vec::new()),
         v @ (Value::Object(_) | Value::Array(_)) => v,
@@ -73,14 +85,30 @@ pub async fn by_type(state: &AppState, workspace_id: Uuid, key: &str) -> Result<
     })
 }
 
-/// Store the validated sections after their uuids are found in this workspace; `user_id` is
-/// recorded as the last writer.
+/// Store the validated sections and their credential changes in one transaction, after their
+/// uuids are found in this workspace; `user_id` is recorded as the last writer.
 pub async fn update(
     state: &AppState,
     workspace_id: Uuid,
     user_id: Uuid,
     input: SettingsUpdate,
 ) -> Result<(), AppError> {
+    // Seal first: no crypto while the transaction is open.
+    let (mut sets, mut clears, mut keeps) = (Vec::new(), Vec::new(), Vec::new());
+    for (path, change) in &input.credentials {
+        match (change, &state.credentials) {
+            (Change::Keep, _) => keeps.push(*path),
+            (Change::Clear, _) => clears.push((*path).to_owned()),
+            (Change::Set(_), None) => return Err(AppError::field(path, NO_KEY)),
+            (Change::Set(plain), Some(key)) => {
+                sets.push((
+                    *path,
+                    key.id(),
+                    key.seal(workspace_id, path, plain.expose())?,
+                ));
+            }
+        }
+    }
     let mut found = HashMap::new();
     let mut missing = BTreeMap::new();
     for r in &input.refs {
@@ -107,8 +135,55 @@ pub async fn update(
             "settings write held a credential".into(),
         ));
     }
-    repo::merge(&state.db, workspace_id, user_id, &sections).await?;
+    let mut tx = state.db.begin().await?;
+    if !keeps.is_empty() {
+        // Locks the row merge writes, so the check holds until commit.
+        let stored = repo::data_for_update(&mut *tx, workspace_id)
+            .await?
+            .unwrap_or(Value::Null);
+        let sealed = repo::credential_paths(&mut *tx, workspace_id).await?;
+        for path in keeps {
+            if !sealed.iter().any(|s| s == path) || moved(path, &sections, &stored) {
+                return Err(AppError::field(path, RE_ENTER));
+            }
+        }
+    }
+    // Settings row first: its lock queues same-workspace saves before any credential row.
+    repo::merge(&mut *tx, workspace_id, user_id, &sections).await?;
+    for (path, key_id, sealed) in &sets {
+        repo::put_credential(&mut *tx, workspace_id, path, key_id, sealed, user_id).await?;
+    }
+    let cleared = if clears.is_empty() {
+        Vec::new()
+    } else {
+        repo::delete_credentials(&mut *tx, workspace_id, &clears).await?
+    };
+    tx.commit().await?;
+    // Audit trail without values: who set or cleared which credential.
+    for (path, ..) in &sets {
+        tracing::info!(%workspace_id, %user_id, path, "credential stored");
+    }
+    for path in &cleared {
+        tracing::info!(%workspace_id, %user_id, path, "credential cleared");
+    }
     Ok(())
+}
+
+/// True when a field `path` is bound to (`BOUND`) differs between the sent sections and the
+/// stored row; absent counts as null on both sides.
+fn moved(path: &str, sent: &Value, stored: &Value) -> bool {
+    let at = |v: &Value, field: &str| {
+        field
+            .split('.')
+            .try_fold(v, |acc, k| acc.get(k))
+            .cloned()
+            .unwrap_or(Value::Null)
+    };
+    BOUND
+        .iter()
+        .filter(|(p, _)| *p == path)
+        .flat_map(|(_, fields)| fields.iter())
+        .any(|field| at(sent, field) != at(stored, field))
 }
 
 /// Appendix and start number of a numbering section (`relation`, `product`, ...), read inside

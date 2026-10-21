@@ -4,6 +4,7 @@
 
 pub mod cleanup;
 pub mod config;
+mod crypto;
 pub mod db;
 mod error;
 mod health;
@@ -24,6 +25,7 @@ use axum::{
 use sqlx::PgPool;
 use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 
+pub use crypto::CredentialKey;
 pub use http::{
     rate_limit::RateLimit,
     slots::{Slots, WorkspaceSlots},
@@ -68,6 +70,8 @@ pub struct AppState {
     pub body_deadline: std::time::Duration,
     /// Max invites one user may create or re-send per hour.
     pub invites_per_hour: i64,
+    /// Seals integration credentials (`CREDENTIALS_KEY`); None refuses storing one.
+    pub credentials: Option<std::sync::Arc<CredentialKey>>,
 }
 
 /// One-off boot work before serving (precomputes the login timing-equalizer hash).

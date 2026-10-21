@@ -7,7 +7,7 @@ use common::{Api, send, signup};
 use serde_json::{Value, json};
 use sqlx::PgPool;
 
-const SECRET: &str = "Integration credentials can't be stored yet.";
+const SECRET: &str = "This integration isn't supported.";
 
 async fn api(pool: PgPool) -> Api {
     Api::new(pool, "/settings").await
@@ -421,7 +421,8 @@ async fn refs_must_be_live_rows_of_this_workspace(pool: PgPool) {
 
 // --- secrets -------------------------------------------------------------------------------
 
-/// Every key that holds a credential. F2 stores none of them (F2b adds encryption).
+/// Every key that holds a credential. The settings row stores none of them; the kept
+/// providers' are sealed apart (tests/settings_credentials.rs).
 const SECRETS: &[&str] = &[
     "smtp.password",
     "integrations.payment.payment_providers.mollie.api_key",
@@ -446,15 +447,19 @@ fn at<'a>(v: &'a Value, path: &str) -> &'a Value {
 }
 
 #[sqlx::test]
-async fn every_secret_is_refused_and_never_returned(pool: PgPool) {
+async fn dropped_secrets_are_refused_and_no_secret_is_returned(pool: PgPool) {
     let api = api(pool).await;
-    for path in SECRETS {
-        let mut body = nested(path, json!("s3cret"));
-        if path.starts_with("integrations.mail.graph") {
-            // Graph needs its other fields; the secret check must still fire.
-            body["integrations"]["mail"]["graph"]["tenant_id"] = json!("t");
-        }
-        assert_eq!(error(&api, body, path).await, SECRET, "{path}");
+    for path in SECRETS.iter().filter(|p| {
+        p.contains("fulfillment")
+            || p.contains("accounting")
+            || p.contains("export")
+            || p.contains("syncProviders")
+    }) {
+        assert_eq!(
+            error(&api, nested(path, json!("s3cret")), path).await,
+            SECRET,
+            "{path}"
+        );
         // Null and blank are fine: the web app sends them back on every integrations save.
         saved(&api, nested(path, Value::Null)).await;
         saved(&api, nested(path, json!(""))).await;

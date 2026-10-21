@@ -43,6 +43,9 @@ async fn main() {
     warm_up().await;
     cleanup::spawn(background_db);
 
+    if config.credentials_key.is_none() {
+        tracing::warn!("CREDENTIALS_KEY not set: integration credentials can't be stored");
+    }
     let listener = tokio::net::TcpListener::bind(config.bind_addr)
         .await
         .expect("bind listener");
@@ -79,6 +82,7 @@ async fn main() {
         }),
         request_timeout: Duration::from_secs(config.request_timeout_secs),
         body_deadline: Duration::from_secs(config.request_body_deadline_secs),
+        credentials: config.credentials_key.map(std::sync::Arc::new),
     };
     // connect info: rate limit keys on peer IP.
     axum::serve(

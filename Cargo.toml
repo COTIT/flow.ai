@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 argon2 = "0.6.0"
 axum = "0.8.9"
+chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["alloc", "zeroize"] }
 chrono = { version = "0.4.45", default-features = false, features = ["serde", "clock", "std"] }
 dotenvy = "0.15.7"
 getrandom = "0.4.3"

@@ -87,28 +87,45 @@ A partial object keyed by section: `{"invoice": {...}, "smtp": {...}}`. Answers 
 
 **`invoice.customer_ref` difference:** Laravel's rules had trailing spaces in the keys, so the flags were never validated. Genesy validates `ordered_by`, `po_number` and `reference` as booleans and stores them.
 
-## Integration credentials (not stored yet)
+## Integration credentials
 
-These keys hold credentials:
+Credentials of the kept providers are stored encrypted, apart from the settings row:
 
-- `smtp.password`
-- `integrations.payment.payment_providers.mollie.api_key`
-- `…pay.api_code`, `api_token`, `service_id`
-- `…sendcloud.public`, `secret`
-- `…jortt.client_secret`
-- `…modjo.api_key`
-- `…picqer.api_key`
-- `…mail.graph.client_secret`
+| Key | Max chars |
+|---|---|
+| `smtp.password` (not trimmed) | 255 |
+| `integrations.payment.payment_providers.mollie.api_key` | 255 (Laravel: no max) |
+| `…pay.api_code`, `api_token`, `service_id` | 255 (Laravel: no max) |
+| `integrations.mail.graph.client_secret` | 1000 |
 
-Until F2b adds encrypted storage:
+**GET** (full or `?type=`) prints `"********"` for a stored credential and null for an unset one. It never prints the value. Laravel printed all of them in plaintext to anyone with settings access, except the Graph secret, which it printed as ciphertext.
 
-- A non-empty value is a **422** `Integration credentials can't be stored yet.` on that key.
-- `null` and `""` are accepted and stored as null, because vimdesk-web sends the whole integrations object back on every save.
-- GET (full or `?type=`) always prints them as null, even if a row somehow holds one.
-- After validation, a final check (`schema::holds_no_secret`) refuses any write that would store one.
-- Laravel stored all of them in plaintext and returned them to anyone with settings access (only `graph.client_secret` was encrypted).
+**POST**, for each key in a section that is sent:
 
-Consequence until F2b: the Mollie, PAY.nl, Sendcloud, Picqer, Jortt and Modjo connections and SMTP / Graph mail can't be configured on genesy. None of those integrations is ported yet.
+| Sent value | Effect |
+|---|---|
+| `"********"` | keeps the stored value (vimdesk-web posts back what GET printed); a **422** `Enter this credential again.` on that key when none is stored, or when the SMTP password is sent with another `host`, `port`, `username` or `encryption` than stored |
+| any other string | replaces it |
+| `null`, blank, or the key left out | clears it, as the rest of the section resets (Laravel replaced the whole section). The SMTP password isn't trimmed, so spaces are a password (as in Laravel) |
+
+- A section that isn't sent keeps its credentials.
+- The SMTP binding stops a member who can edit settings but doesn't know the password from pointing the stored one at their own server. Mollie, PAY.nl and Graph send theirs to fixed provider hosts.
+- Each stored or cleared credential is logged (workspace, user, key; never the value).
+- An SMTP password that is exactly `********` can't be stored, since that value means "keep".
+- The settings write and its credential changes run in one transaction.
+- Without a server key (`CREDENTIALS_KEY`), a new value is a **422** `Credential storage isn't configured.` on that key, and nothing of the save is written. Keeping and clearing still work.
+
+**Dropped providers** (Sendcloud `public`/`secret`, `jortt.client_secret`, `modjo.api_key`, `picqer.api_key`): a non-empty value is a **422** `This integration isn't supported.` on that key. `null` and `""` are accepted. GET prints them as null.
+
+**Storage:**
+- Table `workspace_credentials`, one row per (workspace, key).
+- Each value is sealed with XChaCha20-Poly1305 (random 24-byte nonce) under the server key, with the workspace id and the key's path as associated data. A value copied to another workspace or key doesn't decrypt.
+- Each row also stores `key_id`, a hash prefix naming the server key that sealed it.
+- The settings row never holds a credential: a final check (`schema::holds_no_secret`) refuses any write that would store one there.
+
+**Server key:** `CREDENTIALS_KEY_FILE` (a Docker secret; `CREDENTIALS_KEY` also works, but an env var shows in `docker inspect`) holds 64 hex characters (32 random bytes, e.g. `openssl rand -hex 32`). It is optional: the API boots without it, logs a warning, and refuses new credentials. A malformed key, or one with fewer than 16 distinct bytes (a zero key, a pattern), stops the boot with an error that doesn't print it. Keep the key outside the database and its backups; losing it loses every stored credential, which then has to be entered again.
+
+The Mollie, PAY.nl and mail steps (F5, F8, F16) read these values on the server; none is ever taken from the client. The Resend webhook secret is platform-wide, not per workspace, so F20 reads it from its own `*_FILE` secret.
 
 ## Numbering
 

@@ -6,10 +6,15 @@ use sha2::{Digest, Sha256};
 
 use crate::error::AppError;
 
-/// Plaintext secret, shown once (response body or email link). Debug masked, no Display.
+/// Plaintext secret: a token shown once (response body or email link), or a decrypted
+/// integration credential. Debug masked, no Display.
 pub struct PlainSecret(String);
 
 impl PlainSecret {
+    pub(crate) fn new(plain: String) -> Self {
+        Self(plain)
+    }
+
     pub fn expose(&self) -> &str {
         &self.0
     }

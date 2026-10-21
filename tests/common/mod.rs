@@ -22,6 +22,9 @@ use sqlx::PgPool;
 use tower::ServiceExt;
 
 pub const FRONTEND_URL: &str = "https://app.test";
+/// Server key every test app seals credentials with.
+pub const CREDENTIALS_KEY: &str =
+    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 pub const API_PUBLIC_URL: &str = "https://api.test";
 
 /// Test defaults; mail goes to `outbox`. Rate limit high enough that only
@@ -57,6 +60,9 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         }),
         request_timeout: std::time::Duration::from_secs(60),
         body_deadline: std::time::Duration::from_secs(60),
+        credentials: Some(std::sync::Arc::new(
+            genesy_360_api::CredentialKey::from_hex(CREDENTIALS_KEY).unwrap(),
+        )),
     }
 }
 

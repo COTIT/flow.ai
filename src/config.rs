@@ -2,6 +2,8 @@
 
 use std::{fmt, net::SocketAddr};
 
+use crate::crypto::CredentialKey;
+
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:8080";
 const DEFAULT_TOKEN_TTL_DAYS: i64 = 30;
 const MAX_TOKEN_TTL_DAYS: i64 = 365;
@@ -48,6 +50,9 @@ pub struct Config {
     pub request_timeout_secs: u64,
     /// Seconds a request body may take to arrive before it answers 408.
     pub request_body_deadline_secs: u64,
+    /// Seals integration credentials (`CREDENTIALS_KEY`, 64 hex). Optional: without it the API
+    /// runs and refuses to store a credential.
+    pub credentials_key: Option<CredentialKey>,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -86,6 +91,7 @@ impl fmt::Debug for Config {
                 "request_body_deadline_secs",
                 &self.request_body_deadline_secs,
             )
+            .field("credentials_key", &self.credentials_key)
             .finish()
     }
 }
@@ -172,6 +178,14 @@ impl Config {
                  REQUEST_BODY_DEADLINE_SECS ({request_body_deadline_secs})"
             ));
         }
+        let credentials_key = get("CREDENTIALS_KEY")
+            .filter(|v| !v.is_empty())
+            .map(|mut v| {
+                let key = CredentialKey::from_hex(&v);
+                zeroize::Zeroize::zeroize(&mut v);
+                key
+            })
+            .transpose()?;
 
         Ok(Self {
             database_url,
@@ -194,12 +208,13 @@ impl Config {
             user_max_inflight,
             request_timeout_secs,
             request_body_deadline_secs,
+            credentials_key,
         })
     }
 }
 
 /// Vars that may come from `<KEY>_FILE` (Docker secrets), so passwords never sit in env files.
-const SECRET_FILE_VARS: [&str; 2] = ["DATABASE_URL", "SMTP_URL"];
+const SECRET_FILE_VARS: [&str; 3] = ["DATABASE_URL", "SMTP_URL", "CREDENTIALS_KEY"];
 
 /// Read each `<KEY>_FILE` that is set. Errors name the var and path, never the contents.
 fn read_secret_files(
@@ -576,6 +591,23 @@ mod tests {
 
         assert!(err.starts_with("BIND_ADDR invalid"), "{err}");
     }
+
+    #[test]
+    fn credentials_key_is_optional_and_never_echoed() {
+        const HEX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
+        let with = |v: &'static str| {
+            Config::from_lookup(lookup(&[
+                ("DATABASE_URL", "postgres://x"),
+                ("CREDENTIALS_KEY", v),
+            ]))
+        };
+        assert!(with("").unwrap().credentials_key.is_none());
+        let cfg = with(HEX).unwrap();
+        assert!(cfg.credentials_key.is_some());
+        assert!(!format!("{cfg:?}").contains("0001020304"), "{cfg:?}");
+        let err = with("not-a-key-0001020304").unwrap_err();
+        assert_eq!(err, "CREDENTIALS_KEY must be 64 hex characters (32 bytes)");
+    }
 }
 
 #[cfg(test)]
@@ -624,6 +656,16 @@ mod secret_file_tests {
                 ("SMTP_URL", "smtps://h:465".to_owned()),
             ])
         );
+    }
+
+    #[test]
+    fn credentials_key_reads_from_its_file() {
+        let got = read_secret_files(
+            env(&[("CREDENTIALS_KEY_FILE", "/run/secrets/key")]),
+            files(&[("/run/secrets/key", "abcd\n")]),
+        )
+        .unwrap();
+        assert_eq!(got, HashMap::from([("CREDENTIALS_KEY", "abcd".to_owned())]));
     }
 
     #[test]

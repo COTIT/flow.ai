@@ -1,5 +1,5 @@
-//! SQL for workspace settings: one jsonb row per workspace, plus existence checks for the
-//! uuids a section points at.
+//! SQL for workspace settings: one jsonb row per workspace, the sealed credentials beside it,
+//! and existence checks for the uuids a section points at.
 
 use serde_json::Value;
 use sqlx::PgExecutor;
@@ -56,6 +56,74 @@ pub async fn merge(
     .execute(db)
     .await?;
     Ok(())
+}
+
+/// Paths of the credentials stored for `workspace_id`.
+pub async fn credential_paths(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Vec<String>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT path FROM workspace_credentials WHERE workspace_id = $1",
+        workspace_id
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Store a sealed credential, replacing the one at `path`.
+pub async fn put_credential(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    path: &str,
+    key_id: &str,
+    sealed: &[u8],
+    user_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "INSERT INTO workspace_credentials (workspace_id, path, key_id, sealed, updated_by)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (workspace_id, path)
+         DO UPDATE SET key_id = EXCLUDED.key_id, sealed = EXCLUDED.sealed,
+                       updated_by = EXCLUDED.updated_by, updated_at = now()",
+        workspace_id,
+        path,
+        key_id,
+        sealed,
+        user_id,
+    )
+    .execute(db)
+    .await?;
+    Ok(())
+}
+
+/// Remove the credentials at `paths`; returns the paths that were stored.
+pub async fn delete_credentials(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    paths: &[String],
+) -> Result<Vec<String>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "DELETE FROM workspace_credentials WHERE workspace_id = $1 AND path = ANY($2)
+         RETURNING path",
+        workspace_id,
+        paths,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// The stored sections of `workspace_id`, row locked until the transaction ends.
+pub async fn data_for_update(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Option<Value>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT data FROM settings WHERE workspace_id = $1 FOR UPDATE",
+        workspace_id
+    )
+    .fetch_optional(db)
+    .await
 }
 
 /// True when `id` is a live row of `table` in `workspace_id`.

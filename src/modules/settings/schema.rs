@@ -1,6 +1,7 @@
 //! Laravel StoreSettingRequest + Values/*Setting as data. Each writable section is a field
-//! table (one rule per key) plus a default tree; one walker validates a sent section, keeps
-//! only the listed keys and refuses credentials (stored nowhere until F2b adds encryption).
+//! table (one rule per key) plus a default tree; one walker validates a sent section and keeps
+//! only the listed keys. Kept providers' credentials pass through for the service to seal
+//! (`credentials`); the dropped providers' are refused.
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime};
 use serde_json::{Map, Value, json};
@@ -8,14 +9,16 @@ use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, human, is_url},
+    modules::settings::credentials::MASK,
     money::MAX,
     numbering::MAX_START,
 };
 
-/// 422 text for a credential sent before F2b.
-pub const SECRET_REFUSED: &str = "Integration credentials can't be stored yet.";
+/// 422 text for a credential of a dropped provider (Sendcloud, Jortt, Modjo, Picqer).
+pub const SECRET_REFUSED: &str = "This integration isn't supported.";
 
-/// Every key that holds a credential; never stored, always printed as null.
+/// Every key that holds a credential. The settings row never holds one; GET prints the
+/// mask for a stored kept one (`credentials::PATHS`), null otherwise.
 pub const SECRET_PATHS: &[&str] = &[
     "smtp.password",
     "integrations.payment.payment_providers.mollie.api_key",
@@ -59,8 +62,10 @@ pub enum Rule {
     /// SmtpRule: `ssl` or `tls`.
     Encryption,
     Ref(Table),
-    /// A credential: null or blank is kept as null, anything else is refused.
+    /// A dropped provider's credential: null or blank is kept as null, anything else is refused.
     Secret,
+    /// A kept provider's credential: string of at most N chars, sealed apart by the service.
+    Credential(usize),
     /// http(s) URL without credentials in it (an endpoint a later batch will call).
     Url,
     /// List of at most N integers.
@@ -120,7 +125,7 @@ const DAYS: Rule = Rule::Int(0, 3650);
 const SMTP: &[Field] = &[
     f("host", Rule::Text(255)),
     f("username", Rule::Text(255)),
-    f("password", Rule::Secret),
+    f("password", Rule::Credential(255)),
     f("port", ANY),
     f("encryption", Rule::Encryption),
     f("from_name", Rule::Text(255)),
@@ -286,13 +291,17 @@ const INTEGRATIONS: &[Field] = &[
             f(
                 "payment_providers",
                 Rule::Object(&[
-                    f("mollie", Rule::Object(&[f("api_key", Rule::Secret)])),
+                    // Laravel: any length; real keys are under 50 chars.
+                    f(
+                        "mollie",
+                        Rule::Object(&[f("api_key", Rule::Credential(255))]),
+                    ),
                     f(
                         "pay",
                         Rule::Object(&[
-                            f("api_code", Rule::Secret),
-                            f("api_token", Rule::Secret),
-                            f("service_id", Rule::Secret),
+                            f("api_code", Rule::Credential(255)),
+                            f("api_token", Rule::Credential(255)),
+                            f("service_id", Rule::Credential(255)),
                             f("terminals", Rule::List(TERMINAL, 100)),
                         ]),
                     ),
@@ -381,7 +390,7 @@ const INTEGRATIONS: &[Field] = &[
                 Rule::Object(&[
                     f("tenant_id", Rule::Text(255)),
                     f("client_id", Rule::Text(255)),
-                    f("client_secret", Rule::Secret),
+                    f("client_secret", Rule::Credential(1000)),
                     f("mailbox", Rule::Email),
                     f("processed_category", Rule::Text(255)),
                     f("delta_token", Rule::Text(LONG)),
@@ -685,6 +694,7 @@ fn one(
             r.add(key, SECRET_REFUSED);
             None
         }
+        Rule::Credential(max) => text(r, key, v, *max),
         Rule::Ints(cap) => list(r, key, v, *cap, |r, k, item| {
             r.integer(k, item, i64::MIN, i64::MAX).map(Value::from)
         }),
@@ -805,16 +815,28 @@ fn graph_required(r: &mut Rules, sent: &Value) {
     }
 }
 
-/// Null every credential under `value`, which sits at dotted `path` ("" = the whole tree).
-pub fn redact(value: &mut Value, path: &str) {
+/// Hide every credential under `value`, which sits at dotted `path` ("" = the whole tree):
+/// the mask for one in `stored`, null for the rest.
+pub fn redact(value: &mut Value, path: &str, stored: &[String]) {
+    let shown = |secret: &str| {
+        if stored.iter().any(|s| s == secret) {
+            Value::from(MASK)
+        } else {
+            Value::Null
+        }
+    };
     for secret in SECRET_PATHS {
         // The value is a credential, or lies inside one.
-        if path
-            .strip_prefix(secret)
-            .is_some_and(|r| r.is_empty() || r.starts_with('.'))
-        {
-            *value = Value::Null;
-            return;
+        match path.strip_prefix(secret) {
+            Some("") => {
+                *value = shown(secret);
+                return;
+            }
+            Some(r) if r.starts_with('.') => {
+                *value = Value::Null;
+                return;
+            }
+            _ => {}
         }
         let rest = if path.is_empty() {
             Some(*secret)
@@ -824,7 +846,7 @@ pub fn redact(value: &mut Value, path: &str) {
         if let Some(slot) =
             rest.and_then(|rest| rest.split('.').try_fold(&mut *value, |v, k| v.get_mut(k)))
         {
-            *slot = Value::Null;
+            *slot = shown(secret);
         }
     }
 }
@@ -841,6 +863,7 @@ pub fn holds_no_secret(data: &Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::modules::settings::credentials::PATHS;
 
     #[test]
     fn overlay_fills_defaults_and_drops_unknown_keys() {
@@ -858,42 +881,72 @@ mod tests {
     }
 
     #[test]
-    fn redact_nulls_secrets_at_any_depth() {
+    fn redact_hides_secrets_at_any_depth() {
         let mut all = json!({ "smtp": { "password": "p", "host": "h" } });
-        redact(&mut all, "");
+        redact(&mut all, "", &[]);
         assert_eq!(all, json!({ "smtp": { "password": null, "host": "h" } }));
         let mut smtp = json!({ "password": "p", "host": "h" });
-        redact(&mut smtp, "smtp");
+        redact(&mut smtp, "smtp", &[]);
         assert_eq!(smtp["password"], Value::Null);
         let mut leaf = json!("p");
-        redact(&mut leaf, "smtp.password");
+        redact(&mut leaf, "smtp.password", &[]);
         assert_eq!(leaf, Value::Null);
         let mut host = json!("h");
-        redact(&mut host, "smtp.host");
+        redact(&mut host, "smtp.host", &[]);
         assert_eq!(host, json!("h"));
     }
 
     #[test]
+    fn redact_masks_stored_credentials_only() {
+        let stored = ["smtp.password".to_owned()];
+        let mut all = json!({ "smtp": { "password": null, "host": "h" },
+                              "integrations": { "mail": { "graph": { "client_secret": "x" } } } });
+        redact(&mut all, "", &stored);
+        assert_eq!(all["smtp"]["password"], MASK);
+        assert_eq!(
+            all["integrations"]["mail"]["graph"]["client_secret"],
+            Value::Null
+        );
+        let mut leaf = Value::Null;
+        redact(&mut leaf, "smtp.password", &stored);
+        assert_eq!(leaf, MASK);
+        // Nothing lies inside a credential.
+        let mut inner = json!("x");
+        redact(&mut inner, "smtp.password.x", &stored);
+        assert_eq!(inner, Value::Null);
+        // A section without the key gains none.
+        let mut bare = json!({ "host": "h" });
+        redact(&mut bare, "smtp", &stored);
+        assert_eq!(bare, json!({ "host": "h" }));
+    }
+
+    #[test]
     fn every_secret_sits_on_a_secret_rule() {
-        // The tables and SECRET_PATHS must agree, or a credential could be stored.
-        fn walk(path: &str, fields: &[Field], found: &mut Vec<String>) {
+        // The tables and the path lists must agree, or a credential could reach the row.
+        fn walk(path: &str, fields: &[Field], refused: &mut Vec<String>, kept: &mut Vec<String>) {
             for f in fields {
                 let p = format!("{path}.{}", f.key);
                 match &f.rule {
-                    Rule::Secret => found.push(p),
-                    Rule::Object(inner) | Rule::List(inner, _) => walk(&p, inner, found),
+                    Rule::Secret => refused.push(p),
+                    Rule::Credential(_) => kept.push(p),
+                    Rule::Object(inner) | Rule::List(inner, _) => walk(&p, inner, refused, kept),
                     _ => {}
                 }
             }
         }
-        let mut found = Vec::new();
+        let (mut refused, mut kept) = (Vec::new(), Vec::new());
         for (name, fields) in WRITABLE {
-            walk(name, fields, &mut found);
+            walk(name, fields, &mut refused, &mut kept);
         }
-        found.sort();
+        let mut stored: Vec<String> = PATHS.iter().map(|s| (*s).to_owned()).collect();
+        stored.sort();
+        kept.sort();
+        assert_eq!(kept, stored);
+        let mut all = [refused, kept].concat();
+        all.sort();
         let mut listed: Vec<String> = SECRET_PATHS.iter().map(|s| (*s).to_owned()).collect();
         listed.sort();
-        assert_eq!(found, listed);
+        assert_eq!(all, listed);
     }
 
     #[test]
