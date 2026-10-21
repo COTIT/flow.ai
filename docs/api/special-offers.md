@@ -58,15 +58,16 @@ The body keys: `product_id` (global route), `from_date`, `to_date`, `always_acti
 
 **Offer rules**, checked on the merged offer (an update merges the sent keys over the stored row first):
 
-- **Legacy offer** (no `discount_rule_type`): `product_id`, `type` and `value` required. When the value or type is written: a `fixed` value above the product's price is refused (`The selected value is higher then the current product price.`), a `percentage` must lie strictly between 0 and 100 (`Only values between 1 and 99 are available`).
+- **Legacy offer** (no `discount_rule_type`): `product_id`, a legacy `type` (`exact`, `fixed`, `percentage`) and `value` required. When the value or type is written: a `fixed` value above the product's price is refused (`The selected value is higher then the current product price.`), a `percentage` must lie strictly between 0 and 100 (`Only values between 1 and 99 are available`).
 - **Advanced fields without a rule type:** `The discount rule type field is required when discount type / … / apply to cheapest is present.`
 - **Rule offer:**
   - a condition (`product_id`, `condition_brand`, `condition_supplier_relation_id` or `condition_category_id`) unless `global_discount`;
-  - `value` or `discount_value`;
+  - `value` or `discount_value`, zero counting as missing (Laravel `! $value`);
   - `cross_product_discount` needs a target;
   - `quantity_based`, `bogo`, `bundle_price` need `condition_quantity`, `bogo` also `discount_quantity`.
-- **Dates:** unless `always_active`, both dates are required and `from_date` must be before `to_date`. An offer with a product may not overlap another of that product's offers, an always-active one included (`There is already an special offer active between the given dates.`). Writes for one product take a per-product lock, so two parallel offers can't both pass.
-- **Defaults** (Laravel `validated()`): `value` = `discount_value` (or 0) when left out on create; a `discount_value` of 0..100 without a `discount_type` gets `percentage`; `type` = `discount_type` when left out (so `free` and `bundle_price` occur as types); `always_active` clears both dates.
+- **Dates:** unless `always_active`, both dates are required and `from_date` must be before `to_date`. A dated offer with a product may not overlap another of that product's offers, an always-active one included (`There is already an special offer active between the given dates.`). The check runs on create and when a date, `always_active` or the product changes. An always-active offer skips it, as in Laravel, so it can sit next to a dated one; the active pick decides. Writes for one product take a per-product lock, so two parallel offers can't both pass.
+- **At most 100 live offers per product** (`422 {"errors": {"special_offers": ["The product can't hold more than 100 special offers."]}}`): the product detail loads them all.
+- **Defaults** (Laravel `validated()`): `value` = `discount_value` (or 0) when left out on create; a `discount_value` of 0..100 without a `discount_type` gets `percentage` when the value or the rule type is written; `type` = `discount_type` when left out (so `free` and `bundle_price` occur as types); `always_active` clears both dates.
 - **Frozen base price:** a legacy `percentage` or `fixed` offer stores the product's net price when it is created and whenever `value`, `type`, `discount_value` or `discount_type` is edited. Its discount applies to that stored price.
 
 ## How an offer sets a product's price
@@ -81,7 +82,7 @@ Only an offer **with a `product_id`** reaches a price, as in Laravel: brand, sup
 3. **Product fields** (`products.md`): `price` and `business_price` start from their base, take the special price, then the price correction (`price-corrections.md`). `price_without_correction` takes the special price without the correction. `original_price` is the net price, corrected, without the offer. With setting `product.disable_double_discount_for_business`, a product priced below gross starts its consumer price from gross while an offer is active.
 4. **`calculate-items` with a relation** (`pricing.md`): when the product's active offer is a `percentage` above the customer's discount, the customer discount drops to 0 (Laravel `GetProductPrice`).
 
-The product resource also prints `relationships.active_special_offer` and `relationships.special_offers` (every live offer of the product, best first).
+The special price never goes below 0. The product resource also prints `relationships.active_special_offer` and, on the product detail only, `relationships.special_offers` (every live offer of the product, best first; Laravel loaded them on the detail only). Lists and `calculate-items` load only the offers active today.
 
 ## Laravel differences
 
@@ -98,4 +99,7 @@ The product resource also prints `relationships.active_special_offer` and `relat
 | An offer of another product on a product route is 404 | Update: 422 `This special offer does not belong to the provided product` |
 | Delete reads the ids from the path | Read `product_id` and `special_offer_id` from the body |
 | Overlap checks are serialised per product | No lock |
+| At most 100 live offers per product | No cap |
+| A special price is never below 0 | A rule offer with a big `value` printed a negative price |
+| Global, cross-product and BOGO offers apply their amount on their last day too | Its cart engine's `isActive()` compared the end date with the current time, so on the last day they fell back to `type`/`value` |
 | `product_variant_id` is not ported | The column existed, but the API never wrote or printed it |

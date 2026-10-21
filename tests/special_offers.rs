@@ -518,7 +518,7 @@ async fn dated_offers_count_both_days(pool: PgPool) {
 async fn highest_priority_then_newest_wins(pool: PgPool) {
     let w = world(pool).await;
     let api = on(&w);
-    create(
+    let dated = create(
         &api,
         legacy(
             "fixed",
@@ -535,6 +535,14 @@ async fn highest_priority_then_newest_wins(pool: PgPool) {
         prices(&w, &w.product).await,
         want("60", "100"),
         "same priority: newest"
+    );
+    // Editing the dated offer without touching its dates skips the overlap check.
+    let (status, res) = api.update(&dated, json!({ "value": "11" })).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    // A zero discount value counts as missing, as Laravel's `! $value` did.
+    assert_eq!(
+        error(&w.api, "", json!({ "discount_rule_type": "global_discount", "discount_value": "0", "always_active": true }), "discount_value").await,
+        "Either discount_value or value must be provided."
     );
 }
 

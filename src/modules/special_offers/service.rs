@@ -2,8 +2,6 @@
 //! merged row: a legacy offer (no rule type) or a rule offer, dates unless always active, no
 //! overlapping offers per product, refs live in the workspace. Plus the active-offer pick.
 
-use std::collections::BTreeMap;
-
 use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use sqlx::PgConnection;
@@ -12,10 +10,11 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
+    http::json::{Rules, human},
     modules::{
         products::pricing::Offer,
         special_offers::{
-            dto::OfferPatch,
+            dto::{OfferPatch, TYPES},
             repo::{self, ListFilter, OfferFields, OfferRow},
         },
     },
@@ -234,9 +233,8 @@ fn apply(f: &mut OfferFields, p: &OfferPatch, route: Option<Uuid>) {
     set(&mut f.meta, &p.meta);
 }
 
-/// Laravel's rules on the merged offer, then its `validated()` defaults: value from
-/// discount_value, an inferred percentage discount type, type from discount type, no dates
-/// when always active, and the frozen base price. `except` = the offer being updated.
+/// Laravel's rules on the merged offer, then its `validated()` defaults. `except` = the offer
+/// being updated.
 async fn check(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -245,15 +243,48 @@ async fn check(
     except: Option<Uuid>,
 ) -> Result<(), AppError> {
     let creating = except.is_none();
-    let mut e = Errors::default();
-    // Refs sent in this request must be live rows of the workspace.
+    let mut r = Rules::default();
     let price = match f.product_id {
         Some(id) => repo::product_price(&mut *conn, workspace_id, id).await?,
         None => None,
     };
     if f.product_id.is_some() && price.is_none() {
-        e.add("product_id", "The product id does not exist");
+        r.add("product_id", "The product id does not exist");
     }
+    ref_errors(conn, workspace_id, p, &mut r).await?;
+    // Laravel inferred a percentage discount type when a 0..100 discount value came in.
+    if f.discount_rule_type.is_some()
+        && f.discount_type.is_none()
+        && (creating || p.discount_value.is_some() || p.discount_rule_type.is_some())
+        && f.discount_value.is_some_and(|v| v <= Decimal::ONE_HUNDRED)
+    {
+        f.discount_type = Some("percentage".into());
+    }
+    match f.discount_rule_type.clone() {
+        None if p.has_advanced() => r.add("discount_rule_type", RULE_REQUIRED),
+        None => legacy_errors(f, p, price, creating, &mut r),
+        Some(rule) => rule_errors(f, &rule, &mut r),
+    }
+    let dates_sent = creating
+        || p.from_date.is_some()
+        || p.to_date.is_some()
+        || p.always_active.is_some()
+        || p.product_id.is_some();
+    if !f.always_active {
+        window_errors(conn, workspace_id, f, except, dates_sent, &mut r).await?;
+    }
+    r.into_result()?;
+    defaults(f, p, price, creating);
+    Ok(())
+}
+
+/// Sent supplier, category and target product ids must be live rows of the workspace.
+async fn ref_errors(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    p: &OfferPatch,
+    r: &mut Rules,
+) -> Result<(), AppError> {
     for (field, sent) in [
         (
             "condition_supplier_relation_id",
@@ -267,7 +298,7 @@ async fn check(
         if let Some(Some(id)) = sent
             && !repo::relation_live(&mut *conn, workspace_id, *id).await?
         {
-            e.add(field, invalid(field));
+            r.add(field, invalid(field));
         }
     }
     for (field, sent) in [
@@ -277,7 +308,7 @@ async fn check(
         if let Some(Some(id)) = sent
             && !repo::category_live(&mut *conn, workspace_id, *id).await?
         {
-            e.add(field, invalid(field));
+            r.add(field, invalid(field));
         }
     }
     if let Some(Some(id)) = p.target_product_id
@@ -285,142 +316,134 @@ async fn check(
             .await?
             .is_none()
     {
-        e.add("target_product_id", invalid("target_product_id"));
+        r.add("target_product_id", invalid("target_product_id"));
     }
+    Ok(())
+}
 
-    // Laravel inferred a percentage discount type before its rules read it.
-    if f.discount_rule_type.is_some()
-        && f.discount_type.is_none()
-        && f.discount_value.is_some_and(|v| v <= Decimal::ONE_HUNDRED)
+/// A legacy offer: product, a legacy type and a value; the value checked against the price
+/// when the value or type is written.
+fn legacy_errors(
+    f: &OfferFields,
+    p: &OfferPatch,
+    price: Option<Decimal>,
+    creating: bool,
+    r: &mut Rules,
+) {
+    if f.product_id.is_none() {
+        r.add("product_id", "The product id field is required.");
+    }
+    match f.kind.as_deref() {
+        None => r.add("type", "The type field is required."),
+        // A rule offer's type can come from its discount type; legacy needs a real one.
+        Some(k) if !TYPES.contains(&k) => {
+            r.add("type", format!("The selected type: {k} is invalid."))
+        }
+        Some(_) => {}
+    }
+    let priced = creating || p.value.is_some() || p.kind.is_some();
+    match (f.value, f.kind.as_deref(), price) {
+        (None, ..) => r.add("value", "The value field is required."),
+        (Some(v), Some("fixed"), Some(price)) if priced && v > price => r.add("value", OVER_PRICE),
+        (Some(v), Some("percentage"), _)
+            if priced && (v <= Decimal::ZERO || v >= Decimal::ONE_HUNDRED) =>
+        {
+            r.add("value", PERCENT)
+        }
+        _ => {}
+    }
+}
+
+/// A rule offer: a condition unless global, a value, the rule's own fields, and a type (from
+/// the discount type when left out, as Laravel copied it).
+fn rule_errors(f: &mut OfferFields, rule: &str, r: &mut Rules) {
+    let condition = f.product_id.is_some()
+        || f.condition_brand.is_some()
+        || f.condition_supplier_relation_id.is_some()
+        || f.condition_category_id.is_some();
+    if rule != "global_discount" && !condition {
+        r.add("product_id", CONDITION);
+    }
+    // Laravel's `! $value`: zero counts as missing.
+    let missing = |v: Option<Decimal>| v.is_none_or(|v| v.is_zero());
+    if missing(f.value) && missing(f.discount_value) {
+        r.add("discount_value", VALUE_OR_DISCOUNT);
+    }
+    let target = f.target_brand.is_some()
+        || f.target_supplier_relation_id.is_some()
+        || f.target_category_id.is_some()
+        || f.target_product_id.is_some();
+    if rule == "cross_product_discount" && !target {
+        r.add("target_brand", TARGET);
+    }
+    if matches!(rule, "quantity_based" | "bogo" | "bundle_price") && f.condition_quantity.is_none()
     {
-        f.discount_type = Some("percentage".into());
+        r.missing("condition_quantity");
     }
+    if rule == "bogo" && f.discount_quantity.is_none() {
+        r.missing("discount_quantity");
+    }
+    if f.kind.is_none() {
+        f.kind = f.discount_type.clone();
+    }
+    if f.kind.is_none() {
+        r.missing("type");
+    }
+}
 
-    match f.discount_rule_type.as_deref() {
-        None if p.has_advanced() => e.add("discount_rule_type", RULE_REQUIRED),
-        None => {
-            if f.product_id.is_none() {
-                e.add("product_id", "The product id field is required.");
-            }
-            if f.kind.is_none() {
-                e.add("type", "The type field is required.");
-            }
-            // Checked against the price only when the value or type changes.
-            let priced = creating || p.value.is_some() || p.kind.is_some();
-            match (f.value, f.kind.as_deref(), price) {
-                (None, ..) => e.add("value", "The value field is required."),
-                (Some(v), Some("fixed"), Some(price)) if priced && v > price => {
-                    e.add("value", OVER_PRICE)
-                }
-                (Some(v), Some("percentage"), _)
-                    if priced && (v <= Decimal::ZERO || v >= Decimal::ONE_HUNDRED) =>
-                {
-                    e.add("value", PERCENT)
-                }
-                _ => {}
-            }
+/// Both dates, start before end, and (when a date, the flag or the product changes) no
+/// overlap with another offer of the product.
+async fn window_errors(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    f: &OfferFields,
+    except: Option<Uuid>,
+    changed: bool,
+    r: &mut Rules,
+) -> Result<(), AppError> {
+    match (f.from_date, f.to_date) {
+        (Some(from), Some(to)) if from >= to => {
+            r.add("from_date", "The from date must be a date before to date.");
+            r.add("to_date", "The to date must be a date after from date.");
         }
-        Some(rule) => {
-            let condition = f.product_id.is_some()
-                || f.condition_brand.is_some()
-                || f.condition_supplier_relation_id.is_some()
-                || f.condition_category_id.is_some();
-            if rule != "global_discount" && !condition {
-                e.add("product_id", CONDITION);
-            }
-            if f.value.is_none() && f.discount_value.is_none() {
-                e.add("discount_value", VALUE_OR_DISCOUNT);
-            }
-            let target = f.target_brand.is_some()
-                || f.target_supplier_relation_id.is_some()
-                || f.target_category_id.is_some()
-                || f.target_product_id.is_some();
-            if rule == "cross_product_discount" && !target {
-                e.add("target_brand", TARGET);
-            }
-            if matches!(rule, "quantity_based" | "bogo" | "bundle_price")
-                && f.condition_quantity.is_none()
+        (Some(from), Some(to)) => {
+            if let Some(product) = f.product_id.filter(|_| changed)
+                && repo::overlaps(&mut *conn, workspace_id, product, from, to, except).await?
             {
-                e.add(
-                    "condition_quantity",
-                    "The condition quantity field is required.",
-                );
+                r.add("to_date", OVERLAP);
             }
-            if rule == "bogo" && f.discount_quantity.is_none() {
-                e.add(
-                    "discount_quantity",
-                    "The discount quantity field is required.",
-                );
+        }
+        (from, to) => {
+            if from.is_none() {
+                r.missing("from_date");
             }
-            // Laravel copied the discount type into `type` when it was left out.
-            if f.kind.is_none() {
-                f.kind = f.discount_type.clone();
-            }
-            if f.kind.is_none() {
-                e.add("type", "The type field is required.");
+            if to.is_none() {
+                r.missing("to_date");
             }
         }
     }
+    Ok(())
+}
 
+/// Laravel `validated()` and its listeners: value from discount_value (or 0), no dates when
+/// always active, and the frozen product price under a legacy percentage/fixed offer (on
+/// create and on every edit of a price field).
+fn defaults(f: &mut OfferFields, p: &OfferPatch, price: Option<Decimal>, creating: bool) {
+    f.value = f.value.or(f.discount_value).or(Some(Decimal::ZERO));
     if f.always_active {
         f.from_date = None;
         f.to_date = None;
-    } else {
-        match (f.from_date, f.to_date) {
-            (Some(from), Some(to)) if from >= to => {
-                e.add("from_date", "The from date must be a date before to date.");
-                e.add("to_date", "The to date must be a date after from date.");
-            }
-            (Some(from), Some(to)) => {
-                if let Some(product) = f.product_id
-                    && repo::overlaps(&mut *conn, workspace_id, product, from, to, except).await?
-                {
-                    e.add("to_date", OVERLAP);
-                }
-            }
-            (from, to) => {
-                if from.is_none() {
-                    e.add("from_date", "The from date field is required.");
-                }
-                if to.is_none() {
-                    e.add("to_date", "The to date field is required.");
-                }
-            }
-        }
     }
-    e.into_result()?;
-    f.value = f.value.or(f.discount_value).or(Some(Decimal::ZERO));
-
-    // Laravel froze the product price under a legacy percentage/fixed offer, on create and on
-    // every edit of a price field.
     if creating || p.touches_price() {
         let freezes = f.discount_rule_type.is_none()
             && matches!(f.kind.as_deref(), Some("percentage" | "fixed"));
         f.base_price = price.filter(|_| freezes);
     }
-    Ok(())
 }
 
 /// Laravel `exists` text.
 fn invalid(field: &str) -> String {
-    format!("The selected {} is invalid.", field.replace('_', " "))
-}
-
-#[derive(Default)]
-struct Errors(BTreeMap<String, Vec<String>>);
-
-impl Errors {
-    fn add(&mut self, field: &str, msg: impl Into<String>) {
-        self.0.entry(field.to_owned()).or_default().push(msg.into());
-    }
-
-    fn into_result(self) -> Result<(), AppError> {
-        if self.0.is_empty() {
-            Ok(())
-        } else {
-            Err(AppError::Validation(self.0))
-        }
-    }
+    format!("The selected {} is invalid.", human(field))
 }
 
 /// Malformed id = unknown id = 404.

@@ -179,14 +179,24 @@ pub fn special(base: Decimal, raw: Decimal, o: &Offer) -> Option<Decimal> {
             _ => base.checked_sub(o.value),
         };
     }
-    // Cart rules: CalculateSpecialOfferDiscount's amount for this offer (a 0..100 value
-    // without a discount type counts as a percentage).
+    let amount = cart_amount(raw, o)?;
+    if amount > Decimal::ZERO {
+        Some(base.checked_sub(amount)?.max(Decimal::ZERO))
+    } else {
+        by_type()
+    }
+}
+
+/// Cart rules: CalculateSpecialOfferDiscount's amount for this offer from the stored price `raw`
+/// (a 0..100 value without a discount type counts as a percentage). None on overflow.
+fn cart_amount(raw: Decimal, o: &Offer) -> Option<Decimal> {
+    let hundred = Decimal::ONE_HUNDRED;
     let kind = o.discount_type.or_else(|| {
         o.discount_value
             .filter(|v| (Decimal::ZERO..=hundred).contains(v))
             .map(|_| "percentage")
     });
-    let amount = match (o.discount_value, kind) {
+    Some(match (o.discount_value, kind) {
         (Some(dv), Some("percentage")) => raw.checked_mul(dv)?.checked_div(hundred)?,
         (Some(dv), Some("fixed")) => dv,
         (Some(_), Some("free")) => raw,
@@ -196,12 +206,7 @@ pub fn special(base: Decimal, raw: Decimal, o: &Offer) -> Option<Decimal> {
         },
         (None, Some("percentage")) => raw.checked_mul(o.value)?.checked_div(hundred)?,
         (dv, _) => dv.unwrap_or(o.value),
-    };
-    if amount > Decimal::ZERO {
-        Some(base.checked_sub(amount)?.max(Decimal::ZERO))
-    } else {
-        by_type()
-    }
+    })
 }
 
 /// Laravel's four net prices.
@@ -234,14 +239,14 @@ pub struct PriceInputs<'a> {
 /// Laravel ProductPriceTrait getters. With `business_from_gross`, a product priced below gross
 /// starts its business price from gross, and its consumer price too while an offer is active.
 pub fn prices(i: &PriceInputs) -> Prices {
-    let correct_ = |v: Decimal| {
+    let banded = |v: Decimal| {
         band_for(i.bands, v)
             .filter(|_| !i.excluded)
             .and_then(|b| correct(v, i.vat_pct, b))
             .unwrap_or(v)
     };
     // A special price never goes below 0 (Laravel could print a negative one).
-    let special_ = |v: Decimal| {
+    let offered = |v: Decimal| {
         i.offer
             .as_ref()
             .and_then(|o| special(v, i.net, o))
@@ -254,11 +259,12 @@ pub fn prices(i: &PriceInputs) -> Prices {
     } else {
         i.net
     };
+    let business = offered(business_base);
     Prices {
-        consumer: correct_(special_(consumer_base)),
-        original: correct_(i.net),
-        business: correct_(special_(business_base)),
-        uncorrected: special_(business_base),
+        consumer: banded(offered(consumer_base)),
+        original: banded(i.net),
+        business: banded(business),
+        uncorrected: business,
     }
 }
 

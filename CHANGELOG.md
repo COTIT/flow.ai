@@ -8,6 +8,7 @@
   - Rules from Laravel Store/UpdateSpecialOfferRequest on the merged row; overlapping dates per product checked under a per-product lock.
   - **Prices:** the product's active offer (highest priority, then newest) sets `price`, `business_price` and `price_without_correction` (`products::pricing::special`, Laravel `calculateSpecialPrice` without a cart); `original_price` skips it; price bands apply after the offer. `relationships.active_special_offer` / `special_offers` are real.
   - `calculate-items`: a bigger percentage offer cancels the customer discount.
+  - Review fixes: at most 100 live offers per product; lists and `calculate-items` load only today's offers and only the detail prints `special_offers`; a special price never goes below 0; editing an offer without touching its dates, flag or product skips the overlap check (it refused any edit next to an always-active offer); the discount type inference and the legacy type check follow Laravel more closely; `check` split into smaller steps on `Rules`.
   - **Laravel differences:** offer pick by priority then newest; global/cross-product/BOGO offers apply their own discount (Laravel's empty-cart engine could pick another workspace offer); update is a patch (Laravel reset `always_active` and detached the product); two dead Laravel rules enforced; 422 instead of 500 for a missing type; uuids for every id.
 
 - Final batch F3c (price corrections, contract `docs/api/price-corrections.md`):

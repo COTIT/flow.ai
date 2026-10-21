@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use chrono::Utc;
+use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -52,6 +52,8 @@ pub struct Embeds {
     pub business_from_gross: bool,
     /// Live special offers per product, best first.
     pub offers: HashMap<Uuid, Vec<OfferRow>>,
+    /// The UTC date the offers were loaded for (one per request).
+    pub today: NaiveDate,
 }
 
 /// One product. `detail`: GET one (Laravel loaded more there).
@@ -62,7 +64,7 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
     let lines = e.stocks.get(&p.id).map_or(&[][..], Vec::as_slice);
     let pos = if mutates { pos_pick(p, lines, e) } else { None };
     let offers = e.offers.get(&p.id).map_or(&[][..], Vec::as_slice);
-    let active = special_offers::service::active(offers, Utc::now().date_naive());
+    let active = special_offers::service::active(offers, e.today);
     let net = prices(&PriceInputs {
         net: p.price,
         gross: p.gross_price,
