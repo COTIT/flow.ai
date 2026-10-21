@@ -54,6 +54,6 @@ pub async fn update(
     access: Can<SettingUpdate>,
     ValidatedJson(input): ValidatedJson<UpdateSettingsRequest>,
 ) -> Result<Message, AppError> {
-    service::update(&state, access.workspace_id, input).await?;
+    service::update(&state, access.workspace_id, access.user_id, input).await?;
     Ok(Message("ok"))
 }

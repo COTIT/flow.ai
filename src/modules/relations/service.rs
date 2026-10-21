@@ -72,7 +72,8 @@ pub async fn create(
         c.phone_number = phone::normalize(c.phone_number.as_deref(), country);
         phone::normalize_phones(&mut c.phones, country);
     }
-    // The workspace's relation series, snapshotted per row like Laravel's relation_appendix.
+    // Lock first, then read the series, so the snapshot is the latest settings.
+    repo::lock_numbers(&mut tx, workspace_id).await?;
     let (appendix, start) =
         settings::service::numbering(&mut *tx, workspace_id, "relation").await?;
     let number = repo::next_number(&mut tx, workspace_id, start).await?;

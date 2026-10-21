@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT pg_advisory_xact_lock(hashtext('relations.relation_number'), hashtext($1::text))",
+  "query": "SELECT pg_advisory_xact_lock(hashtextextended('products.product_number|' || $1::text, 0))",
   "describe": {
     "columns": [
       {
@@ -19,5 +19,5 @@
       null
     ]
   },
-  "hash": "1ae1fa82bcc6931a8389ce58fa3248d2b1fb5efed1d7ce26a55469d672a816bd"
+  "hash": "5f50cd59ee1b3722525fc79108e88e75fda514114597d836b5321a3052170299"
 }

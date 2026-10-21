@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde_json::Value;
-use sqlx::{PgConnection, PgExecutor};
+use sqlx::{PgConnection, PgExecutor, Postgres, Transaction};
 use uuid::Uuid;
 
 /// A product row, read and written whole (the service locks, merges and writes it back).
@@ -95,29 +95,40 @@ pub struct ListFilter<'a> {
     pub offset: i64,
 }
 
-/// Next product number, serialized per workspace (Laravel MAX+1 had no lock). Deleted rows
-/// count: numbers are never reused. `start` (settings) applies only to the first numbered
-/// product, as in Laravel GetHighestNumber.
+/// Serialize product numbering per workspace for the rest of `tx` (Laravel MAX+1 had no lock).
+/// Take it before reading the series settings. One 64-bit key: no lock shared across
+/// workspaces.
+pub async fn lock_numbers(
+    tx: &mut Transaction<'_, Postgres>,
+    workspace_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    // A waiter holds a pooled connection; give up instead of starving the pool.
+    sqlx::query!("SET LOCAL lock_timeout = '5s'")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query!(
+        "SELECT pg_advisory_xact_lock(hashtextextended('products.product_number|' || $1::text, 0))",
+        workspace_id.to_string(),
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+/// Next product number under `lock_numbers`. Deleted rows count: numbers are never reused.
+/// `start` (settings) applies only to the first numbered product (Laravel GetHighestNumber).
+/// Keep this a separate statement after the lock (READ COMMITTED then sees the previous
+/// holder's committed row).
 pub async fn next_number(
-    conn: &mut PgConnection,
+    tx: &mut Transaction<'_, Postgres>,
     workspace_id: Uuid,
     start: i64,
 ) -> Result<i64, sqlx::Error> {
-    // A waiter holds a pooled connection; give up instead of starving the pool.
-    sqlx::query!("SET LOCAL lock_timeout = '5s'")
-        .execute(&mut *conn)
-        .await?;
-    sqlx::query!(
-        "SELECT pg_advisory_xact_lock(hashtext('products.product_number'), hashtext($1::text))",
-        workspace_id.to_string(),
-    )
-    .execute(&mut *conn)
-    .await?;
     let max = sqlx::query_scalar!(
         "SELECT max(product_number) FROM products WHERE workspace_id = $1",
         workspace_id,
     )
-    .fetch_one(&mut *conn)
+    .fetch_one(&mut **tx)
     .await?;
     max.map_or(Ok(start), |n| {
         n.checked_add(1)

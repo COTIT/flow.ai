@@ -7,8 +7,9 @@ use serde_json::{Map, Value, json};
 use uuid::Uuid;
 
 use crate::{
-    http::json::{Rules, human},
+    http::json::{Rules, human, is_url},
     money::MAX,
+    numbering::MAX_START,
 };
 
 /// 422 text for a credential sent before F2b.
@@ -33,11 +34,12 @@ pub const SECRET_PATHS: &[&str] = &[
 const LONG: usize = 65_535;
 
 /// A row another table must hold in this workspace (the service checks it).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Table {
     Warehouses,
     Relations,
-    CustomTypes,
+    /// Custom types of the `relation` domain.
+    RelationTypes,
     Teams,
 }
 
@@ -59,14 +61,17 @@ pub enum Rule {
     Ref(Table),
     /// A credential: null or blank is kept as null, anything else is refused.
     Secret,
-    Ints,
-    /// List of strings of at most N chars.
-    Strs(usize),
-    Numbers,
+    /// http(s) URL without credentials in it (an endpoint a later batch will call).
+    Url,
+    /// List of at most N integers.
+    Ints(usize),
+    /// List of at most `.1` strings of at most `.0` chars.
+    Strs(usize, usize),
+    /// List of at most N numbers, kept as sent.
+    Numbers(usize),
     Object(&'static [Field]),
-    List(&'static [Field]),
-    /// Kept as sent (pay terminals: Laravel stored the array unvalidated).
-    Raw,
+    /// List of at most N objects.
+    List(&'static [Field], usize),
 }
 
 /// One key of a section.
@@ -107,6 +112,10 @@ const fn checked_only(key: &'static str, rule: Rule) -> Field {
 
 const ANY: Rule = Rule::Int(i64::MIN, i64::MAX);
 const DIGITS: Rule = Rule::Int(i64::MIN, 10);
+/// A start number past this would let the series overflow (Laravel took any integer).
+const START: Rule = Rule::Int(0, MAX_START);
+/// Payment terms and validity periods in days; later batches add them to dates.
+const DAYS: Rule = Rule::Int(0, 3650);
 
 const SMTP: &[Field] = &[
     f("host", Rule::Text(255)),
@@ -128,9 +137,9 @@ const CUSTOMER_REF: &[Field] = &[
 const INVOICE: &[Field] = &[
     f("prefix", Rule::Text(10)),
     f("suffix", Rule::Text(10)),
-    f("start_number", ANY),
-    f("default_payment_term", ANY),
-    f("default_payment_term_company", ANY),
+    f("start_number", START),
+    f("default_payment_term", DAYS),
+    f("default_payment_term_company", DAYS),
     f("default_footer_message", Rule::Text(2500)),
     f("default_note", Rule::Text(1000)),
     f("digits", DIGITS),
@@ -141,9 +150,9 @@ const INVOICE: &[Field] = &[
 const TERMS: &[Field] = &[
     f("prefix", Rule::Text(10)),
     f("suffix", Rule::Text(10)),
-    f("start_number", ANY),
-    f("default_payment_term", ANY),
-    f("default_payment_term_company", ANY),
+    f("start_number", START),
+    f("default_payment_term", DAYS),
+    f("default_payment_term_company", DAYS),
     f("default_footer_message", Rule::Text(255)),
     f("default_note", Rule::Text(1000)),
     f("digits", DIGITS),
@@ -152,9 +161,9 @@ const TERMS: &[Field] = &[
 const ESTIMATE: &[Field] = &[
     f("prefix", Rule::Text(10)),
     f("suffix", Rule::Text(10)),
-    f("start_number", ANY),
-    f("default_validity_period", ANY),
-    f("default_validity_period_company", ANY),
+    f("start_number", START),
+    f("default_validity_period", DAYS),
+    f("default_validity_period_company", DAYS),
     f("default_footer_message", Rule::Text(255)),
     f("default_note", Rule::Text(1000)),
     f("digits", DIGITS),
@@ -164,14 +173,14 @@ const ESTIMATE: &[Field] = &[
 const NUMBERING: &[Field] = &[
     f("prefix", Rule::Text(10)),
     f("suffix", Rule::Text(10)),
-    f("start_number", ANY),
+    f("start_number", START),
     f("digits", DIGITS),
 ];
 
 const WORK_ORDER: &[Field] = &[
     f("prefix", Rule::Text(10)),
     f("suffix", Rule::Text(10)),
-    f("start_number", ANY),
+    f("start_number", START),
     f("digits", DIGITS),
     f("fetch_users_from_team_id", Rule::Ref(Table::Teams)),
 ];
@@ -179,7 +188,7 @@ const WORK_ORDER: &[Field] = &[
 const PRODUCT: &[Field] = &[
     f("prefix", Rule::Text(10)),
     f("suffix", Rule::Text(10)),
-    f("start_number", ANY),
+    f("start_number", START),
     f("digits", DIGITS),
     f(
         "second_chance_product_default_warehouse_id",
@@ -203,13 +212,13 @@ const SHIPPING_OPTION: &[Field] = &[
 const CASH_REGISTER: &[Field] = &[
     f("prefix", Rule::Text(10)),
     f("suffix", Rule::Text(10)),
-    f("start_number", ANY),
+    f("start_number", START),
     f("digits", DIGITS),
     f("receipt_line_length", Rule::Int(20, 80)),
     f("receipt_footer", Rule::Text(1500)),
     f("receipt_header", Rule::Text(1500)),
     f("receipt_logo_id", Rule::Text(1500)),
-    f("accepted_cash", Rule::Numbers),
+    f("accepted_cash", Rule::Numbers(50)),
     f("use_pin_code_after_each_order", Rule::Bool),
     f("allow_individual_lines", Rule::Bool),
     f(
@@ -222,17 +231,17 @@ const CASH_REGISTER: &[Field] = &[
         "default_mutate_from_warehouse_id",
         Rule::Ref(Table::Warehouses),
     ),
-    f("default_relation_type_id", Rule::Ref(Table::CustomTypes)),
-    f("shipping_options", Rule::List(SHIPPING_OPTION)),
+    f("default_relation_type_id", Rule::Ref(Table::RelationTypes)),
+    f("shipping_options", Rule::List(SHIPPING_OPTION, 50)),
 ];
 
 const LEDGER: &[Field] = &[f("name", Rule::Text(LONG)), req("no", Rule::Number)];
 
 const INCOMING_INVOICE: &[Field] = &[
-    f("required_approvals", ANY),
+    f("required_approvals", Rule::Int(0, 100)),
     f("ledger_number", Rule::TextOrNumber(50)),
     f("ignore_due_date_on_import", Rule::Bool),
-    f("ledgers", Rule::List(LEDGER)),
+    f("ledgers", Rule::List(LEDGER, 500)),
 ];
 
 const GENERAL: &[Field] = &[
@@ -243,6 +252,13 @@ const GENERAL: &[Field] = &[
     f("thousand_separator", Rule::Text(255)),
     f("decimal_separator", Rule::Text(255)),
     f("color", Rule::Text(255)),
+];
+
+/// A PAY.nl terminal as vimdesk-web saves it (`pay/edit.vue` keeps id + name).
+const TERMINAL: &[Field] = &[
+    f("id", Rule::Text(255)),
+    f("name", Rule::Text(255)),
+    f("simulation", Rule::Bool),
 ];
 
 const INTEGRATIONS: &[Field] = &[
@@ -257,7 +273,7 @@ const INTEGRATIONS: &[Field] = &[
                     Rule::Object(&[
                         f("secret", Rule::Secret),
                         f("public", Rule::Secret),
-                        f("countries", Rule::Strs(2)),
+                        f("countries", Rule::Strs(2, 300)),
                     ]),
                 )]),
             ),
@@ -277,7 +293,7 @@ const INTEGRATIONS: &[Field] = &[
                             f("api_code", Rule::Secret),
                             f("api_token", Rule::Secret),
                             f("service_id", Rule::Secret),
-                            f("terminals", Rule::Raw),
+                            f("terminals", Rule::List(TERMINAL, 100)),
                         ]),
                     ),
                 ]),
@@ -310,7 +326,7 @@ const INTEGRATIONS: &[Field] = &[
                     f(
                         "prestashop",
                         Rule::Object(&[
-                            f("shop_url", Rule::Text(LONG)),
+                            f("shop_url", Rule::Url),
                             f("error_email", Rule::Email),
                             f("orders_enabled", Rule::Bool),
                             f("orders_from", Rule::Text(LONG)),
@@ -321,7 +337,7 @@ const INTEGRATIONS: &[Field] = &[
                     ),
                     f(
                         "hostbill",
-                        Rule::Object(&[f("enabled", Rule::Bool), f("endpoint", Rule::Text(LONG))]),
+                        Rule::Object(&[f("enabled", Rule::Bool), f("endpoint", Rule::Url)]),
                     ),
                     f(
                         "modjo",
@@ -340,15 +356,15 @@ const INTEGRATIONS: &[Field] = &[
         Rule::Object(&[f(
             "picqer",
             Rule::Object(&[
-                f("base_url", Rule::Text(LONG)),
+                f("base_url", Rule::Url),
                 f("api_key", Rule::Secret),
                 f("user_agent", Rule::Text(LONG)),
                 f("order_export_warehouse_import_id", Rule::Text(LONG)),
                 f("order_export_start_date", Rule::Date),
-                f("order_export_tag_ids", Rule::Ints),
-                f("order_export_business_tag_ids", Rule::Ints),
-                f("order_export_pickup_tag_ids", Rule::Ints),
-                f("order_export_skip_import_sources", Rule::Strs(LONG)),
+                f("order_export_tag_ids", Rule::Ints(500)),
+                f("order_export_business_tag_ids", Rule::Ints(500)),
+                f("order_export_pickup_tag_ids", Rule::Ints(500)),
+                f("order_export_skip_import_sources", Rule::Strs(255, 100)),
                 f("product_export_tag_id", ANY),
                 f("auto_create_products", Rule::Bool),
                 f("auto_create_second_chance_products", Rule::Bool),
@@ -381,7 +397,10 @@ const INTEGRATIONS: &[Field] = &[
                     ),
                     f(
                         "senders",
-                        Rule::List(&[f("email", Rule::Email), f("sender_name", Rule::Text(255))]),
+                        Rule::List(
+                            &[f("email", Rule::Email), f("sender_name", Rule::Text(255))],
+                            100,
+                        ),
                     ),
                 ]),
             ),
@@ -516,24 +535,19 @@ pub fn defaults(section: &str) -> Option<Value> {
 }
 
 /// `stored` over `default`, the way Laravel's Data casts filled a section: keys not stored
-/// take the default, and a null child object becomes its default object.
+/// take the default, a null (or non-object) child object becomes its default object, and
+/// stored keys the default doesn't list are dropped.
 pub fn overlay(default: &Value, stored: &Value) -> Value {
     match (default, stored) {
-        (Value::Object(_), Value::Null) => default.clone(),
-        (Value::Object(d), Value::Object(s)) => {
-            let mut out = d.clone();
-            for (k, v) in s {
-                let merged = match d.get(k) {
-                    Some(dv) => overlay(dv, v),
-                    None => v.clone(),
-                };
-                out.insert(k.clone(), merged);
-            }
-            out.into_iter()
-                .filter(|(k, _)| d.contains_key(k))
-                .collect::<Map<_, _>>()
-                .into()
-        }
+        (Value::Object(d), Value::Object(s)) => d
+            .iter()
+            .map(|(k, dv)| {
+                let v = s.get(k).map_or_else(|| dv.clone(), |sv| overlay(dv, sv));
+                (k.clone(), v)
+            })
+            .collect::<Map<_, _>>()
+            .into(),
+        (Value::Object(_), _) => default.clone(),
         (_, s) => s.clone(),
     }
 }
@@ -555,14 +569,41 @@ pub fn section(
     v: &Value,
     refs: &mut Vec<Reference>,
 ) -> Value {
+    let v = laravel_input(v, "");
     if v.is_null() {
         return Value::Null;
     }
-    let out = object(r, name, fields, v, refs).map_or(Value::Null, Value::Object);
+    let out = object(r, name, fields, &v, refs).map_or(Value::Null, Value::Object);
     if name == "integrations" {
-        graph_required(r, v);
+        graph_required(r, &v);
     }
     out
+}
+
+/// Laravel's global TrimStrings + ConvertEmptyStringsToNull middleware, applied to the whole
+/// input before validation: strings are trimmed (not `password`) and blank ones become null.
+fn laravel_input(v: &Value, key: &str) -> Value {
+    match v {
+        Value::String(s) => {
+            let t = if key == "password" {
+                s.as_str()
+            } else {
+                s.trim()
+            };
+            if t.is_empty() {
+                Value::Null
+            } else {
+                Value::String(t.to_owned())
+            }
+        }
+        Value::Array(a) => Value::Array(a.iter().map(|x| laravel_input(x, "")).collect()),
+        Value::Object(o) => Value::Object(
+            o.iter()
+                .map(|(k, x)| (k.clone(), laravel_input(x, k)))
+                .collect(),
+        ),
+        other => other.clone(),
+    }
 }
 
 fn object(
@@ -580,23 +621,16 @@ fn object(
     for field in fields {
         let key = format!("{path}.{}", field.key);
         let value = sent.get(field.key);
-        let blank =
-            value.is_none_or(|v| v.is_null() || v.as_str().is_some_and(|s| s.trim().is_empty()));
-        if field.required && blank {
+        if field.required && value.is_none_or(Value::is_null) {
             r.missing(&key);
             continue;
         }
-        let Some(value) = value else {
-            continue;
-        };
-        let kept = if value.is_null() {
-            match field.rule {
-                // A null child object takes its default (Laravel `from([])`).
-                Rule::Object(_) => continue,
-                _ => Some(Value::Null),
-            }
-        } else {
-            one(r, &key, &field.rule, value, refs)
+        let kept = match value {
+            None => continue,
+            // A null child object takes its default (Laravel `from([])`).
+            Some(Value::Null) if matches!(field.rule, Rule::Object(_)) => continue,
+            Some(Value::Null) => Some(Value::Null),
+            Some(v) => one(r, &key, &field.rule, v, refs),
         };
         if let (true, Some(kept)) = (field.keep, kept) {
             out.insert(field.key.to_owned(), kept);
@@ -613,30 +647,12 @@ fn one(
     v: &Value,
     refs: &mut Vec<Reference>,
 ) -> Option<Value> {
-    let h = human(key);
     match rule {
-        Rule::Text(max) => match v {
-            Value::String(s) => {
-                r.max_chars(key, s, *max);
-                Some(v.clone())
-            }
-            _ => {
-                r.add(key, format!("The {h} must be a string."));
-                None
-            }
+        Rule::Text(max) => text(r, key, v, *max),
+        Rule::TextOrNumber(max) => match v {
+            Value::Number(n) => text(r, key, &Value::String(n.to_string()), *max),
+            _ => text(r, key, v, *max),
         },
-        Rule::TextOrNumber(max) => {
-            let s = match v {
-                Value::String(s) => s.clone(),
-                Value::Number(n) => n.to_string(),
-                _ => {
-                    r.add(key, format!("The {h} must be a string."));
-                    return None;
-                }
-            };
-            r.max_chars(key, &s, *max);
-            Some(Value::String(s))
-        }
         Rule::Int(min, max) => r.integer(key, v, *min, *max).map(Value::from),
         Rule::Bool => r.boolean(key, v).map(Value::Bool),
         Rule::Number => r.decimal(key, v, -MAX, MAX).map(|_| v.clone()),
@@ -645,71 +661,35 @@ fn one(
                 r.email(key, s);
                 Some(v.clone())
             }
-            None => {
-                r.add(key, format!("The {h} must be a valid email address."));
-                None
-            }
+            None => check(r, key, v, |_| false, "must be a valid email address"),
         },
-        Rule::Date => {
-            if v.as_str().is_some_and(is_date) {
-                Some(v.clone())
-            } else {
-                r.add(key, format!("The {h} is not a valid date."));
-                None
-            }
-        }
+        Rule::Date => check(r, key, v, is_date, "is not a valid date"),
+        Rule::Url => check(r, key, v, is_url, "must be a valid URL"),
         Rule::OneOf(allowed) => {
-            if v.as_str().is_some_and(|s| allowed.contains(&s)) {
-                Some(v.clone())
-            } else {
-                r.add(key, format!("The selected {h} is invalid."));
+            let ok = v.as_str().is_some_and(|s| allowed.contains(&s));
+            ok.then(|| v.clone()).or_else(|| {
+                r.add(key, format!("The selected {} is invalid.", human(key)));
                 None
-            }
+            })
         }
         Rule::Encryption => {
-            if matches!(v.as_str(), Some("ssl" | "tls")) {
-                Some(v.clone())
-            } else {
-                r.add(key, format!("Invalid {h} encryption type."));
+            let ok = matches!(v.as_str(), Some("ssl" | "tls"));
+            ok.then(|| v.clone()).or_else(|| {
+                r.add(key, format!("Invalid {} encryption type.", human(key)));
                 None
-            }
+            })
         }
-        Rule::Ref(table) => match v.as_str().and_then(|s| Uuid::parse_str(s).ok()) {
-            Some(id) => {
-                refs.push(Reference {
-                    field: key.to_owned(),
-                    table: *table,
-                    id,
-                });
-                Some(Value::String(id.to_string()))
-            }
-            None => {
-                r.add(key, format!("The {h} must be a valid UUID."));
-                None
-            }
-        },
+        Rule::Ref(table) => reference(r, key, v, *table, refs),
+        // Blank already became null (laravel_input); any other value is a credential.
         Rule::Secret => {
-            if v.as_str().is_some_and(|s| s.trim().is_empty()) {
-                Some(Value::Null)
-            } else {
-                r.add(key, SECRET_REFUSED);
-                None
-            }
+            r.add(key, SECRET_REFUSED);
+            None
         }
-        Rule::Ints => list(r, key, v, |r, k, item| {
+        Rule::Ints(cap) => list(r, key, v, *cap, |r, k, item| {
             r.integer(k, item, i64::MIN, i64::MAX).map(Value::from)
         }),
-        Rule::Strs(max) => list(r, key, v, |r, k, item| match item {
-            Value::String(s) => {
-                r.max_chars(k, s, *max);
-                Some(item.clone())
-            }
-            _ => {
-                r.add(k, format!("The {} must be a string.", human(k)));
-                None
-            }
-        }),
-        Rule::Numbers => list(r, key, v, |r, k, item| {
+        Rule::Strs(max, cap) => list(r, key, v, *cap, |r, k, item| text(r, k, item, *max)),
+        Rule::Numbers(cap) => list(r, key, v, *cap, |r, k, item| {
             if item.is_null() {
                 r.missing(k);
                 return None;
@@ -717,29 +697,80 @@ fn one(
             r.decimal(k, item, -MAX, MAX).map(|_| item.clone())
         }),
         Rule::Object(fields) => object(r, key, fields, v, refs).map(Value::Object),
-        Rule::List(fields) => {
-            let mut nested_refs = Vec::new();
-            let out = list(r, key, v, |r, k, item| {
-                object(r, k, fields, item, &mut nested_refs).map(Value::Object)
-            });
-            refs.extend(nested_refs);
-            out
-        }
-        Rule::Raw => Some(v.clone()),
+        Rule::List(fields, cap) => list(r, key, v, *cap, |r, k, item| {
+            object(r, k, fields, item, refs).map(Value::Object)
+        }),
     }
 }
 
-/// `v` as a list, each entry checked by `each` at `key.N`.
+/// A string of at most `max` chars.
+fn text(r: &mut Rules, key: &str, v: &Value, max: usize) -> Option<Value> {
+    match v {
+        Value::String(s) => {
+            r.max_chars(key, s, max);
+            Some(v.clone())
+        }
+        _ => {
+            r.add(key, format!("The {} must be a string.", human(key)));
+            None
+        }
+    }
+}
+
+/// A string passing `ok`, else "The X `what`.".
+fn check(
+    r: &mut Rules,
+    key: &str,
+    v: &Value,
+    ok: impl Fn(&str) -> bool,
+    what: &str,
+) -> Option<Value> {
+    if v.as_str().is_some_and(ok) {
+        Some(v.clone())
+    } else {
+        r.add(key, format!("The {} {what}.", human(key)));
+        None
+    }
+}
+
+/// A uuid, collected for the existence check.
+fn reference(
+    r: &mut Rules,
+    key: &str,
+    v: &Value,
+    table: Table,
+    refs: &mut Vec<Reference>,
+) -> Option<Value> {
+    let Some(id) = v.as_str().and_then(|s| Uuid::parse_str(s).ok()) else {
+        r.add(key, format!("The {} must be a valid UUID.", human(key)));
+        return None;
+    };
+    refs.push(Reference {
+        field: key.to_owned(),
+        table,
+        id,
+    });
+    Some(Value::String(id.to_string()))
+}
+
+/// `v` as a list of at most `cap` entries, each checked by `each` at `key.N`. An oversized
+/// list is one error, never one per entry.
 fn list(
     r: &mut Rules,
     key: &str,
     v: &Value,
+    cap: usize,
     mut each: impl FnMut(&mut Rules, &str, &Value) -> Option<Value>,
 ) -> Option<Value> {
     let Value::Array(items) = v else {
         r.add(key, format!("The {} must be an array.", human(key)));
         return None;
     };
+    if items.len() > cap {
+        let msg = format!("The {} must not have more than {cap} items.", human(key));
+        r.add(key, msg);
+        return None;
+    }
     let out: Vec<Value> = items
         .iter()
         .enumerate()
@@ -750,7 +781,6 @@ fn list(
 
 /// Laravel `date` (strtotime): a calendar date or a date-time.
 fn is_date(s: &str) -> bool {
-    let s = s.trim();
     NaiveDate::parse_from_str(s, "%Y-%m-%d").is_ok()
         || NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S").is_ok()
         || NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S").is_ok()
@@ -764,8 +794,7 @@ fn graph_required(r: &mut Rules, sent: &Value) {
         return;
     }
     for key in ["tenant_id", "client_id", "client_secret", "mailbox"] {
-        let v = &mail["graph"][key];
-        if v.is_null() || v.as_str().is_some_and(|s| s.trim().is_empty()) {
+        if mail["graph"][key].is_null() {
             let field = format!("integrations.mail.graph.{key}");
             let msg = format!(
                 "The {} field is required when integrations.mail.driver is graph.",
@@ -780,14 +809,17 @@ fn graph_required(r: &mut Rules, sent: &Value) {
 pub fn redact(value: &mut Value, path: &str) {
     for secret in SECRET_PATHS {
         // The value is a credential, or lies inside one.
-        if path == *secret || path.starts_with(&format!("{secret}.")) {
+        if path
+            .strip_prefix(secret)
+            .is_some_and(|r| r.is_empty() || r.starts_with('.'))
+        {
             *value = Value::Null;
             return;
         }
         let rest = if path.is_empty() {
             Some(*secret)
         } else {
-            secret.strip_prefix(&format!("{path}."))
+            secret.strip_prefix(path).and_then(|r| r.strip_prefix('.'))
         };
         if let Some(slot) =
             rest.and_then(|rest| rest.split('.').try_fold(&mut *value, |v, k| v.get_mut(k)))
@@ -849,7 +881,7 @@ mod tests {
                 let p = format!("{path}.{}", f.key);
                 match &f.rule {
                     Rule::Secret => found.push(p),
-                    Rule::Object(inner) | Rule::List(inner) => walk(&p, inner, found),
+                    Rule::Object(inner) | Rule::List(inner, _) => walk(&p, inner, found),
                     _ => {}
                 }
             }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT EXISTS (SELECT 1 FROM custom_types\n                              WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL) AS \"e!\"",
+  "query": "SELECT EXISTS (SELECT 1 FROM custom_types\n                              WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL\n                                AND domain = 'relation') AS \"e!\"",
   "describe": {
     "columns": [
       {
@@ -20,5 +20,5 @@
       null
     ]
   },
-  "hash": "e5d5650bce061ce888126b9196512c314c9e40679a78a4e6c68468863dff4a0f"
+  "hash": "870f59e3a956f915a37b8430a4a01ea41a3fb4dbe7f90afbbe112aeefd4d48e2"
 }

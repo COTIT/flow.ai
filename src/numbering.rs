@@ -11,6 +11,9 @@ pub struct Appendix {
     pub suffix: Option<String>,
 }
 
+/// Highest start number settings accept; leaves room for the series to grow inside i64.
+pub const MAX_START: i64 = 999_999_999_999;
+
 /// Most digits a series pads to (settings validation: `digits` max 10).
 const MAX_DIGITS: usize = 10;
 
@@ -49,12 +52,12 @@ impl Appendix {
     }
 }
 
-/// `start_number` of a settings section, at least 1; Laravel GetHighestNumber fell back to 1.
+/// `start_number` of a settings section within 1..=MAX_START; Laravel fell back to 1.
 pub fn start_number(section: &Value) -> i64 {
     section
         .get("start_number")
         .and_then(Value::as_i64)
-        .map_or(1, |n| n.max(1))
+        .map_or(1, |n| n.clamp(1, MAX_START))
 }
 
 #[cfg(test)]
@@ -95,5 +98,9 @@ mod tests {
         assert_eq!(a.format(1), "0000000001");
         assert_eq!(start_number(&json!({ "start_number": -3 })), 1);
         assert_eq!(start_number(&json!("not an object")), 1);
+        assert_eq!(
+            start_number(&json!({ "start_number": i64::MAX })),
+            MAX_START
+        );
     }
 }

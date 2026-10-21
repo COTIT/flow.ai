@@ -1,7 +1,7 @@
 //! Workspace settings: read with Laravel's defaults, write whole sections, and the numbering
 //! fields other modules snapshot onto their rows.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use serde_json::{Map, Value};
 use sqlx::PgExecutor;
@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
+    http::json::human,
     modules::settings::{
         dto::SettingsUpdate,
         repo,
@@ -37,9 +38,15 @@ pub async fn all(state: &AppState, workspace_id: Uuid) -> Result<Value, AppError
 /// falls back to the default. Wrapped like Laravel's `(array)` cast: a scalar comes back as
 /// `[v]`, null as `[]`.
 pub async fn by_type(state: &AppState, workspace_id: Uuid, key: &str) -> Result<Value, AppError> {
-    let stored = repo::data(&state.db, workspace_id)
+    // An empty segment ("smtp.", "a..b") names nothing, as data_get would find nothing.
+    if key.split('.').any(str::is_empty) {
+        return Ok(Value::Array(Vec::new()));
+    }
+    let mut stored = repo::data(&state.db, workspace_id)
         .await?
         .unwrap_or(Value::Null);
+    // Redact before any lookup, so no path spelling can reach a credential.
+    schema::redact(&mut stored, "");
     let (name, rest) = key.split_once('.').unwrap_or((key, ""));
     let mut value = match schema::defaults(name) {
         None if name == "meta" => at(&stored["meta"], rest).clone(),
@@ -66,19 +73,27 @@ pub async fn by_type(state: &AppState, workspace_id: Uuid, key: &str) -> Result<
     })
 }
 
-/// Store the validated sections after their uuids are found in this workspace.
+/// Store the validated sections after their uuids are found in this workspace; `user_id` is
+/// recorded as the last writer.
 pub async fn update(
     state: &AppState,
     workspace_id: Uuid,
+    user_id: Uuid,
     input: SettingsUpdate,
 ) -> Result<(), AppError> {
+    let mut found = HashMap::new();
     let mut missing = BTreeMap::new();
     for r in &input.refs {
-        if !repo::exists(&state.db, workspace_id, r.table, r.id).await? {
-            let msg = format!(
-                "The selected {} is invalid.",
-                crate::http::json::human(&r.field)
-            );
+        let live = match found.get(&(r.table, r.id)) {
+            Some(live) => *live,
+            None => {
+                let live = repo::exists(&state.db, workspace_id, r.table, r.id).await?;
+                found.insert((r.table, r.id), live);
+                live
+            }
+        };
+        if !live {
+            let msg = format!("The selected {} is invalid.", human(&r.field));
             missing.insert(r.field.clone(), vec![msg]);
         }
     }
@@ -92,7 +107,7 @@ pub async fn update(
             "settings write held a credential".into(),
         ));
     }
-    repo::merge(&state.db, workspace_id, &sections).await?;
+    repo::merge(&state.db, workspace_id, user_id, &sections).await?;
     Ok(())
 }
 
@@ -129,29 +144,43 @@ fn read_section(name: &str, stored: &Value) -> Value {
 
 /// Laravel CashRegisterSetting::toArray: logo (files arrive with F5), defaults for the till.
 fn cash_register_out(v: &mut Value) {
+    let Value::Object(m) = v else {
+        return;
+    };
     // shortcut: no file storage yet, so the receipt logo is always null until F5.
-    v["logo"] = Value::Null;
-    if v["accepted_cash"].is_null() {
-        v["accepted_cash"] = serde_json::json!([
+    m.insert("logo".into(), Value::Null);
+    let unset = |m: &Map<String, Value>, k: &str| m.get(k).is_none_or(Value::is_null);
+    if unset(m, "accepted_cash") {
+        let cash = [
             "0.05", "0.10", "0.20", "0.50", "1.00", "2.00", "5.00", "10.00", "20.00", "50.00",
-            "100.00", "200.00", "500.00"
-        ]);
+            "100.00", "200.00", "500.00",
+        ];
+        m.insert(
+            "accepted_cash".into(),
+            cash.into_iter().map(Value::from).collect(),
+        );
     }
-    if v["receipt_line_length"].is_null() {
-        v["receipt_line_length"] = Value::from(34);
+    if unset(m, "receipt_line_length") {
+        m.insert("receipt_line_length".into(), Value::from(34));
     }
-    if v["cash_drawer_link_mode"].is_null() {
-        v["cash_drawer_link_mode"] = Value::String("flexible".into());
+    if unset(m, "cash_drawer_link_mode") {
+        m.insert("cash_drawer_link_mode".into(), Value::from("flexible"));
     }
 }
 
-/// `v` at dotted `path` ("" = `v`), Null when absent.
+/// `v` at dotted `path` ("" = `v`), Null when absent; a numeric segment indexes a list
+/// (Laravel `data_get`).
 fn at<'a>(v: &'a Value, path: &str) -> &'a Value {
     if path.is_empty() {
         return v;
     }
-    path.split('.')
-        .fold(v, |acc, k| acc.get(k).unwrap_or(&Value::Null))
+    path.split('.').fold(v, |acc, k| {
+        let next = match acc {
+            Value::Array(a) => k.parse::<usize>().ok().and_then(|i| a.get(i)),
+            _ => acc.get(k),
+        };
+        next.unwrap_or(&Value::Null)
+    })
 }
 
 /// PHP `!$value`.

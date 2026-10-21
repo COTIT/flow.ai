@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Final batch F2 (workspace settings + numbering, contract `docs/api/settings.md`):
+  - **Migration `settings`:** one row per workspace, `data jsonb` keyed by section (Laravel's 15 longtext columns).
+  - `GET /v1/workspace/{ws}/settings` (`setting.get`): every section over Laravel's defaults, or `?type=` a section or dotted path. A falsy value falls back to its default; scalars are wrapped as `[v]` and null as `[]`, like Laravel's `(array)` cast.
+  - `POST /settings` (`setting.update`): each sent section replaces its stored value; unknown sections and keys are dropped; `order`/`purchase_order` stay read-only. Rules from Laravel `StoreSettingRequest` live as field tables in `settings::schema`; uuid refs must be live rows of the workspace.
+  - One race-free upsert (`ON CONFLICT … data || EXCLUDED.data`): parallel first saves lose nothing.
+  - **Integration credentials are refused** (422) and always printed as null, with a final check on every write. F2b adds encrypted storage (new crate, needs the user's approval).
+  - `numbering::Appendix`: Laravel `DomainNumber` format. Relations and products now take prefix, digits, suffix and start_number from settings; a workspace with existing rows continues from its highest number.
+  - `invoice.customer_ref` flags are validated and stored (Laravel's rule keys had trailing spaces, so they never were).
+  - Review fixes (rust, security, database reviewers):
+    - Blank strings are null and text is trimmed (Laravel middleware).
+    - `?type` paths with an empty segment read `[]`, and the stored tree is redacted before any lookup.
+    - `start_number` is capped at 999 999 999 999, terms/validity at 3650 days, approvals at 100.
+    - Lists are capped (one error per oversized list).
+    - Pay terminals are a validated `{id, name, simulation}` list.
+    - Integration endpoints must be http(s) URLs without credentials.
+    - Soft-deleted warehouses and non-relation custom types are refused; uuid checks are deduped.
+    - Non-object stored sections fall back to defaults instead of panicking.
+    - `settings.updated_by` records the last writer.
+    - Numbering: `lock_numbers` then settings then `next_number`, all on a `Transaction`, with a 64-bit lock key.
+
 - Final batch F1 (item totals preview, contract `docs/api/pricing.md`):
   - `POST /v1/workspace/{ws}/calculate-items` and `/calculate-marge`, open to every active member (Laravel `authorize()` returned true). Nothing is stored.
   - `pricing::engine`: exact-decimal line maths. Each line rounds to the currency's decimals, half away from zero; totals sum the rounded lines, so `total = total_excl + total_vat` always (user decision: Laravel rounded its float total on its own and could be a cent off). Checked arithmetic: an overflowing line is a 422, never a panic.

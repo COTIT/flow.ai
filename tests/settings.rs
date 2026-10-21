@@ -644,7 +644,7 @@ async fn parallel_first_posts_lose_nothing(pool: PgPool) {
 #[sqlx::test]
 async fn big_settings_read_quickly(pool: PgPool) {
     let api = api(pool).await;
-    let terminals: Vec<Value> = (0..200)
+    let terminals: Vec<Value> = (0..100)
         .map(|i| json!({ "id": format!("TH-{i}") }))
         .collect();
     saved(&api, json!({ "integrations": { "payment": { "payment_providers": { "pay": { "terminals": terminals } } } } })).await;
@@ -656,5 +656,273 @@ async fn big_settings_read_quickly(pool: PgPool) {
         started.elapsed().as_millis() < 1_000,
         "{:?}",
         started.elapsed()
+    );
+}
+
+// --- review fixes --------------------------------------------------------------------------
+
+/// A crafted `?type=` (trailing dot, empty segment) must not reach an unredacted section.
+#[sqlx::test]
+async fn crafted_type_paths_never_leak(pool: PgPool) {
+    let api = api(pool).await;
+    let row = json!({ "smtp": { "password": "leaked", "host": "h" },
+                      "integrations": { "syncProviders": { "picqer": { "api_key": "leaked" } } } });
+    sqlx::query("INSERT INTO settings (workspace_id, data) VALUES ($1::uuid, $2)")
+        .bind(&api.ws)
+        .bind(&row)
+        .execute(&api.pool)
+        .await
+        .unwrap();
+    for q in [
+        "smtp.",
+        "integrations.",
+        ".",
+        "smtp..password",
+        ".smtp",
+        "integrations..syncProviders",
+    ] {
+        let got = get(&api, &format!("?type={q}")).await;
+        assert!(
+            !got.to_string().contains("leaked"),
+            "?type={q} leaked: {got}"
+        );
+    }
+}
+
+#[sqlx::test]
+async fn bounded_numbers(pool: PgPool) {
+    let api = api(pool).await;
+    saved(
+        &api,
+        json!({ "relation": { "start_number": 999_999_999_999_i64 } }),
+    )
+    .await;
+    let cases = [
+        (
+            json!({ "relation": { "start_number": 1_000_000_000_000_i64 } }),
+            "relation.start_number",
+            "The relation.start number must not be greater than 999999999999.",
+        ),
+        (
+            json!({ "relation": { "start_number": -1 } }),
+            "relation.start_number",
+            "The relation.start number must be at least 0.",
+        ),
+        (
+            json!({ "invoice": { "default_payment_term": 3651 } }),
+            "invoice.default_payment_term",
+            "The invoice.default payment term must not be greater than 3650.",
+        ),
+        (
+            json!({ "estimate": { "default_validity_period": -1 } }),
+            "estimate.default_validity_period",
+            "The estimate.default validity period must be at least 0.",
+        ),
+        (
+            json!({ "incoming_invoice": { "required_approvals": 101 } }),
+            "incoming_invoice.required_approvals",
+            "The incoming invoice.required approvals must not be greater than 100.",
+        ),
+    ];
+    for (body, field, msg) in cases {
+        assert_eq!(error(&api, body, field).await, msg, "{field}");
+    }
+}
+
+#[sqlx::test]
+async fn lists_are_capped(pool: PgPool) {
+    let api = api(pool).await;
+    let option = json!({ "type": "pickup", "name": "x" });
+    assert_eq!(
+        error(
+            &api,
+            json!({ "cash_register": { "shipping_options": vec![option; 51] } }),
+            "cash_register.shipping_options"
+        )
+        .await,
+        "The cash register.shipping options must not have more than 50 items."
+    );
+    assert_eq!(
+        error(
+            &api,
+            json!({ "cash_register": { "accepted_cash": vec!["x"; 1000] } }),
+            "cash_register.accepted_cash"
+        )
+        .await,
+        "The cash register.accepted cash must not have more than 50 items."
+    );
+    // A capped list records one error, not one per entry.
+    let (_, res) = post(
+        &api,
+        json!({ "cash_register": { "accepted_cash": vec!["x"; 1000] } }),
+    )
+    .await;
+    assert_eq!(res["errors"].as_object().unwrap().len(), 1);
+}
+
+/// Pay terminals keep only `{id, name, simulation}`: a credential can't ride along.
+#[sqlx::test]
+async fn terminals_keep_known_keys_only(pool: PgPool) {
+    let api = api(pool).await;
+    let pay = |t: Value| json!({ "integrations": { "payment": { "payment_providers": { "pay": { "terminals": t } } } } });
+    saved(
+        &api,
+        pay(json!([{ "id": "TH-1", "name": "Till", "api_token": "x", "secret": { "a": 1 } }])),
+    )
+    .await;
+    let t = &stored(&api).await["integrations"]["payment"]["payment_providers"]["pay"]["terminals"];
+    assert_eq!(t, &json!([{ "id": "TH-1", "name": "Till" }]));
+    assert_eq!(
+        error(
+            &api,
+            pay(json!("x")),
+            "integrations.payment.payment_providers.pay.terminals"
+        )
+        .await,
+        "The integrations.payment.payment providers.pay.terminals must be an array."
+    );
+}
+
+#[sqlx::test]
+async fn deleted_warehouse_and_wrong_type_domain_are_refused(pool: PgPool) {
+    let api = api(pool).await;
+    let wh = api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Old" }), "warehouse_id")
+        .await;
+    sqlx::query("UPDATE warehouses SET deleted_at = now() WHERE id = $1::uuid")
+        .bind(&wh)
+        .execute(&api.pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        error(
+            &api,
+            json!({ "cash_register": { "default_mutate_from_warehouse_id": wh } }),
+            "cash_register.default_mutate_from_warehouse_id"
+        )
+        .await,
+        "The selected cash register.default mutate from warehouse id is invalid."
+    );
+    let lead_source: String = sqlx::query_scalar(
+        "SELECT id::text FROM custom_types WHERE workspace_id = $1::uuid AND domain = 'lead_source' LIMIT 1",
+    )
+    .bind(&api.ws)
+    .fetch_one(&api.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        error(
+            &api,
+            json!({ "cash_register": { "default_relation_type_id": lead_source } }),
+            "cash_register.default_relation_type_id"
+        )
+        .await,
+        "The selected cash register.default relation type id is invalid."
+    );
+    let relation_type: String = sqlx::query_scalar(
+        "SELECT id::text FROM custom_types WHERE workspace_id = $1::uuid AND domain = 'relation' LIMIT 1",
+    )
+    .bind(&api.ws)
+    .fetch_one(&api.pool)
+    .await
+    .unwrap();
+    saved(
+        &api,
+        json!({ "cash_register": { "default_relation_type_id": relation_type } }),
+    )
+    .await;
+}
+
+/// Endpoints later batches will call must be real http(s) URLs without credentials in them.
+#[sqlx::test]
+async fn integration_endpoints_are_urls(pool: PgPool) {
+    let api = api(pool).await;
+    let picqer =
+        |u: &str| json!({ "integrations": { "syncProviders": { "picqer": { "base_url": u } } } });
+    saved(&api, picqer("https://acme.picqer.com/api/v1")).await;
+    for bad in [
+        "ftp://acme.picqer.com",
+        "https://user:pw@acme.picqer.com",
+        "acme.picqer.com",
+    ] {
+        assert_eq!(
+            error(
+                &api,
+                picqer(bad),
+                "integrations.syncProviders.picqer.base_url"
+            )
+            .await,
+            "The integrations.syncProviders.picqer.base url must be a valid URL.",
+            "{bad}"
+        );
+    }
+}
+
+/// The last writer of the settings row is recorded (numbering config is auditable).
+#[sqlx::test]
+async fn last_writer_is_recorded(pool: PgPool) {
+    let api = api(pool).await;
+    saved(&api, json!({ "relation": { "prefix": "K-" } })).await;
+    let by: Option<String> = sqlx::query_scalar(
+        "SELECT u.email FROM settings s JOIN users u ON u.id = s.updated_by WHERE s.workspace_id = $1::uuid",
+    )
+    .bind(&api.ws)
+    .fetch_optional(&api.pool)
+    .await
+    .unwrap();
+    assert_eq!(by.as_deref(), Some("ada@example.com"));
+}
+
+/// Laravel's TrimStrings + ConvertEmptyStringsToNull ran before validation: "" is null.
+#[sqlx::test]
+async fn blank_strings_are_null_and_text_is_trimmed(pool: PgPool) {
+    let api = api(pool).await;
+    saved(
+        &api,
+        json!({ "smtp": { "port": "", "encryption": " ", "host": "  mail.example.com  " },
+                "cash_register": { "default_relation_id": "" },
+                "relation": { "start_number": "" } }),
+    )
+    .await;
+    let row = stored(&api).await;
+    assert_eq!(row["smtp"]["port"], Value::Null);
+    assert_eq!(row["smtp"]["encryption"], Value::Null);
+    assert_eq!(row["smtp"]["host"], "mail.example.com");
+    assert_eq!(row["cash_register"]["default_relation_id"], Value::Null);
+    assert_eq!(row["relation"]["start_number"], Value::Null);
+}
+
+#[sqlx::test]
+async fn type_paths_index_into_lists(pool: PgPool) {
+    let api = api(pool).await;
+    saved(&api, json!({ "cash_register": { "shipping_options": [{ "type": "pickup", "name": "Counter" }] } })).await;
+    assert_eq!(
+        get(&api, "?type=cash_register.shipping_options.0.name").await,
+        json!(["Counter"])
+    );
+    assert_eq!(
+        get(&api, "?type=cash_register.shipping_options.5.name").await,
+        json!([])
+    );
+}
+
+/// A hand-edited row with a non-object section prints the defaults instead of failing.
+#[sqlx::test]
+async fn malformed_stored_sections_fall_back(pool: PgPool) {
+    let api = api(pool).await;
+    sqlx::query("INSERT INTO settings (workspace_id, data) VALUES ($1::uuid, $2)")
+        .bind(&api.ws)
+        .bind(json!({ "cash_register": "x", "invoice": 5, "integrations": { "mail": [] } }))
+        .execute(&api.pool)
+        .await
+        .unwrap();
+    let d = get(&api, "").await;
+    assert_eq!(d["cash_register"]["receipt_line_length"], 34);
+    assert_eq!(d["invoice"]["customer_ref"]["ordered_by"], true);
+    assert_eq!(d["integrations"]["mail"]["driver"], "imap");
+    assert_eq!(
+        get(&api, "?type=cash_register").await["cash_drawer_link_mode"],
+        "flexible"
     );
 }

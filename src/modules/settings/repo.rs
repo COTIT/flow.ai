@@ -41,14 +41,17 @@ pub async fn section(
 pub async fn merge(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
+    user_id: Uuid,
     sections: &Value,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "INSERT INTO settings (workspace_id, data) VALUES ($1, $2)
+        "INSERT INTO settings (workspace_id, data, updated_by) VALUES ($1, $2, $3)
          ON CONFLICT (workspace_id)
-         DO UPDATE SET data = settings.data || EXCLUDED.data, updated_at = now()",
+         DO UPDATE SET data = settings.data || EXCLUDED.data, updated_by = EXCLUDED.updated_by,
+                       updated_at = now()",
         workspace_id,
         sections,
+        user_id,
     )
     .execute(db)
     .await?;
@@ -64,36 +67,46 @@ pub async fn exists(
 ) -> Result<bool, sqlx::Error> {
     // One fixed statement per table: no table name is ever spliced into SQL.
     match table {
-        Table::Warehouses => sqlx::query_scalar!(
-            r#"SELECT EXISTS (SELECT 1 FROM warehouses WHERE id = $1 AND workspace_id = $2) AS "e!""#,
-            id,
-            workspace_id,
-        )
-        .fetch_one(db)
-        .await,
-        Table::Relations => sqlx::query_scalar!(
-            r#"SELECT EXISTS (SELECT 1 FROM relations
+        Table::Warehouses => {
+            sqlx::query_scalar!(
+                r#"SELECT EXISTS (SELECT 1 FROM warehouses
                               WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL) AS "e!""#,
-            id,
-            workspace_id,
-        )
-        .fetch_one(db)
-        .await,
-        Table::CustomTypes => sqlx::query_scalar!(
-            r#"SELECT EXISTS (SELECT 1 FROM custom_types
+                id,
+                workspace_id,
+            )
+            .fetch_one(db)
+            .await
+        }
+        Table::Relations => {
+            sqlx::query_scalar!(
+                r#"SELECT EXISTS (SELECT 1 FROM relations
                               WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL) AS "e!""#,
-            id,
-            workspace_id,
-        )
-        .fetch_one(db)
-        .await,
-        Table::Teams => sqlx::query_scalar!(
-            r#"SELECT EXISTS (SELECT 1 FROM teams
+                id,
+                workspace_id,
+            )
+            .fetch_one(db)
+            .await
+        }
+        Table::RelationTypes => {
+            sqlx::query_scalar!(
+                r#"SELECT EXISTS (SELECT 1 FROM custom_types
+                              WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+                                AND domain = 'relation') AS "e!""#,
+                id,
+                workspace_id,
+            )
+            .fetch_one(db)
+            .await
+        }
+        Table::Teams => {
+            sqlx::query_scalar!(
+                r#"SELECT EXISTS (SELECT 1 FROM teams
                               WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL) AS "e!""#,
-            id,
-            workspace_id,
-        )
-        .fetch_one(db)
-        .await,
+                id,
+                workspace_id,
+            )
+            .fetch_one(db)
+            .await
+        }
     }
 }

@@ -3,7 +3,7 @@
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
-use sqlx::{PgConnection, PgExecutor};
+use sqlx::{PgConnection, PgExecutor, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::modules::{
@@ -11,8 +11,6 @@ use crate::modules::{
     relations::{address::Address, dto::NewRelation},
 };
 
-/// Laravel RelationSetting::start_number default; used while a workspace has no numbered row.
-// shortcut: settings module not ported, so start number / prefix / digits are Laravel defaults.
 /// Live relation. `addresses` decoded from the JSON array column.
 pub struct RelationRow {
     pub id: Uuid,
@@ -45,30 +43,40 @@ pub fn decode_addresses(v: Value) -> Result<Vec<Address>, sqlx::Error> {
     serde_json::from_value(v).map_err(|e| sqlx::Error::Decode(Box::new(e)))
 }
 
-/// Next relation number for the workspace, serialized per workspace by a transaction-scoped
-/// advisory lock (Laravel had none, so parallel creates got the same number). MAX counts
-/// soft-deleted rows too: numbers are never reused. `start` (settings) applies only to the
-/// workspace's first numbered row, as in Laravel GetHighestNumber.
+/// Serialize relation numbering per workspace for the rest of `tx` (Laravel had no lock, so
+/// parallel creates got the same number). Take it before reading the series settings, so the
+/// snapshot is the latest one. One 64-bit key: no lock shared across workspaces.
+pub async fn lock_numbers(
+    tx: &mut Transaction<'_, Postgres>,
+    workspace_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    // A waiter holds a pooled connection; give up instead of starving the pool.
+    sqlx::query!("SET LOCAL lock_timeout = '5s'")
+        .execute(&mut **tx)
+        .await?;
+    sqlx::query!(
+        "SELECT pg_advisory_xact_lock(hashtextextended('relations.relation_number|' || $1::text, 0))",
+        workspace_id.to_string(),
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+/// Next relation number under `lock_numbers`. MAX counts soft-deleted rows: numbers are never
+/// reused. `start` (settings) applies only to the workspace's first numbered row (Laravel
+/// GetHighestNumber). Keep this a separate statement after the lock: under READ COMMITTED it
+/// then sees the previous holder's committed row.
 pub async fn next_number(
-    conn: &mut PgConnection,
+    tx: &mut Transaction<'_, Postgres>,
     workspace_id: Uuid,
     start: i64,
 ) -> Result<i64, sqlx::Error> {
-    // A waiter holds a pooled connection; give up instead of starving the pool.
-    sqlx::query!("SET LOCAL lock_timeout = '5s'")
-        .execute(&mut *conn)
-        .await?;
-    sqlx::query!(
-        "SELECT pg_advisory_xact_lock(hashtext('relations.relation_number'), hashtext($1::text))",
-        workspace_id.to_string(),
-    )
-    .execute(&mut *conn)
-    .await?;
     let max = sqlx::query_scalar!(
         "SELECT max(relation_number) FROM relations WHERE workspace_id = $1",
         workspace_id,
     )
-    .fetch_one(&mut *conn)
+    .fetch_one(&mut **tx)
     .await?;
     max.map_or(Ok(start), |n| {
         n.checked_add(1)

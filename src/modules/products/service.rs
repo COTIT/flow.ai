@@ -142,7 +142,8 @@ pub async fn create(
     check(&mut *state.db.acquire().await?, workspace_id, &row, &f).await?;
     normalise_row(&mut row, Priority::Price)?;
     let mut tx = state.db.begin().await?;
-    // The workspace's product series, snapshotted per row like Laravel's product_appendix.
+    // Lock first, then read the series, so the snapshot is the latest settings.
+    repo::lock_numbers(&mut tx, workspace_id).await?;
     let (appendix, start) = settings::service::numbering(&mut *tx, workspace_id, "product").await?;
     row.product_number = repo::next_number(&mut tx, workspace_id, start).await?;
     row.product_nr_formatted = appendix.format(row.product_number);

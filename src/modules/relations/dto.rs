@@ -460,8 +460,9 @@ fn terms(stored: Option<&Value>) -> Value {
 }
 
 /// Terms with blanks filled from workspace defaults (Laravel `fromRelation`).
-// shortcut: settings module not ported; these are Laravel's empty-settings defaults
-// (invoice none, credit/collective/estimate 14 personal, 30 company). Read settings once ported.
+// shortcut: Laravel's empty-settings defaults (invoice none, credit/collective/estimate 14
+// personal, 30 company), not the workspace's stored terms; wire settings::service in F21
+// (relation financial views), reading the sections once per request, not per row.
 fn used_terms(row: &RelationRow) -> Value {
     let company = is_company(row);
     let fallback = |k: &str| match k {

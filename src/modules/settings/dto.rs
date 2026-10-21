@@ -22,7 +22,7 @@ pub struct SettingsUpdate {
 impl Validate for UpdateSettingsRequest {
     type Valid = SettingsUpdate;
 
-    fn validate(self, r: &mut Rules) -> Option<SettingsUpdate> {
+    fn validate(mut self, r: &mut Rules) -> Option<SettingsUpdate> {
         let mut sections = Map::new();
         let mut refs = Vec::new();
         for (name, fields) in WRITABLE {
@@ -31,10 +31,11 @@ impl Validate for UpdateSettingsRequest {
                 sections.insert((*name).to_owned(), kept);
             }
         }
-        if let Some(meta) = r.meta(self.0.get("meta").cloned()) {
-            if self.0.contains_key("meta") {
-                sections.insert("meta".to_owned(), meta.unwrap_or(Value::Null));
-            }
+        let meta = self.0.remove("meta");
+        if meta.is_some()
+            && let Some(meta) = r.meta(meta)
+        {
+            sections.insert("meta".to_owned(), meta.unwrap_or(Value::Null));
         }
         Some(SettingsUpdate { sections, refs })
     }
