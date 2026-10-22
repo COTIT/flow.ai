@@ -44,7 +44,23 @@ Two body forms, as in Laravel. The whole body may be at most 10 MB + 64 KiB (`41
 | `meta` | object, ≤ 1000 JSON nodes / 16 KiB |
 
 **Both forms:**
-- The type comes from the file's first bytes, never from its name or declared type: PNG, JPEG, GIF, WebP or PDF. Anything else, SVG included: `The upload must be a file of type: png, jpeg, gif, webp, pdf.` The stored extension and content type are the detected ones.
+- The type comes from the bytes, never from the file's name or declared type (`files/sniff.rs`). The stored extension and content type are the detected ones.
+
+  | Type | Recognised by | Served |
+  |---|---|---|
+  | PNG, JPEG, GIF, WebP, PDF | magic number | inline |
+  | DOCX, XLSX, PPTX; DOCM, XLSM, PPTM (macros) | ZIP whose central directory lists `[Content_Types].xml` plus `word/`, `xl/` or `ppt/` (macro-enabled with a `vbaProject.bin`) | attachment |
+  | ZIP | any other ZIP | attachment |
+  | DOC, XLS, PPT | OLE compound file with a `WordDocument`, `Workbook`/`Book` or `PowerPoint Document` stream | attachment |
+  | CSV, TXT | UTF-8 without NUL bytes, not starting with `<` or `#!`, no `<script`; CSV when the name ends in `.csv` | attachment |
+
+  - A ZIP is read only as far as its central directory, in place and bounded; no entry is ever decompressed.
+  - Refused with `The upload must be a file of type: png, jpeg, gif, webp, pdf, csv, txt, docx, docm, xlsx, xlsm, pptx, pptm, doc, xls, ppt, zip.`:
+    - SVG, HTML/XHTML and XML;
+    - programs: PE, ELF, Mach-O, shebang scripts, JAR, APK;
+    - OLE files that aren't Office documents (MSI);
+    - broken archives, empty files and anything unrecognised.
+  - A file with a known header followed by something else (a PNG header with HTML after it) is that type: served as `image/png`, saved as `.png`.
 - `document_name` is for display only: folders, control characters, bidi overrides and zero-width characters are stripped, at most 255 characters, `upload` when nothing is left. A download saves under that name with the detected extension (`x.html` holding a PDF saves as `x.pdf`).
 - One upload per workspace at a time (shared with PDF renders), and at most 4 across the server. Both are taken after the permission check and before the body is read; a request waits up to 10 s for each, then gets a 503 with `Retry-After`.
 - When the bucket fails or is down: `503 {"message": "File storage is unavailable. Try again later."}`.
@@ -75,12 +91,12 @@ A delete marks the row `deleting`, removes the object, then marks it `deleted`. 
 }
 ```
 
-- `file_path` is a presigned GET URL on the bucket, valid for 10 minutes. PDFs and raster images (png, jpeg, gif, webp) open inline; any other type, SVG included, downloads (`Content-Disposition: attachment`), so a stored HTML or SVG file can't run script in the browser.
+- `file_path` is a presigned GET URL on the bucket, valid for 10 minutes. It sets `response-content-type` and `response-content-disposition` to the detected type and to `inline` (PDFs and raster images only) or `attachment` (everything else), so the bucket can't serve anything HTML-like inline.
+- Every API response carries `X-Content-Type-Options: nosniff`. The bucket's own responses don't: S3 signed URLs can override only six response headers, and `nosniff` isn't one. The forced type and disposition cover that.
 - `uploaded_by` is null once that user has left the workspace.
 
 ## Laravel differences
 
 - Bytes go to the bucket under `genesy/{workspace}/`; Laravel kept a disk path. The public `/storage/files/...` routes are not ported: downloads use the signed URL.
-- Laravel accepted any type. Here only PNG, JPEG, GIF, WebP and PDF are accepted, detected from the bytes; all of them open inline.
+- Laravel accepted any type. Here the types in the table above are accepted, detected from the bytes.
 - `association_data` is always `[]`: file associations aren't ported.
-- vimdesk-web's CSV data import and its office-document attachments (DOCX, XLSX, ZIP…) go through this route in Laravel and are refused here until the type list is widened.

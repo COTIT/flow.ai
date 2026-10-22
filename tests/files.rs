@@ -66,7 +66,12 @@ async fn a_base64_upload_is_stored_and_described(pool: PgPool) {
     assert_eq!(file["document_name"], "Invoice 1.pdf");
     assert_eq!(file["extension"], "pdf");
     assert_eq!(file["size"], 19);
-    assert_eq!(file["file_path"], format!("memory://{key}"));
+    assert!(
+        file["file_path"]
+            .as_str()
+            .unwrap()
+            .starts_with(&format!("memory://{key}?"))
+    );
     assert_eq!(file["association_data"], json!([]));
     assert_eq!(
         file["relationships"]["uploaded_by"]["email"],
@@ -258,7 +263,7 @@ async fn a_multipart_upload_is_typed_by_its_bytes(pool: PgPool) {
 async fn multipart_rules(pool: PgPool) {
     let (api, _) = with_store(pool).await;
     let svg: &[u8] = b"<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>";
-    let types = "The upload must be a file of type: png, jpeg, gif, webp, pdf.";
+    let types = "The upload must be a file of type: png, jpeg, gif, webp, pdf, csv, txt, docx, docm, xlsx, xlsm, pptx, pptm, doc, xls, ppt, zip.";
     let cases: Vec<(Vec<Part>, &str, &str)> = vec![
         (
             vec![("public", None, b"1")],
@@ -350,6 +355,189 @@ async fn multipart_rules(pool: PgPool) {
         .await
         .unwrap();
     assert_eq!(count, 0);
+}
+
+/// A stored (uncompressed) zip holding `names`, one byte each: what office files are made of.
+fn zip(names: &[&str]) -> Vec<u8> {
+    let (mut out, mut central) = (Vec::new(), Vec::new());
+    for name in names {
+        let offset = out.len() as u32;
+        let len = (name.len() as u16).to_le_bytes();
+        out.extend_from_slice(b"PK\x03\x04\x14\0\0\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\x01\0\0\0");
+        out.extend_from_slice(&len);
+        out.extend_from_slice(b"\0\0");
+        out.extend_from_slice(name.as_bytes());
+        out.push(b'x');
+        central.extend_from_slice(
+            b"PK\x01\x02\x14\0\x14\0\0\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\x01\0\0\0",
+        );
+        central.extend_from_slice(&len);
+        central.extend_from_slice(&[0; 12]);
+        central.extend_from_slice(&offset.to_le_bytes());
+        central.extend_from_slice(name.as_bytes());
+    }
+    let start = out.len() as u32;
+    out.extend_from_slice(&central);
+    let n = (names.len() as u16).to_le_bytes();
+    out.extend_from_slice(b"PK\x05\x06\0\0\0\0");
+    out.extend_from_slice(&[n, n].concat());
+    out.extend_from_slice(&(central.len() as u32).to_le_bytes());
+    out.extend_from_slice(&start.to_le_bytes());
+    out.extend_from_slice(b"\0\0");
+    out
+}
+
+/// What a stored file is served as: (content type, signed URL).
+async fn served(api: &Api, parts: &[Part<'_>]) -> (String, String) {
+    let (status, res) = multipart(api, &api.owner, parts).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let id = res["data"]["file_id"].as_str().unwrap();
+    let url = api.get(id).await["file_path"].as_str().unwrap().to_owned();
+    (row(api, id).await.4, url)
+}
+
+/// The bytes decide: a PNG header followed by HTML is a PNG (inline as image/png, saved as
+/// .png); office files, archives and text are attachments; markup and programs are refused.
+#[sqlx::test]
+async fn types_come_from_the_bytes_and_decide_how_files_are_served(pool: PgPool) {
+    let (api, _) = with_store(pool).await;
+    let polyglot = [
+        b"\x89PNG\r\n\x1a\n".as_slice(),
+        b"<html><script>alert(1)</script></html>",
+    ]
+    .concat();
+    let (ct, url) = served(
+        &api,
+        &[
+            ("public", None, b"1"),
+            ("upload", Some("x.html"), &polyglot),
+        ],
+    )
+    .await;
+    assert_eq!(ct, "image/png");
+    assert!(url.contains("response-content-type=image/png&response-content-disposition=inline; filename=\"x.png\""), "{url}");
+
+    let attachments: [(&str, Vec<u8>, &str, &str); 6] = [
+        (
+            "Offer.docx",
+            zip(&["[Content_Types].xml", "word/document.xml"]),
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "Offer.docx",
+        ),
+        (
+            "Plan.xlsm",
+            zip(&[
+                "[Content_Types].xml",
+                "xl/workbook.xml",
+                "xl/vbaProject.bin",
+            ]),
+            "application/vnd.ms-excel.sheet.macroEnabled.12",
+            "Plan.xlsm",
+        ),
+        (
+            "photos.zip",
+            zip(&["a.jpg", "b.jpg"]),
+            "application/zip",
+            "photos.zip",
+        ),
+        (
+            "old.doc",
+            [
+                b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1".as_slice(),
+                &[0; 64],
+                "WordDocument"
+                    .encode_utf16()
+                    .flat_map(u16::to_le_bytes)
+                    .collect::<Vec<u8>>()
+                    .as_slice(),
+            ]
+            .concat(),
+            "application/msword",
+            "old.doc",
+        ),
+        (
+            "leads.csv",
+            "naam;email\nAda;ada@example.com\n".into(),
+            "text/csv; charset=utf-8",
+            "leads.csv",
+        ),
+        (
+            "notes",
+            "plain words, <b>not</b> markup at the start\n".into(),
+            "text/plain; charset=utf-8",
+            "notes.txt",
+        ),
+    ];
+    for (name, bytes, want, saved) in attachments {
+        let (ct, url) = served(
+            &api,
+            &[("public", None, b"1"), ("upload", Some(name), &bytes)],
+        )
+        .await;
+        assert_eq!(ct, want, "{name}");
+        assert!(
+            url.contains(&format!(
+                "response-content-disposition=attachment; filename=\"{saved}\""
+            )),
+            "{name}: {url}"
+        );
+    }
+
+    let types = "The upload must be a file of type: png, jpeg, gif, webp, pdf, csv, txt, docx, docm, xlsx, xlsm, pptx, pptm, doc, xls, ppt, zip.";
+    let refused: [(&str, Vec<u8>); 12] = [
+        (
+            "x.svg",
+            b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>".to_vec(),
+        ),
+        ("x.csv", b"\n  <!DOCTYPE html><p>hi</p>".to_vec()),
+        ("x.txt", b"<?xml version=\"1.0\"?><a/>".to_vec()),
+        ("x.txt", b"name\nfoo<ScRiPt>alert(1)</script>".to_vec()),
+        ("x.exe", b"MZ\x90\0\x03\0\0\0".to_vec()),
+        ("x", b"\x7fELF\x02\x01\x01".to_vec()),
+        ("x", b"\xcf\xfa\xed\xfe\x07\0\0\x01".to_vec()),
+        ("run.sh", b"#!/bin/sh\nrm -rf /\n".to_vec()),
+        ("x.csv", b"a\0b".to_vec()),
+        ("x.csv", b"caf\xe9".to_vec()),
+        ("app.jar", zip(&["META-INF/MANIFEST.MF", "a/Main.class"])),
+        (
+            "setup.msi",
+            [b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1".as_slice(), &[0; 64]].concat(),
+        ),
+    ];
+    for (name, bytes) in refused {
+        let (status, res) = multipart(
+            &api,
+            &api.owner,
+            &[("public", None, b"1"), ("upload", Some(name), &bytes)],
+        )
+        .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{name}: {res}");
+        assert_eq!(res["errors"]["upload"][0], types, "{name}");
+    }
+    // A broken archive (no end record) is unrecognised too.
+    let (status, _) = multipart(
+        &api,
+        &api.owner,
+        &[
+            ("public", None, b"1"),
+            ("upload", Some("x.zip"), b"PK\x03\x04broken"),
+        ],
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+/// Every API answer carries `nosniff`.
+#[sqlx::test]
+async fn file_answers_are_nosniff(pool: PgPool) {
+    let (api, _) = with_store(pool).await;
+    let id = api.create(upload("a.pdf", PDF_B64), "file_id").await;
+    let req = Request::get(format!("/v1/workspace/{}/files/{id}", api.ws))
+        .header("authorization", format!("Bearer {}", api.owner))
+        .body(Body::empty())
+        .unwrap();
+    let res = api.app.clone().oneshot(req).await.unwrap();
+    assert_eq!(res.headers()["x-content-type-options"], "nosniff");
 }
 
 /// Bodies past 10 MB (plus a little form overhead) are refused before they are buffered.

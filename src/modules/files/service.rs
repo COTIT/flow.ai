@@ -15,6 +15,7 @@ use crate::{
         files::{
             dto::{FileRelationships, FileResource},
             repo::{self, FileRow, NewRow},
+            sniff::{TYPES, sniff},
         },
         users::{self, dto::UserEmailResource},
     },
@@ -51,7 +52,7 @@ pub async fn create(
 ) -> Result<Uuid, AppError> {
     let bucket = store(state)?;
     let (extension, content_type) =
-        sniff(&f.bytes).ok_or_else(|| AppError::field("upload", TYPES))?;
+        sniff(&f.bytes, f.document_name).ok_or_else(|| AppError::field("upload", TYPES))?;
     let document_name = display_name(f.document_name);
     let id = Uuid::now_v7();
     let key = format!("genesy/{workspace_id}/{id}");
@@ -224,36 +225,6 @@ fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
 }
 
-/// 422 for bytes of any other type.
-pub const TYPES: &str = "The upload must be a file of type: png, jpeg, gif, webp, pdf.";
-
-/// Extension and content type from the file's first bytes; the client's name and type are
-/// never trusted. None for any other type (SVG, HTML and executables included).
-fn sniff(b: &[u8]) -> Option<(&'static str, &'static str)> {
-    Some(match b {
-        [0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1a, b'\n', ..] => ("png", "image/png"),
-        [0xff, 0xd8, 0xff, ..] => ("jpg", "image/jpeg"),
-        [b'G', b'I', b'F', b'8', b'7' | b'9', b'a', ..] => ("gif", "image/gif"),
-        [
-            b'R',
-            b'I',
-            b'F',
-            b'F',
-            _,
-            _,
-            _,
-            _,
-            b'W',
-            b'E',
-            b'B',
-            b'P',
-            ..,
-        ] => ("webp", "image/webp"),
-        [b'%', b'P', b'D', b'F', b'-', ..] => ("pdf", "application/pdf"),
-        _ => return None,
-    })
-}
-
 /// A client file name made safe to show: no folders, no control characters, ≤ 255 chars.
 fn display_name(name: &str) -> String {
     let base = name.rsplit(['/', '\\']).next().unwrap_or_default();
@@ -300,19 +271,6 @@ fn inline(content_type: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn types_come_from_the_bytes() {
-        assert_eq!(sniff(b"%PDF-1.7\n"), Some(("pdf", "application/pdf")));
-        assert_eq!(sniff(b"\xff\xd8\xff\xe0"), Some(("jpg", "image/jpeg")));
-        assert_eq!(sniff(b"GIF89a.."), Some(("gif", "image/gif")));
-        assert_eq!(sniff(b"RIFF\0\0\0\0WEBPVP8 "), Some(("webp", "image/webp")));
-        assert_eq!(sniff(b"RIFF\0\0\0\0WAVEfmt "), None);
-        assert_eq!(sniff(b"<svg/>"), None);
-        assert_eq!(sniff(b"%PDF"), None);
-        assert_eq!(sniff(b""), None);
-        assert!(inline("application/pdf") && !inline("image/svg+xml") && !inline("text/csv"));
-    }
 
     #[test]
     fn names_are_cleaned_for_display() {

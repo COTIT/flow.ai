@@ -135,9 +135,15 @@ impl Store {
         ttl: Duration,
     ) -> Result<String, AppError> {
         match self {
+            // The same overrides a signed URL carries, unencoded so tests can read them.
             Self::Memory(m) => lock(m)?
                 .contains_key(key)
-                .then(|| format!("memory://{key}"))
+                .then(|| {
+                    format!(
+                        "memory://{key}?response-content-type={content_type}&response-content-disposition={}",
+                        disposition(file_name, inline)
+                    )
+                })
                 .ok_or_else(|| AppError::Internal(format!("no object {key}"))),
             Self::S3(s) => {
                 let mut action = s.bucket.get_object(Some(&s.credentials), key);
@@ -299,7 +305,7 @@ mod tests {
         assert_eq!(
             s.download_url("k", "a.pdf", "application/pdf", true, SIGN_TTL)
                 .unwrap(),
-            "memory://k"
+            "memory://k?response-content-type=application/pdf&response-content-disposition=inline; filename=\"a.pdf\"; filename*=UTF-8''a.pdf"
         );
         s.delete("k").await.unwrap();
         assert!(s.read("k").is_none());

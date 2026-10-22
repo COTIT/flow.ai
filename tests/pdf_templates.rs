@@ -374,7 +374,10 @@ async fn a_template_preview_renders_the_newest_invoice(pool: PgPool) {
     let key = file["file_path"]
         .as_str()
         .unwrap()
-        .trim_start_matches("memory://");
+        .trim_start_matches("memory://")
+        .split('?')
+        .next()
+        .unwrap();
     assert_eq!(files.read(key).unwrap().0, b"%PDF-1.4 fake");
 
     let html = seen.lock().unwrap().pop().unwrap();
