@@ -199,7 +199,7 @@ async fn render(
             Ok(FileResource {
                 file_path: bucket.download_url(
                     &r.key,
-                    &r.document_name,
+                    &download_name(&r.document_name, r.extension.as_deref()),
                     &r.content_type,
                     inline,
                     LINK_TTL,
@@ -257,11 +257,35 @@ fn sniff(b: &[u8]) -> Option<(&'static str, &'static str)> {
 /// A client file name made safe to show: no folders, no control characters, ≤ 255 chars.
 fn display_name(name: &str) -> String {
     let base = name.rsplit(['/', '\\']).next().unwrap_or_default();
-    let clean: String = base.chars().filter(|c| !c.is_control()).take(255).collect();
+    let clean: String = base.chars().filter(|c| !hidden(*c)).take(255).collect();
     match clean.trim() {
         "" | "." | ".." => "upload".to_owned(),
         t => t.to_owned(),
     }
+}
+
+/// Characters that hide or reorder what a name shows: controls, bidi overrides and isolates,
+/// zero-width marks, line and paragraph separators.
+fn hidden(c: char) -> bool {
+    c.is_control()
+        || matches!(c, '\u{200B}'..='\u{200F}' | '\u{2028}'..='\u{202E}' | '\u{2060}'..='\u{2069}' | '\u{FEFF}')
+}
+
+/// The name a download saves as: the display name ending in the stored (detected) extension,
+/// so a PDF named `x.html` saves as `x.pdf`.
+fn download_name(name: &str, extension: Option<&str>) -> String {
+    let Some(ext) = extension else {
+        return name.to_owned();
+    };
+    if name.to_ascii_lowercase().ends_with(&format!(".{ext}")) {
+        return name.to_owned();
+    }
+    // Drop a short trailing extension the client chose (`x.html`), keep dots inside a name.
+    let stem = match name.rsplit_once('.') {
+        Some((stem, tail)) if !stem.is_empty() && tail.len() <= 10 && !tail.contains(' ') => stem,
+        _ => name,
+    };
+    format!("{stem}.{ext}")
 }
 
 /// Opened in the browser (PDFs and raster images), else downloaded: an SVG or HTML file opened
@@ -297,5 +321,20 @@ mod tests {
         assert_eq!(display_name("a\u{7}b\nc.pdf"), "abc.pdf");
         assert_eq!(display_name("dir/"), "upload");
         assert_eq!(display_name(&"é".repeat(300)).chars().count(), 255);
+        assert_eq!(display_name("in\u{202E}fdp.exe"), "infdp.exe");
+        assert_eq!(display_name("a\u{200B}b\u{FEFF}\u{2066}c.pdf"), "abc.pdf");
+    }
+
+    /// Downloads carry the detected extension, whatever the client called the file.
+    #[test]
+    fn download_names_end_in_the_stored_extension() {
+        assert_eq!(download_name("Scan.PDF", Some("pdf")), "Scan.PDF");
+        assert_eq!(download_name("evil.html", Some("pdf")), "evil.pdf");
+        assert_eq!(download_name("report", Some("pdf")), "report.pdf");
+        assert_eq!(
+            download_name("v1.2 notes.html", Some("png")),
+            "v1.2 notes.png"
+        );
+        assert_eq!(download_name("old", None), "old");
     }
 }

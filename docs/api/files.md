@@ -30,7 +30,7 @@ Two body forms, as in Laravel. The whole body may be at most 10 MB + 64 KiB (`41
 | `document_name` | string ≤ 255; else the part's file name |
 | `associated_with[parent_domain]`, `associated_with[parent_id]` | accepted and checked (`parent_id` a uuid, `parent_domain` then required), not stored: file associations aren't ported |
 
-- Any other part: `The {name} field is not allowed.` A text part may be sent once and hold at most 2 KiB. More than 8 parts: `422 {"message": "The upload has too many fields."}`.
+- Any other part: `422 {"message": "The upload has an unknown field."}` (the name isn't echoed). A text part may be sent once and hold at most 2 KiB; a file name over 2 KiB: `The upload file name is too long.` More than 8 parts: `422 {"message": "The upload has too many fields."}`.
 - The part's declared content type is ignored.
 
 **JSON** (any other content type):
@@ -45,7 +45,7 @@ Two body forms, as in Laravel. The whole body may be at most 10 MB + 64 KiB (`41
 
 **Both forms:**
 - The type comes from the file's first bytes, never from its name or declared type: PNG, JPEG, GIF, WebP or PDF. Anything else, SVG included: `The upload must be a file of type: png, jpeg, gif, webp, pdf.` The stored extension and content type are the detected ones.
-- `document_name` is for display only: folders and control characters are stripped, at most 255 characters, `upload` when nothing is left.
+- `document_name` is for display only: folders, control characters, bidi overrides and zero-width characters are stripped, at most 255 characters, `upload` when nothing is left. A download saves under that name with the detected extension (`x.html` holding a PDF saves as `x.pdf`).
 - One upload per workspace at a time (shared with PDF renders), and at most 4 across the server. Both are taken after the permission check and before the body is read; a request waits up to 10 s for each, then gets a 503 with `Retry-After`.
 - When the bucket fails or is down: `503 {"message": "File storage is unavailable. Try again later."}`.
 

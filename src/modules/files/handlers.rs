@@ -29,7 +29,7 @@ permissions! {
     FileDelete => "file.delete",
 }
 
-/// Uploads buffered at once server-wide (each peaks near 28 MB: body, then text, then bytes).
+/// Uploads buffered at once server-wide (each holds at most ~30 MB at its peak).
 static UPLOADS: Semaphore = Semaphore::const_new(4);
 
 /// Paging query.

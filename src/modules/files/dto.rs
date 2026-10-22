@@ -132,16 +132,21 @@ pub async fn from_multipart(mut form: Multipart) -> Result<Upload, AppError> {
             "public" => "public",
             "description" => "description",
             "document_name" => "document_name",
-            other => {
-                let other = other.to_owned();
-                r.add(
-                    &other,
-                    format!("The {} field is not allowed.", human(&other)),
-                );
-                continue;
+            // Not echoed: the name is client-sized.
+            _ => {
+                return Err(AppError::Unprocessable(
+                    "The upload has an unknown field.".into(),
+                ));
             }
         };
-        let file_name = field.file_name().unwrap_or_default().to_owned();
+        let file_name = field.file_name().unwrap_or_default();
+        if file_name.len() > MAX_TEXT {
+            return Err(AppError::field(
+                "upload",
+                "The upload file name is too long.",
+            ));
+        }
+        let file_name = file_name.to_owned();
         let cap = if name == "upload" {
             MAX_BYTES
         } else {

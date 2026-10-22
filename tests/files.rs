@@ -301,15 +301,6 @@ async fn multipart_rules(pool: PgPool) {
             vec![
                 ("public", None, b"1"),
                 ("upload", Some("a.pdf"), PDF),
-                ("evil", None, b"x"),
-            ],
-            "evil",
-            "The evil field is not allowed.",
-        ),
-        (
-            vec![
-                ("public", None, b"1"),
-                ("upload", Some("a.pdf"), PDF),
                 ("associated_with[parent_id]", None, b"nope"),
             ],
             "associated_with.parent_id",
@@ -325,6 +316,31 @@ async fn multipart_rules(pool: PgPool) {
     let (status, res) = multipart(&api, &api.owner, &many).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert_eq!(res["message"], "The upload has too many fields.");
+    // An unknown part is refused without echoing its (client-sized) name.
+    let evil = "evil".repeat(1000);
+    let parts: [Part; 3] = [
+        ("public", None, b"1"),
+        ("upload", Some("a.pdf"), PDF),
+        (&evil, None, b"x"),
+    ];
+    let (status, res) = multipart(&api, &api.owner, &parts).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res,
+        json!({ "message": "The upload has an unknown field." })
+    );
+    let long = format!("{}.pdf", "a".repeat(3000));
+    let (status, res) = multipart(
+        &api,
+        &api.owner,
+        &[("public", None, b"1"), ("upload", Some(&long), PDF)],
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"]["upload"][0],
+        "The upload file name is too long."
+    );
     // The JSON path checks the bytes too.
     let (status, res) = post(&api, upload("a.pdf", "PHN2Zz48L3N2Zz4=")).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
@@ -351,6 +367,10 @@ async fn a_file_over_10_mb_is_413(pool: PgPool) {
     assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE);
     let b64 = base64::engine::general_purpose::STANDARD.encode(&big[..8 * 1024 * 1024]);
     let (status, _) = post(&api, upload("big.pdf", &b64)).await;
+    assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE);
+    // A part header alone past the route limit: the body limit, not a part cap, stops it.
+    let name = "a".repeat(11 * 1024 * 1024);
+    let (status, _) = multipart(&api, &api.owner, &[("upload", Some(&name), PDF)]).await;
     assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE);
 }
 
