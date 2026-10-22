@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Final batch F5a (files, PDF templates, invoice PDFs; contracts `docs/api/files.md`, `docs/api/pdf-templates.md`, `docs/api/invoices.md` "Preview"):
+  - **Crates (approved):** `reqwest` 0.13 (rustls with ring and webpki roots, no aws-lc, no OpenSSL), `rusty-s3` 0.10 (S3 request signing), `askama` 0.16 (HTML templates). `rustls`, `webpki-roots` and `base64` become direct dependencies; they were already in `Cargo.lock` through lettre. tokio 1.54.0 → 1.54.1 (yanked).
+  - **Outbound HTTP** (`src/outbound.rs`): 5 s connect timeout, no redirects, and an SSRF guard in the resolver plus a check for IP-literal URLs (loopback, private, link-local, CGNAT, metadata, multicast, documentation and reserved ranges refused). Only the operator-configured Gotenberg and S3 hosts are trusted past it.
+  - **Files** (`src/storage.rs`, `modules/files`, migration `files`): bytes in the uploads bucket Laravel uses (Backblaze B2, S3 API, presigned requests), key `genesy/{workspace}/{id}.{ext}`; Postgres keeps metadata only (size, sha256, content type, status). The row is committed `pending` before the upload and becomes `stored` after it; a delete goes `deleting` → `deleted`. An hourly sweep finishes either one when it was cut off, without listing the bucket. 10 MB per file, 4 uploads buffered at once, base64 JSON uploads. Downloads are signed URLs valid 10 minutes; only PDFs and raster images open inline.
+  - **PDF templates** (`modules/pdf_templates`, migration `pdf_templates`): CRUD, list filters, Laravel's available fields per domain (generated from the PHP source and served as is), preview against the newest invoice. Permission group `pdftemplate` (48 groups / 247 names).
+  - **Invoice PDF:** `GET /invoices/{id}/preview?pdf_template_id=` renders with a template or the built-in layout (ported Blade view) through the Gotenberg sidecar and stores the PDF as a file.
+  - At most 2 renders at once (10 s wait, then 503); a PDF over 25 MiB is refused.
+  - Placeholder values are HTML-escaped (Laravel inserted them raw); every page pins a CSP that allows only inline styles and `data:` images and fonts.
+  - **Config:** `B2_UPLOADS_KEY_ID`, `B2_UPLOADS_BUCKET`, `B2_UPLOADS_APPLICATION_KEY_FILE` (all or none; an empty secret file counts as unset), `B2_UPLOADS_REGION`, `B2_UPLOADS_ENDPOINT`, `GOTENBERG_URL`. Missing ones boot with a warning and answer 503 `File storage isn't configured.` / `PDF rendering isn't configured.`
+  - **Compose:** `gotenberg/gotenberg:8.25.1` under the `genesy` profile on an internal-only `pdf` network, no published port, JavaScript off, `data:` and its own temp files only, 30 s API timeout, `mem_limit` 1g. The image is 1.85 GB on disk and must be pulled on the VPS before the first genesy deploy that uses it.
+  - `AppError::Unavailable`: a 503 with a fixed message.
+  - **Laravel differences:**
+    - The public `/storage/files` routes aren't ported; downloads use signed URLs.
+    - The content type comes from the file name, not from the bytes.
+    - Multipart uploads aren't ported (base64 only).
+    - The built-in invoice layout prints no workspace logo and no payment link yet (F8).
+
 - Final batch F4 (invoice drafts, contract `docs/api/invoices.md`):
   - **Migration `invoices`:** `invoices` (draft header; composite tenant FKs to relation and currency; `subtotal`/`total` in minor units; `summary` with exact totals and the per-rate VAT breakdown) and `items` (one parent column per document type, `invoice_id` for now; composite FKs to product, variant and warehouse).
   - 6 routes under `/invoices` (`invoice.*`): list (relation, status, `in_status`, `is_credit`, `on_account`, `q`, `limit`, paging), get, create, update (POST), delete (cancels a draft), duplicate.

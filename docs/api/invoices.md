@@ -14,6 +14,7 @@ Shared rules (guard order, 404s, list `meta`) are in `conventions.md`. Every rou
 | `POST /invoices/{id}` | `invoice.update` | `{"message": "ok"}` |
 | `DELETE /invoices/{id}` | `invoice.delete` | `{"message": "ok"}` (cancels) |
 | `POST /invoices/{id}/duplicate` | `invoice.create` | `201 {"data": {"invoice_id": "<uuid>"}}` |
+| `GET /invoices/{id}/preview` | `invoice.view` | `{data: FileResource}` of the rendered PDF |
 
 - A body may be up to 2 MiB, with up to 1000 item rows, as on the item-total routes. Its body deadline is twice the normal one.
 - An invoice holds at most 1000 lines. A write that would leave more is a 422 on `items`: `An invoice holds at most 1000 items.`
@@ -96,6 +97,20 @@ Cancels a draft: status `cancelled`, the row and its lines stay (Laravel never d
 A new draft from any live invoice, whatever its status (the source is share locked while it is copied):
 - **Copied:** relation, currency, credit flag, note and meta, plus every line (title, description, quantity, price, VAT, discount, purchase price, product, variant, warehouse), with positions renumbered from 0.
 - **Not copied:** reference, billing address, addressed contact, payment method, dates and customer reference (Laravel). Laravel also reset the purchase prices to 0; genesy keeps them, so the margin stays right.
+
+## Preview `GET /invoices/{id}/preview`
+
+Renders the invoice as a PDF, stores it as a file (`files.md`) and returns its `FileResource`; `file_path` is a signed download URL valid for 10 minutes.
+
+| Query | Rule |
+|---|---|
+| `pdf_template_id` | optional uuid (`The pdf template id must be a valid UUID.`) |
+
+- With the id of a live `invoice` template of this workspace, that template is used (`pdf-templates.md`, "Rendering") and the file is named `Invoice_{number_}{action_}{unix time}.pdf`.
+- Otherwise, as in Laravel, the built-in layout is used (`templates/pdf/invoice.html`, ported from the Blade view): file `Invoice_pdf_{number}.pdf`. Another workspace's or another domain's template id falls back to it as well.
+- A draft has no number yet and prints `--draft--`.
+- Without the sidecar: `503 {"message": "PDF rendering isn't configured."}`; without storage: `503 {"message": "File storage isn't configured."}`.
+- **Not ported yet:** the workspace logo on the built-in layout and the payment link (F8). Product images aren't printed.
 
 ## Totals
 
