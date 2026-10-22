@@ -44,7 +44,7 @@ Shared rules (guard order, 404s, list `meta`) are in `conventions.md`. Every rou
 | `padding_top`, `padding_bottom`, `padding_x` | required number 0..40 (millimetres), stored rounded to a whole number |
 | `enable_summary` | boolean, default true |
 | `default` | boolean, default false. Nothing keeps it to one template per domain (as in Laravel) |
-| `background_file_id`, `logo_file_id` | a stored file of this workspace (`The selected logo file id is invalid.`) |
+| `background_file_id`, `logo_file_id` | a stored image of this workspace, at most 2 MB (`The selected logo file id is invalid.`, `The logo file id must be an image.`, `The logo file id must not be greater than 2048 kilobytes.`). Deleting that file later leaves the template without it |
 | `conditions` | object: `language` (≤ 3), `relation_type` (`business` or `personal`), `relation_custom_type_id` (a live relation custom type) |
 | `extra_fields` | object of booleans `display_procedures`, `display_signature`, `display_hours_with_tariff`, `display_hours`, `display_planned_dates`, `display_description`, `display_invoice_specifications`, plus `pdf_template_id_for_invoice_specifications` (uuid). Other keys are dropped |
 | `meta` | object, ≤ 1000 JSON nodes / 16 KiB |
@@ -80,6 +80,7 @@ Shared rules (guard order, 404s, list `meta`) are in `conventions.md`. Every rou
 `header_*` and `footer` may hold `{dotted.key}` placeholders such as `{invoice.reference}` or `{invoice.relation.company_name}`.
 
 - The value is HTML-escaped before it goes in. Laravel inserted it raw, so a relation named `<b>` broke the layout.
+- Values are inserted in one pass and never expanded again: a note holding `{invoice.reference}` prints those characters. Laravel ran a second pass over the result.
 - An unknown placeholder prints `-`.
 - `{invoice.customer_references}` is the one HTML value: the invoice's customer references, one escaped `label: value` per line.
 
@@ -97,5 +98,6 @@ The API builds the HTML with askama (`templates/pdf/`) and posts it to Gotenberg
 
 - The header and footer texts are part of the page body; the background image goes in Gotenberg's page header as a full-page image.
 - Logo and background are inlined as `data:` URIs; the CSS is inlined too. Each page pins `Content-Security-Policy: default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'`, so template HTML can't load a URL or a `file:` path.
-- The sidecar runs with JavaScript off, only `data:` and its own `file:///tmp/` work files allowed, a 30 s limit, on an internal network with no published port. The API gives each render 35 s.
-- At most 2 documents render at once per API instance; a third waits up to 10 s, then gets a 503 with `Retry-After`. A PDF over 25 MiB is an error (500) and is not stored.
+- The sidecar runs with JavaScript off, a 30 s limit, on an internal network with no published port, with every capability dropped. Chromium may load only `data:` URIs and the render's own `index.html`; HTML that loads or navigates to anything else (a `<meta http-equiv="refresh">`, say) fails the render: `422 {"message": "This document can't be rendered: its template loads something it may not."}`. The API gives each render 35 s.
+- One render per workspace at a time (shared with uploads) and at most 2 per API instance; a request waits up to 10 s for each, then gets a 503 with `Retry-After`.
+- A sidecar that fails or is down: `503 {"message": "PDF rendering failed. Try again later."}`. A PDF over 25 MiB is an error (500) and is not stored.

@@ -39,7 +39,6 @@ pub struct NewRow<'a> {
 pub struct Claimed {
     pub id: Uuid,
     pub key: String,
-    pub status: String,
 }
 
 /// Insert `r` as pending.
@@ -65,21 +64,30 @@ pub async fn insert_pending(db: impl PgExecutor<'_>, r: &NewRow<'_>) -> Result<(
     Ok(())
 }
 
-/// Move `id` from `from` to `to`; false when it wasn't in `from`.
-pub async fn set_status(
+/// Pending -> stored once its object is written; false when the sweep claimed it meanwhile.
+pub async fn mark_stored(
     db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
     id: Uuid,
-    from: &str,
-    to: &str,
 ) -> Result<bool, sqlx::Error> {
     let done = sqlx::query!(
-        "UPDATE files SET status = $3, updated_at = now(),
-                          deleted_at = CASE WHEN $3 IN ('deleting', 'deleted')
-                                            THEN COALESCE(deleted_at, now()) END
-         WHERE id = $1 AND status = $2",
+        "UPDATE files SET status = 'stored', updated_at = now()
+         WHERE workspace_id = $1 AND id = $2 AND status = 'pending'",
+        workspace_id,
         id,
-        from,
-        to,
+    )
+    .execute(db)
+    .await?;
+    Ok(done.rows_affected() == 1)
+}
+
+/// Deleting -> deleted once its object is gone. By id alone: the sweep spans workspaces, and
+/// a request passes an id `start_delete` returned for its own workspace.
+pub async fn mark_deleted(db: impl PgExecutor<'_>, id: Uuid) -> Result<bool, sqlx::Error> {
+    let done = sqlx::query!(
+        "UPDATE files SET status = 'deleted', updated_at = now()
+         WHERE id = $1 AND status = 'deleting'",
+        id,
     )
     .execute(db)
     .await?;
@@ -171,27 +179,20 @@ pub async fn list(
 }
 
 /// Claim up to `limit` rows a write left pending for over an hour or a delete left deleting
-/// for over five minutes. Claiming refreshes `updated_at`, so another replica's sweep skips
-/// them while this one works.
+/// for over five minutes, as deleting. Pending ones flip so an upload finishing late can't
+/// mark them stored; the refreshed `updated_at` makes another replica's sweep skip them.
 pub async fn claim_unfinished(db: &sqlx::PgPool, limit: i64) -> Result<Vec<Claimed>, sqlx::Error> {
     sqlx::query_as!(
         Claimed,
-        "UPDATE files SET updated_at = now()
+        "UPDATE files SET status = 'deleting', deleted_at = COALESCE(deleted_at, now()),
+                          updated_at = now()
          WHERE id IN (SELECT id FROM files
                       WHERE (status = 'pending' AND updated_at < now() - interval '1 hour')
                          OR (status = 'deleting' AND updated_at < now() - interval '5 minutes')
                       ORDER BY updated_at LIMIT $1 FOR UPDATE SKIP LOCKED)
-         RETURNING id, key, status",
+         RETURNING id, key",
         limit,
     )
     .fetch_all(db)
     .await
-}
-
-/// Drop a pending row whose object is gone.
-pub async fn remove_pending(db: impl PgExecutor<'_>, id: Uuid) -> Result<(), sqlx::Error> {
-    sqlx::query!("DELETE FROM files WHERE id = $1 AND status = 'pending'", id)
-        .execute(db)
-        .await?;
-    Ok(())
 }

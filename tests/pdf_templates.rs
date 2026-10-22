@@ -33,7 +33,13 @@ async fn fake_gotenberg(answer: Vec<u8>) -> (String, Seen) {
                 log.lock()
                     .unwrap()
                     .push(String::from_utf8_lossy(&body).into_owned());
-                answer
+                // An empty answer plays a failing sidecar, `refuse` one that refuses the HTML.
+                let status = match answer.as_slice() {
+                    b"" => StatusCode::BAD_GATEWAY,
+                    b"refuse" => StatusCode::BAD_REQUEST,
+                    _ => StatusCode::OK,
+                };
+                (status, answer)
             }
         }),
     );
@@ -288,6 +294,25 @@ async fn rules(pool: PgPool) {
     for (body, field, msg) in cases {
         assert_eq!(error(&api, "", body.clone(), field).await, msg, "{body}");
     }
+    // Logo and background are inlined into every page: images of up to 2 MB only.
+    use base64::Engine;
+    let b64 = |b: &[u8]| base64::engine::general_purpose::STANDARD.encode(b);
+    let pdf = upload(&api, "a.pdf", &b64(b"%PDF-1.4")).await;
+    let big = upload(&api, "big.png", &b64(&vec![0u8; 2 * 1024 * 1024 + 1])).await;
+    assert_eq!(
+        error(&api, "", with("logo_file_id", json!(pdf)), "logo_file_id").await,
+        "The logo file id must be an image."
+    );
+    assert_eq!(
+        error(
+            &api,
+            "",
+            with("background_file_id", json!(big)),
+            "background_file_id"
+        )
+        .await,
+        "The background file id must not be greater than 2048 kilobytes."
+    );
 }
 
 #[sqlx::test]
@@ -320,7 +345,7 @@ async fn a_template_preview_renders_the_newest_invoice(pool: PgPool) {
     let (api, files, seen) = setup(pool).await;
     let mut body = template();
     body["logo_file_id"] = json!(upload(&api, "logo.png", PNG_B64).await);
-    body["background_file_id"] = json!(upload(&api, "bg.png", PNG_B64).await);
+    body["background_file_id"] = json!(upload(&api, "bg.webp", PNG_B64).await);
     let id = create(&api, body).await;
     let (status, res) = api
         .call(Method::GET, &format!("/{id}/preview"), None, &api.owner)
@@ -364,8 +389,8 @@ async fn a_template_preview_renders_the_newest_invoice(pool: PgPool) {
         "logo inlined"
     );
     assert!(
-        html.contains("header.html") && html.contains(PNG_B64),
-        "background in the page header"
+        html.contains("header.html") && html.contains(&format!("data:image/webp;base64,{PNG_B64}")),
+        "background in the page header, with its own type"
     );
     assert!(html.contains("Tiny") && html.contains("0,25"));
     assert!(html.contains("Subtotal") || html.contains("Subtotaal"));
@@ -462,6 +487,35 @@ async fn an_oversized_pdf_is_refused(pool: PgPool) {
         .await
         .unwrap();
     assert_eq!(stored, 0);
+}
+
+/// A sidecar that fails is a 503 the client may retry.
+#[sqlx::test]
+async fn a_failing_sidecar_is_503(pool: PgPool) {
+    let (api, _, _) = setup_with(pool, Vec::new()).await;
+    let inv = invoice(&api).await;
+    let (status, res) = api
+        .with_base("/invoices")
+        .call(Method::GET, &format!("/{inv}/preview"), None, &api.owner)
+        .await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{res}");
+    assert_eq!(
+        res,
+        json!({ "message": "PDF rendering failed. Try again later." })
+    );
+}
+
+/// HTML the sidecar refuses (it reached off the allow-list) is the template's fault: 422.
+#[sqlx::test]
+async fn a_refused_render_is_422(pool: PgPool) {
+    let (api, _, _) = setup_with(pool, b"refuse".to_vec()).await;
+    let inv = invoice(&api).await;
+    let (status, res) = api
+        .with_base("/invoices")
+        .call(Method::GET, &format!("/{inv}/preview"), None, &api.owner)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(res, json!({ "message": genesy_360_api::pdf::REFUSED }));
 }
 
 #[sqlx::test]

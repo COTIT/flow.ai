@@ -110,6 +110,7 @@ Renders the invoice as a PDF, stores it as a file (`files.md`) and returns its `
 - Otherwise, as in Laravel, the built-in layout is used (`templates/pdf/invoice.html`, ported from the Blade view): file `Invoice_pdf_{number}.pdf`. Another workspace's or another domain's template id falls back to it as well.
 - A draft has no number yet and prints `--draft--`.
 - Without the sidecar: `503 {"message": "PDF rendering isn't configured."}`; without storage: `503 {"message": "File storage isn't configured."}`.
+- Render limits, sidecar failures (503) and refused template HTML (422) are as in `pdf-templates.md`, "Rendering".
 - **Not ported yet:** the workspace logo on the built-in layout and the payment link (F8). Product images aren't printed.
 
 ## Totals

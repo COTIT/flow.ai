@@ -19,30 +19,42 @@ pub fn raw(domain: &str) -> Option<&'static str> {
     })
 }
 
-/// Item field keys a column of `domain` may show.
-pub fn keys(domain: &str) -> Vec<&'static str> {
-    static KEYS: OnceLock<HashMap<&'static str, Vec<String>>> = OnceLock::new();
-    let all = KEYS.get_or_init(|| {
+/// Each domain's item field key -> its `type`, parsed once.
+fn types() -> &'static HashMap<&'static str, HashMap<String, String>> {
+    static TYPES: OnceLock<HashMap<&'static str, HashMap<String, String>>> = OnceLock::new();
+    TYPES.get_or_init(|| {
         crate::modules::pdf_templates::dto::DOMAINS
             .iter()
             .map(|d| {
-                let keys = raw(d)
+                let types = raw(d)
                     .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok())
-                    .and_then(|v| v["fields"].as_object().map(|o| o.keys().cloned().collect()))
+                    .and_then(|v| {
+                        v["fields"].as_object().map(|o| {
+                            o.iter()
+                                .map(|(k, f)| {
+                                    (k.clone(), f["type"].as_str().unwrap_or_default().to_owned())
+                                })
+                                .collect()
+                        })
+                    })
                     .unwrap_or_default();
-                (*d, keys)
+                (*d, types)
             })
             .collect()
-    });
-    all.get(domain)
-        .map(|k| k.iter().map(String::as_str).collect())
+    })
+}
+
+/// Item field keys a column of `domain` may show.
+pub fn keys(domain: &str) -> Vec<&'static str> {
+    types()
+        .get(domain)
+        .map(|k| k.keys().map(String::as_str).collect())
         .unwrap_or_default()
 }
 
 /// One field's `type` (`text`, `currency`, `image`, ...) for `domain`.
-pub fn kind(domain: &str, key: &str) -> Option<String> {
-    let v: serde_json::Value = serde_json::from_str(raw(domain)?).ok()?;
-    v["fields"][key]["type"].as_str().map(str::to_owned)
+pub fn kind(domain: &str, key: &str) -> Option<&'static str> {
+    types().get(domain)?.get(key).map(String::as_str)
 }
 
 #[cfg(test)]
@@ -62,7 +74,7 @@ mod tests {
         assert_eq!(invoice.len(), 25);
         assert!(invoice.contains(&"product.product_nr") && invoice.contains(&"total"));
         assert!(keys("relation").is_empty());
-        assert_eq!(kind("invoice", "price").as_deref(), Some("currency"));
+        assert_eq!(kind("invoice", "price"), Some("currency"));
         assert!(raw("nope").is_none());
     }
 }

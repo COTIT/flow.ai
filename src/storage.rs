@@ -172,10 +172,10 @@ impl Store {
                         let bytes = res
                             .bytes()
                             .await
-                            .map_err(|e| storage_error(e.to_string()))?;
+                            .map_err(|e| storage_error(e.without_url().to_string()))?;
                         Ok(Some(bytes.to_vec()))
                     }
-                    status => Err(AppError::Internal(format!("storage get: {status}"))),
+                    status => Err(storage_error(format!("get: {status}"))),
                 }
             }
         }
@@ -223,12 +223,14 @@ fn ok(status: StatusCode, what: &str) -> Result<(), AppError> {
     if status.is_success() {
         Ok(())
     } else {
-        Err(AppError::Internal(format!("storage {what}: {status}")))
+        Err(storage_error(format!("{what}: {status}")))
     }
 }
 
+/// Logged, then a 503 the client may retry.
 fn storage_error(e: String) -> AppError {
-    AppError::Internal(format!("storage: {e}"))
+    tracing::warn!(error = %e, "file storage call failed");
+    AppError::Unavailable("File storage is unavailable. Try again later.")
 }
 
 #[cfg(test)]

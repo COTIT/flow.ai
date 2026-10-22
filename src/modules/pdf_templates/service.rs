@@ -131,6 +131,9 @@ fn parse(id: &str) -> Result<Uuid, AppError> {
 
 /// Logo and background must be stored files of this workspace; a custom relation type in the
 /// conditions must be a live one.
+/// Largest logo or background image.
+const MAX_IMAGE_BYTES: i64 = 2 * 1024 * 1024;
+
 async fn check_refs(
     state: &AppState,
     workspace_id: Uuid,
@@ -144,16 +147,24 @@ async fn check_refs(
         let Some(Some(id)) = sent else {
             continue;
         };
-        let found = match id {
-            Some(id) => files::repo::find(&state.db, workspace_id, id)
-                .await?
-                .is_some(),
-            None => false,
+        let file = match id {
+            Some(id) => files::repo::find(&state.db, workspace_id, id).await?,
+            None => None,
         };
-        if !found {
-            let msg = format!("The selected {} is invalid.", human(field));
-            errors.insert(field.to_owned(), vec![msg]);
-        }
+        // Inlined as base64 into every page, so bounded well under the sidecar's 20 MB body.
+        let msg = match file {
+            None => format!("The selected {} is invalid.", human(field)),
+            Some(f) if !f.content_type.starts_with("image/") => {
+                format!("The {} must be an image.", human(field))
+            }
+            Some(f) if f.size > MAX_IMAGE_BYTES => format!(
+                "The {} must not be greater than {} kilobytes.",
+                human(field),
+                MAX_IMAGE_BYTES / 1024
+            ),
+            Some(_) => continue,
+        };
+        errors.insert(field.to_owned(), vec![msg]);
     }
     if let Some(Some(Conditions {
         relation_custom_type_id: Some(t),

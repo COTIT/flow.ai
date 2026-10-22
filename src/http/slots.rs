@@ -1,6 +1,8 @@
 //! Requests in flight per workspace and per user, taken by `WorkspaceAccess` after the
 //! membership check: one tenant or user can't hold the whole DB pool, and only members can
 //! take a workspace's slots. A request over a cap waits (FIFO) for a slot, then answers 503.
+//! Heavy jobs (an upload, a PDF render) also take the workspace's one heavy slot, so one
+//! tenant can't hold every server-wide upload or render slot.
 
 use std::{
     collections::HashMap,
@@ -32,6 +34,7 @@ struct Registry {
     limits: WorkspaceSlots,
     workspaces: Mutex<HashMap<Uuid, Arc<Semaphore>>>,
     users: Mutex<HashMap<Uuid, Arc<Semaphore>>>,
+    heavy: Mutex<HashMap<Uuid, Arc<Semaphore>>>,
 }
 
 /// A request's slots; released on drop (when the handler's `WorkspaceAccess` goes).
@@ -48,6 +51,7 @@ impl Slots {
             limits,
             workspaces: Mutex::new(HashMap::new()),
             users: Mutex::new(HashMap::new()),
+            heavy: Mutex::new(HashMap::new()),
         }))
     }
 
@@ -73,6 +77,19 @@ impl Slots {
         }
     }
 
+    /// The one heavy-job slot of `workspace`, waiting up to the configured time; else 503.
+    pub async fn heavy(&self, workspace: Uuid) -> Result<OwnedSemaphorePermit, AppError> {
+        let r = &self.0;
+        let sem = semaphore(&r.heavy, workspace, 1);
+        match tokio::time::timeout(r.limits.wait, sem.acquire_owned()).await {
+            Ok(Ok(permit)) => Ok(permit),
+            _ => {
+                tracing::warn!(%workspace, "heavy slot busy");
+                Err(AppError::Overloaded)
+            }
+        }
+    }
+
     /// Drop idle entries every minute while the registry lives. Needs a tokio runtime.
     pub fn spawn_cleanup(&self) {
         let registry: Weak<Registry> = Arc::downgrade(&self.0);
@@ -83,6 +100,7 @@ impl Slots {
                 let Some(r) = registry.upgrade() else { break };
                 retain_busy(&r.workspaces);
                 retain_busy(&r.users);
+                retain_busy(&r.heavy);
             }
         });
     }
@@ -128,6 +146,20 @@ mod tests {
         drop(held);
         assert!(s.take(bob, a).await.is_ok(), "freed");
         drop(other);
+    }
+
+    #[tokio::test]
+    async fn one_heavy_job_per_workspace() {
+        let s = slots(4, 4);
+        let (a, b) = (Uuid::from_u128(10), Uuid::from_u128(20));
+        let held = s.heavy(a).await.unwrap();
+        assert!(s.heavy(a).await.is_err(), "workspace A busy");
+        let other = s.heavy(b).await.unwrap();
+        drop(held);
+        assert!(s.heavy(a).await.is_ok(), "freed");
+        drop(other);
+        retain_busy(&s.0.heavy);
+        assert!(s.0.heavy.lock().unwrap().is_empty());
     }
 
     #[tokio::test]

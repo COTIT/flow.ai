@@ -8,11 +8,18 @@
   - **Files** (`src/storage.rs`, `modules/files`, migration `files`): bytes in the uploads bucket Laravel uses (Backblaze B2, S3 API, presigned requests), key `genesy/{workspace}/{id}.{ext}`; Postgres keeps metadata only (size, sha256, content type, status). The row is committed `pending` before the upload and becomes `stored` after it; a delete goes `deleting` → `deleted`. An hourly sweep finishes either one when it was cut off, without listing the bucket. 10 MB per file, 4 uploads buffered at once, base64 JSON uploads. Downloads are signed URLs valid 10 minutes; only PDFs and raster images open inline.
   - **PDF templates** (`modules/pdf_templates`, migration `pdf_templates`): CRUD, list filters, Laravel's available fields per domain (generated from the PHP source and served as is), preview against the newest invoice. Permission group `pdftemplate` (48 groups / 247 names).
   - **Invoice PDF:** `GET /invoices/{id}/preview?pdf_template_id=` renders with a template or the built-in layout (ported Blade view) through the Gotenberg sidecar and stores the PDF as a file.
-  - At most 2 renders at once (10 s wait, then 503); a PDF over 25 MiB is refused.
   - Placeholder values are HTML-escaped (Laravel inserted them raw); every page pins a CSP that allows only inline styles and `data:` images and fonts.
   - **Config:** `B2_UPLOADS_KEY_ID`, `B2_UPLOADS_BUCKET`, `B2_UPLOADS_APPLICATION_KEY_FILE` (all or none; an empty secret file counts as unset), `B2_UPLOADS_REGION`, `B2_UPLOADS_ENDPOINT`, `GOTENBERG_URL`. Missing ones boot with a warning and answer 503 `File storage isn't configured.` / `PDF rendering isn't configured.`
-  - **Compose:** `gotenberg/gotenberg:8.25.1` under the `genesy` profile on an internal-only `pdf` network, no published port, JavaScript off, `data:` and its own temp files only, 30 s API timeout, `mem_limit` 1g. The image is 1.85 GB on disk and must be pulled on the VPS before the first genesy deploy that uses it.
+  - **Compose:** `gotenberg/gotenberg:8.25.1` under the `genesy` profile on an internal-only `pdf` network, no published port, every capability dropped, JavaScript off, only `data:` and the render's own `index.html` allowed, 30 s API timeout, `mem_limit` 1g. The image is 1.85 GB on disk and must be pulled on the VPS before the first genesy deploy that uses it.
   - `AppError::Unavailable`: a 503 with a fixed message.
+  - Review fixes (rust, security, database):
+    - Placeholders are filled in one pass and never re-expanded (Laravel's second pass let a note full of placeholders grow a 64 KiB text to hundreds of MB); unclosed braces cost one scan.
+    - One upload or render per workspace at a time (`Slots::heavy`), on top of 4 uploads and 2 renders server-wide, all taken after the permission check and before the body is read.
+    - Logo and background must be images of at most 2 MB (they are inlined into every page); the background keeps its own content type.
+    - A PDF over 25 MiB is refused; a failing or unreachable sidecar or bucket is a 503 to retry; HTML the sidecar refuses is a 422.
+    - The sweep flips claimed rows to `deleting`, so an upload landing late fails instead of marking a removed object stored; it skips failed deletes, stops after 3 in a row and drains up to 1000 rows a run.
+    - Errors from outbound calls drop the URL (a presigned URL carries a live signature); an IPv6 endpoint host is trusted correctly.
+    - Field types are parsed once; status updates are named and workspace-scoped where a request makes them; `files.key` must carry its own workspace; jsonb CHECKs are 128 KiB backstops over the API's 16 KiB caps; `files.uploaded_by` is indexed.
   - **Laravel differences:**
     - The public `/storage/files` routes aren't ported; downloads use signed URLs.
     - The content type comes from the file name, not from the bytes.

@@ -2,6 +2,7 @@
 -- Columns pick item fields, the header and footer texts are the user's rich-text HTML with
 -- `{variable}` placeholders, logo and background are stored files. Nothing limits a domain
 -- to one default template (Laravel).
+-- jsonb size CHECKs are backstops at 128 KiB over the API's 16 KiB caps (see `files`).
 CREATE TABLE pdf_templates (
     id                 uuid        PRIMARY KEY DEFAULT uuidv7(),
     workspace_id       uuid        NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
@@ -11,7 +12,7 @@ CREATE TABLE pdf_templates (
         'cash_register', 'relation')),
     domain_action      text        CHECK (char_length(domain_action) <= 255),
     columns            jsonb       NOT NULL CHECK (jsonb_typeof(columns) = 'array'
-                                                   AND octet_length(columns::text) <= 16384),
+                                                   AND octet_length(columns::text) <= 131072),
     header_left        text        CHECK (char_length(header_left) <= 65535),
     header_right       text        CHECK (char_length(header_right) <= 65535),
     header_top         text        CHECK (char_length(header_top) <= 65535),
@@ -21,11 +22,12 @@ CREATE TABLE pdf_templates (
     padding_x          integer     NOT NULL DEFAULT 0 CHECK (padding_x BETWEEN 0 AND 40),
     enable_summary     boolean     NOT NULL DEFAULT true,
     is_default         boolean     NOT NULL DEFAULT false,
-    conditions         jsonb       CHECK (conditions IS NULL OR jsonb_typeof(conditions) = 'object'),
+    conditions         jsonb       CHECK (conditions IS NULL OR (jsonb_typeof(conditions) = 'object'
+                                          AND octet_length(conditions::text) <= 131072)),
     extra_fields       jsonb       CHECK (extra_fields IS NULL OR (jsonb_typeof(extra_fields) = 'object'
-                                          AND octet_length(extra_fields::text) <= 16384)),
+                                          AND octet_length(extra_fields::text) <= 131072)),
     meta               jsonb       CHECK (meta IS NULL OR (jsonb_typeof(meta) = 'object'
-                                          AND octet_length(meta::text) <= 16384)),
+                                          AND octet_length(meta::text) <= 131072)),
     background_file_id uuid,
     logo_file_id       uuid,
     created_at         timestamptz NOT NULL DEFAULT now(),

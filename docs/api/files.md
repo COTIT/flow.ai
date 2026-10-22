@@ -29,7 +29,8 @@ JSON body, up to 14 MiB:
 | `meta` | object, ≤ 1000 JSON nodes / 16 KiB |
 
 - The decoded file may be at most 10 MB: `The upload must not be greater than 10240 kilobytes.`
-- At most 4 uploads are buffered at once across the server. A fifth waits up to 10 s for a slot before its body is read, then gets a 503 with `Retry-After`.
+- One upload per workspace at a time (shared with PDF renders), and at most 4 across the server. Both are taken after the permission check and before the body is read; a request waits up to 10 s for each, then gets a 503 with `Retry-After`.
+- When the bucket fails or is down: `503 {"message": "File storage is unavailable. Try again later."}`.
 - Multipart uploads (Laravel's `upload` file part) are not ported yet: the SPA sends base64.
 
 ### How a file is stored
@@ -38,9 +39,9 @@ JSON body, up to 14 MiB:
 2. The object is written to the bucket.
 3. The row becomes `stored`.
 
-If step 2 or 3 fails, the row stays `pending`. An hourly sweep claims rows pending for over an hour, removes their object (a missing one is fine) and deletes the row. The bucket is never listed, so objects other apps keep there are never touched.
+If step 2 or 3 fails, the row stays `pending`. An hourly sweep claims rows pending for over an hour as `deleting`, removes their object (a missing one is fine) and marks them `deleted`; an upload that lands after its row was claimed fails instead of marking it stored. The bucket is never listed, so objects other apps keep there are never touched. Rows are never hard-deleted.
 
-A delete marks the row `deleting`, removes the object, then marks it `deleted`. A delete that fails part way is finished by the next sweep once the row is 5 minutes old.
+A delete marks the row `deleting`, removes the object, then marks it `deleted`. A delete that fails part way is finished by the next sweep once the row is 5 minutes old. A file a PDF template uses can be deleted; the template then prints without it (as in Laravel, whose files were soft-deleted too).
 
 ## FileResource
 

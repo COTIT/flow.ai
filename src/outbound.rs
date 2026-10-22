@@ -41,7 +41,10 @@ impl Outbound {
 
     /// Send `req` after refusing an untrusted IP-literal host that isn't public.
     pub async fn send(&self, req: reqwest::RequestBuilder) -> Result<reqwest::Response, String> {
-        let req = req.build().map_err(|e| format!("request: {e}"))?;
+        // Errors drop the URL: a presigned one carries a live signature.
+        let req = req
+            .build()
+            .map_err(|e| format!("request: {}", e.without_url()))?;
         if !self.allowed(req.url()) {
             return Err(format!(
                 "{} is not a public address",
@@ -51,7 +54,7 @@ impl Outbound {
         self.client
             .execute(req)
             .await
-            .map_err(|e| format!("send: {e}"))
+            .map_err(|e| format!("send: {}", e.without_url()))
     }
 
     fn allowed(&self, url: &reqwest::Url) -> bool {
@@ -90,10 +93,11 @@ fn client(trusted: Arc<HashSet<String>>) -> Result<reqwest::Client, String> {
 
 /// Host of `url` for the trusted list (an operator-configured endpoint).
 pub fn host_of(url: &str) -> Option<String> {
-    reqwest::Url::parse(url)
-        .ok()?
-        .host_str()
-        .map(str::to_ascii_lowercase)
+    reqwest::Url::parse(url).ok()?.host_str().map(|h| {
+        h.trim_start_matches('[')
+            .trim_end_matches(']')
+            .to_ascii_lowercase()
+    })
 }
 
 /// Resolves like the system, then drops every address that isn't public.
@@ -157,6 +161,17 @@ fn public_v6(ip: Ipv6Addr) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hosts_match_the_ip_check() {
+        assert_eq!(host_of("http://[::1]:9000/x").as_deref(), Some("::1"));
+        assert_eq!(
+            host_of("http://Gotenberg:3000").as_deref(),
+            Some("gotenberg")
+        );
+        let out = Outbound::new(&["::1".to_owned()]).unwrap();
+        assert!(out.allowed(&reqwest::Url::parse("http://[::1]:9000/").unwrap()));
+    }
 
     #[test]
     fn inward_addresses_are_refused() {

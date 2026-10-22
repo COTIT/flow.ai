@@ -157,6 +157,16 @@ async fn upload_rules(pool: PgPool) {
     assert_eq!(count, 0);
 }
 
+/// `meta` is capped on its text (16 KiB); quotes double in the stored JSON and still fit.
+#[sqlx::test]
+async fn meta_at_the_cap_is_stored(pool: PgPool) {
+    let (api, _) = with_store(pool).await;
+    let mut body = upload("a.pdf", PDF_B64);
+    body["meta"] = json!({ "k": "\"".repeat(16_000) });
+    let (status, res) = post(&api, body).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+}
+
 #[sqlx::test]
 async fn a_file_over_10_mb_is_refused(pool: PgPool) {
     use base64::Engine;
@@ -187,6 +197,31 @@ async fn without_storage_file_routes_are_503(pool: PgPool) {
     .await;
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{res}");
     assert_eq!(res, json!({ "message": "File storage isn't configured." }));
+}
+
+/// One upload per workspace at a time; a caller without `file.create` is refused before it
+/// queues for the slot.
+#[sqlx::test]
+async fn uploads_take_the_workspace_heavy_slot(pool: PgPool) {
+    let mut state = common::state(pool.clone(), Mailer::capture().0);
+    state.slots = genesy_360_api::Slots::new(genesy_360_api::WorkspaceSlots {
+        per_workspace: 100,
+        per_user: 100,
+        wait: std::time::Duration::from_millis(200),
+    });
+    let slots = state.slots.clone();
+    let mut api = Api::new(pool, "/files").await;
+    api.app = build_app(state);
+    let bob = member_with(&api.app, &api.pool, &api.ws, "bob@example.com", &[]).await;
+    let held = slots.heavy(api.ws.parse().unwrap()).await.unwrap();
+    let body = upload("a.pdf", PDF_B64);
+    let (status, _) = api.call(Method::POST, "", Some(body.clone()), &bob).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    let (status, _) = post(&api, body.clone()).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    drop(held);
+    let (status, res) = post(&api, body).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
 }
 
 // --- access --------------------------------------------------------------------------------
@@ -274,8 +309,14 @@ async fn the_sweep_finishes_interrupted_writes(pool: PgPool) {
             .fetch_all(&api.pool)
             .await
             .unwrap();
+    // The lost upload ends as deleted too: claiming flipped it to deleting, so an upload
+    // finishing late can't mark it stored.
     assert_eq!(
         left,
-        [(stored, "stored".into()), (deleting, "deleted".into())]
+        [
+            (stored, "stored".into()),
+            (pending, "deleted".into()),
+            (deleting, "deleted".into())
+        ]
     );
 }

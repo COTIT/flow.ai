@@ -2,10 +2,8 @@
 
 use axum::{
     Json,
-    extract::{Path, Query, Request, State},
+    extract::{FromRequest, Path, Query, Request, State},
     http::StatusCode,
-    middleware::Next,
-    response::Response,
 };
 use tokio::sync::Semaphore;
 
@@ -31,20 +29,8 @@ permissions! {
     FileDelete => "file.delete",
 }
 
-/// Uploads buffered at once (each up to ~25 MB of body and bytes), whatever the workspace.
+/// Uploads buffered at once server-wide (each peaks near 28 MB: body, then text, then bytes).
 static UPLOADS: Semaphore = Semaphore::const_new(4);
-
-/// Route layer: an upload waits up to 10 s for an upload slot before its body is read, else
-/// 503; so concurrent uploads can't hold more than `UPLOADS` bodies in memory.
-pub async fn upload_slot(req: Request, next: Next) -> Result<Response, AppError> {
-    let permit = tokio::time::timeout(std::time::Duration::from_secs(10), UPLOADS.acquire())
-        .await
-        .map_err(|_| AppError::Overloaded)?
-        .map_err(|_| AppError::Overloaded)?;
-    let res = next.run(req).await;
-    drop(permit);
-    Ok(res)
-}
 
 /// Paging query.
 #[derive(serde::Deserialize, Default)]
@@ -75,12 +61,20 @@ pub async fn get(
     Ok(Data(service::get(&state, access.workspace_id, &id).await?))
 }
 
-/// POST /files -> 201 `{data:{file_id}}`.
+/// POST /files -> 201 `{data:{file_id}}`. The permission check runs first, then the
+/// workspace's heavy slot and a server-wide upload slot (10 s wait each, else 503); only then
+/// is the body read.
 pub async fn create(
     State(state): State<AppState>,
     access: Can<FileCreate>,
-    ValidatedJson(upload): ValidatedJson<UploadRequest>,
+    req: Request,
 ) -> Result<(StatusCode, Data<FileCreated>), AppError> {
+    let _workspace = state.slots.heavy(access.workspace_id).await?;
+    let _upload = tokio::time::timeout(std::time::Duration::from_secs(10), UPLOADS.acquire())
+        .await
+        .map_err(|_| AppError::Overloaded)?
+        .map_err(|_| AppError::Overloaded)?;
+    let ValidatedJson(upload) = ValidatedJson::<UploadRequest>::from_request(req, &state).await?;
     let file_id = service::create(
         &state,
         access.workspace_id,

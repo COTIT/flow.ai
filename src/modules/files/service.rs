@@ -78,7 +78,15 @@ pub async fn create(
     .await?;
     // A failed upload leaves the row pending: the sweep removes it.
     bucket.put(&key, f.bytes, content_type).await?;
-    repo::set_status(&state.db, id, "pending", "stored").await?;
+    if !repo::mark_stored(&state.db, workspace_id, id).await? {
+        // The sweep claimed the row meanwhile; its delete may have run before this upload landed.
+        if let Err(err) = bucket.delete(&key).await {
+            tracing::warn!(file = %id, error = %err, "swept upload: delete failed");
+        }
+        return Err(AppError::Internal(format!(
+            "file {id} was swept during its upload"
+        )));
+    }
     Ok(id)
 }
 
@@ -91,7 +99,7 @@ pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
         .ok_or(AppError::NotFound)?;
     // A failed removal leaves the row deleting: the sweep retries it.
     bucket.delete(&key).await?;
-    repo::set_status(&state.db, id, "deleting", "deleted").await?;
+    repo::mark_deleted(&state.db, id).await?;
     Ok(())
 }
 
@@ -137,19 +145,35 @@ pub async fn values(
         .collect()
 }
 
-/// Finish rows a crash left pending or deleting: remove their objects, then drop pending rows
-/// and mark deleting ones deleted. Returns how many it finished.
+/// Finish rows a crash left pending or deleting: remove their objects and mark them deleted,
+/// in batches of 100 (at most 10 a run). A row whose object can't be removed is retried next
+/// run; three failures in a row end the run (the bucket is likely down). Returns how many it
+/// finished.
 pub async fn sweep(db: &sqlx::PgPool, bucket: &Store) -> Result<u64, AppError> {
-    let mut done = 0;
-    for row in repo::claim_unfinished(db, 100).await? {
-        bucket.delete(&row.key).await?;
-        match row.status.as_str() {
-            "pending" => repo::remove_pending(db, row.id).await?,
-            _ => {
-                repo::set_status(db, row.id, "deleting", "deleted").await?;
+    const BATCH: i64 = 100;
+    let (mut done, mut failures) = (0, 0);
+    for _ in 0..10 {
+        let rows = repo::claim_unfinished(db, BATCH).await?;
+        let claimed = rows.len();
+        for row in rows {
+            match bucket.delete(&row.key).await {
+                Ok(()) => {
+                    repo::mark_deleted(db, row.id).await?;
+                    done += 1;
+                    failures = 0;
+                }
+                Err(err) => {
+                    tracing::warn!(file = %row.id, error = %err, "file sweep: delete failed");
+                    failures += 1;
+                    if failures == 3 {
+                        return Ok(done);
+                    }
+                }
             }
         }
-        done += 1;
+        if claimed < BATCH as usize {
+            break;
+        }
     }
     Ok(done)
 }

@@ -37,7 +37,7 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
     })
 }
 
-/// Finish file rows left pending or deleting (up to 100 a run); how many it finished.
+/// Finish file rows left pending or deleting (up to 1000 a run); how many it finished.
 pub async fn sweep_files(db: &PgPool, bucket: &Store) -> Result<u64, String> {
     files::service::sweep(db, bucket)
         .await

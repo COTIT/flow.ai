@@ -51,7 +51,8 @@ pub async fn render(
         .pdf
         .as_ref()
         .ok_or(AppError::Unavailable(NO_RENDERER))?;
-    let _slot = crate::pdf::slot().await?;
+    let _workspace = state.slots.heavy(workspace_id).await?;
+    let _render = crate::pdf::slot().await?;
     let d = Data::load(state, workspace_id, id).await?;
     let (html, page, file_name) = match template {
         Some(t) => {
@@ -81,7 +82,7 @@ pub async fn render(
             )
         }
     };
-    let bytes = renderer.render(html, &page).await?;
+    let bytes = renderer.render(html, page).await?;
     Ok(Pdf { bytes, file_name })
 }
 
@@ -257,33 +258,38 @@ pub fn escape(s: &str) -> String {
     out
 }
 
-/// Laravel buildTemplateText: `{key}` -> its (escaped) value, twice over every key, then any
-/// `{…}` left on one line -> `-`.
-pub fn fill(text: &str, vars: &[(String, String)]) -> String {
-    let mut out = text.to_owned();
-    for _ in 0..2 {
-        for (k, v) in vars {
-            out = out.replace(&format!("{{{k}}}"), &escape(v));
-        }
-    }
-    let mut result = String::with_capacity(out.len());
-    let mut rest = out.as_str();
+/// Laravel buildTemplateText in one left-to-right scan: `{key}` -> its escaped value (keys in
+/// `raw` go in as HTML), any other `{…}` on one line -> `-`. Inserted values are never scanned
+/// again (Laravel's second pass re-expanded them).
+pub fn fill(text: &str, vars: &[(String, String)], raw: &[&str]) -> String {
+    let vars: HashMap<&str, &str> = vars.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
     while let Some(start) = rest.find('{') {
-        result.push_str(&rest[..start]);
+        out.push_str(&rest[..start]);
         let after = &rest[start + 1..];
-        match after.find(['}', '\n']) {
+        let end = after.find(['}', '\n']);
+        match end {
             Some(end) if after.as_bytes()[end] == b'}' => {
-                result.push('-');
+                let key = &after[..end];
+                match vars.get(key) {
+                    Some(v) if raw.contains(&key) => out.push_str(v),
+                    Some(v) => out.push_str(&escape(v)),
+                    None => out.push('-'),
+                }
                 rest = &after[end + 1..];
             }
+            // No `}` before the line ends: every `{` up to there stays as typed.
             _ => {
-                result.push('{');
-                rest = after;
+                let upto = end.map_or(after.len(), |e| e + 1);
+                out.push('{');
+                out.push_str(&after[..upto]);
+                rest = &after[upto..];
             }
         }
     }
-    result.push_str(rest);
-    result
+    out.push_str(rest);
+    out
 }
 
 /// Laravel Invoice::getVariables (+ Relation/Contact::getVariables), `invoice.` prefixed.
@@ -468,20 +474,10 @@ fn variables(d: &Data) -> Vec<(String, String)> {
     out
 }
 
-/// `fill` with `customer_references` kept as HTML.
+/// `fill` with `customer_references` kept as HTML (built from escaped parts).
 fn fill_text(text: Option<&str>, vars: &[(String, String)]) -> String {
-    let Some(text) = text else {
-        return String::new();
-    };
-    let (html, plain): (Vec<_>, Vec<_>) = vars
-        .iter()
-        .cloned()
-        .partition(|(k, _)| k == "invoice.customer_references");
-    let mut out = text.to_owned();
-    for (k, v) in &html {
-        out = out.replace(&format!("{{{k}}}"), v);
-    }
-    fill(&out, &plain)
+    text.map(|t| fill(t, vars, &["invoice.customer_references"]))
+        .unwrap_or_default()
 }
 
 fn addressed_full_name(c: &Value) -> String {
@@ -555,6 +551,7 @@ struct CustomView<'a> {
 #[derive(Template)]
 #[template(path = "pdf/header.html")]
 struct HeaderView {
+    /// `data:` URI.
     background: String,
 }
 
@@ -770,7 +767,12 @@ async fn custom(
         });
     let background = file_bytes(state, workspace_id, t.background_file_id)
         .await?
-        .map(|(b, _)| base64::engine::general_purpose::STANDARD.encode(b));
+        .map(|(b, kind)| {
+            format!(
+                "data:{kind};base64,{}",
+                base64::engine::general_purpose::STANDARD.encode(b)
+            )
+        });
     let view = CustomView {
         css: TAILWIND,
         logo,
@@ -906,7 +908,7 @@ fn field_value(
     };
     let symbol = d.currency.symbol_prefix.as_deref().unwrap_or("");
     let n = number.unwrap_or_default();
-    FieldValue::Text(match kind.as_str() {
+    FieldValue::Text(match kind {
         "currency" if !n.is_zero() => format!("{symbol} {}", number_format(n, d.dp())),
         "currency" => String::new(),
         "negative_currency" => format!("- {symbol} {}", number_format(n, d.dp())),
@@ -1183,11 +1185,35 @@ mod tests {
         assert_eq!(
             fill(
                 "<p>{invoice.reference} {invoice.total} {nope} {a\nb}</p>",
-                &vars
+                &vars,
+                &[]
             ),
             "<p>&lt;b&gt;R&amp;D&lt;/b&gt; €12,10 - {a\nb}</p>"
         );
-        assert_eq!(fill("{", &vars), "{");
+        assert_eq!(fill("{", &vars, &[]), "{");
+        assert_eq!(
+            fill("{invoice.reference}", &vars, &["invoice.reference"]),
+            "<b>R&D</b>"
+        );
+    }
+
+    /// Inserted values are never scanned again: a note full of placeholders prints as is
+    /// (Laravel's second pass re-expanded them, growing a 64 KiB text to hundreds of MB).
+    #[test]
+    fn inserted_values_are_not_expanded() {
+        let vars = vec![("invoice.note".to_owned(), "{invoice.note}".repeat(71))];
+        let out = fill(&"{invoice.note}".repeat(4681), &vars, &[]);
+        assert_eq!(out.len(), 4681 * 71 * "{invoice.note}".len());
+        assert_eq!(fill("{a}{invoice.note}", &vars[..0], &[]), "--");
+    }
+
+    /// Unclosed braces cost one pass, not one rescan per brace.
+    #[test]
+    fn unclosed_braces_are_linear() {
+        let text = "{".repeat(65_535);
+        let start = std::time::Instant::now();
+        assert_eq!(fill(&text, &[], &[]), text);
+        assert!(start.elapsed() < std::time::Duration::from_millis(200));
     }
 
     #[test]

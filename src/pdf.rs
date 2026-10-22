@@ -15,6 +15,10 @@ use crate::{error::AppError, outbound::Outbound};
 /// Whole call; the sidecar gives up on a render after 30 s itself.
 const TIMEOUT: Duration = Duration::from_secs(35);
 
+/// 422 when the sidecar refuses a document.
+pub const REFUSED: &str =
+    "This document can't be rendered: its template loads something it may not.";
+
 /// Largest PDF read back; a bigger answer is cut off as an error.
 const MAX_PDF: usize = 25 * 1024 * 1024;
 
@@ -57,7 +61,7 @@ impl Renderer {
     }
 
     /// PDF bytes of `html` on A4.
-    pub async fn render(&self, html: String, page: &Page) -> Result<Vec<u8>, AppError> {
+    pub async fn render(&self, html: String, page: Page) -> Result<Vec<u8>, AppError> {
         let [top, right, bottom, left] = page.margins_mm;
         let mut form = Form::new()
             .part("files", html_part("index.html", html)?)
@@ -69,11 +73,11 @@ impl Renderer {
             .text("marginLeft", format!("{left}mm"))
             .text("printBackground", page.print_background.to_string())
             .text("emulatedMediaType", "print");
-        if let Some(h) = &page.header_html {
-            form = form.part("files", html_part("header.html", h.clone())?);
+        if let Some(h) = page.header_html {
+            form = form.part("files", html_part("header.html", h)?);
         }
-        if let Some(f) = &page.footer_html {
-            form = form.part("files", html_part("footer.html", f.clone())?);
+        if let Some(f) = page.footer_html {
+            form = form.part("files", html_part("footer.html", f)?);
         }
         let req = self
             .http
@@ -83,12 +87,21 @@ impl Renderer {
             )
             .timeout(TIMEOUT)
             .multipart(form);
-        let mut res = self.http.send(req).await.map_err(failed)?;
+        let mut res = self.http.send(req).await.map_err(unavailable)?;
+        if res.status().is_client_error() {
+            // The sidecar refused the HTML (it reached for a URL off its allow-list).
+            tracing::warn!(status = %res.status(), "pdf render refused");
+            return Err(AppError::Unprocessable(REFUSED.into()));
+        }
         if !res.status().is_success() {
-            return Err(failed(format!("status {}", res.status())));
+            return Err(unavailable(format!("status {}", res.status())));
         }
         let mut pdf = Vec::new();
-        while let Some(chunk) = res.chunk().await.map_err(|e| failed(e.to_string()))? {
+        while let Some(chunk) = res
+            .chunk()
+            .await
+            .map_err(|e| unavailable(e.without_url().to_string()))?
+        {
             if pdf.len() + chunk.len() > MAX_PDF {
                 return Err(failed("larger than 25 MiB".into()));
             }
@@ -110,4 +123,10 @@ fn html_part(name: &'static str, html: String) -> Result<Part, AppError> {
 
 fn failed(e: String) -> AppError {
     AppError::Internal(format!("pdf render: {e}"))
+}
+
+/// The sidecar failed or is down: logged, then a 503 the client may retry.
+fn unavailable(e: String) -> AppError {
+    tracing::warn!(error = %e, "pdf render failed");
+    AppError::Unavailable("PDF rendering failed. Try again later.")
 }
