@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Final batch F5b1 (email templates and profiles; contracts `docs/api/email-templates.md`, `docs/api/email-profiles.md`):
+  - **Migration `email_templates_profiles`:** `email_templates` (domain CHECK over Laravel's 84 `Domains`, one default per domain by a partial unique index) and `email_profiles` (SMTP settings in `smtp` jsonb, never the password; the password sealed in `smtp_password` with `smtp_key_id`).
+  - **Email templates** (`/email-templates`, `emailtemplate.*`): CRUD, list filters (domain, `q`, conditions matching equal or unset), variables per domain from the PDF template fields oracle. Saving a default clears the domain's other default under a per-domain advisory lock (Laravel only on create).
+  - **Email profiles** (`/email-profiles`, `emailprofile.*`): CRUD and list filters. The SMTP password is sealed like the F2b credentials (bound to workspace and profile), printed as `********`; the mask keeps it only while host, port, username and encryption stay, checked under the row lock.
+  - Both use the catalog's `get` permission (Laravel's policy checked `view`, which no team could grant).
+  - `pdf_templates`: the conditions validator, `object`, `conditions_json` and a custom-type check are shared with the email modules; `fields::variables_raw` serves a domain's variables as written.
+  - **Laravel differences:**
+    - The profile password was plaintext at rest and in GET.
+    - Profile `meta` was a 500 (no column); it is skipped.
+    - The profile list printed `html` as `{"host":null}`.
+    - Template attachments (associations), `leave_request` variables and the Meilisearch search aren't ported.
+
 - Final batch F5a (files, PDF templates, invoice PDFs; contracts `docs/api/files.md`, `docs/api/pdf-templates.md`, `docs/api/invoices.md` "Preview"):
   - **Crates (approved):** `reqwest` 0.13 (rustls with ring and webpki roots, no aws-lc, no OpenSSL), `rusty-s3` 0.10 (S3 request signing), `askama` 0.16 (HTML templates), axum feature `multipart` (multer 3.1, plus `encoding_rs`, `core_detect`, `multiversion_no_op`). `rustls`, `webpki-roots` and `base64` become direct dependencies; they were already in `Cargo.lock` through lettre. tokio 1.54.0 → 1.54.1 (yanked).
   - **Outbound HTTP** (`src/outbound.rs`): 5 s connect timeout, no redirects, and an SSRF guard in the resolver plus a check for IP-literal URLs (loopback, private, link-local, CGNAT, metadata, multicast, documentation and reserved ranges refused). Only the operator-configured Gotenberg and S3 hosts are trusted past it.

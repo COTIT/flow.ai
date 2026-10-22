@@ -166,15 +166,10 @@ async fn check_refs(
         };
         errors.insert(field.to_owned(), vec![msg]);
     }
-    if let Some(Some(Conditions {
-        relation_custom_type_id: Some(t),
-        ..
-    })) = &input.conditions
-        && !repo::relation_type_exists(&state.db, workspace_id, *t).await?
-    {
+    if custom_type_unknown(state, workspace_id, &input.conditions).await? {
         errors.insert(
             "conditions.relation_custom_type_id".into(),
-            vec!["The selected conditions.relation custom type id is invalid.".into()],
+            vec![UNKNOWN_CUSTOM_TYPE.into()],
         );
     }
     if errors.is_empty() {
@@ -184,7 +179,26 @@ async fn check_refs(
     }
 }
 
-fn conditions_json(c: &Option<Option<Conditions>>) -> Result<Option<Value>, AppError> {
+/// 422 text for a custom relation type this workspace doesn't have.
+pub const UNKNOWN_CUSTOM_TYPE: &str = "The selected conditions.relation custom type id is invalid.";
+
+/// True when the conditions name a custom relation type this workspace doesn't have.
+pub async fn custom_type_unknown(
+    state: &AppState,
+    workspace_id: Uuid,
+    c: &Option<Option<Conditions>>,
+) -> Result<bool, AppError> {
+    match c {
+        Some(Some(Conditions {
+            relation_custom_type_id: Some(t),
+            ..
+        })) => Ok(!repo::relation_type_exists(&state.db, workspace_id, *t).await?),
+        _ => Ok(false),
+    }
+}
+
+/// Conditions as stored (jsonb), when set.
+pub fn conditions_json(c: &Option<Option<Conditions>>) -> Result<Option<Value>, AppError> {
     c.as_ref()
         .and_then(Option::as_ref)
         .map(|c| serde_json::to_value(c).map_err(|e| AppError::Internal(e.to_string())))

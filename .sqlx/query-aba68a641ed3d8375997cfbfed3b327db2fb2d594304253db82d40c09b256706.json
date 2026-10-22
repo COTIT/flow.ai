@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO email_templates (id, workspace_id, template_domain, template_name,\n                                      default_template, subject, body, conditions, meta)\n         VALUES ($1, $2, $3, $4, COALESCE($5, false), $6, $7, $8, $9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aba68a641ed3d8375997cfbfed3b327db2fb2d594304253db82d40c09b256706"
+}

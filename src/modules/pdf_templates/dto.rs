@@ -345,7 +345,7 @@ pub fn check_column_fields(r: &mut Rules, domain: &str, columns: &Value) {
 
 /// Laravel Conditions: `language` (≤ 3), `relation_type` (business/personal),
 /// `relation_custom_type_id` (a relation custom type, checked by the service).
-fn conditions(r: &mut Rules, v: &Capped) -> Patch<Conditions> {
+pub fn conditions(r: &mut Rules, v: &Capped) -> Patch<Conditions> {
     let obj = match v {
         Capped::Absent => return None,
         Capped::Value(Value::Null) => return Some(None),
@@ -432,7 +432,7 @@ fn extra_fields(r: &mut Rules, v: &Capped) -> Patch<Value> {
 }
 
 /// A capped object (`meta`): null clears, an object sets.
-fn object(r: &mut Rules, field: &str, v: &Capped) -> Patch<Value> {
+pub fn object(r: &mut Rules, field: &str, v: &Capped) -> Patch<Value> {
     match v {
         Capped::Absent => None,
         Capped::TooLarge => {

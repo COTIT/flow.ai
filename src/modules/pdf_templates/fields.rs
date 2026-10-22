@@ -19,6 +19,13 @@ pub fn raw(domain: &str) -> Option<&'static str> {
     })
 }
 
+/// The `variables` part of `raw(domain)` as written: email templates serve it in their own
+/// envelope (it is the object's last key).
+pub fn variables_raw(domain: &str) -> Option<&'static str> {
+    let (_, rest) = raw(domain)?.trim_end().rsplit_once("\"variables\":")?;
+    rest.strip_suffix('}')
+}
+
 /// Each domain's item field key -> its `type`, parsed once.
 fn types() -> &'static HashMap<&'static str, HashMap<String, String>> {
     static TYPES: OnceLock<HashMap<&'static str, HashMap<String, String>>> = OnceLock::new();
@@ -76,5 +83,14 @@ mod tests {
         assert!(keys("relation").is_empty());
         assert_eq!(kind("invoice", "price"), Some("currency"));
         assert!(raw("nope").is_none());
+    }
+
+    #[test]
+    fn variables_slice_is_the_parsed_variables() {
+        for d in crate::modules::pdf_templates::dto::DOMAINS {
+            let whole: serde_json::Value = serde_json::from_str(raw(d).unwrap()).unwrap();
+            let part: serde_json::Value = serde_json::from_str(variables_raw(d).unwrap()).unwrap();
+            assert_eq!(part, whole["variables"], "{d}");
+        }
     }
 }

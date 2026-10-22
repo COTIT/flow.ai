@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO email_profiles (id, workspace_id, name, sender_name, email, is_default, html,\n                                     smtp, smtp_password, smtp_key_id, conditions, created_by)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Jsonb",
+        "Bytea",
+        "Text",
+        "Jsonb",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6c67f3d3393164c2037605625dc604949010cfdc0df30ba325037ab51ce0365b"
+}

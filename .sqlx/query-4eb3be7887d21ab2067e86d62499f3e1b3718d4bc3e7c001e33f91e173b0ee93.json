@@ -1,0 +1,144 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, sender_name, email, html, is_default, smtp,\n                  smtp_password IS NOT NULL AS \"has_password!\", conditions, created_at, updated_at\n           FROM email_profiles WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "sender_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "sender_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "html",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "html"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "is_default",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "is_default"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "smtp",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "smtp"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "has_password!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "conditions",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "conditions"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      null,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "4eb3be7887d21ab2067e86d62499f3e1b3718d4bc3e7c001e33f91e173b0ee93"
+}

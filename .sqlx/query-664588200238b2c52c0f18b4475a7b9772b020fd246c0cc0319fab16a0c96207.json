@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_templates SET default_template = false, updated_at = now()\n         WHERE workspace_id = $1 AND template_domain = $2 AND default_template\n           AND deleted_at IS NULL AND id <> $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "664588200238b2c52c0f18b4475a7b9772b020fd246c0cc0319fab16a0c96207"
+}

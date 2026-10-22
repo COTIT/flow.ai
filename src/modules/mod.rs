@@ -7,6 +7,8 @@ pub mod custom_statuses;
 pub mod custom_types;
 pub mod discount_groups;
 pub mod discounts;
+pub mod email_profiles;
+pub mod email_templates;
 pub mod email_verification;
 pub mod files;
 pub mod hourly_rates;

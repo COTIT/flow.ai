@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM email_profiles\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR conditions->>'relation_type' IS NULL\n                  OR conditions->>'relation_type' = $2)\n             AND ($3::text IS NULL OR conditions->>'language' IS NULL\n                  OR conditions->>'language' = $3)\n             AND ($4::text IS NULL OR conditions->>'relation_custom_type_id' IS NULL\n                  OR conditions->>'relation_custom_type_id' = $4)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "959a7f5e3857bbbbc04791f710c7c5b4b4d24b84e4b1d1add60baf7db2636aa4"
+}
