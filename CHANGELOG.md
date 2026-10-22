@@ -6,6 +6,7 @@
   - **Migration `email_templates_profiles`:** `email_templates` (domain CHECK over Laravel's 84 `Domains`, one default per domain by a partial unique index) and `email_profiles` (SMTP settings in `smtp` jsonb, never the password; the password sealed in `smtp_password` with `smtp_key_id`).
   - **Email templates** (`/email-templates`, `emailtemplate.*`): CRUD, list filters (domain, `q`, conditions matching equal or unset), variables per domain from the PDF template fields oracle. Saving a default clears the domain's other default under a per-domain advisory lock (Laravel only on create).
   - **Email profiles** (`/email-profiles`, `emailprofile.*`): CRUD and list filters. The SMTP password is sealed like the F2b credentials (bound to workspace and profile), printed as `********`; the mask keeps it only while host, port, username and encryption stay, checked under the row lock.
+  - `smtp.host` must be a host name or a public IP literal, stored lowercase; a new password needs a host (DB CHECK too). Names are checked against private addresses when F5b2 dials them.
   - Both use the catalog's `get` permission (Laravel's policy checked `view`, which no team could grant).
   - `pdf_templates`: the conditions validator, `object`, `conditions_json` and a custom-type check are shared with the email modules; `fields::variables_raw` serves a domain's variables as written.
   - **Laravel differences:**

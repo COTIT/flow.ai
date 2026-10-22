@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, name, sender_name, email, html, is_default, smtp,\n                  smtp_password IS NOT NULL AS \"has_password!\", conditions, created_at, updated_at\n           FROM email_profiles\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR conditions->>'relation_type' IS NULL\n                  OR conditions->>'relation_type' = $2)\n             AND ($3::text IS NULL OR conditions->>'language' IS NULL\n                  OR conditions->>'language' = $3)\n             AND ($4::text IS NULL OR conditions->>'relation_custom_type_id' IS NULL\n                  OR conditions->>'relation_custom_type_id' = $4)\n           ORDER BY created_at, id\n           LIMIT $5 OFFSET $6",
+  "query": "SELECT id, name, sender_name, email, html, is_default, NULL::jsonb AS smtp,\n                  smtp_password IS NOT NULL AS \"has_password!\", conditions, created_at, updated_at\n           FROM email_profiles\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR conditions->>'relation_type' IS NULL\n                  OR conditions->>'relation_type' = $2)\n             AND ($3::text IS NULL OR conditions->>'language' IS NULL\n                  OR conditions->>'language' = $3)\n             AND ($4::text IS NULL OR conditions->>'relation_custom_type_id' IS NULL\n                  OR conditions->>'relation_custom_type_id' = $4)\n           ORDER BY created_at, id\n           LIMIT $5 OFFSET $6",
   "describe": {
     "columns": [
       {
@@ -73,12 +73,7 @@
         "ordinal": 6,
         "name": "smtp",
         "type_info": "Jsonb",
-        "origin": {
-          "Table": {
-            "table": "email_profiles",
-            "name": "smtp"
-          }
-        }
+        "origin": "Expression"
       },
       {
         "ordinal": 7,
@@ -137,12 +132,12 @@
       false,
       true,
       false,
-      true,
+      null,
       null,
       true,
       false,
       false
     ]
   },
-  "hash": "932a55e82718a56fbef0ca16f01aa286e6a1be14e185d60fd0d9cda4c3f38036"
+  "hash": "728d3ebce7b228a301fad3d5889640737de81e86cc4244e900dd7ea071583ea4"
 }

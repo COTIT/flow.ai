@@ -67,7 +67,8 @@ CREATE TABLE email_profiles (
     updated_at    timestamptz NOT NULL DEFAULT now(),
     deleted_at    timestamptz,
     CONSTRAINT email_profiles_workspace_id_id_key UNIQUE (workspace_id, id),
-    CONSTRAINT email_profiles_sealed_check CHECK ((smtp_password IS NULL) = (smtp_key_id IS NULL))
+    CONSTRAINT email_profiles_sealed_check CHECK ((smtp_password IS NULL) = (smtp_key_id IS NULL)),
+    CONSTRAINT email_profiles_password_server_check CHECK (smtp_password IS NULL OR smtp ? 'host')
 );
 
 CREATE INDEX email_profiles_list_idx ON email_profiles (workspace_id, created_at, id)

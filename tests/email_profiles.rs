@@ -225,6 +225,31 @@ async fn rules(pool: PgPool) {
             "The smtp.host must not be greater than 255 characters.",
         ),
         (
+            with(&["smtp", "host"], json!("smtp acme.test")),
+            "smtp.host",
+            "The smtp.host must be a valid host name.",
+        ),
+        (
+            with(&["smtp", "host"], json!("-bad-.test")),
+            "smtp.host",
+            "The smtp.host must be a valid host name.",
+        ),
+        (
+            with(&["smtp", "host"], json!("169.254.169.254")),
+            "smtp.host",
+            "The smtp.host must be a public address.",
+        ),
+        (
+            with(&["smtp", "host"], json!("[::1]")),
+            "smtp.host",
+            "The smtp.host must be a public address.",
+        ),
+        (
+            with(&["smtp", "host"], Value::Null),
+            "smtp.host",
+            "The smtp.host field is required when smtp.password is present.",
+        ),
+        (
             with(&["smtp", "bcc_all_emails"], json!("maybe")),
             "smtp.bcc_all_emails",
             "The smtp.bcc all emails field must be true or false.",
@@ -240,6 +265,20 @@ async fn rules(pool: PgPool) {
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}: {res}");
         assert_eq!(res["errors"][field][0], msg, "{res}");
     }
+}
+
+/// Hosts are stored lowercase without a trailing dot, so the mask compares them as names.
+#[sqlx::test]
+async fn hosts_are_normalised(pool: PgPool) {
+    let api = api(pool).await;
+    let mut body = profile("Sales", json!("pw"));
+    body["smtp"]["host"] = json!("SMTP.Acme.TEST.");
+    let id = api.create(body.clone(), "email_profile_id").await;
+    assert_eq!(api.get(&id).await["smtp"]["host"], "smtp.acme.test");
+    body["smtp"]["password"] = json!(MASK);
+    body["smtp"]["host"] = json!("smtp.acme.test");
+    let (status, res) = post(&api, &format!("/{id}"), body).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
 }
 
 #[sqlx::test]

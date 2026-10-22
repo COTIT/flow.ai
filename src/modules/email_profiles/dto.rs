@@ -156,6 +156,9 @@ fn smtp(r: &mut Rules, v: &Capped) -> Patch<SmtpInput> {
         let value = match obj.get(key) {
             None | Some(Value::Null) => Value::Null,
             Some(Value::String(s)) if s.trim().is_empty() => Value::Null,
+            Some(Value::String(s)) if key == "host" => {
+                host(r, s.trim()).map_or(Value::Null, Value::from)
+            }
             Some(Value::String(s)) => {
                 r.max_chars(&f, s.trim(), 255);
                 Value::from(s.trim())
@@ -203,6 +206,16 @@ fn smtp(r: &mut Rules, v: &Capped) -> Patch<SmtpInput> {
         Some(Value::String(s)) if s == MASK => Change::Keep,
         Some(Value::String(s)) => {
             r.max_chars("smtp.password", s, 255);
+            // A stored password must always have a server to go to.
+            let no_host = obj
+                .get("host")
+                .is_none_or(|h| h.as_str().is_none_or(|s| s.trim().is_empty()));
+            if no_host {
+                r.add(
+                    "smtp.host",
+                    "The smtp.host field is required when smtp.password is present.",
+                );
+            }
             Change::Set(PlainSecret::new(s.clone()))
         }
         Some(_) => {
@@ -214,4 +227,33 @@ fn smtp(r: &mut Rules, v: &Capped) -> Patch<SmtpInput> {
         settings: Value::Object(settings),
         password,
     }))
+}
+
+/// A host name or public IP literal, lowercase and without a trailing dot. Private, loopback,
+/// link-local and metadata literals are refused here; names are checked when dialled.
+fn host(r: &mut Rules, sent: &str) -> Option<String> {
+    let h = sent.trim_end_matches('.').to_lowercase();
+    if h.chars().count() > 255 {
+        r.max_chars("smtp.host", &h, 255);
+        return None;
+    }
+    let literal = h.trim_start_matches('[').trim_end_matches(']');
+    if let Ok(ip) = literal.parse::<std::net::IpAddr>() {
+        if !crate::outbound::is_public(ip) {
+            r.add("smtp.host", "The smtp.host must be a public address.");
+            return None;
+        }
+        return Some(literal.to_owned());
+    }
+    let label_ok = |l: &str| {
+        (1..=63).contains(&l.len())
+            && !l.starts_with('-')
+            && !l.ends_with('-')
+            && l.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+    };
+    if h.len() > 253 || !h.split('.').all(label_ok) {
+        r.add("smtp.host", "The smtp.host must be a valid host name.");
+        return None;
+    }
+    Some(h)
 }

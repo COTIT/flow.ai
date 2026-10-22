@@ -27,7 +27,8 @@ Shared rules (guard order, 404s, list `meta`) are in `conventions.md`. Every rou
 | `default` | required boolean. A plain flag: nothing keeps it to one profile (as Laravel) |
 | `html` | footer HTML, string ≤ 25000; null clears, left out keeps |
 | `smtp` | object or null; null clears the server and its password, left out keeps both |
-| `smtp.host`, `smtp.username` | string ≤ 255 |
+| `smtp.host` | a host name (`The smtp.host must be a valid host name.`) or a public IP literal (`The smtp.host must be a public address.` for loopback, private, link-local, metadata and the like), ≤ 255; stored lowercase without a trailing dot. Required when a new password is sent (`The smtp.host field is required when smtp.password is present.`) |
+| `smtp.username` | string ≤ 255 |
 | `smtp.port` | integer 1..65535 |
 | `smtp.encryption` | `ssl` or `tls` (`Invalid smtp.encryption encryption type.`) |
 | `smtp.bcc_all_emails` | boolean (stored; nothing reads it yet, as in Laravel) |

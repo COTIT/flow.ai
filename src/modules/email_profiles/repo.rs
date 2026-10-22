@@ -183,7 +183,8 @@ pub async fn list(
 ) -> Result<(Vec<ProfileRow>, i64), sqlx::Error> {
     let rows = sqlx::query_as!(
         ProfileRow,
-        r#"SELECT id, name, sender_name, email, html, is_default, smtp,
+        // The list prints no smtp: don't read it.
+        r#"SELECT id, name, sender_name, email, html, is_default, NULL::jsonb AS smtp,
                   smtp_password IS NOT NULL AS "has_password!", conditions, created_at, updated_at
            FROM email_profiles
            WHERE workspace_id = $1 AND deleted_at IS NULL

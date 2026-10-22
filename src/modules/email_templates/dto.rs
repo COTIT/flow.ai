@@ -237,3 +237,25 @@ fn text(r: &mut Rules, field: &str, v: &Scalar, max: usize, required: bool) -> O
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The migration's CHECK lists exactly these domains.
+    #[test]
+    fn the_table_check_lists_every_domain() {
+        let sql =
+            include_str!("../../../migrations/20261022091926_email_templates_profiles.up.sql");
+        let check = sql
+            .split_once("template_domain IN (")
+            .and_then(|(_, rest)| rest.split_once("))"))
+            .map(|(list, _)| list)
+            .unwrap();
+        let listed: Vec<&str> = check
+            .split(',')
+            .map(|d| d.trim().trim_matches('\''))
+            .collect();
+        assert_eq!(listed, DOMAINS);
+    }
+}
