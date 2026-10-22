@@ -581,7 +581,7 @@ async fn invite_send_quota_per_user_per_hour(pool: PgPool) {
     let (ok_app, outbox) = app_with_mail(pool.clone());
     let (token, ws) = signup(&ok_app, "ada@example.com", "acme").await;
     common::verify_email(&pool, "ada@example.com").await;
-    let mut state = common::state(pool, Mailer::Capture(outbox.clone()));
+    let mut state = common::state(pool, Mailer::capture_into(outbox.clone()));
     state.invites_per_hour = 2;
     let app = build_app(state);
     let invite = |email: &'static str| {

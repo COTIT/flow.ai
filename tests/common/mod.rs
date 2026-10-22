@@ -1,6 +1,8 @@
 //! Shared integration-test helpers: app with test defaults + one-call JSON request.
 #![allow(dead_code)] // each test binary uses a different subset
 
+pub mod fake_smtp;
+
 use axum::extract::ConnectInfo;
 use axum::{
     Router,

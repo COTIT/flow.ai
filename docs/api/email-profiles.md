@@ -15,7 +15,7 @@ Shared rules (guard order, 404s, list `meta`) are in `conventions.md`. Every rou
 | `DELETE /{id}` | `emailprofile.delete` | `{"message": "ok"}` (soft delete; the sealed password is wiped) |
 
 - `get` is the catalog's name. Laravel's policy checked `emailprofile.view`, which no team could grant.
-- `test-connection` sends mail and comes with F5b2.
+- `GET /{id}/test-connection` (`emailprofile.update`) sends a test mail to the caller through the profile: see `messages.md`.
 
 ## Body (create and update: the same rules)
 

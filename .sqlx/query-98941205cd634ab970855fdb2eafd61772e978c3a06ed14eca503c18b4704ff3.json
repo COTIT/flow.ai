@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_send_logs SET status = $2,\n            provider_message_id = COALESCE($3, provider_message_id),\n            error_message = COALESCE(left($4, 255), error_message),\n            sent_at = CASE WHEN $2 = 'accepted' THEN now() ELSE sent_at END,\n            updated_at = now()\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "98941205cd634ab970855fdb2eafd61772e978c3a06ed14eca503c18b4704ff3"
+}

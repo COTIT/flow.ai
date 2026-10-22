@@ -9,7 +9,7 @@ use sqlx::PgPool;
 use crate::{
     modules::{
         auth::repo as auth, email_verification::repo as email_verification, files,
-        invites::repo as invites,
+        invites::repo as invites, messages::repo as messages,
     },
     storage::Store,
 };
@@ -24,6 +24,8 @@ pub struct Pruned {
     pub invites: u64,
     pub invite_sends: u64,
     pub login_failures: u64,
+    /// Sends a dead request left open, marked `unknown` (never sent again).
+    pub stuck_sends: u64,
 }
 
 /// Delete stale rows via each module's repo. Windows are wider than any rule that reads them.
@@ -34,6 +36,7 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
         invites: invites::prune_old(db).await?,
         invite_sends: invites::prune_old_sends(db).await?,
         login_failures: auth::prune_old_login_attempts(db).await?,
+        stuck_sends: messages::close_stuck(db).await?,
     })
 }
 
@@ -152,6 +155,7 @@ mod tests {
                 invites: 2,
                 invite_sends: 1,
                 login_failures: 1,
+                stuck_sends: 0,
             }
         );
         assert_eq!(

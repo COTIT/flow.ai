@@ -3,8 +3,11 @@
 use std::{net::SocketAddr, time::Duration};
 
 use genesy_360_api::{
-    AppState, RateLimit, Slots, WorkspaceSlots, build_app, cleanup, config::Config, db,
-    healthcheck, mail::Mailer, outbound, pdf, storage, warm_up,
+    AppState, RateLimit, Slots, WorkspaceSlots, build_app, cleanup,
+    config::Config,
+    db, healthcheck,
+    mail::{self, Mailer},
+    outbound, pdf, storage, warm_up,
 };
 use sqlx::postgres::PgConnectOptions;
 use tracing_subscriber::EnvFilter;
@@ -43,12 +46,18 @@ async fn main() {
     warm_up().await;
 
     // Operator-configured endpoints may be internal (the sidecar, a local MinIO): trusted.
+    // Graph hosts count only when overridden (a local fake); Microsoft's are public anyway.
+    let graph_fakes = [&config.graph_login_url, &config.graph_api_url]
+        .into_iter()
+        .filter(|u| !u.starts_with(mail::graph::LOGIN_URL) && !u.starts_with(mail::graph::API_URL))
+        .map(String::as_str);
     let trusted: Vec<String> = [
         config.gotenberg_url.as_deref(),
         config.storage.as_ref().map(|s| s.endpoint.as_str()),
     ]
     .into_iter()
     .flatten()
+    .chain(graph_fakes)
     .filter_map(outbound::host_of)
     .collect();
     let http = outbound::Outbound::new(&trusted).expect("outbound http client");
@@ -80,7 +89,15 @@ async fn main() {
         db,
         health_db,
         token_ttl: chrono::Duration::days(config.token_ttl_days),
-        mailer: Mailer::smtp(&config.smtp_url, &config.mail_from).expect("mailer config"),
+        mailer: Mailer::smtp(&config.smtp_url, &config.mail_from)
+            .expect("mailer config")
+            .with_allowed_domains(&config.mail_allowed_domains)
+            .with_trusted_smtp_hosts(&config.mail_trusted_smtp_hosts)
+            .with_graph(mail::graph::Client::new(
+                &config.graph_login_url,
+                &config.graph_api_url,
+                http.clone(),
+            )),
         frontend_url: config.frontend_url.as_str().into(),
         api_public_url: config.api_public_url.as_str().into(),
         rate_limit: RateLimit {

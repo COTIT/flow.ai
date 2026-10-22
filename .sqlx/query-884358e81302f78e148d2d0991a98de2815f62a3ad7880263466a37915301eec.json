@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_send_logs SET status = 'unknown', updated_at = now()\n         WHERE status IN ('pending', 'sending') AND updated_at < now() - interval '10 minutes'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "884358e81302f78e148d2d0991a98de2815f62a3ad7880263466a37915301eec"
+}

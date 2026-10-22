@@ -71,6 +71,22 @@ pub async fn credential_paths(
     .await
 }
 
+/// The sealed credential at `path` and its key id, if stored.
+pub async fn credential(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    path: &str,
+) -> Result<Option<(String, Vec<u8>)>, sqlx::Error> {
+    let row = sqlx::query!(
+        "SELECT key_id, sealed FROM workspace_credentials WHERE workspace_id = $1 AND path = $2",
+        workspace_id,
+        path,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map(|r| (r.key_id, r.sealed)))
+}
+
 /// Store a sealed credential, replacing the one at `path`.
 pub async fn put_credential(
     db: impl PgExecutor<'_>,

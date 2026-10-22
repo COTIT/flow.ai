@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT email, sender_name, html, smtp, smtp_password AS sealed, smtp_key_id AS key_id\n           FROM email_profiles WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "sender_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "sender_name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "html",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "html"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "smtp",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "smtp"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "sealed",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "smtp_password"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_profiles",
+            "name": "smtp_key_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "d54037822d5395075d8c341c87d69b33db1586502291dc1ce32d5c4f05f8041d"
+}

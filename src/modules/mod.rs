@@ -14,6 +14,7 @@ pub mod files;
 pub mod hourly_rates;
 pub mod invites;
 pub mod invoices;
+pub mod messages;
 pub mod pdf_templates;
 pub mod permissions;
 pub mod price_corrections;

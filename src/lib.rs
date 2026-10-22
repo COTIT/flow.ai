@@ -36,11 +36,11 @@ pub use http::{
 use modules::{
     auth, contacts, currencies, custom_statuses, custom_types, discount_groups, discounts,
     email_profiles, email_templates, email_verification, files, hourly_rates, invites, invoices,
-    pdf_templates, permissions, price_corrections, pricing, product_brands, product_categories,
-    product_variants, products, relations, sales_groups, search, settings, shipment_methods,
-    special_offers, stock, storage_locations, teams, users, vat_groups, warehouse_bins,
-    warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves, warehouses,
-    workspaces,
+    messages, pdf_templates, permissions, price_corrections, pricing, product_brands,
+    product_categories, product_variants, products, relations, sales_groups, search, settings,
+    shipment_methods, special_offers, stock, storage_locations, teams, users, vat_groups,
+    warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves,
+    warehouses, workspaces,
 };
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
@@ -136,7 +136,8 @@ pub fn build_app(state: AppState) -> Router {
         .merge(special_offers::routes::private())
         .merge(pdf_templates::routes::private())
         .merge(email_templates::routes::private())
-        .merge(email_profiles::routes::private());
+        .merge(email_profiles::routes::private())
+        .merge(messages::routes::private());
     // Item totals, invoices and file uploads take large bodies: twice the deadline of the
     // 64 KiB routes.
     let documents = pricing::routes::private()

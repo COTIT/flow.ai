@@ -1,5 +1,5 @@
 //! SQL for `email_profiles`. The sealed SMTP password is read only by `lock_smtp` (for the
-//! mask check); listings carry whether one is stored.
+//! mask check) and `sender` (to send); listings carry whether one is stored.
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
@@ -25,6 +25,16 @@ pub struct ProfileRow {
 pub struct StoredSmtp {
     pub smtp: Option<Value>,
     pub sealed: Option<Vec<u8>>,
+}
+
+/// What sending as a profile needs, the sealed password included.
+pub struct SenderRow {
+    pub email: String,
+    pub sender_name: String,
+    pub html: Option<String>,
+    pub smtp: Option<Value>,
+    pub sealed: Option<Vec<u8>>,
+    pub key_id: Option<String>,
 }
 
 /// Columns of a write; `set_*` false keeps the stored value.
@@ -222,4 +232,21 @@ pub async fn list(
     .fetch_one(db)
     .await?;
     Ok((rows, total))
+}
+
+/// The live profile `id` as a sender.
+pub async fn sender(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<SenderRow>, sqlx::Error> {
+    sqlx::query_as!(
+        SenderRow,
+        r#"SELECT email, sender_name, html, smtp, smtp_password AS sealed, smtp_key_id AS key_id
+           FROM email_profiles WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL"#,
+        workspace_id,
+        id,
+    )
+    .fetch_optional(db)
+    .await
 }

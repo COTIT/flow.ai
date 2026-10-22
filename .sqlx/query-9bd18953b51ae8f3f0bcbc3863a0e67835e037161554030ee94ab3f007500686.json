@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO email_send_log_recipients (log_id, email, kind)\n         SELECT $1, * FROM UNNEST($2::text[], $3::text[]) ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9bd18953b51ae8f3f0bcbc3863a0e67835e037161554030ee94ab3f007500686"
+}

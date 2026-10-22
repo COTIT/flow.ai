@@ -58,6 +58,15 @@ pub struct Config {
     pub storage: Option<S3Config>,
     /// Gotenberg sidecar base URL. Optional: without it PDF routes answer 503.
     pub gotenberg_url: Option<String>,
+    /// `MAIL_ALLOWED_RECIPIENT_DOMAINS`: every mail goes only to these domains (comma list);
+    /// empty allows all. Prod holds demo data, so it is set there.
+    pub mail_allowed_domains: String,
+    /// `MAIL_TRUSTED_SMTP_HOSTS`: workspace SMTP hosts dialled without the public-address and
+    /// port checks (comma list; a dev mail catcher).
+    pub mail_trusted_smtp_hosts: Vec<String>,
+    /// `GRAPH_LOGIN_URL` / `GRAPH_API_URL`: Microsoft's by default; set only for local fakes.
+    pub graph_login_url: String,
+    pub graph_api_url: String,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -102,6 +111,10 @@ impl fmt::Debug for Config {
                 &self.storage.as_ref().map(|s| (&s.endpoint, &s.bucket)),
             )
             .field("gotenberg_url", &self.gotenberg_url)
+            .field("mail_allowed_domains", &self.mail_allowed_domains)
+            .field("mail_trusted_smtp_hosts", &self.mail_trusted_smtp_hosts)
+            .field("graph_login_url", &self.graph_login_url)
+            .field("graph_api_url", &self.graph_api_url)
             .finish()
     }
 }
@@ -198,6 +211,17 @@ impl Config {
             .transpose()?;
         let storage = storage(&get)?;
         let gotenberg_url = optional_url(&get, "GOTENBERG_URL")?;
+        let mail_allowed_domains = get("MAIL_ALLOWED_RECIPIENT_DOMAINS").unwrap_or_default();
+        let mail_trusted_smtp_hosts = get("MAIL_TRUSTED_SMTP_HOSTS")
+            .unwrap_or_default()
+            .split(',')
+            .map(|h| h.trim().to_ascii_lowercase())
+            .filter(|h| !h.is_empty())
+            .collect();
+        let graph_login_url = optional_url(&get, "GRAPH_LOGIN_URL")?
+            .unwrap_or_else(|| crate::mail::graph::LOGIN_URL.into());
+        let graph_api_url = optional_url(&get, "GRAPH_API_URL")?
+            .unwrap_or_else(|| crate::mail::graph::API_URL.into());
 
         Ok(Self {
             database_url,
@@ -223,6 +247,10 @@ impl Config {
             credentials_key,
             storage,
             gotenberg_url,
+            mail_allowed_domains,
+            mail_trusted_smtp_hosts,
+            graph_login_url,
+            graph_api_url,
         })
     }
 }
