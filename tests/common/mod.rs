@@ -63,6 +63,8 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         credentials: Some(std::sync::Arc::new(
             genesy_360_api::CredentialKey::from_hex(CREDENTIALS_KEY).unwrap(),
         )),
+        files: Some(genesy_360_api::storage::Store::memory()),
+        pdf: None,
     }
 }
 

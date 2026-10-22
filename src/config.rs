@@ -2,7 +2,7 @@
 
 use std::{fmt, net::SocketAddr};
 
-use crate::crypto::CredentialKey;
+use crate::{crypto::CredentialKey, storage::S3Config};
 
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:8080";
 const DEFAULT_TOKEN_TTL_DAYS: i64 = 30;
@@ -53,6 +53,11 @@ pub struct Config {
     /// Seals integration credentials (`CREDENTIALS_KEY`, 64 hex). Optional: without it the API
     /// runs and refuses to store a credential.
     pub credentials_key: Option<CredentialKey>,
+    /// Files bucket (`B2_UPLOADS_*`, the uploads bucket Laravel uses; keys under `genesy/`).
+    /// Optional: without it file routes answer 503.
+    pub storage: Option<S3Config>,
+    /// Gotenberg sidecar base URL. Optional: without it PDF routes answer 503.
+    pub gotenberg_url: Option<String>,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -92,6 +97,8 @@ impl fmt::Debug for Config {
                 &self.request_body_deadline_secs,
             )
             .field("credentials_key", &self.credentials_key)
+            .field("storage", &self.storage.as_ref().map(|s| (&s.endpoint, &s.bucket)))
+            .field("gotenberg_url", &self.gotenberg_url)
             .finish()
     }
 }
@@ -186,6 +193,8 @@ impl Config {
                 key
             })
             .transpose()?;
+        let storage = storage(&get)?;
+        let gotenberg_url = optional_url(&get, "GOTENBERG_URL")?;
 
         Ok(Self {
             database_url,
@@ -209,12 +218,60 @@ impl Config {
             request_timeout_secs,
             request_body_deadline_secs,
             credentials_key,
+            storage,
+            gotenberg_url,
         })
     }
 }
 
-/// Vars that may come from `<KEY>_FILE` (Docker secrets), so passwords never sit in env files.
-const SECRET_FILE_VARS: [&str; 3] = ["DATABASE_URL", "SMTP_URL", "CREDENTIALS_KEY"];
+/// The uploads bucket: bucket, key id and key all set, or none (an empty secret file counts as
+/// unset: deploy.sh creates one where there is no bucket).
+fn storage(get: &impl Fn(&str) -> Option<String>) -> Result<Option<S3Config>, String> {
+    let set = |k: &str| get(k).filter(|v| !v.trim().is_empty());
+    let (bucket, key_id, secret) = (
+        set("B2_UPLOADS_BUCKET"),
+        set("B2_UPLOADS_KEY_ID"),
+        set("B2_UPLOADS_APPLICATION_KEY"),
+    );
+    let (Some(bucket), Some(key_id), Some(secret)) = (&bucket, &key_id, &secret) else {
+        if bucket.is_some() || key_id.is_some() || secret.is_some() {
+            return Err("set B2_UPLOADS_BUCKET, B2_UPLOADS_KEY_ID and B2_UPLOADS_APPLICATION_KEY \
+                        together, or none of them"
+                .into());
+        }
+        return Ok(None);
+    };
+    let endpoint = optional_url(get, "B2_UPLOADS_ENDPOINT")?
+        .unwrap_or_else(|| "https://s3.eu-central-003.backblazeb2.com".into());
+    Ok(Some(S3Config {
+        endpoint,
+        region: set("B2_UPLOADS_REGION").unwrap_or_else(|| "eu-central-003".into()),
+        bucket: bucket.clone(),
+        key_id: key_id.clone(),
+        secret: secret.clone(),
+    }))
+}
+
+/// An optional http(s) URL without a trailing slash; blank = unset.
+fn optional_url(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<Option<String>, String> {
+    let Some(v) = get(key).filter(|v| !v.trim().is_empty()) else {
+        return Ok(None);
+    };
+    let v = v.trim().trim_end_matches('/').to_owned();
+    match crate::outbound::host_of(&v) {
+        Some(_) if v.starts_with("http://") || v.starts_with("https://") => Ok(Some(v)),
+        _ => Err(format!("{key} must be an http(s) URL, got {v:?}")),
+    }
+}
+
+/// Vars that may come from `<KEY>_FILE` (Docker secrets), so passwords never sit in env files;
+/// true = the file may be empty (an optional feature left off).
+const SECRET_FILE_VARS: [(&str, bool); 4] = [
+    ("DATABASE_URL", false),
+    ("SMTP_URL", false),
+    ("CREDENTIALS_KEY", false),
+    ("B2_UPLOADS_APPLICATION_KEY", true),
+];
 
 /// Read each `<KEY>_FILE` that is set. Errors name the var and path, never the contents.
 fn read_secret_files(
@@ -222,7 +279,7 @@ fn read_secret_files(
     read: impl Fn(&str) -> std::io::Result<String>,
 ) -> Result<std::collections::HashMap<&'static str, String>, String> {
     let mut found = std::collections::HashMap::new();
-    for key in SECRET_FILE_VARS {
+    for (key, may_be_empty) in SECRET_FILE_VARS {
         let Some(path) = get(&format!("{key}_FILE")) else {
             continue;
         };
@@ -232,6 +289,9 @@ fn read_secret_files(
         let value = read(&path).map_err(|e| format!("{key}_FILE unreadable at {path}: {e}"))?;
         let value = value.trim_end_matches(['\n', '\r']);
         if value.is_empty() {
+            if may_be_empty {
+                continue;
+            }
             return Err(format!("{key}_FILE is empty ({path})"));
         }
         found.insert(key, value.to_owned());
@@ -608,6 +668,40 @@ mod tests {
         let err = with("not-a-key-0001020304").unwrap_err();
         assert_eq!(err, "CREDENTIALS_KEY must be 64 hex characters (32 bytes)");
     }
+
+    #[test]
+    fn storage_is_all_or_nothing() {
+        let base = [("DATABASE_URL", "postgres://x")];
+        let none = Config::from_lookup(lookup(&base)).unwrap();
+        assert!(none.storage.is_none() && none.gotenberg_url.is_none());
+        let full = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("B2_UPLOADS_BUCKET", "uploads"),
+            ("B2_UPLOADS_KEY_ID", "kid"),
+            ("B2_UPLOADS_APPLICATION_KEY", "s3cret"),
+            ("GOTENBERG_URL", "http://gotenberg:3000/"),
+        ]))
+        .unwrap();
+        let s = full.storage.as_ref().unwrap();
+        assert_eq!(
+            (s.endpoint.as_str(), s.region.as_str(), s.bucket.as_str()),
+            ("https://s3.eu-central-003.backblazeb2.com", "eu-central-003", "uploads")
+        );
+        assert_eq!(full.gotenberg_url.as_deref(), Some("http://gotenberg:3000"));
+        assert!(!format!("{full:?}").contains("s3cret"));
+        let half = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("B2_UPLOADS_BUCKET", "uploads"),
+        ]))
+        .unwrap_err();
+        assert!(half.starts_with("set B2_UPLOADS_BUCKET"), "{half}");
+        let bad = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("GOTENBERG_URL", "gotenberg:3000"),
+        ]))
+        .unwrap_err();
+        assert!(bad.starts_with("GOTENBERG_URL must be"), "{bad}");
+    }
 }
 
 #[cfg(test)]
@@ -656,6 +750,16 @@ mod secret_file_tests {
                 ("SMTP_URL", "smtps://h:465".to_owned()),
             ])
         );
+    }
+
+    #[test]
+    fn an_optional_secret_file_may_be_empty() {
+        let got = read_secret_files(
+            env(&[("B2_UPLOADS_APPLICATION_KEY_FILE", "/run/secrets/b2")]),
+            files(&[("/run/secrets/b2", "\n")]),
+        )
+        .unwrap();
+        assert!(got.is_empty());
     }
 
     #[test]

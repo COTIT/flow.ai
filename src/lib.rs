@@ -14,7 +14,10 @@ pub mod mail;
 mod modules;
 mod money;
 mod numbering;
+pub mod outbound;
+pub mod pdf;
 mod php;
+pub mod storage;
 
 use axum::{
     Router,
@@ -72,6 +75,10 @@ pub struct AppState {
     pub invites_per_hour: i64,
     /// Seals integration credentials (`CREDENTIALS_KEY`); None refuses storing one.
     pub credentials: Option<std::sync::Arc<CredentialKey>>,
+    /// File objects (the uploads bucket); None answers file routes with 503.
+    pub files: Option<storage::Store>,
+    /// HTML to PDF (Gotenberg); None answers PDF routes with 503.
+    pub pdf: Option<pdf::Renderer>,
 }
 
 /// One-off boot work before serving (precomputes the login timing-equalizer hash).

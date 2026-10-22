@@ -4,7 +4,7 @@ use std::{net::SocketAddr, time::Duration};
 
 use genesy_360_api::{
     AppState, RateLimit, Slots, WorkspaceSlots, build_app, cleanup, config::Config, db,
-    healthcheck, mail::Mailer, warm_up,
+    healthcheck, mail::Mailer, outbound, pdf, storage, warm_up,
 };
 use sqlx::postgres::PgConnectOptions;
 use tracing_subscriber::EnvFilter;
@@ -27,7 +27,7 @@ async fn main() {
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
         .init();
 
-    let config = Config::from_env().expect("config");
+    let mut config = Config::from_env().expect("config");
     let base: PgConnectOptions = config.database_url.parse().expect("DATABASE_URL");
     // Migrations are embedded in the binary and run on their own connection, before the pool.
     db::migrate(&base).await.expect("run migrations");
@@ -43,6 +43,31 @@ async fn main() {
     warm_up().await;
     cleanup::spawn(background_db);
 
+    // Operator-configured endpoints may be internal (the sidecar, a local MinIO): trusted.
+    let trusted: Vec<String> = [
+        config.gotenberg_url.as_deref(),
+        config.storage.as_ref().map(|s| s.endpoint.as_str()),
+    ]
+    .into_iter()
+    .flatten()
+    .filter_map(outbound::host_of)
+    .collect();
+    let http = outbound::Outbound::new(&trusted).expect("outbound http client");
+    let pdf = config
+        .gotenberg_url
+        .as_deref()
+        .map(|url| pdf::Renderer::new(url, http.clone()));
+    let files = config
+        .storage
+        .take()
+        .map(|s| storage::Store::s3(s, http.clone()).expect("file storage"));
+    if files.is_none() || pdf.is_none() {
+        tracing::warn!(
+            files = files.is_some(),
+            pdf = pdf.is_some(),
+            "file storage or PDF rendering not configured: those routes answer 503"
+        );
+    }
     if config.credentials_key.is_none() {
         tracing::warn!("CREDENTIALS_KEY not set: integration credentials can't be stored");
     }
@@ -83,6 +108,8 @@ async fn main() {
         request_timeout: Duration::from_secs(config.request_timeout_secs),
         body_deadline: Duration::from_secs(config.request_body_deadline_secs),
         credentials: config.credentials_key.map(std::sync::Arc::new),
+        files,
+        pdf,
     };
     // connect info: rate limit keys on peer IP.
     axum::serve(

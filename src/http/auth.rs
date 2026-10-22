@@ -99,6 +99,8 @@ mod tests {
                 request_timeout: std::time::Duration::from_secs(60),
                 body_deadline: std::time::Duration::from_secs(60),
                 credentials: None,
+                files: None,
+                pdf: None,
             });
         let mut req = Request::get("/probe");
         if let Some(value) = auth {
