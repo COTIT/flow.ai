@@ -60,11 +60,12 @@ The HTML layout wraps the body: a "Control 360°" header, the profile's `html` a
 
 - The host is resolved by the API, and the server is refused unless **every** address is public: `422 {"message": "The SMTP server isn't at a public address."}`. Loopback, private, link-local, CGNAT and metadata addresses all count as not public.
 - The port must be 25, 465, 587 or 2525: `422 {"message": "The SMTP port must be 25, 465, 587 or 2525."}`. Without a port: 465 for `ssl`, else 587.
-- The connection goes to the vetted address, while TLS checks the certificate against the host name, so DNS can't swap the target in between. Each vetted address is tried in turn while the connection itself fails.
+- The connection goes to the vetted address, while TLS checks the certificate against the host name, so DNS can't swap the target in between.
+- The first vetted address that accepts a TCP connection within 5 s gets the mail; an SMTP session is opened once, so a mail is never handed to a second address.
 - Encryption:
   - `ssl`: TLS from the start.
   - `tls`: STARTTLS required.
-  - Unset: STARTTLS when the server offers it.
+  - Unset: STARTTLS when the server offers it, and required as soon as a username is set (a password never travels in clear).
 - Certificates are verified (Laravel set `verify_peer=false`). An invalid one: `422 {"message": "The SMTP server's TLS certificate isn't valid for its host name."}`.
 - A refused login (535): `422 {"message": "The SMTP server refused the username or password."}`.
 - Hosts in `MAIL_TRUSTED_SMTP_HOSTS` (a dev mail catcher) skip the address and port checks.
@@ -74,12 +75,16 @@ The HTML layout wraps the body: a "Control 360°" header, the profile's `html` a
 - The token comes from the client-credentials grant at `login.microsoftonline.com/{tenant}/oauth2/v2.0/token`. It is cached per tenant, client and secret until a minute before it expires. `tenant_id` must be letters, digits, `-` and `.`.
 - The mail goes as `POST graph.microsoft.com/v1.0/users/{from}/sendMail`, with an HTML body, To/Cc/Bcc, file attachments as base64, `X-Genesy-Email-Log` and `saveToSentItems: true`.
 - Calls go through the outbound HTTP client (no redirects, SSRF guard). `GRAPH_LOGIN_URL` / `GRAPH_API_URL` replace the hosts for local fakes only.
-- A token failure: `422 {"message": "Could not authenticate. Check the tenant, client id and client secret."}`.
+- A token refused (400/401): `422 {"message": "Could not authenticate. Check the tenant, client id and client secret."}`.
+- `sendMail` refused (400/401/403/404): `422 {"message": "Microsoft Graph refused the mail: check that the sender is a mailbox the app may send as."}`.
+- 429 and 5xx from either: the 503 below.
 
 ### Limits
 
-- Attachments together: at most 20 MB over SMTP and 3 MB over Graph (its request limit is 4 MB). Error: `The attachments must not be greater than {N} kilobytes in total.`
-- One send (resolve, connect, TLS and the transfer; or the token and the request) is cut off after 15 s: `503 {"message": "Failed to send message."}`. Any other server or service failure answers the same.
+- Attachments together: at most 20 MB over SMTP and 2 MB over Graph (its whole request is limited to 4 MB, and base64 attachments plus the body must fit). Error: `The attachments must not be greater than {N} kilobytes in total.`
+- One send (resolve, connect, TLS and the transfer; or the token and the request) is cut off after 15 s. The mail may or may not have left, so the log says `unknown` and the answer is `503 {"message": "The mail server didn't answer in time: check the send log before sending again."}`.
+- Any other server or service failure: `503 {"message": "Failed to send message."}`, logged `failed`.
+- Once a mail has gone out, a failure to update its log row doesn't fail the request. The row stays open until the sweep marks it `unknown`.
 
 ## The recipient allow-list
 
@@ -100,11 +105,11 @@ Each send that reaches a transport commits an `email_send_logs` row as `pending`
 |---|---|
 | `sending` | right before the transport |
 | `accepted` | the server or Graph took it (`sent_at`, the SMTP `Message-ID`) |
-| `failed` | refused or failed; `error_message` is a short class (`smtp: permanent 550`, `timed out`, `graph: sendMail 403`) or the 422 text, never the server's own words |
+| `failed` | refused or failed; `error_message` is a short class (`smtp: permanent 550`, `graph: sendMail 503`) or the 422 text, never the server's own words |
 | `blocked` | the allow-list stopped it |
-| `unknown` | still `pending` or `sending` 10 minutes on: the hourly cleanup closes it. Such a mail is never sent again |
+| `unknown` | the 15 s limit ran out mid-send (`error_message` `timed out`), or the row is still `pending` or `sending` 10 minutes on, closed by a sweep that runs every 5 minutes. Such a mail is never sent again; a late outcome still updates it |
 
-Provider events (Resend, F20) move accepted rows on to `delivered`, `bounced`, `opened`, `clicked` and `spam_complaint`.
+A finished row (`accepted`, `failed`, `blocked`) never moves back. Provider events (Resend, F20) move accepted rows on to `delivered`, `bounced`, `opened`, `clicked` and `spam_complaint`.
 
 `GET /settings/email-logs` (`page`, `page_size`) rows:
 
@@ -148,7 +153,7 @@ Answers are always `{data: {...}}`, Laravel's texts:
 | send: ok | 200 | `ok: true, stage: "send", message: "Test e-mail sent to {to} from {from}. …"` |
 
 - The test mail is Laravel's ("Vimdesk test e-mail") and isn't logged.
-- Laravel's test send skipped the allow-list; this one doesn't.
+- Laravel's test send skipped the allow-list; this one doesn't. A blocked test send answers 422 with the reason, not ok: it is an admin's check.
 
 ## Configuration
 

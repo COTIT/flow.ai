@@ -16,6 +16,9 @@ use lettre::{
 
 use crate::{mail::Failure, modules::auth::token::PlainSecret, outbound::is_public};
 
+/// How long one address may take to accept a connection.
+const PROBE: std::time::Duration = std::time::Duration::from_secs(5);
+
 /// Ports a workspace server may be on.
 pub const PORTS: &[u16] = &[25, 465, 587, 2525];
 
@@ -70,46 +73,57 @@ pub async fn targets(
     Ok(addrs)
 }
 
-/// Send `message` through `server`, trying each vetted address until one answers; the caller
-/// bounds the time.
-pub async fn send(server: &Server, trusted: &[String], message: Message) -> Result<(), Failure> {
-    let port = server.port();
-    let mut last = Failure::Failed("smtp: connection failed".into());
-    for addr in targets(&server.host, port, trusted).await? {
-        let params = TlsParameters::new(server.host.clone())
-            .map_err(|_| Failure::Failed("smtp: tls setup".into()))?;
-        let tls = match server.encryption.as_deref() {
-            Some("ssl") => Tls::Wrapper(params),
-            Some("tls") => Tls::Required(params),
-            _ => Tls::Opportunistic(params),
-        };
-        let mut builder =
-            AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(addr.ip().to_string())
-                .port(port)
-                .tls(tls)
-                .timeout(Some(std::time::Duration::from_secs(15)));
-        if let Some(user) = server.username.as_deref().filter(|u| !u.is_empty()) {
-            let pass = server
-                .password
-                .as_ref()
-                .map(PlainSecret::expose)
-                .unwrap_or_default();
-            builder = builder.credentials(Credentials::new(user.to_owned(), pass.to_owned()));
-        }
-        match builder.build().send(message.clone()).await {
-            Ok(_) => return Ok(()),
-            Err(e) if e.is_tls() => return Err(Failure::Refused(BAD_CERT)),
-            Err(e) if e.status().is_some_and(|c| c.to_string() == "535") => {
-                return Err(Failure::Refused(BAD_LOGIN));
-            }
-            // The server answered: another address won't do better.
-            Err(e) if e.status().is_some() || e.is_timeout() => {
-                return Err(Failure::Failed(class(&e)));
-            }
-            Err(e) => last = Failure::Failed(class(&e)),
+/// The first vetted address that accepts a TCP connection (a few seconds each), so an SMTP
+/// session is opened once: a mail is never handed to a second address.
+async fn reachable(addrs: Vec<SocketAddr>) -> Result<SocketAddr, Failure> {
+    for addr in addrs {
+        let probe = tokio::time::timeout(PROBE, tokio::net::TcpStream::connect(addr)).await;
+        if matches!(probe, Ok(Ok(_))) {
+            return Ok(addr);
         }
     }
-    Err(last)
+    Err(Failure::Failed("smtp: connection failed".into()))
+}
+
+/// Send `message` through `server` (the caller bounds the time). A username means the
+/// password must go encrypted: STARTTLS is then required unless `ssl`.
+pub(super) async fn send(
+    server: &Server,
+    trusted: &[String],
+    message: Message,
+) -> Result<(), Failure> {
+    let port = server.port();
+    let addr = reachable(targets(&server.host, port, trusted).await?).await?;
+    let params = TlsParameters::new(server.host.clone())
+        .map_err(|_| Failure::Failed("smtp: tls setup".into()))?;
+    let user = server.username.as_deref().filter(|u| !u.is_empty());
+    let tls = match server.encryption.as_deref() {
+        Some("ssl") => Tls::Wrapper(params),
+        Some("tls") => Tls::Required(params),
+        _ if user.is_some() => Tls::Required(params),
+        _ => Tls::Opportunistic(params),
+    };
+    let mut builder =
+        AsyncSmtpTransport::<Tokio1Executor>::builder_dangerous(addr.ip().to_string())
+            .port(port)
+            .tls(tls)
+            .timeout(Some(std::time::Duration::from_secs(15)));
+    if let Some(user) = user {
+        let pass = server
+            .password
+            .as_ref()
+            .map(PlainSecret::expose)
+            .unwrap_or_default();
+        builder = builder.credentials(Credentials::new(user.to_owned(), pass.to_owned()));
+    }
+    match builder.build().send(message).await {
+        Ok(_) => Ok(()),
+        Err(e) if e.is_tls() => Err(Failure::Refused(BAD_CERT)),
+        Err(e) if e.status().is_some_and(|c| c.to_string() == "535") => {
+            Err(Failure::Refused(BAD_LOGIN))
+        }
+        Err(e) => Err(Failure::Failed(class(&e))),
+    }
 }
 
 /// A short class of an SMTP error, without the server's text (it can echo addresses).

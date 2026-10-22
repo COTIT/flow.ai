@@ -177,6 +177,7 @@ fn emails(r: &mut Rules, field: &str, v: &Capped) -> Vec<String> {
             .map(|s| s.trim().to_lowercase())
             .unwrap_or_default();
         r.email(&f, &e);
+        r.max_chars(&f, &e, 255);
         if !out.contains(&e) {
             out.push(e);
         }

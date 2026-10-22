@@ -167,6 +167,7 @@ pub async fn office365_connection(
             let reason = match e {
                 Failure::Refused(why) => why.to_owned(),
                 Failure::Failed(why) => why,
+                Failure::TimedOut => "timed out".to_owned(),
             };
             answer(
                 false,

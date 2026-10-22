@@ -28,9 +28,13 @@ pub const NO_HOST: &str = "No smtp host specified in the settings";
 pub const NO_FROM: &str = "No smtp from address specified in the settings";
 /// 503 when the server or service failed (Laravel's text).
 pub const FAILED: &str = "Failed to send message.";
-/// Attachment totals: SMTP, and Graph (its whole request may be 4 MB).
+/// 503 when the time limit ran out mid-send: retrying blindly could send it twice.
+pub const TIMED_OUT: &str =
+    "The mail server didn't answer in time: check the send log before sending again.";
+/// Attachment totals: SMTP, and Graph (its whole request, base64 attachments and the body
+/// included, may be 4 MB).
 const SMTP_CAP: usize = 20 * 1024 * 1024;
-const GRAPH_CAP: usize = 3 * 1024 * 1024;
+const GRAPH_CAP: usize = 2 * 1024 * 1024;
 
 const GRAPH_SECRET: &str = "integrations.mail.graph.client_secret";
 
@@ -111,23 +115,39 @@ pub async fn send(
         attachments,
         log_id,
     };
-    match state.mailer.deliver(&route.via, &mail).await {
+    let outcome = state.mailer.deliver(&route.via, &mail).await;
+    // From here the mail may have left: a failed log update must not make the caller send it
+    // again (the sweep closes the row as `unknown`).
+    let record = |status: &'static str, id: Option<String>, error: Option<String>| {
+        let db = state.db.clone();
+        async move {
+            if let Err(e) = repo::mark(&db, log_id, status, id.as_deref(), error.as_deref()).await {
+                tracing::warn!(log = %log_id, error = %e, "send log not updated");
+            }
+        }
+    };
+    match outcome {
         Ok(Delivered::Accepted { message_id }) => {
-            repo::mark(&state.db, log_id, "accepted", message_id.as_deref(), None).await?;
+            record("accepted", message_id, None).await;
             Ok(())
         }
         Ok(Delivered::Blocked { .. }) => {
-            repo::mark(&state.db, log_id, "blocked", None, None).await?;
+            record("blocked", None, None).await;
             Ok(())
         }
         Err(Failure::Refused(why)) => {
-            repo::mark(&state.db, log_id, "failed", None, Some(why)).await?;
+            record("failed", None, Some(why.into())).await;
             Err(AppError::Unprocessable(why.into()))
         }
         Err(Failure::Failed(class)) => {
             tracing::warn!(log = %log_id, error = %class, "workspace mail failed");
-            repo::mark(&state.db, log_id, "failed", None, Some(&class)).await?;
+            record("failed", None, Some(class)).await;
             Err(AppError::Unavailable(FAILED))
+        }
+        Err(Failure::TimedOut) => {
+            tracing::warn!(log = %log_id, "workspace mail timed out");
+            record("unknown", None, Some("timed out".into())).await;
+            Err(AppError::Unavailable(TIMED_OUT))
         }
     }
 }

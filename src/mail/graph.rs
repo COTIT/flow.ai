@@ -27,6 +27,10 @@ pub const API_URL: &str = "https://graph.microsoft.com";
 pub const TOKEN_FAILED: &str =
     "Could not authenticate. Check the tenant, client id and client secret.";
 
+/// 422 when Graph refuses the mail itself.
+pub const SEND_REFUSED: &str =
+    "Microsoft Graph refused the mail: check that the sender is a mailbox the app may send as.";
+
 /// Largest answer read back (a token or one inbox message id).
 const MAX_ANSWER: usize = 1024 * 1024;
 
@@ -73,7 +77,7 @@ impl Client {
 
     /// Send `mail` as its from address (`POST /v1.0/users/{from}/sendMail`), a copy kept in
     /// Sent Items.
-    pub async fn send(&self, account: &Account, mail: &Mail) -> Result<(), Failure> {
+    pub(super) async fn send(&self, account: &Account, mail: &Mail) -> Result<(), Failure> {
         let token = self.token(account).await?;
         let to = |list: &[String]| -> Vec<Value> {
             list.iter()
@@ -108,13 +112,11 @@ impl Client {
         let url = self.users_url(&[&mail.from.email, "sendMail"])?;
         let body = json!({ "message": message, "saveToSentItems": true });
         let res = self.call(Method::POST, url, &token, Some(body)).await?;
-        if res.status().is_success() {
-            Ok(())
-        } else {
-            Err(Failure::Failed(format!(
-                "graph: sendMail {}",
-                res.status().as_u16()
-            )))
+        match res.status().as_u16() {
+            200..=299 => Ok(()),
+            // The setup is wrong (mailbox, permission): retrying won't help.
+            400 | 401 | 403 | 404 => Err(Failure::Refused(SEND_REFUSED)),
+            code => Err(Failure::Failed(format!("graph: sendMail {code}"))),
         }
     }
 
@@ -187,8 +189,10 @@ impl Client {
             .send(req)
             .await
             .map_err(|_| Failure::Failed("graph: login unreachable".into()))?;
-        if !res.status().is_success() {
-            return Err(Failure::Refused(TOKEN_FAILED));
+        match res.status().as_u16() {
+            200..=299 => {}
+            400 | 401 => return Err(Failure::Refused(TOKEN_FAILED)),
+            code => return Err(Failure::Failed(format!("graph: token {code}"))),
         }
         let v = read_json(res).await?;
         let token = v["access_token"]

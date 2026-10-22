@@ -15,6 +15,7 @@ use crate::{
 };
 
 const EVERY: Duration = Duration::from_secs(60 * 60);
+const SENDS_EVERY: Duration = Duration::from_secs(5 * 60);
 
 /// Rows removed by one `prune` run, per table.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -31,12 +32,13 @@ pub struct Pruned {
 /// Delete stale rows via each module's repo. Windows are wider than any rule that reads them.
 pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
     Ok(Pruned {
+        // First: a failure further down must not leave open sends open.
+        stuck_sends: messages::close_stuck(db).await?,
         access_tokens: auth::prune_expired_tokens(db).await?,
         verification_tokens: email_verification::prune_expired(db).await?,
         invites: invites::prune_old(db).await?,
         invite_sends: invites::prune_old_sends(db).await?,
         login_failures: auth::prune_old_login_attempts(db).await?,
-        stuck_sends: messages::close_stuck(db).await?,
     })
 }
 
@@ -50,6 +52,17 @@ pub async fn sweep_files(db: &PgPool, bucket: &Store) -> Result<u64, String> {
 /// Run `prune` (and the file sweep, with a bucket) every hour in the background. Failures are
 /// logged and retried next tick.
 pub fn spawn(db: PgPool, bucket: Option<Store>) {
+    // Open sends close every few minutes, so one stays open about 10 minutes, not an hour.
+    let sends_db = db.clone();
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(SENDS_EVERY);
+        loop {
+            tick.tick().await;
+            if let Err(err) = messages::close_stuck(&sends_db).await {
+                tracing::warn!(error = %err, "closing stuck sends failed");
+            }
+        }
+    });
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(EVERY);
         loop {

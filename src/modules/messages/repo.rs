@@ -90,8 +90,9 @@ pub async fn insert(tx: &mut PgConnection, l: &NewLog<'_>) -> Result<(), sqlx::E
     Ok(())
 }
 
-/// Move a send on: `sending`, `accepted` (with the sent time), `failed` (with a short class,
-/// never a server's words) or `blocked`.
+/// Move an open send on: `sending`, `accepted` (with the sent time), `failed` (with a short
+/// class, never a server's words), `blocked` or `unknown`. A finished row never moves back;
+/// one the sweep closed as `unknown` still takes the real outcome.
 pub async fn mark(
     db: impl PgExecutor<'_>,
     id: Uuid,
@@ -105,7 +106,7 @@ pub async fn mark(
             error_message = COALESCE(left($4, 255), error_message),
             sent_at = CASE WHEN $2 = 'accepted' THEN now() ELSE sent_at END,
             updated_at = now()
-         WHERE id = $1",
+         WHERE id = $1 AND status IN ('pending', 'sending', 'unknown')",
         id,
         status,
         message_id,

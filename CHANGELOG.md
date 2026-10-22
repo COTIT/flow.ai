@@ -14,17 +14,29 @@
   - **`POST /send-message`** (`workspace.send-message`, Laravel SendMessageRequest):
     - the Graph → profile SMTP → workspace SMTP order and Laravel's from rules;
     - an HTML layout with the profile footer;
-    - attachments from the bucket (20 MB SMTP / 3 MB Graph);
+    - attachments from the bucket (20 MB SMTP / 2 MB Graph);
     - without `to`, the addressed contact gets it; `manual` sends nothing (both 500s in Laravel).
   - **Send logs:**
     - Migration `email_send_logs` (+ `email_send_log_recipients`). A row is committed `pending` before the send and moves to `sending`, then `accepted`, `failed` (a short class, never a server's words) or `blocked`.
-    - The hourly cleanup marks rows still open 10 minutes on as `unknown`; they are never re-sent.
+    - A sweep every 5 minutes marks rows still open after 10 minutes `unknown`; they are never re-sent.
     - `GET /settings/email-logs` (`setting.get`).
   - **Connection tests:**
     - `GET /email-profiles/{id}/test-connection` (`emailprofile.update`; Laravel checked `ftpserver.view`);
     - `POST /settings/office365/test-connection` and `test-send` (`setting.update`, Laravel's texts; the mask uses the stored secret; the test send goes through the allow-list).
   - **Config:** `MAIL_ALLOWED_RECIPIENT_DOMAINS`, `MAIL_TRUSTED_SMTP_HOSTS` (dev mail catchers), `GRAPH_LOGIN_URL` / `GRAPH_API_URL` (local fakes). compose passes `MAIL_ALLOWED_RECIPIENT_DOMAINS` to genesy-api like Laravel's api (deploy.sh sets it in prod).
   - **Errors:** platform mail errors no longer carry the SMTP server's text.
+  - Review fixes (security, Rust, database):
+    - An SMTP session is opened once, on the first vetted address that accepts TCP within 5 s, so a mail is never handed to a second address.
+    - With a username, STARTTLS is required.
+    - Line breaks in a display name or subject are dropped (lettre panicked on them).
+    - A failed log update after the mail left no longer fails the request.
+    - A send cut off by the 15 s limit is logged `unknown`, with a 503 that says to check the log before resending.
+    - Transport functions are private to the mailer.
+    - Graph 400/401/403/404 are 422s, while 429/5xx are 503s.
+    - A finished log row never moves back.
+    - The Graph attachment cap is 2 MB.
+    - Addresses are at most 255 characters.
+    - Open sends are swept every 5 minutes, first in the prune.
 
 - Final batch F5b1 (email templates and profiles; contracts `docs/api/email-templates.md`, `docs/api/email-profiles.md`):
   - **Migration `email_templates_profiles`:** `email_templates` (domain CHECK over Laravel's 84 `Domains`, one default per domain by a partial unique index) and `email_profiles` (SMTP settings in `smtp` jsonb, never the password; the password sealed in `smtp_password` with `smtp_key_id`).

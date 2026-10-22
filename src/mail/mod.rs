@@ -102,6 +102,8 @@ pub enum Failure {
     Refused(&'static str),
     /// The server or service failed; a short class for the log (a 503 to retry).
     Failed(String),
+    /// The time limit ran out mid-send: the mail may or may not have left.
+    TimedOut,
 }
 
 /// Mail sender, cheap to clone.
@@ -227,6 +229,7 @@ impl Mailer {
             Ok(_) => Ok(()),
             Err(Failure::Refused(why)) => Err(AppError::Internal(format!("platform mail: {why}"))),
             Err(Failure::Failed(why)) => Err(AppError::Internal(format!("platform mail: {why}"))),
+            Err(Failure::TimedOut) => Err(AppError::Internal("platform mail: timed out".into())),
         }
     }
 
@@ -266,7 +269,7 @@ impl Mailer {
         };
         tokio::time::timeout(self.shared.timeout, send)
             .await
-            .unwrap_or_else(|_| Err(Failure::Failed("timed out".into())))
+            .unwrap_or(Err(Failure::TimedOut))
     }
 
     /// The domains outside the allow-list, if any (all when there is no recipient at all).
@@ -323,12 +326,12 @@ impl Mailer {
 fn build(m: &Mail) -> Result<Message, Failure> {
     let bad = |what: &str| Failure::Failed(format!("{what} isn't an address"));
     let from = Mailbox::new(
-        m.from.name.clone(),
+        m.from.name.as_deref().map(one_line),
         m.from.email.parse().map_err(|_| bad("from"))?,
     );
     let mut b = Message::builder()
         .from(from)
-        .subject(m.subject.clone())
+        .subject(one_line(&m.subject))
         .header(LogHeader(m.log_id));
     for (list, kind) in [(&m.to, 0), (&m.cc, 1), (&m.bcc, 2)] {
         for r in list {
@@ -349,6 +352,12 @@ fn build(m: &Mail) -> Result<Message, Failure> {
     }
     b.multipart(body)
         .map_err(|e| Failure::Failed(format!("build: {e}")))
+}
+
+/// Header text without control characters: a line break can't start a header (lettre
+/// panics on one in a display name).
+pub fn one_line(s: &str) -> String {
+    s.chars().filter(|c| !c.is_control()).collect()
 }
 
 fn message_id(m: &Message) -> Option<String> {

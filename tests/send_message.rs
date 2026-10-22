@@ -256,6 +256,29 @@ async fn a_profile_sends_through_its_own_server(pool: PgPool) {
     assert_eq!(n, 3);
 }
 
+/// Line breaks in a sender name or subject can't add headers (lettre refused them with a
+/// panic): they are dropped.
+#[sqlx::test]
+async fn line_breaks_never_reach_the_headers(pool: PgPool) {
+    let f = setup(pool, "", true).await;
+    let contact = contact(&f.api).await;
+    let profile = profile(&f.api, f.smtp_port).await;
+    sqlx::query("UPDATE email_profiles SET sender_name = E'Acme\r\nBcc: spy@evil.test'")
+        .execute(&f.api.pool)
+        .await
+        .unwrap();
+    let mut body = message(&contact);
+    body["email_profile_id"] = json!(profile);
+    let (status, res) = send(&f, body).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let m = f.inbox.lock().unwrap()[0].clone();
+    assert!(
+        !m.data.contains("Bcc: spy") && !m.rcpt.iter().any(|r| r.contains("spy")),
+        "{}",
+        m.data
+    );
+}
+
 /// Without `to` (vimdesk-web's mail dialog sends none) the addressed contact gets it.
 #[sqlx::test]
 async fn to_defaults_to_the_addressed_contact(pool: PgPool) {
@@ -329,14 +352,15 @@ async fn a_silent_server_times_out(pool: PgPool) {
         (status, res),
         (
             StatusCode::SERVICE_UNAVAILABLE,
-            json!({ "message": "Failed to send message." })
+            json!({ "message": "The mail server didn't answer in time: check the send log before sending again." })
         )
     );
     assert!(started.elapsed() < Duration::from_secs(5));
+    // Whether it left can't be known: `unknown`, never retried.
     let (status, .., error) = the_log(&f.api).await;
     assert_eq!(
         (status.as_str(), error.as_deref()),
-        ("failed", Some("timed out"))
+        ("unknown", Some("timed out"))
     );
 }
 
@@ -484,7 +508,7 @@ async fn graph_attachments_are_capped(pool: PgPool) {
     graph_settings(&f.api, "tenant-1").await;
     let contact = contact(&f.api).await;
     let big = base64::engine::general_purpose::STANDARD
-        .encode([b"%PDF-".as_slice(), &vec![0u8; 3 * 1024 * 1024]].concat());
+        .encode([b"%PDF-".as_slice(), &vec![0u8; 2 * 1024 * 1024]].concat());
     let (_, file) = call(
         &f.api,
         "/files",
@@ -499,7 +523,7 @@ async fn graph_attachments_are_capped(pool: PgPool) {
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(
         res["errors"]["attachments"][0],
-        "The attachments must not be greater than 3072 kilobytes in total."
+        "The attachments must not be greater than 2048 kilobytes in total."
     );
 }
 
