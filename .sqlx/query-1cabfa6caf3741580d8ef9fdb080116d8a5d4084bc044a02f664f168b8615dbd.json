@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE files SET status = 'deleting', deleted_at = now(), updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND status = 'stored'\n         RETURNING key",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1cabfa6caf3741580d8ef9fdb080116d8a5d4084bc044a02f664f168b8615dbd"
+}

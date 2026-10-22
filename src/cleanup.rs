@@ -1,13 +1,17 @@
-//! Hourly cleanup of rows nothing reads anymore: expired tokens, old invites, quota logs.
-//! Scheduler only: the deletes live in each module's repo. Idempotent, so several replicas
-//! running it at once is harmless.
+//! Hourly cleanup of rows nothing reads anymore (expired tokens, old invites, quota logs) and
+//! of files a crash left half written or half deleted. Scheduler only: the work lives in each
+//! module. Idempotent, so several replicas running it at once is harmless.
 
 use std::time::Duration;
 
 use sqlx::PgPool;
 
-use crate::modules::{
-    auth::repo as auth, email_verification::repo as email_verification, invites::repo as invites,
+use crate::{
+    modules::{
+        auth::repo as auth, email_verification::repo as email_verification, files,
+        invites::repo as invites,
+    },
+    storage::Store,
 };
 
 const EVERY: Duration = Duration::from_secs(60 * 60);
@@ -33,8 +37,16 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
     })
 }
 
-/// Run `prune` every hour in the background. Failures are logged and retried next tick.
-pub fn spawn(db: PgPool) {
+/// Finish file rows left pending or deleting (up to 100 a run); how many it finished.
+pub async fn sweep_files(db: &PgPool, bucket: &Store) -> Result<u64, String> {
+    files::service::sweep(db, bucket)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Run `prune` (and the file sweep, with a bucket) every hour in the background. Failures are
+/// logged and retried next tick.
+pub fn spawn(db: PgPool, bucket: Option<Store>) {
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(EVERY);
         loop {
@@ -42,6 +54,14 @@ pub fn spawn(db: PgPool) {
             match prune(&db).await {
                 Ok(pruned) => tracing::info!(?pruned, "cleanup done"),
                 Err(err) => tracing::warn!(error = %err, "cleanup failed, retrying next hour"),
+            }
+            if let Some(bucket) = &bucket {
+                match sweep_files(&db, bucket).await {
+                    Ok(n) => tracing::info!(files = n, "file sweep done"),
+                    Err(err) => {
+                        tracing::warn!(error = %err, "file sweep failed, retrying next hour")
+                    }
+                }
             }
         }
     });

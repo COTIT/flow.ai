@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO pdf_templates (workspace_id, domain, name, domain_action, columns,\n                                    header_left, header_right, header_top, footer,\n                                    padding_top, padding_bottom, padding_x, enable_summary,\n                                    is_default, conditions, extra_fields, meta,\n                                    background_file_id, logo_file_id)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, COALESCE($13, true),\n                 COALESCE($14, false), $15, $16, $17, $18, $19)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Bool",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "439c8b2c573fa695d72fcff6da25558cf8ac06cbb0cf11fba8211efd6b1e956d"
+}

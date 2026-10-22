@@ -1,6 +1,6 @@
 //! HTML to PDF through the Gotenberg sidecar (headless Chromium, as Laravel's Browsershot): one
-//! multipart POST to `/forms/chromium/convert/html`. The sidecar runs with JavaScript off and a
-//! deny-list that lets only `data:` URIs load, so the HTML carries its images inline.
+//! multipart POST to `/forms/chromium/convert/html`. The sidecar runs with JavaScript off and an
+//! allow-list of `data:` URIs plus its own temp files, so the HTML carries its images inline.
 
 use std::time::Duration;
 
@@ -8,11 +8,26 @@ use reqwest::{
     Method,
     multipart::{Form, Part},
 };
+use tokio::sync::{Semaphore, SemaphorePermit};
 
 use crate::{error::AppError, outbound::Outbound};
 
 /// Whole call; the sidecar gives up on a render after 30 s itself.
 const TIMEOUT: Duration = Duration::from_secs(35);
+
+/// Largest PDF read back; a bigger answer is cut off as an error.
+const MAX_PDF: usize = 25 * 1024 * 1024;
+
+/// Renders building at once: inline images can make one page's HTML tens of MB.
+static RENDERS: Semaphore = Semaphore::const_new(2);
+
+/// A render slot, held while a document's HTML is built and rendered; 503 after 10 s waiting.
+pub async fn slot() -> Result<SemaphorePermit<'static>, AppError> {
+    tokio::time::timeout(Duration::from_secs(10), RENDERS.acquire())
+        .await
+        .map_err(|_| AppError::Overloaded)?
+        .map_err(|_| AppError::Overloaded)
+}
 
 /// Page setup of one render (Browsershot `format('A4')`, `margins(…)`, `showBackground`).
 #[derive(Debug, Clone, PartialEq)]
@@ -68,15 +83,21 @@ impl Renderer {
             )
             .timeout(TIMEOUT)
             .multipart(form);
-        let res = self.http.send(req).await.map_err(failed)?;
+        let mut res = self.http.send(req).await.map_err(failed)?;
         if !res.status().is_success() {
             return Err(failed(format!("status {}", res.status())));
         }
-        let bytes = res.bytes().await.map_err(|e| failed(e.to_string()))?;
-        if !bytes.starts_with(b"%PDF") {
+        let mut pdf = Vec::new();
+        while let Some(chunk) = res.chunk().await.map_err(|e| failed(e.to_string()))? {
+            if pdf.len() + chunk.len() > MAX_PDF {
+                return Err(failed("larger than 25 MiB".into()));
+            }
+            pdf.extend_from_slice(&chunk);
+        }
+        if !pdf.starts_with(b"%PDF") {
             return Err(failed("not a PDF".into()));
         }
-        Ok(bytes.to_vec())
+        Ok(pdf)
     }
 }
 

@@ -7,6 +7,7 @@ edition = "2024"
 argon2 = "0.6.0"
 askama = { version = "0.16.1", default-features = false, features = ["derive", "std"] }
 axum = "0.8.9"
+base64 = "0.22.1"
 chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["alloc", "zeroize"] }
 chrono = { version = "0.4.45", default-features = false, features = ["serde", "clock", "std"] }
 dotenvy = "0.15.7"

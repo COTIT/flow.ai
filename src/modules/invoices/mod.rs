@@ -3,6 +3,7 @@
 
 pub mod dto;
 pub mod handlers;
+pub mod pdf;
 pub mod repo;
 pub mod resource;
 pub mod routes;

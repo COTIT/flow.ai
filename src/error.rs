@@ -35,6 +35,9 @@ pub enum AppError {
     /// 422 with only a message (Laravel exceptions with `statusCode` 422, no field errors).
     #[error("{0}")]
     Unprocessable(String),
+    /// 503 with a message: a feature whose backing service isn't configured.
+    #[error("{0}")]
+    Unavailable(&'static str),
     /// 404. Same body for "missing" and "exists but not yours", so ids can't be probed.
     #[error("not found")]
     NotFound,
@@ -164,6 +167,11 @@ impl IntoResponse for AppError {
                 Json(json!({ "message": message })),
             )
                 .into_response(),
+            Self::Unavailable(message) => (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({ "message": message })),
+            )
+                .into_response(),
             Self::NotFound => (
                 StatusCode::NOT_FOUND,
                 Json(json!({ "message": "The requested resource could not be found." })),
@@ -227,6 +235,13 @@ mod tests {
                 .map(|(f, msgs)| (f.to_string(), msgs.iter().map(|m| m.to_string()).collect()))
                 .collect(),
         )
+    }
+
+    #[tokio::test]
+    async fn unavailable_is_503_with_a_message() {
+        let (status, body) = render(AppError::Unavailable("Off.")).await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(body, json!({ "message": "Off." }));
     }
 
     #[tokio::test]

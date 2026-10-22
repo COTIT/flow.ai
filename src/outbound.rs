@@ -43,16 +43,26 @@ impl Outbound {
     pub async fn send(&self, req: reqwest::RequestBuilder) -> Result<reqwest::Response, String> {
         let req = req.build().map_err(|e| format!("request: {e}"))?;
         if !self.allowed(req.url()) {
-            return Err(format!("{} is not a public address", req.url().host_str().unwrap_or("?")));
+            return Err(format!(
+                "{} is not a public address",
+                req.url().host_str().unwrap_or("?")
+            ));
         }
-        self.client.execute(req).await.map_err(|e| format!("send: {e}"))
+        self.client
+            .execute(req)
+            .await
+            .map_err(|e| format!("send: {e}"))
     }
 
     fn allowed(&self, url: &reqwest::Url) -> bool {
         let Some(host) = url.host_str() else {
             return true;
         };
-        match host.trim_start_matches('[').trim_end_matches(']').parse::<IpAddr>() {
+        match host
+            .trim_start_matches('[')
+            .trim_end_matches(']')
+            .parse::<IpAddr>()
+        {
             Ok(ip) => self.trusted.contains(&ip.to_string()) || is_public(ip),
             // A name: the resolver guards it.
             Err(_) => true,
@@ -179,8 +189,15 @@ mod tests {
     #[tokio::test]
     async fn an_ip_literal_url_is_checked_before_sending() {
         let out = Outbound::new(&[]).unwrap();
-        for url in ["http://127.0.0.1:9/", "http://169.254.169.254/latest", "http://[::1]:9/"] {
-            let err = out.send(out.request(reqwest::Method::GET, url)).await.unwrap_err();
+        for url in [
+            "http://127.0.0.1:9/",
+            "http://169.254.169.254/latest",
+            "http://[::1]:9/",
+        ] {
+            let err = out
+                .send(out.request(reqwest::Method::GET, url))
+                .await
+                .unwrap_err();
             assert!(err.contains("not a public address"), "{url}: {err}");
         }
         let trusted = Outbound::new(&["127.0.0.1".to_owned()]).unwrap();
@@ -193,7 +210,10 @@ mod tests {
 
     #[test]
     fn host_of_reads_configured_urls() {
-        assert_eq!(host_of("http://Gotenberg:3000/").as_deref(), Some("gotenberg"));
+        assert_eq!(
+            host_of("http://Gotenberg:3000/").as_deref(),
+            Some("gotenberg")
+        );
         assert_eq!(host_of("nope"), None);
     }
 

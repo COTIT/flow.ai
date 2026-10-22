@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM pdf_templates\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR domain = $2)\n             AND ($3::text IS NULL OR name ILIKE $3)\n             AND ($4::text IS NULL OR conditions->>'relation_type' IS NULL\n                  OR conditions->>'relation_type' = $4)\n             AND ($5::text IS NULL OR conditions->>'language' IS NULL\n                  OR conditions->>'language' = $5)\n             AND ($6::text IS NULL OR conditions->>'relation_custom_type_id' IS NULL\n                  OR conditions->>'relation_custom_type_id' = $6)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c79a3e4887af4b2b99aa21fc24d3403b675df695043f92b44427d738c188e19f"
+}

@@ -686,3 +686,36 @@ async fn embeds(
     }
     Ok(e)
 }
+
+/// Render the invoice as a PDF (with `template_id` when it is an invoice template of this
+/// workspace, else the built-in layout, as Laravel), store it as a file; that file.
+pub async fn preview(
+    state: &AppState,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    id: &str,
+    template_id: Option<Uuid>,
+) -> Result<crate::modules::files::dto::FileResource, AppError> {
+    use crate::modules::{files, pdf_templates};
+    let id = parse(id)?;
+    files::service::store(state)?;
+    let template = match template_id {
+        Some(t) => pdf_templates::repo::find(&state.db, workspace_id, t, Some("invoice")).await?,
+        None => None,
+    };
+    let pdf =
+        crate::modules::invoices::pdf::render(state, workspace_id, id, template.as_ref()).await?;
+    let file_id = files::service::create(
+        state,
+        workspace_id,
+        user_id,
+        files::service::NewFile {
+            document_name: &pdf.file_name,
+            description: None,
+            meta: None,
+            bytes: pdf.bytes,
+        },
+    )
+    .await?;
+    files::service::get(state, workspace_id, &file_id.to_string()).await
+}

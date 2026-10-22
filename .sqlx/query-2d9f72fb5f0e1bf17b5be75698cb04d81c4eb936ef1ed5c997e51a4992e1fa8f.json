@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE files SET status = $3, updated_at = now(),\n                          deleted_at = CASE WHEN $3 IN ('deleting', 'deleted')\n                                            THEN COALESCE(deleted_at, now()) END\n         WHERE id = $1 AND status = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2d9f72fb5f0e1bf17b5be75698cb04d81c4eb936ef1ed5c997e51a4992e1fa8f"
+}

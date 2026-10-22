@@ -551,6 +551,44 @@ pub async fn set_totals(
     Ok(())
 }
 
+/// What a PDF prints a currency with.
+pub struct CurrencyPrint {
+    pub symbol_prefix: Option<String>,
+    pub symbol_suffix: Option<String>,
+    pub decimals: i16,
+}
+
+/// Print data of currency `id` (a deleted currency still prints its invoices).
+pub async fn currency_print(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<CurrencyPrint, sqlx::Error> {
+    sqlx::query_as!(
+        CurrencyPrint,
+        "SELECT symbol_prefix, symbol_suffix, decimals FROM currencies
+         WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// The workspace's newest live invoice (a template preview's sample).
+pub async fn newest(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM invoices WHERE workspace_id = $1 AND deleted_at IS NULL
+         ORDER BY created_at DESC, id DESC LIMIT 1",
+        workspace_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
 /// Decimals of currency `id` (a deleted currency still prices its invoices).
 pub async fn currency_decimals(
     db: impl PgExecutor<'_>,

@@ -156,6 +156,39 @@ pub async fn delete(
     Ok(Message("ok"))
 }
 
+/// `?pdf_template_id=` of the preview (`print_with_ftp` is not ported: no FTP servers).
+#[derive(serde::Deserialize, Default)]
+#[serde(default)]
+pub struct PreviewQuery {
+    pdf_template_id: Option<String>,
+}
+
+/// GET /invoices/{id}/preview -> `{data: FileResource}` of a new PDF.
+pub async fn preview(
+    State(state): State<AppState>,
+    access: Can<InvoiceView>,
+    Path((_, id)): Path<(String, String)>,
+    Query(q): Query<PreviewQuery>,
+) -> Result<Data<crate::modules::files::dto::FileResource>, AppError> {
+    let template = match q
+        .pdf_template_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        None => None,
+        Some(s) => Some(Uuid::parse_str(s).map_err(|_| {
+            AppError::field(
+                "pdf_template_id",
+                "The pdf template id must be a valid UUID.",
+            )
+        })?),
+    };
+    Ok(Data(
+        service::preview(&state, access.workspace_id, access.user_id, &id, template).await?,
+    ))
+}
+
 /// POST /invoices/{id}/duplicate -> 201 `{data:{invoice_id}}` (needs `invoice.create`).
 pub async fn duplicate(
     State(state): State<AppState>,

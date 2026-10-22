@@ -97,7 +97,10 @@ impl fmt::Debug for Config {
                 &self.request_body_deadline_secs,
             )
             .field("credentials_key", &self.credentials_key)
-            .field("storage", &self.storage.as_ref().map(|s| (&s.endpoint, &s.bucket)))
+            .field(
+                "storage",
+                &self.storage.as_ref().map(|s| (&s.endpoint, &s.bucket)),
+            )
             .field("gotenberg_url", &self.gotenberg_url)
             .finish()
     }
@@ -235,9 +238,11 @@ fn storage(get: &impl Fn(&str) -> Option<String>) -> Result<Option<S3Config>, St
     );
     let (Some(bucket), Some(key_id), Some(secret)) = (&bucket, &key_id, &secret) else {
         if bucket.is_some() || key_id.is_some() || secret.is_some() {
-            return Err("set B2_UPLOADS_BUCKET, B2_UPLOADS_KEY_ID and B2_UPLOADS_APPLICATION_KEY \
+            return Err(
+                "set B2_UPLOADS_BUCKET, B2_UPLOADS_KEY_ID and B2_UPLOADS_APPLICATION_KEY \
                         together, or none of them"
-                .into());
+                    .into(),
+            );
         }
         return Ok(None);
     };
@@ -253,7 +258,10 @@ fn storage(get: &impl Fn(&str) -> Option<String>) -> Result<Option<S3Config>, St
 }
 
 /// An optional http(s) URL without a trailing slash; blank = unset.
-fn optional_url(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<Option<String>, String> {
+fn optional_url(
+    get: &impl Fn(&str) -> Option<String>,
+    key: &str,
+) -> Result<Option<String>, String> {
     let Some(v) = get(key).filter(|v| !v.trim().is_empty()) else {
         return Ok(None);
     };
@@ -685,7 +693,11 @@ mod tests {
         let s = full.storage.as_ref().unwrap();
         assert_eq!(
             (s.endpoint.as_str(), s.region.as_str(), s.bucket.as_str()),
-            ("https://s3.eu-central-003.backblazeb2.com", "eu-central-003", "uploads")
+            (
+                "https://s3.eu-central-003.backblazeb2.com",
+                "eu-central-003",
+                "uploads"
+            )
         );
         assert_eq!(full.gotenberg_url.as_deref(), Some("http://gotenberg:3000"));
         assert!(!format!("{full:?}").contains("s3cret"));

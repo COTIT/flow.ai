@@ -28,12 +28,14 @@ pub struct S3Config {
     pub secret: String,
 }
 
+/// Tests' bucket: key -> (bytes, content type).
+type Objects = Arc<Mutex<HashMap<String, (Vec<u8>, String)>>>;
+
 /// The file store.
 #[derive(Clone)]
 pub enum Store {
     S3(Arc<S3>),
-    /// Tests: key -> (bytes, content type).
-    Memory(Arc<Mutex<HashMap<String, (Vec<u8>, String)>>>),
+    Memory(Objects),
 }
 
 /// A bucket plus its credentials.
@@ -81,7 +83,10 @@ impl Store {
                 Ok(())
             }
             Self::S3(s) => {
-                let url = s.bucket.put_object(Some(&s.credentials), key).sign(SIGN_TTL);
+                let url = s
+                    .bucket
+                    .put_object(Some(&s.credentials), key)
+                    .sign(SIGN_TTL);
                 let req = s
                     .http
                     .request(Method::PUT, url.as_str())
@@ -119,28 +124,59 @@ impl Store {
         }
     }
 
-    /// A URL that downloads `key` for `ttl`, served with `content_type` and as `file_name`
-    /// (inline, so a PDF opens in the browser).
+    /// A URL that downloads `key` for `ttl`, served with `content_type` and as `file_name`;
+    /// `inline` opens it in the browser (a PDF), else it downloads.
     pub fn download_url(
         &self,
         key: &str,
         file_name: &str,
         content_type: &str,
+        inline: bool,
         ttl: Duration,
     ) -> Result<String, AppError> {
         match self {
-            Self::Memory(m) => {
-                lock(m)?
-                    .contains_key(key)
-                    .then(|| format!("memory://{key}"))
-                    .ok_or_else(|| AppError::Internal(format!("no object {key}")))
-            }
+            Self::Memory(m) => lock(m)?
+                .contains_key(key)
+                .then(|| format!("memory://{key}"))
+                .ok_or_else(|| AppError::Internal(format!("no object {key}"))),
             Self::S3(s) => {
                 let mut action = s.bucket.get_object(Some(&s.credentials), key);
                 let query = action.query_mut();
                 query.insert("response-content-type", content_type.to_owned());
-                query.insert("response-content-disposition", disposition(file_name));
+                query.insert(
+                    "response-content-disposition",
+                    disposition(file_name, inline),
+                );
                 Ok(action.sign(ttl).to_string())
+            }
+        }
+    }
+
+    /// Bytes of `key`, else None when there is no such object.
+    pub async fn get(&self, key: &str) -> Result<Option<Vec<u8>>, AppError> {
+        match self {
+            Self::Memory(m) => Ok(lock(m)?.get(key).map(|(b, _)| b.clone())),
+            Self::S3(s) => {
+                let url = s
+                    .bucket
+                    .get_object(Some(&s.credentials), key)
+                    .sign(SIGN_TTL);
+                let req = s
+                    .http
+                    .request(Method::GET, url.as_str())
+                    .timeout(REQUEST_TIMEOUT);
+                let res = s.http.send(req).await.map_err(storage_error)?;
+                match res.status() {
+                    StatusCode::NOT_FOUND => Ok(None),
+                    status if status.is_success() => {
+                        let bytes = res
+                            .bytes()
+                            .await
+                            .map_err(|e| storage_error(e.to_string()))?;
+                        Ok(Some(bytes.to_vec()))
+                    }
+                    status => Err(AppError::Internal(format!("storage get: {status}"))),
+                }
             }
         }
     }
@@ -154,11 +190,18 @@ impl Store {
     }
 }
 
-/// `inline; filename="…"` with a plain-ASCII fallback name and the UTF-8 one (RFC 6266).
-fn disposition(file_name: &str) -> String {
+/// `inline|attachment; filename="…"` with a plain-ASCII fallback name and the UTF-8 one
+/// (RFC 6266).
+fn disposition(file_name: &str, inline: bool) -> String {
     let ascii: String = file_name
         .chars()
-        .map(|c| if c.is_ascii_graphic() && c != '"' && c != '\\' || c == ' ' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_graphic() && c != '"' && c != '\\' || c == ' ' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     let encoded: String = file_name
         .bytes()
@@ -167,7 +210,8 @@ fn disposition(file_name: &str) -> String {
             _ => format!("%{b:02X}"),
         })
         .collect();
-    format!("inline; filename=\"{ascii}\"; filename*=UTF-8''{encoded}")
+    let kind = if inline { "inline" } else { "attachment" };
+    format!("{kind}; filename=\"{ascii}\"; filename*=UTF-8''{encoded}")
 }
 
 fn lock<T>(m: &Mutex<T>) -> Result<std::sync::MutexGuard<'_, T>, AppError> {
@@ -194,11 +238,15 @@ mod tests {
     #[test]
     fn disposition_quotes_safely() {
         assert_eq!(
-            disposition("Invoice 1.pdf"),
+            disposition("Invoice 1.pdf", true),
             "inline; filename=\"Invoice 1.pdf\"; filename*=UTF-8''Invoice%201.pdf"
         );
-        let tricky = disposition("a\"b\\c\r\nd é.pdf");
-        assert!(tricky.starts_with("inline; filename=\"a_b_c__d _.pdf\""), "{tricky}");
+        assert!(disposition("a.svg", false).starts_with("attachment; "));
+        let tricky = disposition("a\"b\\c\r\nd é.pdf", true);
+        assert!(
+            tricky.starts_with("inline; filename=\"a_b_c__d _.pdf\""),
+            "{tricky}"
+        );
         assert!(!tricky.contains('\n'));
     }
 
@@ -216,9 +264,20 @@ mod tests {
         )
         .unwrap();
         let url = store
-            .download_url("genesy/ws/a.pdf", "a.pdf", "application/pdf", Duration::from_secs(300))
+            .download_url(
+                "genesy/ws/a.pdf",
+                "a.pdf",
+                "application/pdf",
+                true,
+                Duration::from_secs(300),
+            )
             .unwrap();
-        assert!(url.starts_with("https://s3.eu-central-003.backblazeb2.com/genesy-test/genesy/ws/a.pdf?"), "{url}");
+        assert!(
+            url.starts_with(
+                "https://s3.eu-central-003.backblazeb2.com/genesy-test/genesy/ws/a.pdf?"
+            ),
+            "{url}"
+        );
         assert!(url.contains("X-Amz-Signature="));
         assert!(url.contains("X-Amz-Expires=300"));
         assert!(url.contains("response-content-type=application%2Fpdf"));
@@ -228,11 +287,23 @@ mod tests {
     #[tokio::test]
     async fn memory_store_round_trips() {
         let s = Store::memory();
-        s.put("k", b"pdf".to_vec(), "application/pdf").await.unwrap();
-        assert_eq!(s.read("k"), Some((b"pdf".to_vec(), "application/pdf".into())));
-        assert_eq!(s.download_url("k", "a.pdf", "application/pdf", SIGN_TTL).unwrap(), "memory://k");
+        s.put("k", b"pdf".to_vec(), "application/pdf")
+            .await
+            .unwrap();
+        assert_eq!(
+            s.read("k"),
+            Some((b"pdf".to_vec(), "application/pdf".into()))
+        );
+        assert_eq!(
+            s.download_url("k", "a.pdf", "application/pdf", true, SIGN_TTL)
+                .unwrap(),
+            "memory://k"
+        );
         s.delete("k").await.unwrap();
         assert!(s.read("k").is_none());
-        assert!(s.download_url("k", "a.pdf", "application/pdf", SIGN_TTL).is_err());
+        assert!(
+            s.download_url("k", "a.pdf", "application/pdf", true, SIGN_TTL)
+                .is_err()
+        );
     }
 }

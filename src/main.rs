@@ -41,7 +41,6 @@ async fn main() {
         .await
         .expect("connect postgres");
     warm_up().await;
-    cleanup::spawn(background_db);
 
     // Operator-configured endpoints may be internal (the sidecar, a local MinIO): trusted.
     let trusted: Vec<String> = [
@@ -61,6 +60,7 @@ async fn main() {
         .storage
         .take()
         .map(|s| storage::Store::s3(s, http.clone()).expect("file storage"));
+    cleanup::spawn(background_db, files.clone());
     if files.is_none() || pdf.is_none() {
         tracing::warn!(
             files = files.is_some(),

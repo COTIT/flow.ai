@@ -26,5 +26,9 @@ pub fn private() -> Router<AppState> {
             &format!("{base}/{{invoice}}/duplicate"),
             post(handlers::duplicate),
         )
+        .route(
+            &format!("{base}/{{invoice}}/preview"),
+            get(handlers::preview),
+        )
         .layer(DefaultBodyLimit::max(BODY_LIMIT))
 }

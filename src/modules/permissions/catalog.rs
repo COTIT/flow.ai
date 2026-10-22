@@ -1,6 +1,7 @@
 //! Permission catalog: frozen copy of Laravel `src/Domain/**/V1/Permissions/permissions.json`
 //! as `PermissionHelper` serves it (43 groups, 222 names), plus 3 groups Laravel checked
-//! but never catalogued, plus `specialoffer` (47 / 242). Name = `group.action`.
+//! but never catalogued, plus `specialoffer` and `pdftemplate` (48 / 247). Name =
+//! `group.action`.
 //! Regenerate when a ported module adds actions.
 
 /// Groups in key order, actions sorted (Laravel `ksort` + `sort`).
@@ -108,6 +109,11 @@ pub const GROUPS: &[(&str, &[&str])] = &[
     ("lead", &["create", "delete", "get", "list", "update"]),
     ("manufacturing", &["manage", "release.compliance_override"]),
     ("order", &["create", "delete", "list", "update", "view"]),
+    // pdftemplate: added by genesy in F5a (Laravel checked it, never catalogued).
+    (
+        "pdftemplate",
+        &["create", "delete", "list", "update", "view"],
+    ),
     ("permission", &["assign"]),
     (
         "pricecorrection",
@@ -246,8 +252,8 @@ mod tests {
 
     #[test]
     fn matches_laravel_size() {
-        assert_eq!(GROUPS.len(), 47);
-        assert_eq!(names().count(), 242);
+        assert_eq!(GROUPS.len(), 48);
+        assert_eq!(names().count(), 247);
     }
 
     #[test]
@@ -277,10 +283,9 @@ mod tests {
             }
         }
         for action in ["create", "delete", "list", "update", "view"] {
-            assert!(
-                assignable(&format!("specialoffer.{action}")),
-                "specialoffer.{action}"
-            );
+            for group in ["specialoffer", "pdftemplate"] {
+                assert!(assignable(&format!("{group}.{action}")), "{group}.{action}");
+            }
         }
     }
 

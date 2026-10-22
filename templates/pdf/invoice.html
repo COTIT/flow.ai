@@ -1,0 +1,137 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <style>{{ css|safe }}
+        html {
+            -webkit-print-color-adjust: exact;
+        }
+    </style>
+</head>
+<body>
+<section>
+<section class="h-screen flex flex-col justify-between w-full">
+    <div class="px-6 py-6 z-10 opacity-100 ">
+        <div class="mt-14">
+            <div class="space-y-6">
+                <div class="flex justify-between items-top">
+                    <h2 class="text-2xl {{ color.header }} font-bold">{% if is_credit %}{{ t.credit_invoice }}{% else %}{{ t.invoice }}{% endif %} {{ invoice_nr }}</h2>
+                    <div>
+                        {% if let Some(logo) = logo %}
+                            <img class="h-16 object-cover mb-4" src="{{ logo }}">
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex justify-between items-top">
+                    <div class="space-y-2 text-xs">
+                        {% if let Some(send_date) = send_date %}
+                            <div><p class="font-small text-gray-900">{{ t.send_date }}: <span class="font-bold">{{ send_date }}</span></p></div>
+                        {% endif %}
+                        {% if let Some(reference) = reference %}
+                            <div><p class="font-small text-gray-900">{{ t.reference }}: <span class="font-bold">{{ reference }}</span></p></div>
+                        {% endif %}
+                        <div><p class="font-small text-gray-900">{{ t.relation }}: <span class="font-bold">{{ relation_nr }}</span></p></div>
+                        <div><p class="font-small text-gray-900">{{ t.due_date }}: <span class="font-bold">{{ due_date }}</span></p></div>
+                    </div>
+                </div>
+                <div class="flex justify-between items-top">
+                    <div class="text-sm">
+                        <div><p class="font-small text-xs {{ color.to_from }}">  {{ t.from }} </p></div>
+                        <div>
+                            <p class="font-bold mt-1">{{ company }}</p>
+                            {% for line in from %}<p>{{ line }}</p>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="text-sm text-right">
+                        <div><p class="font-small text-xs {{ color.to_from }}">  {{ t.to }} </p></div>
+                        <p class="font-bold mt-1">{{ to_name }}</p>
+                        <p class="font-bold mt-1">{{ to_contact }}</p>
+                        {% for a in to_addresses %}
+                            <p>{{ a[0] }}</p>
+                            <p>{{ a[1] }}</p>
+                            <p>{{ a[2] }}</p><br>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-10 flex flex-col ">
+            <table class="min-w-full divide-y divide-gray-300">
+                <thead>
+                <tr>
+                    <th scope="col" class="py-2 pr-2 text-left text-sm font-semibold  {{ color.item_header }}">{{ t.item_name }}</th>
+                    <th scope="col" class="py-2 px-2 text-right text-sm font-semibold {{ color.item_header }}">{{ t.quantity }}</th>
+                    <th scope="col" class="py-2 px-2 text-right text-sm font-semibold {{ color.item_header }}">{{ t.amount }}</th>
+                    <th scope="col" class="py-2 px-2 text-right text-sm font-semibold {{ color.item_header }}">{{ t.vat }}</th>
+                    <th scope="col" class="py-2 px-2 text-right text-sm font-semibold {{ color.item_header }}">{{ t.discount }}</th>
+                    <th scope="col" class="py-2 pl-2 text-right text-sm font-semibold {{ color.item_header }}">{{ t.total }}</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for item in items %}
+                    <tr class="border-b border-gray-200 text-xs">
+                        <td class="py-1.5 pr-2 w-1/4">
+                            <div class="font-medium text-gray-900">{{ item.title }}</div>
+                            {% if let Some(description) = item.description %}
+                                <p class="text-gray-500">{{ description }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="py-1.5 px-2 text-right text-gray-900">{{ item.quantity }}</td>
+                        <td class="py-1.5 px-2 text-right text-gray-900"><p>{{ item.price }}</p></td>
+                        <td class="py-1.5 px-2 text-right text-gray-900"><p>{{ item.vat }}</p></td>
+                        <td class="py-1.5 px-2 text-right text-gray-900">
+                            {% if let Some((pct, amount)) = item.discount %}
+                                <p> {{ pct }}</p>
+                                <p class="text-gray-500">- {{ amount }}</p>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="py-1.5 pl-2 text-right text-gray-900"><p>{{ item.total }}</p></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            {% if let Some(s) = summary %}
+            <div class="flex justify-end">
+                <div class="w-1/2 {{ s.background }} rounded-md mt-4 p-3 text-xs space-y-3">
+                    <div class="flex justify-between items-center border-b {{ s.border }} pb-1">
+                        <p>{{ s.subtotal_label }}</p>
+                        <p>{{ s.subtotal }}</p>
+                    </div>
+                    {% if let Some(discount) = s.discount %}
+                        <div class="flex justify-between items-center border-b {{ s.border }} pb-1">
+                            <p>{{ s.discount_label }}</p>
+                            <p>- {{ discount }}</p>
+                        </div>
+                    {% endif %}
+                    <div class="flex justify-between items-center border-b {{ s.border }} pb-1 font-bold">
+                        <p>{{ s.excl_label }}</p>
+                        <p>{{ s.excl }}</p>
+                    </div>
+                    {% for (rate, amount) in s.vats %}
+                        <div class="flex justify-between items-center border-b {{ s.border }}">
+                            <p>{{ s.vat_label }} ({{ rate }} %) </p>
+                            <p>{{ amount }}</p>
+                        </div>
+                    {% endfor %}
+                    <div class="flex text-sm justify-between items-center font-bold">
+                        <p>{{ s.incl_label }}</p>
+                        <p>{{ s.total }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% if let Some(footer) = footer %}
+        <div class="text-xs text-center text-gray-500 pb-8">
+            <p>{{ footer|safe }}</p>
+        </div>
+    {% endif %}
+</section>
+</body>
+</html>

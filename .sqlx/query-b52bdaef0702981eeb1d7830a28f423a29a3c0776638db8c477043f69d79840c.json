@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT symbol_prefix, symbol_suffix, decimals FROM currencies\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "symbol_prefix",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "symbol_prefix"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol_suffix",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "symbol_suffix"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "b52bdaef0702981eeb1d7830a28f423a29a3c0776638db8c477043f69d79840c"
+}
