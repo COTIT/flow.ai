@@ -36,8 +36,9 @@ pub fn sniff(b: &[u8], name: &str) -> Option<Kind> {
         [b'%', b'P', b'D', b'F', b'-', ..] => Some(("pdf", "application/pdf")),
         [b'P', b'K', 3, 4, ..] | [b'P', b'K', 5, 6, ..] => zip(b),
         _ if b.starts_with(OLE) => ole(b),
-        // Programs: PE, ELF, Mach-O (both byte orders, fat).
-        [b'M', b'Z', ..] | [0x7f, b'E', b'L', b'F', ..] => None,
+        // Programs: ELF, Mach-O (both byte orders, fat). PE (`MZ`) always holds NUL bytes,
+        // which `text` refuses, so text starting with "MZ" still passes.
+        [0x7f, b'E', b'L', b'F', ..] => None,
         [0xfe, 0xed, 0xfa, 0xce | 0xcf, ..] | [0xce | 0xcf, 0xfa, 0xed, 0xfe, ..] => None,
         [0xca, 0xfe, 0xba, 0xbe, ..] => None,
         _ => text(b, name),
@@ -55,6 +56,10 @@ fn zip(b: &[u8]) -> Option<Kind> {
     let end = (last.saturating_sub(0xffff)..=last)
         .rev()
         .find(|&i| b[i..].starts_with(b"PK\x05\x06"))?;
+    // Its comment must run to the end of the file (no decoy record inside a comment).
+    if end + 22 + usize::from(u16_at(end + 20)?) != b.len() {
+        return None;
+    }
     let entries = u16_at(end + 10)?;
     let size = usize::try_from(u32_at(end + 12)?).ok()?;
     let start = usize::try_from(u32_at(end + 16)?).ok()?;
@@ -68,19 +73,31 @@ fn zip(b: &[u8]) -> Option<Kind> {
         let name_len = usize::from(u16_at(at + 28)?);
         let skip = usize::from(u16_at(at + 30)?) + usize::from(u16_at(at + 32)?);
         let name = b.get(at + 46..at + 46 + name_len)?;
+        // Part names compare without case (OPC); so do the program markers.
         let is = |n: &[u8]| name.eq_ignore_ascii_case(n);
+        let starts = |p: &[u8]| {
+            name.get(..p.len())
+                .is_some_and(|h| h.eq_ignore_ascii_case(p))
+        };
+        let ends = |p: &[u8]| {
+            name.len() >= p.len() && name[name.len() - p.len()..].eq_ignore_ascii_case(p)
+        };
         if is(b"META-INF/MANIFEST.MF") || is(b"AndroidManifest.xml") || is(b"classes.dex") {
             return None;
         }
-        types |= name == b"[Content_Types].xml";
-        word |= name.starts_with(b"word/");
-        xl |= name.starts_with(b"xl/");
-        ppt |= name.starts_with(b"ppt/");
-        macros |= name.ends_with(b"/vbaProject.bin");
+        types |= is(b"[Content_Types].xml");
+        word |= starts(b"word/");
+        xl |= starts(b"xl/");
+        ppt |= starts(b"ppt/");
+        macros |= ends(b"/vbaProject.bin");
         at += 46 + name_len + skip;
         if at > stop {
             return None;
         }
+    }
+    // The directory must hold exactly the entries the end record counts.
+    if at != stop {
+        return None;
     }
     Some(match (types, word, xl, ppt, macros) {
         (true, true, _, _, false) => (
@@ -123,13 +140,38 @@ fn ole(b: &[u8]) -> Option<Kind> {
     }
 }
 
-/// UTF-8 text without NUL bytes that isn't markup (starts with `<`), a script (`#!`) or holds
-/// a `<script` tag; CSV when named so, else plain text.
+/// Tags that make text a document a browser would render or run.
+const MARKUP: &[&[u8]] = &[
+    b"script",
+    b"svg",
+    b"html",
+    b"!doctype",
+    b"?xml",
+    b"iframe",
+    b"body",
+    b"img",
+    b"object",
+    b"embed",
+    b"meta",
+    b"link",
+    b"style",
+    b"base",
+    b"form",
+];
+
+/// UTF-8 text without NUL bytes that isn't markup (starts with `<`, or holds one of `MARKUP`
+/// anywhere) or a script (`#!`); CSV when named so, else plain text.
 fn text(b: &[u8], name: &str) -> Option<Kind> {
     let s = std::str::from_utf8(b).ok()?;
     let head = s.trim_start_matches('\u{feff}').trim_start();
-    let script = b.windows(7).any(|w| w.eq_ignore_ascii_case(b"<script"));
-    if s.is_empty() || s.contains('\0') || head.starts_with('<') || head.starts_with("#!") || script
+    let markup = b.iter().enumerate().any(|(i, &c)| {
+        c == b'<'
+            && MARKUP.iter().any(|tag| {
+                b.get(i + 1..i + 1 + tag.len())
+                    .is_some_and(|w| w.eq_ignore_ascii_case(tag))
+            })
+    });
+    if s.is_empty() || s.contains('\0') || head.starts_with('<') || head.starts_with("#!") || markup
     {
         return None;
     }
@@ -143,6 +185,36 @@ fn text(b: &[u8], name: &str) -> Option<Kind> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A stored zip of `names`, one byte each.
+    fn zip(names: &[&str]) -> Vec<u8> {
+        let (mut out, mut central) = (Vec::new(), Vec::new());
+        for name in names {
+            let offset = u32::try_from(out.len()).unwrap();
+            let len = u16::try_from(name.len()).unwrap().to_le_bytes();
+            out.extend_from_slice(b"PK\x03\x04\x14\0\0\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\x01\0\0\0");
+            out.extend_from_slice(&len);
+            out.extend_from_slice(b"\0\0");
+            out.extend_from_slice(name.as_bytes());
+            out.push(b'x');
+            central.extend_from_slice(
+                b"PK\x01\x02\x14\0\x14\0\0\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\x01\0\0\0",
+            );
+            central.extend_from_slice(&len);
+            central.extend_from_slice(&[0; 12]);
+            central.extend_from_slice(&offset.to_le_bytes());
+            central.extend_from_slice(name.as_bytes());
+        }
+        let start = u32::try_from(out.len()).unwrap();
+        out.extend_from_slice(&central);
+        let n = u16::try_from(names.len()).unwrap().to_le_bytes();
+        out.extend_from_slice(b"PK\x05\x06\0\0\0\0");
+        out.extend_from_slice(&[n, n].concat());
+        out.extend_from_slice(&u32::try_from(central.len()).unwrap().to_le_bytes());
+        out.extend_from_slice(&start.to_le_bytes());
+        out.extend_from_slice(b"\0\0");
+        out
+    }
 
     #[test]
     fn magic_numbers_win() {
@@ -183,6 +255,35 @@ mod tests {
     }
 
     #[test]
+    fn text_may_start_like_a_program_header() {
+        assert_eq!(
+            sniff(b"MZ,amount\n1,2\n", "x.csv"),
+            Some(("csv", "text/csv; charset=utf-8"))
+        );
+    }
+
+    #[test]
+    fn markup_anywhere_is_refused() {
+        for bad in [
+            &b"x<html><body onload=1>"[..],
+            b"\x01<svg onload=1>",
+            "\u{200B}<IMG src=x>".as_bytes(),
+            b"a,b\n1,<iframe>",
+        ] {
+            assert_eq!(
+                sniff(bad, "x.txt"),
+                None,
+                "{}",
+                String::from_utf8_lossy(bad)
+            );
+        }
+        assert_eq!(
+            sniff(b"a < b, <b>bold</b>", "x.txt"),
+            Some(("txt", "text/plain; charset=utf-8"))
+        );
+    }
+
+    #[test]
     fn text_is_utf8_without_markup_or_scripts() {
         assert_eq!(
             sniff(b"a;b\n1;2\n", "Leads.CSV"),
@@ -217,6 +318,27 @@ mod tests {
         let mut b = b"PK\x03\x04".to_vec();
         b.extend_from_slice(b"PK\x05\x06\0\0\0\0\x01\0\x01\0\xff\xff\0\0\0\0\0\0\0\0");
         assert_eq!(sniff(&b, "x.zip"), None);
+        // A directory that holds more than the end record counts (a hidden JAR manifest).
+        let mut hidden = zip(&["a.txt", "META-INF/MANIFEST.MF"]);
+        let end = hidden.len() - 22;
+        hidden[end + 8..end + 12].copy_from_slice(&[1, 0, 1, 0]);
+        assert_eq!(sniff(&hidden, "x.zip"), None);
+        // A comment length that doesn't match the file's end (a decoy end record).
+        let mut decoy = zip(&["a.txt"]);
+        let end = decoy.len() - 22;
+        decoy[end + 20] = 5;
+        assert_eq!(sniff(&decoy, "x.zip"), None);
+        // Part names are case-insensitive: a VBAProject.bin still means macros.
+        let docm = zip(&[
+            "[Content_Types].xml",
+            "word/document.xml",
+            "word/VBAProject.bin",
+        ]);
+        assert_eq!(sniff(&docm, "x.docx").map(|k| k.0), Some("docm"));
+        assert_eq!(
+            sniff(&zip(&["a.txt"]), "x.zip"),
+            Some(("zip", "application/zip"))
+        );
         // An empty archive is a zip.
         assert_eq!(
             sniff(b"PK\x05\x06\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", "x.zip"),

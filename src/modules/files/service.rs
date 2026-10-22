@@ -51,13 +51,20 @@ pub async fn create(
     f: NewFile<'_>,
 ) -> Result<Uuid, AppError> {
     let bucket = store(state)?;
-    let (extension, content_type) =
-        sniff(&f.bytes, f.document_name).ok_or_else(|| AppError::field("upload", TYPES))?;
+    // Scanning and hashing up to 10 MB is CPU work: off the async workers.
+    let name = f.document_name.to_owned();
+    let (bytes, kind, sha256) = tokio::task::spawn_blocking(move || {
+        let kind = sniff(&f.bytes, &name);
+        let sha256 = Sha256::digest(&f.bytes);
+        (f.bytes, kind, sha256)
+    })
+    .await
+    .map_err(|e| AppError::Internal(format!("file scan: {e}")))?;
+    let (extension, content_type) = kind.ok_or_else(|| AppError::field("upload", TYPES))?;
     let document_name = display_name(f.document_name);
     let id = Uuid::now_v7();
     let key = format!("genesy/{workspace_id}/{id}");
-    let sha256 = Sha256::digest(&f.bytes);
-    let size = i64::try_from(f.bytes.len()).map_err(|_| AppError::Internal("file size".into()))?;
+    let size = i64::try_from(bytes.len()).map_err(|_| AppError::Internal("file size".into()))?;
     repo::insert_pending(
         &state.db,
         &NewRow {
@@ -76,7 +83,7 @@ pub async fn create(
     )
     .await?;
     // A failed upload leaves the row pending: the sweep removes it.
-    bucket.put(&key, f.bytes, content_type).await?;
+    bucket.put(&key, bytes, content_type).await?;
     if !repo::mark_stored(&state.db, workspace_id, id).await? {
         // The sweep claimed the row meanwhile; its delete may have run before this upload landed.
         if let Err(err) = bucket.delete(&key).await {

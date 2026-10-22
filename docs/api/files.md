@@ -52,9 +52,9 @@ Two body forms, as in Laravel. The whole body may be at most 10 MB + 64 KiB (`41
   | DOCX, XLSX, PPTX; DOCM, XLSM, PPTM (macros) | ZIP whose central directory lists `[Content_Types].xml` plus `word/`, `xl/` or `ppt/` (macro-enabled with a `vbaProject.bin`) | attachment |
   | ZIP | any other ZIP | attachment |
   | DOC, XLS, PPT | OLE compound file with a `WordDocument`, `Workbook`/`Book` or `PowerPoint Document` stream | attachment |
-  | CSV, TXT | UTF-8 without NUL bytes, not starting with `<` or `#!`, no `<script`; CSV when the name ends in `.csv` | attachment |
+  | CSV, TXT | UTF-8 without NUL bytes, not starting with `<` or `#!`, and no markup tag anywhere (`<script`, `<svg`, `<html`, `<!doctype`, `<?xml`, `<iframe`, `<body`, `<img`, `<object`, `<embed`, `<meta`, `<link`, `<style`, `<base`, `<form`); CSV when the name ends in `.csv` | attachment |
 
-  - A ZIP is read only as far as its central directory, in place and bounded; no entry is ever decompressed.
+  - A ZIP is read only as far as its central directory, in place and bounded; no entry is ever decompressed. The directory must hold exactly the entries its end record counts, and that record must close the file.
   - Refused with `The upload must be a file of type: png, jpeg, gif, webp, pdf, csv, txt, docx, docm, xlsx, xlsm, pptx, pptm, doc, xls, ppt, zip.`:
     - SVG, HTML/XHTML and XML;
     - programs: PE, ELF, Mach-O, shebang scripts, JAR, APK;
