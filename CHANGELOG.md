@@ -3,9 +3,9 @@
 ## Unreleased
 
 - Final batch F5a (files, PDF templates, invoice PDFs; contracts `docs/api/files.md`, `docs/api/pdf-templates.md`, `docs/api/invoices.md` "Preview"):
-  - **Crates (approved):** `reqwest` 0.13 (rustls with ring and webpki roots, no aws-lc, no OpenSSL), `rusty-s3` 0.10 (S3 request signing), `askama` 0.16 (HTML templates). `rustls`, `webpki-roots` and `base64` become direct dependencies; they were already in `Cargo.lock` through lettre. tokio 1.54.0 → 1.54.1 (yanked).
+  - **Crates (approved):** `reqwest` 0.13 (rustls with ring and webpki roots, no aws-lc, no OpenSSL), `rusty-s3` 0.10 (S3 request signing), `askama` 0.16 (HTML templates), axum feature `multipart` (multer 3.1, plus `encoding_rs`, `core_detect`, `multiversion_no_op`). `rustls`, `webpki-roots` and `base64` become direct dependencies; they were already in `Cargo.lock` through lettre. tokio 1.54.0 → 1.54.1 (yanked).
   - **Outbound HTTP** (`src/outbound.rs`): 5 s connect timeout, no redirects, and an SSRF guard in the resolver plus a check for IP-literal URLs (loopback, private, link-local, CGNAT, metadata, multicast, documentation and reserved ranges refused). Only the operator-configured Gotenberg and S3 hosts are trusted past it.
-  - **Files** (`src/storage.rs`, `modules/files`, migration `files`): bytes in the uploads bucket Laravel uses (Backblaze B2, S3 API, presigned requests), key `genesy/{workspace}/{id}.{ext}`; Postgres keeps metadata only (size, sha256, content type, status). The row is committed `pending` before the upload and becomes `stored` after it; a delete goes `deleting` → `deleted`. An hourly sweep finishes either one when it was cut off, without listing the bucket. 10 MB per file, 4 uploads buffered at once, base64 JSON uploads. Downloads are signed URLs valid 10 minutes; only PDFs and raster images open inline.
+  - **Files** (`src/storage.rs`, `modules/files`, migration `files`): bytes in the uploads bucket Laravel uses (Backblaze B2, S3 API, presigned requests), key `genesy/{workspace}/{id}.{ext}`; Postgres keeps metadata only (size, sha256, content type, status). The row is committed `pending` before the upload and becomes `stored` after it; a delete goes `deleting` → `deleted`. An hourly sweep finishes either one when it was cut off, without listing the bucket. Uploads come as multipart (vimdesk-web's FilePond: one `upload` part, known text parts only, at most 8 parts) or base64 JSON, in a 10 MB + 64 KiB body on that route; the type is detected from the bytes (PNG, JPEG, GIF, WebP, PDF; SVG and the rest refused), the name is cleaned for display and the key is `genesy/{workspace}/{uuid}`. Downloads are signed URLs valid 10 minutes; only PDFs and raster images open inline.
   - **PDF templates** (`modules/pdf_templates`, migration `pdf_templates`): CRUD, list filters, Laravel's available fields per domain (generated from the PHP source and served as is), preview against the newest invoice. Permission group `pdftemplate` (48 groups / 247 names).
   - **Invoice PDF:** `GET /invoices/{id}/preview?pdf_template_id=` renders with a template or the built-in layout (ported Blade view) through the Gotenberg sidecar and stores the PDF as a file.
   - Placeholder values are HTML-escaped (Laravel inserted them raw); every page pins a CSP that allows only inline styles and `data:` images and fonts.
@@ -23,7 +23,7 @@
   - **Laravel differences:**
     - The public `/storage/files` routes aren't ported; downloads use signed URLs.
     - The content type comes from the file name, not from the bytes.
-    - Multipart uploads aren't ported (base64 only).
+    - Only PNG, JPEG, GIF, WebP and PDF uploads (Laravel took any type): the SPA's CSV import and office attachments wait for a wider list.
     - The built-in invoice layout prints no workspace logo and no payment link yet (F8).
 
 - Final batch F4 (invoice drafts, contract `docs/api/invoices.md`):

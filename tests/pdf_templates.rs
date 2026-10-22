@@ -18,6 +18,8 @@ use serde_json::{Value, json};
 use sqlx::PgPool;
 
 const PNG_B64: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+/// A 1×1 GIF.
+const GIF_B64: &str = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 /// What the fake sidecar received, one multipart body per render.
 type Seen = Arc<Mutex<Vec<String>>>;
@@ -298,7 +300,8 @@ async fn rules(pool: PgPool) {
     use base64::Engine;
     let b64 = |b: &[u8]| base64::engine::general_purpose::STANDARD.encode(b);
     let pdf = upload(&api, "a.pdf", &b64(b"%PDF-1.4")).await;
-    let big = upload(&api, "big.png", &b64(&vec![0u8; 2 * 1024 * 1024 + 1])).await;
+    let png = [b"\x89PNG\r\n\x1a\n".as_slice(), &vec![0u8; 2 * 1024 * 1024]].concat();
+    let big = upload(&api, "big.png", &b64(&png)).await;
     assert_eq!(
         error(&api, "", with("logo_file_id", json!(pdf)), "logo_file_id").await,
         "The logo file id must be an image."
@@ -345,7 +348,7 @@ async fn a_template_preview_renders_the_newest_invoice(pool: PgPool) {
     let (api, files, seen) = setup(pool).await;
     let mut body = template();
     body["logo_file_id"] = json!(upload(&api, "logo.png", PNG_B64).await);
-    body["background_file_id"] = json!(upload(&api, "bg.webp", PNG_B64).await);
+    body["background_file_id"] = json!(upload(&api, "bg.png", GIF_B64).await);
     let id = create(&api, body).await;
     let (status, res) = api
         .call(Method::GET, &format!("/{id}/preview"), None, &api.owner)
@@ -389,7 +392,7 @@ async fn a_template_preview_renders_the_newest_invoice(pool: PgPool) {
         "logo inlined"
     );
     assert!(
-        html.contains("header.html") && html.contains(&format!("data:image/webp;base64,{PNG_B64}")),
+        html.contains("header.html") && html.contains(&format!("data:image/gif;base64,{GIF_B64}")),
         "background in the page header, with its own type"
     );
     assert!(html.contains("Tiny") && html.contains("0,25"));

@@ -3,11 +3,16 @@
 
 mod common;
 
-use axum::http::{Method, StatusCode};
+use axum::{
+    body::Body,
+    http::{Method, Request, StatusCode},
+};
 use common::{Api, member_with};
 use genesy_360_api::{build_app, cleanup, mail::Mailer, storage::Store};
+use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use sqlx::PgPool;
+use tower::ServiceExt;
 
 const PDF_B64: &str = "JVBERi0xLjQKJcOkw7zDtsOfCg=="; // "%PDF-1.4\n%äüöß\n"
 
@@ -48,7 +53,7 @@ async fn a_base64_upload_is_stored_and_described(pool: PgPool) {
     let id = res["data"]["file_id"].as_str().unwrap().to_owned();
 
     let (key, status, size, sha, content_type) = row(&api, &id).await;
-    assert_eq!(key, format!("genesy/{}/{id}.pdf", api.ws));
+    assert_eq!(key, format!("genesy/{}/{id}", api.ws));
     assert_eq!((status.as_str(), size), ("stored", 19));
     assert_eq!(content_type, "application/pdf");
     let (bytes, stored_type) = files.read(&key).unwrap();
@@ -167,17 +172,186 @@ async fn meta_at_the_cap_is_stored(pool: PgPool) {
     assert_eq!(status, StatusCode::CREATED, "{res}");
 }
 
+/// One multipart part: name, file name (a file part) and bytes.
+type Part<'a> = (&'a str, Option<&'a str>, &'a [u8]);
+
+/// POST /files as multipart, the way vimdesk-web's FilePond sends it. File parts claim
+/// `image/png` whatever they hold: the API must not trust it.
+async fn multipart(api: &Api, token: &str, parts: &[Part<'_>]) -> (StatusCode, Value) {
+    let boundary = "genesyTestBoundary";
+    let mut body = Vec::new();
+    for (name, file, data) in parts {
+        body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+        let head = match file {
+            Some(f) => format!(
+                "Content-Disposition: form-data; name=\"{name}\"; filename=\"{f}\"\r\nContent-Type: image/png\r\n\r\n"
+            ),
+            None => format!("Content-Disposition: form-data; name=\"{name}\"\r\n\r\n"),
+        };
+        body.extend_from_slice(head.as_bytes());
+        body.extend_from_slice(data);
+        body.extend_from_slice(b"\r\n");
+    }
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
+    let req = Request::post(format!("/v1/workspace/{}/files", api.ws))
+        .header("authorization", format!("Bearer {token}"))
+        .header(
+            "content-type",
+            format!("multipart/form-data; boundary={boundary}"),
+        )
+        .body(Body::from(body))
+        .unwrap();
+    let res = api.app.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    let bytes = res.into_body().collect().await.unwrap().to_bytes();
+    (
+        status,
+        serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+    )
+}
+
+const PDF: &[u8] = b"%PDF-1.4\n%fake\n";
+
+/// FilePond's upload: the type comes from the bytes, the name is cleaned for display and the
+/// key is the server's own; `associated_with` is accepted (associations aren't ported).
 #[sqlx::test]
-async fn a_file_over_10_mb_is_refused(pool: PgPool) {
+async fn a_multipart_upload_is_typed_by_its_bytes(pool: PgPool) {
+    let (api, files) = with_store(pool).await;
+    let parts: [Part; 4] = [
+        ("public", None, b"1"),
+        ("associated_with[parent_domain]", None, b"relation"),
+        (
+            "associated_with[parent_id]",
+            None,
+            b"01900000-0000-7000-8000-000000000001",
+        ),
+        ("upload", Some("../../etc/Report 1.pdf"), PDF),
+    ];
+    let (status, res) = multipart(&api, &api.owner, &parts).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let id = res["data"]["file_id"].as_str().unwrap().to_owned();
+    let (key, _, size, _, content_type) = row(&api, &id).await;
+    assert_eq!(key, format!("genesy/{}/{id}", api.ws));
+    assert_eq!(
+        (size, content_type.as_str()),
+        (PDF.len() as i64, "application/pdf")
+    );
+    assert_eq!(files.read(&key).unwrap().0, PDF);
+    let file = api.get(&id).await;
+    assert_eq!(file["document_name"], "Report 1.pdf");
+    assert_eq!(file["extension"], "pdf");
+
+    // A PNG sent as "x.pdf" is a PNG.
+    let png = b"\x89PNG\r\n\x1a\n0000IHDR";
+    let (status, res) = multipart(
+        &api,
+        &api.owner,
+        &[("public", None, b"0"), ("upload", Some("x.pdf"), png)],
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let png_id = res["data"]["file_id"].as_str().unwrap();
+    assert_eq!(row(&api, png_id).await.4, "image/png");
+}
+
+#[sqlx::test]
+async fn multipart_rules(pool: PgPool) {
+    let (api, _) = with_store(pool).await;
+    let svg: &[u8] = b"<svg xmlns=\"http://www.w3.org/2000/svg\"><script>alert(1)</script></svg>";
+    let types = "The upload must be a file of type: png, jpeg, gif, webp, pdf.";
+    let cases: Vec<(Vec<Part>, &str, &str)> = vec![
+        (
+            vec![("public", None, b"1")],
+            "upload",
+            "The upload field is required.",
+        ),
+        (
+            vec![("upload", Some("a.pdf"), PDF)],
+            "public",
+            "The public field is required.",
+        ),
+        (
+            vec![("public", None, b"maybe"), ("upload", Some("a.pdf"), PDF)],
+            "public",
+            "The public field must be true or false.",
+        ),
+        (
+            vec![("public", None, b"1"), ("upload", Some("a.svg"), svg)],
+            "upload",
+            types,
+        ),
+        (
+            vec![
+                ("public", None, b"1"),
+                ("upload", Some("a.exe"), b"MZ\x90\x00"),
+            ],
+            "upload",
+            types,
+        ),
+        (
+            vec![
+                ("public", None, b"1"),
+                ("upload", Some("a.pdf"), PDF),
+                ("upload", Some("b.pdf"), PDF),
+            ],
+            "upload",
+            "Only one file may be uploaded.",
+        ),
+        (
+            vec![
+                ("public", None, b"1"),
+                ("upload", Some("a.pdf"), PDF),
+                ("evil", None, b"x"),
+            ],
+            "evil",
+            "The evil field is not allowed.",
+        ),
+        (
+            vec![
+                ("public", None, b"1"),
+                ("upload", Some("a.pdf"), PDF),
+                ("associated_with[parent_id]", None, b"nope"),
+            ],
+            "associated_with.parent_id",
+            "The associated with.parent id must be a valid UUID.",
+        ),
+    ];
+    for (parts, field, msg) in cases {
+        let (status, res) = multipart(&api, &api.owner, &parts).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{field}: {res}");
+        assert_eq!(res["errors"][field][0], msg, "{res}");
+    }
+    let many: Vec<Part> = (0..20).map(|_| ("public", None, b"1".as_slice())).collect();
+    let (status, res) = multipart(&api, &api.owner, &many).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(res["message"], "The upload has too many fields.");
+    // The JSON path checks the bytes too.
+    let (status, res) = post(&api, upload("a.pdf", "PHN2Zz48L3N2Zz4=")).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(res["errors"]["upload"][0], types);
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM files")
+        .fetch_one(&api.pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 0);
+}
+
+/// Bodies past 10 MB (plus a little form overhead) are refused before they are buffered.
+#[sqlx::test]
+async fn a_file_over_10_mb_is_413(pool: PgPool) {
     use base64::Engine;
     let (api, _) = with_store(pool).await;
-    let big = base64::engine::general_purpose::STANDARD.encode(vec![0u8; 10 * 1024 * 1024 + 1]);
-    let (status, res) = post(&api, upload("big.bin", &big)).await;
-    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
-    assert_eq!(
-        res["errors"]["upload"][0],
-        "The upload must not be greater than 10240 kilobytes."
-    );
+    let big = [PDF, &vec![0u8; 10 * 1024 * 1024]].concat();
+    let (status, _) = multipart(
+        &api,
+        &api.owner,
+        &[("public", None, b"1"), ("upload", Some("big.pdf"), &big)],
+    )
+    .await;
+    assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE);
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&big[..8 * 1024 * 1024]);
+    let (status, _) = post(&api, upload("big.pdf", &b64)).await;
+    assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE);
 }
 
 #[sqlx::test]

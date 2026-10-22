@@ -2,8 +2,8 @@
 
 use axum::{
     Json,
-    extract::{FromRequest, Path, Query, Request, State},
-    http::StatusCode,
+    extract::{FromRequest, Multipart, Path, Query, Request, State},
+    http::{StatusCode, header::CONTENT_TYPE},
 };
 use tokio::sync::Semaphore;
 
@@ -17,7 +17,7 @@ use crate::{
         workspace::{Can, permissions},
     },
     modules::files::{
-        dto::{FileCreated, FileResource, UploadRequest},
+        dto::{self, FileCreated, FileResource, UploadRequest},
         service::{self, NewFile},
     },
 };
@@ -61,9 +61,9 @@ pub async fn get(
     Ok(Data(service::get(&state, access.workspace_id, &id).await?))
 }
 
-/// POST /files -> 201 `{data:{file_id}}`. The permission check runs first, then the
-/// workspace's heavy slot and a server-wide upload slot (10 s wait each, else 503); only then
-/// is the body read.
+/// POST /files -> 201 `{data:{file_id}}`, from a multipart form (vimdesk-web) or base64 JSON
+/// (Laravel's other form). The permission check runs first, then the workspace's heavy slot
+/// and a server-wide upload slot (10 s wait each, else 503); only then is the body read.
 pub async fn create(
     State(state): State<AppState>,
     access: Can<FileCreate>,
@@ -74,7 +74,21 @@ pub async fn create(
         .await
         .map_err(|_| AppError::Overloaded)?
         .map_err(|_| AppError::Overloaded)?;
-    let ValidatedJson(upload) = ValidatedJson::<UploadRequest>::from_request(req, &state).await?;
+    let multipart = req
+        .headers()
+        .get(CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.starts_with("multipart/form-data"));
+    let upload = if multipart {
+        let form = Multipart::from_request(req, &state)
+            .await
+            .map_err(|e| AppError::field("upload", e.body_text()))?;
+        dto::from_multipart(form).await?
+    } else {
+        ValidatedJson::<UploadRequest>::from_request(req, &state)
+            .await?
+            .0
+    };
     let file_id = service::create(
         &state,
         access.workspace_id,

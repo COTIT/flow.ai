@@ -1,6 +1,12 @@
-//! File upload body (Laravel StoreFileRequest: `upload` as base64 with `document_name`) and
-//! FileResource.
+//! File upload body (Laravel StoreFileRequest: `upload` as a multipart file part, or base64
+//! with `document_name`) and FileResource.
 
+use std::collections::HashMap;
+
+use axum::{
+    extract::multipart::{Multipart, MultipartError},
+    http::StatusCode,
+};
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -8,6 +14,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{
+    error::AppError,
     http::json::{Rules, Validate, human},
     modules::pricing::body::{Capped, Scalar},
 };
@@ -93,6 +100,120 @@ impl Validate for UploadRequest {
                 meta,
             }
         })
+    }
+}
+
+/// Parts a multipart upload may carry: FilePond sends `upload`, `public` and, on entity file
+/// tabs, the two `associated_with` keys.
+const MAX_PARTS: usize = 8;
+/// Longest text part (a 255-character description is at most 1020 bytes).
+const MAX_TEXT: usize = 2048;
+
+/// `POST /files` as multipart (vimdesk-web's FilePond): exactly one file part `upload` plus
+/// the known text fields, anything else a 422. The file is read in chunks up to `MAX_BYTES`
+/// (413 past it); its name is only shown and its declared type is ignored.
+/// `associated_with` is checked, not stored: associations aren't ported.
+pub async fn from_multipart(mut form: Multipart) -> Result<Upload, AppError> {
+    let mut r = Rules::default();
+    let mut file: Option<(Vec<u8>, String)> = None;
+    let mut text: HashMap<String, String> = HashMap::new();
+    let mut parts = 0;
+    while let Some(mut field) = form.next_field().await.map_err(multipart_error)? {
+        parts += 1;
+        if parts > MAX_PARTS {
+            return Err(AppError::Unprocessable(
+                "The upload has too many fields.".into(),
+            ));
+        }
+        let name = match field.name().unwrap_or_default() {
+            "associated_with[parent_domain]" => "associated_with.parent_domain",
+            "associated_with[parent_id]" => "associated_with.parent_id",
+            "upload" => "upload",
+            "public" => "public",
+            "description" => "description",
+            "document_name" => "document_name",
+            other => {
+                let other = other.to_owned();
+                r.add(
+                    &other,
+                    format!("The {} field is not allowed.", human(&other)),
+                );
+                continue;
+            }
+        };
+        let file_name = field.file_name().unwrap_or_default().to_owned();
+        let cap = if name == "upload" {
+            MAX_BYTES
+        } else {
+            MAX_TEXT
+        };
+        let mut bytes = Vec::new();
+        while let Some(chunk) = field.chunk().await.map_err(multipart_error)? {
+            if bytes.len() + chunk.len() > cap {
+                return Err(AppError::PayloadTooLarge);
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        if name == "upload" {
+            if file.is_some() {
+                r.add("upload", "Only one file may be uploaded.");
+            }
+            file = Some((bytes, file_name));
+        } else if text.contains_key(name) {
+            r.add(name, format!("The {} field may be sent once.", human(name)));
+        } else {
+            match String::from_utf8(bytes) {
+                Ok(s) => drop(text.insert(name.to_owned(), s)),
+                Err(_) => r.add(name, format!("The {} must be a string.", human(name))),
+            }
+        }
+    }
+    let scalar = |k: &str| {
+        text.get(k)
+            .map_or(Scalar::Absent, |s| Scalar::Str(s.clone()))
+    };
+    let parent = text.get("associated_with.parent_domain").map(|d| d.trim());
+    if let Some(id) = text.get("associated_with.parent_id") {
+        if Uuid::parse_str(id.trim()).is_err() {
+            let f = "associated_with.parent_id";
+            r.add(f, format!("The {} must be a valid UUID.", human(f)));
+        } else if parent.is_none_or(str::is_empty) {
+            r.missing("associated_with.parent_domain");
+        }
+    }
+    if let Some(d) = parent {
+        r.max_chars("associated_with.parent_domain", d, 255);
+    }
+    let document_name = match text.get("document_name").map(|n| n.trim()) {
+        Some(n) if !n.is_empty() => n.to_owned(),
+        _ => file.as_ref().map(|(_, n)| n.clone()).unwrap_or_default(),
+    };
+    r.max_chars("document_name", &document_name, 255);
+    if file.is_none() {
+        r.missing("upload");
+    }
+    let common = common_fields(
+        &mut r,
+        &scalar("description"),
+        &scalar("public"),
+        &Capped::Absent,
+    );
+    r.into_result()?;
+    let (description, meta) = common.unwrap_or_default();
+    Ok(Upload {
+        bytes: file.map(|(b, _)| b).unwrap_or_default(),
+        document_name,
+        description,
+        meta,
+    })
+}
+
+/// A broken or oversized form: 413 past the body limit, 408 past the body deadline, else 422.
+fn multipart_error(e: MultipartError) -> AppError {
+    match e.status() {
+        StatusCode::PAYLOAD_TOO_LARGE => AppError::PayloadTooLarge,
+        _ if crate::http::timeout::is_body_timeout(&e) => AppError::BodyTimeout,
+        _ => AppError::field("upload", e.body_text()),
     }
 }
 

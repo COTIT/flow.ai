@@ -50,13 +50,11 @@ pub async fn create(
     f: NewFile<'_>,
 ) -> Result<Uuid, AppError> {
     let bucket = store(state)?;
+    let (extension, content_type) =
+        sniff(&f.bytes).ok_or_else(|| AppError::field("upload", TYPES))?;
+    let document_name = display_name(f.document_name);
     let id = Uuid::now_v7();
-    let extension = extension(f.document_name);
-    let content_type = content_type(extension.as_deref());
-    let key = match &extension {
-        Some(ext) => format!("genesy/{workspace_id}/{id}.{ext}"),
-        None => format!("genesy/{workspace_id}/{id}"),
-    };
+    let key = format!("genesy/{workspace_id}/{id}");
     let sha256 = Sha256::digest(&f.bytes);
     let size = i64::try_from(f.bytes.len()).map_err(|_| AppError::Internal("file size".into()))?;
     repo::insert_pending(
@@ -65,9 +63,9 @@ pub async fn create(
             id,
             workspace_id,
             key: &key,
-            document_name: f.document_name,
+            document_name: &document_name,
             description: f.description,
-            extension: extension.as_deref(),
+            extension: Some(extension),
             content_type,
             size,
             sha256: &sha256,
@@ -226,33 +224,43 @@ fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
 }
 
-/// Lowercase extension of `name` (≤ 20 ASCII alphanumerics), if any.
-fn extension(name: &str) -> Option<String> {
-    let (_, ext) = name.rsplit_once('.')?;
-    let ext = ext.to_ascii_lowercase();
-    (!ext.is_empty() && ext.len() <= 20 && ext.bytes().all(|b| b.is_ascii_alphanumeric()))
-        .then_some(ext)
+/// 422 for bytes of any other type.
+pub const TYPES: &str = "The upload must be a file of type: png, jpeg, gif, webp, pdf.";
+
+/// Extension and content type from the file's first bytes; the client's name and type are
+/// never trusted. None for any other type (SVG, HTML and executables included).
+fn sniff(b: &[u8]) -> Option<(&'static str, &'static str)> {
+    Some(match b {
+        [0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1a, b'\n', ..] => ("png", "image/png"),
+        [0xff, 0xd8, 0xff, ..] => ("jpg", "image/jpeg"),
+        [b'G', b'I', b'F', b'8', b'7' | b'9', b'a', ..] => ("gif", "image/gif"),
+        [
+            b'R',
+            b'I',
+            b'F',
+            b'F',
+            _,
+            _,
+            _,
+            _,
+            b'W',
+            b'E',
+            b'B',
+            b'P',
+            ..,
+        ] => ("webp", "image/webp"),
+        [b'%', b'P', b'D', b'F', b'-', ..] => ("pdf", "application/pdf"),
+        _ => return None,
+    })
 }
 
-/// Content type of an extension; unknown ones are generic bytes.
-fn content_type(ext: Option<&str>) -> &'static str {
-    match ext.unwrap_or_default() {
-        "pdf" => "application/pdf",
-        "png" => "image/png",
-        "jpg" | "jpeg" => "image/jpeg",
-        "gif" => "image/gif",
-        "webp" => "image/webp",
-        "svg" => "image/svg+xml",
-        "csv" => "text/csv",
-        "txt" => "text/plain",
-        "json" => "application/json",
-        "xml" => "application/xml",
-        "zip" => "application/zip",
-        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "xls" => "application/vnd.ms-excel",
-        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "doc" => "application/msword",
-        _ => "application/octet-stream",
+/// A client file name made safe to show: no folders, no control characters, ≤ 255 chars.
+fn display_name(name: &str) -> String {
+    let base = name.rsplit(['/', '\\']).next().unwrap_or_default();
+    let clean: String = base.chars().filter(|c| !c.is_control()).take(255).collect();
+    match clean.trim() {
+        "" | "." | ".." => "upload".to_owned(),
+        t => t.to_owned(),
     }
 }
 
@@ -270,13 +278,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn names_map_to_types() {
-        assert_eq!(extension("Invoice 1.PDF").as_deref(), Some("pdf"));
-        assert_eq!(extension("noext"), None);
-        assert_eq!(extension("a.tar.gz").as_deref(), Some("gz"));
-        assert_eq!(extension("a.p d f"), None);
-        assert_eq!(content_type(Some("jpeg")), "image/jpeg");
-        assert_eq!(content_type(None), "application/octet-stream");
+    fn types_come_from_the_bytes() {
+        assert_eq!(sniff(b"%PDF-1.7\n"), Some(("pdf", "application/pdf")));
+        assert_eq!(sniff(b"\xff\xd8\xff\xe0"), Some(("jpg", "image/jpeg")));
+        assert_eq!(sniff(b"GIF89a.."), Some(("gif", "image/gif")));
+        assert_eq!(sniff(b"RIFF\0\0\0\0WEBPVP8 "), Some(("webp", "image/webp")));
+        assert_eq!(sniff(b"RIFF\0\0\0\0WAVEfmt "), None);
+        assert_eq!(sniff(b"<svg/>"), None);
+        assert_eq!(sniff(b"%PDF"), None);
+        assert_eq!(sniff(b""), None);
         assert!(inline("application/pdf") && !inline("image/svg+xml") && !inline("text/csv"));
+    }
+
+    #[test]
+    fn names_are_cleaned_for_display() {
+        assert_eq!(display_name("../../etc/Report 1.pdf"), "Report 1.pdf");
+        assert_eq!(display_name("C:\\fakepath\\a.png"), "a.png");
+        assert_eq!(display_name("a\u{7}b\nc.pdf"), "abc.pdf");
+        assert_eq!(display_name("dir/"), "upload");
+        assert_eq!(display_name(&"é".repeat(300)).chars().count(), 255);
     }
 }
