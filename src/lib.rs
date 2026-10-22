@@ -95,7 +95,8 @@ pub fn build_app(state: AppState) -> Router {
     let public = http::rate_limit::apply(
         auth::routes::public()
             .merge(invites::routes::public())
-            .merge(email_verification::routes::public()),
+            .merge(email_verification::routes::public())
+            .merge(invoices::routes::public()),
         state.rate_limit,
     );
     let public = http::timeout::body_deadline(public, state.body_deadline);

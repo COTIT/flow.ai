@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_id, product_variant_id, mutate_from_warehouse_id, title, description,\n                quantity, price, vat, discount_percentage, purchase_price, position, created_at,\n                updated_at\n         FROM items WHERE workspace_id = $1 AND invoice_id = $2 ORDER BY position, id",
+  "query": "SELECT id, product_id, product_variant_id, mutate_from_warehouse_id, title, description,\n                quantity, price, vat, discount_percentage, purchase_price, position, created_at,\n                updated_at, credit_amount, mutated_from_stock\n         FROM items WHERE workspace_id = $1 AND invoice_id = $2 ORDER BY position, id",
   "describe": {
     "columns": [
       {
@@ -156,6 +156,28 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 14,
+        "name": "credit_amount",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "credit_amount"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "mutated_from_stock",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "mutated_from_stock"
+          }
+        }
       }
     ],
     "parameters": {
@@ -178,8 +200,10 @@
       false,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "7a23424386ed51e88c34884dbe5e0960bee9e5943d5645afe294effef9443352"
+  "hash": "00613ce242c625804df819c9f996583a67cb559ab6fb0a7c478f55678e7dbcc4"
 }

@@ -4,15 +4,8 @@
 
 mod common;
 
-use std::sync::{Arc, Mutex};
-
-use axum::{
-    Router,
-    body::Bytes,
-    http::{Method, StatusCode},
-    routing,
-};
-use common::{Api, member_with};
+use axum::http::{Method, StatusCode};
+use common::{Api, fake_pdf, member_with};
 use genesy_360_api::{build_app, mail::Mailer, outbound::Outbound, pdf::Renderer, storage::Store};
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -21,44 +14,14 @@ const PNG_B64: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42
 /// A 1×1 GIF.
 const GIF_B64: &str = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-/// What the fake sidecar received, one multipart body per render.
-type Seen = Arc<Mutex<Vec<String>>>;
-
-async fn fake_gotenberg(answer: Vec<u8>) -> (String, Seen) {
-    let seen: Seen = Arc::default();
-    let log = seen.clone();
-    let app = Router::new().route(
-        "/forms/chromium/convert/html",
-        routing::post(move |body: Bytes| {
-            let (log, answer) = (log.clone(), answer.clone());
-            async move {
-                log.lock()
-                    .unwrap()
-                    .push(String::from_utf8_lossy(&body).into_owned());
-                // An empty answer plays a failing sidecar, `refuse` one that refuses the HTML.
-                let status = match answer.as_slice() {
-                    b"" => StatusCode::BAD_GATEWAY,
-                    b"refuse" => StatusCode::BAD_REQUEST,
-                    _ => StatusCode::OK,
-                };
-                (status, answer)
-            }
-        }),
-    );
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let url = format!("http://{}", listener.local_addr().unwrap());
-    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
-    (url, seen)
-}
-
 /// Templates API with a renderer and a readable store.
-async fn setup(pool: PgPool) -> (Api, Store, Seen) {
+async fn setup(pool: PgPool) -> (Api, Store, fake_pdf::Seen) {
     setup_with(pool, b"%PDF-1.4 fake".to_vec()).await
 }
 
 /// `setup` with a sidecar that answers `answer`.
-async fn setup_with(pool: PgPool, answer: Vec<u8>) -> (Api, Store, Seen) {
-    let (url, seen) = fake_gotenberg(answer).await;
+async fn setup_with(pool: PgPool, answer: Vec<u8>) -> (Api, Store, fake_pdf::Seen) {
+    let (url, seen) = fake_pdf::start(answer).await;
     let files = Store::memory();
     let mut state = common::state(pool.clone(), Mailer::capture().0);
     state.files = Some(files.clone());

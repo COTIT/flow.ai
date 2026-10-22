@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE",
+  "query": "SELECT i.id, i.relation_id, i.currency_id, i.status, i.is_credit, i.payment_method,\n                  i.reference, i.note, i.billing_address, i.addressed_contact, i.customer_ref,\n                  i.meta, i.due_date, i.send_date, i.summary, i.created_at, i.updated_at,\n                  i.invoice_number, i.invoice_appendix, i.previous_invoice_id, i.pdf_file_id,\n                  i.payment_token, i.payment_token_key_id\n           FROM invoices i\n           WHERE i.workspace_id = $1 AND i.deleted_at IS NULL\n             AND ($2::uuid IS NULL OR i.relation_id = $2)\n             AND ($3::text IS NULL OR i.status = $3)\n             AND ($5::bool IS NULL OR i.is_credit = $5)\n             AND (CASE WHEN $6\n                       THEN ($4::text[] IS NOT NULL AND i.status = ANY($4))\n                            OR (i.meta -> 'on_account' = 'true'\n                                AND i.status NOT IN ('paid', 'credited', 'cancelled'))\n                       ELSE $4::text[] IS NULL OR i.status = ANY($4) END)\n             AND ($7::text IS NULL OR i.reference ILIKE $7 OR EXISTS (\n                     SELECT 1 FROM relations r\n                     WHERE r.workspace_id = i.workspace_id AND r.id = i.relation_id\n                       AND (r.company_name ILIKE $7 OR r.alias ILIKE $7)))\n           ORDER BY i.created_at DESC, i.id DESC\n           LIMIT $8 OFFSET $9",
   "describe": {
     "columns": [
       {
@@ -189,12 +189,85 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 17,
+        "name": "invoice_number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_number"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "invoice_appendix",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_appendix"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "previous_invoice_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "previous_invoice_id"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "pdf_file_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "pdf_file_id"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "payment_token",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "payment_token"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "payment_token_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "payment_token_key_id"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Uuid",
+        "Text",
+        "TextArray",
+        "Bool",
+        "Bool",
+        "Text",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -214,8 +287,14 @@
       true,
       false,
       false,
-      false
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "40dfc807277fd740dacdfeb6b151fe4620d0bce1fc3722d831a7a723d4fb239d"
+  "hash": "8b20a443884a85f65f63c0838f5f4826b8bd613d09e9ef1eaa02e79f9376457f"
 }

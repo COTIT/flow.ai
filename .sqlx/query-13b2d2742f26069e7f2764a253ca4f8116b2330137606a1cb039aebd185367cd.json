@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoices SET\n            invoice_number = $3, invoice_appendix = $4, status = $5,\n            send_date = COALESCE(send_date, clock_timestamp()), due_date = COALESCE(due_date, $6),\n            billing_address = $7, addressed_contact = $8,\n            payment_token_hash = COALESCE($9, payment_token_hash),\n            payment_token = COALESCE($10, payment_token),\n            payment_token_key_id = COALESCE($11, payment_token_key_id),\n            updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Jsonb",
+        "Text",
+        "Timestamptz",
+        "Jsonb",
+        "Jsonb",
+        "Bytea",
+        "Bytea",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "13b2d2742f26069e7f2764a253ca4f8116b2330137606a1cb039aebd185367cd"
+}

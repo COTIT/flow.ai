@@ -31,7 +31,8 @@ Body up to 1 MiB.
 | `to`, `cc`, `bcc` | lists of email addresses (`The to.0 must be a valid email address.`), lowercased and de-duplicated |
 | `attachments` | list of stored file ids of this workspace (`The selected attachments.0 is invalid.`) |
 | `email_profile_id` | a live email profile of this workspace (`The selected email profile id is invalid.`) |
-| `template_id`, `pdf_template_id` | accepted and ignored, as in Laravel |
+| `template_id` | accepted and ignored, as in Laravel |
+| `pdf_template_id` | uuid (`The selected pdf template id is invalid.`); ignored here, used by invoice sends (`invoices.md`) |
 
 - `manual`: nothing is sent; `{"message": "ok"}`. Laravel answered 500.
 - Without `to`, the addressed contact's email gets it. vimdesk-web's mail dialog sends no `to`, which was a 500 in Laravel.
@@ -108,6 +109,8 @@ Each send that reaches a transport commits an `email_send_logs` row as `pending`
 | `failed` | refused or failed; `error_message` is a short class (`smtp: permanent 550`, `graph: sendMail 503`) or the 422 text, never the server's own words |
 | `blocked` | the allow-list stopped it |
 | `unknown` | the 15 s limit ran out mid-send (`error_message` `timed out`), or the row is still `pending` or `sending` 10 minutes on, closed by a sweep that runs every 5 minutes. Such a mail is never sent again; a late outcome still updates it |
+
+A mail about a document (an invoice send) also stores `entity_type` and `entity_id`, for that document's mail history (F20).
 
 A finished row (`accepted`, `failed`, `blocked`) never moves back. Provider events (Resend, F20) move accepted rows on to `delivered`, `bounced`, `opened`, `clicked` and `spam_complaint`.
 

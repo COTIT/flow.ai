@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE items SET mutated_from_stock = quantity, updated_at = now()\n         WHERE workspace_id = $1 AND invoice_id = $2 AND id = ANY($3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fae85df02e4dee4b35a7f28b7593780358c0a4a7b5878a48cc818d7cdef6e34b"
+}

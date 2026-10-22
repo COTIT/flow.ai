@@ -16,12 +16,20 @@ use crate::{
         json::{Rules, ValidatedJson},
         list::{self, Page, Paginated},
         response::{Data, Message},
-        workspace::{Can, permissions},
+        workspace::{Can, Permission, permissions},
     },
-    modules::invoices::{
-        dto::{CreateInvoiceRequest, InvoiceCreated, ListQuery, UpdateInvoiceRequest},
-        repo::ListFilter,
-        service::{self, ListArgs},
+    modules::{
+        invoices::{
+            credit,
+            dto::{
+                CreateInvoiceRequest, CreditInvoiceRequest, InvoiceCreated, ListQuery,
+                UpdateInvoiceRequest,
+            },
+            repo::ListFilter,
+            send,
+            service::{self, ListArgs},
+        },
+        messages::dto::SendMessageRequest,
     },
 };
 
@@ -31,6 +39,22 @@ permissions! {
     InvoiceCreate => "invoice.create",
     InvoiceUpdate => "invoice.update",
     InvoiceDelete => "invoice.delete",
+}
+
+/// `invoice.send` plus `workspace.send-message` (Laravel's policy + SendMessageRequest).
+pub struct InvoiceSend;
+
+impl Permission for InvoiceSend {
+    const NAME: &'static str = "invoice.send";
+    const ALSO: Option<&'static str> = Some("workspace.send-message");
+}
+
+/// `invoice.credit` plus `invoice.create` (Laravel's credit policy + the new invoice).
+pub struct InvoiceCredit;
+
+impl Permission for InvoiceCredit {
+    const NAME: &'static str = "invoice.credit";
+    const ALSO: Option<&'static str> = Some("invoice.create");
 }
 
 /// Laravel InvoiceStatus values (`in_status` entries must be one).
@@ -196,5 +220,53 @@ pub async fn duplicate(
     Path((_, id)): Path<(String, String)>,
 ) -> Result<(StatusCode, Data<InvoiceCreated>), AppError> {
     let invoice_id = service::duplicate(&state, access.workspace_id, access.user_id, &id).await?;
+    Ok((StatusCode::CREATED, Data(InvoiceCreated { invoice_id })))
+}
+
+/// POST /invoices/{id}/send (Laravel SendInvoiceController).
+pub async fn send(
+    State(state): State<AppState>,
+    access: Can<InvoiceSend>,
+    Path((_, id)): Path<(String, String)>,
+    ValidatedJson(input): ValidatedJson<SendMessageRequest>,
+) -> Result<Message, AppError> {
+    send::send(&state, access.workspace_id, access.user_id, &id, input).await?;
+    Ok(Message("ok"))
+}
+
+/// POST /invoices/{id}/resend (Laravel ResendInvoiceController).
+pub async fn resend(
+    State(state): State<AppState>,
+    access: Can<InvoiceSend>,
+    Path((_, id)): Path<(String, String)>,
+    ValidatedJson(input): ValidatedJson<SendMessageRequest>,
+) -> Result<Message, AppError> {
+    send::resend(&state, access.workspace_id, access.user_id, &id, input).await?;
+    Ok(Message("ok"))
+}
+
+/// GET /invoices/send-tasks/active: sends finish inside their request, so none is ever
+/// running (Laravel listed its queued send jobs).
+pub async fn send_tasks(_access: Can<InvoiceList>) -> Json<Value> {
+    Json(json!({ "data": [] }))
+}
+
+/// GET /v1/invoices/fetch-from-hashed/{token}: public, rate limited.
+pub async fn public(
+    State(state): State<AppState>,
+    Path(token): Path<String>,
+) -> Result<Data<Value>, AppError> {
+    Ok(Data(service::public(&state, &token).await?))
+}
+
+/// POST /invoices/{id}/credit (Laravel CreditInvoiceController): 201 with the credit note.
+pub async fn credit(
+    State(state): State<AppState>,
+    access: Can<InvoiceCredit>,
+    Path((_, id)): Path<(String, String)>,
+    ValidatedJson(input): ValidatedJson<CreditInvoiceRequest>,
+) -> Result<(StatusCode, Data<InvoiceCreated>), AppError> {
+    let invoice_id =
+        credit::credit(&state, access.workspace_id, access.user_id, &id, &input).await?;
     Ok((StatusCode::CREATED, Data(InvoiceCreated { invoice_id })))
 }
