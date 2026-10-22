@@ -75,8 +75,16 @@ impl Store {
         Self::Memory(Arc::default())
     }
 
-    /// Store `bytes` under `key`.
-    pub async fn put(&self, key: &str, bytes: Vec<u8>, content_type: &str) -> Result<(), AppError> {
+    /// Store `bytes` under `key`, with the type and disposition (`file_name`, `inline`) the
+    /// bucket serves it with even when a signed URL's overrides are ignored.
+    pub async fn put(
+        &self,
+        key: &str,
+        bytes: Vec<u8>,
+        content_type: &str,
+        file_name: &str,
+        inline: bool,
+    ) -> Result<(), AppError> {
         match self {
             Self::Memory(m) => {
                 lock(m)?.insert(key.to_owned(), (bytes, content_type.to_owned()));
@@ -91,6 +99,7 @@ impl Store {
                     .http
                     .request(Method::PUT, url.as_str())
                     .header(header::CONTENT_TYPE, content_type)
+                    .header(header::CONTENT_DISPOSITION, disposition(file_name, inline))
                     .timeout(REQUEST_TIMEOUT)
                     .body(bytes);
                 let res = s.http.send(req).await.map_err(storage_error)?;
@@ -295,7 +304,7 @@ mod tests {
     #[tokio::test]
     async fn memory_store_round_trips() {
         let s = Store::memory();
-        s.put("k", b"pdf".to_vec(), "application/pdf")
+        s.put("k", b"pdf".to_vec(), "application/pdf", "a.pdf", true)
             .await
             .unwrap();
         assert_eq!(

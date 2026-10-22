@@ -91,7 +91,7 @@ A delete marks the row `deleting`, removes the object, then marks it `deleted`. 
 }
 ```
 
-- `file_path` is a presigned GET URL on the bucket, valid for 10 minutes. It sets `response-content-type` and `response-content-disposition` to the detected type and to `inline` (PDFs and raster images only) or `attachment` (everything else), so the bucket can't serve anything HTML-like inline.
+- `file_path` is a presigned GET URL on the bucket, valid for 10 minutes. It sets `response-content-type` and `response-content-disposition` to the detected type and to `inline` (PDFs and raster images only) or `attachment` (everything else), so the bucket can't serve anything HTML-like inline. The object is also stored with that `Content-Type` and `Content-Disposition`, so a store that ignores the overrides serves the same headers (SeaweedFS does; checked in the compose run).
 - Every API response carries `X-Content-Type-Options: nosniff`. The bucket's own responses don't: S3 signed URLs can override only six response headers, and `nosniff` isn't one. The forced type and disposition cover that.
 - `uploaded_by` is null once that user has left the workspace.
 

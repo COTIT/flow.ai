@@ -83,7 +83,10 @@ pub async fn create(
     )
     .await?;
     // A failed upload leaves the row pending: the sweep removes it.
-    bucket.put(&key, bytes, content_type).await?;
+    let saved_as = download_name(&document_name, Some(extension));
+    bucket
+        .put(&key, bytes, content_type, &saved_as, inline(content_type))
+        .await?;
     if !repo::mark_stored(&state.db, workspace_id, id).await? {
         // The sweep claimed the row meanwhile; its delete may have run before this upload landed.
         if let Err(err) = bucket.delete(&key).await {
