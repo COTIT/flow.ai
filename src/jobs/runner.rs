@@ -232,9 +232,11 @@ mod tests {
         a.await.unwrap();
         b.await.unwrap();
 
-        let seen = seen.lock().unwrap();
-        assert_eq!(seen.len(), 500);
-        assert!(seen.values().all(|n| *n == 1), "a job ran twice");
+        {
+            let seen = seen.lock().unwrap();
+            assert_eq!(seen.len(), 500);
+            assert!(seen.values().all(|n| *n == 1), "a job ran twice");
+        }
         let done: i64 = sqlx::query_scalar("SELECT count(*) FROM jobs WHERE status = 'succeeded'")
             .fetch_one(&db)
             .await

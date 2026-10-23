@@ -39,6 +39,22 @@ async fn timeouts_apply_to_every_connection(pool: PgPool) {
     }
 }
 
+/// Job connections: no statement timeout (each chunk sets its own), lock and idle caps kept.
+#[sqlx::test]
+async fn job_pool_has_no_statement_timeout(pool: PgPool) {
+    let base = (*pool.connect_options()).clone();
+    let jobs = db::jobs(base, 2).await.unwrap();
+    let mut c = jobs.acquire().await.unwrap();
+    let limits: (String, String, String) = sqlx::query_as(
+        "SELECT current_setting('statement_timeout'), current_setting('lock_timeout'),
+                current_setting('idle_in_transaction_session_timeout')",
+    )
+    .fetch_one(&mut *c)
+    .await
+    .unwrap();
+    assert_eq!(limits, ("0".into(), "10s".into(), "1min".into()));
+}
+
 /// Boot migrations fill an empty database through their own connection.
 #[sqlx::test(migrations = false)]
 async fn migrations_fill_an_empty_database(pool: PgPool) {
