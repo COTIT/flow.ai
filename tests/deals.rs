@@ -620,6 +620,13 @@ async fn update_status_rules(pool: PgPool) {
         res["errors"],
         json!({ "position": ["The position must be at least 0."] })
     );
+    // A drop index past any board page: capped, so it can't walk a whole column under its lock.
+    let (code, res) = move_to(&a, &b, &id, &b.doing, 10_001).await;
+    assert_eq!(code, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"],
+        json!({ "position": ["The position must not be greater than 10000."] })
+    );
 
     // A column deleted a moment ago takes no deals (the composite FK only proves it existed).
     let p = a.with_base("/deal-pipelines");
@@ -853,6 +860,17 @@ async fn list_filters_newest_first(pool: PgPool) {
     assert_eq!(
         res["errors"],
         json!({ "relation_id": ["The relation id must be a valid UUID."] })
+    );
+    let (code, res) = a
+        .call(Method::GET, "?pipeline_id=nope&status=x", None, &a.owner)
+        .await;
+    assert_eq!(code, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"],
+        json!({
+            "pipeline_id": ["The pipeline id must be a valid UUID."],
+            "status": ["The status must be a valid UUID."],
+        })
     );
 
     let res = a.list("?page=2&page_size=1").await;
@@ -1148,4 +1166,99 @@ async fn other_workspaces_get_404(pool: PgPool) {
     );
     let (code, _) = send(&a.app, Method::GET, &uri, None, Some(&eve.0)).await;
     assert_eq!(code, StatusCode::NOT_FOUND);
+}
+
+/// A deleted column's open deals go to an ordinary column before Won or Lost, so deleting a
+/// column never turns open deals into won ones while an ordinary column is left.
+#[sqlx::test]
+async fn deleted_column_deals_prefer_an_ordinary_column(pool: PgPool) {
+    let a = api(pool).await;
+    let b = board(&a, "pos").await;
+    let p = a.with_base("/deal-pipelines");
+    // Won first: To Do's lowest-position neighbour is then Won.
+    let (code, res) = p
+        .call(
+            Method::POST,
+            &format!("/{}/status/{}", b.id, b.won),
+            Some(json!({ "deal_pipeline_id": b.id, "position": 0 })),
+            &p.owner,
+        )
+        .await;
+    assert_eq!(code, StatusCode::OK, "{res}");
+    deal(&a, &b, &b.todo, "open").await;
+    let (code, _) = p
+        .call(
+            Method::DELETE,
+            &format!("/{}/status/{}", b.id, b.todo),
+            None,
+            &p.owner,
+        )
+        .await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(column(&a, &b, &b.doing).await, ["open"]);
+    assert!(column(&a, &b, &b.won).await.is_empty());
+
+    // Only Won and Lost left: the deals still go somewhere (Laravel moved them anywhere).
+    let (code, _) = p
+        .call(
+            Method::DELETE,
+            &format!("/{}/status/{}", b.id, b.doing),
+            None,
+            &p.owner,
+        )
+        .await;
+    assert_eq!(code, StatusCode::OK);
+    assert_eq!(column(&a, &b, &b.won).await, ["open"]);
+}
+
+/// Drops that respace a column while other deals leave it: every rank stays distinct (a
+/// respace must not rewrite a deal that just moved to another column).
+#[sqlx::test]
+async fn respaces_racing_moves_out_keep_ranks_distinct(pool: PgPool) {
+    let a = api(pool).await;
+    let b = board(&a, "pos").await;
+    let mut stay = Vec::new();
+    for n in 0..30 {
+        stay.push(deal(&a, &b, &b.todo, &format!("t{n:02}")).await);
+    }
+    let mut incoming = Vec::new();
+    for n in 0..30 {
+        incoming.push(deal(&a, &b, &b.doing, &format!("i{n:02}")).await);
+    }
+    let mut tasks = Vec::new();
+    // Drops into To Do at index 1 close its gap there every 16 drops; meanwhile To Do deals
+    // leave for In Progress and Won.
+    for (n, id) in incoming.iter().chain(stay.iter().skip(10)).enumerate() {
+        let (target, index) = if n < 30 {
+            (b.todo.clone(), 1)
+        } else if n % 2 == 0 {
+            (b.doing.clone(), 0)
+        } else {
+            (b.won.clone(), 0)
+        };
+        let (app, uri, owner, pipeline) = (
+            a.app.clone(),
+            format!("/v1/workspace/{}{BASE}/{id}/update-status", a.ws),
+            a.owner.clone(),
+            b.id.clone(),
+        );
+        tasks.push(tokio::spawn(async move {
+            let body = json!({ "deal_pipeline_status_id": target, "deal_pipeline_id": pipeline,
+                               "position": index });
+            send(&app, Method::POST, &uri, Some(body), Some(&owner)).await
+        }));
+    }
+    for t in tasks {
+        let (code, res) = t.await.unwrap();
+        assert_eq!(code, StatusCode::OK, "{res}");
+    }
+    let (live, distinct): (i64, i64) = sqlx::query_as(
+        "SELECT count(*), count(DISTINCT (deal_pipeline_status_id, position)) FROM deals
+         WHERE workspace_id = $1::uuid AND deleted_at IS NULL",
+    )
+    .bind(&a.ws)
+    .fetch_one(&a.pool)
+    .await
+    .unwrap();
+    assert_eq!((live, distinct), (60, 60));
 }

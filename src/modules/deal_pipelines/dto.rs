@@ -57,6 +57,16 @@ struct PipelineRelationships {
 }
 
 impl PipelineResource {
+    /// The board's id.
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    /// Its columns, in position order.
+    pub fn statuses(&self) -> &[StatusResource] {
+        &self.relationships.statuses
+    }
+
     /// One board with its columns (in position order) and its won/lost totals.
     pub fn new(p: PipelineRow, statuses: Vec<StatusRow>, totals: &[&SummaryRow]) -> Self {
         Self {
@@ -112,6 +122,13 @@ pub struct StatusResource {
 #[derive(Serialize)]
 struct StatusRelationships {
     custom_status: Option<CustomStatusResource>,
+}
+
+impl StatusResource {
+    /// The column's id.
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
 }
 
 impl From<StatusRow> for StatusResource {

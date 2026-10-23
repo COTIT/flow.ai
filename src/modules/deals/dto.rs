@@ -22,6 +22,9 @@ const DESCRIPTION_MAX: usize = 50_000;
 const PRIORITIES: [&str; 3] = ["high", "low", "medium"];
 /// Laravel's board column cap (`paginate(999)`).
 pub const COLUMN_PAGE: i64 = 999;
+/// Highest drop index: past any board page, small enough that a drag never walks a whole
+/// column under its lock (Laravel took any integer).
+const INDEX_MAX: i64 = 10_000;
 /// Laravel rules.DealPipelineExist for `deal_pipeline_id`.
 pub const PIPELINE_MISSING: &str = "The deal pipeline id does not exist";
 /// Laravel rules.ValidateDealStatus.
@@ -136,19 +139,21 @@ impl ListQuery {
         Page::parse(self.page.as_deref(), self.page_size.as_deref())
     }
 
-    /// Laravel `relation_id` `nullable|uuid`.
-    pub fn relation(&self) -> Result<Option<Uuid>, crate::error::AppError> {
-        let Some(raw) = self
-            .relation_id
-            .as_deref()
-            .map(str::trim)
-            .filter(|s| !s.is_empty())
-        else {
-            return Ok(None);
+    /// `relation_id` (Laravel `nullable|uuid`), `pipeline_id` and `status` filters; a
+    /// malformed one is a 422 rather than a silently unfiltered list.
+    pub fn filters(&self) -> Result<[Option<Uuid>; 3], crate::error::AppError> {
+        let mut r = Rules::default();
+        let mut id = |field: &str, v: &Option<String>| {
+            let raw = v.as_deref().map(str::trim).filter(|s| !s.is_empty())?;
+            uuid(&mut r, field, &Value::String(raw.to_owned()))
         };
-        Uuid::parse_str(raw).map(Some).map_err(|_| {
-            crate::error::AppError::field("relation_id", "The relation id must be a valid UUID.")
-        })
+        let ids = [
+            id("relation_id", &self.relation_id),
+            id("pipeline_id", &self.pipeline_id),
+            id("status", &self.status),
+        ];
+        r.into_result()?;
+        Ok(ids)
     }
 }
 
@@ -366,7 +371,7 @@ impl Validate for MoveDealRequest {
             .and_then(|v| id_or(r, "deal_pipeline_status_id", &v, STATUS_NOT_IN_PIPELINE));
         let index = r
             .required_value("position", self.position)
-            .and_then(|v| r.integer("position", &v, 0, i32::MAX.into()));
+            .and_then(|v| r.integer("position", &v, 0, INDEX_MAX));
         Some(DealMove {
             pipeline: pipeline?,
             status: status?,

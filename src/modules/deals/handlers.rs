@@ -46,15 +46,12 @@ pub async fn list(
 ) -> Result<Json<Paginated<DealResource>>, AppError> {
     let pattern = search(query.q.as_deref())?;
     let page = query.page();
-    let parse = |v: &Option<String>| {
-        v.as_deref()
-            .and_then(|s| uuid::Uuid::parse_str(s.trim()).ok())
-    };
+    let [relation, pipeline, status] = query.filters()?;
     let filter = ListFilter {
         pattern: pattern.as_deref(),
-        relation: query.relation()?,
-        pipeline: parse(&query.pipeline_id),
-        status: parse(&query.status),
+        relation,
+        pipeline,
+        status,
         limit: page.size,
         offset: page.offset(),
     };

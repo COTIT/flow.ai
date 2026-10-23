@@ -57,7 +57,8 @@ Not ported:
 - `position` is the deal's rank in its column (see Drags), not an index.
 - `archived` is always `false`.
 - `relation` uses the relation list shape (`RelationIndexResource`, with `contacts` and `relation_type`), the one invoices embed. Laravel used `RelationShortResource`; vimdesk-web reads only keys both shapes have: `id`, `type`, `company_name`, `alias`, `relation_nr`, `email`, `phone_number`, `created_at`, `relationships.contacts[].full_name`. A deleted relation prints `null`.
-- `sales_agent` is `null` when unset or no longer a member.
+- `sales_agent` is `null` when unset or no longer a member. `currency` is `null` when the deal's currency was deleted (nothing stops that, as in Laravel).
+- `deal_pipeline` carries the board's `summary`, as Laravel's did, so a full read also runs the board's won/lost aggregate once per board on the page. It grows with the won and lost columns; vimdesk-web doesn't read it from a deal.
 
 **Board column row (`DealIndexResource`):** the same keys, with only `sales_agent`, `relation` and `currency` under `relationships`.
 
@@ -75,7 +76,7 @@ A page loads its embeds in a fixed number of queries, whatever its size:
 |---|---|
 | `q` | ILIKE on the title (Laravel used Meilisearch); blank or `*` = none, over 100 characters = 422 |
 | `relation_id` | the relation's deals; must be a uuid (`The relation id must be a valid UUID.`); an unknown one gives an empty list (Laravel returned every deal) |
-| `pipeline_id`, `status` | the list view's board and column filters (Laravel ignored them); a malformed value is ignored |
+| `pipeline_id`, `status` | the list view's board and column filters (Laravel ignored them); each must be a uuid (`The pipeline id must be a valid UUID.`, `The status must be a valid UUID.`) |
 | `page`, `page_size` | Laravel paging |
 
 **Board column:** `GET /deal-pipelines/{pipeline}/status/{status}/deals` answers `{data, meta}` in pages of 999 (Laravel `paginate(999)`; `page` moves).
@@ -118,7 +119,7 @@ Body `{deal_pipeline_status_id, deal_pipeline_id, position}`, all required:
 
 - `deal_pipeline_id`: a live board.
 - `deal_pipeline_status_id`: a live column of it. A column deleted a moment ago is refused: the composite FK alone only proves the row existed.
-- `position`: an integer ≥ 0, the 0-based index the card was dropped at in the target column (vimdesk-web `e.newIndex`), not counting the dragged deal. An index past the end appends.
+- `position`: an integer 0..10000, the 0-based index the card was dropped at in the target column (vimdesk-web `e.newIndex`), not counting the dragged deal. An index past the end appends. The cap keeps a drag from walking a whole column under its lock; a board page holds 999.
 
 How a drag is stored:
 
@@ -129,26 +130,28 @@ How a drag is stored:
 
 **Concurrency.** Every rank writer (drag, create, a column change on update) locks in one order:
 
-1. the board row `FOR SHARE`;
-2. the target column row `FOR NO KEY UPDATE`;
+1. the board rows `FOR SHARE`, in id order (both boards for a cross-board move);
+2. the source and the target column rows `FOR NO KEY UPDATE`, in id order;
 3. the deal.
 
 This gives:
 
-- Drags into one column take turns, so ranks stay distinct and no card is lost.
-- Drags into different columns run side by side.
-- Opposite cross-column drags never deadlock.
+- Drags into or out of one column take turns, so ranks stay distinct and no card is lost.
+- Drags between unrelated columns run side by side.
+- No deal leaves a column while that column is being respaced, so a respace never rewrites a deal that has just moved, and opposite drags don't deadlock.
 - Column edits on the board (`deal-pipelines.md`) wait for running drags and hold new ones off.
+- Creates and column changes append by reading the column's last rank only, so they never respace a column.
+- A deal moved between the unlocked read and the locks is read again (up to 3 times, then 503). A drag that Postgres still picks as a deadlock victim runs once more.
 - A lock wait over 5 s answers 503 with `Retry-After`.
 
-Measured (L-B2, `tests/load_deals.rs`, loaded dev Mac): 50 concurrent movers over 3 columns of 1,000 deals, 10,000 drags:
+Measured (`tests/load_deals.rs`, a dev Mac with load average around 40 from other builds):
 
-- 0 errors, every deal once, ranks distinct;
-- 855 drags/s;
-- one mover alone: p95 6 ms;
-- contended: p95 86 ms. That is the queue on each column's lock, about 17 movers per column.
-
-A full 999-deal column reads with p95 39 ms (L-B1).
+- L-B1: a full 999-deal column reads with p95 31 ms.
+- L-B2: 50 concurrent movers over 3 columns of 1,000 deals, 10,000 drags:
+  - 0 errors, every deal once, ranks distinct;
+  - 553 drags/s;
+  - one mover alone: p95 5 ms;
+  - contended: p95 156 ms. That is the queue on the column locks: with 3 columns, most drags share a column with about a third of the movers.
 
 ## Delete
 

@@ -93,8 +93,9 @@ pub async fn find_many(
     .await
 }
 
-/// The board's first live column other than `except` (position order): where a deleted
-/// column's deals go.
+/// Where a deleted column's deals go: the board's first live ordinary column other than
+/// `except` (position order), else its first won or lost one. Open deals don't turn into won
+/// ones while an ordinary column is left.
 pub async fn fallback_status(
     tx: &mut PgConnection,
     workspace_id: Uuid,
@@ -104,7 +105,7 @@ pub async fn fallback_status(
     sqlx::query_scalar!(
         "SELECT id FROM deal_pipeline_statuses
          WHERE workspace_id = $1 AND deal_pipeline_id = $2 AND deleted_at IS NULL AND id <> $3
-         ORDER BY position, id
+         ORDER BY is_won OR is_lost, position, id
          LIMIT 1",
         workspace_id,
         pipeline,

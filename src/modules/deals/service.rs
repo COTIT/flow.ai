@@ -1,7 +1,8 @@
 //! Deal rules. A deal's place on the board is a gap rank in its column: a drag reads the two
 //! neighbours at the target index and writes one row; a closed gap renumbers the column once.
-//! Rank writers lock board (share) → column → deal, so drags never deadlock with each other
-//! or with column edits (B8-1's board write lock).
+//! Rank writers lock boards (share) → source and target columns → deal, all in id order, so
+//! drags and column edits (B8-1's board write lock) never cross and no deal leaves a column
+//! while it respaces. A drag still retries once if Postgres reports a deadlock.
 
 use std::collections::HashMap;
 
@@ -30,8 +31,10 @@ use crate::{
 
 /// Rank spacing: 16 drops between the same two neighbours before a column renumbers.
 pub const STEP: i64 = 65_536;
-/// Index past any column: append.
-const END: i64 = i32::MAX as i64;
+/// Tries when the deal moved between the unlocked read and the locks (then 503, retry later).
+const ATTEMPTS: usize = 3;
+/// Index meaning "at the end": appends read the last rank only, never the column.
+const END: i64 = i64::MAX;
 /// Laravel's no-relation-twice check (its translation key was missing).
 const HAS_RELATION: &str = "This deal already has a relation attached.";
 
@@ -94,7 +97,8 @@ pub async fn create(
 ) -> Result<Uuid, AppError> {
     let mut tx = state.db.begin().await?;
     let mut r = Rules::default();
-    place_checks(&mut tx, &mut r, workspace_id, input.pipeline, input.status).await?;
+    let to = (input.pipeline, input.status);
+    place_checks(&mut tx, &mut r, workspace_id, to, None).await?;
     if let Some(rel) = input.relation
         && !repo::relation_exists(&mut *tx, workspace_id, rel).await?
     {
@@ -132,39 +136,48 @@ pub async fn update(
     patch: DealPatch,
 ) -> Result<(), AppError> {
     let id = parse(id)?;
-    let current = repo::find(&state.db, workspace_id, id)
-        .await?
-        .ok_or(AppError::NotFound)?;
-    let pipeline = patch.pipeline.unwrap_or(current.deal_pipeline_id);
-    let status = patch.status.unwrap_or(current.deal_pipeline_status_id);
-    let moving = pipeline != current.deal_pipeline_id || status != current.deal_pipeline_status_id;
-    let mut tx = state.db.begin().await?;
-    let mut r = Rules::default();
-    if moving {
-        place_checks(&mut tx, &mut r, workspace_id, pipeline, status).await?;
+    for _ in 0..ATTEMPTS {
+        let current = repo::find(&state.db, workspace_id, id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        let from = (current.deal_pipeline_id, current.deal_pipeline_status_id);
+        let to = (
+            patch.pipeline.unwrap_or(from.0),
+            patch.status.unwrap_or(from.1),
+        );
+        let moving = to != from;
+        let mut tx = state.db.begin().await?;
+        let mut r = Rules::default();
+        if moving {
+            place_checks(&mut tx, &mut r, workspace_id, to, Some(from)).await?;
+        }
+        if let Some(Some(agent)) = patch.sales_agent {
+            agent_check(&mut tx, &mut r, workspace_id, agent).await?;
+        }
+        let deal = repo::lock_deal(&mut tx, workspace_id, id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        if moving && (deal.deal_pipeline_id, deal.deal_pipeline_status_id) != from {
+            continue; // moved since the read: its locked source column is stale
+        }
+        // The edit modal re-sends the stored close date; only a new one must not be past.
+        if let Some(Some(close)) = patch.expected_close_date
+            && deal.expected_close_date != Some(close)
+        {
+            not_past(&mut r, close);
+        }
+        r.into_result()?;
+        let place = if moving {
+            let rank = rank_at(&mut tx, workspace_id, to.1, id, END).await?;
+            Some((to.0, to.1, rank))
+        } else {
+            None
+        };
+        repo::update(&mut tx, workspace_id, id, &patch, place).await?;
+        tx.commit().await?;
+        return Ok(());
     }
-    if let Some(Some(agent)) = patch.sales_agent {
-        agent_check(&mut tx, &mut r, workspace_id, agent).await?;
-    }
-    let deal = repo::lock_deal(&mut tx, workspace_id, id)
-        .await?
-        .ok_or(AppError::NotFound)?;
-    // The edit modal re-sends the stored close date; only a new one must not be past.
-    if let Some(Some(close)) = patch.expected_close_date
-        && deal.expected_close_date != Some(close)
-    {
-        not_past(&mut r, close);
-    }
-    r.into_result()?;
-    let place = if moving {
-        let rank = rank_at(&mut tx, workspace_id, status, id, END).await?;
-        Some((pipeline, status, rank))
-    } else {
-        None
-    };
-    repo::update(&mut tx, workspace_id, id, &patch, place).await?;
-    tx.commit().await?;
-    Ok(())
+    Err(AppError::Overloaded)
 }
 
 /// Kanban drag: put the deal at `index` of the target column (0-based, the deal itself not
@@ -176,19 +189,43 @@ pub async fn move_to(
     m: DealMove,
 ) -> Result<(), AppError> {
     let id = parse(id)?;
-    let mut tx = state.db.begin().await?;
-    let mut r = Rules::default();
-    place_checks(&mut tx, &mut r, workspace_id, m.pipeline, m.status).await?;
-    r.into_result()?;
-    // The column lock is the hot spot: keep its section short. The UPDATE itself takes the deal
-    // row (column → deal order); no row is a 404 and rolls back any renumber.
-    let rank = rank_at(&mut tx, workspace_id, m.status, id, m.index).await?;
-    let place = Some((m.pipeline, m.status, rank));
-    if !repo::update(&mut tx, workspace_id, id, &DealPatch::default(), place).await? {
-        return Err(AppError::NotFound);
+    match drag(state, workspace_id, id, &m).await {
+        Err(e) if e.is_deadlock() => drag(state, workspace_id, id, &m).await,
+        done => done,
     }
-    tx.commit().await?;
-    Ok(())
+}
+
+/// One drag transaction. The deal's source column is locked with the target, so nothing else
+/// takes a deal out of a column while this drag respaces it; a deal moved since the unlocked
+/// read is read again.
+async fn drag(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: Uuid,
+    m: &DealMove,
+) -> Result<(), AppError> {
+    for _ in 0..ATTEMPTS {
+        let current = repo::find(&state.db, workspace_id, id).await?;
+        let from = current
+            .as_ref()
+            .map(|d| (d.deal_pipeline_id, d.deal_pipeline_status_id));
+        let mut tx = state.db.begin().await?;
+        let mut r = Rules::default();
+        place_checks(&mut tx, &mut r, workspace_id, (m.pipeline, m.status), from).await?;
+        r.into_result()?;
+        let deal = repo::lock_deal(&mut tx, workspace_id, id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        if Some((deal.deal_pipeline_id, deal.deal_pipeline_status_id)) != from {
+            continue;
+        }
+        let rank = rank_at(&mut tx, workspace_id, m.status, id, m.index).await?;
+        let place = Some((m.pipeline, m.status, rank));
+        repo::update(&mut tx, workspace_id, id, &DealPatch::default(), place).await?;
+        tx.commit().await?;
+        return Ok(());
+    }
+    Err(AppError::Overloaded)
 }
 
 /// Attach a relation to a deal that has none. 400 when one is set already (Laravel).
@@ -219,21 +256,32 @@ pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
         .ok_or(AppError::NotFound)
 }
 
-/// Board share lock, then the target column; records Laravel's texts for a missing board or
-/// a column that isn't a live one of it.
+/// Board rows `FOR SHARE`, then the target and source columns, all in id order; records
+/// Laravel's texts for a missing board or a target that isn't a live column of it.
 async fn place_checks(
     tx: &mut sqlx::PgConnection,
     r: &mut Rules,
     workspace_id: Uuid,
-    pipeline: Uuid,
-    status: Uuid,
+    to: (Uuid, Uuid),
+    from: Option<(Uuid, Uuid)>,
 ) -> Result<(), AppError> {
-    if !repo::lock_board(tx, workspace_id, pipeline).await? {
+    let mut boards = vec![to.0];
+    let mut columns = vec![to.1];
+    if let Some((board, column)) = from {
+        boards.push(board);
+        columns.push(column);
+    }
+    if !repo::lock_boards(tx, workspace_id, &boards)
+        .await?
+        .contains(&to.0)
+    {
         r.add("deal_pipeline_id", PIPELINE_MISSING);
         r.add("deal_pipeline_status_id", STATUS_NOT_IN_PIPELINE);
-    } else if repo::lock_columns(tx, workspace_id, pipeline, &[status])
+        return Ok(());
+    }
+    if !repo::lock_columns(tx, workspace_id, &columns)
         .await?
-        .is_empty()
+        .contains(&(to.1, to.0))
     {
         r.add("deal_pipeline_status_id", STATUS_NOT_IN_PIPELINE);
     }
@@ -266,7 +314,12 @@ async fn rank_at(
     index: i64,
 ) -> Result<i64, AppError> {
     for _ in 0..2 {
-        let (before, after) = if index == 0 {
+        let (before, after) = if index == END {
+            (
+                repo::last_rank(tx, workspace_id, status, Some(except)).await?,
+                None,
+            )
+        } else if index == 0 {
             let ranks = repo::ranks_from(tx, workspace_id, status, except, 0).await?;
             (None, ranks.first().copied())
         } else {
@@ -294,7 +347,7 @@ fn rank_between(before: Option<i64>, after: Option<i64>) -> Option<i64> {
         (None, None) => Some(0),
         (Some(b), None) => b.checked_add(STEP),
         (None, Some(a)) => a.checked_sub(STEP),
-        (Some(b), Some(a)) => (a - b >= 2).then(|| b + (a - b) / 2),
+        (Some(b), Some(a)) => a.checked_sub(b).filter(|g| *g >= 2).map(|g| b + g / 2),
     }
 }
 
@@ -320,8 +373,10 @@ async fn resources(
     let relations = relations::service::index_values(state, workspace_id, &relation_ids).await?;
     let agent_ids = unique(rows.iter().filter_map(|d| d.sales_agent_id));
     let mut agents = HashMap::new();
-    for u in users::repo::members_among(&state.db, workspace_id, &agent_ids).await? {
-        agents.insert(u.id, to_json(&UserEmailResource::from(&u))?);
+    if !agent_ids.is_empty() {
+        for u in users::repo::members_among(&state.db, workspace_id, &agent_ids).await? {
+            agents.insert(u.id, to_json(&UserEmailResource::from(&u))?);
+        }
     }
     let currency_ids = unique(rows.iter().map(|d| d.currency_id));
     let mut currency = HashMap::new();

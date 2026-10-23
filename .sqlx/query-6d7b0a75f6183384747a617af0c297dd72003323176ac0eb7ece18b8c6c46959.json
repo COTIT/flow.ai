@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deals d SET position = s.n * $4\n         FROM (SELECT id, row_number() OVER (ORDER BY position, id) AS n FROM deals\n               WHERE workspace_id = $1 AND deal_pipeline_status_id = $2 AND deleted_at IS NULL\n                 AND id <> $3) s\n         WHERE d.workspace_id = $1 AND d.id = s.id AND d.deal_pipeline_status_id = $2\n           AND d.deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6d7b0a75f6183384747a617af0c297dd72003323176ac0eb7ece18b8c6c46959"
+}

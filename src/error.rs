@@ -66,6 +66,13 @@ pub enum AppError {
 }
 
 impl AppError {
+    /// Postgres chose this transaction as a deadlock victim (40P01): the whole transaction may
+    /// be run again.
+    pub fn is_deadlock(&self) -> bool {
+        matches!(self, Self::Database(e)
+            if e.as_database_error().and_then(|d| d.code()).as_deref() == Some("40P01"))
+    }
+
     /// One-field 422 for checks only service can do (e.g. email taken).
     pub fn field(field: &str, message: impl Into<String>) -> Self {
         Self::Validation(BTreeMap::from([(field.to_owned(), vec![message.into()])]))

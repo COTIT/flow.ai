@@ -102,7 +102,7 @@ The settings page saves `{name}` alone before a reorder. The update is a patch, 
 
 **Uniqueness.** The rules above are also database indexes on live columns: one per (board, custom status), at most one won and one lost column per board. A race the lock misses still answers the same 422.
 
-**Delete.** A soft delete frees the custom status for a new column on that board. The column's deals first move to the end of the board's first other column (lowest position), in their order, in the same transaction.
+**Delete.** A soft delete frees the custom status for a new column on that board. The column's deals first move to the end of the board's first other ordinary column (lowest position), in their order, in the same transaction. Only when no ordinary column is left do they go to a won or lost one, so a delete doesn't turn open deals into won ones.
 
 - When the column has deals and is the board's last one: 409 `{"message": "This deal pipeline has no other status to move its deals to."}` (Laravel answered 409 with a missing translation key). Nothing moves or is deleted.
 - A column without deals can always go.
@@ -119,4 +119,4 @@ The settings page saves `{name}` alone before a reorder. The update is a patch, 
 7. `position` must be 0..10000. Laravel took any integer, and a column near the int maximum would break every later shift.
 8. `meta` must be an object. Laravel's `MetaRule` checked nothing.
 9. A shift moves every column from the taken position on, across gaps. Laravel's recursive `checkPosition` stopped at the first gap: with columns at 0 and 2, a new column at 0 gives 0, 1, 2 in Laravel and 0, 1, 3 here. The order is the same.
-10. A deleted column's deals go to the board's first other column. Laravel took the first row of an unordered query and refused with 409 when that row was the column itself.
+10. A deleted column's deals go to the board's first other ordinary column, else a won or lost one. Laravel took the first row of an unordered query, which could be the Won column or the column itself (then 409).

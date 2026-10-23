@@ -1,6 +1,6 @@
 //! SQL for deals. Every statement takes `workspace_id` and skips soft-deleted rows. Rank
-//! writers lock in one order: board row `FOR SHARE` (`lock_board`), then columns by id
-//! (`lock_columns`), then the deal (`lock_deal`).
+//! writers lock in one order: board rows `FOR SHARE` by id (`lock_boards`), then source and
+//! target columns by id (`lock_columns`), then the deal (`lock_deal` or the UPDATE).
 
 use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
@@ -49,49 +49,52 @@ pub struct SummaryRow {
     pub total: Decimal,
 }
 
-/// `lock_timeout` for this transaction, then the board row `FOR SHARE`: rank writers run side
-/// by side, while a column write (`deal_pipelines::repo::lock`, `FOR NO KEY UPDATE`) waits for
-/// them and holds them off. False = no such live board.
-pub async fn lock_board(
+/// `lock_timeout` for this transaction, then these board rows `FOR SHARE` in id order: rank
+/// writers run side by side, while a column write (`deal_pipelines::repo::lock`, `FOR NO KEY
+/// UPDATE`) waits for them and holds them off. Returns the live boards found.
+pub async fn lock_boards(
     tx: &mut PgConnection,
     workspace_id: Uuid,
-    pipeline: Uuid,
-) -> Result<bool, sqlx::Error> {
+    ids: &[Uuid],
+) -> Result<Vec<Uuid>, sqlx::Error> {
     sqlx::query!("SET LOCAL lock_timeout = '5s'")
         .execute(&mut *tx)
         .await?;
     sqlx::query_scalar!(
         "SELECT id FROM deal_pipelines
-         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
-         FOR SHARE",
-        pipeline,
-        workspace_id,
-    )
-    .fetch_optional(&mut *tx)
-    .await
-    .map(|row| row.is_some())
-}
-
-/// Lock these columns of the board, in id order; returns the live ones found. A deleted
-/// column is not found: the composite FK alone would accept it.
-pub async fn lock_columns(
-    tx: &mut PgConnection,
-    workspace_id: Uuid,
-    pipeline: Uuid,
-    ids: &[Uuid],
-) -> Result<Vec<Uuid>, sqlx::Error> {
-    sqlx::query_scalar!(
-        "SELECT id FROM deal_pipeline_statuses
-         WHERE workspace_id = $1 AND deal_pipeline_id = $2 AND id = ANY($3)
-           AND deleted_at IS NULL
+         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL
          ORDER BY id
-         FOR NO KEY UPDATE",
+         FOR SHARE",
         workspace_id,
-        pipeline,
         ids,
     )
     .fetch_all(&mut *tx)
     .await
+}
+
+/// Lock these columns (source and target of a move), in id order; returns each live one with
+/// its board. A deleted column is not found: the composite FK alone would accept it.
+/// Locking the source too means no other move takes a deal out of a column while it respaces.
+pub async fn lock_columns(
+    tx: &mut PgConnection,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<(Uuid, Uuid)>, sqlx::Error> {
+    sqlx::query!(
+        "SELECT id, deal_pipeline_id FROM deal_pipeline_statuses
+         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL
+         ORDER BY id
+         FOR NO KEY UPDATE",
+        workspace_id,
+        ids,
+    )
+    .fetch_all(&mut *tx)
+    .await
+    .map(|rows| {
+        rows.into_iter()
+            .map(|r| (r.id, r.deal_pipeline_id))
+            .collect()
+    })
 }
 
 /// Lock a live deal for this transaction (last in the lock order). None = 404.
@@ -194,7 +197,8 @@ pub async fn renumber(
          FROM (SELECT id, row_number() OVER (ORDER BY position, id) AS n FROM deals
                WHERE workspace_id = $1 AND deal_pipeline_status_id = $2 AND deleted_at IS NULL
                  AND id <> $3) s
-         WHERE d.id = s.id",
+         WHERE d.workspace_id = $1 AND d.id = s.id AND d.deal_pipeline_status_id = $2
+           AND d.deleted_at IS NULL",
         workspace_id,
         status,
         except,
@@ -446,6 +450,7 @@ pub async fn column(
             .fetch_all(db)
             .await
         }
+        // `a-z`, the column default (the CHECK allows nothing else).
         _ => {
             sqlx::query_as!(
                 DealRow,
@@ -502,7 +507,8 @@ pub async fn move_column(
                          AND deleted_at IS NULL) AS base
                FROM deals
                WHERE workspace_id = $1 AND deal_pipeline_status_id = $2 AND deleted_at IS NULL) s
-         WHERE d.id = s.id",
+         WHERE d.workspace_id = $1 AND d.id = s.id AND d.deal_pipeline_status_id = $2
+           AND d.deleted_at IS NULL",
         workspace_id,
         from,
         to,

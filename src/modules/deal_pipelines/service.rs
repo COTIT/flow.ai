@@ -59,17 +59,22 @@ pub async fn create(
     Ok(repo::insert(&state.db, workspace_id, &input).await?)
 }
 
-/// Patch a live board of this workspace, else 404.
+/// Patch a live board of this workspace, else 404. Takes the board lock first, so it waits for
+/// running drags under the same 5 s limit as column writes.
 pub async fn update(
     state: &AppState,
     workspace_id: Uuid,
     id: &str,
     patch: PipelinePatch,
 ) -> Result<(), AppError> {
-    repo::update(&state.db, workspace_id, parse(id)?, &patch)
-        .await?
-        .then_some(())
-        .ok_or(AppError::NotFound)
+    let id = parse(id)?;
+    let mut tx = state.db.begin().await?;
+    if !repo::lock(&mut tx, workspace_id, id).await? {
+        return Err(AppError::NotFound);
+    }
+    repo::update(&mut *tx, workspace_id, id, &patch).await?;
+    tx.commit().await?;
+    Ok(())
 }
 
 /// New column on the board in the path (Laravel used the body's `deal_pipeline_id`).
@@ -145,19 +150,10 @@ pub async fn embeds(
     let rows = repo::find_many(&state.db, workspace_id, ids).await?;
     let (mut boards, mut columns) = (HashMap::new(), HashMap::new());
     for p in with_statuses(state, workspace_id, rows).await? {
-        let v = serde_json::to_value(&p).map_err(|e| AppError::Internal(e.to_string()))?;
-        let statuses = v["relationships"]["statuses"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default();
-        for s in statuses {
-            if let Some(id) = s["id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) {
-                columns.insert(id, s);
-            }
+        for s in p.statuses() {
+            columns.insert(s.id(), to_json(s)?);
         }
-        if let Some(id) = v["id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) {
-            boards.insert(id, v);
-        }
+        boards.insert(p.id(), to_json(&p)?);
     }
     Ok((boards, columns))
 }
@@ -217,6 +213,10 @@ async fn with_statuses(
             PipelineResource::new(p, statuses, &mine)
         })
         .collect())
+}
+
+fn to_json<T: serde::Serialize>(v: &T) -> Result<Value, AppError> {
+    serde_json::to_value(v).map_err(|e| AppError::Internal(e.to_string()))
 }
 
 /// The unique indexes behind the pre-checks, for a write the lock didn't cover.

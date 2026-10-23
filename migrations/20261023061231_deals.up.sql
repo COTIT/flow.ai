@@ -1,7 +1,8 @@
 -- Deals (Laravel CRM/Deal): one card on a sales board. A deal sits in one column of one board;
 -- the composite FK keeps that column on the deal's board. `position` is a gap rank inside the
 -- column (spaced 65536 apart): a drag writes one row, and only a closed gap renumbers the
--- column. Rank writers hold the board row FOR SHARE, then the column rows in id order.
+-- column. Rank writers hold the board rows FOR SHARE, then the source and target column rows
+-- in id order, then the deal.
 
 CREATE TABLE deals (
     id                      uuid          PRIMARY KEY DEFAULT uuidv7(),
@@ -10,7 +11,7 @@ CREATE TABLE deals (
     deal_pipeline_status_id uuid          NOT NULL,
     currency_id             uuid          NOT NULL,
     relation_id             uuid,
-    sales_agent_id          uuid          REFERENCES users (id) ON DELETE SET NULL,
+    sales_agent_id          uuid,
     created_by              uuid          REFERENCES users (id) ON DELETE SET NULL,
     title                   text          NOT NULL CHECK (char_length(title) <= 255),
     description             text          CHECK (char_length(description) <= 50000),
@@ -29,7 +30,10 @@ CREATE TABLE deals (
     CONSTRAINT deals_currency_fk FOREIGN KEY (workspace_id, currency_id)
         REFERENCES currencies (workspace_id, id),
     CONSTRAINT deals_relation_fk FOREIGN KEY (workspace_id, relation_id)
-        REFERENCES relations (workspace_id, id)
+        REFERENCES relations (workspace_id, id),
+    -- The agent is a member of this workspace; removing the membership clears it.
+    CONSTRAINT deals_sales_agent_fk FOREIGN KEY (workspace_id, sales_agent_id)
+        REFERENCES workspace_members (workspace_id, user_id) ON DELETE SET NULL (sales_agent_id)
 );
 -- One board column in rank order (kanban read, neighbour lookup, renumber, append).
 CREATE INDEX deals_column ON deals (deal_pipeline_status_id, position, id) WHERE deleted_at IS NULL;
@@ -38,9 +42,12 @@ CREATE INDEX deals_column_date ON deals (deal_pipeline_status_id, date NULLS FIR
     WHERE deleted_at IS NULL;
 -- List (newest first) and its board/column filters; the pipeline summary.
 CREATE INDEX deals_live_idx ON deals (workspace_id, id DESC) WHERE deleted_at IS NULL;
-CREATE INDEX deals_pipeline_idx ON deals (workspace_id, deal_pipeline_id, deal_pipeline_status_id)
-    WHERE deleted_at IS NULL;
+-- Not partial: it is also the referencing side of deals_status_fk.
+CREATE INDEX deals_pipeline_idx ON deals (workspace_id, deal_pipeline_id, deal_pipeline_status_id);
 -- Relation Deals tab, and the referencing side of the relation FK.
 CREATE INDEX deals_relation_idx ON deals (workspace_id, relation_id) WHERE relation_id IS NOT NULL;
--- Referencing side of the currency FK (currency delete probes).
+-- Referencing sides of the currency, agent and creator FKs.
 CREATE INDEX deals_currency_idx ON deals (workspace_id, currency_id);
+CREATE INDEX deals_sales_agent_idx ON deals (workspace_id, sales_agent_id)
+    WHERE sales_agent_id IS NOT NULL;
+CREATE INDEX deals_created_by_idx ON deals (created_by) WHERE created_by IS NOT NULL;

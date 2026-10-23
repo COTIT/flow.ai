@@ -13,18 +13,35 @@
     - `/deal-pipelines/{p}/status/{s}/deals`: one board column, in the board's `sorting` order, pages of 999.
   - **Drags:**
     - The SPA's 0-based drop index becomes the midpoint between the two neighbours, so one row is written. A closed gap respaces the column once.
-    - Rank writers lock board row `FOR SHARE` → column `FOR NO KEY UPDATE` → deal, so opposite drags never deadlock and column edits on the board wait for them.
+    - Rank writers lock boards `FOR SHARE` → source and target columns `FOR NO KEY UPDATE` → deal, all in id order, so no deal leaves a column while it respaces and column edits on the board wait for them. A deal moved since the unlocked read is read again. Appends read the last rank only. A drop index is capped at 10000. A drag retries once on a deadlock (`AppError::is_deadlock`).
     - A column deleted a moment ago is refused.
-    - Load (L-B1/L-B2, `tests/load_deals.rs`, `#[ignore]`):
-      - a 999-deal column reads with p95 39 ms;
-      - 50 movers × 200 drags give 855 drags/s with 0 errors, every deal once and ranks distinct;
-      - one mover alone has p95 6 ms;
-      - contended p95 is 86 ms, the queue on one column's lock.
+    - Load (L-B1/L-B2, `tests/load_deals.rs`, `#[ignore]`, measured at load average ~40):
+      - a 999-deal column reads with p95 31 ms;
+      - 50 movers × 200 drags give 553 drags/s with 0 errors, every deal once and ranks distinct;
+      - one mover alone has p95 5 ms;
+      - contended p95 is 156 ms, the queue on the column locks.
   - **Pipelines:**
     - The board `summary` is real: won/lost deal counts and per-currency sums from one grouped query.
     - Deleting a column moves its deals to the end of the board's first other column. With no other column it is a 409 (`AppError::Conflict`, new).
   - **Embeds:** relations (list shape), agents, currencies, and boards with their columns: one batch query each per page.
   - **Laravel differences** (contract): patch semantics, a re-sent past close date saves, `pipeline_id`/`status` list filters, 201 on create, a real "already has a relation" text.
+  - Review fixes:
+    - Appends no longer scan the column.
+    - Drop index cap 10000.
+    - Retry on deadlock.
+    - An edit doesn't re-append a deal a drag just moved.
+    - Checked rank arithmetic.
+    - Board embeds built from typed resources.
+    - Workspace filter on the respace and column-move UPDATEs.
+    - 422 for malformed list filters.
+    - Database review:
+      - A respace or column move only rewrites deals still in that column (a deal moved meanwhile kept a colliding rank; and a cross-board move during a column delete gave a 500).
+      - The source column is locked too.
+      - A deleted column's deals prefer an ordinary column over Won/Lost.
+      - The agent FK now points at `workspace_members` (`ON DELETE SET NULL (sales_agent_id)`).
+      - New indexes on the agent and creator FKs.
+      - The status-FK index is no longer partial.
+      - Pipeline rename takes the board lock with its 5 s limit.
 
 - Batch 8 B8-1 (deal pipelines; contract `docs/api/deal-pipelines.md`):
   - **Migration `deal_pipelines`:** `deal_pipelines` (`sorting` a-z|pos|z-a) and `deal_pipeline_statuses`.
