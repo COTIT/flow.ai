@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT max(position) FROM deals\n         WHERE workspace_id = $1 AND deal_pipeline_status_id = $2 AND deleted_at IS NULL\n           AND id IS DISTINCT FROM $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "b17d9b04d0d69fabfa99cddd9f0dc33a7d87b1c730b9f2be6ef009118bc1f61e"
+}

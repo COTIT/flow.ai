@@ -49,6 +49,46 @@
     - **Warehouses:** `flags_locked` takes `FOR NO KEY UPDATE`, so stock inserts referencing the warehouse aren't blocked. A default change is re-checked against `warehouse.set_default` under the row lock.
     - **Deploy:** `deploy.sh` bounds each pool to 1..100 and the limit to three digits.
   - Parent review: dedupe keys are unique per workspace (system jobs share the nil scope), and so is the lookup. A global key would have handed workspace A's enqueue workspace B's live job.
+- Batch 8 B8-2 (deals and the kanban board; contract `docs/api/deals.md`):
+  - **Migration `deals`:** one card on a board.
+    - `FOREIGN KEY (workspace_id, deal_pipeline_id, deal_pipeline_status_id) → deal_pipeline_statuses`, NOT NULL, so a deal's column is always on its board.
+    - Composite FKs to currencies and relations.
+    - `position bigint` is a gap rank.
+    - Partial indexes: per column by rank and by date, newest-first list, board filter, relation, currency.
+  - **Routes:**
+    - `/deals`: list, get, create, patch, `update-status` (kanban drag), `add-relation`, delete. Each checks its `deal.*` name; Laravel checked none.
+    - `/deal-pipelines/{p}/status/{s}/deals`: one board column, in the board's `sorting` order, pages of 999.
+  - **Drags:**
+    - The SPA's 0-based drop index becomes the midpoint between the two neighbours, so one row is written. A closed gap respaces the column once.
+    - Rank writers lock boards `FOR SHARE` → source and target columns `FOR NO KEY UPDATE` → deal, all in id order, so no deal leaves a column while it respaces and column edits on the board wait for them. A deal moved since the unlocked read is read again. Appends read the last rank only. A drop index is capped at 10000. A drag retries once on a deadlock (`AppError::is_deadlock`).
+    - A column deleted a moment ago is refused.
+    - Load (L-B1/L-B2, `tests/load_deals.rs`, `#[ignore]`, measured at load average ~40):
+      - a 999-deal column reads with p95 31 ms;
+      - 50 movers × 200 drags give 553 drags/s with 0 errors, every deal once and ranks distinct;
+      - one mover alone has p95 5 ms;
+      - contended p95 is 156 ms, the queue on the column locks.
+  - **Pipelines:**
+    - The board `summary` is real: won/lost deal counts and per-currency sums from one grouped query.
+    - Deleting a column moves its deals to the end of the board's first other column. With no other column it is a 409 (`AppError::Conflict`, new).
+  - **Embeds:** relations (list shape), agents, currencies, and boards with their columns: one batch query each per page.
+  - **Laravel differences** (contract): patch semantics, a re-sent past close date saves, `pipeline_id`/`status` list filters, 201 on create, a real "already has a relation" text.
+  - Review fixes:
+    - Appends no longer scan the column.
+    - Drop index cap 10000.
+    - Retry on deadlock.
+    - An edit doesn't re-append a deal a drag just moved.
+    - Checked rank arithmetic.
+    - Board embeds built from typed resources.
+    - Workspace filter on the respace and column-move UPDATEs.
+    - 422 for malformed list filters.
+    - Database review:
+      - A respace or column move only rewrites deals still in that column (a deal moved meanwhile kept a colliding rank; and a cross-board move during a column delete gave a 500).
+      - The source column is locked too.
+      - A deleted column's deals prefer an ordinary column over Won/Lost.
+      - The agent FK now points at `workspace_members` (`ON DELETE SET NULL (sales_agent_id)`).
+      - New indexes on the agent and creator FKs.
+      - The status-FK index is no longer partial.
+      - Pipeline rename takes the board lock with its 5 s limit.
 - Final batch F7 (invoice payments; contract `docs/api/invoice-payments.md`):
   - **Ledger:** migration `invoice_payments` adds `invoice_payments`: minor units at the invoice's decimals, negative rows for refunds and settle twins. It is append-only: a trigger refuses delete, and any change of amount, invoice, workspace, method, date or twin, an un-void and TRUNCATE. Delete = void (`voided_at`, `voided_by`).
   - **Balance:** `invoices.paid_total` is recomputed as SUM over paid, unvoided rows in every payment transaction, under the invoice's row lock. The status machine is Laravel's, fixed:

@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM deal_pipeline_statuses\n         WHERE workspace_id = $1 AND deal_pipeline_id = $2 AND deleted_at IS NULL AND id <> $3\n         ORDER BY is_won OR is_lost, position, id\n         LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f893ff3ce917f70f21b8cefc52bd3a1614ef70b2495b1315a9b9e71d272e4c4b"
+}

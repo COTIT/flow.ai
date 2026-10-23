@@ -74,6 +74,47 @@ pub async fn find(
     .await
 }
 
+/// Live pipelines of `workspace_id` among `ids`, in id order (resources that embed one).
+pub async fn find_many(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<PipelineRow>, sqlx::Error> {
+    sqlx::query_as!(
+        PipelineRow,
+        r#"SELECT id, name, type AS kind, sorting, meta, created_at, updated_at
+           FROM deal_pipelines
+           WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL
+           ORDER BY id"#,
+        workspace_id,
+        ids,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Where a deleted column's deals go: the board's first live ordinary column other than
+/// `except` (position order), else its first won or lost one. Open deals don't turn into won
+/// ones while an ordinary column is left.
+pub async fn fallback_status(
+    tx: &mut PgConnection,
+    workspace_id: Uuid,
+    pipeline: Uuid,
+    except: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM deal_pipeline_statuses
+         WHERE workspace_id = $1 AND deal_pipeline_id = $2 AND deleted_at IS NULL AND id <> $3
+         ORDER BY is_won OR is_lost, position, id
+         LIMIT 1",
+        workspace_id,
+        pipeline,
+        except,
+    )
+    .fetch_optional(&mut *tx)
+    .await
+}
+
 /// One page of pipelines in insertion order, plus the total.
 pub async fn list(
     db: impl PgExecutor<'_>,

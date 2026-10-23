@@ -3,8 +3,9 @@
 //! deal-pipeline.service.js, deal-pipeline-status.service.js, settings/pipelines).
 
 use chrono::{DateTime, Utc};
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 use uuid::Uuid;
 
 use crate::{
@@ -15,6 +16,7 @@ use crate::{
     modules::{
         custom_statuses::dto::CustomStatusResource,
         deal_pipelines::repo::{PipelineRow, StatusRow},
+        deals::repo::SummaryRow,
     },
 };
 
@@ -55,11 +57,18 @@ struct PipelineRelationships {
 }
 
 impl PipelineResource {
-    /// One board with its columns, in position order.
-    pub fn new(p: PipelineRow, statuses: Vec<StatusRow>) -> Self {
-        // shortcut: no deals table yet, so every board sums to zero; B8-2 counts real deals.
-        // PHP printed the empty `total_values` array as [].
-        let tally = json!({ "total_amount": 0, "total_values": [] });
+    /// The board's id.
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
+    /// Its columns, in position order.
+    pub fn statuses(&self) -> &[StatusResource] {
+        &self.relationships.statuses
+    }
+
+    /// One board with its columns (in position order) and its won/lost totals.
+    pub fn new(p: PipelineRow, statuses: Vec<StatusRow>, totals: &[&SummaryRow]) -> Self {
         Self {
             id: p.id,
             name: p.name,
@@ -68,12 +77,32 @@ impl PipelineResource {
             created_at: p.created_at,
             last_updated_at: p.updated_at,
             meta: p.meta,
-            summary: json!({ "won": tally, "lost": tally }),
+            summary: summary(totals),
             relationships: PipelineRelationships {
                 statuses: statuses.into_iter().map(Into::into).collect(),
             },
         }
     }
+}
+
+/// Laravel SummarizeDealsForDealPipeline: per side, the deal count (`total_amount`) and the
+/// value sum per currency code, as PHP floats; an empty side prints `total_values` as [].
+fn summary(totals: &[&SummaryRow]) -> Value {
+    let side = |won: bool| {
+        let mut values = Map::new();
+        let mut count = 0;
+        for t in totals.iter().filter(|t| t.is_won == won) {
+            count += t.deals;
+            values.insert(t.asset_type.clone(), json!(t.total.to_f64().unwrap_or(0.0)));
+        }
+        let values = if values.is_empty() {
+            json!([])
+        } else {
+            Value::Object(values)
+        };
+        json!({ "total_amount": count, "total_values": values })
+    };
+    json!({ "won": side(true), "lost": side(false) })
 }
 
 /// Laravel DealPipelineStatusResource: `rules` and `properties` as their value objects printed
@@ -93,6 +122,13 @@ pub struct StatusResource {
 #[derive(Serialize)]
 struct StatusRelationships {
     custom_status: Option<CustomStatusResource>,
+}
+
+impl StatusResource {
+    /// The column's id.
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
 }
 
 impl From<StatusRow> for StatusResource {
