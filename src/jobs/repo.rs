@@ -128,6 +128,33 @@ pub async fn enqueue(conn: &mut PgConnection, job: &NewJob) -> Result<Uuid, sqlx
     ))
 }
 
+/// Insert a job unless one of the same kind and workspace is still queued (it will see this
+/// change too). A running one doesn't count: it may have passed the change already. Pair it
+/// with a `concurrency_key` so the new job waits for the running one. None: coalesced.
+pub async fn enqueue_coalesced(
+    conn: &mut PgConnection,
+    job: &NewJob,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "INSERT INTO jobs (workspace_id, kind, payload, priority, max_attempts,
+                           concurrency_key, created_by)
+         SELECT $1, $2, $3, $4, $5, $6, $7
+         WHERE NOT EXISTS (
+             SELECT 1 FROM jobs
+             WHERE kind = $2 AND workspace_id IS NOT DISTINCT FROM $1 AND status = 'queued')
+         RETURNING id",
+        job.workspace_id,
+        job.kind,
+        job.payload,
+        job.priority,
+        job.max_attempts,
+        job.concurrency_key,
+        job.created_by,
+    )
+    .fetch_optional(conn)
+    .await
+}
+
 /// Claim the next due job of `kinds`: priority, then age. Skips workspaces already running
 /// `cap` jobs (soft: two claims at the same moment can pass it by one) and concurrency keys
 /// a running job holds (hard: unique index). None when nothing is due.

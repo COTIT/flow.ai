@@ -13,7 +13,7 @@ use crate::{
         runner::{Handler, Step},
         scheduler::{Every, Schedule},
     },
-    modules::{files, messages::repo as messages},
+    modules::{files, messages::repo as messages, stock::sweep},
     storage::Store,
 };
 
@@ -23,9 +23,14 @@ pub const CLOSE_STUCK_SENDS: &str = "close_stuck_sends";
 pub const PRUNE: &str = "prune";
 /// Finishes file rows a crash left half written or half deleted (hourly).
 pub const FILE_SWEEP: &str = "file_sweep";
+/// Zero stock rows for every product in a new main or store warehouse (`stock::sweep`).
+pub const STOCK_SEED: &str = "stock_seed";
 
 /// Every kind this build can run; the claim never takes another.
-pub const KINDS: &[&str] = &[CLOSE_STUCK_SENDS, PRUNE, FILE_SWEEP];
+pub const KINDS: &[&str] = &[CLOSE_STUCK_SENDS, PRUNE, FILE_SWEEP, STOCK_SEED];
+
+/// One sweep chunk outside the rail (tests, load tests): see `stock::repo::seed_chunk`.
+pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
 pub static SCHEDULES: [Schedule; 3] = [
@@ -77,6 +82,7 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
                 tracing::info!(files = swept, "file sweep done");
             }
         }
+        STOCK_SEED => return sweep::run(&ctx.db, &job).await,
         // The claim only takes `KINDS`, so this means a kind was listed without an arm.
         other => {
             return Err(AppError::Internal(format!(

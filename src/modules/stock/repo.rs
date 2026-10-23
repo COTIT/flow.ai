@@ -307,6 +307,65 @@ pub async fn seed(
     .await
 }
 
+/// One chunk of the warehouse sweep (Laravel EnsureProductWarehouseStockEntries): zero
+/// warehouse-level rows in the main warehouse and every store for up to `limit` live
+/// stock-tracked products after `after` (id order), and the main warehouse as the default of
+/// those that have none (a chosen default stays, as in `seed`). Returns the chunk's last
+/// product and size; None when none is left or there is no main warehouse (Laravel skipped
+/// the workspace).
+pub async fn seed_chunk(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    after: Option<Uuid>,
+    limit: i64,
+) -> Result<Option<(Uuid, usize)>, sqlx::Error> {
+    let main = sqlx::query_scalar!(
+        "SELECT id FROM warehouses
+         WHERE workspace_id = $1 AND default_warehouse AND deleted_at IS NULL",
+        workspace_id,
+    )
+    .fetch_optional(&mut *conn)
+    .await?;
+    let Some(main) = main else { return Ok(None) };
+    let ids = sqlx::query_scalar!(
+        "SELECT id FROM products
+         WHERE workspace_id = $1 AND has_stock AND deleted_at IS NULL
+           AND ($2::uuid IS NULL OR id > $2)
+         ORDER BY id LIMIT $3",
+        workspace_id,
+        after,
+        limit,
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    let Some(&last) = ids.last() else {
+        return Ok(None);
+    };
+    sqlx::query!(
+        "INSERT INTO stocks (workspace_id, product_id, warehouse_id)
+         SELECT $1, p.id, w.id
+         FROM unnest($2::uuid[]) AS p(id)
+         CROSS JOIN (SELECT id FROM warehouses
+                     WHERE workspace_id = $1 AND deleted_at IS NULL
+                       AND (default_warehouse OR is_store)) AS w
+         ON CONFLICT DO NOTHING",
+        workspace_id,
+        &ids,
+    )
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "UPDATE products SET default_warehouse_id = $3, updated_at = now()
+         WHERE workspace_id = $1 AND id = ANY($2) AND default_warehouse_id IS NULL",
+        workspace_id,
+        &ids,
+        main,
+    )
+    .execute(&mut *conn)
+    .await?;
+    Ok(Some((last, ids.len())))
+}
+
 /// Lock (creating when missing) every slot in [`SlotKey`] order, so writers touching the same
 /// slots queue instead of deadlocking. Returns the slots this call created.
 pub async fn lock_all(

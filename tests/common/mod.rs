@@ -275,6 +275,18 @@ impl Api {
         }
     }
 
+    /// Same app and base, a new user owning a new workspace (cross-workspace checks).
+    pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {
+        let (owner, ws) = signup(&self.app, email, workspace).await;
+        Self {
+            app: self.app.clone(),
+            pool: self.pool.clone(),
+            owner,
+            ws,
+            base: self.base,
+        }
+    }
+
     /// Same app, owner and workspace, requests under another base path (nested routes).
     pub fn with_base(&self, base: &'static str) -> Self {
         Self {

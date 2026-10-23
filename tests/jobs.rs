@@ -431,3 +431,25 @@ async fn error_text_is_capped(pool: PgPool) {
         .unwrap();
     assert!(len <= 1_000, "{len}");
 }
+
+#[sqlx::test]
+async fn coalesced_enqueue_skips_only_while_one_is_queued(pool: PgPool) {
+    let ws = workspace(&pool, "co").await;
+    let job = || NewJob {
+        workspace_id: Some(ws),
+        ..NewJob::new(KIND)
+    };
+    let mut conn = pool.acquire().await.unwrap();
+
+    let first = repo::enqueue_coalesced(&mut conn, &job()).await.unwrap();
+    let again = repo::enqueue_coalesced(&mut conn, &job()).await.unwrap();
+    assert!(first.is_some());
+    assert!(again.is_none(), "one queued is enough");
+
+    claim(&pool, 10).await.unwrap();
+    let while_running = repo::enqueue_coalesced(&mut conn, &job()).await.unwrap();
+    assert!(
+        while_running.is_some(),
+        "a running job may have passed the change: queue a fresh one"
+    );
+}
