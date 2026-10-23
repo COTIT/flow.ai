@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM deals\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR title ILIKE $2)\n             AND ($3::uuid IS NULL OR relation_id = $3)\n             AND ($4::uuid IS NULL OR deal_pipeline_id = $4)\n             AND ($5::uuid IS NULL OR deal_pipeline_status_id = $5)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6b1adf305f31cf0b4e2dfb205b032cb40e2e1a81e3247b3502d76f95de996666"
+}

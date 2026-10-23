@@ -34,7 +34,7 @@ Not ported, because no vimdesk-web screen reaches them:
 - `GET /{pipeline}/status/{status}` (only the never-rendered `StatusSelect` used it)
 - `POST /{pipeline}/duplicate` (no Laravel route either)
 
-`GET /{pipeline}/status/{status}/deals` (one board column of deals) comes with the deals module (B8-2).
+`GET /{pipeline}/status/{status}/deals` (one board column of deals) is documented in `deals.md`.
 
 ## Resources
 
@@ -49,7 +49,7 @@ Not ported, because no vimdesk-web screen reaches them:
 ```
 
 - `sorting` sets the order of deals in a column. `a-z` and `z-a` sort by deal date, and `pos` sorts by deal position (Laravel `SortingEnum`).
-- `summary` counts won and lost deals, with sums per currency. It stays at zero until the deals module lands. The empty `total_values` prints `[]`, as PHP's empty array did.
+- `summary` counts the board's live deals in its won and lost columns (`total_amount`) and sums their `deal_value` per currency code (`total_values`, PHP floats such as `150.25` or `10.0`). It comes from one grouped query per page; Laravel loaded every deal of the board. An empty side prints `total_values` as `[]`, as PHP's empty array did.
 - `relationships.statuses` holds the live columns in position order. A full page of boards loads all its columns in one query.
 
 **Status (column):**
@@ -102,7 +102,11 @@ The settings page saves `{name}` alone before a reorder. The update is a patch, 
 
 **Uniqueness.** The rules above are also database indexes on live columns: one per (board, custom status), at most one won and one lost column per board. A race the lock misses still answers the same 422.
 
-**Delete.** A soft delete frees the custom status for a new column on that board. Moving the column's deals to a fallback column comes with the deals module.
+**Delete.** A soft delete frees the custom status for a new column on that board. The column's deals first move to the end of the board's first other column (lowest position), in their order, in the same transaction.
+
+- When the column has deals and is the board's last one: 409 `{"message": "This deal pipeline has no other status to move its deals to."}` (Laravel answered 409 with a missing translation key). Nothing moves or is deleted.
+- A column without deals can always go.
+- Board column writes and deal drags never overlap: column writes lock the board row `FOR NO KEY UPDATE`, and drags and creates hold it `FOR SHARE`.
 
 ## Laravel differences
 
@@ -115,3 +119,4 @@ The settings page saves `{name}` alone before a reorder. The update is a patch, 
 7. `position` must be 0..10000. Laravel took any integer, and a column near the int maximum would break every later shift.
 8. `meta` must be an object. Laravel's `MetaRule` checked nothing.
 9. A shift moves every column from the taken position on, across gaps. Laravel's recursive `checkPosition` stopped at the first gap: with columns at 0 and 2, a new column at 0 gives 0, 1, 2 in Laravel and 0, 1, 3 here. The order is the same.
+10. A deleted column's deals go to the board's first other column. Laravel took the first row of an unordered query and refused with 409 when that row was the column itself.

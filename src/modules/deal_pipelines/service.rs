@@ -5,17 +5,21 @@
 
 use std::collections::HashMap;
 
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{
     AppState,
     error::AppError,
-    modules::deal_pipelines::{
-        dto::{
-            FLAG_TAKEN, NewPipeline, NewStatus, PipelinePatch, PipelineResource,
-            STATUS_IN_PIPELINE, STATUS_MISSING, StatusPatch,
+    modules::{
+        deal_pipelines::{
+            dto::{
+                FLAG_TAKEN, NewPipeline, NewStatus, PipelinePatch, PipelineResource,
+                STATUS_IN_PIPELINE, STATUS_MISSING, StatusPatch,
+            },
+            repo::{self, PipelineRow, StatusRow},
         },
-        repo::{self, PipelineRow, StatusRow},
+        deals,
     },
 };
 
@@ -128,8 +132,39 @@ pub async fn update_status(
     Ok(())
 }
 
-/// Soft delete a column of the board in the path, else 404.
-// shortcut: no deals table yet, so nothing moves to a fallback column; B8-2 adds the move.
+/// Laravel's 409 when a column with deals is the board's last (its translation key was missing).
+const NO_FALLBACK: &str = "This deal pipeline has no other status to move its deals to.";
+
+/// Boards among `ids` and their columns, in resource shape and keyed by id, for resources that
+/// embed them (deals). Same queries as one list page.
+pub async fn embeds(
+    state: &AppState,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<(HashMap<Uuid, Value>, HashMap<Uuid, Value>), AppError> {
+    let rows = repo::find_many(&state.db, workspace_id, ids).await?;
+    let (mut boards, mut columns) = (HashMap::new(), HashMap::new());
+    for p in with_statuses(state, workspace_id, rows).await? {
+        let v = serde_json::to_value(&p).map_err(|e| AppError::Internal(e.to_string()))?;
+        let statuses = v["relationships"]["statuses"]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
+        for s in statuses {
+            if let Some(id) = s["id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) {
+                columns.insert(id, s);
+            }
+        }
+        if let Some(id) = v["id"].as_str().and_then(|id| Uuid::parse_str(id).ok()) {
+            boards.insert(id, v);
+        }
+    }
+    Ok((boards, columns))
+}
+
+/// Soft delete a column of the board in the path, else 404. Its deals first move to the end of
+/// the board's first other column, in their order; none left is a 409 (Laravel picked an
+/// arbitrary column).
 pub async fn delete_status(
     state: &AppState,
     workspace_id: Uuid,
@@ -139,10 +174,18 @@ pub async fn delete_status(
     let (pipeline, id) = (parse(pipeline)?, parse(id)?);
     let mut tx = state.db.begin().await?;
     if !repo::lock(&mut tx, workspace_id, pipeline).await?
-        || !repo::soft_delete_status(&mut tx, workspace_id, pipeline, id).await?
+        || !repo::status_exists(&mut *tx, workspace_id, pipeline, id).await?
     {
         return Err(AppError::NotFound);
     }
+    // The board lock holds off every drag and create (they share-lock it), so the count holds.
+    if deals::repo::column_count(&mut *tx, workspace_id, id).await? > 0 {
+        let to = repo::fallback_status(&mut tx, workspace_id, pipeline, id)
+            .await?
+            .ok_or(AppError::Conflict(NO_FALLBACK))?;
+        deals::repo::move_column(&mut tx, workspace_id, id, to, deals::service::STEP).await?;
+    }
+    repo::soft_delete_status(&mut tx, workspace_id, pipeline, id).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -162,11 +205,16 @@ async fn with_statuses(
     for s in repo::statuses_for(&state.db, workspace_id, &ids).await? {
         by_pipeline.entry(s.deal_pipeline_id).or_default().push(s);
     }
+    let totals = deals::repo::summaries(&state.db, workspace_id, &ids).await?;
     Ok(rows
         .into_iter()
         .map(|p| {
             let statuses = by_pipeline.remove(&p.id).unwrap_or_default();
-            PipelineResource::new(p, statuses)
+            let mine: Vec<_> = totals
+                .iter()
+                .filter(|t| t.deal_pipeline_id == p.id)
+                .collect();
+            PipelineResource::new(p, statuses, &mine)
         })
         .collect())
 }

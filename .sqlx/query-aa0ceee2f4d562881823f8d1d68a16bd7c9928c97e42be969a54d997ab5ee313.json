@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM deal_pipeline_statuses\n         WHERE workspace_id = $1 AND deal_pipeline_id = $2 AND id = ANY($3)\n           AND deleted_at IS NULL\n         ORDER BY id\n         FOR NO KEY UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "aa0ceee2f4d562881823f8d1d68a16bd7c9928c97e42be969a54d997ab5ee313"
+}

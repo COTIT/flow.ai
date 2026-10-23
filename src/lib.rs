@@ -34,13 +34,13 @@ pub use http::{
     slots::{Slots, WorkspaceSlots},
 };
 use modules::{
-    auth, contacts, currencies, custom_statuses, custom_types, deal_pipelines, discount_groups,
-    discounts, email_profiles, email_templates, email_verification, files, hourly_rates, invites,
-    invoices, messages, pdf_templates, permissions, price_corrections, pricing, product_brands,
-    product_categories, product_variants, products, relations, sales_groups, search, settings,
-    shipment_methods, special_offers, stock, storage_locations, teams, users, vat_groups,
-    warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves,
-    warehouses, workspaces,
+    auth, contacts, currencies, custom_statuses, custom_types, deal_pipelines, deals,
+    discount_groups, discounts, email_profiles, email_templates, email_verification, files,
+    hourly_rates, invites, invoices, messages, pdf_templates, permissions, price_corrections,
+    pricing, product_brands, product_categories, product_variants, products, relations,
+    sales_groups, search, settings, shipment_methods, special_offers, stock, storage_locations,
+    teams, users, vat_groups, warehouse_bins, warehouse_locations, warehouse_rows,
+    warehouse_sections, warehouse_shelves, warehouses, workspaces,
 };
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
@@ -116,6 +116,7 @@ pub fn build_app(state: AppState) -> Router {
         .merge(custom_types::routes::private())
         .merge(custom_statuses::routes::private())
         .merge(deal_pipelines::routes::private())
+        .merge(deals::routes::private())
         .merge(search::routes::private())
         .merge(relations::routes::private())
         .merge(contacts::routes::private())

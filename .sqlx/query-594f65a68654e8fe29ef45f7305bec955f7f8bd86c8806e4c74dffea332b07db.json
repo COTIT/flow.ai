@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, type AS kind, sorting, meta, created_at, updated_at\n           FROM deal_pipelines\n           WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL\n           ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deal_pipelines",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deal_pipelines",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deal_pipelines",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "sorting",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deal_pipelines",
+            "name": "sorting"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "deal_pipelines",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deal_pipelines",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deal_pipelines",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "594f65a68654e8fe29ef45f7305bec955f7f8bd86c8806e4c74dffea332b07db"
+}

@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- Batch 8 B8-2 (deals and the kanban board; contract `docs/api/deals.md`):
+  - **Migration `deals`:** one card on a board.
+    - `FOREIGN KEY (workspace_id, deal_pipeline_id, deal_pipeline_status_id) → deal_pipeline_statuses`, NOT NULL, so a deal's column is always on its board.
+    - Composite FKs to currencies and relations.
+    - `position bigint` is a gap rank.
+    - Partial indexes: per column by rank and by date, newest-first list, board filter, relation, currency.
+  - **Routes:**
+    - `/deals`: list, get, create, patch, `update-status` (kanban drag), `add-relation`, delete. Each checks its `deal.*` name; Laravel checked none.
+    - `/deal-pipelines/{p}/status/{s}/deals`: one board column, in the board's `sorting` order, pages of 999.
+  - **Drags:**
+    - The SPA's 0-based drop index becomes the midpoint between the two neighbours, so one row is written. A closed gap respaces the column once.
+    - Rank writers lock board row `FOR SHARE` → column `FOR NO KEY UPDATE` → deal, so opposite drags never deadlock and column edits on the board wait for them.
+    - A column deleted a moment ago is refused.
+    - Load (L-B1/L-B2, `tests/load_deals.rs`, `#[ignore]`):
+      - a 999-deal column reads with p95 39 ms;
+      - 50 movers × 200 drags give 855 drags/s with 0 errors, every deal once and ranks distinct;
+      - one mover alone has p95 6 ms;
+      - contended p95 is 86 ms, the queue on one column's lock.
+  - **Pipelines:**
+    - The board `summary` is real: won/lost deal counts and per-currency sums from one grouped query.
+    - Deleting a column moves its deals to the end of the board's first other column. With no other column it is a 409 (`AppError::Conflict`, new).
+  - **Embeds:** relations (list shape), agents, currencies, and boards with their columns: one batch query each per page.
+  - **Laravel differences** (contract): patch semantics, a re-sent past close date saves, `pipeline_id`/`status` list filters, 201 on create, a real "already has a relation" text.
+
 - Batch 8 B8-1 (deal pipelines; contract `docs/api/deal-pipelines.md`):
   - **Migration `deal_pipelines`:** `deal_pipelines` (`sorting` a-z|pos|z-a) and `deal_pipeline_statuses`.
     - Lane rules and won/lost flags are columns, not JSON. The custom status FK and the pipeline FK are composite, so they stay inside the workspace.
