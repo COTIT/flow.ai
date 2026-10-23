@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     modules::{
+        invoice_payments::resource as payments,
         invoices::repo::{InvoiceRow, ItemRow},
         pricing::{
             dto::{MarginResource, SummaryResource},
@@ -28,9 +29,10 @@ pub struct Embeds {
     pub currencies: HashMap<Uuid, Value>,
     pub products: HashMap<Uuid, Value>,
     pub warehouses: HashMap<Uuid, Value>,
-    /// Detail only: the opened payment token and the sent PDF's file resource.
+    /// Detail only: the opened payment token, the sent PDF's file resource, the payments.
     pub payment_hash: Option<String>,
     pub pdf_file: Option<Value>,
+    pub payments: Vec<Value>,
 }
 
 /// `summary` as stored on the invoice: exact decimals as text, how many lines carry a discount
@@ -106,6 +108,23 @@ fn invoice_nr(row: &InvoiceRow) -> Value {
     }
 }
 
+/// Decimals the stored totals (and payments) are in.
+fn dp(row: &InvoiceRow) -> u32 {
+    read_summary(&row.summary).2.unwrap_or(2)
+}
+
+/// Laravel getOpenBalance: total minus what is paid (negative when overpaid).
+fn open(row: &InvoiceRow, total: Decimal) -> Decimal {
+    total
+        .checked_sub(payments::units(row.paid_total, dp(row)))
+        .unwrap_or_default()
+}
+
+/// Laravel getPaidAmount as its resources printed it.
+fn paid(row: &InvoiceRow) -> Value {
+    payments::paid(row.paid_total, dp(row))
+}
+
 fn billing_address(row: &InvoiceRow) -> Value {
     row.billing_address
         .clone()
@@ -134,9 +153,8 @@ pub fn detail(
         .filter(|(l, a)| discounted(l, a))
         .count();
     let items: Vec<Value> = lines.iter().map(|l| item(l, e)).collect();
-    // shortcut: no payments until F7, so nothing is paid and the whole total is open.
-    let balance = json!({ "open": php_number(summary.total), "paid": 0,
-                          "total": php_number(summary.total) });
+    let balance = json!({ "open": php_number(open(row, summary.total)),
+                          "paid": paid(row), "total": php_number(summary.total) });
     json!({
         "id": row.id,
         "invoice_nr": invoice_nr(row),
@@ -167,7 +185,7 @@ pub fn detail(
             "estimate": null,
             "relation": e.relations.get(&row.relation_id),
             "currency": e.currencies.get(&row.currency_id),
-            "payments": [],
+            "payments": e.payments,
             "custom_sections": [],
             "parent_invoice": null,
             "child_invoices": [],
@@ -192,7 +210,7 @@ pub fn index(row: &InvoiceRow, e: &Embeds) -> Value {
         "id": row.id,
         "invoice_nr": invoice_nr(row),
         "status": row.status,
-        "balance": { "paid": 0, "open": php_number(summary.total) },
+        "balance": { "paid": paid(row), "open": php_number(open(row, summary.total)) },
         "reference": row.reference,
         "payment_hash": null,
         "payment_method": row.payment_method,
@@ -395,18 +413,19 @@ pub fn public(
             v
         })
         .collect();
-    // shortcut: no payments until F7: the whole total is open unless it is settled or void.
+    // Laravel max(0, open); a settled, void or credited invoice has nothing to pay here (a
+    // cash-rounded paid invoice may show a few cents open in the detail).
     let open = if matches!(row.status.as_str(), "paid" | "cancelled" | "credited") {
         Decimal::ZERO
     } else {
-        summary.total.max(Decimal::ZERO)
+        open(row, summary.total).max(Decimal::ZERO)
     };
     json!({
         "invoice_nr": number(row),
         "is_credit": row.is_credit,
         "status": row.status,
         "reference": row.reference,
-        "balance": { "open": php_number(open), "paid": 0, "total": php_number(summary.total) },
+        "balance": { "open": php_number(open), "paid": paid(row), "total": php_number(summary.total) },
         "payment_hash": token,
         "payment_method": row.payment_method,
         "company_details": company,

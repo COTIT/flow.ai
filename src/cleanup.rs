@@ -27,6 +27,8 @@ pub struct Pruned {
     pub jobs: u64,
     /// Scheduler slots older than 30 days.
     pub scheduled_runs: u64,
+    /// Idempotency keys older than a day.
+    pub idempotency_keys: u64,
 }
 
 /// Delete stale rows via each module's repo. Windows are wider than any rule that reads them.
@@ -41,6 +43,7 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
         login_failures: auth::prune_old_login_attempts(db).await?,
         jobs: jobs::repo::prune(db).await?,
         scheduled_runs: jobs::scheduler::prune(db).await?,
+        idempotency_keys: crate::idempotency::prune(db).await?,
     })
 }
 
@@ -118,6 +121,15 @@ mod tests {
             user,
         )
         .await;
+        run(
+            &pool,
+            "INSERT INTO idempotency_keys (workspace_id, key, user_id, request_hash, status,
+                                           response, created_at)
+             SELECT w.id, v.key, $1, sha256(v.key::bytea), 201, '', now() - v.age::interval
+             FROM workspaces w, (VALUES ('old', '25 hours'), ('new', '1 hour')) AS v(key, age)",
+            user,
+        )
+        .await;
         sqlx::query(
             "INSERT INTO login_failures (email_norm, failed_at) VALUES
             ('x', now() - interval '25 hours'), ('x', now() - interval '5 minutes')",
@@ -139,6 +151,7 @@ mod tests {
                 stuck_sends: 0,
                 jobs: 0,
                 scheduled_runs: 0,
+                idempotency_keys: 1,
             }
         );
         assert_eq!(

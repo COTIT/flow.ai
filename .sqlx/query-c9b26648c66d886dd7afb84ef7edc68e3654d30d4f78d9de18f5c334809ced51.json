@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at, invoice_number, invoice_appendix,\n                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at, invoice_number, invoice_appendix,\n                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE",
   "describe": {
     "columns": [
       {
@@ -255,6 +255,17 @@
             "name": "payment_token_key_id"
           }
         }
+      },
+      {
+        "ordinal": 23,
+        "name": "paid_total",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "paid_total"
+          }
+        }
       }
     ],
     "parameters": {
@@ -286,8 +297,9 @@
       true,
       true,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "0e762fcdec346e03e7da25ac103deceb1d0c073b41a4382fc793f079f3698fc0"
+  "hash": "c9b26648c66d886dd7afb84ef7edc68e3654d30d4f78d9de18f5c334809ced51"
 }

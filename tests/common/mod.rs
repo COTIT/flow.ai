@@ -90,9 +90,28 @@ pub async fn send(
     body: Option<Value>,
     bearer: Option<&str>,
 ) -> (StatusCode, Value) {
+    let (status, bytes) = send_raw(app, method, uri, body, bearer, &[]).await;
+    (
+        status,
+        serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+    )
+}
+
+/// `send` with extra headers; the body as raw bytes.
+pub async fn send_raw(
+    app: &Router,
+    method: Method,
+    uri: &str,
+    body: Option<Value>,
+    bearer: Option<&str>,
+    headers: &[(&str, &str)],
+) -> (StatusCode, axum::body::Bytes) {
     let mut req = Request::builder().method(method).uri(uri);
     if let Some(token) = bearer {
         req = req.header("authorization", format!("Bearer {token}"));
+    }
+    for (name, value) in headers {
+        req = req.header(*name, *value);
     }
     let req = match body {
         Some(json) => req
@@ -107,11 +126,7 @@ pub async fn send(
 
     let res = app.clone().oneshot(req).await.unwrap();
     let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    (
-        status,
-        serde_json::from_slice(&bytes).unwrap_or(Value::Null),
-    )
+    (status, res.into_body().collect().await.unwrap().to_bytes())
 }
 
 pub async fn post(app: &Router, uri: &str, body: Value) -> (StatusCode, Value) {

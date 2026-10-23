@@ -15,7 +15,7 @@ use crate::{
     http::{json::human, list::Page},
     modules::{
         currencies::{self, dto::CurrencyResource},
-        files,
+        files, invoice_payments,
         invoices::{
             dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
             repo::{self, HeaderPatch, LineChanges, NewInvoice, NewLines},
@@ -254,6 +254,11 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
     let (summary, margin) = price(&lines, dp)?;
     let mut e = embeds(state, workspace_id, std::slice::from_ref(&row)).await?;
     e.payment_hash = send::payment_token(state, workspace_id, &row);
+    e.payments = invoice_payments::repo::list(&state.db, workspace_id, id)
+        .await?
+        .iter()
+        .map(|p| invoice_payments::resource::payment(p, dp))
+        .collect();
     // A deleted PDF or a store that isn't configured leaves the invoice readable.
     if let Some(file) = row.pdf_file_id {
         e.pdf_file = match files::service::get(state, workspace_id, &file.to_string()).await {
