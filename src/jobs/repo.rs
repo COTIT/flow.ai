@@ -280,7 +280,7 @@ pub async fn fail(db: &PgPool, id: Uuid, token: Uuid, error: &str) -> Result<boo
 
 /// Running jobs whose lease ran out (worker died or stalled): retried with backoff like
 /// `retry`, or failed when the attempts are used up. Returns how many it touched.
-pub async fn reap(db: &PgPool) -> Result<u64, sqlx::Error> {
+pub async fn reap(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error> {
     Ok(sqlx::query!(
         "UPDATE jobs SET
              status = CASE WHEN attempts >= max_attempts THEN 'failed' ELSE 'queued' END,
