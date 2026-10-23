@@ -32,8 +32,12 @@ CREATE TABLE jobs (
         CHECK ((status = 'running') = (locked_by IS NOT NULL AND locked_until IS NOT NULL))
 );
 
--- The claim: due queued jobs by priority, then age.
+-- The claim's fast path: queued jobs by priority, then age.
 CREATE INDEX jobs_claim_idx ON jobs (priority DESC, run_at, id) WHERE status = 'queued';
+-- Its fallback: each workspace's queued jobs in the same order (system jobs, workspace NULL,
+-- sort last), and the skip scan listing workspaces with queued work.
+CREATE INDEX jobs_queued_idx ON jobs (workspace_id, priority DESC, run_at, id)
+    WHERE status = 'queued';
 -- Running jobs per workspace (the cap) and expired leases (the reaper).
 CREATE INDEX jobs_running_idx ON jobs (workspace_id) WHERE status = 'running';
 CREATE INDEX jobs_lease_idx ON jobs (locked_until) WHERE status = 'running';

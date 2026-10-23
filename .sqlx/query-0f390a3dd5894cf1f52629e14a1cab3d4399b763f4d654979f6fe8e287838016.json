@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO scheduled_runs (name, slot)\n         SELECT * FROM UNNEST($1::text[], $2::timestamptz[])\n         ON CONFLICT DO NOTHING\n         RETURNING name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduled_runs",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TimestamptzArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0f390a3dd5894cf1f52629e14a1cab3d4399b763f4d654979f6fe8e287838016"
+}

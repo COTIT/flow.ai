@@ -158,64 +158,174 @@ pub async fn enqueue_coalesced(
 /// Claim the next due job of `kinds`: priority, then age. Skips workspaces already running
 /// `cap` jobs (soft: two claims at the same moment can pass it by one) and concurrency keys
 /// a running job holds (hard: unique index). None when nothing is due.
+///
+/// Fast path: the 32 oldest due jobs overall, first one not blocked. Only when none of them
+/// can run (a capped tenant's backlog at the head) does the fallback walk each workspace's
+/// first due job, so that backlog costs one index probe instead of a scan through it. Two
+/// statements, so the common case plans only the small one.
 pub async fn claim(
     db: &PgPool,
     kinds: &[&str],
     cap: i64,
     lease: Duration,
 ) -> Result<Option<Claimed>, sqlx::Error> {
+    let lease = lease.as_secs_f64();
     for _ in 0..RACE_TRIES {
-        let row = sqlx::query!(
-            r#"WITH busy AS (
-                   SELECT workspace_id FROM jobs
-                   WHERE status = 'running' AND workspace_id IS NOT NULL
-                   GROUP BY workspace_id HAVING count(*) >= $2
-               ),
-               held AS (
-                   SELECT concurrency_key FROM jobs
-                   WHERE status = 'running' AND concurrency_key IS NOT NULL
-               ),
-               next AS (
-                   SELECT id FROM jobs
-                   WHERE status = 'queued' AND run_at <= now() AND kind = ANY($1)
-                     AND (workspace_id IS NULL OR workspace_id NOT IN (SELECT workspace_id FROM busy))
-                     AND (concurrency_key IS NULL OR concurrency_key NOT IN (SELECT concurrency_key FROM held))
-                   ORDER BY priority DESC, run_at, id
-                   LIMIT 1
-                   FOR UPDATE SKIP LOCKED
-               )
-               UPDATE jobs j
-               SET status = 'running', attempts = j.attempts + 1, locked_by = uuidv7(),
-                   locked_until = now() + make_interval(secs => $3),
-                   started_at = coalesce(j.started_at, now())
-               FROM next WHERE j.id = next.id
-               RETURNING j.id, j.kind, j.workspace_id, j.payload, j.attempts, j.max_attempts,
-                         j.created_by, j.locked_by AS "token!""#,
-            kinds as &[&str],
-            cap,
-            lease.as_secs_f64(),
-        )
-        .fetch_optional(db)
-        .await;
-        match row {
-            Ok(row) => {
-                return Ok(row.map(|r| Claimed {
-                    id: r.id,
-                    kind: r.kind,
-                    workspace_id: r.workspace_id,
-                    payload: r.payload,
-                    attempts: r.attempts,
-                    max_attempts: r.max_attempts,
-                    created_by: r.created_by,
-                    token: r.token,
-                }));
-            }
+        let found = match claim_fast(db, kinds, cap, lease).await {
+            Ok(None) => claim_fallback(db, kinds, cap, lease).await,
+            other => other,
+        };
+        match found {
+            Ok(job) => return Ok(job),
             // Another worker took the same concurrency key a moment ago: look again.
             Err(e) if is_unique_violation(&e) => continue,
             Err(e) => return Err(e),
         }
     }
     Ok(None)
+}
+
+async fn claim_fast(
+    db: &PgPool,
+    kinds: &[&str],
+    cap: i64,
+    lease: f64,
+) -> Result<Option<Claimed>, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"WITH busy AS (
+               SELECT workspace_id FROM jobs
+               WHERE status = 'running' AND workspace_id IS NOT NULL
+               GROUP BY workspace_id HAVING count(*) >= $2
+           ),
+           held AS (
+               SELECT concurrency_key FROM jobs
+               WHERE status = 'running' AND concurrency_key IS NOT NULL
+           ),
+           candidates AS (
+               SELECT c.id FROM (
+                   SELECT id, workspace_id, concurrency_key FROM jobs
+                   WHERE status = 'queued' AND run_at <= now() AND kind = ANY($1)
+                   ORDER BY priority DESC, run_at, id
+                   LIMIT 32
+               ) c
+               WHERE (c.workspace_id IS NULL OR c.workspace_id NOT IN (SELECT workspace_id FROM busy))
+                 AND (c.concurrency_key IS NULL
+                      OR c.concurrency_key NOT IN (SELECT concurrency_key FROM held))
+           ),
+           next AS (
+               -- status again: the lock re-checks it on a row another claim just took.
+               SELECT id FROM jobs
+               WHERE id IN (SELECT id FROM candidates) AND status = 'queued'
+               ORDER BY priority DESC, run_at, id
+               LIMIT 1
+               FOR UPDATE SKIP LOCKED
+           )
+           UPDATE jobs j
+           SET status = 'running', attempts = j.attempts + 1, locked_by = uuidv7(),
+               locked_until = now() + make_interval(secs => $3),
+               started_at = coalesce(j.started_at, now())
+           FROM next WHERE j.id = next.id
+           RETURNING j.id, j.kind, j.workspace_id, j.payload, j.attempts, j.max_attempts,
+                     j.created_by, j.locked_by AS "token!""#,
+        kinds as &[&str],
+        cap,
+        lease,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map(|r| Claimed {
+        id: r.id,
+        kind: r.kind,
+        workspace_id: r.workspace_id,
+        payload: r.payload,
+        attempts: r.attempts,
+        max_attempts: r.max_attempts,
+        created_by: r.created_by,
+        token: r.token,
+    }))
+}
+
+async fn claim_fallback(
+    db: &PgPool,
+    kinds: &[&str],
+    cap: i64,
+    lease: f64,
+) -> Result<Option<Claimed>, sqlx::Error> {
+    let row = sqlx::query!(
+        r#"WITH RECURSIVE busy AS (
+               SELECT workspace_id FROM jobs
+               WHERE status = 'running' AND workspace_id IS NOT NULL
+               GROUP BY workspace_id HAVING count(*) >= $2
+           ),
+           held AS (
+               SELECT concurrency_key FROM jobs
+               WHERE status = 'running' AND concurrency_key IS NOT NULL
+           ),
+           -- The first due job of each workspace, walking `jobs_queued_idx` one workspace at
+           -- a time. The ORDER BY leads with workspace_id so only that index can serve it,
+           -- whatever the planner's statistics say.
+           heads AS (
+               (SELECT workspace_id, id FROM jobs
+                WHERE status = 'queued' AND workspace_id IS NOT NULL
+                  AND run_at <= now() AND kind = ANY($1)
+                  AND (concurrency_key IS NULL
+                       OR concurrency_key NOT IN (SELECT concurrency_key FROM held))
+                ORDER BY workspace_id, priority DESC, run_at, id
+                LIMIT 1)
+               UNION ALL
+               SELECT n.workspace_id, n.id FROM heads h
+               CROSS JOIN LATERAL (
+                   SELECT workspace_id, id FROM jobs
+                   WHERE status = 'queued' AND workspace_id > h.workspace_id
+                     AND run_at <= now() AND kind = ANY($1)
+                     AND (concurrency_key IS NULL
+                          OR concurrency_key NOT IN (SELECT concurrency_key FROM held))
+                   ORDER BY workspace_id, priority DESC, run_at, id
+                   LIMIT 1
+               ) n
+           ),
+           candidates AS (
+               SELECT id FROM heads
+               WHERE workspace_id NOT IN (SELECT workspace_id FROM busy)
+               UNION ALL
+               (SELECT id FROM jobs
+                WHERE status = 'queued' AND workspace_id IS NULL
+                  AND run_at <= now() AND kind = ANY($1)
+                  AND (concurrency_key IS NULL
+                       OR concurrency_key NOT IN (SELECT concurrency_key FROM held))
+                ORDER BY workspace_id, priority DESC, run_at, id
+                LIMIT 1)
+           ),
+           next AS (
+               SELECT id FROM jobs
+               WHERE id IN (SELECT id FROM candidates) AND status = 'queued'
+               ORDER BY priority DESC, run_at, id
+               LIMIT 1
+               FOR UPDATE SKIP LOCKED
+           )
+           UPDATE jobs j
+           SET status = 'running', attempts = j.attempts + 1, locked_by = uuidv7(),
+               locked_until = now() + make_interval(secs => $3),
+               started_at = coalesce(j.started_at, now())
+           FROM next WHERE j.id = next.id
+           RETURNING j.id, j.kind, j.workspace_id, j.payload, j.attempts, j.max_attempts,
+                     j.created_by, j.locked_by AS "token!""#,
+        kinds as &[&str],
+        cap,
+        lease,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map(|r| Claimed {
+        id: r.id,
+        kind: r.kind,
+        workspace_id: r.workspace_id,
+        payload: r.payload,
+        attempts: r.attempts,
+        max_attempts: r.max_attempts,
+        created_by: r.created_by,
+        token: r.token,
+    }))
 }
 
 /// Extend a held lease. False: the lease is gone.

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO stocks (workspace_id, product_id, warehouse_id)\n         SELECT $1, p.id, w.id\n         FROM unnest($2::uuid[]) AS p(id)\n         CROSS JOIN (SELECT id FROM warehouses\n                     WHERE workspace_id = $1 AND deleted_at IS NULL\n                       AND (default_warehouse OR is_store)) AS w\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2747d94896fc30b1ef9d0de9c5c2f89acb9c9dcb7be1209af11044f8a24e4e7c"
+}

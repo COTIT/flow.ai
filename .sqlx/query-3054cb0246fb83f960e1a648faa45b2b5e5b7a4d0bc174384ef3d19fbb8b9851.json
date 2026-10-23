@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM scheduled_runs WHERE created_at < now() - interval '30 days'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "3054cb0246fb83f960e1a648faa45b2b5e5b7a4d0bc174384ef3d19fbb8b9851"
+}

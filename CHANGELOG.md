@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+- Batch 7 B7-1 (background job rail; contract `docs/api/jobs.md`):
+  - **Migration `jobs`:**
+    - `jobs`: one row per job, with kind, payload (cursor), status, lease token and expiry, concurrency/dedupe keys, progress and last error.
+    - `scheduled_runs`: one row per schedule slot.
+  - **Claim:** `FOR UPDATE SKIP LOCKED`, in two statements.
+    - Fast path: the 32 oldest due jobs.
+    - Fallback: a skip scan over each workspace's first due job, used when all 32 are blocked. A capped tenant's 100k backlog then costs one index probe (claim p95 3.4 ms, measured). With stale statistics the planner used to scan past the whole backlog (268 ms).
+    - Every claim gets a fresh lease token. Checkpoints and outcomes need it, so a worker whose 60 s lease ran out can't save progress or finish the job.
+    - Workers only claim kinds this build knows, so the older blue/green color leaves newer kinds alone.
+    - A workspace running `JOB_MAX_RUNNING_PER_WORKSPACE` (2) jobs is skipped (soft cap). A `concurrency_key` allows one running job per key (unique index).
+  - **Runner:** one handler task per job; lease renewal every 20 s; a lost lease aborts the handler.
+    - Permanent errors fail at once. Others, and panics, retry after a jittered backoff (10 s doubling, 1 h max) until `max_attempts`.
+    - On SIGTERM, workers stop claiming and finish their chunk while requests drain (8 s).
+  - **Scheduler:** every instance ticks every 30 s.
+    - The one holding a transaction advisory lock inserts each due `(name, slot)` and enqueues it once, deduped per schedule.
+    - The same tick reaps expired leases.
+  - **Cleanup moved onto the rail:** stuck sends (5 min), prune (hourly, now also old jobs and slots) and the file sweep (hourly) run as scheduled jobs on one instance, not as loops on every replica. `cleanup::spawn` is gone.
+  - **Warehouse stock sweep (`stock_seed`):** when a warehouse becomes the main one or a store, every stock-tracked product gets its zero row there.
+    - 5000 products per chunk.
+    - The main warehouse becomes the default of products that have none.
+    - Enqueued in the warehouse write's transaction. Re-saving a store enqueues nothing.
+    - **Laravel differences:** Laravel's nightly 02:00 sweep, which could insert duplicate rows, is gone. A chosen default warehouse is never overwritten.
+  - **Pools:** job pool `DATABASE_JOB_CONNECTIONS` (default 4, one connection per worker, no statement timeout; each chunk sets its own). The one-connection background pool now carries scheduler ticks and lease renewals.
+    - Deploy: prod 16 request + 4 job, previews 4 + 1, inside the unchanged role limits (44, 14).
+    - `deploy.sh` refuses a limit below `2 × (request + job + 2)`.
+  - `AppError` is exported for job handlers; `tests/common` gains `Api::as_new_owner`.
+  - Tests: `tests/jobs.rs`, `tests/stock_seed.rs`, `jobs::{runner,scheduler,kinds}` units, and the ignored load tests `tests/load_jobs.rs` (L1, L2).
+
 - Final batch F5b2 (sending workspace mail; contract `docs/api/messages.md`):
   - **`src/mail`** is now a module, and every mail leaves through `Mailer::dispatch`: the recipient allow-list, then one transport within 15 s.
     - Platform SMTP (Resend in prod).

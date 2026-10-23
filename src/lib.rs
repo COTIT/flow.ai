@@ -30,6 +30,8 @@ use sqlx::PgPool;
 use tower_http::{set_header::SetResponseHeaderLayer, trace::TraceLayer};
 
 pub use crypto::CredentialKey;
+/// Job handlers (`jobs::runner::Handler`) return it.
+pub use error::AppError;
 pub use http::{
     rate_limit::RateLimit,
     slots::{Slots, WorkspaceSlots},
