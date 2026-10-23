@@ -10,6 +10,7 @@ mod error;
 mod health;
 pub mod healthcheck;
 mod http;
+pub mod jobs;
 pub mod mail;
 mod modules;
 mod money;
