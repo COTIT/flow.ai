@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Batch 8 B8-1 (deal pipelines; contract `docs/api/deal-pipelines.md`):
+  - **Migration `deal_pipelines`:** `deal_pipelines` (`sorting` a-z|pos|z-a) and `deal_pipeline_statuses`.
+    - Lane rules and won/lost flags are columns, not JSON. The custom status FK and the pipeline FK are composite, so they stay inside the workspace.
+    - `UNIQUE (workspace_id, deal_pipeline_id, id)` is the target of the deals FK in B8-2.
+    - Partial unique indexes on live columns: one per (board, custom status), one won and one lost per board.
+  - **Routes** under `/deal-pipelines`: list, get, create, patch, and status create / patch / delete. Each checks its `dealpipeline.*` or `dealpipelinestatus.*` catalog name; Laravel checked three of the seven.
+  - **Positions:** every column write locks the board row. A taken position moves that column and the ones after it one to the right in one statement, so positions stay distinct under parallel saves. The settings page's one-request-per-column reorder gives the requested order.
+  - **Laravel differences:**
+    - The won (or lost) column can be saved with its own flag still set; Laravel counted the edited column and refused.
+    - `type` is kept on create.
+    - Columns are addressed through their board's path.
+    - A status update without `position` keeps it (Laravel answered 500).
+    - Bad ids in a body are 422s, not 404/500.
+  - **Not ported:** pipeline delete, duplicate and the single-status GET (no vimdesk-web caller). `summary` stays at zero and status delete moves no deals until the deals module (B8-2).
+
 - Final batch F5b2 (sending workspace mail; contract `docs/api/messages.md`):
   - **`src/mail`** is now a module, and every mail leaves through `Mailer::dispatch`: the recipient allow-list, then one transport within 15 s.
     - Platform SMTP (Resend in prod).
