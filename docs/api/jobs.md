@@ -14,8 +14,11 @@ Laravel ran this on Redis queues under Horizon. Two problems there: `retry_after
 
    It runs in two statements:
    - **Fast path:** the 32 oldest due jobs, and the first one whose workspace isn't at its cap and whose concurrency key isn't held.
-   - **Fallback:** runs only when all 32 are blocked, which happens when a capped tenant's backlog sits at the head. It walks each workspace's first due job through `jobs_queued_idx`, so the backlog costs one index probe. Its `ORDER BY` leads with `workspace_id`, so only that index can serve it: with stale statistics the planner used to scan the global index past the whole backlog (268 ms per claim, measured).
-3. **Run.** The handler runs in its own task. A side task renews the lease every 20 s.
+   - **Fallback:** runs only when there were due jobs and all 32 were blocked or locked by other claims (a capped tenant's backlog at the head). An empty queue never reaches it. It walks each workspace's first due job through `jobs_queued_idx`, so the backlog costs one index probe. Its `ORDER BY` leads with `workspace_id`, so only that index can serve it: with stale statistics the planner used to scan the global index past the whole backlog (268 ms per claim, measured).
+3. **Run.** The handler runs in its own task. A side task renews the lease every 20 s. The run is stopped and retried when:
+   - a renewal finds the lease gone;
+   - no renewal has succeeded for a whole lease (60 s), since handlers without a checkpoint, like cleanup, have no fencing;
+   - it runs past `MAX_RUN` (10 min).
 4. **Outcome.** Every outcome is keyed on the token:
 
    | Handler result | What happens |
@@ -51,7 +54,13 @@ let id = jobs::repo::enqueue(&mut conn, &NewJob {
 | `dedupe_key` | At most one **queued or running** job per key. `enqueue` returns the live job's id instead of inserting | none |
 | `created_by` | User who asked for it (polling routes filter on it) | none |
 
-`enqueue_coalesced(conn, job) -> Option<Uuid>` skips the insert when a job of the same kind and workspace is still **queued**: that job will also see your change. A **running** one doesn't count, because it may already have passed your change. Pair it with a `concurrency_key`, so the new job waits for the running one. The warehouse stock sweep uses this.
+`enqueue_coalesced(conn, job) -> Option<Uuid>` (workspace jobs only) skips the insert when a job of the same kind and workspace is queued and **hasn't started**: that job will also see your change. A job that started doesn't count, because it may already have passed your change. That covers a running job, and also one queued between chunks with its cursor moved on. Pair it with a `concurrency_key`, so the new job waits for the running one.
+
+Call it inside the transaction that makes the change:
+- an advisory lock per kind and workspace serialises concurrent callers;
+- a share lock on the queued job keeps workers from claiming it before your change commits.
+
+The warehouse stock sweep uses this.
 
 ## Writing a handler
 
@@ -64,7 +73,7 @@ Handlers get `Ctx` (the job pool and, when configured, the file bucket) and the 
 
 **Rules:**
 - **One connection at a time.** The job pool has one connection per worker. Holding two at once can starve the other workers.
-- **Short chunks.** One chunk must finish within ~10 s. On deploy, a draining instance gives running chunks 8 s; after that their leases expire and the other color resumes them.
+- **Short chunks.** One chunk must finish within ~10 s. On deploy, a draining instance gives running chunks 8 s, starting at the signal; after that their leases expire and the other color resumes them. Job pool connections cap a statement at 5 min and a transaction at 10 min, and `MAX_RUN` stops a run at 10 min.
 - **Chunk contract.** Do one chunk in one transaction:
   1. `SET LOCAL statement_timeout = '30s'` (the job pool has no default);
   2. read the next rows after the cursor in the payload (keyset, `> cursor ORDER BY key LIMIT n`);
@@ -98,6 +107,8 @@ How a tick works:
 | `close_stuck_sends`, `prune`, `file_sweep` | none | `dedupe_key = schedule:<name>` | `{}` | the scheduler |
 | `stock_seed` | yes | `concurrency_key = stock_seed:<ws>`, coalesced | `{after, done}` cursor | warehouse create, an update that turns a warehouse into a store or the main one, set-default |
 
+`stock_seed` chunks hold at most 50,000 stock rows: 5000 products, fewer when there are more than 10 target warehouses. Each chunk locks the products it updates in id order, then inserts the stock rows in (product, warehouse) order, the same order as `stock::repo::lock_all`.
+
 `stock_seed` replaces Laravel's nightly `products:ensure-warehouse-stock-entries`. Each chunk covers 5000 live `has_stock` products and writes:
 - zero warehouse-level rows in the main warehouse and every store (`ON CONFLICT DO NOTHING`), with no ledger rows;
 - the main warehouse as default where a product has none. A chosen default stays, as with product create.
@@ -112,8 +123,8 @@ A workspace without a main warehouse gets nothing (Laravel skipped it). Re-savin
 | `JOB_MAX_RUNNING_PER_WORKSPACE` | 2 | Soft cap: the claim skips a workspace already running this many. Two claims at the same instant can pass it by one; never rely on it for correctness (use `concurrency_key`) |
 
 Two pools serve the rail:
-- **Job pool:** the workers, each holding one connection.
-- **One-connection control pool:** scheduler ticks and lease renewals, so a pool full of chunks can't stop renewals.
+- **Job pool:** the workers, each holding one connection. Caps: statement 5 min, transaction 10 min.
+- **One-connection control pool:** scheduler ticks and lease renewals, so a pool full of chunks can't stop renewals. Caps: statement 15 s, lock 5 s. The reaper skips rows a chunk transaction still holds.
 
 An instance therefore opens `DATABASE_MAX_CONNECTIONS + DATABASE_JOB_CONNECTIONS + 2` connections. `deploy/deploy.sh` checks `2 × (request + job + 2) ≤ GENESY_PG_CONNECTION_LIMIT`, because both blue/green colors run at once.
 
@@ -126,7 +137,7 @@ Blue/green: the claim only takes `jobs::kinds::KINDS`, so the older color never 
 | Test | Target | Measured |
 |---|---|---|
 | L1 exactly once, 50k jobs, 2 pools × 4 workers, one pool frozen mid-run (renewals stop, handlers wake as zombies) | every effect once | every effect once |
-| L1 claim, one tenant with 100k queued at its cap | p95 < 10 ms | p50 1.2–1.6 ms, p95 2.7–3.4 ms |
-| L1 small tenant's job start while another has 100k queued | < 2 s | max 7–103 ms |
-| L1 throughput, 50k trivial jobs, 2 pools × 4 workers | 1,000 jobs/s | **740–980 jobs/s, below target**. Each job is two status updates across five partial indexes. The test asserts a 500 floor as a regression guard. Real jobs are chunks of thousands of rows; claiming several jobs per statement is the next step if it ever matters |
-| L2 two schedulers over 1,000 slots | each slot once | each once, 0.4–0.7 s |
+| L1 claim, one tenant with 100k queued at its cap | p95 < 10 ms | p50 1.1 ms, p95 2.0 ms |
+| L1 small tenant's job start while another has 100k queued | < 2 s | p50 24 ms, max 424 ms |
+| L1 throughput, 50k trivial jobs, 2 pools × 4 workers | 1,000 jobs/s | 1,198 jobs/s (740–980 before the review fixes: dropping the `locked_until` index made renewals HOT, and the fallback no longer runs on an empty queue). The test asserts a 500 floor as a regression guard; runs on a busy dev Mac vary |
+| L2 two schedulers over 1,000 slots | each slot once | each once, 0.37 s |

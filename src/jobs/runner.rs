@@ -36,12 +36,17 @@ pub struct Runner {
     pub control: PgPool,
     /// Kinds this build can run; anything else stays queued for the color that knows it.
     pub kinds: Vec<&'static str>,
+    /// Worker tasks (one connection each in `db`).
     pub workers: usize,
     /// Running jobs per workspace (soft cap).
     pub cap: i64,
+    /// Lease length; renewed every third of it.
     pub lease: Duration,
     /// Wait before polling again when nothing is due.
     pub idle: Duration,
+    /// Longest one run (one chunk) may take before it is stopped and retried.
+    pub max_run: Duration,
+    /// Runs each claimed job.
     pub handler: Handler,
 }
 
@@ -84,52 +89,91 @@ async fn idle(r: &Runner, stop: &mut watch::Receiver<bool>) {
     }
 }
 
-/// Run one job under its lease, then record what happened.
+/// Tries for an outcome write that hit a transient DB error.
+const RECORD_TRIES: usize = 3;
+
+/// What happened to one run.
+enum Outcome {
+    Done,
+    More,
+    Fail(String),
+    Retry(String),
+}
+
+/// Run one job under its lease and run cap, then record what happened.
 async fn run(r: &Runner, job: Claimed) {
     let (id, token, kind) = (job.id, job.token, job.kind.clone());
     let mut task = tokio::spawn((r.handler)(job));
     let outcome = tokio::select! {
-        res = &mut task => res,
+        res = &mut task => match res {
+            Ok(Ok(Step::Done)) => Outcome::Done,
+            Ok(Ok(Step::More)) => Outcome::More,
+            Ok(Err(err)) if err.is_permanent() => {
+                tracing::warn!(%id, %kind, error = %err, "job failed");
+                Outcome::Fail(err.to_string())
+            }
+            Ok(Err(err)) => {
+                tracing::warn!(%id, %kind, error = %err, "job will retry");
+                Outcome::Retry(err.to_string())
+            }
+            Err(join) if join.is_cancelled() => Outcome::Retry("handler cancelled".into()),
+            Err(join) => {
+                tracing::error!(%id, %kind, error = %join, "job handler panicked");
+                Outcome::Retry("handler panicked".into())
+            }
+        },
+        () = tokio::time::sleep(r.max_run) => {
+            task.abort();
+            tracing::warn!(%id, %kind, max_run = ?r.max_run, "job ran past its cap; stopped");
+            Outcome::Retry(format!("ran past {:?}", r.max_run))
+        }
         () = hold_lease(r, id, token) => {
             task.abort();
             tracing::warn!(%id, %kind, "job lease lost; handler stopped, its chunk rolls back");
             return;
         }
     };
-    let recorded = match outcome {
-        Ok(Ok(Step::Done)) => repo::finish(&r.db, id, token).await,
-        Ok(Ok(Step::More)) => repo::requeue(&r.db, id, token).await,
-        Ok(Err(err)) if err.is_permanent() => {
-            tracing::warn!(%id, %kind, error = %err, "job failed");
-            repo::fail(&r.db, id, token, &err.to_string()).await
+    for attempt in 1..=RECORD_TRIES {
+        let recorded = match &outcome {
+            Outcome::Done => repo::finish(&r.db, id, token).await,
+            Outcome::More => repo::requeue(&r.db, id, token).await,
+            Outcome::Fail(e) => repo::fail(&r.db, id, token, e).await,
+            Outcome::Retry(e) => repo::retry(&r.db, id, token, e).await,
+        };
+        match recorded {
+            Ok(true) => return,
+            // Lease ran out while the outcome was on its way; the reaper or a new claim owns it.
+            Ok(false) => {
+                tracing::warn!(%id, %kind, "job outcome dropped: lease already gone");
+                return;
+            }
+            Err(err) if attempt < RECORD_TRIES => {
+                tracing::warn!(%id, %kind, error = %err, "job outcome not saved, retrying");
+                tokio::time::sleep(Duration::from_millis(200)).await;
+            }
+            // The lease runs out and the reaper requeues it.
+            Err(err) => tracing::error!(%id, %kind, error = %err, "job outcome not saved"),
         }
-        Ok(Err(err)) => {
-            tracing::warn!(%id, %kind, error = %err, "job will retry");
-            repo::retry(&r.db, id, token, &err.to_string()).await
-        }
-        Err(join) => {
-            tracing::error!(%id, %kind, error = %join, "job handler panicked");
-            repo::retry(&r.db, id, token, "handler panicked").await
-        }
-    };
-    match recorded {
-        Ok(true) => {}
-        // Lease ran out while the outcome was on its way; the reaper or a new claim owns it.
-        Ok(false) => tracing::warn!(%id, %kind, "job outcome dropped: lease already gone"),
-        Err(err) => tracing::warn!(%id, %kind, error = %err, "job outcome not saved"),
     }
 }
 
-/// Renew the lease every third of its length. Returns only when the lease is gone.
+/// Renew the lease every third of its length. Returns when the lease is gone, or when no
+/// renewal has succeeded for a whole lease: by then the reaper may have handed the job to
+/// another worker, and handlers without a checkpoint (cleanup) have no fencing to stop them.
 async fn hold_lease(r: &Runner, id: Uuid, token: Uuid) {
     let every = r.lease / 3;
+    let mut renewed = tokio::time::Instant::now();
     loop {
         tokio::time::sleep(every).await;
         match repo::renew(&r.control, id, token, r.lease).await {
-            Ok(true) => {}
+            Ok(true) => renewed = tokio::time::Instant::now(),
             Ok(false) => return,
-            // DB unreachable: keep trying; fencing stops this worker if the lease runs out.
-            Err(err) => tracing::warn!(%id, error = %err, "lease renewal failed"),
+            Err(err) => {
+                tracing::warn!(%id, error = %err, "lease renewal failed");
+                if renewed.elapsed() >= r.lease {
+                    return;
+                }
+            }
         }
     }
 }
@@ -164,6 +208,7 @@ mod tests {
             cap: 1_000,
             lease,
             idle: Duration::from_millis(20),
+            max_run: Duration::from_secs(60),
             handler,
         }
     }
@@ -389,5 +434,99 @@ mod tests {
 
         assert_eq!(status(&db, first).await.0, "succeeded");
         assert_eq!(status(&db, second).await.0, "queued");
+    }
+
+    #[sqlx::test]
+    async fn failing_renewals_stop_the_handler_after_one_lease(db: PgPool) {
+        let id = enqueue(&db, json!({})).await;
+        let finished = Arc::new(AtomicUsize::new(0));
+        let handler: Handler = {
+            let finished = finished.clone();
+            Arc::new(move |_| {
+                let finished = finished.clone();
+                Box::pin(async move {
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                    finished.fetch_add(1, Ordering::SeqCst);
+                    Ok(Step::Done)
+                })
+            })
+        };
+        let control = PgPool::connect_with((*db.connect_options()).clone())
+            .await
+            .unwrap();
+        let r = Runner {
+            control: control.clone(),
+            workers: 1,
+            ..runner(&db, Duration::from_millis(300), handler)
+        };
+        let (stop, rx) = watch::channel(false);
+        let r = r.spawn(rx);
+        while status(&db, id).await.0 != "running" {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        // Renewals start failing (unreachable DB from this worker's side).
+        control.close().await;
+
+        tokio::time::sleep(Duration::from_millis(800)).await;
+        stop.send(true).unwrap();
+        tokio::time::timeout(Duration::from_secs(2), r)
+            .await
+            .expect("the worker gave up on the handler")
+            .unwrap();
+        assert_eq!(
+            finished.load(Ordering::SeqCst),
+            0,
+            "unfenced handler ran past its lease"
+        );
+    }
+
+    #[sqlx::test]
+    async fn a_job_past_its_run_cap_is_stopped_and_retried(db: PgPool) {
+        let id = enqueue(&db, json!({})).await;
+        let handler: Handler = Arc::new(|_| {
+            Box::pin(async {
+                tokio::time::sleep(Duration::from_secs(5)).await;
+                Ok(Step::Done)
+            })
+        });
+        let (stop, rx) = watch::channel(false);
+        let r = Runner {
+            max_run: Duration::from_millis(200),
+            ..runner(&db, Duration::from_secs(60), handler)
+        }
+        .spawn(rx);
+        tokio::time::sleep(Duration::from_millis(800)).await;
+        stop.send(true).unwrap();
+        r.await.unwrap();
+
+        let (state, error) = status(&db, id).await;
+        assert_eq!(state, "queued");
+        assert!(
+            error.unwrap().contains("ran past"),
+            "retried with the reason"
+        );
+    }
+
+    #[sqlx::test]
+    async fn sql_data_and_constraint_errors_fail_at_once(db: PgPool) {
+        let id = enqueue(&db, json!({})).await;
+        let pool = db.clone();
+        let handler: Handler = Arc::new(move |_| {
+            let pool = pool.clone();
+            Box::pin(async move {
+                sqlx::query("SELECT 1 / 0").execute(&pool).await?;
+                Ok(Step::Done)
+            })
+        });
+        let (stop, rx) = watch::channel(false);
+        let r = runner(&db, Duration::from_secs(60), handler).spawn(rx);
+        settle(&db).await;
+        stop.send(true).unwrap();
+        r.await.unwrap();
+        assert_eq!(
+            status(&db, id).await.0,
+            "failed",
+            "division by zero won't fix itself"
+        );
     }
 }

@@ -12,3 +12,5 @@ pub mod scheduler;
 pub const LEASE: Duration = Duration::from_secs(60);
 /// A worker with nothing due polls again after this.
 pub const IDLE: Duration = Duration::from_secs(1);
+/// Longest one run (one chunk) may take; chunks aim for 10 s, cleanup batches stay well under.
+pub const MAX_RUN: Duration = Duration::from_secs(10 * 60);

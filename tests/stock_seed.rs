@@ -249,3 +249,44 @@ async fn the_sweep_resumes_chunk_by_chunk(pool: PgPool) {
         assert_eq!(rows(&pool, p).await, vec![zero(&main)]);
     }
 }
+
+#[sqlx::test]
+async fn a_store_added_between_chunks_still_gets_every_product(pool: PgPool) {
+    let api = Api::new(pool.clone(), "/products").await;
+    let mut products = Vec::new();
+    for n in 0..4 {
+        products.push(
+            api.create(json!({ "name": format!("P{n}"), "price": 1 }), "product_id")
+                .await,
+        );
+    }
+    warehouse(&api, json!({ "name": "Main" })).await;
+    // The sweep runs one chunk of 2 and goes back in the queue with its cursor.
+    let job = repo::claim(&pool, kinds::KINDS, 100, Duration::from_secs(60))
+        .await
+        .unwrap()
+        .unwrap();
+    let ws: uuid::Uuid = api.ws.parse().unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    let (last, n) = kinds::seed_chunk(&mut tx, ws, None, 2)
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(
+        job.checkpoint(&mut *tx, &json!({ "after": last, "done": n }), n, None)
+            .await
+            .unwrap()
+    );
+    tx.commit().await.unwrap();
+    assert!(repo::requeue(&pool, job.id, job.token).await.unwrap());
+
+    let shop = warehouse(&api, json!({ "name": "Shop", "is_store": true })).await;
+    run_jobs(&pool).await;
+
+    for p in &products {
+        assert!(
+            rows(&pool, p).await.iter().any(|(w, _)| *w == shop),
+            "product {p} missing its row in the new store"
+        );
+    }
+}

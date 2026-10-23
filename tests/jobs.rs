@@ -453,3 +453,97 @@ async fn coalesced_enqueue_skips_only_while_one_is_queued(pool: PgPool) {
         "a running job may have passed the change: queue a fresh one"
     );
 }
+
+#[sqlx::test]
+async fn coalescing_skips_a_job_that_already_started(pool: PgPool) {
+    let ws = workspace(&pool, "mid").await;
+    let job = || NewJob {
+        workspace_id: Some(ws),
+        ..NewJob::new(KIND)
+    };
+    let mut conn = pool.acquire().await.unwrap();
+    repo::enqueue_coalesced(&mut conn, &job())
+        .await
+        .unwrap()
+        .unwrap();
+    // One chunk done: back in the queue with its cursor past some rows.
+    let claimed = claim(&pool, 10).await.unwrap();
+    assert!(
+        repo::requeue(&pool, claimed.id, claimed.token)
+            .await
+            .unwrap()
+    );
+
+    let again = repo::enqueue_coalesced(&mut conn, &job()).await.unwrap();
+    assert!(
+        again.is_some(),
+        "a half-done job may have passed the change"
+    );
+}
+
+#[sqlx::test]
+async fn a_job_being_coalesced_onto_is_not_claimed_until_commit(pool: PgPool) {
+    let ws = workspace(&pool, "race").await;
+    let job = || NewJob {
+        workspace_id: Some(ws),
+        ..NewJob::new(KIND)
+    };
+    let mut conn = pool.acquire().await.unwrap();
+    let queued = repo::enqueue_coalesced(&mut conn, &job())
+        .await
+        .unwrap()
+        .unwrap();
+
+    let mut tx = pool.begin().await.unwrap();
+    assert!(
+        repo::enqueue_coalesced(&mut tx, &job())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(
+        claim(&pool, 10).await.is_none(),
+        "the coalescing change isn't committed yet"
+    );
+    tx.commit().await.unwrap();
+
+    assert_eq!(claim(&pool, 10).await.unwrap().id, queued);
+}
+
+#[sqlx::test]
+async fn error_text_drops_nul_characters(pool: PgPool) {
+    let id = enqueue(&pool, NewJob::new(KIND)).await;
+    let job = claim(&pool, 10).await.unwrap();
+    assert!(
+        repo::fail(&pool, id, job.token, "bad\0input")
+            .await
+            .unwrap()
+    );
+    let stored: String = sqlx::query_scalar("SELECT last_error FROM jobs WHERE id = $1")
+        .bind(id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(stored, "badinput");
+}
+
+#[sqlx::test]
+async fn reap_skips_a_row_another_transaction_holds(pool: PgPool) {
+    let id = enqueue(&pool, NewJob::new(KIND)).await;
+    claim(&pool, 10).await.unwrap();
+    expire(&pool, id).await;
+    let mut holder = pool.begin().await.unwrap();
+    sqlx::query("SELECT 1 FROM jobs WHERE id = $1 FOR UPDATE")
+        .bind(id)
+        .execute(&mut *holder)
+        .await
+        .unwrap();
+
+    let reaped = tokio::time::timeout(Duration::from_secs(2), repo::reap(&pool))
+        .await
+        .expect("reap waited on the lock")
+        .unwrap();
+    assert_eq!(reaped, 0);
+    holder.rollback().await.unwrap();
+    assert_eq!(repo::reap(&pool).await.unwrap(), 1);
+}

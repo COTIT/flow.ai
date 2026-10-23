@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM products\n         WHERE workspace_id = $1 AND has_stock AND deleted_at IS NULL\n           AND ($2::uuid IS NULL OR id > $2)\n         ORDER BY id LIMIT $3",
+  "query": "SELECT id FROM products\n         WHERE workspace_id = $1 AND has_stock AND deleted_at IS NULL\n           AND id > coalesce($2, '00000000-0000-0000-0000-000000000000'::uuid)\n         ORDER BY id LIMIT $3",
   "describe": {
     "columns": [
       {
@@ -26,5 +26,5 @@
       false
     ]
   },
-  "hash": "0f2d34bf8867dc0ad84f38ab1ef685827c81b56d8feae8055501528314160d0b"
+  "hash": "2dc50d74483a2827004dd5215e20d56607c66480ae8c25527f93a1f473a7b2d1"
 }

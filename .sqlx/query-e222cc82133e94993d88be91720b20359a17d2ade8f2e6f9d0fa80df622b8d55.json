@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE products SET updated_at = now(),\n             default_warehouse_id = (SELECT id FROM warehouses\n                                     WHERE workspace_id = $1 AND default_warehouse\n                                       AND deleted_at IS NULL)\n         WHERE id IN (SELECT id FROM products\n                      WHERE workspace_id = $1 AND id = ANY($2) AND default_warehouse_id IS NULL\n                      ORDER BY id\n                      FOR NO KEY UPDATE)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e222cc82133e94993d88be91720b20359a17d2ade8f2e6f9d0fa80df622b8d55"
+}

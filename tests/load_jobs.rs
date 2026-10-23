@@ -71,6 +71,7 @@ async fn runner(pool: &PgPool, workers: u32, lease: Duration, handler: Handler) 
         cap: 2,
         lease,
         idle: Duration::from_millis(10),
+        max_run: Duration::from_secs(60),
         handler,
     }
 }
@@ -95,9 +96,9 @@ async fn effect(pool: &PgPool, job: &repo::Claimed) -> Result<bool, AppError> {
 }
 
 /// L1a: 50k trivial jobs over 50 workspaces, two healthy runner pools of 4 workers each:
-/// every job runs once. The plan's target was 1,000 jobs/s; a dev Mac through Docker measured
-/// 740-980, bound by two status updates per job across the partial indexes. Real jobs are
-/// chunks of thousands of rows, so the assert is a regression floor.
+/// every job runs once. Plan target 1,000 jobs/s; a dev Mac through Docker measured 1,198
+/// (740-980 before the review fixes) and varies with load, so the assert is a 500 floor. Real
+/// jobs are chunks of thousands of rows.
 #[sqlx::test]
 #[ignore = "load test"]
 async fn l1_throughput_two_pools(pool: PgPool) {
@@ -139,7 +140,10 @@ async fn l1_throughput_two_pools(pool: PgPool) {
     let seen = seen.lock().unwrap().clone();
     assert_eq!(seen.len(), 50_000);
     assert!(seen.values().all(|n| *n == 1), "a job ran twice");
-    assert!(rate >= 500.0, "throughput {rate:.0} jobs/s below the 500 floor");
+    assert!(
+        rate >= 500.0,
+        "throughput {rate:.0} jobs/s below the 500 floor"
+    );
 }
 
 /// L1d: the same over two pools, one of which goes dark mid-run (its renewals stop, its

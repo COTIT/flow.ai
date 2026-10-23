@@ -155,8 +155,8 @@ pub async fn set_default(
     .map(|done| done.rows_affected() == 1)
 }
 
-/// `(is_store, default_warehouse)` of a live warehouse, row locked until commit. None = no
-/// such row.
+/// `(is_store, default_warehouse)` of a live warehouse, row locked until commit (`NO KEY`:
+/// stock inserts referencing the warehouse keep going). None = no such row.
 pub async fn flags_locked(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -165,7 +165,7 @@ pub async fn flags_locked(
     Ok(sqlx::query!(
         r#"SELECT coalesce(is_store, false) AS "is_store!", default_warehouse FROM warehouses
            WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
-           FOR UPDATE"#,
+           FOR NO KEY UPDATE"#,
         id,
         workspace_id,
     )

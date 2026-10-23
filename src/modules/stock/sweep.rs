@@ -48,7 +48,7 @@ pub async fn run(db: &PgPool, job: &Claimed) -> Result<Step, AppError> {
     let Some((last, n)) = repo::seed_chunk(&mut tx, workspace_id, after, CHUNK).await? else {
         return Ok(Step::Done);
     };
-    let done = done + n as i64;
+    let done = done + n;
     if !job
         .checkpoint(
             &mut *tx,

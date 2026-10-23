@@ -7,7 +7,7 @@
     - `jobs`: one row per job, with kind, payload (cursor), status, lease token and expiry, concurrency/dedupe keys, progress and last error.
     - `scheduled_runs`: one row per schedule slot.
   - **Claim:** `FOR UPDATE SKIP LOCKED`, in two statements.
-    - Fast path: the 32 oldest due jobs.
+    - Fast path: the 32 oldest due jobs. Load (dev Mac, Docker): 1,198 trivial jobs/s over two pools of 4 workers.
     - Fallback: a skip scan over each workspace's first due job, used when all 32 are blocked. A capped tenant's 100k backlog then costs one index probe (claim p95 3.4 ms, measured). With stale statistics the planner used to scan past the whole backlog (268 ms).
     - Every claim gets a fresh lease token. Checkpoints and outcomes need it, so a worker whose 60 s lease ran out can't save progress or finish the job.
     - Workers only claim kinds this build knows, so the older blue/green color leaves newer kinds alone.
@@ -29,6 +29,25 @@
     - `deploy.sh` refuses a limit below `2 × (request + job + 2)`.
   - `AppError` is exported for job handlers; `tests/common` gains `Api::as_new_owner`.
   - Tests: `tests/jobs.rs`, `tests/stock_seed.rs`, `jobs::{runner,scheduler,kinds}` units, and the ignored load tests `tests/load_jobs.rs` (L1, L2).
+  - Review fixes (rust, security, database):
+    - **Coalescing:** only a queued job that hasn't started counts. A sweep queued between chunks had already passed the products before its cursor, so a store added then lost their rows. It also takes an advisory lock per kind and workspace and a share lock on the queued job, so a worker can't claim it before the change commits. It uses an indexable workspace equality.
+    - **Runs:** stopped and retried after `MAX_RUN` (10 min), or when no lease renewal has succeeded for a whole lease (cleanup kinds have no fencing). Outcome writes retry three times. Cancellation is no longer reported as a panic. SQL data and constraint errors (SQLSTATE 22, 23) fail at once.
+    - **Pools:** job connections cap statements at 5 min and transactions at 10 min; the control connection 15 s and locks 5 s, with an acquire timeout.
+    - **Boot:** the rail starts after every boot step that can fail, and its drain starts at the signal, alongside the HTTP drain.
+    - **SQL:**
+      - the fallback claim runs only when due jobs were all blocked, never on an empty queue;
+      - the locking step re-checks `run_at` and `kind`;
+      - `reap` skips rows another transaction holds;
+      - `prune` deletes through the primary key (it planned a full scan per batch);
+      - NUL characters are stripped from `last_error`.
+    - **Table:** no `locked_until` index (lease renewals stay HOT); `fillfactor 70` and per-table autovacuum; a CHECK ties `finished_at` to finished statuses; the FK indexes are partial `IS NOT NULL`.
+    - **Sweep:**
+      - the keyset survives generic plans (`id > coalesce(..)`; `$2 IS NULL OR` measured 404 ms at a 350k cursor);
+      - chunks hold at most 50,000 stock rows;
+      - products are locked in id order before the ordered stock insert;
+      - the main warehouse is read inside the product update.
+    - **Warehouses:** `flags_locked` takes `FOR NO KEY UPDATE`, so stock inserts referencing the warehouse aren't blocked. A default change is re-checked against `warehouse.set_default` under the row lock.
+    - **Deploy:** `deploy.sh` bounds each pool to 1..100 and the limit to three digits.
 
 - Final batch F5b2 (sending workspace mail; contract `docs/api/messages.md`):
   - **`src/mail`** is now a module, and every mail leaves through `Mailer::dispatch`: the recipient allow-list, then one transport within 15 s.

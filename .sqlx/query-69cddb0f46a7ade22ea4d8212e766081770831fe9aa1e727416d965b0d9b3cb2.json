@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM jobs WHERE id = ANY(ARRAY(\n                 SELECT id FROM jobs\n                 WHERE (status IN ('succeeded', 'cancelled') AND finished_at < now() - interval '7 days')\n                    OR (status = 'failed' AND finished_at < now() - interval '30 days')\n                 LIMIT $1))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "69cddb0f46a7ade22ea4d8212e766081770831fe9aa1e727416d965b0d9b3cb2"
+}

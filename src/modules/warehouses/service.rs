@@ -198,6 +198,10 @@ pub async fn update(
         let (was_store, was_default) = repo::flags_locked(&mut tx, workspace_id, id)
             .await?
             .ok_or(AppError::NotFound)?;
+        // Re-checked under the lock: the default may have moved since the check above.
+        if to_default && !was_default && !may_set_default {
+            return Err(AppError::Forbidden(NOT_ALLOWED));
+        }
         if to_default {
             repo::clear_default(&mut *tx, workspace_id, Some(id)).await?;
         }

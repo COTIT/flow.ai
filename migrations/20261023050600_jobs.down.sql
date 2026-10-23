@@ -1,2 +1,2 @@
-DROP TABLE scheduled_runs;
-DROP TABLE jobs;
+DROP TABLE IF EXISTS scheduled_runs;
+DROP TABLE IF EXISTS jobs;

@@ -54,15 +54,17 @@ pub async fn health(base: PgConnectOptions) -> Result<PgPool, sqlx::Error> {
         .await
 }
 
-/// The job pool: `max` connections, one per worker. No statement timeout (each chunk sets its
-/// own with `SET LOCAL`), so a large cleanup finishes instead of rolling back.
+/// The job pool: `max` connections, one per worker. Statements get 5 min (a chunk lowers it
+/// with `SET LOCAL`), a transaction 10 min: a stuck one can't hold a worker or the vacuum
+/// horizon forever.
 pub async fn jobs(base: PgConnectOptions, max: u32) -> Result<PgPool, sqlx::Error> {
     PgPoolOptions::new()
         .max_connections(max)
         .acquire_timeout(ACQUIRE_TIMEOUT)
         .idle_timeout(IDLE_TIMEOUT)
         .connect_with(base.options([
-            ("statement_timeout", "0"),
+            ("statement_timeout", "5min"),
+            ("transaction_timeout", "10min"),
             ("lock_timeout", "10s"),
             ("idle_in_transaction_session_timeout", "60s"),
         ]))
@@ -70,14 +72,16 @@ pub async fn jobs(base: PgConnectOptions, max: u32) -> Result<PgPool, sqlx::Erro
 }
 
 /// One connection for the job rail's control work (scheduler ticks, lease renewals), apart
-/// from the job pool so busy workers can't starve it.
+/// from the job pool so busy workers can't starve it. Its statements are tiny, so short caps:
+/// one stuck statement must not hold every renewal past a lease.
 pub async fn background(base: PgConnectOptions) -> Result<PgPool, sqlx::Error> {
     PgPoolOptions::new()
         .max_connections(1)
+        .acquire_timeout(ACQUIRE_TIMEOUT)
         .idle_timeout(IDLE_TIMEOUT)
         .connect_with(base.options([
-            ("statement_timeout", "0"),
-            ("lock_timeout", "10s"),
+            ("statement_timeout", "15s"),
+            ("lock_timeout", "5s"),
             ("idle_in_transaction_session_timeout", "60s"),
         ]))
         .await

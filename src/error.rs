@@ -63,19 +63,24 @@ pub enum AppError {
 }
 
 impl AppError {
-    /// A job failure a retry can't fix (bad input, missing or forbidden target).
+    /// A job failure a retry can't fix: bad input, a missing or forbidden target, or a SQL
+    /// data or constraint error (SQLSTATE classes 22 and 23).
     pub fn is_permanent(&self) -> bool {
-        matches!(
-            self,
+        match self {
             Self::Validation(_)
-                | Self::Unauthorized
-                | Self::InvalidCredentials
-                | Self::Forbidden(_)
-                | Self::BadRequest(_)
-                | Self::Unprocessable(_)
-                | Self::NotFound
-                | Self::PayloadTooLarge
-        )
+            | Self::Unauthorized
+            | Self::InvalidCredentials
+            | Self::Forbidden(_)
+            | Self::BadRequest(_)
+            | Self::Unprocessable(_)
+            | Self::NotFound
+            | Self::PayloadTooLarge => true,
+            Self::Database(e) => e
+                .as_database_error()
+                .and_then(|d| d.code())
+                .is_some_and(|c| c.starts_with("22") || c.starts_with("23")),
+            _ => false,
+        }
     }
 
     /// One-field 422 for checks only service can do (e.g. email taken).

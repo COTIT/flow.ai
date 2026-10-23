@@ -23,7 +23,9 @@ pub struct Pruned {
     pub login_failures: u64,
     /// Sends a dead request left open, marked `unknown` (never sent again).
     pub stuck_sends: u64,
+    /// Finished jobs past their retention (`jobs::repo::prune`).
     pub jobs: u64,
+    /// Scheduler slots older than 30 days.
     pub scheduled_runs: u64,
 }
 

@@ -20,8 +20,11 @@ const TICK: Duration = Duration::from_secs(30);
 pub enum Every {
     /// On every multiple of this many minutes since the epoch.
     Minutes(u32),
+    /// Once a day at this UTC time.
     DailyAt {
+        /// UTC hour, 0..24.
         hour: u32,
+        /// Minute of the hour, 0..60.
         minute: u32,
     },
 }
@@ -53,8 +56,11 @@ impl Every {
 /// A recurring job: `kind` is enqueued under `name` whenever `every` passes a slot.
 #[derive(Debug, Clone, Copy)]
 pub struct Schedule {
+    /// Slot name in `scheduled_runs`, also the dedupe key `schedule:<name>`.
     pub name: &'static str,
+    /// Job kind to enqueue.
     pub kind: &'static str,
+    /// When it is due.
     pub every: Every,
 }
 

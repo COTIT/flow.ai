@@ -13,7 +13,7 @@ use crate::{
         runner::{Handler, Step},
         scheduler::{Every, Schedule},
     },
-    modules::{files, messages::repo as messages, stock::sweep},
+    modules::{messages::repo as messages, stock::sweep},
     storage::Store,
 };
 
@@ -54,7 +54,9 @@ pub static SCHEDULES: [Schedule; 3] = [
 /// What handlers reach: the job pool and, when configured, the file bucket.
 #[derive(Clone)]
 pub struct Ctx {
+    /// The job pool.
     pub db: PgPool,
+    /// The file bucket, when configured.
     pub files: Option<Store>,
 }
 
@@ -78,7 +80,9 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
         }
         FILE_SWEEP => {
             if let Some(bucket) = &ctx.files {
-                let swept = files::service::sweep(&ctx.db, bucket).await?;
+                let swept = cleanup::sweep_files(&ctx.db, bucket)
+                    .await
+                    .map_err(AppError::Internal)?;
                 tracing::info!(files = swept, "file sweep done");
             }
         }
@@ -132,6 +136,18 @@ mod tests {
         let names: HashSet<_> = SCHEDULES.iter().map(|s| s.name).collect();
         assert_eq!(names.len(), SCHEDULES.len(), "schedule names are unique");
         assert!(SCHEDULES.iter().all(|s| KINDS.contains(&s.kind)));
+    }
+
+    #[test]
+    fn every_schedule_is_a_valid_time() {
+        for s in &SCHEDULES {
+            match s.every {
+                Every::Minutes(n) => assert!((1..=1440).contains(&n), "{}", s.name),
+                Every::DailyAt { hour, minute } => {
+                    assert!(hour < 24 && minute < 60, "{}", s.name);
+                }
+            }
+        }
     }
 
     #[sqlx::test]
