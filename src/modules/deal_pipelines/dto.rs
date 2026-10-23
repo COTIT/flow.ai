@@ -8,7 +8,10 @@ use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
-    http::json::{Rules, Validate, filled, human, present},
+    http::{
+        json::{Rules, Validate, filled, human, present},
+        list::Page,
+    },
     modules::{
         custom_statuses::dto::CustomStatusResource,
         deal_pipelines::repo::{PipelineRow, StatusRow},
@@ -16,6 +19,9 @@ use crate::{
 };
 
 const TEXT_MAX: usize = 255;
+/// Highest column position a client may ask for. Shifts may push columns past it, never near
+/// `i32::MAX` (Laravel took any integer).
+const POSITION_MAX: i64 = 10_000;
 /// Laravel SortingEnum values.
 const SORTINGS: [&str; 3] = ["a-z", "pos", "z-a"];
 /// Laravel rules.CustomStatusExist for `custom_status_id`.
@@ -106,7 +112,7 @@ impl From<StatusRow> for StatusResource {
     }
 }
 
-/// Create responses.
+/// Pipeline create response.
 #[derive(Serialize)]
 pub struct PipelineCreated {
     pub deal_pipeline_id: Uuid,
@@ -177,6 +183,20 @@ pub struct UpdatePipelineRequest {
     sorting: Option<String>,
     #[serde(default, deserialize_with = "present")]
     meta: Option<Option<Value>>,
+}
+
+/// GET list paging params; unknown ones ignored.
+#[derive(Deserialize)]
+pub struct ListQuery {
+    page: Option<String>,
+    page_size: Option<String>,
+}
+
+impl ListQuery {
+    /// Laravel BaseModel paging: `page_size` default 50, max 100.
+    pub fn page(&self) -> Page {
+        Page::parse(self.page.as_deref(), self.page_size.as_deref())
+    }
 }
 
 /// Validated pipeline patch; `None` keeps the stored value.
@@ -285,17 +305,16 @@ impl Validate for UpdateStatusRequest {
     fn validate(self, r: &mut Rules) -> Option<StatusPatch> {
         pipeline_id(r, self.deal_pipeline_id);
         // Laravel `nullable|integer`: null or blank keeps the position (Laravel answered 500).
-        let position = filled(self.position).map(|v| position(r, &v));
-        let rules = self.rules.map(|v| lane_rules(r, &v.unwrap_or(Value::Null)));
-        let props = self
-            .properties
-            .map(|v| lane_props(r, &v.unwrap_or(Value::Null)));
-        let meta = self.meta.map(|v| r.meta(v));
+        // Laravel ran its value-object rules on null and blank too, so those are 422s here.
         Some(StatusPatch {
-            position: position.map_or(Some(None), |p| p.map(Some))?,
-            rules: rules.map_or(Some(None), |x| x.map(Some))?,
-            props: props.map_or(Some(None), |x| x.map(Some))?,
-            meta: meta.map_or(Some(None), |m| m.map(Some))?,
+            position: filled(self.position).and_then(|v| position(r, &v)),
+            rules: self
+                .rules
+                .and_then(|v| lane_rules(r, &v.unwrap_or(Value::Null))),
+            props: self
+                .properties
+                .and_then(|v| lane_props(r, &v.unwrap_or(Value::Null))),
+            meta: self.meta.and_then(|v| r.meta(v)),
         })
     }
 }
@@ -314,9 +333,9 @@ fn pipeline_id(r: &mut Rules, v: Option<Value>) {
     }
 }
 
-/// Column position: an integer from 0 (Laravel took any integer; the column is 0-based).
+/// Column position: an integer 0..=POSITION_MAX (the column is 0-based).
 fn position(r: &mut Rules, v: &Value) -> Option<i32> {
-    r.integer("position", v, 0, i32::MAX.into())
+    r.integer("position", v, 0, POSITION_MAX)
         .and_then(|n| i32::try_from(n).ok())
 }
 
@@ -335,9 +354,7 @@ fn lane_rules(r: &mut Rules, v: &Value) -> Option<LaneRules> {
         int("auto_archive_in_days"),
     );
     match parsed {
-        (Some(max_items_per_lane), Some(max_days_in_lane), Some(auto_archive_in_days))
-            if v.is_object() =>
-        {
+        (Some(max_items_per_lane), Some(max_days_in_lane), Some(auto_archive_in_days)) => {
             Some(LaneRules {
                 max_items_per_lane,
                 max_days_in_lane,

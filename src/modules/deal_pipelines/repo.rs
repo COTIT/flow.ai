@@ -140,10 +140,10 @@ pub async fn update(
         workspace_id,
         p.name,
         p.kind.is_some(),
-        p.kind.clone().flatten(),
+        p.kind.as_ref().and_then(|k| k.as_deref()),
         p.sorting,
         p.meta.is_some(),
-        p.meta.clone().flatten(),
+        p.meta.as_ref().and_then(|m| m.as_ref()),
     )
     .execute(db)
     .await
@@ -427,7 +427,7 @@ pub async fn update_status(
         props.map(|x| x.is_won),
         props.map(|x| x.is_lost),
         p.meta.is_some(),
-        p.meta.clone().flatten(),
+        p.meta.as_ref().and_then(|m| m.as_ref()),
     )
     .execute(&mut *tx)
     .await

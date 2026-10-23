@@ -1,29 +1,27 @@
 //! HTTP edge for /v1/workspace/{workspace}/deal-pipelines: `dealpipeline.*` and
 //! `dealpipelinestatus.*` permissions (via `Can`), call service, wrap.
 
-use axum::{
-    Json,
-    extract::{Path, Query, State},
-    http::StatusCode,
-};
-use serde::Deserialize;
-
 use crate::{
     AppState,
     error::AppError,
     http::{
         json::ValidatedJson,
-        list::{Page, Paginated},
+        list::Paginated,
         response::{Data, Message},
         workspace::{Can, permissions},
     },
     modules::deal_pipelines::{
         dto::{
-            CreatePipelineRequest, CreateStatusRequest, PipelineCreated, PipelineResource,
-            StatusCreated, UpdatePipelineRequest, UpdateStatusRequest,
+            CreatePipelineRequest, CreateStatusRequest, ListQuery, PipelineCreated,
+            PipelineResource, StatusCreated, UpdatePipelineRequest, UpdateStatusRequest,
         },
         service,
     },
+};
+use axum::{
+    Json,
+    extract::{Path, Query, State},
+    http::StatusCode,
 };
 
 // Laravel checked only `dealpipeline.create/list` and `dealpipelinestatus.create`; the other
@@ -43,20 +41,13 @@ type PipelinePath = Path<(String, String)>;
 /// `{workspace}` + `{pipeline}` + `{status}`.
 type StatusPath = Path<(String, String, String)>;
 
-/// Paging params; unknown ones ignored.
-#[derive(Deserialize)]
-pub struct ListQuery {
-    page: Option<String>,
-    page_size: Option<String>,
-}
-
 /// GET /deal-pipelines -> `{data:[...], meta}`, oldest first, columns included.
 pub async fn list(
     State(state): State<AppState>,
     access: Can<PipelineList>,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Paginated<PipelineResource>>, AppError> {
-    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let page = query.page();
     let (data, total) =
         service::list(&state, access.workspace_id, page.size, page.offset()).await?;
     Ok(Json(Paginated::new(data, total, page)))

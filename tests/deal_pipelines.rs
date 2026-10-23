@@ -426,6 +426,25 @@ async fn status_rules(pool: PgPool) {
         res["errors"],
         json!({ "position": ["The position must be at least 0."] })
     );
+
+    // Capped well below i32::MAX, so a shift (`position + 1`) can never overflow.
+    let (code, res) = add_status(&a, &p, body(&p, &todo, 10_001, false, false)).await;
+    assert_eq!(code, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"],
+        json!({ "position": ["The position must not be greater than 10000."] })
+    );
+}
+
+/// A column at the cap still lets another column take that position: the shift moves it past
+/// the cap instead of failing.
+#[sqlx::test]
+async fn shifting_past_the_position_cap_works(pool: PgPool) {
+    let a = api(pool).await;
+    let p = pipeline(&a, "Sales").await;
+    let last = status(&a, &p, "To Do", 10_000).await;
+    let next = status(&a, &p, "Won", 10_000).await;
+    assert_eq!(columns(&a, &p).await, [(next, 10_000), (last, 10_001)]);
 }
 
 #[sqlx::test]
@@ -610,6 +629,8 @@ async fn status_update_accepts_the_column_echo_and_patches(pool: PgPool) {
 
     for (field, value, msg) in [
         ("rules", Value::Null, RULES_BAD),
+        ("rules", json!(""), RULES_BAD),
+        ("properties", Value::Null, PROPS_BAD),
         ("properties", json!({ "is_won": true }), PROPS_BAD),
     ] {
         let (code, res) =

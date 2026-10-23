@@ -15,6 +15,7 @@
     - Columns are addressed through their board's path.
     - A status update without `position` keeps it (Laravel answered 500).
     - Bad ids in a body are 422s, not 404/500.
+  - Review fixes: `position` is capped at 10000 (a column near the int maximum made every later shift a 500); columns pair with their boards through a map; patch binds borrow instead of cloning.
   - **Not ported:** pipeline delete, duplicate and the single-status GET (no vimdesk-web caller). `summary` stays at zero and status delete moves no deals until the deals module (B8-2).
 
 - Final batch F5b2 (sending workspace mail; contract `docs/api/messages.md`):

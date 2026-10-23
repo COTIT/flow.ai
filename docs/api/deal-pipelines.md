@@ -82,9 +82,9 @@ The settings page saves `{name}` alone before a reorder. The update is a patch, 
 |---|---|---|
 | `deal_pipeline_id` | required uuid | required uuid |
 | `custom_status_id` | required: a live `deal_pipeline` custom status of the workspace (archived ones count), else `The custom status id does not exist`; already a column of this board: `This custom status id already exist in the dealPipeline` | ignored (the column's custom status never changes) |
-| `position` | required integer ≥ 0 | optional; null or blank keeps it |
-| `rules` | required object | optional; replaces all three when sent |
-| `properties` | required object | optional; replaces all four when sent |
+| `position` | required integer 0..10000 | optional; null or blank keeps it |
+| `rules` | required object | optional; replaces all three when sent; null or blank is a 422, as in Laravel |
+| `properties` | required object | optional; replaces all four when sent; null or blank is a 422, as in Laravel |
 | `meta` | object or null | object or null |
 
 - `deal_pipeline_id` is checked as Laravel did, but the path picks the board. Laravel created the column on the body's board.
@@ -96,7 +96,7 @@ The settings page saves `{name}` alone before a reorder. The update is a patch, 
 
 **Positions.** Positions are 0-based and distinct per board. Every column write locks the board row first, so parallel writes on one board run one after another.
 
-- When the target position is taken, that column and every column after it move one to the right. This is Laravel's `checkPosition` cascade, done as one statement.
+- When the target position is taken, that column and every column after it move one to the right, in one statement. A shift may push a column past 10000.
 - A free position moves nobody, so gaps stay.
 - The settings page reorders with one request per column, `{deal_pipeline_id, deal_pipeline_status_id, position: i}` in the new order. That gives exactly the new order.
 
@@ -112,5 +112,6 @@ The settings page saves `{name}` alone before a reorder. The update is a patch, 
 4. A status write on another board's column is 404. Laravel's update ignored the path's board.
 5. Unknown or malformed `custom_status_id` / `deal_pipeline_id` in a body is a 422 field error. Laravel answered 404 or 500 before validating.
 6. A status update without `position` keeps it. Laravel answered 500.
-7. `position` must be ≥ 0. Laravel took any integer.
+7. `position` must be 0..10000. Laravel took any integer, and a column near the int maximum would break every later shift.
 8. `meta` must be an object. Laravel's `MetaRule` checked nothing.
+9. A shift moves every column from the taken position on, across gaps. Laravel's recursive `checkPosition` stopped at the first gap: with columns at 0 and 2, a new column at 0 gives 0, 1, 2 in Laravel and 0, 1, 3 here. The order is the same.

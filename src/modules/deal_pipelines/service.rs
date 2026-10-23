@@ -1,5 +1,9 @@
 //! Deal pipeline rules. Column writes of one board run under its row lock: positions stay
 //! distinct, a custom status is used once per board, and one column at most is won or lost.
+//! No index enforces distinct positions (a shift moves many rows in one statement), so every
+//! column writer, deals included, must hold `repo::lock` first.
+
+use std::collections::HashMap;
 
 use uuid::Uuid;
 
@@ -39,8 +43,7 @@ pub async fn get(
         .await?
         .ok_or(AppError::NotFound)?;
     let mut one = with_statuses(state, workspace_id, vec![row]).await?;
-    one.pop()
-        .ok_or_else(|| AppError::Internal("pipeline vanished between reads".into()))
+    one.pop().ok_or(AppError::NotFound)
 }
 
 /// New board; returns its id.
@@ -150,22 +153,22 @@ async fn with_statuses(
     workspace_id: Uuid,
     rows: Vec<PipelineRow>,
 ) -> Result<Vec<PipelineResource>, AppError> {
-    let ids: Vec<Uuid> = rows.iter().map(|p| p.id).collect();
-    let mut statuses = repo::statuses_for(&state.db, workspace_id, &ids)
-        .await?
-        .into_iter()
-        .peekable();
-    let mut out = Vec::with_capacity(rows.len());
-    // Boards (`ORDER BY id`) and columns (`ORDER BY deal_pipeline_id`) share one order, so one
-    // pass pairs them.
-    for p in rows {
-        let mut mine: Vec<StatusRow> = Vec::new();
-        while let Some(s) = statuses.next_if(|s| s.deal_pipeline_id == p.id) {
-            mine.push(s);
-        }
-        out.push(PipelineResource::new(p, mine));
+    if rows.is_empty() {
+        return Ok(Vec::new());
     }
-    Ok(out)
+    let ids: Vec<Uuid> = rows.iter().map(|p| p.id).collect();
+    let mut by_pipeline: HashMap<Uuid, Vec<StatusRow>> = HashMap::new();
+    // Rows arrive in position order, so each board's list stays ordered.
+    for s in repo::statuses_for(&state.db, workspace_id, &ids).await? {
+        by_pipeline.entry(s.deal_pipeline_id).or_default().push(s);
+    }
+    Ok(rows
+        .into_iter()
+        .map(|p| {
+            let statuses = by_pipeline.remove(&p.id).unwrap_or_default();
+            PipelineResource::new(p, statuses)
+        })
+        .collect())
 }
 
 /// The unique indexes behind the pre-checks, for a write the lock didn't cover.
