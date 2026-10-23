@@ -1,6 +1,6 @@
 # Invoices API
 
-Invoices, their item lines, sending, numbering and credit notes. Ported from vimdesk-api `src/Domain/Finance/Invoice` (Store/UpdateInvoiceRequest, Create/Update/Delete/DuplicateInvoice, SendInvoice, ResentInvoice, SendInvoiceMail, GenerateInvoiceNumber, CreditInvoice, InvoiceResource, InvoiceIndexResource, InvoiceFromHashResource) and `src/Domain/Shared/Item` (BuildRequestItems, HandleItems, ItemResource). Payments come in F7, the Mollie payment link in F8.
+Invoices, their item lines, sending, numbering and credit notes (payments: `invoice-payments.md`). Ported from vimdesk-api `src/Domain/Finance/Invoice` (Store/UpdateInvoiceRequest, Create/Update/Delete/DuplicateInvoice, SendInvoice, ResentInvoice, SendInvoiceMail, GenerateInvoiceNumber, CreditInvoice, InvoiceResource, InvoiceIndexResource, InvoiceFromHashResource) and `src/Domain/Shared/Item` (BuildRequestItems, HandleItems, ItemResource). Payments come in F7, the Mollie payment link in F8.
 
 Shared rules (guard order, 404s, list `meta`) are in `conventions.md`. Every route sits under `/v1/workspace/{workspace}`, except the public link.
 
@@ -135,11 +135,11 @@ Laravel created lines without recomputing, so its stored totals of a fresh draft
 
 Laravel InvoiceResource:
 - **Top level:** `id`, `invoice_nr` (null until sent; `"N/A"` once cancelled), `status`, `reference`, `payment_hash` (the public link token once sent, else null), `payment_method`, `note`, `send_date`, `due_date`, `is_credit`, `previous_invoice_id` (a credit note's source), `mollie_refunds` (`[]`), `addressed_contact`, `billing_address` (address with `formatted`), `import_id` / `import_source` (null), `customer_ref`, `created_at`, `last_updated_at`, `meta`.
-- **`balance`:** `{open, paid: 0, total}`. Payments arrive in F7.
+- **`balance`:** `{open, paid, total}`: `open` = total − paid (negative when overpaid, as Laravel), `paid` = the paid, unvoided payments as Laravel's decimal text (`"60.00000000"`, or `0` without any), `total` from the lines.
 - **`summary`:** as `calculate-items` prints it, `discounts` holding one null per discounted line.
 - **`marge_calculation_summary`:** as `calculate-marge` prints it.
 - **`items`:** see below.
-- **`relationships`:** `relation` (RelationIndexResource), `currency`, `pdf_file` (the last sent PDF's FileResource; null before a send, or when that file was deleted), `payments: []`, `custom_sections: []`, `child_invoices: []`. `estimate`, `parent_invoice`, `order`, `work_order`, `collective_invoice` and `cash_register` are null.
+- **`relationships`:** `relation` (RelationIndexResource), `currency`, `pdf_file` (the last sent PDF's FileResource; null before a send, or when that file was deleted), `payments` (unvoided, `invoice-payments.md`), `custom_sections: []`, `child_invoices: []`. `estimate`, `parent_invoice`, `order`, `work_order`, `collective_invoice` and `cash_register` are null.
 
 **Lines** (ItemResource) print numbers with `formatDecimals`:
 - `quantity`, `vat`, `subtotal`, `total`, `total_incl`, `discount_percentage`, `discount_amount`, `discount_amount_incl`, `purchase_price`, `purchase_price_total`, `purchase_price_incl`, `marge`, `marge_total`, `marge_percentage` (null without a purchase price) and `price_incl_vat` at 2 places.
@@ -163,7 +163,7 @@ Newest first; `page` / `page_size` (50, max 100), or `limit` (1..100) for a plai
 | `q` | ≤ 100 chars; matches the reference or the relation's name or alias (ILIKE). Laravel searched Meilisearch; the search batch replaces this |
 
 Rows (InvoiceIndexResource):
-- `id`, `invoice_nr`, `status`, `balance {paid, open}`, `reference`, `payment_hash` (always null in a list: the token prints on the detail only), `payment_method`, `note`, `is_on_account`, `send_date`, `due_date`, `is_credit`, `meta`.
+- `id`, `invoice_nr`, `status`, `balance {paid, open}` (from the stored paid total, no payment is read), `reference`, `payment_hash` (always null in a list: the token prints on the detail only), `payment_method`, `note`, `is_on_account`, `send_date`, `due_date`, `is_credit`, `meta`.
 - `total_amount`: the stored total, two places kept.
 - `summary`: from the stored totals; no line is read.
 - `has_activities`, `has_note_activity`, `has_collective_invoice`: false until those modules are ported.
@@ -271,7 +271,7 @@ For the SPA's `/clients/pay-for-invoice/{token}` page. No login; behind the publ
 
 - The token is 32 random bytes (64 hex characters), made when an invoice is first sent. The database keeps its sha256 for the lookup and a sealed copy (credential key, path `invoices.{id}.payment_token`) so the detail, the PDF and later mails print the same link. Laravel's `payment_hash` was the encrypted ids. Without a credential key an invoice is sent without a link.
 - Any other token (malformed, unknown, a draft's, or one of a deleted workspace) is a 404.
-- `balance.open` is 0 for a `paid`, `cancelled` or `credited` invoice.
+- `balance` is `{open, paid, total}`: `open` is total − paid but never below 0 (Laravel), and 0 for a `paid`, `cancelled` or `credited` invoice (a cash-rounded paid invoice shows its few cents in the detail only).
 - `company_details` is the workspace profile with its bank account (for a bank transfer) but without `account.credit_limit`.
 - **Answer** (InvoiceFromHashResource): `invoice_nr`, `is_credit`, `status`, `reference`, `balance {open, paid: 0, total}`, `payment_hash`, `payment_method`, `company_details` (the workspace profile), `due_date`, `items`, `summary`, `relationships.currency` (`name`, `asset_type`, `symbol_prefix`, `symbol_suffix`, `decimals`). `relationships.order_fields` is null.
 - **Lines** print `id`, `title`, `description`, `quantity`, `price`, `price_incl`, `price_incl_vat`, `vat`, `discount` (= `discount_percentage`), `subtotal`, `total`, `total_incl`, `discount_fixed`, `discount_percentage`, `discount_amount`, `discount_amount_incl`, `credited_amount`, `amount_left_to_credit`. Laravel also printed purchase prices, stock and product codes to the customer; they are left out.

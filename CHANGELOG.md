@@ -42,6 +42,28 @@
       - New indexes on the agent and creator FKs.
       - The status-FK index is no longer partial.
       - Pipeline rename takes the board lock with its 5 s limit.
+- Final batch F7 (invoice payments; contract `docs/api/invoice-payments.md`):
+  - **Ledger:** migration `invoice_payments` adds `invoice_payments`: minor units at the invoice's decimals, negative rows for refunds and settle twins. It is append-only: a trigger refuses delete, and any change of amount, invoice, workspace, method, date or twin, an un-void and TRUNCATE. Delete = void (`voided_at`, `voided_by`).
+  - **Balance:** `invoices.paid_total` is recomputed as SUM over paid, unvoided rows in every payment transaction, under the invoice's row lock. The status machine is Laravel's, fixed:
+    - only open/settled statuses move (Laravel reopened cancelled or draft invoices);
+    - the 0.05 tolerance applies only with a cash payment;
+    - a credit note reopens when its refund is voided;
+    - overpayment is kept as Laravel did (`paid`, negative `open`).
+  - **`POST /invoices/{id}/payments`** (`invoicepayment.create`): cash/pin/manual plus Laravel's `mollie` and `bank` (`afas`) aliases, amount > 0 within the currency's decimals, open invoices only, no credit notes. A **settle** writes two linked rows that sum to 0, locks both invoices in id order, and checks the credit note (same relation/currency, open amount) where Laravel checked nothing.
+  - **`DELETE /invoices/{id}/payments/{pid}`** (`invoicepayment.delete`): voids the payment (and its settle twin), looked up within that invoice only.
+  - **`POST /invoices/{id}/mark-as-credited`** (`invoice.credit`): a pending credit note's open balance refunded as a negative payment, then `credited`; already credited is a quiet ok.
+  - **Idempotency-Key** (`src/idempotency.rs`, table `idempotency_keys`): per workspace, bound to method + path + raw body, stored in the write's transaction, replayed byte for byte; another request under a key is a 422; parallel copies wait and replay; pruned after a day by the hourly cleanup.
+  - Invoice detail, list and public page print the real `balance` and `relationships.payments`.
+  - Review fixes (security, Rust, database):
+    - a settle is capped by the invoice's open balance too (credit is never burned on an overpayment) and needs a pending note with the same decimals;
+    - idempotency keys are bound to the member who used them, survive a concurrent prune, reuse ValidatedJson (content-type check) and never replay an unfinished row;
+    - the ledger trigger also freezes id, created_at and paid → unpaid;
+    - the migration alters `invoices` before the FK to avoid a lock-upgrade deadlock during a rolling deploy;
+    - at most 500 live payments per invoice;
+    - `meta` at most 8 KiB so the CHECK can't 500;
+    - paid totals checked against i64;
+    - the public page shows nothing open on paid invoices;
+    - payment routes run with the 64 KiB body limit.
 
 - Batch 8 B8-1 (deal pipelines; contract `docs/api/deal-pipelines.md`):
   - **Migration `deal_pipelines`:** `deal_pipelines` (`sorting` a-z|pos|z-a) and `deal_pipeline_statuses`.

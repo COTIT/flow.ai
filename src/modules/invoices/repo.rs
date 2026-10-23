@@ -33,6 +33,8 @@ pub struct InvoiceRow {
     /// Sealed payment token and its key id.
     pub payment_token: Option<Vec<u8>>,
     pub payment_token_key_id: Option<String>,
+    /// Paid, unvoided payments, minor units.
+    pub paid_total: i64,
 }
 
 /// One stored item line.
@@ -323,7 +325,7 @@ pub async fn find_for_share(
         "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,
                 billing_address, addressed_contact, customer_ref, meta, due_date, send_date,
                 summary, created_at, updated_at, invoice_number, invoice_appendix,
-                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id
+                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total
          FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE",
         workspace_id,
         id,
@@ -643,7 +645,7 @@ pub async fn find(
         "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,
                 billing_address, addressed_contact, customer_ref, meta, due_date, send_date,
                 summary, created_at, updated_at, invoice_number, invoice_appendix,
-                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id
+                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total
          FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
         workspace_id,
         id,
@@ -680,7 +682,7 @@ pub async fn list(
                   i.reference, i.note, i.billing_address, i.addressed_contact, i.customer_ref,
                   i.meta, i.due_date, i.send_date, i.summary, i.created_at, i.updated_at,
                   i.invoice_number, i.invoice_appendix, i.previous_invoice_id, i.pdf_file_id,
-                  i.payment_token, i.payment_token_key_id
+                  i.payment_token, i.payment_token_key_id, i.paid_total
            FROM invoices i
            WHERE i.workspace_id = $1 AND i.deleted_at IS NULL
              AND ($2::uuid IS NULL OR i.relation_id = $2)
