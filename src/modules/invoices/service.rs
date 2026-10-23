@@ -15,10 +15,12 @@ use crate::{
     http::{json::human, list::Page},
     modules::{
         currencies::{self, dto::CurrencyResource},
+        files,
         invoices::{
             dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
             repo::{self, HeaderPatch, LineChanges, NewInvoice, NewLines},
             resource::{self, Embeds},
+            send,
         },
         pricing::engine,
         products,
@@ -39,16 +41,16 @@ const NO_MAIN_CURRENCY: &str = "No default currency has been found. Please creat
 
 /// Collected 422s of one request.
 #[derive(Default)]
-struct Errors(BTreeMap<String, Vec<String>>);
+pub(super) struct Errors(BTreeMap<String, Vec<String>>);
 
 impl Errors {
-    fn add(&mut self, field: &str, msg: impl Into<String>) {
+    pub(super) fn add(&mut self, field: &str, msg: impl Into<String>) {
         self.0.entry(field.to_owned()).or_default().push(msg.into());
     }
     fn invalid(&mut self, field: &str) {
         self.add(field, format!("The selected {} is invalid.", human(field)));
     }
-    fn into_result(self) -> Result<(), AppError> {
+    pub(super) fn into_result(self) -> Result<(), AppError> {
         if self.0.is_empty() {
             Ok(())
         } else {
@@ -92,6 +94,8 @@ pub async fn create(
             addressed_contact: contact.as_ref().and_then(Option::as_ref),
             meta: input.meta.as_ref().and_then(Option::as_ref),
             created_by: user_id,
+            previous_invoice_id: None,
+            customer_ref: None,
         },
     )
     .await?;
@@ -209,6 +213,8 @@ pub async fn duplicate(
             addressed_contact: None,
             meta: row.meta.as_ref(),
             created_by: user_id,
+            previous_invoice_id: None,
+            customer_ref: None,
         },
     )
     .await?;
@@ -225,6 +231,7 @@ pub async fn duplicate(
         n.discount.push(l.discount_percentage);
         n.purchase_price.push(l.purchase_price);
         n.position.push(i32::try_from(i).unwrap_or(i32::MAX));
+        n.parent_item_id.push(None);
     }
     repo::insert_lines(&mut tx, workspace_id, copy, &n).await?;
     store_totals(&mut tx, workspace_id, copy, row.currency_id).await?;
@@ -246,6 +253,15 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
     };
     let (summary, margin) = price(&lines, dp)?;
     let mut e = embeds(state, workspace_id, std::slice::from_ref(&row)).await?;
+    e.payment_hash = send::payment_token(state, workspace_id, &row);
+    // A deleted PDF or a store that isn't configured leaves the invoice readable.
+    if let Some(file) = row.pdf_file_id {
+        e.pdf_file = match files::service::get(state, workspace_id, &file.to_string()).await {
+            Ok(f) => Some(to_json(&f)?),
+            Err(AppError::NotFound | AppError::Unavailable(_)) => None,
+            Err(err) => return Err(err),
+        };
+    }
     let product_ids = unique(lines.iter().filter_map(|l| l.product_id));
     e.products = products::service::render_many(state, workspace_id, &product_ids).await?;
     let warehouse_ids = unique(lines.iter().filter_map(|l| l.mutate_from_warehouse_id));
@@ -310,7 +326,7 @@ pub async fn relation_deletable(
     Ok(())
 }
 
-fn parse(id: &str) -> Result<Uuid, AppError> {
+pub(super) fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
 }
 
@@ -326,8 +342,8 @@ fn out_of_range() -> AppError {
     AppError::field("items", "The item totals are out of range.")
 }
 
-/// Lock the live invoice `id`. 404 when unknown, 422 unless a draft.
-// shortcut: Laravel let credit invoices change in any status; credits arrive with F6.
+/// Lock the live invoice `id`. 404 when unknown, 422 unless a draft (Laravel let credit notes
+/// change in any status; here they are edited as drafts only).
 async fn draft(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -561,6 +577,7 @@ async fn write_lines(
                     .push(f.purchase_price.unwrap_or_default());
                 new.position
                     .push(f.position.or(i32::try_from(row.index).ok()).unwrap_or(1));
+                new.parent_item_id.push(None);
             }
             RowKind::Update(id, _) | RowKind::Delete(Some(id)) if superseded(id) => {}
             RowKind::Update(id, f) => {
@@ -608,14 +625,15 @@ fn price(lines: &[repo::ItemRow], dp: u32) -> Result<(engine::Summary, engine::M
     Ok((summary, margin))
 }
 
-/// Recompute the totals from the stored lines and write them (C1: same transaction). The
-/// margin is computed too, so a line the detail can't price is refused here.
-async fn store_totals(
+/// Recompute the totals from the stored lines and write them (C1: same transaction); the
+/// total in minor units. The margin is computed too, so a line the detail can't price is
+/// refused here.
+pub(super) async fn store_totals(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     invoice_id: Uuid,
     currency_id: Uuid,
-) -> Result<(), AppError> {
+) -> Result<i64, AppError> {
     let lines = repo::lines(&mut *conn, workspace_id, invoice_id).await?;
     if lines.len() > MAX_LINES {
         return Err(AppError::field(
@@ -640,16 +658,17 @@ async fn store_totals(
             .and_then(|m| i64::try_from(m.round()).ok())
             .ok_or_else(out_of_range)
     };
+    let total = minor(s.total)?;
     repo::set_totals(
         conn,
         workspace_id,
         invoice_id,
         minor(s.excl)?,
-        minor(s.total)?,
+        total,
         &resource::stored_summary(&s, discounted, dp),
     )
     .await?;
-    Ok(())
+    Ok(total)
 }
 
 fn engine_line(l: &repo::ItemRow) -> engine::Line {
@@ -696,26 +715,58 @@ pub async fn preview(
     id: &str,
     template_id: Option<Uuid>,
 ) -> Result<crate::modules::files::dto::FileResource, AppError> {
-    use crate::modules::{files, pdf_templates};
+    use crate::modules::pdf_templates;
     let id = parse(id)?;
-    files::service::store(state)?;
     let template = match template_id {
         Some(t) => pdf_templates::repo::find(&state.db, workspace_id, t, Some("invoice")).await?,
         None => None,
     };
-    let pdf =
-        crate::modules::invoices::pdf::render(state, workspace_id, id, template.as_ref()).await?;
-    let file_id = files::service::create(
-        state,
-        workspace_id,
-        user_id,
-        files::service::NewFile {
-            document_name: &pdf.file_name,
-            description: None,
-            meta: None,
-            bytes: pdf.bytes,
-        },
-    )
-    .await?;
+    let (file_id, _) = send::render(state, workspace_id, user_id, id, template.as_ref()).await?;
     files::service::get(state, workspace_id, &file_id.to_string()).await
+}
+
+/// GET /v1/invoices/fetch-from-hashed/{token}: a sent invoice by its payment token, for the
+/// public payment page. 404 for anything else (no hint whether a token ever existed).
+pub async fn public(state: &AppState, token: &str) -> Result<Value, AppError> {
+    use crate::modules::{
+        auth::token as secret,
+        workspaces::{self, dto::Profile},
+    };
+    if !secret::looks_valid(token) {
+        return Err(AppError::NotFound);
+    }
+    let (workspace_id, id) = repo::by_token(&state.db, &secret::hash(token))
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let row = repo::find(&state.db, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let lines = repo::lines(&state.db, workspace_id, id).await?;
+    let dp = match resource::read_summary(&row.summary).2 {
+        Some(dp) => dp,
+        None => dp(repo::currency_decimals(&state.db, workspace_id, row.currency_id).await?)?,
+    };
+    let (summary, _) = price(&lines, dp)?;
+    // Laravel ShortCurrencyResource.
+    let currency = currencies::repo::find_many(&state.db, workspace_id, &[row.currency_id])
+        .await?
+        .pop()
+        .map(|c| {
+            serde_json::json!({ "name": c.name, "asset_type": c.asset_type,
+                                "symbol_prefix": c.symbol_prefix, "symbol_suffix": c.symbol_suffix,
+                                "decimals": c.decimals })
+        })
+        .unwrap_or(Value::Null);
+    // A deleted workspace's links die with it.
+    let workspace = workspaces::repo::record(&state.db, workspace_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let mut company = to_json(&Profile::from_stored(workspace.profile))?;
+    // Bank details stay (bank transfer); the credit limit is internal.
+    if let Some(account) = company.get_mut("account").and_then(Value::as_object_mut) {
+        account.remove("credit_limit");
+    }
+    Ok(resource::public(
+        &row, &lines, &summary, token, currency, company,
+    ))
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at, invoice_number, invoice_appendix,\n                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -189,6 +189,72 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 17,
+        "name": "invoice_number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_number"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "invoice_appendix",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_appendix"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "previous_invoice_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "previous_invoice_id"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "pdf_file_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "pdf_file_id"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "payment_token",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "payment_token"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "payment_token_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "payment_token_key_id"
+          }
+        }
       }
     ],
     "parameters": {
@@ -214,8 +280,14 @@
       true,
       false,
       false,
-      false
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "724199544129d50bbb99010075c0237a49634f5988642c3d1b64aadf1196dd11"
+  "hash": "0e762fcdec346e03e7da25ac103deceb1d0c073b41a4382fc793f079f3698fc0"
 }

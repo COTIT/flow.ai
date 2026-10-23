@@ -5,14 +5,19 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
-    modules::currencies::{
-        dto::{CurrencyPatch, NewCurrency},
-        repo::{self, CurrencyRow},
+    modules::{
+        currencies::{
+            dto::{CurrencyPatch, NewCurrency},
+            repo::{self, CurrencyRow},
+        },
+        invoices,
     },
 };
 
 /// Lost a race against another default switch (the partial unique index caught it).
 const DEFAULT_RACE: &str = "Another currency became the default at the same time. Try again.";
+const DECIMALS_SENT: &str =
+    "The decimals can not change: invoices in this currency have been sent.";
 
 /// One list page plus the total matching count.
 pub async fn list(
@@ -62,6 +67,18 @@ pub async fn update(
 ) -> Result<(), AppError> {
     let id = parse(id)?;
     let mut tx = state.db.begin().await?;
+    // A sent invoice's totals and PDF keep the decimals they were priced with. The row lock
+    // waits for a send in progress (it share-locks the currency).
+    if let Some(decimals) = patch.decimals {
+        let stored = repo::lock_decimals(&mut tx, workspace_id, id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        if stored != decimals
+            && invoices::repo::sent_in_currency(&mut *tx, workspace_id, id).await?
+        {
+            return Err(AppError::field("decimals", DECIMALS_SENT));
+        }
+    }
     if patch.default_currency == Some(true) {
         repo::clear_default(&mut *tx, workspace_id, Some(id)).await?;
     }

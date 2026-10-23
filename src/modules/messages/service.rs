@@ -50,6 +50,10 @@ pub struct Outgoing<'a> {
     pub email_profile_id: Option<Uuid>,
     /// Laravel's message type (`send_invoice`, …): picks a Graph sender.
     pub message_type: Option<&'a str>,
+    /// The document the mail is about (`("invoice", id)`), stored on the send log.
+    pub entity: Option<(&'a str, Uuid)>,
+    /// A call-to-action under the body: (text, URL).
+    pub button: Option<(&'a str, &'a str)>,
 }
 
 /// How a mail leaves, from whom, with which footer.
@@ -81,6 +85,7 @@ pub async fn send(
     let attachments = attachments(state, rows, cap).await?;
     let html = Layout {
         body: o.body,
+        button: o.button,
         footer: &route.footer,
         year: chrono::Utc::now().year(),
     }
@@ -100,6 +105,7 @@ pub async fn send(
             to: &o.to,
             cc: &o.cc,
             bcc: &o.bcc,
+            entity: o.entity,
         },
     )
     .await?;
@@ -365,6 +371,20 @@ async fn company_name(state: &AppState, workspace_id: Uuid) -> Result<Option<Str
     Ok(record.and_then(|r| r.profile.and_then(|p| text(&p["company_name"]))))
 }
 
+/// The checks `send` makes before any network call (attachments, sender, server), for a caller
+/// that commits work the mail belongs to first (an invoice number).
+pub async fn check(
+    state: &AppState,
+    workspace_id: Uuid,
+    attachments: &[Uuid],
+    email_profile_id: Option<Uuid>,
+    message_type: Option<&str>,
+) -> Result<(), AppError> {
+    attachment_rows(state, workspace_id, attachments).await?;
+    route(state, workspace_id, email_profile_id, message_type).await?;
+    Ok(())
+}
+
 /// The stored files `ids` of this workspace, in order; 422 for any other id.
 async fn attachment_rows(
     state: &AppState,
@@ -512,6 +532,7 @@ fn log_resource(workspace_id: Uuid, r: LogRow) -> Value {
 #[template(path = "mail/default.html")]
 struct Layout<'a> {
     body: &'a str,
+    button: Option<(&'a str, &'a str)>,
     footer: &'a str,
     year: i32,
 }

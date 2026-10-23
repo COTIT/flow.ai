@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO invoices (workspace_id, relation_id, currency_id, is_credit, payment_method,\n                               reference, note, billing_address, addressed_contact, meta,\n                               created_by)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n         RETURNING id",
+  "query": "INSERT INTO invoices (workspace_id, relation_id, currency_id, is_credit, payment_method,\n                               reference, note, billing_address, addressed_contact, meta,\n                               created_by, previous_invoice_id, customer_ref)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n         RETURNING id",
   "describe": {
     "columns": [
       {
@@ -27,12 +27,14 @@
         "Jsonb",
         "Jsonb",
         "Jsonb",
-        "Uuid"
+        "Uuid",
+        "Uuid",
+        "Jsonb"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "19d69326ebd9066d7234f824955475011df3f110eee8570e9797922fb3032119"
+  "hash": "31d497483bb35444348027590fd30a0e18c4b5685739f6ce589ed0b931fcaacd"
 }

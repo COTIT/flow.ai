@@ -19,7 +19,8 @@ use crate::{
         files,
         invoices::{
             repo::{self, InvoiceRow, ItemRow},
-            resource::read_summary,
+            resource::{self, read_summary},
+            send,
         },
         pdf_templates::{fields, repo::TemplateRow},
         pricing::engine,
@@ -38,6 +39,8 @@ const TAILWIND: &str = include_str!("../../../templates/pdf/tailwind.css");
 pub struct Pdf {
     pub bytes: Vec<u8>,
     pub file_name: String,
+    /// The invoice's `{invoice.*}` variables, for the mail that carries it.
+    pub variables: Vec<(String, String)>,
 }
 
 /// Render invoice `id` with `template` (an invoice template), else with the built-in layout.
@@ -83,7 +86,11 @@ pub async fn render(
         }
     };
     let bytes = renderer.render(html, page).await?;
-    Ok(Pdf { bytes, file_name })
+    Ok(Pdf {
+        bytes,
+        file_name,
+        variables: variables(&d),
+    })
 }
 
 /// Everything both layouts read.
@@ -98,6 +105,8 @@ struct Data {
     relation_type: Option<String>,
     contact: Option<ContactRow>,
     products: HashMap<Uuid, ProductRow>,
+    /// The public payment page, once sent.
+    payment_link: Option<String>,
 }
 
 impl Data {
@@ -148,7 +157,10 @@ impl Data {
             .into_iter()
             .map(|p| (p.id, p))
             .collect();
+        let payment_link = send::payment_token(state, workspace_id, &invoice)
+            .map(|t| send::payment_link(state, &t));
         Ok(Self {
+            payment_link,
             invoice,
             lines,
             summary,
@@ -162,13 +174,16 @@ impl Data {
         })
     }
 
-    /// Drafts have no number until F6 (send).
+    /// None until sent.
     fn invoice_nr(&self) -> Option<String> {
-        None
+        resource::number(&self.invoice)
     }
 
+    /// The decimals the stored totals were priced with, else the currency's.
     fn dp(&self) -> u32 {
-        u32::try_from(self.currency.decimals).unwrap_or(2)
+        read_summary(&self.invoice.summary)
+            .2
+            .unwrap_or(u32::try_from(self.currency.decimals).unwrap_or(2))
     }
 
     /// `symbol_prefix` + `number_format(v, decimals, ',', '.')` (Laravel's summary amounts).
@@ -311,8 +326,10 @@ fn variables(d: &Data) -> Vec<(String, String)> {
         ("status".into(), i.status.clone()),
         ("reference".into(), s(i.reference.as_deref())),
         ("note".into(), s(i.note.as_deref())),
-        // shortcut: no payment links until F8 (Mollie); print the link once invoices get one.
-        ("payment_link".into(), String::new()),
+        (
+            "payment_link".into(),
+            d.payment_link.clone().unwrap_or_default(),
+        ),
         ("send_date".into(), date(i.send_date)),
         (
             "payment_term".into(),
@@ -472,6 +489,15 @@ fn variables(d: &Data) -> Vec<(String, String)> {
         .collect();
     out.push((format!("invoice.{}", refs_key.0), refs_key.1));
     out
+}
+
+/// `{invoice.*}` variables of invoice `id` for a mail (Laravel Invoice::getVariables).
+pub async fn mail_variables(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Vec<(String, String)>, AppError> {
+    Ok(variables(&Data::load(state, workspace_id, id).await?))
 }
 
 /// `fill` with `customer_references` kept as HTML (built from escaped parts).

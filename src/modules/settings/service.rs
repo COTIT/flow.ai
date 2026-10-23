@@ -193,16 +193,25 @@ pub async fn numbering(
     workspace_id: Uuid,
     section: &str,
 ) -> Result<(Appendix, i64), AppError> {
+    let merged = section_or_default(db, workspace_id, section).await?;
+    Ok((
+        Appendix::from_section(&merged),
+        numbering::start_number(&merged),
+    ))
+}
+
+/// A section as stored over its defaults (`invoice`, `credit`, ...).
+pub async fn section_or_default(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    section: &str,
+) -> Result<Value, AppError> {
     let default = schema::defaults(section)
         .ok_or_else(|| AppError::Internal(format!("no settings section {section}")))?;
     let stored = repo::section(db, workspace_id, section)
         .await?
         .unwrap_or(Value::Null);
-    let merged = schema::overlay(&default, &stored);
-    Ok((
-        Appendix::from_section(&merged),
-        numbering::start_number(&merged),
-    ))
+    Ok(schema::overlay(&default, &stored))
 }
 
 /// A section as GET prints it: stored over defaults; cash register as its Laravel toArray.
