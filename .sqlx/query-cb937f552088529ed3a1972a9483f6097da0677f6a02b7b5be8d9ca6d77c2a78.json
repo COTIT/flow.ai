@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO document_counters (workspace_id, series, last_number) VALUES ($1, $2, $3)\n         ON CONFLICT (workspace_id, series) DO UPDATE\n            SET last_number = GREATEST(document_counters.last_number + 1, EXCLUDED.last_number),\n                updated_at = now()\n         RETURNING last_number",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "document_counters",
+            "name": "last_number"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cb937f552088529ed3a1972a9483f6097da0677f6a02b7b5be8d9ca6d77c2a78"
+}

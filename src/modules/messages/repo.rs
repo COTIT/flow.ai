@@ -16,6 +16,8 @@ pub struct NewLog<'a> {
     pub to: &'a [String],
     pub cc: &'a [String],
     pub bcc: &'a [String],
+    /// The document the mail is about (`("invoice", id)`).
+    pub entity: Option<(&'a str, Uuid)>,
 }
 
 /// A log row for the list.
@@ -56,9 +58,10 @@ pub async fn contact_email(
 pub async fn insert(tx: &mut PgConnection, l: &NewLog<'_>) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "INSERT INTO email_send_logs (id, workspace_id, user_id, provider, from_email, subject,
-                                      to_recipients, cc_recipients, bcc_recipients)
+                                      to_recipients, cc_recipients, bcc_recipients, entity_type,
+                                      entity_id)
          VALUES ($1, $2, $3, $4, $5, $6, to_jsonb($7::text[]), to_jsonb($8::text[]),
-                 to_jsonb($9::text[]))",
+                 to_jsonb($9::text[]), $10, $11)",
         l.id,
         l.workspace_id,
         l.user_id,
@@ -68,6 +71,8 @@ pub async fn insert(tx: &mut PgConnection, l: &NewLog<'_>) -> Result<(), sqlx::E
         l.to,
         l.cc,
         l.bcc,
+        l.entity.map(|e| e.0),
+        l.entity.map(|e| e.1),
     )
     .execute(&mut *tx)
     .await?;

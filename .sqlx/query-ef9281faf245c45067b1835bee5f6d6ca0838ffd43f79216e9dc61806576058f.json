@@ -1,0 +1,120 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.quantity, i.mutated_from_stock, p.id AS product_id,\n                  p.name AS product_name, p.reference_vendor,\n                  w.id AS \"warehouse_id?\", w.name AS \"warehouse_name?\", w.is_store AS \"is_store?\"\n           FROM items i\n           JOIN products p ON p.workspace_id = i.workspace_id AND p.id = i.product_id\n           LEFT JOIN LATERAL (\n               SELECT w.id, w.name, COALESCE(w.is_store, false) AS is_store\n               FROM warehouses w\n               WHERE w.workspace_id = i.workspace_id AND w.deleted_at IS NULL\n                 AND (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id)\n                      OR w.default_warehouse)\n               ORDER BY (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id))\n                        IS TRUE DESC\n               LIMIT 1\n           ) w ON true\n           WHERE i.workspace_id = $1 AND i.invoice_id = $2\n             AND p.type IN ('physical', 'physical_second_chance') AND p.has_stock\n             AND i.quantity <> i.mutated_from_stock\n           ORDER BY i.position, i.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "mutated_from_stock",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "mutated_from_stock"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "product_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "reference_vendor",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "reference_vendor"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "warehouse_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "warehouse_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "is_store?",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ef9281faf245c45067b1835bee5f6d6ca0838ffd43f79216e9dc61806576058f"
+}

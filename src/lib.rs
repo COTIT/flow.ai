@@ -37,9 +37,9 @@ pub use http::{
     slots::{Slots, WorkspaceSlots},
 };
 use modules::{
-    auth, contacts, currencies, custom_statuses, custom_types, discount_groups, discounts,
-    email_profiles, email_templates, email_verification, files, hourly_rates, invites, invoices,
-    messages, pdf_templates, permissions, price_corrections, pricing, product_brands,
+    auth, contacts, currencies, custom_statuses, custom_types, deal_pipelines, discount_groups,
+    discounts, email_profiles, email_templates, email_verification, files, hourly_rates, invites,
+    invoices, messages, pdf_templates, permissions, price_corrections, pricing, product_brands,
     product_categories, product_variants, products, relations, sales_groups, search, settings,
     shipment_methods, special_offers, stock, storage_locations, teams, users, vat_groups,
     warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves,
@@ -98,7 +98,8 @@ pub fn build_app(state: AppState) -> Router {
     let public = http::rate_limit::apply(
         auth::routes::public()
             .merge(invites::routes::public())
-            .merge(email_verification::routes::public()),
+            .merge(email_verification::routes::public())
+            .merge(invoices::routes::public()),
         state.rate_limit,
     );
     let public = http::timeout::body_deadline(public, state.body_deadline);
@@ -117,6 +118,7 @@ pub fn build_app(state: AppState) -> Router {
         .merge(shipment_methods::routes::private())
         .merge(custom_types::routes::private())
         .merge(custom_statuses::routes::private())
+        .merge(deal_pipelines::routes::private())
         .merge(search::routes::private())
         .merge(relations::routes::private())
         .merge(contacts::routes::private())

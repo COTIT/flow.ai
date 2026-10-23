@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT type AS kind, terms_and_periods, allow_invoicing_on_account\n           FROM relations WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "terms_and_periods",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "terms_and_periods"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "allow_invoicing_on_account",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "allow_invoicing_on_account"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "29119a3d82ca6d838e5cbf6ece877a0b4235e8f689d837ae840e548e47fbef1a"
+}

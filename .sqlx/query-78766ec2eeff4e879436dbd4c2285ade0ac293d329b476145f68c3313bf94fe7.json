@@ -1,0 +1,257 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.deal_pipeline_id, s.position, s.max_items_per_lane,\n                  s.max_days_in_lane, s.auto_archive_in_days, s.lane_color,\n                  s.deal_probability, s.is_won, s.is_lost, s.meta, s.created_at, s.updated_at,\n                  c.id AS \"cs_id?\", c.name AS \"cs_name?\", c.domain AS \"cs_domain?\",\n                  c.archived AS \"cs_archived?\", c.meta AS cs_meta,\n                  c.created_at AS \"cs_created_at?\", c.updated_at AS \"cs_updated_at?\"\n           FROM deal_pipeline_statuses s\n           LEFT JOIN custom_statuses c\n             ON c.workspace_id = s.workspace_id AND c.id = s.custom_status_id\n            AND c.deleted_at IS NULL\n           WHERE s.workspace_id = $1 AND s.deal_pipeline_id = ANY($2) AND s.deleted_at IS NULL\n           ORDER BY s.deal_pipeline_id, s.position, s.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "deal_pipeline_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "deal_pipeline_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "position",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "position"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "max_items_per_lane",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "max_items_per_lane"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "max_days_in_lane",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "max_days_in_lane"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "auto_archive_in_days",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "auto_archive_in_days"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "lane_color",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "lane_color"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "deal_probability",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "deal_probability"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "is_won",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "is_won"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "is_lost",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "is_lost"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "cs_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "custom_statuses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "cs_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "custom_statuses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "cs_domain?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "custom_statuses",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "cs_archived?",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "custom_statuses",
+            "name": "archived"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "cs_meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "custom_statuses",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "cs_created_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "custom_statuses",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "cs_updated_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "custom_statuses",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "78766ec2eeff4e879436dbd4c2285ade0ac293d329b476145f68c3313bf94fe7"
+}

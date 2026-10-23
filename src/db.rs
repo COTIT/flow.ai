@@ -22,8 +22,9 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 /// blue/green color still holding the role's slots) before giving up.
 pub const MIGRATE_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// Server-side limits on every request connection, sent as startup options. Numbering keeps
-/// its own `SET LOCAL lock_timeout = '5s'`.
+/// Server-side limits on every request connection, sent as startup options. Relation/product
+/// numbering and stock locks set their own `SET LOCAL lock_timeout = '5s'` (it lasts to
+/// commit, so an invoice send with stock lines waits 5s on the counter, else 10s).
 const REQUEST_LIMITS: [(&str, &str); 3] = [
     ("statement_timeout", "30s"),
     ("idle_in_transaction_session_timeout", "60s"),

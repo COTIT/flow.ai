@@ -232,3 +232,36 @@ pub async fn seed_defaults(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Resul
     .await
     .map(drop)
 }
+
+/// Decimals of live currency `id`, row locked until commit (a decimals edit checks the sent
+/// invoices under it).
+pub async fn lock_decimals(
+    conn: &mut sqlx::PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<i16>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT decimals FROM currencies
+         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(conn)
+    .await
+}
+
+/// Decimals of currency `id` (a deleted one still prices its invoices), share locked until
+/// commit: a send prices with them while a decimals edit waits.
+pub async fn share_decimals(
+    conn: &mut sqlx::PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<i16>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT decimals FROM currencies WHERE workspace_id = $1 AND id = $2 FOR SHARE",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(conn)
+    .await
+}

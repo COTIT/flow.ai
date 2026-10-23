@@ -48,6 +48,33 @@
       - the main warehouse is read inside the product update.
     - **Warehouses:** `flags_locked` takes `FOR NO KEY UPDATE`, so stock inserts referencing the warehouse aren't blocked. A default change is re-checked against `warehouse.set_default` under the row lock.
     - **Deploy:** `deploy.sh` bounds each pool to 1..100 and the limit to three digits.
+- Batch 8 B8-1 (deal pipelines; contract `docs/api/deal-pipelines.md`):
+  - **Migration `deal_pipelines`:** `deal_pipelines` (`sorting` a-z|pos|z-a) and `deal_pipeline_statuses`.
+    - Lane rules and won/lost flags are columns, not JSON. The custom status FK and the pipeline FK are composite, so they stay inside the workspace.
+    - `UNIQUE (workspace_id, deal_pipeline_id, id)` is the target of the deals FK in B8-2.
+    - Partial unique indexes on live columns: one per (board, custom status), one won and one lost per board.
+  - **Routes** under `/deal-pipelines`: list, get, create, patch, and status create / patch / delete. Each checks its `dealpipeline.*` or `dealpipelinestatus.*` catalog name; Laravel checked three of the seven.
+  - **Positions:** every column write locks the board row. A taken position moves that column and the ones after it one to the right in one statement, so positions stay distinct under parallel saves. The settings page's one-request-per-column reorder gives the requested order.
+  - **Laravel differences:**
+    - The won (or lost) column can be saved with its own flag still set; Laravel counted the edited column and refused.
+    - `type` is kept on create.
+    - Columns are addressed through their board's path.
+    - A status update without `position` keeps it (Laravel answered 500).
+    - Bad ids in a body are 422s, not 404/500.
+  - Review fixes: `position` is capped at 10000 (a column near the int maximum made every later shift a 500); columns pair with their boards through a map; patch binds borrow instead of cloning.
+  - **Not ported:** pipeline delete, duplicate and the single-status GET (no vimdesk-web caller). `summary` stays at zero and status delete moves no deals until the deals module (B8-2).
+- Final batch F6 (sending invoices, numbering, credit notes; contract `docs/api/invoices.md`):
+  - **Numbering:** migration `invoice_send` adds `document_counters` (one row per workspace and series, bumped by `numbering::next` as the last statement of the numbering transaction) and `invoices.invoice_number` / `invoice_appendix`. Invoices and credit notes share the `invoice` series; raising `invoice.start_number` moves it forward, lowering never moves it back. Unique `(workspace_id, invoice_number)` backstop; a clash is logged as an error and answered 503.
+  - **Database guards:** triggers refuse (23001) deleting a numbered invoice, changing its number, appendix, credit flag or workspace, setting it back to draft, soft-deleting it, and `TRUNCATE` while any invoice is numbered. A hard workspace delete with numbered invoices is blocked too (bookkeeping retention).
+  - **`POST /invoices/{id}/send`** (`invoice.send` + `workspace.send-message`): one transaction locks the draft, stores the contact and billing address, moves stock (6F's writer, slots locked sorted; stores may go negative, other warehouses refuse a shortage with 422), sets the dates (Laravel's due-date chain), the status (`pending`; `paid`/`credited` at a zero total), the payment token and, last, the number. After commit: the PDF (built-in layout or `pdf_template_id`) is stored as the invoice's `pdf_file` and mailed through F5b2's pipeline with `{invoice.*}` filled in, the PDF attached and a pay button. A PDF or mail failure keeps the number; resend retries.
+  - **`POST /invoices/{id}/resend`**, **`GET /invoices/send-tasks/active`** (always empty: sends are synchronous).
+  - **`POST /invoices/{id}/credit`** (`invoice.credit` + `invoice.create`): a draft credit note from Laravel's `fromInvoice` math (`credit_all`, `credit_amount`, `return_amount` incl. VAT), `parent_item_id` on its lines, `credited_amount` on the source lines, an unpaid source with nothing left cancelled. Fixes: a working return-amount cap; remaining quantities checked under the source's row lock; a credit note is never credited.
+  - **Public link** `GET /v1/invoices/fetch-from-hashed/{token}` (rate limited): a random token stored as sha256 plus a sealed copy (credential key) so the same link prints again. Purchase prices, stock and product codes are left out of the public lines.
+  - **Lock order:** send = invoice row → currency (shared) → stock slots (sorted) → counter; credit = source invoice row → new credit note. Tested: 20 parallel sends get 20 consecutive numbers; 10 parallel sends of one draft send it once; a refused send takes no number; parallel credits can't over-credit; parallel send and credit of one invoice don't deadlock.
+  - Detail prints `invoice_nr`, `payment_hash`, `previous_invoice_id`, `relationships.pdf_file`, and the lines' `credited_amount` / `amount_left_to_credit` / `mutated_from_stock`; the list keeps `payment_hash` null.
+  - A currency's `decimals` can't change once a sent invoice uses it (422 on `decimals`); the invoice PDF prints with the decimals its totals were priced with.
+  - Review fixes (security, Rust, database): everything the PDF and mail need (sidecar, store, template, attachments, sender, server, a recipient) is checked before the number is taken; delivery runs in its own task so a dropped request can't leave a numbered invoice half delivered; the send share-locks the currency and prices a draft again when its decimals changed; the `{…}` fill is linear and capped at 2 MiB; send/resend bodies are capped at 1 MiB; only numbered invoices are credited; the refund cap uses the engine's per-line rounding; the pay button and the public `open` amount only show while something is to pay; a deleted workspace's links 404 and the public profile drops the credit limit; resend mints a missing token and re-renders a deleted PDF; the down migration refuses to drop numbers.
+  - `Can<P>` takes an optional second permission (`Permission::ALSO`). Mail sends can carry an entity (`email_send_logs.entity_type` / `entity_id`) and a button; `/send-message` checks `pdf_template_id` as a uuid.
 
 - Final batch F5b2 (sending workspace mail; contract `docs/api/messages.md`):
   - **`src/mail`** is now a module, and every mail leaves through `Mailer::dispatch`: the recipient allow-list, then one transport within 15 s.

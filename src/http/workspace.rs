@@ -82,6 +82,8 @@ impl FromRequestParts<AppState> for WorkspaceAccess {
 pub trait Permission {
     /// `group.action` from the catalog.
     const NAME: &'static str;
+    /// A second name the route needs as well (Laravel request + policy checks).
+    const ALSO: Option<&'static str> = None;
 }
 
 /// `WorkspaceAccess` that also holds permission `P`, else 403. Runs before the body is
@@ -101,7 +103,7 @@ impl<P: Permission + Send> FromRequestParts<AppState> for Can<P> {
 
     async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
         let access = WorkspaceAccess::from_request_parts(parts, state).await?;
-        if !access.granted.allows(P::NAME) {
+        if !access.granted.allows(P::NAME) || P::ALSO.is_some_and(|n| !access.granted.allows(n)) {
             return Err(AppError::Forbidden(NOT_ALLOWED));
         }
         Ok(Self(access, PhantomData))

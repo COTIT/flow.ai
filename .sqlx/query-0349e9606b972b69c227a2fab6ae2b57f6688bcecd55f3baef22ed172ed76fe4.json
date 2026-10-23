@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deal_pipelines\n         SET name = COALESCE($3, name),\n             type = CASE WHEN $4 THEN $5 ELSE type END,\n             sorting = COALESCE($6, sorting),\n             meta = CASE WHEN $7 THEN $8 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0349e9606b972b69c227a2fab6ae2b57f6688bcecd55f3baef22ed172ed76fe4"
+}

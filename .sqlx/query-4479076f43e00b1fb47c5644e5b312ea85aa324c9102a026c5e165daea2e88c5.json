@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n             SELECT 1 FROM custom_statuses\n             WHERE id = $1 AND workspace_id = $2 AND domain = 'deal_pipeline'\n               AND deleted_at IS NULL\n           ) AS \"found!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "found!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4479076f43e00b1fb47c5644e5b312ea85aa324c9102a026c5e165daea2e88c5"
+}

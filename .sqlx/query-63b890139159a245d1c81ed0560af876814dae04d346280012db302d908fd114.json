@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deal_pipeline_statuses SET position = position + 1, updated_at = now()\n         WHERE workspace_id = $4 AND deal_pipeline_id = $1 AND deleted_at IS NULL\n           AND position >= $2 AND id IS DISTINCT FROM $3\n           AND EXISTS (SELECT 1 FROM deal_pipeline_statuses\n                       WHERE workspace_id = $4 AND deal_pipeline_id = $1\n                         AND deleted_at IS NULL AND position = $2\n                         AND id IS DISTINCT FROM $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "63b890139159a245d1c81ed0560af876814dae04d346280012db302d908fd114"
+}
