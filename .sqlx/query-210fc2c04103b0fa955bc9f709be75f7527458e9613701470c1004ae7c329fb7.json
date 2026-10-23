@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO jobs (workspace_id, kind, payload, priority, max_attempts,\n                               concurrency_key, dedupe_key, created_by)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n             ON CONFLICT (coalesce(workspace_id, '00000000-0000-0000-0000-000000000000'::uuid), dedupe_key)\n                 WHERE status IN ('queued', 'running') AND dedupe_key IS NOT NULL\n             DO NOTHING\n             RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Int2",
+        "Int4",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "210fc2c04103b0fa955bc9f709be75f7527458e9613701470c1004ae7c329fb7"
+}

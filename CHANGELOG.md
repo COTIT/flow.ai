@@ -48,6 +48,7 @@
       - the main warehouse is read inside the product update.
     - **Warehouses:** `flags_locked` takes `FOR NO KEY UPDATE`, so stock inserts referencing the warehouse aren't blocked. A default change is re-checked against `warehouse.set_default` under the row lock.
     - **Deploy:** `deploy.sh` bounds each pool to 1..100 and the limit to three digits.
+  - Parent review: dedupe keys are unique per workspace (system jobs share the nil scope), and so is the lookup. A global key would have handed workspace A's enqueue workspace B's live job.
 - Batch 8 B8-1 (deal pipelines; contract `docs/api/deal-pipelines.md`):
   - **Migration `deal_pipelines`:** `deal_pipelines` (`sorting` a-z|pos|z-a) and `deal_pipeline_statuses`.
     - Lane rules and won/lost flags are columns, not JSON. The custom status FK and the pipeline FK are composite, so they stay inside the workspace.

@@ -51,7 +51,7 @@ let id = jobs::repo::enqueue(&mut conn, &NewJob {
 | `priority` | Higher runs first | 0 |
 | `max_attempts` | Consecutive failures before `failed`, 1..100 | 5 |
 | `concurrency_key` | At most one **running** job per key (unique index). Others wait queued | none |
-| `dedupe_key` | At most one **queued or running** job per key. `enqueue` returns the live job's id instead of inserting | none |
+| `dedupe_key` | At most one **queued or running** job per key **within the job's workspace** (system jobs, workspace `None`, share one scope). `enqueue` returns that live job's id instead of inserting; the same key in another workspace is another job | none |
 | `created_by` | User who asked for it (polling routes filter on it) | none |
 
 `enqueue_coalesced(conn, job) -> Option<Uuid>` (workspace jobs only) skips the insert when a job of the same kind and workspace is queued and **hasn't started**: that job will also see your change. A job that started doesn't count, because it may already have passed your change. That covers a running job, and also one queued between chunks with its cursor moved on. Pair it with a `concurrency_key`, so the new job waits for the running one.

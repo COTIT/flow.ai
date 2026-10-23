@@ -55,10 +55,12 @@ CREATE INDEX jobs_queued_idx ON jobs (workspace_id, priority DESC, run_at, id)
 -- Running jobs per workspace (the cap); the reaper reads the same few rows. No index on
 -- `locked_until`: it would make every lease renewal a non-HOT update.
 CREATE INDEX jobs_running_idx ON jobs (workspace_id) WHERE status = 'running';
--- At most one running job per concurrency key, one live job per dedupe key.
+-- At most one running job per concurrency key, one live job per dedupe key and workspace:
+-- the same key in another workspace is another job (system jobs share the nil scope).
 CREATE UNIQUE INDEX jobs_one_running_key ON jobs (concurrency_key)
     WHERE status = 'running' AND concurrency_key IS NOT NULL;
-CREATE UNIQUE INDEX jobs_dedupe_key ON jobs (dedupe_key)
+CREATE UNIQUE INDEX jobs_dedupe_key
+    ON jobs (coalesce(workspace_id, '00000000-0000-0000-0000-000000000000'::uuid), dedupe_key)
     WHERE status IN ('queued', 'running') AND dedupe_key IS NOT NULL;
 -- The prune.
 CREATE INDEX jobs_finished_idx ON jobs (finished_at)

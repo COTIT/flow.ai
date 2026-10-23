@@ -30,7 +30,8 @@ pub struct NewJob {
     pub max_attempts: i32,
     /// At most one running job per key (one import per workspace).
     pub concurrency_key: Option<String>,
-    /// At most one queued or running job per key; enqueue returns the live one.
+    /// At most one queued or running job per key within its workspace (system jobs share one
+    /// scope); enqueue returns the live one.
     pub dedupe_key: Option<String>,
     /// User who asked for it.
     pub created_by: Option<Uuid>,
@@ -100,15 +101,17 @@ impl Claimed {
     }
 }
 
-/// Insert a job, or return the live job holding its `dedupe_key`. Takes a connection because
-/// the dedupe lookup must see a row a concurrent insert just committed (its own statement).
+/// Insert a job, or return the live job of the same workspace holding its `dedupe_key`. Takes
+/// a connection because the dedupe lookup must see a row a concurrent insert just committed
+/// (its own statement).
 pub async fn enqueue(conn: &mut PgConnection, job: &NewJob) -> Result<Uuid, sqlx::Error> {
     for _ in 0..RACE_TRIES {
         let inserted = sqlx::query_scalar!(
             "INSERT INTO jobs (workspace_id, kind, payload, priority, max_attempts,
                                concurrency_key, dedupe_key, created_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             ON CONFLICT (dedupe_key) WHERE status IN ('queued', 'running') AND dedupe_key IS NOT NULL
+             ON CONFLICT (coalesce(workspace_id, '00000000-0000-0000-0000-000000000000'::uuid), dedupe_key)
+                 WHERE status IN ('queued', 'running') AND dedupe_key IS NOT NULL
              DO NOTHING
              RETURNING id",
             job.workspace_id,
@@ -125,8 +128,13 @@ pub async fn enqueue(conn: &mut PgConnection, job: &NewJob) -> Result<Uuid, sqlx
         if let Some(id) = inserted {
             return Ok(id);
         }
+        // Same expression as the unique index: scoped to the workspace, and indexable.
         let live = sqlx::query_scalar!(
-            "SELECT id FROM jobs WHERE dedupe_key = $1 AND status IN ('queued', 'running')",
+            "SELECT id FROM jobs
+             WHERE coalesce(workspace_id, '00000000-0000-0000-0000-000000000000'::uuid)
+                   = coalesce($1, '00000000-0000-0000-0000-000000000000'::uuid)
+               AND dedupe_key = $2 AND status IN ('queued', 'running')",
+            job.workspace_id,
             job.dedupe_key,
         )
         .fetch_optional(&mut *conn)

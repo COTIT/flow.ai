@@ -547,3 +547,34 @@ async fn reap_skips_a_row_another_transaction_holds(pool: PgPool) {
     holder.rollback().await.unwrap();
     assert_eq!(repo::reap(&pool).await.unwrap(), 1);
 }
+
+#[sqlx::test]
+async fn dedupe_keys_are_scoped_per_workspace(pool: PgPool) {
+    let (a, b) = (workspace(&pool, "ta").await, workspace(&pool, "tb").await);
+    let job = |ws: Option<Uuid>| NewJob {
+        workspace_id: ws,
+        dedupe_key: Some("import:prices.csv".to_owned()),
+        ..NewJob::new(KIND)
+    };
+
+    let in_a = enqueue(&pool, job(Some(a))).await;
+    let in_b = enqueue(&pool, job(Some(b))).await;
+    assert_ne!(in_a, in_b, "workspace B must never get workspace A's job");
+    assert_eq!(
+        enqueue(&pool, job(Some(a))).await,
+        in_a,
+        "same workspace dedupes"
+    );
+
+    let system = enqueue(&pool, job(None)).await;
+    assert!(
+        system != in_a && system != in_b,
+        "system jobs have their own scope"
+    );
+    assert_eq!(enqueue(&pool, job(None)).await, system);
+    let live: i64 = sqlx::query_scalar("SELECT count(*) FROM jobs")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(live, 3);
+}
