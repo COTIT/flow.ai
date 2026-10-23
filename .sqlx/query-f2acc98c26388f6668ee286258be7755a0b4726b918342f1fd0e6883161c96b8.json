@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deal_pipeline_statuses SET deleted_at = now(), updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deal_pipeline_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f2acc98c26388f6668ee286258be7755a0b4726b918342f1fd0e6883161c96b8"
+}

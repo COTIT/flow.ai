@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deal_pipeline_statuses\n         SET position = COALESCE($4, position),\n             max_items_per_lane = COALESCE($5, max_items_per_lane),\n             max_days_in_lane = COALESCE($6, max_days_in_lane),\n             auto_archive_in_days = COALESCE($7, auto_archive_in_days),\n             lane_color = COALESCE($8, lane_color),\n             deal_probability = COALESCE($9, deal_probability),\n             is_won = COALESCE($10, is_won),\n             is_lost = COALESCE($11, is_lost),\n             meta = CASE WHEN $12 THEN $13 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deal_pipeline_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b50b90a97f792d87362f86d3d632599473bd4f533e3d7fa64caeb712826daf72"
+}

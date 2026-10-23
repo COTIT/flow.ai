@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n             SELECT 1 FROM deal_pipeline_statuses\n             WHERE workspace_id = $1 AND deal_pipeline_id = $2 AND custom_status_id = $3\n               AND deleted_at IS NULL\n           ) AS \"used!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "used!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d9c586f9937f83878ca1d3d0501909701b3b884bd02774a91c1e87089b5aa32a"
+}

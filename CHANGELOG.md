@@ -25,6 +25,21 @@
     - the public page shows nothing open on paid invoices;
     - payment routes run with the 64 KiB body limit.
 
+- Batch 8 B8-1 (deal pipelines; contract `docs/api/deal-pipelines.md`):
+  - **Migration `deal_pipelines`:** `deal_pipelines` (`sorting` a-z|pos|z-a) and `deal_pipeline_statuses`.
+    - Lane rules and won/lost flags are columns, not JSON. The custom status FK and the pipeline FK are composite, so they stay inside the workspace.
+    - `UNIQUE (workspace_id, deal_pipeline_id, id)` is the target of the deals FK in B8-2.
+    - Partial unique indexes on live columns: one per (board, custom status), one won and one lost per board.
+  - **Routes** under `/deal-pipelines`: list, get, create, patch, and status create / patch / delete. Each checks its `dealpipeline.*` or `dealpipelinestatus.*` catalog name; Laravel checked three of the seven.
+  - **Positions:** every column write locks the board row. A taken position moves that column and the ones after it one to the right in one statement, so positions stay distinct under parallel saves. The settings page's one-request-per-column reorder gives the requested order.
+  - **Laravel differences:**
+    - The won (or lost) column can be saved with its own flag still set; Laravel counted the edited column and refused.
+    - `type` is kept on create.
+    - Columns are addressed through their board's path.
+    - A status update without `position` keeps it (Laravel answered 500).
+    - Bad ids in a body are 422s, not 404/500.
+  - Review fixes: `position` is capped at 10000 (a column near the int maximum made every later shift a 500); columns pair with their boards through a map; patch binds borrow instead of cloning.
+  - **Not ported:** pipeline delete, duplicate and the single-status GET (no vimdesk-web caller). `summary` stays at zero and status delete moves no deals until the deals module (B8-2).
 - Final batch F6 (sending invoices, numbering, credit notes; contract `docs/api/invoices.md`):
   - **Numbering:** migration `invoice_send` adds `document_counters` (one row per workspace and series, bumped by `numbering::next` as the last statement of the numbering transaction) and `invoices.invoice_number` / `invoice_appendix`. Invoices and credit notes share the `invoice` series; raising `invoice.start_number` moves it forward, lowering never moves it back. Unique `(workspace_id, invoice_number)` backstop; a clash is logged as an error and answered 503.
   - **Database guards:** triggers refuse (23001) deleting a numbered invoice, changing its number, appendix, credit flag or workspace, setting it back to draft, soft-deleting it, and `TRUNCATE` while any invoice is numbered. A hard workspace delete with numbered invoices is blocked too (bookkeeping retention).
