@@ -63,6 +63,21 @@ pub enum AppError {
 }
 
 impl AppError {
+    /// A job failure a retry can't fix (bad input, missing or forbidden target).
+    pub fn is_permanent(&self) -> bool {
+        matches!(
+            self,
+            Self::Validation(_)
+                | Self::Unauthorized
+                | Self::InvalidCredentials
+                | Self::Forbidden(_)
+                | Self::BadRequest(_)
+                | Self::Unprocessable(_)
+                | Self::NotFound
+                | Self::PayloadTooLarge
+        )
+    }
+
     /// One-field 422 for checks only service can do (e.g. email taken).
     pub fn field(field: &str, message: impl Into<String>) -> Self {
         Self::Validation(BTreeMap::from([(field.to_owned(), vec![message.into()])]))

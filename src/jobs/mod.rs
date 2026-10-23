@@ -2,3 +2,4 @@
 //! lease, chunked jobs resume from their cursor. Contract: `docs/api/jobs.md`.
 
 pub mod repo;
+pub mod runner;
