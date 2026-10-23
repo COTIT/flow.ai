@@ -13,6 +13,7 @@ pub mod email_verification;
 pub mod files;
 pub mod hourly_rates;
 pub mod invites;
+pub mod invoice_payments;
 pub mod invoices;
 pub mod messages;
 pub mod pdf_templates;
