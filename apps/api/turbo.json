@@ -1,0 +1,31 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": ["src/**", "migrations/**", "templates/**", ".sqlx/**", "build.rs", "Cargo.toml", "Cargo.lock", "sqlx.toml"],
+      "outputs": [],
+      "cache": false,
+      "passThroughEnv": ["CARGO_*", "RUSTUP_*", "SQLX_OFFLINE", "GENESY_DATABASE_URL", "DATABASE_URL"]
+    },
+    "lint": {
+      "inputs": ["src/**", "tests/**", "migrations/**", "templates/**", ".sqlx/**", "build.rs", "Cargo.toml", "Cargo.lock", "sqlx.toml"],
+      "outputs": [],
+      "passThroughEnv": ["CARGO_*", "RUSTUP_*", "SQLX_OFFLINE", "GENESY_DATABASE_URL", "DATABASE_URL"]
+    },
+    "typecheck": {
+      "inputs": ["src/**", "tests/**", "migrations/**", "templates/**", ".sqlx/**", "build.rs", "Cargo.toml", "Cargo.lock", "sqlx.toml"],
+      "outputs": [],
+      "passThroughEnv": ["CARGO_*", "RUSTUP_*", "SQLX_OFFLINE", "GENESY_DATABASE_URL", "DATABASE_URL"]
+    },
+    "test": {
+      "cache": false,
+      "passThroughEnv": ["CARGO_*", "RUSTUP_*", "SQLX_OFFLINE", "GENESY_DATABASE_URL", "DATABASE_URL", "RUST_LOG"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["CARGO_*", "RUSTUP_*", "SQLX_OFFLINE", "GENESY_DATABASE_URL", "DATABASE_URL", "RUST_LOG"]
+    }
+  }
+}
