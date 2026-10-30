@@ -86,7 +86,7 @@ export const getCurrenciesListQueryKey = (workspace: string,
     }
 
 
-export const getCurrenciesListQueryOptions = <TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getCurrenciesListQueryOptions = <TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: CurrenciesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -106,10 +106,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type CurrenciesListQueryResult = NonNullable<Awaited<ReturnType<typeof currenciesList>>>
-export type CurrenciesListQueryError = ErrorType<MessageBody>
+export type CurrenciesListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody>>(
+export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  CurrenciesListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -120,7 +120,7 @@ export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesLi
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody>>(
+export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: CurrenciesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -131,7 +131,7 @@ export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesLi
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody>>(
+export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: CurrenciesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -140,7 +140,7 @@ export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesLi
  * @summary List currencies
  */
 
-export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody>>(
+export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: CurrenciesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient

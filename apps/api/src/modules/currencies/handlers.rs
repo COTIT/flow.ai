@@ -41,9 +41,9 @@ type CurrencyPath = Path<(String, String)>;
     params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
         (status = 200, body = Paginated<CurrencyResource>, description = "One page of currencies"),
-        (status = 401, body = MessageBody, description = "Not logged in"),
         (status = 403, body = MessageBody, description = "Membership is inactive"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
     ),
     security(("bearer" = []))
 )]
@@ -76,7 +76,6 @@ pub async fn list(
     ),
     responses(
         (status = 200, body = Envelope<CurrencyResource>, description = "The currency"),
-        (status = 401, body = MessageBody, description = "Not logged in"),
         (status = 403, body = MessageBody, description = "Membership is inactive"),
         (status = 404, body = MessageBody, description = "Unknown workspace or currency, or caller not a member"),
     ),
@@ -99,7 +98,6 @@ pub async fn get(
     request_body = CreateCurrencyRequest,
     responses(
         (status = 201, body = Envelope<CurrencyCreated>, description = "Created; returns the new id"),
-        (status = 401, body = MessageBody, description = "Not logged in"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `currency.create`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input"),
@@ -126,7 +124,6 @@ pub async fn create(
     request_body = UpdateCurrencyRequest,
     responses(
         (status = 200, body = MessageBody, description = "Done (`ok`)"),
-        (status = 401, body = MessageBody, description = "Not logged in"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `currency.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or currency, or caller not a member"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input"),
@@ -153,7 +150,6 @@ pub async fn update(
     ),
     responses(
         (status = 200, body = MessageBody, description = "Done (`ok`)"),
-        (status = 401, body = MessageBody, description = "Not logged in"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `currency.delete`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or currency, or caller not a member"),
     ),

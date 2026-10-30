@@ -1,6 +1,7 @@
 //! Request/response bodies for auth endpoints. Field names match vimdesk-web payloads.
 
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -23,12 +24,19 @@ const SLUG_MESSAGE: &str =
 
 /// New-account fields shared by signup and invite register. `#[serde(flatten)]` it into a request.
 /// Every field `Option`, so a missing one is a 422 field error instead of a parse error.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "The new person's name, login email and password.")]
 pub struct PersonFields {
+    #[schema(value_type = String, max_length = 55)]
     first_name: Option<String>,
+    #[schema(max_length = 55)]
     middle_name: Option<String>,
+    #[schema(value_type = String, max_length = 55)]
     last_name: Option<String>,
+    #[schema(value_type = String, format = Email, max_length = 255)]
     email: Option<String>,
+    /// At least 8 characters with upper and lower case, a number and a symbol.
+    #[schema(value_type = String, format = Password, min_length = 8, max_length = 255, write_only)]
     password: Option<Password>,
 }
 
@@ -92,11 +100,16 @@ pub fn required_email(r: &mut Rules, field: &str, value: Option<String>) -> Opti
 }
 
 /// POST /v1/create-workspace body. Unknown fields (`meta`) ignored.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Sign up: a new account plus its first workspace.")]
 pub struct CreateWorkspaceRequest {
     #[serde(flatten)]
     person: PersonFields,
+    /// Lowercase letters, numbers and single dashes.
+    #[schema(value_type = String, max_length = 55, example = "acme")]
     workspace_name: Option<String>,
+    /// `retail` (default) or `manufacturing`.
+    #[schema(example = "retail")]
     workspace_type: Option<String>,
 }
 
@@ -141,9 +154,12 @@ impl Validate for CreateWorkspaceRequest {
 }
 
 /// POST /v1/login body.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Login with email and password.")]
 pub struct LoginRequest {
+    #[schema(value_type = String, format = Email)]
     email: Option<String>,
+    #[schema(value_type = String, format = Password, max_length = 255, write_only)]
     password: Option<Password>,
 }
 
@@ -175,10 +191,13 @@ impl Validate for LoginRequest {
 }
 
 /// `{data:{access_token, token_type, workspace_ids}}`, same keys as Laravel login/register.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A login session: send `access_token` as `Authorization: Bearer <token>`.")]
 pub struct TokenResponse {
     pub access_token: String,
+    #[schema(value_type = String, example = "Bearer")]
     pub token_type: &'static str,
+    /// Workspaces this account belongs to.
     pub workspace_ids: Vec<Uuid>,
 }
 

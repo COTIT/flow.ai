@@ -1,6 +1,7 @@
 //! Shared integration-test helpers: app with test defaults + one-call JSON request.
 #![allow(dead_code)] // each test binary uses a different subset
 
+pub mod contract;
 pub mod fake_smtp;
 
 use axum::extract::ConnectInfo;
@@ -81,6 +82,7 @@ pub fn app_with_mail(pool: PgPool) -> (Router, Outbox) {
 }
 
 /// Send request, return status + JSON body (`Value::Null` when body empty or not JSON).
+/// Replies on documented routes are checked against `openapi.json` (see `contract`).
 pub async fn send(
     app: &Router,
     method: Method,
@@ -88,7 +90,7 @@ pub async fn send(
     body: Option<Value>,
     bearer: Option<&str>,
 ) -> (StatusCode, Value) {
-    let mut req = Request::builder().method(method).uri(uri);
+    let mut req = Request::builder().method(method.clone()).uri(uri);
     if let Some(token) = bearer {
         req = req.header("authorization", format!("Bearer {token}"));
     }
@@ -106,10 +108,9 @@ pub async fn send(
     let res = app.clone().oneshot(req).await.unwrap();
     let status = res.status();
     let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    (
-        status,
-        serde_json::from_slice(&bytes).unwrap_or(Value::Null),
-    )
+    let body = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
+    contract::check(&method, uri, status, &body);
+    (status, body)
 }
 
 pub async fn post(app: &Router, uri: &str, body: Value) -> (StatusCode, Value) {

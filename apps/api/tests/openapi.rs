@@ -4,10 +4,56 @@
 mod common;
 
 use axum::http::{Method, StatusCode};
-use common::{app_with_mail, member_with, send, signup};
+use common::{app_with_mail, contract, member_with, send, signup};
 use genesy_360_api::openapi;
 use serde_json::{Value, json};
 use sqlx::PgPool;
+
+/// The matcher behind `send`'s automatic check: literal segments beat `{params}`,
+/// query strings are ignored, non-/v1 and unknown paths are skipped.
+#[test]
+fn contract_matcher_prefers_literal_segments() {
+    let paths = json!({
+        "/workspace/{workspace}/users/{user}": { "get": { "operationId": "member" } },
+        "/workspace/{workspace}/users/teams": { "get": { "operationId": "teams" } },
+    });
+    let hit = |uri| contract::find_route(&paths, &Method::GET, uri).map(|(t, _)| t);
+    assert_eq!(
+        hit("/v1/workspace/w1/users/teams?q=a"),
+        Some("/workspace/{workspace}/users/teams")
+    );
+    assert_eq!(
+        hit("/v1/workspace/w1/users/u9"),
+        Some("/workspace/{workspace}/users/{user}")
+    );
+    assert_eq!(hit("/v1/workspace/w1/users"), None);
+    assert_eq!(hit("/healthz"), None);
+    assert!(contract::find_route(&paths, &Method::POST, "/v1/workspace/w1/users/teams").is_none());
+}
+
+/// The check must flag undocumented statuses and wrong bodies, and skip routes not
+/// documented yet, or every test that relies on it proves nothing.
+#[test]
+fn contract_check_flags_drift() {
+    let item = "/v1/workspace/w1/currencies/c1";
+    let ok = json!({ "message": "The requested resource could not be found." });
+    assert_eq!(
+        contract::violations(&Method::GET, item, StatusCode::NOT_FOUND, &ok),
+        Some(vec![])
+    );
+    let teapot = contract::violations(&Method::GET, item, StatusCode::IM_A_TEAPOT, &ok).unwrap();
+    assert!(teapot[0].contains("not documented"), "{teapot:?}");
+    let bad = json!({ "data": { "id": 5 } });
+    assert!(
+        !contract::violations(&Method::GET, item, StatusCode::OK, &bad)
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        contract::violations(&Method::GET, "/v1/nowhere", StatusCode::OK, &ok),
+        None
+    );
+}
 
 const SPEC_FILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/openapi.json");
 const LIST: &str = "/workspace/{workspace}/currencies";
@@ -186,6 +232,38 @@ fn named_schemas_are_referenced_not_copied() {
             continue;
         }
         assert_eq!(copies(&s, schema), 1, "{name} is copied inline somewhere");
+    }
+}
+
+/// Middleware answers these on every route, so every operation must list them:
+/// 429/503 (with `Retry-After`) and 500 always; 408/413 when there is a body; 401 when
+/// a token is required.
+#[test]
+fn every_operation_documents_shared_errors() {
+    let s = spec();
+    for (path, item) in s["paths"].as_object().unwrap() {
+        for (method, op) in item.as_object().unwrap() {
+            let res = &op["responses"];
+            let at = format!("{method} {path}");
+            for code in ["429", "500", "503"] {
+                assert!(res[code].is_object(), "{at}: no {code}");
+            }
+            for code in ["429", "503"] {
+                assert!(
+                    res[code]["headers"]["Retry-After"].is_object(),
+                    "{at}: {code} without Retry-After"
+                );
+            }
+            if op.get("requestBody").is_some() {
+                assert!(
+                    res["408"].is_object() && res["413"].is_object(),
+                    "{at}: body without 408/413"
+                );
+            }
+            if op.get("security").is_some() {
+                assert!(res["401"].is_object(), "{at}: secured without 401");
+            }
+        }
     }
 }
 

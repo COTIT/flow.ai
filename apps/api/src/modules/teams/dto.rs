@@ -5,6 +5,13 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{
+    ToSchema,
+    openapi::{
+        Ref,
+        schema::{ArrayBuilder, ObjectBuilder, OneOfBuilder, Schema},
+    },
+};
 use uuid::Uuid;
 
 use crate::{
@@ -24,16 +31,38 @@ pub const BAD_USERS: &str = "user ids must be an array of valid user_ids";
 pub const NOT_IN_TEAM: &str = "This user ids does not exist in the team";
 
 /// Team in Laravel TeamResource shape.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A team: a named group of members sharing a set of permissions.")]
 pub struct TeamResource {
     id: Uuid,
     name: String,
     description: String,
+    /// Permission names, e.g. `currency.create`.
     permissions: Vec<String>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    #[schema(schema_with = relationships_schema)]
     relationships: Relationships,
+}
+
+/// Wire shape of [`Relationships`]: untagged, so derive can't describe it.
+fn relationships_schema() -> Schema {
+    OneOfBuilder::new()
+        .item(ArrayBuilder::new().max_items(Some(0)).build())
+        .item(
+            ObjectBuilder::new()
+                .property(
+                    "users",
+                    ArrayBuilder::new().items(Ref::from_schema_name("UserEmailResource")),
+                )
+                .required("users"),
+        )
+        .description(Some(
+            "`[]` when members were not loaded, otherwise `{\"users\": [...]}`",
+        ))
+        .into()
 }
 
 /// Laravel drops `users` when not loaded, leaving `[]`.

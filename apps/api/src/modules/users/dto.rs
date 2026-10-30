@@ -5,6 +5,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -366,14 +367,16 @@ impl MembersQuery {
 }
 
 /// Laravel UserEmailResource: a user embedded in another resource.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+/// A user shown inside another record (team member, inviter, ...).
 pub struct UserEmailResource {
     id: Uuid,
     name: String,
     initials: String,
     email: String,
     avatar_path: String,
-    /// No column yet.
+    /// Display color; not stored yet, always null.
+    #[schema(required = true)]
     color: Option<String>,
 }
 

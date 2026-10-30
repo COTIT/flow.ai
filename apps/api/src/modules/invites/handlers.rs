@@ -8,12 +8,12 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         auth::AuthUser,
         json::ValidatedJson,
         list::{Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::{
@@ -35,6 +35,17 @@ permissions! {
 }
 
 /// GET /v1/workspace/{workspace}/invites -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/invites", tag = "invites",
+    operation_id = "invites_list", summary = "List sent invites",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), InvitesQuery),
+    responses(
+        (status = 200, body = Paginated<InviteResource>, description = "One page of invites"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invite.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<InviteList>,
@@ -59,6 +70,20 @@ pub async fn list(
 }
 
 /// DELETE /v1/workspace/{workspace}/invites/{invite} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/invites/{invite}", tag = "invites",
+    operation_id = "invites_delete", summary = "Withdraw an invite",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("invite" = Uuid, Path, description = "Invite id"),
+    ),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invite.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invite, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<InviteDelete>,
@@ -69,6 +94,19 @@ pub async fn delete(
 }
 
 /// POST /v1/workspace/{workspace}/invites -> 201 `{data:{invite_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invites", tag = "invites",
+    operation_id = "invites_send", summary = "Invite someone by email",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = SendInviteRequest,
+    responses(
+        (status = 201, body = Envelope<InviteCreated>, description = "Invite sent; returns its id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invite.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, already a member, or invite pending"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn send(
     State(state): State<AppState>,
     access: Can<InviteCreate>,
@@ -86,6 +124,15 @@ pub async fn send(
 }
 
 /// GET /v1/invites/get-invite-status/{code} -> 200 status body.
+#[utoipa::path(
+    get, path = "/invites/get-invite-status/{code}", tag = "invites",
+    operation_id = "invites_status", summary = "Look up an invite link",
+    params(("code" = String, Path, description = "Code from the invite link")),
+    responses(
+        (status = 200, body = Envelope<InviteStatusResponse>, description = "The invite"),
+        (status = 404, body = MessageBody, description = "Unknown code"),
+    )
+)]
 pub async fn status(
     State(state): State<AppState>,
     Path(code): Path<String>,
@@ -94,6 +141,16 @@ pub async fn status(
 }
 
 /// POST /v1/register -> 201 token body.
+#[utoipa::path(
+    post, path = "/register", tag = "invites",
+    operation_id = "invites_register", summary = "Create an account through an invite",
+    request_body = RegisterRequest,
+    responses(
+        (status = 201, body = Envelope<TokenResponse>, description = "Account created and invite accepted; logged in"),
+        (status = 404, body = MessageBody, description = "Unknown, used or expired invite"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input or email mismatch"),
+    )
+)]
 pub async fn register(
     State(state): State<AppState>,
     ValidatedJson(input): ValidatedJson<RegisterRequest>,
@@ -103,6 +160,18 @@ pub async fn register(
 }
 
 /// POST /v1/invites -> 200 `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/invites", tag = "invites",
+    operation_id = "invites_answer", summary = "Accept or decline an invite",
+    request_body = AnswerRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Invite is for another email"),
+        (status = 404, body = MessageBody, description = "Unknown, used or expired invite"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn answer(
     State(state): State<AppState>,
     user: AuthUser,

@@ -1,5 +1,5 @@
-//! OpenAPI document + the documented routers. `build_app` mounts [`router`] and [`spec`]
-//! reads the same one, so a route can't be served without being documented.
+//! OpenAPI document + the documented routers. `build_app` mounts [`public`] and [`private`]
+//! and [`spec`] reads the same ones, so a route can't be served without being documented.
 //! Written to `openapi.json` by `UPDATE_OPENAPI=1 cargo test --test openapi`.
 
 use serde_json::{Value, json};
@@ -10,7 +10,10 @@ use utoipa::{
 use utoipa_axum::router::OpenApiRouter;
 
 use crate::{
-    AppState, error::ValidationErrorBody, http::response::MessageBody, modules::currencies,
+    AppState,
+    error::ValidationErrorBody,
+    http::response::MessageBody,
+    modules::{auth, currencies, email_verification, invites, users::dto::UserEmailResource},
 };
 
 #[derive(OpenApi)]
@@ -22,7 +25,8 @@ use crate::{
         license(name = "Proprietary")
     ),
     servers((url = "/v1")),
-    components(schemas(MessageBody, ValidationErrorBody)),
+    // UserEmailResource: referenced by name from the hand-written team `relationships` schema.
+    components(schemas(MessageBody, ValidationErrorBody, UserEmailResource)),
     modifiers(&BearerAuth)
 )]
 struct ApiDoc;
@@ -41,18 +45,78 @@ impl Modify for BearerAuth {
     }
 }
 
-/// Private routes already documented. Modules move here from `build_app`'s plain list as
-/// they get `#[utoipa::path]` annotations.
-pub(crate) fn router() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().merge(currencies::routes::private())
+/// Documented routes that need no token; `build_app` puts them behind the IP rate limit.
+pub(crate) fn public() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .merge(auth::routes::public())
+        .merge(invites::routes::public())
+        .merge(email_verification::routes::public())
 }
 
-/// Full spec, built from [`router`], as JSON.
+/// Documented routes that need a token. Modules move here from `build_app`'s plain list
+/// as they get `#[utoipa::path]` annotations.
+pub(crate) fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .merge(auth::routes::private())
+        .merge(invites::routes::private())
+        .merge(email_verification::routes::private())
+        .merge(currencies::routes::private())
+}
+
+/// Full spec, built from [`public`] and [`private`], as JSON.
 pub fn spec() -> Result<Value, serde_json::Error> {
-    let doc = ApiDoc::openapi().merge_from(router().split_for_parts().1);
+    let doc = ApiDoc::openapi()
+        .merge_from(public().split_for_parts().1)
+        .merge_from(private().split_for_parts().1);
     let mut doc = serde_json::to_value(doc)?;
+    add_shared_responses(&mut doc);
     reference_named_schemas(&mut doc);
     Ok(doc)
+}
+
+/// Responses the middleware gives on any route (rate limits, pool/timeouts, body limits,
+/// auth), added once here instead of on every handler. A handler's own entry wins.
+fn add_shared_responses(doc: &mut Value) {
+    let message =
+        json!({ "application/json": { "schema": { "$ref": "#/components/schemas/MessageBody" } } });
+    let retry = json!({ "Retry-After": {
+        "description": "Seconds to wait before retrying",
+        "schema": { "type": "integer" },
+    }});
+    let reply = |description: &str, headers: Option<&Value>| {
+        let mut r = json!({ "description": description, "content": message });
+        if let Some(h) = headers {
+            r["headers"] = h.clone();
+        }
+        r
+    };
+    let Some(paths) = doc.get_mut("paths").and_then(Value::as_object_mut) else {
+        return;
+    };
+    for op in paths
+        .values_mut()
+        .filter_map(Value::as_object_mut)
+        .flat_map(|item| item.values_mut())
+    {
+        let has_body = op.get("requestBody").is_some();
+        let secured = op.get("security").is_some();
+        let Some(responses) = op.get_mut("responses").and_then(Value::as_object_mut) else {
+            continue;
+        };
+        let mut add = |code: &str, r: Value| {
+            responses.entry(code).or_insert(r);
+        };
+        add("429", reply("Too many requests", Some(&retry)));
+        add("500", reply("Server error", None));
+        add("503", reply("Busy or timed out; retry later", Some(&retry)));
+        if has_body {
+            add("408", reply("Request body arrived too slowly", None));
+            add("413", reply("Request body too large", None));
+        }
+        if secured {
+            add("401", reply("Missing, invalid or expired token", None));
+        }
+    }
 }
 
 /// utoipa pastes generic args inline (`Envelope<CurrencyResource>` holds a full copy of

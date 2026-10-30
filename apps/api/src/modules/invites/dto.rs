@@ -3,6 +3,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -18,10 +19,14 @@ use crate::{
 pub const BAD_TEAM: &str = "The team id is an invalid id for the team domain.";
 
 /// POST /v1/workspace/{workspace}/invites. `team_id`: team the invitee joins on accept.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+/// Invite someone by email, optionally straight into a team.
 pub struct SendInviteRequest {
+    #[schema(value_type = String, format = Email, max_length = 255)]
     email: Option<String>,
-    /// Any JSON: a number or junk must be a `team_id` error, not a body parse error.
+    // Any JSON: a number or junk must be a `team_id` error, not a body parse error.
+    /// Team the invitee joins on accepting.
+    #[schema(value_type = Option<uuid::Uuid>)]
     team_id: Option<Value>,
 }
 
@@ -51,10 +56,13 @@ impl Validate for SendInviteRequest {
 }
 
 /// POST /v1/register: new account through an invite.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+/// Create an account through an invite link.
 pub struct RegisterRequest {
     #[serde(flatten)]
     person: PersonFields,
+    /// Code from the invite link.
+    #[schema(value_type = String)]
     invite_code: Option<String>,
 }
 
@@ -77,9 +85,13 @@ impl Validate for RegisterRequest {
 }
 
 /// POST /v1/invites: logged-in user accepts or declines.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+/// Accept (`true`) or decline (`false`) an invite as the logged-in user.
 pub struct AnswerRequest {
+    #[schema(value_type = bool)]
     accept: Option<bool>,
+    /// Code from the invite link.
+    #[schema(value_type = String)]
     invite_code: Option<String>,
 }
 
@@ -103,18 +115,21 @@ impl Validate for AnswerRequest {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct InviteCreated {
     pub invite_id: Uuid,
 }
 
 /// GET /v1/invites/get-invite-status/{code} body (Laravel InviteStatusResource keys).
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+/// What an invite link points to, for the accept or sign-up screen.
 pub struct InviteStatusResponse {
     id: Uuid,
     /// `pending` | `accepted` | `denied` | `expired`.
+    #[schema(value_type = String, example = "pending")]
     status: &'static str,
-    /// True when no account uses the invited email yet (frontend shows signup form).
+    // True when no account uses the invited email yet (frontend shows signup form).
+    /// No account uses this email yet: show the sign-up form.
     new_user: bool,
     workspace_name: String,
     email: String,
@@ -136,22 +151,28 @@ impl From<StatusView> for InviteStatusResponse {
 
 /// One settings pending-invites row (Laravel InviteResource). `invite_code` is left out: only
 /// its hash is stored, and the link goes to the invitee alone.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+/// A sent invite, as listed in workspace settings.
 pub struct InviteResource {
     invite_id: Uuid,
     email: String,
+    #[schema(example = "pending")]
     invite_status: String,
-    /// Inviter email (Laravel sent the email string).
+    // Inviter email (Laravel sent the email string).
+    /// Email of whoever sent the invite.
     invited_by: String,
     expired_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
     relationships: InviteRelationships,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct InviteRelationships {
+    /// Team the invitee joins on accepting.
+    #[schema(required = true)]
     team: Option<TeamResource>,
 }
 
@@ -174,10 +195,16 @@ impl From<WorkspaceInvite> for InviteResource {
 }
 
 /// GET /v1/workspace/{workspace}/invites query. Unknown params ignored.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct InvitesQuery {
+    /// Only invites with this status, e.g. `pending`.
     #[serde(rename = "filter[invite_status]")]
     pub status: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }

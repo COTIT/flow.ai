@@ -1,18 +1,16 @@
-//! Email verification routes, mounted under /v1.
+//! Email verification routes, mounted under /v1. Paths live in each handler's
+//! `#[utoipa::path]`, so router and OpenAPI spec share one source.
 
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::email_verification::handlers};
 
 /// No token needed; lib.rs puts these behind the rate limit.
-pub fn public() -> Router<AppState> {
-    Router::new().route("/verify-email/{token}", get(handlers::verify))
+pub fn public() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(handlers::verify))
 }
 
 /// Bearer token required (checked by `AuthUser` in each handler).
-pub fn private() -> Router<AppState> {
-    Router::new().route("/email/verification-notification", post(handlers::resend))
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(handlers::resend))
 }

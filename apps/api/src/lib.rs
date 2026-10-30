@@ -35,13 +35,12 @@ pub use http::{
     slots::{Slots, WorkspaceSlots},
 };
 use modules::{
-    auth, contacts, custom_statuses, custom_types, discount_groups, discounts, email_profiles,
-    email_templates, email_verification, files, hourly_rates, invites, invoices, messages,
-    pdf_templates, permissions, price_corrections, pricing, product_brands, product_categories,
-    product_variants, products, relations, sales_groups, search, settings, shipment_methods,
-    special_offers, stock, storage_locations, teams, users, vat_groups, warehouse_bins,
-    warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves, warehouses,
-    workspaces,
+    contacts, custom_statuses, custom_types, discount_groups, discounts, email_profiles,
+    email_templates, files, hourly_rates, invoices, messages, pdf_templates, permissions,
+    price_corrections, pricing, product_brands, product_categories, product_variants, products,
+    relations, sales_groups, search, settings, shipment_methods, special_offers, stock,
+    storage_locations, teams, users, vat_groups, warehouse_bins, warehouse_locations,
+    warehouse_rows, warehouse_sections, warehouse_shelves, warehouses, workspaces,
 };
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
@@ -93,22 +92,14 @@ pub async fn warm_up() {
 /// Full router. One entry point so tests run same middleware stack as prod.
 /// Serve with `into_make_service_with_connect_info::<SocketAddr>()`: the rate limit keys on peer IP.
 pub fn build_app(state: AppState) -> Router {
-    let public = http::rate_limit::apply(
-        auth::routes::public()
-            .merge(invites::routes::public())
-            .merge(email_verification::routes::public()),
-        state.rate_limit,
-    );
+    let public = http::rate_limit::apply(openapi::public().split_for_parts().0, state.rate_limit);
     let public = http::timeout::body_deadline(public, state.body_deadline);
     let private = Router::new()
-        .merge(auth::routes::private())
-        .merge(invites::routes::private())
-        .merge(email_verification::routes::private())
+        .merge(openapi::private().split_for_parts().0)
         .merge(users::routes::private())
         .merge(permissions::routes::private())
         .merge(teams::routes::private())
         .merge(workspaces::routes::private())
-        .merge(openapi::router().split_for_parts().0)
         .merge(vat_groups::routes::private())
         .merge(hourly_rates::routes::private())
         .merge(sales_groups::routes::private())
