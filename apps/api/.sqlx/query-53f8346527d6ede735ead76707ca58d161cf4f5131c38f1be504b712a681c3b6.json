@@ -1,0 +1,247 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.warehouse_id, w.name AS warehouse_name, s.section_name, s.section_code,\n                  s.category, s.description, s.rows, s.shelves_per_row, s.bins_per_shelf,\n                  s.total_bins, s.zone, s.temperature_control, s.restricted_access,\n                  s.assigned_manager, s.priority_level, s.created_at, s.updated_at,\n                  count(*) OVER () AS \"total!\"\n           FROM warehouse_sections s\n           JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           WHERE s.workspace_id = $1 AND s.warehouse_id = $2 AND s.deleted_at IS NULL\n             AND ($3::text IS NULL OR s.category = $3)\n             AND ($4::text IS NULL OR s.zone = $4)\n             AND ($5::text IS NULL OR s.priority_level = $5)\n             AND ($6::bool IS NULL OR s.restricted_access = $6)\n             AND ($7::text IS NULL OR s.section_name ILIKE $7 OR s.section_code ILIKE $7\n                  OR s.description ILIKE $7)\n           ORDER BY s.section_name, s.id\n           LIMIT $8 OFFSET $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "warehouse_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "section_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "section_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "section_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "section_code"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "category"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "rows",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "rows"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "shelves_per_row",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "shelves_per_row"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "bins_per_shelf",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "bins_per_shelf"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "total_bins",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "total_bins"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "zone",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "zone"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "temperature_control",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "temperature_control"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "restricted_access",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "restricted_access"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "assigned_manager",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "assigned_manager"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "priority_level",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "priority_level"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "53f8346527d6ede735ead76707ca58d161cf4f5131c38f1be504b712a681c3b6"
+}

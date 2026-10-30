@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_templates SET\n            template_name = COALESCE($3, template_name),\n            default_template = COALESCE($4, default_template),\n            subject = COALESCE($5, subject),\n            body = $6,\n            conditions = CASE WHEN $7 THEN $8 ELSE conditions END,\n            meta = CASE WHEN $9 THEN $10 ELSE meta END,\n            updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4a0336f4b5bf13177e5a68fc8b9d9c1ca83e2f60899e647b73708f111327162f"
+}

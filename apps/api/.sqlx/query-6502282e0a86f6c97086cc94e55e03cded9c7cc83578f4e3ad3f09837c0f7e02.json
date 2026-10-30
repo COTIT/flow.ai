@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM product_categories\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR name ILIKE $2)\n             AND ($3::uuid IS NULL OR parent_id = $3)\n             AND ($3::uuid IS NOT NULL OR NOT $4 OR parent_id IS NULL)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6502282e0a86f6c97086cc94e55e03cded9c7cc83578f4e3ad3f09837c0f7e02"
+}

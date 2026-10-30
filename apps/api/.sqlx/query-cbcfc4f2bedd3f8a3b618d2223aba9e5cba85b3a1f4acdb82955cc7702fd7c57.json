@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_profiles SET\n            name = $3, sender_name = $4, email = $5, is_default = $6,\n            html = CASE WHEN $7 THEN $8 ELSE html END,\n            smtp = CASE WHEN $9 THEN $10 ELSE smtp END,\n            smtp_password = CASE WHEN $11 THEN $12 ELSE smtp_password END,\n            smtp_key_id = CASE WHEN $11 THEN $13 ELSE smtp_key_id END,\n            conditions = CASE WHEN $14 THEN $15 ELSE conditions END,\n            updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Text",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Bytea",
+        "Text",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cbcfc4f2bedd3f8a3b618d2223aba9e5cba85b3a1f4acdb82955cc7702fd7c57"
+}

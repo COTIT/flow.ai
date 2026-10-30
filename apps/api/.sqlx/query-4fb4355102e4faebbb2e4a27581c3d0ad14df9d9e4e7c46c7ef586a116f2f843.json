@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT default_warehouse FROM warehouses\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "default_warehouse",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "default_warehouse"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4fb4355102e4faebbb2e4a27581c3d0ad14df9d9e4e7c46c7ef586a116f2f843"
+}

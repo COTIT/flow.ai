@@ -1,0 +1,376 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, slug, alias, description, is_store, default_warehouse,\n                  stock_count_enabled, pickup_enabled, auto_generate_transfer_list,\n                  total_sum_enabled, user_id, manager_id, manager_assistant_id, location,\n                  status, type AS kind, dimensions, loading_docks, sections, rows_per_sections,\n                  shelves_per_row, bins_per_shelf, management_contact, operating_hours,\n                  additional_settings, meta, created_at, updated_at,\n                  count(*) OVER () AS \"total!\"\n           FROM warehouses\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::uuid IS NULL OR parent_id = $2)\n             AND ($2::uuid IS NOT NULL OR NOT $3 OR parent_id IS NULL)\n             AND (NOT $4 OR pickup_enabled)\n           ORDER BY id\n           LIMIT $5 OFFSET $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "alias",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "alias"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "is_store",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "is_store"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "default_warehouse",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "default_warehouse"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "stock_count_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "stock_count_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "pickup_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "pickup_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "auto_generate_transfer_list",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "auto_generate_transfer_list"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "total_sum_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "total_sum_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "manager_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "manager_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "manager_assistant_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "manager_assistant_id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "location",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "location"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "dimensions",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "dimensions"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "loading_docks",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "loading_docks"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "sections",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "sections"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "rows_per_sections",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "rows_per_sections"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "shelves_per_row",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "shelves_per_row"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "bins_per_shelf",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "bins_per_shelf"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "management_contact",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "management_contact"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
+        "name": "operating_hours",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "operating_hours"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "additional_settings",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "additional_settings"
+          }
+        }
+      },
+      {
+        "ordinal": 26,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 27,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 28,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 29,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "0d1c7cd1ab409e312c6142e4581feb635cb489e9b20b04b998dddeea8d5a47ba"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM team_permissions p USING teams t\n         WHERE p.team_id = $1 AND t.id = p.team_id AND t.workspace_id = $2\n           AND p.permission = ANY($3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ab84935cf1c82b04d2beef505ecab0edbbe735685dcf4fd7ef370c5df3ab57cc"
+}

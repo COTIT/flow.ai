@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_categories SET\n             name = COALESCE($3, name),\n             parent_id = CASE WHEN $4 THEN $5 ELSE parent_id END,\n             description = CASE WHEN $6 THEN $7 ELSE description END,\n             meta = CASE WHEN $8 THEN $9 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "12b6385c1c41761f4f73f5f501bffa937b16f97d2fd38f7d6ad0de51d911dea5"
+}

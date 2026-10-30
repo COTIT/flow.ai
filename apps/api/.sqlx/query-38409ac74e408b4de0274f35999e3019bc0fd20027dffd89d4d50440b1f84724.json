@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE warehouse_section_row_bins SET\n             bin_code = COALESCE($4, bin_code),\n             bin_name = CASE WHEN $5 THEN $6 ELSE bin_name END,\n             side = CASE WHEN $7 THEN $8 ELSE side END,\n             position = CASE WHEN $9 THEN $10 ELSE position END,\n             bin_type = COALESCE($11, bin_type),\n             length_cm = CASE WHEN $12 THEN $13 ELSE length_cm END,\n             width_cm = CASE WHEN $14 THEN $15 ELSE width_cm END,\n             height_cm = CASE WHEN $16 THEN $17 ELSE height_cm END,\n             volume_m3 = CASE WHEN $18 THEN $19 ELSE volume_m3 END,\n             max_weight_kg = CASE WHEN $20 THEN $21 ELSE max_weight_kg END,\n             load_rating = CASE WHEN $22 THEN $23 ELSE load_rating END,\n             access_type = COALESCE($24, access_type),\n             priority_level = COALESCE($25, priority_level),\n             temperature_monitoring = COALESCE($26, temperature_monitoring),\n             barcode_scanner = COALESCE($27, barcode_scanner),\n             rfid_enabled = COALESCE($28, rfid_enabled),\n             security_lock = COALESCE($29, security_lock),\n             notes = CASE WHEN $30 THEN $31 ELSE notes END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND shelf_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Float8",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38409ac74e408b4de0274f35999e3019bc0fd20027dffd89d4d50440b1f84724"
+}

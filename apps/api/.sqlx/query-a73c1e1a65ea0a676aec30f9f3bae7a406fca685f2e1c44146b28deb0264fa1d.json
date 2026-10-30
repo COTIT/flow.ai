@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO warehouse_section_row_bins (workspace_id, warehouse_id, section_id, row_id,\n             shelf_id, bin_code, bin_name, side, position, bin_type, length_cm, width_cm,\n             height_cm, volume_m3, max_weight_kg, load_rating, access_type, priority_level,\n             temperature_monitoring, barcode_scanner, rfid_enabled, security_lock, notes)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,\n                 $18, COALESCE($19, false), COALESCE($20, false), COALESCE($21, false),\n                 COALESCE($22, false), $23)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Float8",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a73c1e1a65ea0a676aec30f9f3bae7a406fca685f2e1c44146b28deb0264fa1d"
+}

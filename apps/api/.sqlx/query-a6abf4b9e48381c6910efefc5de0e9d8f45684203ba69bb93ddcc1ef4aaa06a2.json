@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE special_offers SET\n             product_id = $3, from_date = $4, to_date = $5, always_active = $6, value = $7,\n             type = $8, base_price = $9, discount_rule_type = $10, condition_quantity = $11,\n             discount_quantity = $12, condition_brand = $13, condition_supplier_relation_id = $14,\n             condition_category_id = $15, target_brand = $16, target_supplier_relation_id = $17,\n             target_category_id = $18, target_product_id = $19, discount_value = $20,\n             discount_type = $21, priority = $22, apply_to_cheapest = $23, meta = $24,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Bool",
+        "Numeric",
+        "Text",
+        "Numeric",
+        "Text",
+        "Int4",
+        "Int4",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Text",
+        "Int4",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a6abf4b9e48381c6910efefc5de0e9d8f45684203ba69bb93ddcc1ef4aaa06a2"
+}

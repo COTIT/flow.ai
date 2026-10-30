@@ -1,0 +1,228 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.relation_id, i.currency_id, i.status, i.is_credit, i.payment_method,\n                  i.reference, i.note, i.billing_address, i.addressed_contact, i.customer_ref,\n                  i.meta, i.due_date, i.send_date, i.summary, i.created_at, i.updated_at\n           FROM invoices i\n           WHERE i.workspace_id = $1 AND i.deleted_at IS NULL\n             AND ($2::uuid IS NULL OR i.relation_id = $2)\n             AND ($3::text IS NULL OR i.status = $3)\n             AND ($5::bool IS NULL OR i.is_credit = $5)\n             AND (CASE WHEN $6\n                       THEN ($4::text[] IS NOT NULL AND i.status = ANY($4))\n                            OR (i.meta -> 'on_account' = 'true'\n                                AND i.status NOT IN ('paid', 'credited', 'cancelled'))\n                       ELSE $4::text[] IS NULL OR i.status = ANY($4) END)\n             AND ($7::text IS NULL OR i.reference ILIKE $7 OR EXISTS (\n                     SELECT 1 FROM relations r\n                     WHERE r.workspace_id = i.workspace_id AND r.id = i.relation_id\n                       AND (r.company_name ILIKE $7 OR r.alias ILIKE $7)))\n           ORDER BY i.created_at DESC, i.id DESC\n           LIMIT $8 OFFSET $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_credit",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "is_credit"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "payment_method",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "payment_method"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "reference",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "reference"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "billing_address",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "billing_address"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "addressed_contact",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "addressed_contact"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "customer_ref",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "customer_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "due_date",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "due_date"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "send_date",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "send_date"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "summary",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "summary"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "TextArray",
+        "Bool",
+        "Bool",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "beb352b3902de8bbe116d3b539bf7ff1d4fe672c190a3ce60db0c3f6a0bdfcaa"
+}

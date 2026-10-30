@@ -1,0 +1,176 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.subject, l.status, l.provider, l.to_recipients, l.cc_recipients,\n                  l.bcc_recipients,\n                  (SELECT count(*) FROM email_send_log_recipients r WHERE r.log_id = l.id)\n                    AS \"recipient_count!\",\n                  (SELECT COALESCE(sum(r.opened_count), 0) FROM email_send_log_recipients r\n                   WHERE r.log_id = l.id)::bigint AS \"opened_count!\",\n                  l.sent_at, l.delivered_at, l.bounced_at, l.opened_at, l.created_at\n           FROM email_send_logs l\n           WHERE l.workspace_id = $1\n           ORDER BY l.created_at DESC, l.id DESC\n           LIMIT $2 OFFSET $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "provider",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "to_recipients",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "to_recipients"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "cc_recipients",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "cc_recipients"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "bcc_recipients",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "bcc_recipients"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "recipient_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "opened_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "sent_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "sent_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "delivered_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "delivered_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "bounced_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "bounced_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "opened_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "opened_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_send_logs",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "34f0395c30bd3799119acd3650d1d7f240393195f5bfa5986e78da5697b66735"
+}

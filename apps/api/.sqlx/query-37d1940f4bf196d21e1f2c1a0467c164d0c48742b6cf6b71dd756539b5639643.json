@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_brands SET\n             name = COALESCE($3, name),\n             description = CASE WHEN $4 THEN $5 ELSE description END,\n             logo = CASE WHEN $6 THEN $7 ELSE logo END,\n             website = CASE WHEN $8 THEN $9 ELSE website END,\n             meta = CASE WHEN $10 THEN $11 ELSE meta END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "37d1940f4bf196d21e1f2c1a0467c164d0c48742b6cf6b71dd756539b5639643"
+}

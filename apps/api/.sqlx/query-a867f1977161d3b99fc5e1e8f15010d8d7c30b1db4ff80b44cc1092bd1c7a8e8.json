@@ -1,0 +1,158 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT h.id, h.field, h.old_value, h.new_value, h.changed_by_flow, h.created_at,\n                  u.first_name AS \"first_name?\", u.middle_name, u.last_name AS \"last_name?\",\n                  v.id AS \"variant_id?\", v.sku AS \"variant_sku?\",\n                  count(*) OVER () AS \"total!\"\n           FROM product_price_histories h\n           LEFT JOIN users u ON u.id = h.changed_by_user_id\n           LEFT JOIN product_variants v ON v.id = h.product_variant_id\n           WHERE h.workspace_id = $1 AND h.product_id = $2\n           ORDER BY h.created_at DESC, h.id DESC\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "product_price_histories",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "field",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_price_histories",
+            "name": "field"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "old_value",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_price_histories",
+            "name": "old_value"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "new_value",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_price_histories",
+            "name": "new_value"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "changed_by_flow",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_price_histories",
+            "name": "changed_by_flow"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "product_price_histories",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "first_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "first_name"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "middle_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "middle_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "last_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "variant_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "variant_sku?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "sku"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "a867f1977161d3b99fc5e1e8f15010d8d7c30b1db4ff80b44cc1092bd1c7a8e8"
+}

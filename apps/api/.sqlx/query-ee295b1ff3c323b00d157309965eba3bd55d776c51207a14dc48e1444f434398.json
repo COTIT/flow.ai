@@ -1,0 +1,245 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.stock_lvl, s.reserved, s.minimal_stock_level, s.maximum_stock_level,\n                  w.id AS \"w_id?\", w.name AS \"w_name?\",\n                  sh.id AS \"sh_id?\", sh.shelf_code AS \"sh_code?\", sh.shelf_name AS \"sh_name?\",\n                  r.id AS \"r_id?\", r.row_code AS \"r_code?\", r.row_name AS \"r_name?\",\n                  sec.id AS \"sec_id?\", sec.section_code AS \"sec_code?\",\n                  sec.section_name AS \"sec_name?\",\n                  b.id AS \"b_id?\", b.bin_code AS \"b_code?\", b.bin_name AS \"b_name?\"\n           FROM stocks s\n           LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL\n           LEFT JOIN warehouse_section_rows r ON r.id = sh.row_id AND r.deleted_at IS NULL\n           LEFT JOIN warehouse_sections sec ON sec.id = r.section_id AND sec.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL\n           WHERE s.workspace_id = $1 AND s.product_id = $2 AND s.deleted_at IS NULL\n           ORDER BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "stock_lvl",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "stock_lvl"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "reserved",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "reserved"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "minimal_stock_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "minimal_stock_level"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "maximum_stock_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "maximum_stock_level"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "w_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "w_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "sh_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "sh_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_code"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "sh_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "r_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "r_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "row_code"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "r_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "row_name"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "sec_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "sec_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "section_code"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "sec_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "section_name"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "b_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "b_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_code"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "b_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ee295b1ff3c323b00d157309965eba3bd55d776c51207a14dc48e1444f434398"
+}

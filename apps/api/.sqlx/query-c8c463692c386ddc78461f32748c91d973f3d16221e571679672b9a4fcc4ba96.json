@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pdf_templates SET\n            name = COALESCE($3, name),\n            columns = COALESCE($4, columns),\n            header_left = CASE WHEN $5 THEN $6 ELSE header_left END,\n            header_right = CASE WHEN $7 THEN $8 ELSE header_right END,\n            header_top = CASE WHEN $9 THEN $10 ELSE header_top END,\n            footer = CASE WHEN $11 THEN $12 ELSE footer END,\n            padding_top = COALESCE($13, padding_top),\n            padding_bottom = COALESCE($14, padding_bottom),\n            padding_x = COALESCE($15, padding_x),\n            enable_summary = COALESCE($16, enable_summary),\n            is_default = COALESCE($17, is_default),\n            conditions = CASE WHEN $18 THEN $19 ELSE conditions END,\n            extra_fields = CASE WHEN $20 THEN $21 ELSE extra_fields END,\n            meta = CASE WHEN $22 THEN $23 ELSE meta END,\n            background_file_id = CASE WHEN $24 THEN $25 ELSE background_file_id END,\n            logo_file_id = CASE WHEN $26 THEN $27 ELSE logo_file_id END,\n            updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Jsonb",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c8c463692c386ddc78461f32748c91d973f3d16221e571679672b9a4fcc4ba96"
+}

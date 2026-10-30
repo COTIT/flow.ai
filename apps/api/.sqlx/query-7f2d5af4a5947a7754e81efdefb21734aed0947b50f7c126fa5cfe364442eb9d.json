@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO custom_statuses (workspace_id, name, domain, meta)\n         SELECT $1, t.name, $2, $4\n         FROM unnest($3::text[]) WITH ORDINALITY AS t(name, n)\n         ORDER BY t.n\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "custom_statuses",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "TextArray",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7f2d5af4a5947a7754e81efdefb21734aed0947b50f7c126fa5cfe364442eb9d"
+}

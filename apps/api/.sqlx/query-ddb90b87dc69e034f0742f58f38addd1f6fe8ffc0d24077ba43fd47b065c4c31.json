@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT valid_from, valid_to FROM discounts\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "valid_from",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "discounts",
+            "name": "valid_from"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "valid_to",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "discounts",
+            "name": "valid_to"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "ddb90b87dc69e034f0742f58f38addd1f6fe8ffc0d24077ba43fd47b065c4c31"
+}

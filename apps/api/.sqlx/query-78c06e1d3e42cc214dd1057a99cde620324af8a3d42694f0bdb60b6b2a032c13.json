@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object(\n                'uuid', id, 'initials', initials, 'prefix', prefix, 'first_name', first_name,\n                'middle_name', middle_name, 'last_name', last_name, 'job_title', job_title,\n                'email', email, 'default_for', default_for, 'phones', phones) AS \"c!\"\n           FROM contacts\n           WHERE workspace_id = $1 AND relation_id = $2 AND id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "c!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "78c06e1d3e42cc214dd1057a99cde620324af8a3d42694f0bdb60b6b2a032c13"
+}

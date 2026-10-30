@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_price_histories (workspace_id, product_id, product_variant_id,\n             field, old_value, new_value, changed_by_user_id, changed_by_flow, created_at)\n         SELECT $1, $2, $3, f, o, n, $7, $8, clock_timestamp()\n         FROM unnest($4::text[], $5::numeric[], $6::numeric[]) WITH ORDINALITY AS t(f, o, n, i)\n         ORDER BY i",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "TextArray",
+        "NumericArray",
+        "NumericArray",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c9d713ac3ecda729eb211388be677b58dc6ca7bcabfcf241e4dbc11091c80107"
+}

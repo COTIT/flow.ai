@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM special_offers\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::uuid IS NULL OR product_id = $2)\n             AND ($3::text IS NULL OR ($3 = 'legacy' AND discount_rule_type IS NULL)\n                  OR discount_rule_type = $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "615a430d02de36ea59414ab2472fa0c8906f4a75bed4389dd813fc78deb0e9c4"
+}

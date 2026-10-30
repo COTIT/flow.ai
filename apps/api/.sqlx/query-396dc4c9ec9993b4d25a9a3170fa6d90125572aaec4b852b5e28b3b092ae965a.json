@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE storage_locations SET deleted_at = now(), updated_at = now()\n         WHERE workspace_id = $1 AND parent_domain = 'product' AND parent_id = $2\n           AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "396dc4c9ec9993b4d25a9a3170fa6d90125572aaec4b852b5e28b3b092ae965a"
+}

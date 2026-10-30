@@ -1,0 +1,198 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, workspace_id, warehouse_id, section_id, row_id, shelf_code, shelf_name,\n                shelf_level, side, bins_per_shelf, total_storage_bins, max_weight_kg, notes,\n                created_at, updated_at\n         FROM warehouse_section_row_shelves\n         WHERE id = $1 AND workspace_id = $2 AND row_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "section_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "section_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "row_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "row_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "shelf_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_code"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "shelf_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_name"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "shelf_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_level"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "side",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "side"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "bins_per_shelf",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "bins_per_shelf"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "total_storage_bins",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "total_storage_bins"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "max_weight_kg",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "max_weight_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "notes",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "notes"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "8010cde2f7bea2b61736071f023169dc27bc648926443191b20dcf79f1a4d3bb"
+}

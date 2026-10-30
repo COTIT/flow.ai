@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO discount_group_relation (workspace_id, discount_group_id, relation_id)\n         SELECT $1, $2, unnest($3::uuid[])\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6a7bb73638e8b1e1c519b6ce22eca7450f5a468d7853ffd9be1d54003c29ac86"
+}

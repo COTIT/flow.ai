@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE currencies SET default_currency = false, updated_at = now()\n         WHERE workspace_id = $1 AND default_currency AND deleted_at IS NULL\n           AND id IS DISTINCT FROM $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "59295f6cc63ad28e89317a98acc8c32af268f21e2d9c78a87c83342b5026ef41"
+}

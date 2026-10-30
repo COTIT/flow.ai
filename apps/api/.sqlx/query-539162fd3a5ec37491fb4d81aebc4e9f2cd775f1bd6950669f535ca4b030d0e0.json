@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET is_default = false, updated_at = now()\n         WHERE workspace_id = $1 AND product_id = $2 AND id <> $3 AND is_default\n           AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "539162fd3a5ec37491fb4d81aebc4e9f2cd775f1bd6950669f535ca4b030d0e0"
+}

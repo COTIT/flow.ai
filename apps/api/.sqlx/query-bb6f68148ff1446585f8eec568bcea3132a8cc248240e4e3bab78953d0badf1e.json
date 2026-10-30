@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO warehouse_section_rows (workspace_id, warehouse_id, section_id, row_code,\n             row_name, length_meters, width_meters, height_meters, orientation, row_type,\n             calculated_volume_cubic_meters, number_of_shelves, shelf_spacing_cm, position_x,\n             position_y, access_side, aisle_width_cm, equipment_access, priority_level,\n             temperature_zone, notes, enable_automatic_bin_labeling,\n             generate_qr_codes_for_shelves)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,\n                 $18, $19, $20, $21, COALESCE($22, false), COALESCE($23, false))\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Text",
+        "Text",
+        "Float8",
+        "Int4",
+        "Int4",
+        "Float8",
+        "Float8",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bb6f68148ff1446585f8eec568bcea3132a8cc248240e4e3bab78953d0badf1e"
+}

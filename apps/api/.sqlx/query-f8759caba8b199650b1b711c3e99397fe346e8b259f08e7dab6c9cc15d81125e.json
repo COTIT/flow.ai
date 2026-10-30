@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\"\n               FROM stocks s\n               JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL\n               JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n               WHERE s.workspace_id = $1 AND s.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f8759caba8b199650b1b711c3e99397fe346e8b259f08e7dab6c9cc15d81125e"
+}

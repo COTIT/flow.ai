@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE warehouse_section_row_shelves SET\n             shelf_code = COALESCE($4, shelf_code),\n             shelf_level = COALESCE($5, shelf_level),\n             shelf_name = CASE WHEN $6 THEN $7 ELSE shelf_name END,\n             side = CASE WHEN $8 THEN $9 ELSE side END,\n             bins_per_shelf = CASE WHEN $10 THEN $11 ELSE bins_per_shelf END,\n             total_storage_bins = CASE WHEN $12 THEN $13 ELSE total_storage_bins END,\n             max_weight_kg = CASE WHEN $14 THEN $15 ELSE max_weight_kg END,\n             notes = CASE WHEN $16 THEN $17 ELSE notes END,\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND row_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4",
+        "Bool",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5ebc10569004dacf403e4d3dd50c6f0cdb857e0d06a184bcec0cb11fb214c6e6"
+}

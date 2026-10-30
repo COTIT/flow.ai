@@ -1,0 +1,185 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.bin_code, b.bin_name, b.warehouse_id, w.id AS \"w_id?\",\n                  sec.id AS \"sec_id?\", sec.section_code AS \"sec_code?\",\n                  sec.section_name AS \"sec_name?\",\n                  r.id AS \"r_id?\", r.row_code AS \"r_code?\", r.row_name AS \"r_name?\",\n                  sh.id AS \"sh_id?\", sh.shelf_code AS \"sh_code?\", sh.shelf_name AS \"sh_name?\"\n           FROM warehouse_section_row_bins b\n           LEFT JOIN warehouses w ON w.id = b.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN warehouse_sections sec ON sec.id = b.section_id AND sec.deleted_at IS NULL\n           LEFT JOIN warehouse_section_rows r ON r.id = b.row_id AND r.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = b.shelf_id AND sh.deleted_at IS NULL\n           WHERE b.workspace_id = $1 AND b.deleted_at IS NULL\n             AND b.id IN (SELECT bin_id FROM stocks\n                          WHERE workspace_id = $1 AND product_id = $2 AND deleted_at IS NULL\n                            AND bin_id IS NOT NULL)\n           ORDER BY b.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "bin_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "bin_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "w_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "sec_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "sec_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "section_code"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "sec_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "section_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "r_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "r_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "row_code"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "r_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_rows",
+            "name": "row_name"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "sh_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "sh_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_code"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "sh_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "cb23f55cfc758b3b921f6fc55f9ce50fda905541718ccab0e63c12722306a9e5"
+}

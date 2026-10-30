@@ -1,0 +1,143 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, template_name, template_domain, default_template, subject, body,\n                  conditions, meta, created_at, updated_at\n           FROM email_templates\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR template_domain = $2)\n             AND ($3::text IS NULL OR template_name ILIKE $3 OR subject ILIKE $3)\n             AND ($4::text IS NULL OR conditions->>'relation_type' IS NULL\n                  OR conditions->>'relation_type' = $4)\n             AND ($5::text IS NULL OR conditions->>'language' IS NULL\n                  OR conditions->>'language' = $5)\n             AND ($6::text IS NULL OR conditions->>'relation_custom_type_id' IS NULL\n                  OR conditions->>'relation_custom_type_id' = $6)\n           ORDER BY created_at DESC, id DESC\n           LIMIT $7 OFFSET $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "template_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "template_name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "template_domain",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "template_domain"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "default_template",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "default_template"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "subject",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "subject"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "body",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "body"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "conditions",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "conditions"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "email_templates",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "1c0ac8623bf1dd603cb92323bb96c793814aa62126c37e1961e28f61b94a4f30"
+}

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO workspace_credentials (workspace_id, path, key_id, sealed, updated_by)\n         VALUES ($1, $2, $3, $4, $5)\n         ON CONFLICT (workspace_id, path)\n         DO UPDATE SET key_id = EXCLUDED.key_id, sealed = EXCLUDED.sealed,\n                       updated_by = EXCLUDED.updated_by, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bytea",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "70930f81922e91a0c6d805b597efa88097b8cd4f86b3b3fcea5f3d13cdc526c0"
+}

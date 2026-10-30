@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_profiles SET deleted_at = now(), smtp_password = NULL, smtp_key_id = NULL,\n                                   updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b04576e5ec6d3bf7ae377ba7134ac4e6b3a4aceb4225690b45a988eaa4f9025e"
+}

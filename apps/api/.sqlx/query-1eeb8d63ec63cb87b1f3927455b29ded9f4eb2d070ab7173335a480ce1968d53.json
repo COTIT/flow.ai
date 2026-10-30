@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO variant_option_values (workspace_id, product_variant_id, option_value_id)\n         SELECT $1, $2, v FROM unnest($3::uuid[]) AS t(v)\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1eeb8d63ec63cb87b1f3927455b29ded9f4eb2d070ab7173335a480ce1968d53"
+}

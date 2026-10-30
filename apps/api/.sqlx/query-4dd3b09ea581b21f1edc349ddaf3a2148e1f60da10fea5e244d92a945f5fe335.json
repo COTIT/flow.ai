@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n             SELECT 1 FROM custom_types\n             WHERE workspace_id = $1 AND domain = $2 AND lower(name) = lower($3)\n               AND deleted_at IS NULL AND id IS DISTINCT FROM $4\n           ) AS \"taken!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "taken!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4dd3b09ea581b21f1edc349ddaf3a2148e1f60da10fea5e244d92a945f5fe335"
+}

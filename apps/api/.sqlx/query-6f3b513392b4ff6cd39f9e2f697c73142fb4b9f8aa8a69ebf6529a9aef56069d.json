@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT parent_id AS \"parent_id!\", id, name, slug, alias, is_store, pickup_enabled,\n                  status, type AS kind\n           FROM warehouses\n           WHERE workspace_id = $1 AND parent_id = ANY($2) AND deleted_at IS NULL\n           ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "parent_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "parent_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "alias",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "alias"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "is_store",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "is_store"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "pickup_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "pickup_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "type"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "6f3b513392b4ff6cd39f9e2f697c73142fb4b9f8aa8a69ebf6529a9aef56069d"
+}

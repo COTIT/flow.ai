@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO warehouse_sections (workspace_id, warehouse_id, section_name, section_code,\n             category, description, rows, shelves_per_row, bins_per_shelf, total_bins, zone,\n             temperature_control, restricted_access, assigned_manager, priority_level)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, COALESCE($12, 'ambient'),\n                 COALESCE($13, false), $14, COALESCE($15, 'standard'))\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_sections",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Text",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fc7843ecf0aa956a2ff955c8c2d50143617c113ad56f1ab54fb40bd455ba31cc"
+}

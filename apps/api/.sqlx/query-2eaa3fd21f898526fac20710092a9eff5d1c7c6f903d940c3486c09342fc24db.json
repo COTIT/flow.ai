@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.workspace_id FROM workspace_members m\n         JOIN workspaces w ON w.id = m.workspace_id\n         WHERE m.user_id = $1 AND m.active AND w.deleted_at IS NULL\n         ORDER BY m.created_at, m.workspace_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workspace_members",
+            "name": "workspace_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2eaa3fd21f898526fac20710092a9eff5d1c7c6f903d940c3486c09342fc24db"
+}

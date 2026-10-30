@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE warehouse_section_rows SET deleted_at = now(), updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND section_id = $3 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "42bc1fec275585bc85e89dbe0c0e4c1ce0f3326c7cd14d6e2dd4b25801d45f7d"
+}

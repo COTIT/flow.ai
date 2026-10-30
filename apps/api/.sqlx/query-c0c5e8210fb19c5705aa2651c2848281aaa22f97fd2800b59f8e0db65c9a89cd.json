@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM warehouse_locations\n           WHERE workspace_id = $1 AND warehouse_id = $2 AND deleted_at IS NULL\n             AND ($3::text IS NULL OR location ILIKE $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c0c5e8210fb19c5705aa2651c2848281aaa22f97fd2800b59f8e0db65c9a89cd"
+}

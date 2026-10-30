@@ -1,0 +1,415 @@
+# Changelog
+
+## Unreleased
+
+- Final batch F5b2 (sending workspace mail; contract `docs/api/messages.md`):
+  - **`src/mail`** is now a module, and every mail leaves through `Mailer::dispatch`: the recipient allow-list, then one transport within 15 s.
+    - Platform SMTP (Resend in prod).
+    - A workspace's SMTP server (`mail/smtp.rs`), dialled under these rules:
+      - the host resolved by us, every address public, ports 25/465/587/2525 only;
+      - the connection pinned to the vetted IP while TLS checks the name;
+      - certificates verified; each address tried while the connection fails.
+    - Microsoft Graph (`mail/graph.rs`): client-credentials token cached per tenant/client/secret, `sendMail` with `saveToSentItems`, an inbox probe, all through `Outbound`.
+  - **Recipient allow-list** `MAIL_ALLOWED_RECIPIENT_DOMAINS` (Laravel's): exact domains, any case, To/Cc/Bcc. One outsider blocks the whole mail on every transport, platform mail included. The caller gets ok and the log says `blocked`. Logs name domains and counts only.
+  - **`POST /send-message`** (`workspace.send-message`, Laravel SendMessageRequest):
+    - the Graph → profile SMTP → workspace SMTP order and Laravel's from rules;
+    - an HTML layout with the profile footer;
+    - attachments from the bucket (20 MB SMTP / 2 MB Graph);
+    - without `to`, the addressed contact gets it; `manual` sends nothing (both 500s in Laravel).
+  - **Send logs:**
+    - Migration `email_send_logs` (+ `email_send_log_recipients`). A row is committed `pending` before the send and moves to `sending`, then `accepted`, `failed` (a short class, never a server's words) or `blocked`.
+    - A sweep every 5 minutes marks rows still open after 10 minutes `unknown`; they are never re-sent.
+    - `GET /settings/email-logs` (`setting.get`).
+  - **Connection tests:**
+    - `GET /email-profiles/{id}/test-connection` (`emailprofile.update`; Laravel checked `ftpserver.view`);
+    - `POST /settings/office365/test-connection` and `test-send` (`setting.update`, Laravel's texts; the mask uses the stored secret; the test send goes through the allow-list).
+  - **Config:** `MAIL_ALLOWED_RECIPIENT_DOMAINS`, `MAIL_TRUSTED_SMTP_HOSTS` (dev mail catchers), `GRAPH_LOGIN_URL` / `GRAPH_API_URL` (local fakes). compose passes `MAIL_ALLOWED_RECIPIENT_DOMAINS` to genesy-api like Laravel's api (deploy.sh sets it in prod).
+  - **Errors:** platform mail errors no longer carry the SMTP server's text.
+  - Review fixes (security, Rust, database):
+    - An SMTP session is opened once, on the first vetted address that accepts TCP within 5 s, so a mail is never handed to a second address.
+    - With a username, STARTTLS is required.
+    - Line breaks in a display name or subject are dropped (lettre panicked on them).
+    - A failed log update after the mail left no longer fails the request.
+    - A send cut off by the 15 s limit is logged `unknown`, with a 503 that says to check the log before resending.
+    - Transport functions are private to the mailer.
+    - Graph 400/401/403/404 are 422s, while 429/5xx are 503s.
+    - A finished log row never moves back.
+    - The Graph attachment cap is 2 MB.
+    - Addresses are at most 255 characters.
+    - Open sends are swept every 5 minutes, first in the prune.
+
+- Final batch F5b1 (email templates and profiles; contracts `docs/api/email-templates.md`, `docs/api/email-profiles.md`):
+  - **Migration `email_templates_profiles`:** `email_templates` (domain CHECK over Laravel's 84 `Domains`, one default per domain by a partial unique index) and `email_profiles` (SMTP settings in `smtp` jsonb, never the password; the password sealed in `smtp_password` with `smtp_key_id`).
+  - **Email templates** (`/email-templates`, `emailtemplate.*`): CRUD, list filters (domain, `q`, conditions matching equal or unset), variables per domain from the PDF template fields oracle. Saving a default clears the domain's other default under a per-domain advisory lock (Laravel only on create).
+  - **Email profiles** (`/email-profiles`, `emailprofile.*`): CRUD and list filters. The SMTP password is sealed like the F2b credentials (bound to workspace and profile), printed as `********`; the mask keeps it only while host, port, username and encryption stay, checked under the row lock.
+  - `smtp.host` must be a host name or a public IP literal, stored lowercase; a new password needs a host (DB CHECK too). Names are checked against private addresses when F5b2 dials them.
+  - Both use the catalog's `get` permission (Laravel's policy checked `view`, which no team could grant).
+  - `pdf_templates`: the conditions validator, `object`, `conditions_json` and a custom-type check are shared with the email modules; `fields::variables_raw` serves a domain's variables as written.
+  - **Laravel differences:**
+    - The profile password was plaintext at rest and in GET.
+    - Profile `meta` was a 500 (no column); it is skipped.
+    - The profile list printed `html` as `{"host":null}`.
+    - Template attachments (associations), `leave_request` variables and the Meilisearch search aren't ported.
+
+- Final batch F5a (files, PDF templates, invoice PDFs; contracts `docs/api/files.md`, `docs/api/pdf-templates.md`, `docs/api/invoices.md` "Preview"):
+  - **Crates (approved):** `reqwest` 0.13 (rustls with ring and webpki roots, no aws-lc, no OpenSSL), `rusty-s3` 0.10 (S3 request signing), `askama` 0.16 (HTML templates), axum feature `multipart` (multer 3.1, plus `encoding_rs`, `core_detect`, `multiversion_no_op`). `rustls`, `webpki-roots` and `base64` become direct dependencies; they were already in `Cargo.lock` through lettre. tokio 1.54.0 → 1.54.1 (yanked).
+  - **Outbound HTTP** (`src/outbound.rs`): 5 s connect timeout, no redirects, and an SSRF guard in the resolver plus a check for IP-literal URLs (loopback, private, link-local, CGNAT, metadata, multicast, documentation and reserved ranges refused). Only the operator-configured Gotenberg and S3 hosts are trusted past it.
+  - **Files** (`src/storage.rs`, `modules/files`, migration `files`): bytes in the uploads bucket Laravel uses (Backblaze B2, S3 API, presigned requests), key `genesy/{workspace}/{id}.{ext}`; Postgres keeps metadata only (size, sha256, content type, status). The row is committed `pending` before the upload and becomes `stored` after it; a delete goes `deleting` → `deleted`. An hourly sweep finishes either one when it was cut off, without listing the bucket. Uploads come as multipart (vimdesk-web's FilePond: one `upload` part, known text parts only, unknown ones refused without echoing their name, at most 8 parts) or base64 JSON, in a 10 MB + 64 KiB body on that route; the type is detected from the bytes (PNG, JPEG, GIF, WebP, PDF inline; DOCX/XLSX/PPTX and their macro-enabled forms from the ZIP central directory, ZIP, DOC/XLS/PPT from OLE stream names, CSV/TXT as UTF-8 without NUL as attachments; SVG, HTML, XML, programs, JAR/APK, MSI and anything unrecognised refused), the name is cleaned for display (no folders, controls, bidi or zero-width characters), downloads save with the detected extension (the object itself carries the type and disposition, not only the signed URL), and the key is `genesy/{workspace}/{uuid}`. Downloads are signed URLs valid 10 minutes; only PDFs and raster images open inline.
+  - **PDF templates** (`modules/pdf_templates`, migration `pdf_templates`): CRUD, list filters, Laravel's available fields per domain (generated from the PHP source and served as is), preview against the newest invoice. Permission group `pdftemplate` (48 groups / 247 names).
+  - **Invoice PDF:** `GET /invoices/{id}/preview?pdf_template_id=` renders with a template or the built-in layout (ported Blade view) through the Gotenberg sidecar and stores the PDF as a file.
+  - Placeholder values are HTML-escaped (Laravel inserted them raw); every page pins a CSP that allows only inline styles and `data:` images and fonts.
+  - **Config:** `B2_UPLOADS_KEY_ID`, `B2_UPLOADS_BUCKET`, `B2_UPLOADS_APPLICATION_KEY_FILE` (all or none; an empty secret file counts as unset), `B2_UPLOADS_REGION`, `B2_UPLOADS_ENDPOINT`, `GOTENBERG_URL`. Missing ones boot with a warning and answer 503 `File storage isn't configured.` / `PDF rendering isn't configured.`
+  - **Compose:** `gotenberg/gotenberg:8.25.1` under the `genesy` profile on an internal-only `pdf` network, no published port, every capability dropped, JavaScript off, only `data:` and the render's own `index.html` allowed, 30 s API timeout, `mem_limit` 1g. The image is 1.85 GB on disk and must be pulled on the VPS before the first genesy deploy that uses it.
+  - `AppError::Unavailable`: a 503 with a fixed message.
+  - Review fixes (rust, security, database):
+    - Placeholders are filled in one pass and never re-expanded (Laravel's second pass let a note full of placeholders grow a 64 KiB text to hundreds of MB); unclosed braces cost one scan.
+    - One upload or render per workspace at a time (`Slots::heavy`), on top of 4 uploads and 2 renders server-wide, all taken after the permission check and before the body is read.
+    - Logo and background must be images of at most 2 MB (they are inlined into every page); the background keeps its own content type.
+    - A PDF over 25 MiB is refused; a failing or unreachable sidecar or bucket is a 503 to retry; HTML the sidecar refuses is a 422.
+    - The sweep flips claimed rows to `deleting`, so an upload landing late fails instead of marking a removed object stored; it skips failed deletes, stops after 3 in a row and drains up to 1000 rows a run.
+    - Errors from outbound calls drop the URL (a presigned URL carries a live signature); an IPv6 endpoint host is trusted correctly.
+    - Field types are parsed once; status updates are named and workspace-scoped where a request makes them; `files.key` must carry its own workspace; jsonb CHECKs are 128 KiB backstops over the API's 16 KiB caps; `files.uploaded_by` is indexed.
+  - **Laravel differences:**
+    - The public `/storage/files` routes aren't ported; downloads use signed URLs.
+    - The content type comes from the file name, not from the bytes.
+    - Uploads are limited to the detected types above; Laravel took any type.
+    - The built-in invoice layout prints no workspace logo and no payment link yet (F8).
+
+- Final batch F4 (invoice drafts, contract `docs/api/invoices.md`):
+  - **Migration `invoices`:** `invoices` (draft header; composite tenant FKs to relation and currency; `subtotal`/`total` in minor units; `summary` with exact totals and the per-rate VAT breakdown) and `items` (one parent column per document type, `invoice_id` for now; composite FKs to product, variant and warehouse).
+  - 6 routes under `/invoices` (`invoice.*`): list (relation, status, `in_status`, `is_credit`, `on_account`, `q`, `limit`, paging), get, create, update (POST), delete (cancels a draft), duplicate.
+  - Item diff as Laravel HandleItems: `id` updates, `deleted` removes, no id adds, rows not sent stay. Item ids are scoped to their invoice (Laravel changed another invoice's line).
+  - Lines are written with one `UNNEST` statement per kind and the totals are stored in the same transaction, under the invoice row lock. Parallel saves of one draft lose no line. At most 1000 lines per invoice.
+  - Bodies up to 2 MiB with the allocation-bounded parse of `calculate-items`. `meta`, `billing_address` and `customer_ref` are capped at 1000 JSON nodes while parsing.
+  - **Guards:** a product on a line and a relation with invoices can't be deleted (Laravel's messages). The delete locks the row `FOR UPDATE` and the invoice write key-shares it, so a delete running alongside a write waits for it and then sees the new rows.
+  - `AppError::Unprocessable`: a 422 with only a message (Laravel exceptions with `statusCode` 422).
+  - Review fixes (rust, security, database):
+    - `meta` / `customer_ref` / `billing_address` capped at 16 KiB of text as well as 1000 nodes (a single 2 MiB string printed on every list row), plus a DB size CHECK; `customer_ref` fields ≤ 255.
+    - A line whose margin overflows is refused on save (the detail returned 422 for it).
+    - An update row without `description` keeps it (it was cleared); the warehouse is a patch too.
+    - Strings are trimmed; another relation clears the old contact and takes its billing address; a variant must belong to the line's product; a product's default warehouse is used only while live.
+    - Unchanged lines aren't rewritten; the last row of an id wins; duplicate share-locks its source.
+    - Totals keep their currency decimals; the detail embeds a slim product per line; no count query with `limit`; every line query is workspace-scoped; the relation index is not partial (FK checks) and carries the list order.
+  - **Laravel differences:**
+    - Stored totals are always current (Laravel left a new draft's at 0).
+    - A missing `items` key, an unknown product or a malformed id no longer give a 500.
+    - Duplicate keeps purchase prices (Laravel reset them to 0).
+    - Credit invoices change only as drafts until F6.
+    - `q` is ILIKE on reference and relation name (Laravel: Meilisearch).
+    - Custom sections and product sets are not ported.
+
+- **VAT per rate** (user decision 2026-10-21, replaces per-line VAT; contract `docs/api/pricing.md`): `calculate-items` and `calculate-marge` round each line's amounts as before, then compute VAT once per rate on the summed line amounts. `total = total_excl + total_vat` still holds exactly. 3 × €0.07 at 21 % now gives VAT 0.04 (was 0.03), matching Laravel's own total; 1000 × €0.01 at 21 % gives VAT 2.10 (was 0.00). No per-line VAT amount is printed; `pricing::engine::Amounts::line_vat` stays for per-line display (F4) and is informational. `Summary::vats` now carries each rate's base. Parity test renamed `matches_laravel_within_rounding`.
+- Request time limits on `/v1` (follow-up of the private-route limits):
+  - **Body deadline:** a request body must arrive within `REQUEST_BODY_DEADLINE_SECS` (20; 40 for the 2 MiB item-total routes) of reaching the API, else `408 The request body took too long to arrive.` (tower-http `RequestBodyDeadlineLayer`; `ValidatedJson` maps the timeout instead of a 422). A client trickling its body holds a slot at most that long.
+  - **Request timeout:** a request must finish within `REQUEST_TIMEOUT_SECS` (60, must stay above twice the body deadline), else `503` server busy with `Retry-After: 5`; the request is cancelled, so its slots return and an open transaction rolls back. The timeout 503 keeps the `no-store` / `nosniff` headers.
+  - `Cargo.toml`: tower-http feature `timeout` (a feature flag on the existing crate; `Cargo.lock` gains no package).
+- Final batch F2b (integration credentials, contract `docs/api/settings.md`, "Integration credentials"):
+  - **Migration `credentials`:** table `workspace_credentials` (workspace, path, `key_id`, `sealed`), one row per stored key, CHECK on the six kept paths, cascades with the workspace.
+  - The SMTP password, Mollie API key, PAY.nl `api_code`/`api_token`/`service_id` and Graph client secret can be saved again. Each is sealed with XChaCha20-Poly1305 (crate `chacha20poly1305` 0.11, approved) under the server key, bound to workspace and path. The settings row still never holds one.
+  - GET prints `"********"` for a stored one. In a sent section the mask keeps the stored value, a new string replaces it, and null, blank or a missing key clears it. Settings and credentials are written in one transaction.
+  - Server key `CREDENTIALS_KEY` / `CREDENTIALS_KEY_FILE` (64 hex), optional: without it the API boots, logs a warning and answers 422 `Credential storage isn't configured.` for a new value.
+  - Dropped providers' keys (Sendcloud, Jortt, Modjo, Picqer) stay refused, now with `This integration isn't supported.`
+  - Review fixes (rust, security, database): the mask is a 422 `Enter this credential again.` when nothing is stored (Graph could be switched on without a secret) or when the SMTP password is sent with another host, port, username or encryption (a member could point the stored password at their own server), checked under the settings row lock; `?type=` reads the stored credentials only for `smtp` and `integrations`; clears are one statement; a key with fewer than 16 distinct bytes is refused; set and clear are logged without values; the cipher moved to `src/crypto.rs`; a decrypted value that isn't text is wiped before the error returns.
+  - **Laravel differences:** Laravel printed the credentials in plaintext (the Graph secret as ciphertext) and stored all but the Graph secret in plaintext.
+
+- Private-route limits (risk-register follow-up from the DB hardening PR):
+  - **Per session:** a token bucket per bearer token on every authenticated route (`PRIVATE_RATE_LIMIT_BURST` 120, `PRIVATE_RATE_LIMIT_REPLENISH_MS` 50), keyed on the token as authentication parses it; `429 Too Many Attempts.` with `Retry-After`, as the public limiter.
+  - **Per client IP:** a ceiling around it (`PRIVATE_IP_RATE_LIMIT_BURST` 600, `PRIVATE_IP_RATE_LIMIT_REPLENISH_MS` 5), so made-up tokens can't each start a fresh budget.
+  - **In flight:** after the membership check, a workspace request takes a workspace slot (`WORKSPACE_MAX_INFLIGHT`, default half the request pool) and a user slot (`USER_MAX_INFLIGHT`, default a quarter, at least 2); one more waits up to 5 s, then `503` server busy with `Retry-After: 5`. One tenant or user can no longer fill the pool and push everyone else into 503s.
+  - Review fixes (rust, security): the slots moved from a path-parsing middleware (an encoded id skipped it, and outsiders could take slots) into `WorkspaceAccess`; the session key reuses the auth parser; the per-IP ceiling and the per-user cap were added.
+  - The new variables aren't passed by `compose.yml` yet, so deployments run on the defaults (prod: 10 slots per workspace, 5 per user; previews: 2 and 2).
+- Final batch F3b (special offers, contract `docs/api/special-offers.md`):
+  - **Migration `special_offers`:** legacy offers (`type`/`value`, frozen `base_price`) and Laravel's advanced rule fields (rule type, conditions, targets, discount value/type, priority, `apply_to_cheapest`), composite tenant FKs.
+  - 10 routes: `/erp/products/{product}/special-offers` and `/erp/special-offers` (list with `?discount_rule_type=`, create, get, update, delete). New catalog group `specialoffer.*` (47 groups / 242 names).
+  - Rules from Laravel Store/UpdateSpecialOfferRequest on the merged row; overlapping dates per product checked under a per-product lock.
+  - **Prices:** the product's active offer (highest priority, then newest) sets `price`, `business_price` and `price_without_correction` (`products::pricing::special`, Laravel `calculateSpecialPrice` without a cart); `original_price` skips it; price bands apply after the offer. `relationships.active_special_offer` / `special_offers` are real.
+  - `calculate-items`: a bigger percentage offer cancels the customer discount.
+  - Review fixes: at most 100 live offers per product; lists and `calculate-items` load only today's offers and only the detail prints `special_offers`; a special price never goes below 0; editing an offer without touching its dates, flag or product skips the overlap check (it refused any edit next to an always-active offer); the discount type inference and the legacy type check follow Laravel more closely; `check` split into smaller steps on `Rules`.
+  - **Laravel differences:** offer pick by priority then newest; global/cross-product/BOGO offers apply their own discount (Laravel's empty-cart engine could pick another workspace offer); update is a patch (Laravel reset `always_active` and detached the product); two dead Laravel rules enforced; 422 instead of 500 for a missing type; uuids for every id.
+
+- Final batch F3c (price corrections, contract `docs/api/price-corrections.md`):
+  - **Migration `price_corrections`:** price bands (`value_from`..`value_to`, `round_on`, `remove_amount`), at most 1000 live per workspace.
+  - 5 routes under `/products/price-corrections` (`pricecorrection.*`).
+  - **Product prices:** `price`, `original_price` and `business_price` (and their `_incl`) are corrected: the incl-VAT price rounds to the nearest `round_on` step (a tie goes down), minus `remove_amount`. `price_without_correction` is not. `exclude_price_corrections` opts a product out. Setting `product.disable_double_discount_for_business` makes a product below gross take its business prices from gross.
+  - `products::pricing::{band_for, correct, prices}` in exact decimals; `tests/fixtures/price_correction_parity.json` holds 14 cases from PHP 8.4 running vimdesk-api's `GetRoundedPrice`, all matched.
+  - **Laravel differences:** bands are read live (Laravel cached them forever, so edits never showed until a cache flush); the 1000-band cap; a null band end on update is a 422 (was a 500); exact ties always round down (Laravel's float noise sent about 3 % of them up).
+  - Review fixes: band creates count and insert under a per-workspace advisory lock (parallel creates passed the cap); `remove_amount` left out stores 0 (Laravel model default).
+
+- Final batch F3a (discount groups and discounts, contract `docs/api/discounts.md`):
+  - **Migration `discounts`:** `discount_groups` (supplier, `internal`), `discounts` (percentage per `discount_product_code`, CHECK 0..100, date window), `discount_group_relation` (unique per group and relation). Composite tenant FKs throughout.
+  - 13 routes under `/products/discount-groups` and `/products/discounts` (`discountgroup.*`, `discount.*`): CRUD, the group's relations, attach and detach. Deleting a group retires its discounts and links in one transaction.
+  - **Applied:** the product resource's `purchase_price`, `purchase_discount_percentage` and `supplier_purchase_price_from_discount` (internal groups, Laravel `buildPurchasePrice`); relation detail's `supplier_discount_groups` / `relation_discount_groups`; `calculate-items` with `relation_id` fills `productDiscount` and `client_default_discount` from the customer's groups, for every member.
+  - **Laravel differences** (user decisions 2026-10-21; prices can differ from Laravel, check at cutover): highest percentage wins on both paths, group `active` is respected, the customer path uses non-internal groups only, the date window includes both days and each null end is open.
+  - Special offers (F3b) don't cancel a customer discount yet.
+  - Review fixes (rust, security, database reviewers):
+    - Discount create and attach take a share lock on the live group, so a group delete running at the same moment can't leave a live discount or link behind.
+    - Discount update locks the row from read to write: a concurrent window edit gives the 422, not a CHECK 500.
+    - Years outside 1..9999 are a date-format 422 (Postgres can't store them; was a 500).
+    - Codes match ignoring case (MySQL collation parity); the window uses the UTC date explicitly.
+    - Indexes: plain `(workspace_id, supplier_relation_id)` for FK checks, `(discount_group_id, lower(code))` for lookups.
+    - Relation detail with `slim=1` skips the group query; pivot subqueries filter `workspace_id`; `limit` below 0 has Laravel's message.
+
+- DB hardening (app-wide starvation risk from the F2 database review):
+  - `DATABASE_MAX_CONNECTIONS` (default 20, 1..=500) sizes the request pool; sqlx's default 10 let one workspace's lock waiters starve every tenant.
+  - Every request connection starts with `statement_timeout` 30s, `idle_in_transaction_session_timeout` 60s and `lock_timeout` 10s (startup options). The numbering `SET LOCAL lock_timeout = '5s'` still wins inside its transaction.
+  - Boot migrations run on their own plain connection (`db::migrate`), so the statement timeout can't cut a long migration short.
+  - Pool exhaustion (5s acquire timeout) and a statement cancelled by those timeouts answer **503** `The server is busy, please try again.` instead of 500.
+  - Review fixes: `/healthz` and the hourly cleanup each get one connection of their own (`db::health`, `db::background`; cleanup without a statement timeout), migrations run through a one-connection pool that retries the connect for 30s and caps lock waits at 30s, the SMTP send in verification resend is capped at 30s (under the 60s idle-in-transaction limit), 503s carry `Retry-After: 5`, statement timeouts log at error, the pool cap is 100. Deploy: `provision-db.sh` sets the role's `CONNECTION LIMIT` from `GENESY_PG_CONNECTION_LIMIT` (default 44 = 2 colors × 22) instead of a fixed 10.
+  - `tests/db.rs`: the limits apply to every connection; a workspace whose numbering lock is held elsewhere gets 503 within the lock timeout while another workspace's create goes through; a full pool answers 503 after the acquire timeout.
+
+- Final batch F2 (workspace settings + numbering, contract `docs/api/settings.md`):
+  - **Migration `settings`:** one row per workspace, `data jsonb` keyed by section (Laravel's 15 longtext columns).
+  - `GET /v1/workspace/{ws}/settings` (`setting.get`): every section over Laravel's defaults, or `?type=` a section or dotted path. A falsy value falls back to its default; scalars are wrapped as `[v]` and null as `[]`, like Laravel's `(array)` cast.
+  - `POST /settings` (`setting.update`): each sent section replaces its stored value; unknown sections and keys are dropped; `order`/`purchase_order` stay read-only. Rules from Laravel `StoreSettingRequest` live as field tables in `settings::schema`; uuid refs must be live rows of the workspace.
+  - One race-free upsert (`ON CONFLICT … data || EXCLUDED.data`): parallel first saves lose nothing.
+  - **Integration credentials are refused** (422) and always printed as null, with a final check on every write. F2b adds encrypted storage (new crate, needs the user's approval).
+  - `numbering::Appendix`: Laravel `DomainNumber` format. Relations and products now take prefix, digits, suffix and start_number from settings; a workspace with existing rows continues from its highest number.
+  - `invoice.customer_ref` flags are validated and stored (Laravel's rule keys had trailing spaces, so they never were).
+  - Review fixes (rust, security, database reviewers):
+    - Blank strings are null and text is trimmed (Laravel middleware).
+    - `?type` paths with an empty segment read `[]`, and the stored tree is redacted before any lookup.
+    - `start_number` is capped at 999 999 999 999, terms/validity at 3650 days, approvals at 100.
+    - Lists are capped (one error per oversized list).
+    - Pay terminals are a validated `{id, name, simulation}` list.
+    - Integration endpoints must be http(s) URLs without credentials.
+    - Soft-deleted warehouses and non-relation custom types are refused; uuid checks are deduped.
+    - Non-object stored sections fall back to defaults instead of panicking.
+    - `settings.updated_by` records the last writer.
+    - Numbering: `lock_numbers` then settings then `next_number`, all on a `Transaction`, with a 64-bit lock key.
+
+- Final batch F1 (item totals preview, contract `docs/api/pricing.md`):
+  - `POST /v1/workspace/{ws}/calculate-items` and `/calculate-marge`, open to every active member (Laravel `authorize()` returned true). Nothing is stored.
+  - `pricing::engine`: exact-decimal line maths. Each line rounds to the currency's decimals, half away from zero; totals sum the rounded lines, so `total = total_excl + total_vat` always (user decision: Laravel rounded its float total on its own and could be a cent off). Checked arithmetic: an overflowing line is a 422, never a panic.
+  - VAT grouped by the exact rate (`"5.5"`); Laravel int-cast the key and merged 5.5 % into 5 %.
+  - Currency, relation and products must be live rows of the workspace. Products load in one query; a product line takes the product's name and, without a purchase price, the product's.
+  - At most 1000 lines; 2 MiB body limit on these two routes (vimdesk-web posts whole item rows).
+  - `tests/fixtures/pricing_parity.json`: 24 cases from PHP 8.4 running vimdesk-api's real `BuildItemsSummary` / `BuildItemsMargeCalculationSummary` (`pricing_oracle.php`).
+  - Relation discounts (discount groups, special offers) come with F3; until then `relation_id` is only validated.
+  - Review fixes: product name and purchase price fill in only for callers with `product.view` (they are catalog data; Laravel filled them for anyone). `pricing::body` parses the body without keeping unknown keys or nested values and stops at 1000 lines. Narrow product/relation queries (`pricing::repo`). `money::php_number` prints a whole number past i64 as a float instead of null. The sent `client_default_discount` is echoed. `{}` as `multi_set_item_id` is falsy, as in PHP.
+
+- Batch 6 PR-3 (stock, contract `docs/api/stock.md`):
+  - **Migration `stock`:**
+    - `stocks`: one live row per product, warehouse and bin; quantities `numeric(19,2)` like Laravel's `decimal(19,2)`; a composite bin FK inside the warehouse.
+    - `stock_movements`: the append-only ledger.
+    - `storage_locations`.
+  - **`stock::repo::mutate(&mut PgConnection, …)`:** the one stock writer; order flows (final batch) reuse it.
+    - It locks the slot's row (or creates it), applies the change, and appends a movement.
+    - A `Floor` decides how far a decrease may go: none for stores, 0, or level − reserved for the HTTP route's EnoughStockRule.
+  - **Writes:**
+    - Routes: `POST /products/{id}/stocks`, `set-stock-levels`, `set-stock-requirements`, `DELETE /stocks` (level 0 only), `move-stock-between-bins`.
+    - All under row locks, in one transaction each.
+    - Fixed:
+      - set-levels no longer leaks a bin between entries
+      - absent min/max keep their value
+      - opposite moves can't deadlock
+      - parallel first writes can't lose an update
+  - **Product create seeds zero rows** in the main warehouse and every store; the main warehouse becomes the default only when none was chosen.
+  - **Reads:**
+    - Routes: `stock-with-bins`, `configured-bins`, `stock-movements` (with `meta`, which Laravel dropped), `GET /products/stocks`, `/products/stocks/negative`.
+    - The product resource shows real stock rows, the sum, and the `pos_*` pick (`?warehouse_id=`).
+    - Warehouse and row `utilization` count distinct occupied bins.
+    - Whole floats print as PHP did (`money::php_number`).
+  - **Storage locations:** create (also from a bin's code path, with `replace`), delete, and list by product. Deleting a warehouse location drops its storage locations.
+  - **Not ported:** the `stock.view` lookups (`/stocks/{id}`, `/ean`, `/reference`, `/id`: no callers) and `move-stocks` (no callers).
+  - **Review fixes:**
+    - Multi-row writes lock in one product/warehouse/bin order (a deadlock was reproduced).
+    - Lock timeout, deadlock and serialization aborts answer 503 with a retry message.
+    - Quantities are capped at 1e12 and levels at 1e15 (the column overflowed into a 500).
+    - A change that rounds to 0 is a no-op.
+    - Reasons are cut at 255 characters, and min/max past i32 is a 422.
+    - Set levels names only the min/max that were sent, and skips unchanged entries.
+    - Move answers Laravel's request-level 422s: same bin, bin wording, insufficient stock on `quantity`.
+    - Occupancy counts from the bins side, and only on warehouse GET/list.
+    - The negative list has its own statement.
+    - Indexes: no stock index mentions `stock_lvl`, so level writes stay HOT, with fillfactor 85; plain FK indexes for cascades; validation runs as one batch.
+  - **Shared:**
+    - `AppError::BadRequest` (Laravel 400 `{message}`)
+    - `warehouses::service::resources` and `repo::find_many`
+    - `products::service::render_many`
+    - `currencies`/`sales_groups` `find_many` (PR-2)
+- Batch 6 PR-2 (product catalog, contract `docs/api/products.md`):
+  - Migrations:
+    - `product_brands_categories`
+    - `products`: products, product_variants, product_price_histories, product_sets
+    - `product_options`: option types/values and their links
+    - Money is `numeric(24,8)`. Every reference is a composite FK inside the workspace.
+  - **Brands and categories:** CRUD that persists (Laravel's writes never did), plus `/searches?domain=product_brand|product_category`. Category parents can't form a cycle.
+  - **Products:**
+    - Routes: CRUD, duplicate, barcode `POST /products/search`, price history.
+    - The resource is in Laravel `ProductResource` shape, including its zero rules: computed prices print `"0.00"`, raw columns `"0"`.
+    - With a gross price, price and markup are normalised.
+    - Product numbers `PRO-00001` are assigned under a per-workspace lock.
+    - Create also writes the default variant and the price-history rows, in the same transaction.
+    - The resource embeds the supplier relation, currency, VAT and sales group, the default warehouse, and fallback stock rows.
+    - `vat_group_id` falls back to the default group (user decision).
+  - **Product-page companions** answer truthfully: `sale-statics` (zeros), `linked-products` (none), the Picqer stock sync (Laravel's not-configured `{"message":"ok"}`).
+  - **Variants:**
+    - Routes: list, get, create, update (PUT), delete, scoped to their product.
+    - Prices are normalised against the product price.
+    - One default per product, which can't be deleted.
+    - Generate from option types and combinations.
+  - **List search scale:** about 70 ms at 100 000 products per workspace on PG18, so no trigram index for now.
+  - **Shared:** `relations::repo::find_many` + `relations::service::index_values`, `warehouses::repo::stock_refs`, and the crate `recursion_limit` raised to 512 for the product `json!`.
+  - **Review fixes:**
+    - Price maths is checked: an out-of-range derived price or markup is a 422 on the field that drove it (was a panic or 500).
+    - Product update checks references on its own transaction connection, so parallel updates no longer starve the pool.
+    - Barcode search prefers the oldest product among active matches.
+    - Variant writes lock the product row. The current default can't be unset.
+    - Generate bounds sku, sku_pattern and total values, and runs one at a time per workspace.
+    - Category re-parenting runs under a workspace lock, so two parallel moves can't close a cycle.
+    - Duplicate bundle children, an out-of-range `stock_level_supplier` and over 100 `exclude_ids` are 422s.
+    - Bundle children sync only for bundle types with a non-empty list. `order_unit` 0 is stored as 1.
+    - The default variant's price is normalised as in Laravel.
+    - Product GET/list no longer 500 when a workspace has a default warehouse but no store.
+    - Embeds load currencies, sales groups and warehouses in one query each.
+    - Price-history rows carry their statement time.
+  - **Also:** the batch 4 row in `docs/api/conventions.md` is split, and product zero rules are pinned to the PHP oracle.
+- Batch 6 PR-1 (warehouses + bin hierarchy, contract `docs/api/warehouses.md`):
+  - Migration `warehouses`: `warehouses` (same-workspace parent via composite FK, live-slug unique index, one live default per workspace) and `warehouse_locations`.
+  - Warehouses CRUD, plus `POST /warehouses/{id}/default`, in Laravel's WarehouseResource shape (children and people embedded, one query each per page). The slug is Laravel `Str::slug`, fixed at create. The first warehouse becomes the default. Manager, assistant and user must be members of the workspace (Laravel accepted any user).
+  - Warehouse locations `/erp/warehouses/{id}/locations`: CRUD plus bulk delete by `?locations=` (≤100). `limit` paging is capped at 5000.
+  - Migration `warehouse_hierarchy`: sections, rows, shelves and bins on Laravel's table names. Each level stores its full parent chain under one composite FK. Codes are unique per parent among live rows, ignoring case.
+  - Section, row, shelf and bin CRUD. A section's auto-layout runs in one transaction with three batched inserts: row letters continue past Z, a layout is capped at 10000 bins, and a layout that would repeat a bin code is refused. Also `GET /warehouses/{id}/bins`.
+  - The hierarchy and locations had no Laravel catalog names, so they now use `warehouse.get` for reads and `warehouse.update` for writes (user decision). This widens access.
+  - Shared: `users::dto::UserEmailResource` (teams reuse it), `users::repo::members_among`, `Rules::{custom_sections, one_of, number}`, `address::validate_one`, and `Api::with_base` for tests.
+  - Review fixes (ecc:rust-reviewer + ecc:security-reviewer):
+    - Moving the default warehouse through create or update now needs `warehouse.set_default`. Echoing the stored value doesn't.
+    - A section's layout totals saturate instead of overflowing i64.
+    - A per-workspace quota of 200 000 live bins.
+    - `GET /warehouses/{id}/bins` adds `meta.truncated` when its cap cuts the list.
+    - Warehouse people and the section manager use composite FKs into `workspace_members`.
+    - New index for the bin list by shelf.
+    - Hierarchy updates of an unknown id are a 404, even with a taken code; the code checks moved to the unique indexes (`AppError::unique`).
+    - The layout insert fails on a missing parent code instead of misaligning columns.
+    - Typed create inputs (`NewRow`, `NewShelf`, `NewBin`).
+    - Sections `per_page` < 1 means 15.
+    - `/searches?domain=warehouse_location`.
+    - `WorkspaceAccess::allows`.
+- Batch 5 (CRM relations + contacts, contract `docs/api/relations.md`):
+  - Migration `crm_relations`: `relations` and `contacts` with composite tenant FKs (contact → relation, relation → relation/source custom type), per-workspace unique relation numbers that are never reused, one live default contact per relation, and indexes for the FKs and the newest-first list.
+  - `POST /relations` (and `/relations/`): the relation, its `RE-0001` number (advisory lock per workspace, so parallel creates never share a number) and the inline default contact in one transaction. Phones are normalized to `+31…` with the main address country, `created_from_pos` needs a display name, and a missing `relation_type_id` takes the workspace's first relation type.
+  - `GET /relations/{id}` in Laravel's RelationResource shape: `when()` keys, `slim` and `include_unpaid_invoices`, postal `formatted` from rinvex/countries 9.1.0 templates (generated table), and reverse charge, VAT rates and `default_vat_rate` from the workspace country and VAT groups.
+  - `GET /relations` and `/searches?domain=relation`: Laravel `limit` paging, `suppliers`/`include_advice`/`last_name`/`zipcode`/`company_name`, and one SQL search over relation fields, type name, contact names and email, phone spellings and id-like exact matches.
+  - `POST /relations/{id}` patch (`type` + `relation_type_id` required), VAT shape check (ibericode/vat 2.1.2 patterns) against the stored EU country, and `terms_and_periods` and `supplier_data` rules. `DELETE /relations/{id}` is a soft delete.
+  - Contacts `POST /relations/{id}/contacts`, `POST|DELETE …/{contact}`: updates keep unsent fields, a new default demotes the others, and a contact used under another relation is 404.
+  - `GET /relations/{id}/financial-summary`: Laravel's lite/full keys with zero amounts (no invoices yet).
+  - `supplier_data.order_ftp.password` is write-only: never returned, kept when an update leaves it blank.
+  - Review fixes (ecc:rust-reviewer, ecc:security-reviewer, ecc:database-reviewer):
+    - The list counts matching ids only and then joins the page, so the default page takes about 24 ms at 100k relations (it was about 156 ms with a window over full rows).
+    - The trigram indexes and `pg_trgm` are gone, because no query could use them.
+    - Search keeps at most 5 comma phrases and 8 words per phrase.
+    - Caps: 50 addresses per relation, 20 phones per contact.
+    - The stored FTP password is kept only for the same host, port, username and type, so a changed host never inherits the old secret. A spaces-only password counts as blank.
+    - The relation row lock is `FOR NO KEY UPDATE`, so child inserts aren't blocked. Numbering sets `lock_timeout` 5s.
+    - `source_type_id` must be a lead source.
+    - Deleting a contact of a deleted relation is 404.
+    - A junk zipcode filter matches nothing.
+    - An inline contact's `meta` error is keyed `contact.meta`.
+    - Stored addresses read leniently (numeric house number, null flags).
+    - The list rules moved from the handler into `relations::service::index`, which `/searches` now calls.
+  - Deferred, with stubs that stay true while the module is missing: custom fields, tags, email validation, activity counters, discount groups, purchase-order counts. Audit log and workflows are deferred behind a go-live gate (`docs/ai/risk-register.md`).
+- Batch 4 (workspace reference data, contract `docs/api/reference-data.md`, shared rules `docs/api/conventions.md`):
+  - Money convention for every later module: `numeric(24,8)` read as `rust_decimal::Decimal` (new crate + sqlx feature), rounding half away from zero, and `money::format_decimals`, which matches vimdesk-api `MoneyHelper::formatDecimals` including its zero quirk. A 207-case fixture generated by PHP 8.4 from the real helper checks it.
+  - Shared validators on `Rules`: `decimal`, `boolean` (Laravel's accepted set), `integer`, `meta`, `country` (ISO alpha-2), `text`/`opt_text`/`patch_text`/`patch_opt_text`, `required_value`. Plus `list::search` (blank or `*` = no filter, max 100) and `list::flag`. Number-rule wording follows vimdesk-api `validation.php` ("The X must be a number.").
+  - Permission catalog: `salesgroup`, `shipmentmethod`, `vatgroup` added (46 groups, 237 names). Laravel checked these names but never catalogued them, so only owners and admins could pass.
+  - CRUD under `/v1/workspace/{workspace}`: `currencies`, `settings/vat-groups`, `hourly-rates`, `settings/sales-groups`, `shipment-methods`, `custom-types`, `custom-status`. Each table has `UNIQUE (workspace_id, id)` for composite tenant FKs (`hourly_rates` → `vat_groups`), soft delete, and one-statement patch updates.
+  - Currencies: list and get are open to every active member (money formatting needs them at boot), writes need `currency.*`, and there is one live default per workspace.
+  - `GET /searches?domain=X` registry for the dropdowns (seven domains, ILIKE). Other domains are 404 until ported.
+  - Signup seeds Laravel WorkspaceSetup rows: EUR (default), GBP and USD; five `deal_pipeline` statuses; nine custom types.
+  - Deliberate differences from Laravel:
+    - Shipment create keeps `price_impact_*`, `countries` and `can_be_selected`. The weight range is a DB CHECK on the merged row, and `price_impact_*` is limited to -100..100.
+    - Sales group names are unique per workspace (Laravel: global, a cross-tenant leak).
+    - Custom type and status names are unique on update too; saving an unchanged status name works.
+    - A custom type update with an unknown id is 404.
+    - VAT `country` and `q` filters combine.
+    - `archived` and `can_be_selected` are JSON bools.
+    - Null on a required field is a 422 (Laravel: 500). Malformed ids are 404.
+    - Seeded hour types use `hour_registration_type`, Supplier carries `is_supplier: true`, and Sick leave carries `is_sick_hours_type: true`.
+  - Review fixes (ecc:rust-reviewer + ecc:security-reviewer):
+    - Shipment `countries` elements are rebuilt from `name` (≤255), `country` (uppercased), `price` and `lead_time_hours`; other keys are dropped.
+    - Activity `icon`/`color` are capped at 255 characters. `discount_percentage` takes plain decimals only (no `1_0`, `1e2`) and is stored normalized.
+    - A decimal with too many integer digits reports the bound it crosses (min for negatives).
+    - Kept on purpose: `/searches` checks only `workspace.global-search`, as Laravel does. Requiring each module's `*.list` would break dropdowns for every member, since nobody holds the new catalog names yet.
+    - Left for a platform-wide follow-up: there's no rate limit or per-workspace row quota on authenticated writes, in any module.
+  - Validation wording aligned platform-wide to vimdesk-api `resources/lang/en/validation.php`: only `required` and `boolean` say "field". This covers `Rules::max_chars`, `Rules::email` and `Rules::meta`, the password rules, and the teams, users and workspace profile messages (URL, UUID, string, array, number, min, IBAN, BIC). Custom rule texts are unchanged.
+  - `rustls-webpki` 0.103.15 → 0.103.16 (RUSTSEC-2026-0382: certificate verification could accept distrusted intermediates). It arrives through rustls, used by SMTP and the DB driver; lockfile-only bump.
+  - Not ported: LabelTemplate, VAT import, hourly-rate user links, custom status archive/unarchive, currency `filter[]`/`sort`, Meilisearch.
+- Batch 3 phase A (permission core):
+  - Migration `teams`: `teams` (soft delete, Laravel length caps), `team_permissions` (lowercase names, one row per grant), `team_members`, and `invites.team_id` (set null if the team row goes).
+  - `build.rs` rebuilds on migration changes. Without it `sqlx::migrate!` kept the old set, so a migration-only change could ship a binary (and a cached Docker build) missing it.
+  - Permission catalog frozen from Laravel (43 groups, 222 names) and `GET /v1/workspace/{workspace}/permissions`. Grants must be exact catalog names. Contract: `docs/api/permissions.md`.
+  - `WorkspaceAccess` extractor for every workspace route: 404 for outsiders and unknown/malformed/deleted workspaces, 403 for inactive members; permission passes for owner, `workspace_admin`, frontend-only names, or an exact grant.
+  - `/v1/me`: `permissions` is the union of the user's live team grants per workspace plus `workspace_owner`, and `relationships.teams` lists their teams. Both come from one query.
+  - Invites need `invite.create` instead of owner-only, and any inviter must have a verified email. `team_id` is validated (live team in this workspace) and accepting joins that team in the same transaction.
+  - Signup seeds `Admin Team` (`workspace_admin`) with the owner, as Laravel `WorkspaceSetup` does.
+- Batch 3 phase B (teams + user reads):
+  - `http/list.rs`: `Page` (`page`, `page_size` default 50 max 100, junk falls back), `Paginated<T>` with Laravel `meta`, `contains_pattern` (ILIKE with `%` `_` `\` escaped). `http/json.rs` gains `present` for absent-vs-null fields in partial updates.
+  - Teams, 8 routes under `/v1/workspace/{workspace}/users/teams`: create, list (search, sort whitelist, paging), get, update (single-statement patch), soft delete, add/remove users, permission delta (`x` adds, `-x` removes, only the owner grants `workspace_admin`). GET and DELETE check `team.get` / `team.delete` instead of Laravel's unassignable names. Contract: `docs/api/teams.md`.
+  - `GET /v1/workspace/{workspace}/users` (`workspace.list`, search, `team_id`, paging) and `GET .../users/{user}` (`user.get`). Both show permissions and teams for this workspace only. Contract: `docs/api/users.md`.
+- Batch 3 phase C (workspace record + pending invites):
+  - Migration `workspace_profile`: `workspaces.profile` + `meta` jsonb (object CHECK).
+  - `GET /v1/workspace/{workspace}` (`workspace.get`) returns the record, pending invites and member counts, and a profile with `address`/`account` always as objects. `POST .../update` (`workspace.update`) validates any subset of profile keys (IBAN mod-97, BIC, phone shape, URL, en/nl, address required fields) and merges them in one UPDATE. `/me/workspaces` carries `workspace_profile` once saved. Contract: `docs/api/workspaces.md`.
+  - `GET /v1/workspace/{workspace}/invites` (`invite.list`, `filter[invite_status]`, paging, no codes echoed) and `DELETE .../invites/{invite}` (`invite.delete`).
+  - `http/json.rs`: `is_iban`, `is_bic`, `is_phone`, `is_url` for later batches.
+- Batch 3 review fixes (ecc:rust-reviewer + ecc:security-reviewer):
+  - Admin-team gate. Laravel let `team.invite`, `invite.create` or `team.permissions` alone reach `workspace_admin`. Now a team holding `workspace_admin` changes only through an owner or admin: add/remove users, delete, revoke that grant, invite into it. Each path has a test.
+  - `Can<P>` extractor with `permissions!` markers replaces `require()`, so 403 comes before 422 as in Laravel.
+  - Paging: overflow-safe `meta` for absurd page numbers. A page past the end reports the real total (a count query runs only there).
+  - Postgres NUL rejections (22021 / 22P05) are now 422 instead of 500. Team `meta` must be a JSON object.
+  - Invite `team_id: ""` means no team. Permission entries like `"- x"` are trimmed. Users list `has_pin_code` is validated as a boolean.
+  - Team writes (`grant`, `revoke`, `add_members`, `remove_members`, `count_in_team`) now take `workspace_id` and join `teams`. The team list groups members by team instead of scanning per team.
+
+- Project scaffold: Axum 0.8 + tokio + sqlx 0.9 (Postgres), env config (`DATABASE_URL`, `BIND_ADDR`), tracing, graceful shutdown on SIGINT/SIGTERM.
+- `GET /healthz`: `200 {"status":"ok"}` when the DB answers `SELECT 1`, `503 {"status":"unavailable"}` otherwise.
+- `postgres:18-alpine` service in `compose.local.yml` (host port 54320, reuses the local `db_password` secret).
+- Multi-stage `Dockerfile` (BuildKit cache mounts, distroless non-root runtime).
+- Migration `init_auth` (PostgreSQL 18): `users`, `workspaces`, `workspace_members`, `invites`, `access_tokens`, with uuidv7 PKs, a case-insensitive unique email, a slug CHECK on workspace names, one pending invite per email per workspace, and sha256-only token storage.
+- Repos: `users` (insert, credentials by email, exists), `workspaces` (insert, owner, name taken, members, active workspace ids, member by email), `invites` (upsert pending with code rotation, find by hash, answer once).
+- `sqlx.toml`: macros + CLI use `GENESY_DATABASE_URL`, so the repo-root `.env` can't override compile-time checks. `.sqlx/` offline cache committed for Docker builds.
+- Auth core: `AppError` (Laravel 422/401/500 bodies; 500 never leaks internals), `ValidatedJson` + `Rules` (Laravel-worded field errors, length counted in chars), `Password` policy (min 8, mixed case, letter, number, symbol, max 255, every failed rule listed), argon2id hash/verify on the blocking pool plus a dummy verify that evens out login timing, 256-bit hex secrets stored as sha256, `access_tokens` repo, `AuthUser` bearer extractor (rejects malformed tokens before hitting the DB).
+- `POST /v1/create-workspace`: signup creates user + workspace + owner membership + token in one transaction. Laravel field names and messages, `201` (Laravel sent `200`), both "taken" errors reported together, and a race-safe unique-index fallback, so concurrent signups get `422` instead of `500`. Contract: `docs/api/auth.md`.
+- `TOKEN_TTL_DAYS` (1..=365, default 30) sets the bearer token lifetime. `Config` Debug masks `database_url`.
+- `Validate` returns a typed input struct (`type Valid`), so handlers get non-`Option` fields with no `unwrap`.
+- `POST /v1/login`: argon2 verify, a dummy verify for unknown emails (a mutation test shows the gap without it: 1.8 ms vs 317 ms), `401 Invalid login details` for every credential failure, `403` when there is no active workspace (checked after the password, no token issued).
+- `POST /v1/logout`: revokes only the calling token and returns `{"message":"ok"}`.
+- Invites: `POST /v1/workspace/{workspace}/invites` (owner only, 404 for outsiders, re-invite rotates the code), `GET /v1/invites/get-invite-status/{code}`, `POST /v1/register` (one transaction, safe against a parallel register on the same code), `POST /v1/invites` (accept/decline, repeat accept succeeds). Contract: `docs/api/invites.md`.
+- Mail: `Mailer` (lettre SMTP with rustls, 10s timeout; in-memory capture for tests). New required env: `FRONTEND_URL`, `SMTP_URL`, `MAIL_FROM`.
+- `PersonFields` shared by signup and invite register. `AppError::NotFound`. Removed the temporary `dead_code` allows, since every repo fn now has a caller.
+- Rate limit (tower_governor) on public auth routes: one per-IP budget across signup/login/register/invite status, `429 {"message":"Too Many Attempts."}` with `Retry-After`, peer IP by default (`TRUST_PROXY_HEADERS=true` only behind Traefik), stale buckets dropped every 60s. Server now runs with connect info.
+- Review fixes (ecc:rust-reviewer + ecc:security-reviewer):
+  - Invite send quota: `INVITES_PER_HOUR` (default 20) per user, counted from the new `invite_sends` log table (migration `invite_send_log`), so re-sends count too. Returns 429.
+  - A replayed accepted invite never re-adds a removed member.
+  - `mark_answered` also matches the code hash, so a code rotated mid-request can't be used.
+  - Concurrent argon2 runs capped at the CPU count (semaphore). Login password capped at 255, and the body limit is 64 KiB (`413`).
+  - Email validation also requires a lettre `Address` parse.
+  - `Cache-Control: no-store` and `nosniff` on `/v1`.
+  - Shutdown listener failures no longer stop the server at boot. DB `acquire_timeout` is 5s.
+  - Migrations run at boot.
+  - Runtime image `distroless/cc-debian13`, same Debian release as the build image `rust:1.99-slim-trixie`.
+  - The timing test asserts a one-way floor.
+- Migration `verify_email_and_denied`: new `email_verification_tokens` table (sha256 only, cascades on user delete), and the invite status `declined` becomes `denied`, the word vimdesk-web compares against (`accept-invitation.vue`). Existing rows are converted in both directions.
+- Email verification: signup mails a 24h single-use link to `GET /v1/verify-email/{token}`, which redirects to the vimdesk-web login with `email_verified=1|0`. `POST /v1/email/verification-notification` resends (5/hour). Registering or answering with an emailed invite code also verifies. New required env `API_PUBLIC_URL`.
+- `GET /v1/me` and `GET /v1/me/workspaces` (Laravel-compatible shapes; contract in `docs/api/me.md`). The owner gets `workspace_owner`, and members get no permissions until roles are ported. Pending invites are listed only for verified emails, with the invite id as `invite_code`.
+- `POST /v1/invites` also accepts the invite id from `/me`, for verified users only (403 otherwise), so `/pending-invites` in vimdesk-web works unchanged.
+- Phase A review fixes:
+  - Verification links can be opened repeatedly (scanner prefetch no longer shows a failure). The first verification logs out all sessions of that account, which mitigates pre-account-hijack, and the mail tells non-owners not to click.
+  - Resend runs under a per-user row lock: at most one link per 60s, 5/hour, 10/day, and a failed send doesn't count.
+  - Inviting requires a verified owner email.
+  - Request spans show 64-hex path segments as `:token`.
+  - Index `invites_pending_email_idx` for the `/me` lookup.
+- Phase B hardening:
+  - Per-account login lock: 10 failures per email in 15 minutes gives `429`, checked before argon2 and applied the same way to unknown emails. Each attempt is recorded before counting, so a parallel burst can't slip under it (new table `login_failures`).
+  - The IP rate limit groups IPv6 by /64.
+  - Hourly cleanup job for expired tokens, old invites and quota logs.
+  - `SMTP_URL` must use TLS unless `SMTP_ALLOW_INSECURE=true`.
+  - Only an active owner may invite.
+  - `Password`/`PlainSecret` and the raw random bytes are zeroized on drop. This is best effort: request buffers and response copies aren't covered. The dummy argon2 hash is built at boot.
+- Phase B review fixes: `SMTP_URL` TLS needs an exact `tls=required` query pair (a substring anywhere no longer passes), and the cleanup SQL moved into each module's repo.
+- Phase C deploy + CI:
+  - `DATABASE_URL_FILE` / `SMTP_URL_FILE` secret files.
+  - `genesy-360-api healthcheck` self-probe.
+  - `genesy-api` compose service and a shared Postgres, both behind the `genesy` profile.
+  - `deploy.sh` provisions each environment's role and database (`deploy/genesy/provision-db.sh`) and deploys only when its shared secrets exist.
+  - Traefik router `<pr>-genesy-api`.
+  - CI: a docker-images matrix entry and profile-aware compose validation, plus a new `genesy-360-api.yml` workflow (fmt, clippy, test against postgres:18, sqlx prepare check, cargo audit).
+  - Dockerfile final stage named `runtime`.

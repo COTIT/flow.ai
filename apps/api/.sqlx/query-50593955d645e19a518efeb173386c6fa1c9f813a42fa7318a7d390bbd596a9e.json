@@ -1,0 +1,270 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, product_id, is_default, sku, barcode, ean13, price, gross_price, original_price,\n                wholesale_price, original_wholesale_price, supplier_wholesale_price,\n                impact_on_price, impact_on_wholesale_price, weight, reference_vendor,\n                reference_vendor2, reference_vendor3, meta, created_at, updated_at\n         FROM product_variants\n         WHERE id = $1 AND workspace_id = $2 AND product_id = $3 AND deleted_at IS NULL\n         FOR NO KEY UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "is_default",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "is_default"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "sku",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "sku"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "barcode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "barcode"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ean13",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "ean13"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "price"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "gross_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "gross_price"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "original_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "original_price"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "original_wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "original_wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "supplier_wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "supplier_wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "impact_on_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "impact_on_price"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "impact_on_wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "impact_on_wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "weight",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "weight"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "reference_vendor",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "reference_vendor"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "reference_vendor2",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "reference_vendor2"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "reference_vendor3",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "reference_vendor3"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "50593955d645e19a518efeb173386c6fa1c9f813a42fa7318a7d390bbd596a9e"
+}

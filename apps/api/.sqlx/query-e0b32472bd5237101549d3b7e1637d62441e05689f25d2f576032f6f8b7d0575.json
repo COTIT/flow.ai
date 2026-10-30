@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM invites\n         WHERE (status <> 'pending' AND updated_at < now() - interval '30 days')\n            OR (status = 'pending' AND expires_at < now() - interval '30 days')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "e0b32472bd5237101549d3b7e1637d62441e05689f25d2f576032f6f8b7d0575"
+}

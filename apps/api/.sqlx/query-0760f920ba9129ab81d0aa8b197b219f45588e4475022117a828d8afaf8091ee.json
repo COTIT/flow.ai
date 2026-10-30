@@ -1,0 +1,207 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, carrier, shipping_costs, min_weight, max_weight,\n                  price_impact_business, price_impact_consumer, countries, provider, provider_id,\n                  can_be_selected, meta, created_at, updated_at, count(*) OVER () AS \"total!\"\n           FROM shipment_methods\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR name ILIKE $2)\n             AND ($3::bool IS NULL OR can_be_selected = $3)\n           ORDER BY id\n           LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "carrier",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "carrier"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "shipping_costs",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "shipping_costs"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "min_weight",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "min_weight"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "max_weight",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "max_weight"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "price_impact_business",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "price_impact_business"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "price_impact_consumer",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "price_impact_consumer"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "countries",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "countries"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "provider",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "provider_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "provider_id"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "can_be_selected",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "can_be_selected"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "shipment_methods",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "0760f920ba9129ab81d0aa8b197b219f45588e4475022117a828d8afaf8091ee"
+}

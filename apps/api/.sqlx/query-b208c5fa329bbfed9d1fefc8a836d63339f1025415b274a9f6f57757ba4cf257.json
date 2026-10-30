@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.warehouse_id,\n                  array_to_string(array_remove(array_remove(\n                      ARRAY[s.section_code, r.row_code, sh.shelf_code, b.bin_code], ''), '0'), '.')\n                  AS \"path!\"\n           FROM warehouse_section_row_bins b\n           JOIN warehouse_section_row_shelves sh ON sh.id = b.shelf_id AND sh.deleted_at IS NULL\n           JOIN warehouse_section_rows r ON r.id = b.row_id AND r.deleted_at IS NULL\n           JOIN warehouse_sections s ON s.id = b.section_id AND s.deleted_at IS NULL\n           WHERE b.id = $1 AND b.workspace_id = $2 AND b.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "path!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "b208c5fa329bbfed9d1fefc8a836d63339f1025415b274a9f6f57757ba4cf257"
+}

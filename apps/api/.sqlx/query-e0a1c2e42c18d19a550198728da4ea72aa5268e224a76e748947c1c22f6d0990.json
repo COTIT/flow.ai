@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_variants (workspace_id, product_id, is_default, barcode, ean13,\n             price, original_price, wholesale_price, original_wholesale_price, gross_price,\n             supplier_wholesale_price, impact_on_price, impact_on_wholesale_price, weight,\n             reference_vendor, reference_vendor2, reference_vendor3)\n         VALUES ($1, $2, true, $3, $4, $5, $15, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "product_variants",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Text",
+        "Text",
+        "Text",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e0a1c2e42c18d19a550198728da4ea72aa5268e224a76e748947c1c22f6d0990"
+}

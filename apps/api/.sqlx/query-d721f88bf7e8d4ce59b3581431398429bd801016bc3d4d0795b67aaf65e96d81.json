@@ -1,0 +1,275 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, domain, domain_action, columns, header_left, header_right,\n                  header_top, footer, padding_top, padding_bottom, padding_x, enable_summary,\n                  is_default, conditions, extra_fields, meta, background_file_id, logo_file_id,\n                  created_at, updated_at\n           FROM pdf_templates\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR domain = $2)\n             AND ($3::text IS NULL OR name ILIKE $3)\n             AND ($4::text IS NULL OR conditions->>'relation_type' IS NULL\n                  OR conditions->>'relation_type' = $4)\n             AND ($5::text IS NULL OR conditions->>'language' IS NULL\n                  OR conditions->>'language' = $5)\n             AND ($6::text IS NULL OR conditions->>'relation_custom_type_id' IS NULL\n                  OR conditions->>'relation_custom_type_id' = $6)\n           ORDER BY created_at DESC, id DESC\n           LIMIT $7 OFFSET $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "domain",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "domain"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "domain_action",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "domain_action"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "columns",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "columns"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "header_left",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "header_left"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "header_right",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "header_right"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "header_top",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "header_top"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "footer",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "footer"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "padding_top",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "padding_top"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "padding_bottom",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "padding_bottom"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "padding_x",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "padding_x"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "enable_summary",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "enable_summary"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "is_default",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "is_default"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "conditions",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "conditions"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "extra_fields",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "extra_fields"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "background_file_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "background_file_id"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "logo_file_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "logo_file_id"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "pdf_templates",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "d721f88bf7e8d4ce59b3581431398429bd801016bc3d4d0795b67aaf65e96d81"
+}

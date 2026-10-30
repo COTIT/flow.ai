@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM custom_statuses\n           WHERE workspace_id = $1 AND deleted_at IS NULL AND NOT archived\n             AND ($2::text IS NULL OR domain = $2)\n             AND ($3::text IS NULL OR name ILIKE $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "7129a18f28c2f3db261a68fbcf9111cb8bebd24b837d9492262c66c6b15c262f"
+}

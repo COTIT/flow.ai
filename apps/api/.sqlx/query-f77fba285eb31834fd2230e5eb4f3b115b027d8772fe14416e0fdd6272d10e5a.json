@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, active, internal, supplier_relation_id, meta, created_at, updated_at,\n                  count(*) OVER () AS total\n           FROM discount_groups\n           WHERE workspace_id = $1 AND deleted_at IS NULL\n             AND ($2::text IS NULL OR name ILIKE $2)\n             AND ($3::bool IS NULL OR active = $3)\n             AND ($4::bool IS NULL OR internal = $4)\n           ORDER BY id LIMIT $5 OFFSET $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "active"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "internal",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "internal"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "supplier_relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "supplier_relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "discount_groups",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "total",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "f77fba285eb31834fd2230e5eb4f3b115b027d8772fe14416e0fdd6272d10e5a"
+}

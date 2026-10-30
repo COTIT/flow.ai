@@ -1,0 +1,89 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, impact_on_wholesale_price, wholesale_price, supplier_wholesale_price,\n                gross_price\n         FROM products\n         WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "impact_on_wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "impact_on_wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "supplier_wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "supplier_wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "gross_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "gross_price"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "5c2097ec0bc21ed9a424acc08b6c60c39b92fb3598748043638623f36783e969"
+}

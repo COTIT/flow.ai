@@ -1,0 +1,4 @@
+ALTER TABLE invites DROP COLUMN IF EXISTS team_id;
+DROP TABLE IF EXISTS team_members;
+DROP TABLE IF EXISTS team_permissions;
+DROP TABLE IF EXISTS teams;

@@ -1,0 +1,27 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        html {
+            -webkit-print-color-adjust: exact;
+        }
+
+        #watermark {
+            position: fixed;
+            top: 3px;
+            left: 1px;
+            right: 1px;
+            bottom: 2px;
+            width: 15.7cm;
+            z-index: -1000;
+        }
+    </style>
+</head>
+<body>
+<div id="watermark">
+    <img src="{{ background }}" style="width: 100%;" />
+</div>
+</body>
+</html>

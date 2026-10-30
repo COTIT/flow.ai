@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH targets AS (\n               SELECT id, default_warehouse FROM warehouses\n               WHERE workspace_id = $1 AND deleted_at IS NULL AND (default_warehouse OR is_store)\n           ),\n           seeded AS (\n               INSERT INTO stocks (workspace_id, product_id, warehouse_id)\n               SELECT $1, $2, id FROM targets\n               WHERE EXISTS (SELECT 1 FROM targets WHERE default_warehouse)\n               ON CONFLICT DO NOTHING\n           )\n           SELECT id AS \"id!\" FROM targets WHERE default_warehouse",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2ac57c3fe39e8f9bdeb4e2a6cdaf5819a76b158f53ef01d4094a09c025cc691a"
+}
