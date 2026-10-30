@@ -1,0 +1,10 @@
+{
+  "extends": "@genesy/typescript-config/react-library.json",
+  "compilerOptions": {
+    "paths": {
+      "@genesy/ui/*": ["./src/*"]
+    }
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}

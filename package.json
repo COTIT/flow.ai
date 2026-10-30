@@ -9,10 +9,16 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
+    "format": "turbo run format",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test"
   },
   "devDependencies": {
-    "turbo": "2.11.10"
+    "@genesy/eslint-config": "workspace:*",
+    "@genesy/typescript-config": "workspace:*",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "turbo": "2.11.10",
+    "typescript": "^5"
   }
 }

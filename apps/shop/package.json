@@ -1,0 +1,34 @@
+{
+  "name": "@genesy/shop",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@genesy/api-client": "workspace:^",
+    "@genesy/ui": "workspace:*",
+    "@tanstack/react-query": "^5.105.0",
+    "lucide-react": "^1.65.0",
+    "next": "16.4.3",
+    "next-themes": "^0.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@genesy/eslint-config": "workspace:*",
+    "@genesy/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^10",
+    "typescript": "^5"
+  }
+}

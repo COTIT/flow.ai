@@ -1,0 +1,32 @@
+{
+  "name": "@genesy/api-client",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.105.0",
+    "axios": "^1.21.0"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@genesy/eslint-config": "workspace:*",
+    "@genesy/typescript-config": "workspace:*",
+    "@types/react": "^19",
+    "eslint": "^10",
+    "react": "19.3.1",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  },
+  "exports": {
+    "./client": "./src/client.ts",
+    "./query-provider": "./src/query-provider.tsx"
+  }
+}
