@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+dist/
+out/
+target/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# test output
+coverage/
+
+# local env (keep examples)
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
