@@ -14,7 +14,7 @@ const LIST: &str = "/workspace/{workspace}/currencies";
 const ITEM: &str = "/workspace/{workspace}/currencies/{currency}";
 
 fn spec() -> Value {
-    serde_json::to_value(openapi::spec()).unwrap()
+    openapi::spec().unwrap()
 }
 
 /// Follow `$ref`s into `components`.
@@ -28,11 +28,38 @@ fn resolve<'a>(spec: &'a Value, schema: &'a Value) -> &'a Value {
     }
 }
 
-fn response_schema<'a>(spec: &'a Value, path: &str, method: &str, status: &str) -> &'a Value {
+/// Documented JSON schema of one response, as written (may be a `$ref`).
+fn raw_response_schema<'a>(spec: &'a Value, path: &str, method: &str, status: &str) -> &'a Value {
     let s =
         &spec["paths"][path][method]["responses"][status]["content"]["application/json"]["schema"];
     assert!(!s.is_null(), "{method} {path} {status}: no JSON schema");
-    resolve(spec, s)
+    s
+}
+
+fn response_schema<'a>(spec: &'a Value, path: &str, method: &str, status: &str) -> &'a Value {
+    resolve(spec, raw_response_schema(spec, path, method, status))
+}
+
+/// Full JSON Schema 2020-12 check (types, formats, items, nested refs). The schema gets the
+/// spec's `components` so `#/components/...` refs resolve in place.
+fn schema_errors(spec: &Value, schema: &Value, value: &Value) -> Vec<String> {
+    let mut root = schema.clone();
+    root["components"] = spec["components"].clone();
+    let validator = jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .build(&root)
+        .unwrap_or_else(|e| panic!("schema does not compile: {e}"));
+    validator
+        .iter_errors(value)
+        .map(|e| format!("{} at {}", e, e.instance_path()))
+        .collect()
+}
+
+/// Real body passes the full schema and has exactly the documented, required keys.
+fn check(spec: &Value, path: &str, method: &str, status: &str, value: &Value, at: &str) {
+    let errors = schema_errors(spec, raw_response_schema(spec, path, method, status), value);
+    assert!(errors.is_empty(), "{at}: {errors:#?}");
+    assert_matches(spec, response_schema(spec, path, method, status), value, at);
 }
 
 /// Schema allows JSON null (3.1 `type: [.., "null"]` or a `oneOf` with null).
@@ -87,7 +114,7 @@ fn assert_matches(spec: &Value, schema: &Value, value: &Value, at: &str) {
 
 #[test]
 fn committed_spec_matches_code() {
-    let fresh = openapi::spec().to_pretty_json().unwrap() + "\n";
+    let fresh = serde_json::to_string_pretty(&spec()).unwrap() + "\n";
     if std::env::var_os("UPDATE_OPENAPI").is_some() {
         // A stray UPDATE_OPENAPI in CI would rewrite the file and hide drift.
         assert!(
@@ -102,6 +129,78 @@ fn committed_spec_matches_code() {
         committed == fresh,
         "openapi.json is stale: run `UPDATE_OPENAPI=1 cargo test --test openapi`"
     );
+}
+
+/// The checker itself: wrong types and malformed ids must be caught, or every
+/// "matches the spec" test below proves nothing.
+#[test]
+fn schema_check_rejects_wrong_types_and_formats() {
+    let s = spec();
+    let created = raw_response_schema(&s, LIST, "post", "201");
+    assert!(
+        schema_errors(
+            &s,
+            created,
+            &json!({ "data": { "currency_id": "0193f6b0-1c2d-7e3f-8a9b-0c1d2e3f4a5b" } })
+        )
+        .is_empty()
+    );
+    assert!(!schema_errors(&s, created, &json!({ "data": { "currency_id": 5 } })).is_empty());
+    assert!(
+        !schema_errors(
+            &s,
+            created,
+            &json!({ "data": { "currency_id": "not-a-uuid" } })
+        )
+        .is_empty()
+    );
+    assert!(!schema_errors(&s, created, &json!({ "data": {} })).is_empty());
+
+    let list = raw_response_schema(&s, LIST, "get", "200");
+    let bad_row = json!({ "data": [{ "id": "x" }], "meta": {
+        "current_page": 1, "from": 1, "last_page": 1, "per_page": 50, "to": 1, "total": 1,
+    }});
+    assert!(
+        !schema_errors(&s, list, &bad_row).is_empty(),
+        "list items must be checked"
+    );
+}
+
+/// Count objects anywhere under `v` that equal `target`.
+fn copies(v: &Value, target: &Value) -> usize {
+    let here = usize::from(v == target);
+    here + match v {
+        Value::Object(m) => m.values().map(|c| copies(c, target)).sum(),
+        Value::Array(a) => a.iter().map(|c| copies(c, target)).sum(),
+        _ => 0,
+    }
+}
+
+/// A named type pasted inline (utoipa does this for generic args) makes codegen emit a
+/// second, anonymous copy of the type. Each named schema must exist once, then `$ref`.
+#[test]
+fn named_schemas_are_referenced_not_copied() {
+    let s = spec();
+    for (name, schema) in s["components"]["schemas"].as_object().unwrap() {
+        if schema.get("properties").is_none() {
+            continue;
+        }
+        assert_eq!(copies(&s, schema), 1, "{name} is copied inline somewhere");
+    }
+}
+
+/// OpenAPI below 3.2 requires a description on every response.
+#[test]
+fn every_response_has_a_description() {
+    let s = spec();
+    for (path, item) in s["paths"].as_object().unwrap() {
+        for (method, op) in item.as_object().unwrap() {
+            for (code, res) in op["responses"].as_object().unwrap() {
+                let d = res["description"].as_str().unwrap_or("");
+                assert!(!d.is_empty(), "{method} {path} {code}: no description");
+            }
+        }
+    }
 }
 
 #[test]
@@ -221,12 +320,7 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     });
     let (status, created) = send(&app, Method::POST, &base, Some(body), Some(&token)).await;
     assert_eq!(status, StatusCode::CREATED, "{created}");
-    assert_matches(
-        &s,
-        response_schema(&s, LIST, "post", "201"),
-        &created,
-        "create",
-    );
+    check(&s, LIST, "post", "201", &created, "create");
     let id = created["data"]["currency_id"].as_str().unwrap();
 
     let (status, one) = send(
@@ -238,12 +332,12 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     )
     .await;
     assert_eq!(status, StatusCode::OK, "{one}");
-    assert_matches(&s, response_schema(&s, ITEM, "get", "200"), &one, "get");
+    check(&s, ITEM, "get", "200", &one, "get");
 
     let (status, list) = send(&app, Method::GET, &base, None, Some(&token)).await;
     assert_eq!(status, StatusCode::OK, "{list}");
+    check(&s, LIST, "get", "200", &list, "list");
     let list_schema = response_schema(&s, LIST, "get", "200");
-    assert_matches(&s, list_schema, &list, "list");
     let item_schema = &resolve(&s, &list_schema["properties"]["data"])["items"];
     for (i, row) in list["data"].as_array().unwrap().iter().enumerate() {
         assert_matches(&s, item_schema, row, &format!("list.data[{i}]"));
@@ -252,16 +346,16 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     let bad = json!({ "name": "", "asset_type": "nope" });
     let (status, err) = send(&app, Method::POST, &base, Some(bad), Some(&token)).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_matches(&s, response_schema(&s, LIST, "post", "422"), &err, "422");
+    check(&s, LIST, "post", "422", &err, "422");
 
     let missing = format!("{base}/00000000-0000-0000-0000-000000000000");
     let (status, err) = send(&app, Method::GET, &missing, None, Some(&token)).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
-    assert_matches(&s, response_schema(&s, ITEM, "get", "404"), &err, "404");
+    check(&s, ITEM, "get", "404", &err, "404");
 
     let (status, err) = send(&app, Method::GET, &base, None, None).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
-    assert_matches(&s, response_schema(&s, LIST, "get", "401"), &err, "401");
+    check(&s, LIST, "get", "401", &err, "401");
 
     // A member without `currency.create`.
     let bob = member_with(&app, &pool, &ws, "bob@example.com", &[]).await;
@@ -271,5 +365,5 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     });
     let (status, err) = send(&app, Method::POST, &base, Some(body), Some(&bob)).await;
     assert_eq!(status, StatusCode::FORBIDDEN);
-    assert_matches(&s, response_schema(&s, LIST, "post", "403"), &err, "403");
+    check(&s, LIST, "post", "403", &err, "403");
 }

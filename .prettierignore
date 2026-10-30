@@ -4,5 +4,7 @@ node_modules/
 .turbo/
 coverage/
 target/
+packages/api-client/src/generated/
+apps/api/openapi.json
 pnpm-lock.yaml
 .pnpm-store/

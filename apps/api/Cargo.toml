@@ -36,4 +36,5 @@ zeroize = "1.9.1"
 
 [dev-dependencies]
 http-body-util = "0.1.5"
+jsonschema = { version = "0.59.0", default-features = false }
 tower = { version = "0.5.3", features = ["util"] }

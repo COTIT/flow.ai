@@ -24,6 +24,18 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": []
+    },
+    "openapi": {
+      "outputs": ["openapi.json"]
+    },
+    "generate": {
+      "dependsOn": ["@genesy/api#openapi"],
+      "inputs": ["orval.config.ts", "src/mutator.ts", "$TURBO_ROOT$/apps/api/openapi.json"],
+      "outputs": ["src/generated/**"]
+    },
+    "generate:check": {
+      "dependsOn": ["@genesy/api#openapi"],
+      "cache": false
     }
   }
 }

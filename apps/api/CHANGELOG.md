@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- OpenAPI step 2 (TypeScript client):
+  - `openapi::spec()` now returns JSON and swaps inline copies of named schemas for `$ref`s (utoipa pastes generic args inline; orval then emitted duplicate anonymous types).
+  - Every response has a description (required before OpenAPI 3.2).
+  - Tests: real bodies are validated with `jsonschema` 0.59 (dev-only, Draft 2020-12, formats on: types, uuid, date-time, list items); a self-check proves the validator rejects wrong types, bad ids and bad rows. New checks: no inline copies of named schemas; every response described.
+  - `pnpm --filter @genesy/api openapi` writes `openapi.json` (Turborepo runs it before the client generator).
 - OpenAPI step 1 (moved into the genesy monorepo as `apps/api`):
   - `utoipa` 6 + `utoipa-axum` 0.3. `src/openapi.rs` owns `router()` (documented routes) and `spec()` (OpenAPI 3.1, server `/v1`, `bearer` scheme). `build_app` mounts that same `router()`, so a documented module can't be served without docs.
   - Currencies documented: the router is now built from each handler's `#[utoipa::path]`, with operationIds `currencies_*` and public summaries. Paths, statuses and bodies are unchanged; the full suite passes (944 tests).

@@ -7,7 +7,9 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate": "orval --config orval.config.ts",
+    "generate:check": "orval --config orval.config.ts && git diff --exit-code -- src/generated && test -z \"$(git ls-files --others --exclude-standard -- src/generated)\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.105.0",
@@ -21,12 +23,16 @@
     "@genesy/typescript-config": "workspace:*",
     "@types/react": "^19",
     "eslint": "^10",
+    "orval": "8.42.0",
     "react": "19.3.1",
     "typescript": "^5",
     "vitest": "^5.0.5"
   },
   "exports": {
     "./client": "./src/client.ts",
-    "./query-provider": "./src/query-provider.tsx"
+    "./mutator": "./src/mutator.ts",
+    "./query-provider": "./src/query-provider.tsx",
+    "./model": "./src/generated/model/index.ts",
+    "./endpoints/*": "./src/generated/*/*.ts"
   }
 }

@@ -22,6 +22,11 @@
       "cache": false,
       "passThroughEnv": ["CARGO_*", "RUSTUP_*", "SQLX_OFFLINE", "GENESY_DATABASE_URL", "DATABASE_URL", "RUST_LOG"]
     },
+    "openapi": {
+      "inputs": ["src/**", "tests/**", "migrations/**", "templates/**", ".sqlx/**", "build.rs", "Cargo.toml", "Cargo.lock", "sqlx.toml"],
+      "outputs": ["openapi.json"],
+      "passThroughEnv": ["CARGO_*", "RUSTUP_*"]
+    },
     "dev": {
       "cache": false,
       "persistent": true,
