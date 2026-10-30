@@ -1,6 +1,7 @@
 //! List helpers shared by index endpoints: Laravel paging params + `meta`, ILIKE escaping.
 
 use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{error::AppError, http::json::Rules};
 
@@ -35,19 +36,23 @@ impl Page {
 }
 
 /// `{data, meta}` like Laravel's LengthAwarePaginator (without `links`: vimdesk-web never reads them).
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "One page of results plus paging details.")]
 pub struct Paginated<T> {
     data: Vec<T>,
     meta: Meta,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Debug, PartialEq, ToSchema)]
+#[schema(description = "Paging details. `total` counts matches across all pages.")]
 struct Meta {
     current_page: i64,
     /// 1-based index of first row on this page; null when the page is empty.
+    #[schema(required = true)]
     from: Option<i64>,
     last_page: i64,
     per_page: i64,
+    #[schema(required = true)]
     to: Option<i64>,
     total: i64,
 }

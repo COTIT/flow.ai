@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- OpenAPI step 1 (moved into the genesy monorepo as `apps/api`):
+  - `utoipa` 6 + `utoipa-axum` 0.3. `src/openapi.rs` owns `router()` (documented routes) and `spec()` (OpenAPI 3.1, server `/v1`, `bearer` scheme). `build_app` mounts that same `router()`, so a documented module can't be served without docs.
+  - Currencies documented: the router is now built from each handler's `#[utoipa::path]`, with operationIds `currencies_*` and public summaries. Paths, statuses and bodies are unchanged; the full suite passes (944 tests).
+  - Shared schemas: `Envelope<T>` (`{data}`), `Paginated<T>` (`{data, meta}`), `MessageBody` (`{message}`, also every error body), `ValidationErrorBody` (422). `Message` and the 422 body now serialize through these structs (same JSON), so docs and output share one type.
+  - Fields that are always sent but may be null are listed as `required` (generated clients type them as present).
+  - `openapi.json` is committed. `tests/openapi.rs` fails when it is stale (regenerate locally with `UPDATE_OPENAPI=1 cargo test --test openapi`; refused when `CI` is set), requires unique tag-prefixed operationIds, and checks real currency create/get/list/401/403/404/422 bodies against the documented schemas.
+  - Request schemas list the clean types (`decimals` integer, flags boolean); the API still accepts Laravel's lenient forms ("2", "true").
 - Final batch F5b2 (sending workspace mail; contract `docs/api/messages.md`):
   - **`src/mail`** is now a module, and every mail leaves through `Mailer::dispatch`: the recipient allow-list, then one transport within 15 s.
     - Platform SMTP (Resend in prod).

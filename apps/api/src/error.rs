@@ -14,6 +14,14 @@ const SERVER_ERROR: &str = "Server error.";
 /// Shared with the IP rate limiter so every 429 looks the same.
 pub const TOO_MANY: &str = "Too Many Attempts.";
 
+/// 422 wire shape and its OpenAPI schema; one type, so docs and output can't drift.
+#[derive(serde::Serialize, utoipa::ToSchema)]
+#[schema(description = "Validation failed. `errors` maps each field to its messages.")]
+pub struct ValidationErrorBody {
+    message: String,
+    errors: BTreeMap<String, Vec<String>>,
+}
+
 /// Every failure a handler can return. Bodies follow vimdesk-api `app/Exceptions/Handler.php`.
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -142,7 +150,7 @@ impl IntoResponse for AppError {
                     let noun = if more == 1 { "error" } else { "errors" };
                     message.push_str(&format!(" (and {more} more {noun})"));
                 }
-                let body = json!({ "message": message, "errors": errors });
+                let body = ValidationErrorBody { message, errors };
                 (StatusCode::UNPROCESSABLE_ENTITY, Json(body)).into_response()
             }
             Self::Unauthorized => (

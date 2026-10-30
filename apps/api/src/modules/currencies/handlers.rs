@@ -9,11 +9,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, WorkspaceAccess, permissions},
     },
     modules::currencies::{
@@ -35,6 +35,18 @@ permissions! {
 type CurrencyPath = Path<(String, String)>;
 
 /// GET /currencies -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/currencies", tag = "currencies",
+    operation_id = "currencies_list", summary = "List currencies",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<CurrencyResource>),
+        (status = 401, body = MessageBody, description = "Not logged in"),
+        (status = 403, body = MessageBody, description = "Membership is inactive"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -55,6 +67,21 @@ pub async fn list(
 }
 
 /// GET /currencies/{currency}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/currencies/{currency}", tag = "currencies",
+    operation_id = "currencies_get", summary = "Get a currency",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("currency" = Uuid, Path, description = "Currency id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<CurrencyResource>),
+        (status = 401, body = MessageBody, description = "Not logged in"),
+        (status = 403, body = MessageBody, description = "Membership is inactive"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or currency, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -65,6 +92,20 @@ pub async fn get(
 }
 
 /// POST /currencies -> 201 `{data:{currency_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/currencies", tag = "currencies",
+    operation_id = "currencies_create", summary = "Create a currency",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateCurrencyRequest,
+    responses(
+        (status = 201, body = Envelope<CurrencyCreated>),
+        (status = 401, body = MessageBody, description = "Not logged in"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `currency.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<CurrencyCreate>,
@@ -75,6 +116,23 @@ pub async fn create(
 }
 
 /// POST /currencies/{currency} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/currencies/{currency}", tag = "currencies",
+    operation_id = "currencies_update", summary = "Update a currency (send only changed fields)",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("currency" = Uuid, Path, description = "Currency id"),
+    ),
+    request_body = UpdateCurrencyRequest,
+    responses(
+        (status = 200, body = MessageBody),
+        (status = 401, body = MessageBody, description = "Not logged in"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `currency.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or currency, or caller not a member"),
+        (status = 422, body = ValidationErrorBody),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<CurrencyUpdate>,
@@ -86,6 +144,21 @@ pub async fn update(
 }
 
 /// DELETE /currencies/{currency} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/currencies/{currency}", tag = "currencies",
+    operation_id = "currencies_delete", summary = "Delete a currency",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("currency" = Uuid, Path, description = "Currency id"),
+    ),
+    responses(
+        (status = 200, body = MessageBody),
+        (status = 401, body = MessageBody, description = "Not logged in"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `currency.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or currency, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<CurrencyDelete>,

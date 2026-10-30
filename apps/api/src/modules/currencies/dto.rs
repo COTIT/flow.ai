@@ -4,6 +4,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -43,16 +44,20 @@ fn is_iso_4217(code: &str) -> bool {
 
 /// Laravel CurrencyResource. `default_currency` must be a JSON bool: vimdesk-web and the POS
 /// find the default with `=== true`.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A currency the workspace can price in. Exactly one is the default.")]
 pub struct CurrencyResource {
     id: Uuid,
     name: String,
     asset_type: String,
+    #[schema(required = true)]
     symbol_prefix: Option<String>,
+    #[schema(required = true)]
     symbol_suffix: Option<String>,
     decimals: i16,
     default_currency: bool,
     active: bool,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
@@ -77,29 +82,46 @@ impl From<CurrencyRow> for CurrencyResource {
 }
 
 /// Create response: the new row's id.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct CurrencyCreated {
     pub currency_id: Uuid,
 }
 
 /// GET list query. Unknown params ignored (vimdesk-web sends `q` only, often empty).
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on name and asset type.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
-/// POST /currencies.
-#[derive(Deserialize)]
+/// POST /currencies. Raw `Value`s keep Laravel's lenient parsing ("2", "true");
+/// the schema documents the clean types clients should send.
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "New currency. `asset_type` is an ISO 4217 code.")]
 pub struct CreateCurrencyRequest {
+    #[schema(value_type = String, max_length = 255)]
     name: Option<String>,
+    /// ISO 4217 code, any case.
+    #[schema(value_type = String, example = "EUR")]
     asset_type: Option<String>,
+    #[schema(max_length = 10)]
     symbol_prefix: Option<String>,
+    #[schema(max_length = 10)]
     symbol_suffix: Option<String>,
+    #[schema(value_type = i16, minimum = 0, maximum = 8)]
     decimals: Option<Value>,
+    #[schema(value_type = bool)]
     default_currency: Option<Value>,
+    #[schema(value_type = bool)]
     active: Option<Value>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -155,23 +177,34 @@ impl Validate for CreateCurrencyRequest {
 
 /// POST /currencies/{id}: a patch. Absent = keep; the settings form echoes read-only keys
 /// (`id`, `created_at`), which are ignored.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to a currency. Leave a field out to keep it; send null to clear it."
+)]
 pub struct UpdateCurrencyRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 255)]
     name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, example = "EUR")]
     asset_type: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 10)]
     symbol_prefix: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 10)]
     symbol_suffix: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i16>, minimum = 0, maximum = 8)]
     decimals: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     default_currency: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     active: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

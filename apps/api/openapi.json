@@ -1,0 +1,906 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Genesy API",
+    "description": "One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.",
+    "license": {
+      "name": "Proprietary"
+    },
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "/v1"
+    }
+  ],
+  "paths": {
+    "/workspace/{workspace}/currencies": {
+      "get": {
+        "tags": [
+          "currencies"
+        ],
+        "summary": "List currencies",
+        "operationId": "currencies_list",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "description": "Workspace id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search on name and asset type.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based; junk falls back to 1.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "Default 50, max 100.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_CurrencyResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Membership is inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown workspace, or caller not a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "currencies"
+        ],
+        "summary": "Create a currency",
+        "operationId": "currencies_create",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "description": "Workspace id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCurrencyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CurrencyCreated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Inactive membership or missing `currency.create`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown workspace, or caller not a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/workspace/{workspace}/currencies/{currency}": {
+      "get": {
+        "tags": [
+          "currencies"
+        ],
+        "summary": "Get a currency",
+        "operationId": "currencies_get",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "description": "Workspace id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "path",
+            "description": "Currency id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CurrencyResource"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Membership is inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown workspace or currency, or caller not a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "currencies"
+        ],
+        "summary": "Update a currency (send only changed fields)",
+        "operationId": "currencies_update",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "description": "Workspace id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "path",
+            "description": "Currency id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurrencyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Inactive membership or missing `currency.update`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown workspace or currency, or caller not a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "currencies"
+        ],
+        "summary": "Delete a currency",
+        "operationId": "currencies_delete",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "description": "Workspace id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "currency",
+            "in": "path",
+            "description": "Currency id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Inactive membership or missing `currency.delete`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown workspace or currency, or caller not a member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateCurrencyRequest": {
+        "type": "object",
+        "description": "New currency. `asset_type` is an ISO 4217 code.",
+        "required": [
+          "name",
+          "asset_type",
+          "decimals",
+          "default_currency",
+          "active"
+        ],
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "asset_type": {
+            "type": "string",
+            "description": "ISO 4217 code, any case.",
+            "example": "EUR"
+          },
+          "decimals": {
+            "type": "integer",
+            "format": "int32",
+            "maximum": 8,
+            "minimum": 0
+          },
+          "default_currency": {
+            "type": "boolean"
+          },
+          "meta": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "symbol_prefix": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10
+          },
+          "symbol_suffix": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10
+          }
+        }
+      },
+      "CurrencyCreated": {
+        "type": "object",
+        "description": "Create response: the new row's id.",
+        "required": [
+          "currency_id"
+        ],
+        "properties": {
+          "currency_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "CurrencyResource": {
+        "type": "object",
+        "description": "A currency the workspace can price in. Exactly one is the default.",
+        "required": [
+          "id",
+          "name",
+          "asset_type",
+          "symbol_prefix",
+          "symbol_suffix",
+          "decimals",
+          "default_currency",
+          "active",
+          "meta",
+          "created_at",
+          "last_updated_at"
+        ],
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "asset_type": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decimals": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "default_currency": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "last_updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "meta": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "symbol_prefix": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "symbol_suffix": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Envelope_CurrencyCreated": {
+        "type": "object",
+        "description": "Success body: the result under `data`.",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Create response: the new row's id.",
+            "required": [
+              "currency_id"
+            ],
+            "properties": {
+              "currency_id": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        }
+      },
+      "Envelope_CurrencyResource": {
+        "type": "object",
+        "description": "Success body: the result under `data`.",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "A currency the workspace can price in. Exactly one is the default.",
+            "required": [
+              "id",
+              "name",
+              "asset_type",
+              "symbol_prefix",
+              "symbol_suffix",
+              "decimals",
+              "default_currency",
+              "active",
+              "meta",
+              "created_at",
+              "last_updated_at"
+            ],
+            "properties": {
+              "active": {
+                "type": "boolean"
+              },
+              "asset_type": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "decimals": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "default_currency": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "last_updated_at": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "meta": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "symbol_prefix": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "symbol_suffix": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "MessageBody": {
+        "type": "object",
+        "description": "A short message: `ok` after an action, or what went wrong.",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Meta": {
+        "type": "object",
+        "description": "Paging details. `total` counts matches across all pages.",
+        "required": [
+          "current_page",
+          "from",
+          "last_page",
+          "per_page",
+          "to",
+          "total"
+        ],
+        "properties": {
+          "current_page": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "from": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "1-based index of first row on this page; null when the page is empty."
+          },
+          "last_page": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "per_page": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "to": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Paginated_CurrencyResource": {
+        "type": "object",
+        "description": "One page of results plus paging details.",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "A currency the workspace can price in. Exactly one is the default.",
+              "required": [
+                "id",
+                "name",
+                "asset_type",
+                "symbol_prefix",
+                "symbol_suffix",
+                "decimals",
+                "default_currency",
+                "active",
+                "meta",
+                "created_at",
+                "last_updated_at"
+              ],
+              "properties": {
+                "active": {
+                  "type": "boolean"
+                },
+                "asset_type": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "decimals": {
+                  "type": "integer",
+                  "format": "int32"
+                },
+                "default_currency": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "last_updated_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "meta": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "symbol_prefix": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "symbol_suffix": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        }
+      },
+      "UpdateCurrencyRequest": {
+        "type": "object",
+        "description": "Changes to a currency. Leave a field out to keep it; send null to clear it.",
+        "properties": {
+          "active": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "asset_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "EUR"
+          },
+          "decimals": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "maximum": 8,
+            "minimum": 0
+          },
+          "default_currency": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "meta": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "symbol_prefix": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10
+          },
+          "symbol_suffix": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 10
+          }
+        }
+      },
+      "ValidationErrorBody": {
+        "type": "object",
+        "description": "Validation failed. `errors` maps each field to its messages.",
+        "required": [
+          "message",
+          "errors"
+        ],
+        "properties": {
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

@@ -5,21 +5,31 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
+use utoipa::ToSchema;
 
 /// Wrap a body as `{"data": body}`. Pair with a status tuple for non-200: `(StatusCode::CREATED, Data(x))`.
 pub struct Data<T>(pub T);
 
-#[derive(Serialize)]
-struct Envelope<T> {
+/// Wire shape of [`Data`] and its OpenAPI schema; one type, so docs and output can't drift.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "Success body: the result under `data`.")]
+pub struct Envelope<T> {
     data: T,
 }
 
 /// `{"message": ...}` body for actions with nothing to return. Laravel used `{"message":"ok"}`.
 pub struct Message(pub &'static str);
 
+/// Wire shape of [`Message`]; also the schema of every `{"message"}` error body.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A short message: `ok` after an action, or what went wrong.")]
+pub struct MessageBody {
+    message: &'static str,
+}
+
 impl IntoResponse for Message {
     fn into_response(self) -> Response {
-        Json(serde_json::json!({ "message": self.0 })).into_response()
+        Json(MessageBody { message: self.0 }).into_response()
     }
 }
 
