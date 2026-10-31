@@ -3,44 +3,51 @@ import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-type Response = { data: unknown; error: { message: string } | null }
+const api = {
+  farmSurveysList: vi.fn(),
+  farmSurveysGet: vi.fn(),
+  farmSurveysCreate: vi.fn(),
+  farmSurveysUpdate: vi.fn(),
+  farmSurveysPublish: vi.fn(),
+  farmSurveysClose: vi.fn(),
+  farmSurveysAddQuestion: vi.fn(),
+  farmSurveysReplaceQuestion: vi.fn(),
+  farmSurveysRemoveQuestion: vi.fn(),
+  farmSurveysResults: vi.fn(),
+  farmSurveysVouchers: vi.fn(),
+  farmVouchersVoid: vi.fn(),
+  currenciesList: vi.fn(),
+}
+const forward = (name: keyof typeof api) => (...args: unknown[]) => api[name](...args)
 
-/** Responses per table; `single` answers maybeSingle()/single() chains. */
-const responses = new Map<string, Response>()
-const singles = new Map<string, Response>()
-const calls: Array<{ table: string; method: string; args: unknown[] }> = []
-const rpc = vi.fn()
-
-const from = vi.fn((table: string) => {
-  let single = false
-  const chain: Record<string, unknown> = {}
-  for (const method of ['select', 'eq', 'is', 'in', 'order', 'insert', 'update']) {
-    chain[method] = vi.fn((...args: unknown[]) => {
-      calls.push({ table, method, args })
-      return chain
-    })
-  }
-  for (const method of ['maybeSingle', 'single']) {
-    chain[method] = vi.fn(() => {
-      single = true
-      return chain
-    })
-  }
-  chain.then = (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
-    Promise.resolve(
-      (single ? singles.get(table) : responses.get(table)) ?? { data: single ? null : [], error: null },
-    ).then(resolve, reject)
-  return chain
-})
-
-vi.mock('@/lib/supabase', () => ({ supabase: { from, rpc } }))
+vi.mock('@genesy/api-client/endpoints/farm-surveys', () => ({
+  farmSurveysList: forward('farmSurveysList'),
+  farmSurveysGet: forward('farmSurveysGet'),
+  farmSurveysCreate: forward('farmSurveysCreate'),
+  farmSurveysUpdate: forward('farmSurveysUpdate'),
+  farmSurveysPublish: forward('farmSurveysPublish'),
+  farmSurveysClose: forward('farmSurveysClose'),
+  farmSurveysAddQuestion: forward('farmSurveysAddQuestion'),
+  farmSurveysReplaceQuestion: forward('farmSurveysReplaceQuestion'),
+  farmSurveysRemoveQuestion: forward('farmSurveysRemoveQuestion'),
+  farmSurveysResults: forward('farmSurveysResults'),
+  farmSurveysVouchers: forward('farmSurveysVouchers'),
+}))
+vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({ farmVouchersVoid: forward('farmVouchersVoid') }))
+vi.mock('@genesy/api-client/endpoints/currencies', () => ({ currenciesList: forward('currenciesList') }))
+vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const hooks = await import('@/features/ops/surveys/useSurveyAdmin')
 const { queryKeys } = await import('@/lib/queryKeys')
-await import('@/i18n')
 
 const surveyId = '30000000-0000-4000-8000-000000000001'
 const voucherId = '40000000-0000-4000-8000-000000000001'
+
+const page = (data: unknown[], current = 1, last = 1) => ({
+  data,
+  meta: { current_page: current, last_page: last, per_page: 100, from: 1, to: data.length, total: data.length },
+})
+const refusal = (status: number, message: string) => ({ isAxiosError: true, response: { status, data: { message } } })
 
 function client() {
   const queryClient = new QueryClient({
@@ -57,304 +64,211 @@ const invalidatedKeys = (invalidate: { mock: { calls: unknown[][] } }) =>
   invalidate.mock.calls.map((call) => (call[0] as { queryKey: unknown }).queryKey)
 
 beforeEach(() => {
-  responses.clear()
-  singles.clear()
-  calls.length = 0
-  rpc.mockReset()
-  from.mockClear()
+  for (const fn of Object.values(api)) fn.mockReset()
 })
 
 describe('the survey list', () => {
-  test('pairs each survey with its database summary, without counting anything', async () => {
-    responses.set('survey', {
-      error: null,
-      data: [
-        { id: 's1', title_en: 'Harvest', title_sw: null, status: 'live', reward_amount: 5000, currency: 'TZS' },
-        { id: 's2', title_en: 'Draft', title_sw: null, status: 'draft', reward_amount: 2000, currency: 'TZS' },
-      ],
-    })
-    responses.set('v_survey_summary', {
-      error: null,
-      data: [{ survey_id: 's1', responses: 3, redeemed_count: 1, redeemed_amount: 5000 }],
-    })
-
+  test('reads every page', async () => {
+    api.farmSurveysList.mockResolvedValueOnce(page([{ id: 's1' }], 1, 2)).mockResolvedValueOnce(page([{ id: 's2' }], 2, 2))
     const rows = await hooks.fetchSurveyAdminList()
-
     expect(rows.map((r) => r.id)).toEqual(['s1', 's2'])
-    expect(rows[0].summary).toMatchObject({ responses: 3, redeemed_amount: 5000 })
-    // No summary row is an answer, not a zero the client invented.
-    expect(rows[1].summary).toBeNull()
-  })
-
-  test('asks for both title columns and lets the screen choose', async () => {
-    await hooks.fetchSurveyAdminList()
-
-    const select = calls.find((c) => c.table === 'survey' && c.method === 'select')
-    expect(String(select?.args[0])).toMatch(/title_en/)
-    expect(String(select?.args[0])).toMatch(/title_sw/)
-  })
-
-  test('a failed read rejects rather than showing an empty list', async () => {
-    responses.set('v_survey_summary', { data: null, error: { message: 'summary read failed' } })
-    await expect(hooks.fetchSurveyAdminList()).rejects.toThrow('summary read failed')
+    expect(api.farmSurveysList).toHaveBeenLastCalledWith('w1', { page: 2, page_size: 100 })
   })
 
   test('is cached under the surveyAdmin key', async () => {
-    responses.set('survey', { error: null, data: [{ id: 's1' }] })
+    api.farmSurveysList.mockResolvedValue(page([]))
     const { queryClient, wrapper } = client()
     const { result } = renderHook(() => hooks.useSurveyAdminList(), { wrapper })
-
-    await waitFor(() => expect(result.current.data).toHaveLength(1))
-    expect(queryClient.getQueryData(queryKeys.surveyAdmin())).toHaveLength(1)
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(queryClient.getQueryData(queryKeys.surveyAdmin())).toEqual([])
   })
 })
 
 describe('one survey', () => {
-  test('reads the survey, its live questions in order, and its summary', async () => {
-    singles.set('survey', { error: null, data: { id: surveyId, status: 'draft', title_en: 'Harvest' } })
-    responses.set('survey_question', { error: null, data: [{ id: 'q1', position: 1 }] })
-    singles.set('v_survey_summary', { error: null, data: { survey_id: surveyId, responses: 0 } })
-
+  test('reads the survey with its questions in position order', async () => {
+    api.farmSurveysGet.mockResolvedValue({
+      data: { id: surveyId, questions: [{ id: 'q2', position: 2 }, { id: 'q1', position: 1 }] },
+    })
     const detail = await hooks.fetchSurveyAdminDetail(surveyId)
-
-    expect(detail?.survey.title_en).toBe('Harvest')
-    expect(detail?.questions).toHaveLength(1)
-    expect(detail?.summary).toMatchObject({ responses: 0 })
-    // Removed questions stay in the table with deleted_at set.
-    expect(calls).toContainEqual({ table: 'survey_question', method: 'is', args: ['deleted_at', null] })
-    expect(calls).toContainEqual({ table: 'survey_question', method: 'order', args: ['position'] })
+    expect(api.farmSurveysGet).toHaveBeenCalledWith('w1', surveyId)
+    expect(detail?.survey.id).toBe(surveyId)
+    expect(detail?.questions.map((q) => q.id)).toEqual(['q1', 'q2'])
   })
 
-  test('zero rows is not found, not an error', async () => {
+  test('a 404 is not found, not an error', async () => {
+    api.farmSurveysGet.mockRejectedValue(refusal(404, 'not found'))
     await expect(hooks.fetchSurveyAdminDetail(surveyId)).resolves.toBeNull()
   })
 
-  test('a malformed id reaches not found without a query', async () => {
-    await expect(hooks.fetchSurveyAdminDetail('not-a-uuid')).resolves.toBeNull()
-    expect(from).not.toHaveBeenCalled()
+  test('a malformed id reaches not found without a request', async () => {
+    await expect(hooks.fetchSurveyAdminDetail('nope')).resolves.toBeNull()
+    expect(api.farmSurveysGet).not.toHaveBeenCalled()
   })
 
-  test('a failed question read rejects', async () => {
-    singles.set('survey', { error: null, data: { id: surveyId } })
-    responses.set('survey_question', { data: null, error: { message: 'questions failed' } })
-    await expect(hooks.fetchSurveyAdminDetail(surveyId)).rejects.toThrow('questions failed')
+  test('any other failure rejects', async () => {
+    const error = refusal(500, 'boom')
+    api.farmSurveysGet.mockRejectedValue(error)
+    await expect(hooks.fetchSurveyAdminDetail(surveyId)).rejects.toBe(error)
   })
 })
 
-describe('results', () => {
-  test('the tally and number summary come from their views, filtered to the survey', async () => {
-    responses.set('v_survey_answer_tally', {
-      error: null,
-      data: [{ question_id: 'q1', option_value: 'maize', answer_count: 4 }],
-    })
-    responses.set('v_survey_number_summary', {
-      error: null,
-      data: [{ question_id: 'q2', answer_count: 3, average: 2.5, minimum: 1, maximum: 4 }],
-    })
-
-    const tally = await hooks.fetchSurveyTally(surveyId)
-
-    expect(tally.choices).toHaveLength(1)
-    expect(tally.numbers[0]).toMatchObject({ average: 2.5 })
-    expect(calls).toContainEqual({ table: 'v_survey_answer_tally', method: 'eq', args: ['survey_id', surveyId] })
-    expect(calls).toContainEqual({ table: 'v_survey_number_summary', method: 'eq', args: ['survey_id', surveyId] })
+describe('results and vouchers', () => {
+  test("results are the API's figures, unchanged", async () => {
+    const results = { responses: 3, issued: { count: 3, minor: 1500000 }, tally: [], numbers: [] }
+    api.farmSurveysResults.mockResolvedValue({ data: results })
+    const { wrapper } = client()
+    const { result } = renderHook(() => hooks.useSurveyResults(surveyId), { wrapper })
+    await waitFor(() => expect(result.current.data).toEqual(results))
+    expect(api.farmSurveysResults).toHaveBeenCalledWith('w1', surveyId)
   })
 
-  test('vouchers come from app_survey_vouchers', async () => {
-    rpc.mockResolvedValue({ data: [{ voucher_id: voucherId }], error: null })
+  test('vouchers are read to the last page', async () => {
+    api.farmSurveysVouchers
+      .mockResolvedValueOnce(page([{ voucher_id: 'v1' }], 1, 2))
+      .mockResolvedValueOnce(page([{ voucher_id: 'v2' }], 2, 2))
     const { wrapper } = client()
     const { result } = renderHook(() => hooks.useSurveyVouchers(surveyId), { wrapper })
-
-    await waitFor(() => expect(result.current.data).toHaveLength(1))
-    expect(rpc).toHaveBeenCalledWith('app_survey_vouchers', { p_survey_id: surveyId })
+    await waitFor(() => expect(result.current.data).toHaveLength(2))
+    expect(api.farmSurveysVouchers).toHaveBeenCalledWith('w1', surveyId, { page: 1, page_size: 100 })
   })
 
-  test('a voucher timeline is read only once a voucher is chosen', async () => {
-    rpc.mockResolvedValue({ data: [{ kind: 'issued', occurred_at: '2026-09-20T00:00:00Z' }], error: null })
+  test('currencies are the active ones of the workspace', async () => {
+    api.currenciesList.mockResolvedValue(
+      page([
+        { id: 'c1', asset_type: 'tzs', decimals: 2, active: true },
+        { id: 'c2', asset_type: 'usd', decimals: 2, active: false },
+      ]),
+    )
     const { wrapper } = client()
-    const { result, rerender } = renderHook(({ id }) => hooks.useVoucherTimeline(id), {
-      wrapper,
-      initialProps: { id: null as string | null },
-    })
-    expect(rpc).not.toHaveBeenCalled()
-
-    rerender({ id: voucherId })
-    await waitFor(() => expect(result.current.data).toHaveLength(1))
-    expect(rpc).toHaveBeenCalledWith('app_voucher_timeline', { p_voucher_id: voucherId })
+    const { result } = renderHook(() => hooks.useCurrencies(), { wrapper })
+    await waitFor(() => expect(result.current.data?.map((c) => c.id)).toEqual(['c1']))
   })
 })
 
 describe('authoring', () => {
-  test('a new survey is a draft insert of only the client columns', async () => {
-    singles.set('survey', { error: null, data: { id: surveyId } })
+  const body = { title_en: 'Harvest', reward_minor: 500000, currency_id: 'c1' }
+
+  test('a new survey is one POST; the created survey comes back', async () => {
+    api.farmSurveysCreate.mockResolvedValue({ data: { id: surveyId } })
     const { wrapper, invalidate } = client()
     const { result } = renderHook(() => hooks.useCreateSurvey(), { wrapper })
+    await expect(result.current.mutateAsync(body)).resolves.toMatchObject({ id: surveyId })
+    expect(api.farmSurveysCreate).toHaveBeenCalledTimes(1)
+    expect(api.farmSurveysCreate).toHaveBeenCalledWith('w1', body)
+    expect(invalidatedKeys(invalidate)).toContainEqual(queryKeys.surveyAdmin())
+  })
 
-    await result.current.mutateAsync({ id: surveyId, project_id: 'p1', title_en: 'Harvest', reward_amount: 5000 })
+  test('the refusal reaches the caller as the API wrote it', async () => {
+    const error = refusal(403, 'only a farm admin may author surveys')
+    api.farmSurveysCreate.mockRejectedValue(error)
+    const { wrapper } = client()
+    const { result } = renderHook(() => hooks.useCreateSurvey(), { wrapper })
+    await expect(result.current.mutateAsync(body)).rejects.toBe(error)
+  })
 
-    expect(calls).toContainEqual({
-      table: 'survey',
-      method: 'insert',
-      args: [{ id: surveyId, project_id: 'p1', title_en: 'Harvest', reward_amount: 5000 }],
-    })
+  test('saving a draft PATCHes it and refreshes every survey view', async () => {
+    api.farmSurveysUpdate.mockResolvedValue({ data: { id: surveyId } })
+    const { wrapper, invalidate } = client()
+    const { result } = renderHook(() => hooks.useUpdateSurvey(surveyId), { wrapper })
+    await result.current.mutateAsync(body)
+    expect(api.farmSurveysUpdate).toHaveBeenCalledWith('w1', surveyId, body)
     expect(invalidatedKeys(invalidate)).toEqual(
-      expect.arrayContaining([queryKeys.surveyAdmin(), queryKeys.surveyEligibility()]),
+      expect.arrayContaining([queryKeys.surveyAdmin(), queryKeys.surveyAdminDetail(surveyId), queryKeys.surveyEligibility()]),
     )
   })
 
-  test('the database refusal reaches the caller as written', async () => {
-    singles.set('survey', { data: null, error: { message: 'only an admin may author surveys' } })
-    const { wrapper } = client()
-    const { result } = renderHook(() => hooks.useCreateSurvey(), { wrapper })
-
-    await expect(
-      result.current.mutateAsync({ id: surveyId, project_id: 'p1', title_en: 'Harvest', reward_amount: 5000 }),
-    ).rejects.toThrow('only an admin may author surveys')
-  })
-
-  test('saving a draft updates the survey and refreshes every survey view', async () => {
-    responses.set('survey', { error: null, data: [{ id: surveyId }] })
-    const { wrapper, invalidate } = client()
-    const { result } = renderHook(() => hooks.useUpdateSurvey(surveyId), { wrapper })
-
-    await result.current.mutateAsync({ title_en: 'Harvest 2026' })
-
-    expect(calls).toContainEqual({ table: 'survey', method: 'update', args: [{ title_en: 'Harvest 2026' }] })
-    expect(calls).toContainEqual({ table: 'survey', method: 'eq', args: ['id', surveyId] })
-    expect(invalidatedKeys(invalidate)).toEqual(
-      expect.arrayContaining([
-        queryKeys.surveyAdmin(),
-        queryKeys.surveyAdminDetail(surveyId),
-        queryKeys.surveyEligibility(),
-      ]),
-    )
-  })
-
-  // RLS filters an update it refuses to zero rows, with no error. That is
-  // not a save.
-  test('an update that touched no row is refused, not reported as saved', async () => {
-    responses.set('survey', { error: null, data: [] })
-    const { wrapper } = client()
-    const { result } = renderHook(() => hooks.useUpdateSurvey(surveyId), { wrapper })
-
-    await expect(result.current.mutateAsync({ title_en: 'x' })).rejects.toThrow(/permission/i)
-  })
-
-  test('publishing is a status update to live, and the guard message comes through', async () => {
-    responses.set('survey', {
-      data: null,
-      error: { message: 'a survey needs at least one question before it goes live' },
-    })
+  test('publishing and closing are their own POSTs', async () => {
+    api.farmSurveysPublish.mockResolvedValue({ data: {} })
+    api.farmSurveysClose.mockResolvedValue({ data: {} })
     const { wrapper } = client()
     const { result } = renderHook(() => hooks.useSetSurveyStatus(surveyId), { wrapper })
-
-    await expect(result.current.mutateAsync('live')).rejects.toThrow(
-      'a survey needs at least one question before it goes live',
-    )
-    expect(calls).toContainEqual({ table: 'survey', method: 'update', args: [{ status: 'live' }] })
+    await result.current.mutateAsync('live')
+    expect(api.farmSurveysPublish).toHaveBeenCalledWith('w1', surveyId)
+    await result.current.mutateAsync('closed')
+    expect(api.farmSurveysClose).toHaveBeenCalledWith('w1', surveyId)
   })
 })
 
 describe('questions', () => {
-  const question = {
+  const input = {
+    position: 1,
     kind: 'single_choice' as const,
-    prompt_en: 'Main crop?',
-    prompt_sw: '',
+    prompt_en: ' Main crop? ',
+    prompt_sw: ' ',
     required: true,
     options: [{ value: 'maize', label_en: 'Maize' }],
   }
+  const sent = { ...input, prompt_en: 'Main crop?', prompt_sw: null }
 
-  test('a new question is inserted at the position given', async () => {
-    singles.set('survey_question', { error: null, data: { id: 'q9' } })
-    const { wrapper, invalidate } = client()
-    const { result } = renderHook(() => hooks.useSaveQuestion(surveyId), { wrapper })
-
-    await result.current.mutateAsync({ ...question, position: 3 })
-
-    const insert = calls.find((c) => c.table === 'survey_question' && c.method === 'insert')
-    expect(insert?.args[0]).toMatchObject({
-      survey_id: surveyId,
-      position: 3,
-      kind: 'single_choice',
-      prompt_en: 'Main crop?',
-      // A blank Swahili prompt is absent, not an empty string.
-      prompt_sw: null,
-      required: true,
-      options: [{ value: 'maize', label_en: 'Maize' }],
-    })
-    expect((insert?.args[0] as { id: string }).id).toMatch(/^[0-9a-f-]{36}$/)
-    expect(invalidatedKeys(invalidate)).toEqual(
-      expect.arrayContaining([queryKeys.surveyAdminDetail(surveyId)]),
-    )
-  })
-
-  test('an existing question is updated in place, never moved to another survey', async () => {
-    responses.set('survey_question', { error: null, data: [{ id: 'q1' }] })
+  test('a new question is POSTed at the position given', async () => {
+    api.farmSurveysAddQuestion.mockResolvedValue({ data: { id: 'q1' } })
     const { wrapper } = client()
     const { result } = renderHook(() => hooks.useSaveQuestion(surveyId), { wrapper })
-
-    await result.current.mutateAsync({ ...question, id: 'q1', position: 1 })
-
-    const update = calls.find((c) => c.table === 'survey_question' && c.method === 'update')
-    expect(update?.args[0]).not.toHaveProperty('survey_id')
-    expect(update?.args[0]).not.toHaveProperty('position')
-    expect(calls).toContainEqual({ table: 'survey_question', method: 'eq', args: ['id', 'q1'] })
+    await expect(result.current.mutateAsync(input)).resolves.toEqual({ id: 'q1' })
+    expect(api.farmSurveysAddQuestion).toHaveBeenCalledWith('w1', surveyId, sent)
   })
 
-  test('removing a question sets deleted_at: there is no delete', async () => {
-    responses.set('survey_question', { error: null, data: [{ id: 'q1' }] })
+  test('an existing question is replaced in place', async () => {
+    api.farmSurveysReplaceQuestion.mockResolvedValue(undefined)
+    const { wrapper } = client()
+    const { result } = renderHook(() => hooks.useSaveQuestion(surveyId), { wrapper })
+    await result.current.mutateAsync({ ...input, id: 'q1' })
+    expect(api.farmSurveysReplaceQuestion).toHaveBeenCalledWith('w1', surveyId, 'q1', sent)
+  })
+
+  test("the draft-only refusal comes through in the API's words", async () => {
+    const error = refusal(422, 'questions can only change while the survey is a draft')
+    api.farmSurveysRemoveQuestion.mockRejectedValue(error)
     const { wrapper } = client()
     const { result } = renderHook(() => hooks.useRemoveQuestion(surveyId), { wrapper })
-
-    await result.current.mutateAsync('q1')
-
-    const update = calls.find((c) => c.table === 'survey_question' && c.method === 'update')
-    expect(update?.args[0]).toEqual({ deleted_at: expect.any(String) })
+    await expect(result.current.mutateAsync('q1')).rejects.toBe(error)
+    expect(api.farmSurveysRemoveQuestion).toHaveBeenCalledWith('w1', surveyId, 'q1')
   })
 
-  test('moving swaps two positions', async () => {
-    responses.set('survey_question', { error: null, data: [{ id: 'x' }] })
+  test('moving swaps two positions, each question replaced whole', async () => {
+    api.farmSurveysReplaceQuestion.mockResolvedValue(undefined)
+    const q = (id: string, position: number) => ({
+      id,
+      position,
+      kind: 'text',
+      prompt_en: id,
+      prompt_sw: null,
+      required: false,
+      options: [],
+    })
     const { wrapper } = client()
     const { result } = renderHook(() => hooks.useSwapQuestions(surveyId), { wrapper })
-
-    await result.current.mutateAsync({ first: { id: 'q1', position: 1 }, second: { id: 'q2', position: 2 } })
-
-    const updates = calls.filter((c) => c.table === 'survey_question' && c.method === 'update')
-    expect(updates.map((c) => c.args[0])).toEqual([{ position: 2 }, { position: 1 }])
+    await result.current.mutateAsync({ first: q('a', 2), second: q('b', 1) })
+    expect(api.farmSurveysReplaceQuestion.mock.calls).toEqual([
+      ['w1', surveyId, 'a', { position: 1, kind: 'text', prompt_en: 'a', prompt_sw: null, required: false, options: [] }],
+      ['w1', surveyId, 'b', { position: 2, kind: 'text', prompt_en: 'b', prompt_sw: null, required: false, options: [] }],
+    ])
   })
 })
 
 describe('voiding a voucher', () => {
-  test('calls app_voucher_void and refreshes the voucher, its trail, the summary and the log', async () => {
-    rpc.mockResolvedValue({ data: null, error: null })
+  test('POSTs the reason once and refreshes the vouchers, the trail, the list and the log', async () => {
+    api.farmVouchersVoid.mockResolvedValue(undefined)
     const { wrapper, invalidate } = client()
     const { result } = renderHook(() => hooks.useVoidVoucher(surveyId), { wrapper })
-
-    await result.current.mutateAsync({ voucherId, reason: 'Duplicate household' })
-
-    expect(rpc).toHaveBeenCalledWith('app_voucher_void', {
-      p_voucher_id: voucherId,
-      p_reason: 'Duplicate household',
-    })
+    await result.current.mutateAsync({ voucherId, reason: 'duplicate household' })
+    expect(api.farmVouchersVoid).toHaveBeenCalledTimes(1)
+    expect(api.farmVouchersVoid).toHaveBeenCalledWith('w1', voucherId, { reason: 'duplicate household' })
     expect(invalidatedKeys(invalidate)).toEqual(
       expect.arrayContaining([
         queryKeys.surveyVouchers(surveyId),
-        queryKeys.surveyAdmin(),
+        queryKeys.surveyTally(surveyId),
         queryKeys.voucherTimeline(voucherId),
         ['redemptionLog'],
       ]),
     )
   })
 
-  // The reason is required by the database, and its sentence says so.
-  test('a blank reason is sent, and refused by the database in its words', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: 'give a reason for voiding this voucher' } })
+  test("a refusal is the API's sentence", async () => {
+    const error = refusal(422, 'a reason is required')
+    api.farmVouchersVoid.mockRejectedValue(error)
     const { wrapper } = client()
     const { result } = renderHook(() => hooks.useVoidVoucher(surveyId), { wrapper })
-
-    await expect(result.current.mutateAsync({ voucherId, reason: '' })).rejects.toThrow(
-      'give a reason for voiding this voucher',
-    )
-    expect(rpc).toHaveBeenCalledWith('app_voucher_void', { p_voucher_id: voucherId, p_reason: '' })
+    await expect(result.current.mutateAsync({ voucherId, reason: '' })).rejects.toBe(error)
   })
 })

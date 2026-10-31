@@ -44,7 +44,7 @@ export function OfficerEditDialog({
   version?: string | null
   pending: boolean
   error: Error | null
-  onSave: (values: EditValues) => Promise<unknown> | void
+  onSave: (values: EditValues, clientRef: string) => Promise<unknown> | void
   onComplete?: () => void
   onCancel: () => void
 }) {
@@ -72,7 +72,7 @@ export function OfficerEditDialog({
     }
     setValidationError(null)
     try {
-      await onSave(values)
+      await onSave(values, draft.clientRef)
       await draft.finish()
       onComplete?.()
     } catch {

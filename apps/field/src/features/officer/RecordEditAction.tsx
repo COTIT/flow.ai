@@ -49,11 +49,12 @@ export function RecordEditAction({
           version={version}
           pending={edit.isPending}
           error={edit.error}
-          onSave={(values) => edit.mutateAsync({
+          onSave={(values, clientRef) => edit.mutateAsync({
             table,
             id,
             values,
             context,
+            clientRef,
             measure: selectedEditMeasure(table, values, measureByCrop, measure),
           })}
           onComplete={() => setOpen(false)}

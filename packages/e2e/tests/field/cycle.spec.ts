@@ -51,7 +51,8 @@ test("an officer reads the harvest series and a revision appears beside the figu
   await expect(page.getByTestId("cycle-harvest").first()).toContainText("4,100.00 kg")
   await expect(page.getByTestId("cycle-harvest").nth(1)).toContainText("superseded")
   expect(posted).toEqual([
-    { kind: "expected", quantity_kg: "4100", source: "field_verified", confidence: "medium", reported_for: null },
+    // With the edit draft's reference, so a resend after a lost reply files the figure once.
+    { kind: "expected", quantity_kg: "4100", source: "field_verified", confidence: "medium", reported_for: null, client_ref: expect.stringMatching(/^[0-9a-f-]{36}$/) },
   ])
   await expectNoHorizontalScroll(page)
 })

@@ -1352,7 +1352,8 @@
       "title_sw": "Kichwa (Kiswahili)",
       "description_en": "Maelezo (Kiingereza)",
       "description_sw": "Maelezo (Kiswahili)",
-      "reward_amount": "Motisha kwa kila kaya (TZS)",
+      "reward_amount": "Motisha kwa kila kaya",
+      "currency": "Sarafu",
       "max_households": "Idadi ya juu ya kaya (si lazima)",
       "audit_rate": "Vocha zinazoshikiliwa kwa ukaguzi (%)",
       "closes_at": "Linafungwa tarehe (si lazima)"

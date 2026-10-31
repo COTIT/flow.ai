@@ -2,13 +2,15 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { sessionStore } from '@genesy/api-client/session'
 
 const create = vi.fn()
+const list = vi.fn()
+const get = vi.fn()
 vi.mock('@genesy/api-client/endpoints/farm-documents', () => ({
   farmDocumentsCreate: (...args: unknown[]) => create(...args),
+  farmDocumentsList: (...args: unknown[]) => list(...args),
+  farmDocumentsGet: (...args: unknown[]) => get(...args),
 }))
-// fetchPlotDocuments (person detail) still reads Supabase until that screen is ported.
-vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
-const { isDraftFiles, uploadPlotDocuments } = await import('@/lib/plotDocuments')
+const { fetchPlotDocuments, isDraftFiles, openPlotDocument, uploadPlotDocuments } = await import('@/lib/plotDocuments')
 
 const WORKSPACE = '20000000-0000-4000-8000-000000000001'
 const VILLAGE = '30000000-0000-4000-8000-000000000001'
@@ -61,6 +63,30 @@ describe('uploadPlotDocuments', () => {
     const result = await uploadPlotDocuments(VILLAGE, PLOT, [draftFile('title.jpg')])
 
     expect(result).toEqual({ filed: [], failed: [{ id: 'f1', name: 'title.jpg', message: 'Network Error' }] })
+  })
+})
+
+describe('reading plot documents', () => {
+  test('lists every page of a plot\'s documents', async () => {
+    const row = (id: string) => ({
+      id, file_name: `${id}.pdf`, content_type: 'application/pdf', size_bytes: 10, uploaded_at: '2026-10-05T10:00:00Z',
+      plot_id: PLOT, village_id: VILLAGE, uploaded_by: { id: 'u1', name: 'Officer' },
+    })
+    const meta = (current: number) => ({ current_page: current, last_page: 2, per_page: 100, total: 2, from: null, to: null })
+    list.mockResolvedValueOnce({ data: [row('a')], meta: meta(1) }).mockResolvedValueOnce({ data: [row('b')], meta: meta(2) })
+
+    expect(await fetchPlotDocuments(PLOT)).toEqual([
+      { id: 'a', file_name: 'a.pdf', mime_type: 'application/pdf', size_bytes: 10, uploaded_at: '2026-10-05T10:00:00Z' },
+      { id: 'b', file_name: 'b.pdf', mime_type: 'application/pdf', size_bytes: 10, uploaded_at: '2026-10-05T10:00:00Z' },
+    ])
+    expect(list).toHaveBeenCalledWith(WORKSPACE, PLOT, { page: 2, page_size: 100 })
+  })
+
+  // The link is short-lived, so it is asked for when the officer opens the document.
+  test('opening one asks the API for its download link', async () => {
+    get.mockResolvedValue({ data: { id: 'a', download_url: 'https://files.example/a.pdf?sig=1', download_expires_at: '2026-10-05T10:10:00Z' } })
+    expect(await openPlotDocument(PLOT, 'a')).toBe('https://files.example/a.pdf?sig=1')
+    expect(get).toHaveBeenCalledWith(WORKSPACE, PLOT, 'a')
   })
 })
 

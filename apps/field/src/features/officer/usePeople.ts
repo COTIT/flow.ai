@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
+import { farmRecordsPersonsList } from '@genesy/api-client/endpoints/farm-records'
 
+import { workspaceId } from '@/app/workspace'
+import { allPages } from '@/features/farmer/pages'
 import type { PeopleSearch, VerificationStatus } from '@/features/officer/peopleSearch'
+import { provenanceOf } from '@/features/officer/useOfficerRecords'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/db.types'
 
 type SourceType = Database['public']['Enums']['source_type']
@@ -21,48 +24,34 @@ export interface PersonRow {
 }
 
 /**
- * PostgREST `or` takes a comma-separated filter list, so a comma or a
- * parenthesis in the search term would be read as filter syntax rather than as
- * text. Stripping them keeps a name search a name search.
- */
-function escapeForOr(term: string): string {
-  return term.replace(/[,()]/g, ' ').trim()
-}
-
-/**
- * People in the officer's villages — spec 5.3.
- *
- * No village filter is applied or needed: `person_read_staff` scopes to
- * `app_villages()`, so "people I may see" is the whole query. Filters are
- * applied to the QUERY rather than to rendered rows, so a filtered view is the
- * database's answer and not a slice of a page.
+ * People in the officer's villages — spec 5.3. `GET …/farm/persons` (every page) answers only with
+ * what this officer may see; the verification filter is the API's `?verification=`.
  */
 export async function fetchPeople(search: PeopleSearch): Promise<PersonRow[]> {
-  let q = supabase
-    .from('person')
-    .select(
-      'id, given_name, family_name, phone, village_id, source, verification, confidence, captured_at',
-    )
-    .is('deleted_at', null)
+  const workspace = workspaceId()
+  const filter = search.verification ? { verification: search.verification } : {}
+  const people = await allPages((params) => farmRecordsPersonsList(workspace, { ...params, ...filter }))
 
-  if (search.verification) q = q.eq('verification', search.verification)
-
-  if (search.q) {
-    const term = escapeForOr(search.q)
-    // Matches either name part, so "Neema" and "Mwakalinga" both find her.
-    if (term) q = q.or(`given_name.ilike.%${term}%,family_name.ilike.%${term}%`)
-  }
-
-  const { data, error } = await q.order('family_name').order('given_name')
-  if (error) throw new Error(error.message)
-  return (data ?? []) as PersonRow[]
+  // shortcut: the API has no name search yet, so names are matched here over the officer's own people;
+  // move to the API's `?q=` once GET /farm/persons takes one.
+  const term = search.q?.toLowerCase()
+  return people
+    .filter((p) => !term || `${p.given_name} ${p.family_name}`.toLowerCase().includes(term))
+    .map((p) => ({
+      id: p.id,
+      given_name: p.given_name,
+      family_name: p.family_name,
+      phone: p.phone,
+      village_id: p.village_id,
+      ...provenanceOf(p.provenance),
+    }))
+    .sort((a, b) => a.family_name.localeCompare(b.family_name) || a.given_name.localeCompare(b.given_name))
 }
 
 export function usePeople(search: PeopleSearch) {
   return useQuery({
-    // 'mine' rather than a village id: an officer may hold several villages and
-    // RLS already decides which, so the filters are what distinguish one cached
-    // answer from another. Same convention as farms('mine').
+    // 'mine' rather than a village id: the API decides which villages, so the filters are what
+    // distinguish one cached answer from another. Same convention as farms('mine').
     queryKey: queryKeys.people('mine', search),
     queryFn: () => fetchPeople(search),
   })

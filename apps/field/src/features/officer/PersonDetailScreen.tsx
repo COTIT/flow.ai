@@ -63,7 +63,7 @@ export function PersonDetailScreen() {
     setEditing(state)
   }
 
-  const saveEdit = (values: EditValues) => {
+  const saveEdit = (values: EditValues, clientRef: string) => {
     /* c8 ignore next -- the dialog is only mounted while editing is non-null. */
     if (!editing) return
     // mutateAsync, so a failed save rejects: the dialog keeps its draft and
@@ -73,6 +73,7 @@ export function PersonDetailScreen() {
       id: editing.id,
       values,
       context: editing.context,
+      clientRef,
       measure: selectedEditMeasure(editing.table, values, editing.measureByCrop, editing.measure),
     })
   }

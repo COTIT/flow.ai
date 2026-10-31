@@ -2,30 +2,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-const responses = new Map<string, { data: unknown; error: { message: string } | null }>()
-const from = vi.fn((table: string) => {
-  const response = () => responses.get(table) ?? { data: null, error: null }
-  const chain: Record<string, unknown> = {}
-  for (const method of ['select', 'eq', 'is', 'in', 'or', 'order']) {
-    chain[method] = vi.fn(() => chain)
-  }
-  chain.maybeSingle = vi.fn(() => Promise.resolve(response()))
-  chain.then = (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
-    Promise.resolve(response()).then(resolve, reject)
-  return chain
-})
-
-// The farm detail is not ported yet (its screen is gated); the cycle detail reads the Genesy API.
-vi.mock('@/lib/supabase', () => ({ supabase: { from } }))
-
 const api = {
   cycle: vi.fn(),
+  farm: vi.fn(),
+  plots: vi.fn(),
   plot: vi.fn(),
   harvests: vi.fn(),
   crops: vi.fn(),
 }
 vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
   farmRecordsCropCyclesGet: (...args: unknown[]) => api.cycle(...args),
+  farmRecordsFarmsGet: (...args: unknown[]) => api.farm(...args),
+  farmRecordsPlotsList: (...args: unknown[]) => api.plots(...args),
   farmRecordsPlotsGet: (...args: unknown[]) => api.plot(...args),
   farmRecordsHarvestReportsList: (...args: unknown[]) => api.harvests(...args),
 }))
@@ -51,8 +39,6 @@ const { fetchFarmDetail, fetchCycleDetail, useFarmDetail } = await import('@/fea
 const id = '11111111-1111-4111-8111-111111111111'
 
 beforeEach(() => {
-  responses.clear()
-  from.mockClear()
   for (const fn of Object.values(api)) fn.mockReset()
   api.plot.mockResolvedValue({ data: { id: 'p1', label: 'Kipande cha juu' } })
   api.harvests.mockResolvedValue({ data: [] })
@@ -63,38 +49,42 @@ describe('officer farm and cycle reads', () => {
   test('rejects malformed IDs before querying', async () => {
     expect(await fetchFarmDetail('bad')).toBeNull()
     expect(await fetchCycleDetail('bad')).toBeNull()
-    expect(from).not.toHaveBeenCalled()
+    expect(api.farm).not.toHaveBeenCalled()
     expect(api.cycle).not.toHaveBeenCalled()
   })
 
   test('returns null for invisible rows and throws read errors', async () => {
-    responses.set('farm', { data: null, error: null })
+    api.farm.mockRejectedValue(notFound)
     api.cycle.mockRejectedValue(notFound)
     expect(await fetchFarmDetail(id)).toBeNull()
     expect(await fetchCycleDetail(id)).toBeNull()
 
-    responses.set('farm', { data: null, error: { message: 'farm read failed' } })
-    await expect(fetchFarmDetail(id)).rejects.toThrow('farm read failed')
+    const farmFailed = { response: { status: 500, data: { message: 'farm read failed' } } }
+    api.farm.mockRejectedValue(farmFailed)
+    await expect(fetchFarmDetail(id)).rejects.toBe(farmFailed)
     const failed = { response: { status: 500, data: { message: 'cycle read failed' } } }
     api.cycle.mockRejectedValue(failed)
     await expect(fetchCycleDetail(id)).rejects.toBe(failed)
   })
 
-  test('maps farm plots and sorts cycle current harvest first', async () => {
-    responses.set('farm', {
-      error: null,
-      data: {
-        id,
-        label: 'Farm',
-        village_id: 'v1',
-        plot: [{ id: 'p1', label: 'Plot', area_ha: 1, latitude: null, longitude: null }],
-      },
+  // GET farms/{farm} plus GET plots?farm_id= (every page); decimals shown as numbers, provenance flattened.
+  test('maps the farm and its plots from the API', async () => {
+    api.farm.mockResolvedValue({ data: {
+      id, label: 'Farm', village_id: 'v1', latitude: '-7.710000', longitude: null, provenance: provenance('verified'),
+    } })
+    api.plots.mockResolvedValue({
+      data: [{ id: 'p1', label: 'Plot', area_ha: '1.8000', latitude: null, longitude: '35.71', provenance: provenance() }],
+      meta: { current_page: 1, last_page: 1, per_page: 100, total: 1, from: 1, to: 1 },
     })
-    const farm = await fetchFarmDetail(id)
-    expect(farm?.plots).toHaveLength(1)
-    responses.set('farm', { error: null, data: { id, label: 'Farm', village_id: 'v1' } })
-    expect((await fetchFarmDetail(id))?.plots).toEqual([])
-
+    expect(await fetchFarmDetail(id)).toEqual({
+      id, label: 'Farm', village_id: 'v1', latitude: -7.71, longitude: null,
+      source: 'farmer_reported', verification: 'verified', confidence: 'medium', captured_at: '2026-09-01T00:00:00Z',
+      plots: [{
+        id: 'p1', label: 'Plot', area_ha: 1.8, latitude: null, longitude: 35.71,
+        source: 'farmer_reported', verification: 'unverified', confidence: 'medium', captured_at: '2026-09-01T00:00:00Z',
+      }],
+    })
+    expect(api.plots).toHaveBeenCalledWith('w1', { farm_id: id, page: 1, page_size: 100 })
     expect(api.cycle).not.toHaveBeenCalled()
   })
 
@@ -150,7 +140,8 @@ describe('officer farm and cycle reads', () => {
   })
 
   test('useFarmDetail exposes query loading and data', async () => {
-    responses.set('farm', { error: null, data: { id, label: 'Farm', village_id: 'v1', plot: [] } })
+    api.farm.mockResolvedValue({ data: { id, label: 'Farm', village_id: 'v1', latitude: null, longitude: null, provenance: provenance() } })
+    api.plots.mockResolvedValue({ data: [], meta: { current_page: 1, last_page: 1, per_page: 100, total: 0, from: null, to: null } })
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const { result } = renderHook(() => useFarmDetail(id), {
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,

@@ -47,6 +47,8 @@ export interface PersonDetail {
             Provenance & {
               id: string
               crop_id: string
+              /** Both names, as the API sent them; null when the crop is not readable. */
+              crop?: { name_en: string; name_sw: string } | null
               crop_name: string
               season_label: string | null
               area_ha: number | null

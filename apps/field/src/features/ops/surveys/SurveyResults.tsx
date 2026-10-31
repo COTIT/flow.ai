@@ -6,34 +6,35 @@ import { SectionTitle } from '@/features/ops/surveys/Field'
 import { countAndAmount, formatFigure, UNKNOWN } from '@/features/ops/surveys/figures'
 import { isChoiceKind, parseOptions } from '@/features/ops/surveys/questionOptions'
 import {
-  useSurveyTally,
+  useSurveyResults,
   type NumberSummaryRow,
   type SurveyQuestion,
-  type SurveySummary,
   type TallyRow,
 } from '@/features/ops/surveys/useSurveyAdmin'
 import { localisedField } from '@/lib/names'
 
 /**
- * Results: v_survey_summary's figures, then each question's answers as
- * v_survey_answer_tally and v_survey_number_summary count them.
+ * Results: GET .../results — the API's counts and cash sums, then each
+ * question's answers as it tallied them.
  *
  * Nothing is counted here. The one thing the screen supplies is the label an
  * option value stands for, which lives on the question.
  */
 export function SurveyResults({
   surveyId,
-  currency,
+  decimals,
   questions,
-  summary,
 }: {
   surveyId: string
-  currency: string
+  /** The survey reward's: results carry the currency code but not its decimals. */
+  decimals: number
   questions: SurveyQuestion[]
-  summary: SurveySummary | null
 }) {
-  const { t } = useTranslation()
-  const tally = useSurveyTally(surveyId)
+  const { t, i18n } = useTranslation()
+  const tally = useSurveyResults(surveyId)
+  const summary = tally.data
+  const money = (figure: Parameters<typeof countAndAmount>[0]) =>
+    countAndAmount(figure, summary?.currency ?? '', decimals, i18n.language)
 
   return (
     <section className="flex flex-col gap-4" data-testid="survey-results">
@@ -43,17 +44,17 @@ export function SurveyResults({
         <Figure label={t('surveyAdmin.summary.responses')} value={summary?.responses ?? UNKNOWN} testId="summary-responses" />
         <Figure
           label={t('surveyAdmin.summary.issued')}
-          value={countAndAmount(summary?.issued_count, summary?.issued_amount, currency)}
+          value={money(summary?.issued)}
           testId="summary-issued"
         />
         <Figure
           label={t('surveyAdmin.summary.redeemed')}
-          value={countAndAmount(summary?.redeemed_count, summary?.redeemed_amount, currency)}
+          value={money(summary?.redeemed)}
           testId="summary-redeemed"
         />
         <Figure
           label={t('surveyAdmin.summary.outstanding')}
-          value={countAndAmount(summary?.outstanding_count, summary?.outstanding_amount, currency)}
+          value={money(summary?.outstanding)}
           testId="summary-outstanding"
         />
         <Figure label={t('surveyAdmin.summary.expired')} value={summary?.expired_count ?? UNKNOWN} testId="summary-expired" />
@@ -73,7 +74,7 @@ export function SurveyResults({
                 key={question.id}
                 number={index + 1}
                 question={question}
-                choices={(tally.data?.choices ?? []).filter((row) => row.question_id === question.id)}
+                choices={(tally.data?.tally ?? []).filter((row) => row.question_id === question.id)}
                 numbers={(tally.data?.numbers ?? []).find((row) => row.question_id === question.id)}
               />
             ))}
@@ -154,7 +155,7 @@ function QuestionTally({
           </span>
           <span data-testid="tally-minimum">{t('surveyAdmin.lowest', { value: formatFigure(numbers?.minimum) })}</span>
           <span data-testid="tally-maximum">{t('surveyAdmin.highest', { value: formatFigure(numbers?.maximum) })}</span>
-          <span data-testid="tally-count">{t('surveyAdmin.answerCount', { count: numbers?.answer_count ?? 0 })}</span>
+          <span data-testid="tally-count">{t('surveyAdmin.answerCount', { count: numbers?.answers ?? 0 })}</span>
         </p>
       )}
 
@@ -176,7 +177,7 @@ interface ChoiceRow {
 /**
  * Labels for the tally's option values.
  *
- * Every listed option gets a row, in the question's order. The views group
+ * Every listed option gets a row, in the question's order. The API groups
  * answers by value, so an option nobody chose has no row there — its count is
  * zero, which is an answer. A value the question no longer lists still gets a
  * row under its raw value rather than vanishing from the results.
@@ -187,7 +188,7 @@ function choiceRows(
   t: (key: string) => string,
   language: string | undefined,
 ): ChoiceRow[] {
-  const countOf = (value: string) => choices.find((row) => row.option_value === value)?.answer_count ?? 0
+  const countOf = (value: string) => choices.find((row) => row.option_value === value)?.answers ?? 0
   const listed: ChoiceRow[] =
     question.kind === 'yes_no'
       ? [
@@ -201,7 +202,7 @@ function choiceRows(
         }))
   const known = new Set(listed.map((row) => row.key))
   const unlisted = choices
-    .filter((row) => row.option_value !== null && !known.has(row.option_value))
-    .map((row) => ({ key: row.option_value!, label: row.option_value!, count: row.answer_count ?? 0 }))
+    .filter((row) => !known.has(row.option_value))
+    .map((row) => ({ key: row.option_value, label: row.option_value, count: row.answers }))
   return [...listed, ...unlisted]
 }

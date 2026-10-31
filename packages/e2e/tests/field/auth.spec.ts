@@ -4,6 +4,7 @@ import { mockApi } from "../../src/api-mock"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { farmLogin, me, role, staffLogin, villages } from "./api"
 import { farmerHome } from "./farmer.api"
+import { officerHome, tourSeen } from "./officer-records.api"
 
 const TEMP = "Temp-pass-8x"
 
@@ -24,6 +25,7 @@ const allStorage = (page: Page) =>
 
 test("an officer signs in by email and lands on the officer surface", async ({ page }) => {
   await mockApi(page, {
+    ...officerHome,
     "POST /login": staffLogin,
     "GET /farm/me": me(),
     "GET /workspace/w1/farm/villages": villages,
@@ -31,13 +33,13 @@ test("an officer signs in by email and lands on the officer surface", async ({ p
   await signIn(page, "salima@ruaha.test", "officer-password")
 
   await expect(page).toHaveURL(/\/officer$/)
-  // Not on the Genesy API yet: the screen says so instead of reading Supabase.
-  await expect(page.getByTestId("not-yet-ported")).toBeVisible()
+  await expect(page.getByTestId("officer-home")).toBeVisible()
   await expectNoHorizontalScroll(page)
 })
 
 test("the account's stored language is applied after sign-in", async ({ page }) => {
   await mockApi(page, {
+    ...officerHome,
     "POST /login": staffLogin,
     "GET /farm/me": me({ locale: "sw" }),
     "GET /workspace/w1/farm/villages": villages,
@@ -45,7 +47,7 @@ test("the account's stored language is applied after sign-in", async ({ page }) 
   await signIn(page, "salima@ruaha.test", "officer-password")
 
   await expect(page.locator("html")).toHaveAttribute("lang", "sw")
-  await expect(page.getByText("Bado haipatikani")).toBeVisible()
+  await expect(page.getByText("Vijiji vyako").first()).toBeVisible()
 })
 
 test("a farmer signs in by phone, must change the temporary password, and it never touches storage", async ({ page }) => {
@@ -107,6 +109,7 @@ test.describe("wrong password", () => {
 
 test("someone with no farm role is told so", async ({ page }) => {
   await mockApi(page, {
+    ...officerHome,
     "POST /login": staffLogin,
     "GET /farm/me": me({ memberships: [] }),
   })
@@ -117,6 +120,7 @@ test("someone with no farm role is told so", async ({ page }) => {
 
 test("two roles open the role picker", async ({ page }) => {
   await mockApi(page, {
+    ...officerHome,
     "POST /login": staffLogin,
     "GET /farm/me": me({ memberships: [role("field_officer"), role("ops", null)] }),
     "GET /workspace/w1/farm/villages": villages,
@@ -129,11 +133,14 @@ test("two roles open the role picker", async ({ page }) => {
 
 test("signing out ends the token and forgets it", async ({ page }) => {
   await mockApi(page, {
+    ...officerHome,
     "POST /login": staffLogin,
     "GET /farm/me": me(),
     "GET /workspace/w1/farm/villages": villages,
     "POST /logout": { status: 204 },
   })
+  // The first-visit tour would cover the header; it is tested in its own spec.
+  await tourSeen(page)
   await signIn(page, "salima@ruaha.test", "officer-password")
   await expect(page).toHaveURL(/\/officer$/)
 

@@ -45,7 +45,8 @@ describe('OfficerEditDialog', () => {
     await user.clear(screen.getByTestId('edit-given_name'))
     await user.type(screen.getByTestId('edit-given_name'), 'Asha')
     await user.click(screen.getByTestId('officer-edit-save'))
-    expect(onSave).toHaveBeenCalledWith({ given_name: 'Asha', family_name: 'Mwakalinga' })
+    // With the draft's reference, so the API can recognise a resend.
+    expect(onSave).toHaveBeenCalledWith({ given_name: 'Asha', family_name: 'Mwakalinga' }, expect.stringMatching(/^[0-9a-f-]{36}$/))
   })
 
   test('rejects invalid values and preserves input', async () => {

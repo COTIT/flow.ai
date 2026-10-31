@@ -1,7 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   farmRecordsCropCyclesCorrect,
+  farmRecordsFarmsCorrect,
   farmRecordsHarvestReportsRevise,
+  farmRecordsHouseholdsCorrect,
+  farmRecordsPersonsCorrect,
+  farmRecordsPlotsCorrect,
 } from '@genesy/api-client/endpoints/farm-records'
 
 import { workspaceId } from '@/app/workspace'
@@ -15,8 +19,7 @@ import {
   validateEdit,
 } from '@/features/officer/officerEdit'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
-import type { Database, Json } from '@/lib/db.types'
+import type { Database } from '@/lib/db.types'
 
 type CyclePayload = ReturnType<typeof buildEditPayload>
 
@@ -30,12 +33,15 @@ export function useOfficerEdit(measure?: Database['public']['Enums']['crop_measu
       values,
       context,
       measure: selectedMeasure,
+      clientRef,
     }: {
       table: EditableTable
       id: string
       values: EditValues
       context: EditContext
       measure?: CropMeasure
+      /** The edit draft's reference; the API files a harvest figure once per reference. */
+      clientRef?: string
     }) => {
       const activeMeasure = selectedMeasure ?? measure
       const validationError = validateEdit(table, values, activeMeasure)
@@ -50,6 +56,7 @@ export function useOfficerEdit(measure?: Database['public']['Enums']['crop_measu
           source: 'field_verified',
           confidence: values.confidence || null,
           reported_for: values.reported_for || null,
+          ...(clientRef ? { client_ref: clientRef } : {}),
         })
         return
       }
@@ -65,14 +72,27 @@ export function useOfficerEdit(measure?: Database['public']['Enums']['crop_measu
         return
       }
 
-      // shortcut: person, household, farm and plot still correct through Supabase; their screens are gated
-      // until the port reaches them (person detail, farm detail), when this moves to PUT /farm/{kind}/{id}.
-      const { error } = await supabase.rpc('app_update_observed_record', {
-        p_table: table,
-        p_id: id,
-        p_payload: buildEditPayload(table, values, activeMeasure) as unknown as Json,
-      })
-      if (error) throw new Error(error.message)
+      // PUT /farm/{kind}/{id} takes every editable field; numbers go as typed text, blank as null.
+      const text = (key: string) => values[key]?.trim() || null
+      const workspace = workspaceId()
+      if (table === 'person') {
+        await farmRecordsPersonsCorrect(workspace, id, {
+          given_name: values.given_name.trim(),
+          family_name: values.family_name.trim(),
+          phone: text('phone'),
+        })
+      } else if (table === 'household') {
+        await farmRecordsHouseholdsCorrect(workspace, id, { label: values.label.trim() })
+      } else if (table === 'farm') {
+        await farmRecordsFarmsCorrect(workspace, id, { label: values.label.trim(), latitude: text('latitude'), longitude: text('longitude') })
+      } else {
+        await farmRecordsPlotsCorrect(workspace, id, {
+          label: values.label.trim(),
+          area_ha: text('area_ha'),
+          latitude: text('latitude'),
+          longitude: text('longitude'),
+        })
+      }
     },
     onSuccess: async (_data, variables) => {
       const { context } = variables

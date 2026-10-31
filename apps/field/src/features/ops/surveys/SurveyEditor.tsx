@@ -43,7 +43,7 @@ export function SurveyEditor({
     event.preventDefault()
     if (inFlight.current || update.isPending || !draft.ready) return
     inFlight.current = true
-    void finishDraftWhenSaved(update.mutateAsync(surveyPatch(draft.values)), draft.finish).finally(() => {
+    void finishDraftWhenSaved(update.mutateAsync(surveyPatch(draft.values, survey.reward)), draft.finish).finally(() => {
       inFlight.current = false
     })
   }
@@ -97,13 +97,11 @@ export function SurveyEditor({
               style={CONTROL}
             />
           </Field>
-          <Field label={t('surveyAdmin.fields.reward_amount')} htmlFor="survey-reward">
+          <Field label={`${t('surveyAdmin.fields.reward_amount')} (${survey.reward.currency})`} htmlFor="survey-reward">
             <input
               id="survey-reward"
               data-testid="survey-reward"
-              type="number"
               inputMode="decimal"
-              min={0}
               value={reward}
               onChange={(e) => setReward(e.target.value)}
               className="w-full"

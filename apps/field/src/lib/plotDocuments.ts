@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { farmDocumentsCreate } from '@genesy/api-client/endpoints/farm-documents'
+import { farmDocumentsCreate, farmDocumentsGet, farmDocumentsList } from '@genesy/api-client/endpoints/farm-documents'
 
 import { workspaceId } from '@/app/workspace'
+import { allPages } from '@/features/farmer/pages'
 import { apiErrorMessage } from '@/lib/apiError'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
 
 /**
  * Plot title documents — the one exception to "no photo upload", approved on
@@ -17,12 +17,9 @@ import { supabase } from '@/lib/supabase'
  * Size and type are the API's rules (10 MB; images and PDFs, read from the
  * bytes). The client does not copy them: a refused file comes back with the
  * API's own message.
- *
- * shortcut: the list below (person detail) still reads Supabase storage; it moves with that screen.
  */
-export const PLOT_DOCUMENT_BUCKET = 'plot-documents'
 
-/** What the file picker offers. The bucket still decides what it accepts. */
+/** What the file picker offers. The API still decides what it accepts. */
 export const PLOT_DOCUMENT_ACCEPT = 'image/*,application/pdf'
 
 /** A picked file, as kept in the register draft until the plot exists. */
@@ -41,9 +38,6 @@ export interface PlotDocument {
   mime_type: string
   size_bytes: number
   uploaded_at: string
-  storage_path: string
-  /** A short-lived signed link. Absent when signing failed. */
-  url: string | null
 }
 
 export interface UploadResult {
@@ -97,25 +91,22 @@ export function isDraftFiles(value: unknown): value is DraftFile[] {
   )
 }
 
-/** Signed links last ten minutes: long enough to look, short enough not to share. */
-const SIGNED_URL_SECONDS = 600
-
+/** `GET …/plots/{plot}/documents`, every page. */
 export async function fetchPlotDocuments(plotId: string): Promise<PlotDocument[]> {
-  const { data, error } = await supabase
-    .from('plot_document')
-    .select('id, file_name, mime_type, size_bytes, uploaded_at, storage_path')
-    .eq('plot_id', plotId)
-    .order('uploaded_at')
-  if (error) throw new Error(error.message)
-  const rows = data ?? []
-  if (rows.length === 0) return []
+  const workspace = workspaceId()
+  const rows = await allPages((params) => farmDocumentsList(workspace, plotId, params))
+  return rows.map((r) => ({
+    id: r.id,
+    file_name: r.file_name,
+    mime_type: r.content_type,
+    size_bytes: r.size_bytes,
+    uploaded_at: r.uploaded_at,
+  }))
+}
 
-  const signed = await supabase.storage
-    .from(PLOT_DOCUMENT_BUCKET)
-    .createSignedUrls(rows.map((r) => r.storage_path), SIGNED_URL_SECONDS)
-  const urls = new Map((signed.data ?? []).map((s) => [s.path, s.signedUrl]))
-
-  return rows.map((r) => ({ ...r, url: urls.get(r.storage_path) ?? null }))
+/** `GET …/documents/{document}`: a short-lived download link, asked for when the officer opens it (online). */
+export async function openPlotDocument(plotId: string, documentId: string): Promise<string> {
+  return (await farmDocumentsGet(workspaceId(), plotId, documentId)).data.download_url
 }
 
 /** Zero rows is an answer: no documents, or not yours to see. */
@@ -123,8 +114,6 @@ export function usePlotDocuments(plotId: string) {
   return useQuery({
     queryKey: queryKeys.plotDocuments(plotId),
     queryFn: () => fetchPlotDocuments(plotId),
-    // Refetch before the signed links expire.
-    staleTime: (SIGNED_URL_SECONDS - 60) * 1000,
   })
 }
 

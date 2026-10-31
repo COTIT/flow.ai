@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FileImage, FileText, Paperclip } from 'lucide-react'
 
@@ -5,6 +6,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { newUuid } from '@/lib/ids'
 import {
   PLOT_DOCUMENT_ACCEPT,
+  openPlotDocument,
   usePlotDocuments,
   useUploadPlotDocuments,
 } from '@/lib/plotDocuments'
@@ -13,8 +15,8 @@ import {
  * The title documents filed against one plot — where the verifier checks the
  * plot's fields against what the officer photographed.
  *
- * Staff only, append-only. RLS on `plot_document` and the bucket decides who
- * sees and adds; this renders whatever comes back, and zero rows is an answer.
+ * Staff only, append-only. The API decides who sees and adds; this renders
+ * whatever comes back, and zero rows is an answer.
  */
 export function PlotDocuments({ plotId, villageId }: { plotId: string; villageId: string }) {
   const { t } = useTranslation()
@@ -22,6 +24,22 @@ export function PlotDocuments({ plotId, villageId }: { plotId: string; villageId
   const upload = useUploadPlotDocuments(villageId, plotId)
   const docs = query.data ?? []
   const inputId = `plot-documents-add-${plotId}`
+  const [openError, setOpenError] = useState<unknown>(null)
+
+  // The tab opens on the tap, so a popup blocker lets it through; it then goes to the API's short-lived link.
+  const open = async (documentId: string) => {
+    setOpenError(null)
+    const tab = window.open('', '_blank')
+    try {
+      const url = await openPlotDocument(plotId, documentId)
+      if (!tab) return window.location.assign(url)
+      tab.opener = null
+      tab.location.href = url
+    } catch (error) {
+      tab?.close()
+      setOpenError(error)
+    }
+  }
 
   return (
     <section
@@ -48,20 +66,25 @@ export function PlotDocuments({ plotId, villageId }: { plotId: string; villageId
         <ul className="flex flex-col gap-1">
           {docs.map((doc) => (
             <li key={doc.id}>
-              <a
+              <button
+                type="button"
                 data-testid="plot-document"
-                href={doc.url ?? undefined}
-                target="_blank"
-                rel="noreferrer noopener"
+                onClick={() => void open(doc.id)}
                 className="inline-flex max-w-full items-center gap-2 font-medium underline-offset-2 hover:underline"
-                style={{ fontSize: 14, color: 'var(--primary-ink)' }}
+                style={{ fontSize: 14, color: 'var(--primary-ink)', minHeight: 40 }}
               >
                 {doc.mime_type === 'application/pdf' ? <FileText size={16} aria-hidden /> : <FileImage size={16} aria-hidden />}
                 <span className="truncate">{doc.file_name}</span>
-              </a>
+              </button>
             </li>
           ))}
         </ul>
+      )}
+
+      {openError !== null && (
+        <div data-testid="plot-document-open-error">
+          <ErrorState error={openError} />
+        </div>
       )}
 
       {upload.data && upload.data.failed.length > 0 && (
