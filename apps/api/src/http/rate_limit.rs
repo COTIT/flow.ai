@@ -23,7 +23,7 @@ use tower_governor::{
 use crate::{
     AppState,
     error::{AppError, TOO_MANY},
-    http::auth::bearer,
+    http::{app_key, auth::bearer},
 };
 
 /// How often stale per-IP buckets are dropped, so limiter memory can't grow without bound.
@@ -104,10 +104,13 @@ impl KeyExtractor for Session {
     type Key = SessionKey;
 
     fn extract<T>(&self, req: &Request<T>) -> Result<SessionKey, GovernorError> {
-        Ok(match bearer(req.headers()) {
-            Some(t) => SessionKey::Token(Sha256::digest(t.as_bytes()).into()),
-            None => SessionKey::Ip(self.0.extract(req)?),
-        })
+        // App keys get their own bucket too: a shop server shouldn't share its IP's.
+        Ok(
+            match bearer(req.headers()).or_else(|| app_key::bearer(req.headers())) {
+                Some(t) => SessionKey::Token(Sha256::digest(t.as_bytes()).into()),
+                None => SessionKey::Ip(self.0.extract(req)?),
+            },
+        )
     }
 }
 

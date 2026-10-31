@@ -1,5 +1,6 @@
 //! Shared HTTP glue: extractors used by more than one feature.
 
+pub mod app_key;
 pub mod auth;
 pub mod json;
 pub mod list;
@@ -9,3 +10,44 @@ pub mod slots;
 pub mod timeout;
 pub mod trace;
 pub mod workspace;
+
+/// App state with test defaults: high limits, captured mail, no optional services.
+#[cfg(test)]
+pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
+    use crate::AppState;
+    use chrono::Duration;
+    AppState {
+        health_db: pool.clone(),
+        db: pool,
+        token_ttl: Duration::days(30),
+        mailer: crate::mail::Mailer::capture().0,
+        frontend_url: "https://app.test".into(),
+        api_public_url: "https://api.test".into(),
+        rate_limit: crate::RateLimit {
+            burst: 1000,
+            replenish: std::time::Duration::from_millis(1),
+            trust_forwarded: false,
+        },
+        invites_per_hour: 1000,
+        private_rate_limit: crate::RateLimit {
+            burst: 1000,
+            replenish: std::time::Duration::from_millis(1),
+            trust_forwarded: false,
+        },
+        private_ip_rate_limit: crate::RateLimit {
+            burst: 1000,
+            replenish: std::time::Duration::from_millis(1),
+            trust_forwarded: false,
+        },
+        slots: crate::Slots::new(crate::WorkspaceSlots {
+            per_workspace: 1000,
+            per_user: 1000,
+            wait: std::time::Duration::from_secs(5),
+        }),
+        request_timeout: std::time::Duration::from_secs(60),
+        body_deadline: std::time::Duration::from_secs(60),
+        credentials: None,
+        files: None,
+        pdf: None,
+    }
+}
