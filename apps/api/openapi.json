@@ -1238,6 +1238,39 @@
         ],
         "type": "object"
       },
+      "ConsentResource": {
+        "description": "Whether the public lot page may ever name or picture this person. Nothing is shown while the data-protection gate is closed.",
+        "properties": {
+          "consent": {
+            "type": "boolean"
+          },
+          "consent_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "consent_by": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "consent",
+          "consent_at",
+          "consent_by"
+        ],
+        "type": "object"
+      },
       "ContactCreated": {
         "description": "Create response: the new contact's id.",
         "properties": {
@@ -3777,6 +3810,57 @@
         ],
         "type": "object"
       },
+      "EntryResource": {
+        "description": "A passbook line: a credit (sale) or debit (payout, reversal).",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Signed: credits positive, debits negative."
+          },
+          "attribution_id": {
+            "description": "The sale attribution behind a sale line.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "balance_after": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Balance in this currency right after this line."
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`sale_credit`, `sale_reversal`, `payout` or `payout_void`.",
+            "type": "string"
+          },
+          "payout_id": {
+            "description": "The payout behind a payout line.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "amount",
+          "balance_after",
+          "attribution_id",
+          "payout_id",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "Envelope_AppKeyCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -3890,6 +3974,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CategoryResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_ConsentResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ConsentResource"
           }
         },
         "required": [
@@ -9743,6 +9839,25 @@
         ],
         "type": "object"
       },
+      "Paginated_EntryResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EntryResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_FarmResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -13580,27 +13695,31 @@
         ],
         "type": "object"
       },
-      "PublicFarmer": {
-        "description": "The farmer fields a page may ever show (allow-list by type: no contact, no exact\nlocation, no money).",
+      "PublicFarmerGroup": {
+        "description": "Who grew a lot, per village: no names, contacts, exact places or money (G10). The count is\nnull below 3 farmers, so a small group can't be told apart.",
         "properties": {
-          "first_name": {
-            "type": "string"
+          "farmers": {
+            "description": "Number of farmers; null when fewer than 3.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
           },
-          "harvest_dates": {
-            "items": {
-              "format": "date",
-              "type": "string"
-            },
-            "type": "array"
+          "harvest_end": {
+            "description": "Latest harvest end of their crop cycles.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "photo": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/Link"
-              },
-              {
-                "type": "null"
-              }
+          "harvest_start": {
+            "description": "Earliest harvest start of their crop cycles.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
             ]
           },
           "village": {
@@ -13609,9 +13728,9 @@
         },
         "required": [
           "village",
-          "first_name",
-          "photo",
-          "harvest_dates"
+          "farmers",
+          "harvest_start",
+          "harvest_end"
         ],
         "type": "object"
       },
@@ -13821,9 +13940,9 @@
             ]
           },
           "farmers": {
-            "description": "Consented farmer fields only; empty until farmer consent exists.",
+            "description": "Who grew it, per village (supply lots); empty otherwise.",
             "items": {
-              "$ref": "#/components/schemas/PublicFarmer"
+              "$ref": "#/components/schemas/PublicFarmerGroup"
             },
             "type": "array"
           },
@@ -37732,6 +37851,131 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/passbook/mine": {
+      "get": {
+        "description": "The caller's own passbook lines, newest first, each with the balance in its currency after it.",
+        "operationId": "farm_passbook_mine",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_EntryResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Account is no registered person here, or no farm role"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My passbook",
+        "tags": [
+          "farm_passbook"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/persons": {
       "get": {
         "description": "Staff see their villages; a farmer sees what belongs to them and their household.",
@@ -38556,6 +38800,398 @@
         "summary": "A person's login history",
         "tags": [
           "farm_logins"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/persons/{person}/passbook": {
+      "get": {
+        "description": "Staff of the person's village, or the person. Newest first, each line with the balance after it.",
+        "operationId": "farm_passbook_person",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Person id",
+            "in": "path",
+            "name": "person",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_EntryResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Another farmer"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown person, or outside the caller's villages or workspace"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person's passbook",
+        "tags": [
+          "farm_passbook"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/persons/{person}/passport-consent": {
+      "delete": {
+        "operationId": "farm_passbook_withdraw_consent",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Person id",
+            "in": "path",
+            "name": "person",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ConsentResource"
+                }
+              }
+            },
+            "description": "Consent withdrawn"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Another farmer"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown person, or outside the caller's villages or workspace"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Withdraw passport consent",
+        "tags": [
+          "farm_passbook"
+        ]
+      },
+      "post": {
+        "description": "The person or staff of their village. Records that the public lot page may name or picture this person once the data-protection gate opens; nothing is shown before that.",
+        "operationId": "farm_passbook_give_consent",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Person id",
+            "in": "path",
+            "name": "person",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ConsentResource"
+                }
+              }
+            },
+            "description": "Consent recorded"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Another farmer"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown person, or outside the caller's villages or workspace"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record passport consent",
+        "tags": [
+          "farm_passbook"
         ]
       }
     },

@@ -1341,6 +1341,31 @@ fn every_farm_supply_operation_is_documented() {
 }
 
 #[test]
+fn every_farm_passbook_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/passbook/mine", "get", "farm_passbook_mine", "200"),
+        (
+            "/farm/persons/{person}/passbook",
+            "get",
+            "farm_passbook_person",
+            "200",
+        ),
+        (
+            "/farm/persons/{person}/passport-consent",
+            "post",
+            "farm_passbook_give_consent",
+            "200",
+        ),
+        (
+            "/farm/persons/{person}/passport-consent",
+            "delete",
+            "farm_passbook_withdraw_consent",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
 fn every_farm_logins_operation_is_documented() {
     assert_documented(&[
         (
