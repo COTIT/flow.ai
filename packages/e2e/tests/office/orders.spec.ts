@@ -141,6 +141,11 @@ test("confirm a draft, pick it (cancel sends nothing), complete it", async ({
   await page.goto("/orders/ord-1")
   await page.getByRole("button", { name: "Confirm order" }).click()
   await expect(page.getByText("Open", { exact: true })).toBeVisible()
+  const confirmCall = api.callsTo(
+    "POST",
+    "/workspace/:ws/orders/:id/confirm"
+  )[0]
+  expect(confirmCall?.headers["idempotency-key"]).toMatch(/^[0-9a-f-]{36}$/)
 
   await page.getByRole("button", { name: "Record picking" }).click()
   await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click()
@@ -281,4 +286,51 @@ test("returns send only the lines filled in; invoice links once made", async ({
   await expect(
     page.getByRole("link", { name: "Open invoice" })
   ).toHaveAttribute("href", "/invoices/inv-9")
+})
+
+test("refund retried after a network failure reuses its key; the API sees one refund", async ({
+  page,
+  api,
+}) => {
+  ordersApi(api, { status: "completed", paid_at: "2026-10-30T10:00:00Z" })
+  const sent: string[] = []
+  let fail = true
+  // Before the fake API: the first refund call dies on the wire, later ones go through.
+  await page.route("**/v1/workspace/w1/orders/ord-1/refunds", async (route) => {
+    sent.push(route.request().headers()["idempotency-key"] ?? "")
+    if (fail) {
+      fail = false
+      return route.abort("aborted")
+    }
+    return route.fallback()
+  })
+  await page.goto("/orders/ord-1")
+  await page.getByRole("button", { name: "Refund" }).click()
+  const dialog = page.getByRole("dialog")
+  await dialog.getByLabel("Amount (USD)").fill("12.50")
+  await dialog.getByRole("button", { name: "Refund" }).click()
+  await expect(
+    dialog
+      .getByRole("alert")
+      .filter({ hasText: "Something went wrong. Try again." })
+  ).toBeVisible()
+
+  await dialog.getByRole("button", { name: "Refund" }).click()
+  await expect(dialog.getByRole("status")).toContainText("$12.50")
+  expect(sent).toHaveLength(2)
+  expect(sent[0]).toMatch(/^[0-9a-f-]{36}$/)
+  expect(sent[1]).toBe(sent[0])
+  const refunds = api.callsTo("POST", "/workspace/:ws/orders/:id/refunds")
+  expect(refunds).toHaveLength(1)
+  expect(refunds[0]?.headers["idempotency-key"]).toBe(sent[0])
+
+  // A new refund is a new attempt: new key.
+  await page.keyboard.press("Escape")
+  await expect(dialog).toBeHidden()
+  await page.getByRole("button", { name: "Refund" }).click()
+  await dialog.getByLabel("Amount (USD)").fill("1")
+  await dialog.getByRole("button", { name: "Refund" }).click()
+  await expect(dialog.getByRole("status")).toContainText("$1.00")
+  expect(sent).toHaveLength(3)
+  expect(sent[2]).not.toBe(sent[0])
 })

@@ -44,6 +44,7 @@ import {
 import { formatMoney } from "@genesy/ui/lib/money"
 import { Field } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
+import { useIdempotencyKey } from "@/lib/idempotency"
 import { toMinor } from "@/lib/money-input"
 
 import { customerName } from "../shared"
@@ -69,10 +70,26 @@ export default function OrderPage({
       void queryClient.invalidateQueries({ queryKey })
   }
   const vars = { workspace: workspaceId, order: id }
-  const confirm = useOrdersConfirm({ mutation: { onSuccess } })
-  const complete = useOrdersComplete({ mutation: { onSuccess } })
-  const cancel = useOrdersCancel({ mutation: { onSuccess } })
-  const invoice = useOrdersInvoice({ mutation: { onSuccess } })
+  const confirmKey = useIdempotencyKey()
+  const completeKey = useIdempotencyKey()
+  const cancelKey = useIdempotencyKey()
+  const invoiceKey = useIdempotencyKey()
+  const confirm = useOrdersConfirm({
+    mutation: { onSuccess, onSettled: (_d, e) => confirmKey.settle(e) },
+    request: confirmKey.request,
+  })
+  const complete = useOrdersComplete({
+    mutation: { onSuccess, onSettled: (_d, e) => completeKey.settle(e) },
+    request: completeKey.request,
+  })
+  const cancel = useOrdersCancel({
+    mutation: { onSuccess, onSettled: (_d, e) => cancelKey.settle(e) },
+    request: cancelKey.request,
+  })
+  const invoice = useOrdersInvoice({
+    mutation: { onSuccess, onSettled: (_d, e) => invoiceKey.settle(e) },
+    request: invoiceKey.request,
+  })
   const actionError =
     confirm.error ?? complete.error ?? cancel.error ?? invoice.error
 
@@ -325,13 +342,16 @@ function PickDialog({
   const t = useTranslations()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const [open, setOpen] = React.useState(false)
+  const key = useIdempotencyKey()
   const pick = useOrdersPick({
     mutation: {
       onSuccess: () => {
         onDone()
         setOpen(false)
       },
+      onSettled: (_d, e) => key.settle(e),
     },
+    request: key.request,
   })
   return (
     <LinesDialog
@@ -346,7 +366,8 @@ function PickDialog({
       open={open}
       setOpen={(o) => {
         setOpen(o)
-        if (!o) pick.reset()
+        if (o) key.renew()
+        else pick.reset()
       }}
       onSubmit={(lines) =>
         pick.mutate({
@@ -369,13 +390,16 @@ function ReturnsDialog({
   const t = useTranslations()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const [open, setOpen] = React.useState(false)
+  const key = useIdempotencyKey()
   const returns = useOrdersReturns({
     mutation: {
       onSuccess: () => {
         onDone()
         setOpen(false)
       },
+      onSettled: (_d, e) => key.settle(e),
     },
+    request: key.request,
   })
   return (
     <LinesDialog
@@ -389,7 +413,8 @@ function ReturnsDialog({
       open={open}
       setOpen={(o) => {
         setOpen(o)
-        if (!o) returns.reset()
+        if (o) key.renew()
+        else returns.reset()
       }}
       extra={
         <label className="flex items-center gap-2 text-sm">
@@ -424,14 +449,19 @@ function RefundDialog({
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const [open, setOpen] = React.useState(false)
   const [amount, setAmount] = React.useState("")
-  const refund = useOrdersRefund({ mutation: { onSuccess: onDone } })
+  const key = useIdempotencyKey()
+  const refund = useOrdersRefund({
+    mutation: { onSuccess: onDone, onSettled: (_d, e) => key.settle(e) },
+    request: key.request,
+  })
   const minor = toMinor(amount, order.decimals)
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
         setOpen(o)
-        if (!o) {
+        if (o) key.renew()
+        else {
           refund.reset()
           setAmount("")
         }

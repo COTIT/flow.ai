@@ -17,7 +17,12 @@ export async function apiRequest<T>(
 ): Promise<T> {
   if (!client)
     throw new Error("API not configured: call configureApi() at app startup")
-  const { data } = await client.request<T>({ ...config, ...options })
+  const { data } = await client.request<T>({
+    ...config,
+    ...options,
+    // Per-call headers (e.g. Idempotency-Key) add to the generated ones, never replace them.
+    headers: { ...config.headers, ...options?.headers },
+  })
   return data
 }
 
