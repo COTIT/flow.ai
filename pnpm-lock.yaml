@@ -460,6 +460,9 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@genesy/api-client':
+        specifier: workspace:*
+        version: link:../api-client
       '@genesy/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
