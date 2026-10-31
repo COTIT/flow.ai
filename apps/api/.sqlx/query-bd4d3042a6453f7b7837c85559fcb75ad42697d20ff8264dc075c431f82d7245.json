@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_payout_voids (payout_id, workspace_id, reason, voided_by)\n         VALUES ($1, $2, $3, $4) ON CONFLICT (payout_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bd4d3042a6453f7b7837c85559fcb75ad42697d20ff8264dc075c431f82d7245"
+}

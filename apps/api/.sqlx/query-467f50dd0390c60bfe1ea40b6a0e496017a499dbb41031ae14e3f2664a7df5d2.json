@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM supply_links\n           WHERE (from_workspace_id = $1 OR to_workspace_id = $1)\n             AND ($2::uuid IS NULL OR id = $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "467f50dd0390c60bfe1ea40b6a0e496017a499dbb41031ae14e3f2664a7df5d2"
+}

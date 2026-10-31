@@ -1,0 +1,116 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.staff_user_id, l.currency_id, c.asset_type AS currency, c.decimals,\n                  coalesce(sum(l.amount) FILTER (WHERE l.day < $2 AND l.kind <> 'count'), 0)::bigint\n                      AS \"opening!\",\n                  coalesce(sum(l.amount) FILTER (WHERE l.day = $2 AND l.kind = 'float_out'), 0)::bigint\n                      AS \"floats!\",\n                  count(*) FILTER (WHERE l.day = $2 AND l.kind = 'payout') AS \"payouts!\",\n                  coalesce(-sum(l.amount) FILTER (WHERE l.day = $2 AND l.kind = 'payout'), 0)::bigint\n                      AS \"paid!\",\n                  coalesce(sum(l.amount) FILTER (WHERE l.day = $2 AND l.kind = 'payout_void'), 0)::bigint\n                      AS \"voided!\",\n                  coalesce(-sum(l.amount) FILTER (WHERE l.day = $2 AND l.kind = 'float_back'), 0)::bigint\n                      AS \"returned!\",\n                  (array_agg(l.amount ORDER BY l.created_at DESC, l.id DESC)\n                       FILTER (WHERE l.day = $2 AND l.kind = 'count'))[1] AS counted\n           FROM farm_cash_ledger l\n           JOIN currencies c ON c.workspace_id = l.workspace_id AND c.id = l.currency_id\n           WHERE l.workspace_id = $1 AND l.day <= $2\n             AND ($3::uuid IS NULL OR l.village_id = $3)\n             AND ($4::uuid IS NULL OR l.staff_user_id = $4)\n           GROUP BY l.staff_user_id, l.currency_id, c.asset_type, c.decimals\n           ORDER BY l.staff_user_id, l.currency_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "staff_user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_cash_ledger",
+            "name": "staff_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_cash_ledger",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "opening!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "floats!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "payouts!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "paid!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "voided!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "returned!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "counted",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "56a521a87d3a34f0ee1b3d4f6b355265f1314076a075bf7eb3630a401ecf0a66"
+}

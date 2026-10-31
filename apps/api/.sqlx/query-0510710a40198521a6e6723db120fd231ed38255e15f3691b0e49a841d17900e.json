@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM farm_memberships\n                          WHERE workspace_id = $1 AND user_id = $2 AND revoked_at IS NULL\n                            AND (role IN ('ops', 'admin')\n                                 OR (role = 'field_officer' AND village_id = $3))) AS \"ok!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ok!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0510710a40198521a6e6723db120fd231ed38255e15f3691b0e49a841d17900e"
+}

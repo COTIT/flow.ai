@@ -16,12 +16,12 @@ use crate::{
     modules::{
         app_keys, auth, contacts, currencies, custom_statuses, custom_types, deal_pipelines, deals,
         discount_groups, discounts, email_profiles, email_templates, email_verification,
-        farm_crops, farm_documents, farm_logins, farm_memberships, farm_passbook, farm_records,
-        farm_supply, farm_surveys, farm_villages, farm_vouchers, files, hourly_rates, invites,
-        invoice_payments, invoices, lots, messages, orders, pdf_templates, permissions,
+        farm_crops, farm_documents, farm_logins, farm_memberships, farm_passbook, farm_payouts,
+        farm_records, farm_supply, farm_surveys, farm_villages, farm_vouchers, files, hourly_rates,
+        invites, invoice_payments, invoices, lots, messages, orders, pdf_templates, permissions,
         price_corrections, pricing, product_brands, product_categories, product_variants, products,
         relations, sales_groups, search, settings, shipment_methods, special_offers, stock,
-        storage_locations, storefront, teams,
+        storage_locations, storefront, supply_links, teams,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -140,6 +140,8 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(farm_vouchers::routes::private())
         .merge(farm_supply::routes::private())
         .merge(farm_passbook::routes::private())
+        .merge(farm_payouts::routes::private())
+        .merge(supply_links::routes::private())
         .merge(orders::routes::private())
         .merge(orders::routes::storefront())
 }

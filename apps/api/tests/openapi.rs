@@ -1372,6 +1372,51 @@ fn every_farm_passbook_operation_is_documented() {
 }
 
 #[test]
+fn every_farm_payouts_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/payouts", "post", "farm_payouts_create", "201"),
+        (
+            "/farm/payouts/{payout}/void",
+            "post",
+            "farm_payouts_void",
+            "200",
+        ),
+        (
+            "/farm/cash/movements",
+            "post",
+            "farm_payouts_cash_movement",
+            "201",
+        ),
+        (
+            "/farm/cash/reconciliation",
+            "get",
+            "farm_payouts_reconciliation",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
+fn every_supply_links_operation_is_documented() {
+    assert_documented(&[
+        ("/supply-links", "get", "supply_links_list", "200"),
+        ("/supply-links", "post", "supply_links_grant", "201"),
+        (
+            "/supply-links/{link}/accept",
+            "post",
+            "supply_links_accept",
+            "200",
+        ),
+        (
+            "/supply-links/{link}",
+            "delete",
+            "supply_links_revoke",
+            "204",
+        ),
+    ]);
+}
+
+#[test]
 fn every_farm_logins_operation_is_documented() {
     assert_documented(&[
         (

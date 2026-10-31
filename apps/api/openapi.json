@@ -954,6 +954,155 @@
         },
         "type": "object"
       },
+      "CashDayResource": {
+        "description": "expected = opening + floats - paid + voided - returned; variance = counted - expected.",
+        "properties": {
+          "counted": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Money",
+                "description": "The day's last count; null when not counted."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expected": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "floats": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "opening": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Cash held at the start of the day (all earlier movements)."
+          },
+          "paid": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "payouts": {
+            "description": "Number of payouts made that day.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "returned": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Float handed back."
+          },
+          "staff_user_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "variance": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Money",
+                "description": "counted − expected; null when not counted."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "voided": {
+            "$ref": "#/components/schemas/Money",
+            "description": "Payouts voided that day (cash back with the officer)."
+          }
+        },
+        "required": [
+          "staff_user_id",
+          "opening",
+          "floats",
+          "payouts",
+          "paid",
+          "voided",
+          "returned",
+          "expected",
+          "counted",
+          "variance"
+        ],
+        "type": "object"
+      },
+      "CashMovementRequest": {
+        "description": "Cash handed to or back from an officer, or the officer's count.",
+        "properties": {
+          "amount": {
+            "description": "Minor units, positive (a count may be 0).",
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`float_out` (ops hands cash out), `float_back` (officer hands it back), `count` (what the officer counted).",
+            "type": "string"
+          },
+          "staff_user_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "staff_user_id",
+          "village_id",
+          "currency_id",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "CashMovementResource": {
+        "description": "A cash ledger row as stored.",
+        "properties": {
+          "amount": {
+            "description": "Signed minor units as booked (a count: the amount counted).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "day": {
+            "description": "Tanzania (UTC+3) date.",
+            "format": "date",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "staff_user_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "staff_user_id",
+          "village_id",
+          "currency_id",
+          "amount",
+          "day"
+        ],
+        "type": "object"
+      },
       "CatalogResponse": {
         "additionalProperties": {
           "items": {
@@ -2224,6 +2373,47 @@
         "required": [
           "date",
           "amount"
+        ],
+        "type": "object"
+      },
+      "CreatePayoutRequest": {
+        "description": "Pay a farmer cash from their passbook balance.",
+        "properties": {
+          "amount": {
+            "description": "Minor units, at least 1, at most the balance.",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "client_ref": {
+            "description": "Retry key (offline desk): the same key and body replay; another body is a 409.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id_type": {
+            "description": "`nida`, `voter`, `driving_licence` or `village_letter`.",
+            "type": "string"
+          },
+          "name_confirmed": {
+            "description": "The payer checked the name on the ID against the farmer; must be true.",
+            "type": "boolean"
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_ref",
+          "person_id",
+          "amount",
+          "currency_id",
+          "id_type",
+          "name_confirmed"
         ],
         "type": "object"
       },
@@ -3945,6 +4135,18 @@
         ],
         "type": "object"
       },
+      "Envelope_CashMovementResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CashMovementResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_CatalogResponse": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4414,6 +4616,18 @@
         ],
         "type": "object"
       },
+      "Envelope_LinkResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LinkResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_LinkedProducts": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4599,6 +4813,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/PaymentIntentResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_PayoutResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PayoutResource"
           }
         },
         "required": [
@@ -5229,6 +5455,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_CashDayResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CashDayResource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_ConfiguredBins": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -5849,6 +6090,33 @@
         "required": [
           "option_types",
           "combinations"
+        ],
+        "type": "object"
+      },
+      "GrantLinkRequest": {
+        "description": "Grant a shop workspace a supply link.",
+        "properties": {
+          "fields": {
+            "description": "Public farmer fields it may show: `farmer_count`, `harvest_window`, `village` (may be empty).",
+            "example": [
+              "village",
+              "farmer_count",
+              "harvest_window"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "to_workspace_id": {
+            "description": "The receiving (shop) workspace.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "to_workspace_id",
+          "fields"
         ],
         "type": "object"
       },
@@ -7952,6 +8220,62 @@
         ],
         "type": "object"
       },
+      "LinkResource": {
+        "description": "A consented supply link between a farm workspace and a shop workspace.",
+        "properties": {
+          "accepted_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "direction": {
+            "description": "`outgoing` (this workspace granted it) or `incoming`.",
+            "type": "string"
+          },
+          "fields": {
+            "description": "Public farmer fields the receiving side may show.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "granted_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "partner": {
+            "$ref": "#/components/schemas/Partner"
+          },
+          "revoked_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "`pending`, `live` or `revoked`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "direction",
+          "partner",
+          "fields",
+          "status",
+          "granted_at",
+          "accepted_at",
+          "revoked_at"
+        ],
+        "type": "object"
+      },
       "LinkedProducts": {
         "description": "Linked products; always empty for now.",
         "properties": {
@@ -10003,6 +10327,25 @@
         ],
         "type": "object"
       },
+      "Paginated_LinkResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/LinkResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_LocationResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -10667,6 +11010,23 @@
         ],
         "type": "object"
       },
+      "Partner": {
+        "description": "The other workspace.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "Passport": {
         "additionalProperties": false,
         "description": "Passport of one lot. Unknown keys are refused.",
@@ -10834,6 +11194,87 @@
         },
         "required": [
           "redirect_url"
+        ],
+        "type": "object"
+      },
+      "PayoutResource": {
+        "description": "Cash paid to a farmer from their passbook balance.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id_type": {
+            "description": "The ID document checked: `nida`, `voter`, `driving_licence` or `village_letter`.",
+            "type": "string"
+          },
+          "paid_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "paid_by": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "void": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PayoutVoid",
+                "description": "Set once voided; the passbook and cash ledger then hold reversing lines."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "client_ref",
+          "person_id",
+          "village_id",
+          "amount",
+          "id_type",
+          "paid_by",
+          "paid_at",
+          "void"
+        ],
+        "type": "object"
+      },
+      "PayoutVoid": {
+        "description": "Why and by whom a payout was voided.",
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "voided_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "voided_by": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "voided_by",
+          "voided_at"
         ],
         "type": "object"
       },
@@ -19454,6 +19895,20 @@
           "primary_language",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "VoidPayoutRequest": {
+        "description": "POST /farm/payouts/{payout}/void.",
+        "properties": {
+          "reason": {
+            "description": "1-500 chars.",
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
         ],
         "type": "object"
       },
@@ -34870,6 +35325,306 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/cash/movements": {
+      "post": {
+        "description": "ops or admin record `float_out` and `float_back`; an officer records their own `count` (ops and admin any). The staff user must be staff of the village.",
+        "operationId": "farm_payouts_cash_movement",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashMovementRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CashMovementResource"
+                }
+              }
+            },
+            "description": "Recorded"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not allowed for this kind"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or no farm role"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record cash handed out, back, or counted",
+        "tags": [
+          "farm_payouts"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/cash/reconciliation": {
+      "get": {
+        "description": "Per officer and currency for one Tanzania day: opening, floats, payouts, voids, returns, expected, counted and variance. ops and admin see every officer; an officer sees their own.",
+        "operationId": "farm_payouts_reconciliation",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Tanzania date `YYYY-MM-DD`.",
+            "in": "query",
+            "name": "day",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this village.",
+            "in": "query",
+            "name": "village_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_CashDayResource"
+                }
+              }
+            },
+            "description": "One row per officer and currency"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or no farm role"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Missing or bad day"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Daily cash reconciliation",
+        "tags": [
+          "farm_payouts"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/crop-cycles": {
       "get": {
         "description": "Staff see their villages; a farmer sees what belongs to them and their household.",
@@ -38060,6 +38815,356 @@
         "summary": "My passbook",
         "tags": [
           "farm_passbook"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/payouts": {
+      "post": {
+        "description": "Staff of the farmer's village. Whoever registered or verified the farmer's household, or belongs to it, may not pay. Above the workspace's `farm.payout_officer_limit` only ops or admin pay. Never more than the passbook balance in that currency. Writes the payout, a passbook debit and a cash ledger row in one transaction. The same `client_ref` and body replay (200).",
+        "operationId": "farm_payouts_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PayoutResource"
+                }
+              }
+            },
+            "description": "Replayed: this client_ref was used with this body"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PayoutResource"
+                }
+              }
+            },
+            "description": "Paid"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not staff, four-eyes conflict, or above the officer limit"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown farmer, or outside the caller's villages or workspace"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "client_ref used with another body or by another member"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or more than the balance"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pay a farmer",
+        "tags": [
+          "farm_payouts"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/payouts/{payout}/void": {
+      "post": {
+        "description": "ops or admin, with a reason. Adds a passbook credit and a cash row giving the amount back to the payer; nothing is edited.",
+        "operationId": "farm_payouts_void",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Payout id",
+            "in": "path",
+            "name": "payout",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidPayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PayoutResource"
+                }
+              }
+            },
+            "description": "Voided"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown payout"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Already void"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Reason missing or too long"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Void a payout",
+        "tags": [
+          "farm_payouts"
         ]
       }
     },
@@ -64024,6 +65129,557 @@
         "summary": "Update a shipment method",
         "tags": [
           "shipment_methods"
+        ]
+      }
+    },
+    "/workspace/{workspace}/supply-links": {
+      "get": {
+        "description": "Links this workspace granted (`outgoing`) or received (`incoming`), newest first.",
+        "operationId": "supply_links_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_LinkResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or caller not a workspace admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List supply links",
+        "tags": [
+          "supply_links"
+        ]
+      },
+      "post": {
+        "description": "From this (farm) workspace to a shop workspace, with the public farmer fields it may show. Names and photos are refused until the data-protection gate opens. One pending or live link per pair.",
+        "operationId": "supply_links_grant",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_LinkResource"
+                }
+              }
+            },
+            "description": "Granted, pending acceptance"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or caller not a workspace admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "A pending or live link to that workspace exists"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown or gated field, or bad target workspace"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Grant a supply link",
+        "tags": [
+          "supply_links"
+        ]
+      }
+    },
+    "/workspace/{workspace}/supply-links/{link}": {
+      "delete": {
+        "description": "Either side's admin. Revoking again is also 204; a revoked link never comes back.",
+        "operationId": "supply_links_revoke",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Link id",
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or caller not a workspace admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown link, or this workspace is no side of it"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revoke a supply link",
+        "tags": [
+          "supply_links"
+        ]
+      }
+    },
+    "/workspace/{workspace}/supply-links/{link}/accept": {
+      "post": {
+        "description": "The receiving workspace's admin accepts a pending link; it is then live.",
+        "operationId": "supply_links_accept",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Link id",
+            "in": "path",
+            "name": "link",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_LinkResource"
+                }
+              }
+            },
+            "description": "Live"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not a workspace admin, or this workspace granted the link"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown link, or this workspace is no side of it"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not pending (live or revoked)"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept a supply link",
+        "tags": [
+          "supply_links"
         ]
       }
     },

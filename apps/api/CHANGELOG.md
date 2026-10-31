@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Phase 4b step 4, supply links (contract `docs/api/supply-links.md`, migration `supply_links`): `/workspace/{workspace}/supply-links` grant, list, accept and revoke, for workspace admins.
+  - A farm workspace grants a shop workspace a link with an allow-list of public farmer fields (`farmer_count`, `harvest_window`, `village`); `farmer_names` and `farmer_photos` are refused until the data-protection gate opens.
+  - Only the receiver accepts, and either side revokes for good. One open link per pair.
+  - A link opens none of the farm workspace's records to the shop.
+- Phase 4b step 3, payout desk and cash reconciliation (contract `docs/api/farm-payouts.md`, migration `farm_payouts`):
+  - **Payouts:** `POST /farm/payouts`. Staff of the farmer's village pay from the passbook balance; the farmer's row is locked first, so payouts never overdraw or come out of a negative balance.
+    - Voucher four-eyes rules apply through a shared `farm_vouchers::rules::household_conflict` (vouchers keep their wording).
+    - New workspace setting `farm.payout_officer_limit` (default TZS 100,000.00); above it only ops or admin pay.
+    - `client_ref` replays the same body.
+  - **Voids:** `POST /farm/payouts/{payout}/void` (ops, admin) writes reversing passbook and cash rows.
+  - **Cash:** `POST /farm/cash/movements` records floats out and back and counts. `GET /farm/cash/reconciliation?day=` shows opening, floats, payouts, voids, returns, expected, counted and variance per officer.
+  - A trigger keeps payouts, voids and the cash ledger append-only.
 - Phase 3 step 6, `take` on the stock seam (till sales, invoice sends):
   - `reserve::take(conn, ws, warehouse_id, wants, floor, cause) -> Taken {Done | Short{index, available}}`. It takes rows first-expired-first. Every line is checked before any write under `Floor::Zero`/`Available`. Under `Floor::None` (stores) the remainder lands on the no-lot row, which may go negative. A level past the range is `Error::OutOfRange`.
   - Invoice sends take through `take` (stores `Floor::None`, others `Floor::Available`, so an invoice never takes stock an order holds); error texts are unchanged, and "Available stock" is the free stock (level − held) of the usable rows. Credit notes still put stock back on the no-lot row.
@@ -17,7 +29,6 @@
   - `POST /workspace/{workspace}/lots/{lot}/stock-mutations` (in or out, `Floor::Available`).
   - A lot's code is frozen once it holds stock.
   - Stock reads (product `stocks[]`, `/products/stocks`, `stock-with-bins`) gain `lot`.
-
 - Phase 4b step 2, passbook and passport farmers (contract `docs/api/farm-passbook.md`, migration `farm_passbook`):
   - **Passbook:** `farm_passbook_entries` holds signed minor-unit lines per person and currency, and a trigger keeps it append-only (UPDATE, DELETE and TRUNCATE are refused). Reads: `GET /farm/passbook/mine` and `GET /farm/persons/{person}/passbook`, newest first, each line with its running `balance_after`.
   - **Passport consent:** `farm_persons.passport_profile_consent` is off by default and is set or withdrawn at `POST/DELETE /farm/persons/{person}/passport-consent` (the person, or staff of their village).
