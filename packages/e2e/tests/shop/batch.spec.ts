@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test"
+
 import { LOT } from "../../mock/fixtures.mjs"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 
@@ -43,9 +45,7 @@ test("released batch shows its passport", async ({ page }) => {
   await expectNoHorizontalScroll(page)
 })
 
-test("recalled batch is announced first and shows its farmers", async ({
-  page,
-}) => {
+test("recalled batch is announced first", async ({ page }) => {
   await page.goto(`/b/${LOT.recalled}`)
   // Next's route announcer is also role=alert (empty); pick the banner by its text.
   const alert = page
@@ -63,12 +63,40 @@ test("recalled batch is announced first and shows its farmers", async ({
     )
   })
   expect(order).toBeTruthy()
-
-  await expect(
-    page.getByRole("heading", { name: "Meet the farmers" })
-  ).toBeVisible()
-  await expect(page.getByRole("img", { name: "Asha" })).toBeVisible()
   await expectNoHorizontalScroll(page)
+})
+
+test.describe("farmer groups", () => {
+  // The village name alone on its line (materials mention places too).
+  const village = (page: Page, name: string) =>
+    page
+      .getByRole("listitem")
+      .filter({ has: page.getByText(name, { exact: true }) })
+
+  test("show a village's farmer count and harvest window", async ({ page }) => {
+    await page.goto(`/b/${LOT.recalled}`)
+    await expect(
+      page.getByRole("heading", { name: "Meet the farmers" })
+    ).toBeVisible()
+    const ilundo = village(page, "Ilundo")
+    await expect(ilundo).toContainText("12 farmers")
+    await expect(ilundo).toContainText("Harvested July 1, 2026 – July 20, 2026")
+    // Groups only: no farmer photos (or any image) in the section.
+    const section = page
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "Meet the farmers" }) })
+    await expect(section.locator("img")).toHaveCount(0)
+    await expectNoHorizontalScroll(page)
+  })
+
+  test("leave out the count for fewer than 3 farmers", async ({ page }) => {
+    await page.goto(`/b/${LOT.recalled}`)
+    const mtera = village(page, "Mtera")
+    await expect(mtera).toContainText(
+      "Harvested August 2, 2026 – August 9, 2026"
+    )
+    await expect(mtera).not.toContainText(/farmers|null/)
+  })
 })
 
 test.describe("codes that open no passport", () => {
