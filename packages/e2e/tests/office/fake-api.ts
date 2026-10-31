@@ -17,7 +17,12 @@ type Handler = (req: {
  * Every call is recorded, so a test can prove what was (or wasn't) sent.
  */
 export class FakeApi {
-  readonly calls: { method: string; path: string; body: unknown }[] = []
+  readonly calls: {
+    method: string
+    path: string
+    body: unknown
+    headers: Record<string, string>
+  }[] = []
   private routes: { method: string; re: RegExp; handler: Handler }[] = []
 
   on(method: string, path: string, handler: Handler) {
@@ -39,7 +44,7 @@ export class FakeApi {
     const path = url.pathname.replace(/^\/v1/, "")
     const method = req.method()
     const body = req.postData() ? req.postDataJSON() : undefined
-    this.calls.push({ method, path, body })
+    this.calls.push({ method, path, body, headers: req.headers() })
     for (const r of this.routes) {
       const m = r.method === method && path.match(r.re)
       if (!m) continue

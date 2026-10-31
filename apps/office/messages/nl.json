@@ -23,7 +23,8 @@
     "appKeys": "App-sleutels",
     "webhooks": "Webhooks",
     "stock": "Voorraad",
-    "invoices": "Facturen"
+    "invoices": "Facturen",
+    "orders": "Orders"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -204,5 +205,52 @@
     "noPayments": "Nog geen betalingen.",
     "method": "Methode",
     "amount": "Bedrag"
+  },
+  "orders": {
+    "title": "Orders",
+    "empty": "Nog geen orders.",
+    "number": "Order",
+    "status": "Status",
+    "customer": "Klant",
+    "reference": "Referentie",
+    "paidAt": "Betaald op",
+    "invoice": "Factuur",
+    "openInvoice": "Factuur openen",
+    "picked": "Gepickt",
+    "returned": "Retour",
+    "unitPrice": "Stukprijs excl. btw",
+    "lineTotal": "Regel excl. btw",
+    "subtotal": "Subtotaal excl. btw",
+    "vat": "Btw",
+    "statuses": {
+      "draft": "Concept",
+      "awaiting_payment": "Wacht op betaling",
+      "open": "Open",
+      "completed": "Afgerond",
+      "partially_returned": "Deels retour",
+      "returned": "Retour",
+      "cancelled": "Geannuleerd"
+    },
+    "confirm": "Order bevestigen",
+    "pick": "Picken registreren",
+    "pickTitle": "Picken voor {number}",
+    "pickText": "Vul per regel het totaal gepickt tot nu toe in.",
+    "complete": "Afronden",
+    "completeTitle": "Order {number} afronden?",
+    "completeText": "De gereserveerde voorraad gaat het magazijn uit. Dit kan niet ongedaan worden gemaakt.",
+    "makeInvoice": "Factuur maken",
+    "returns": "Retouren innemen",
+    "returnsTitle": "Retouren voor {number}",
+    "returnsText": "Vul per regel het aantal in dat terugkomt. Laat een regel leeg als er niets terugkomt.",
+    "restock": "Retour terug op voorraad zetten",
+    "refund": "Terugbetalen",
+    "refundTitle": "Terugbetaling op {number}",
+    "refundText": "Het geld gaat via de betaalprovider terug naar de klant. Dit kan niet ongedaan worden gemaakt.",
+    "refundAmount": "Bedrag ({currency})",
+    "badAmount": "Vul een bedrag in zoals 12.50.",
+    "refundQueued": "Terugbetaling van {amount} naar de provider gestuurd (status: {status}).",
+    "cancel": "Order annuleren",
+    "cancelTitle": "Order {number} annuleren?",
+    "cancelText": "Gereserveerde voorraad komt vrij. Een betaalde order moet eerst terugbetaald worden; het systeem meldt dat."
   }
 }

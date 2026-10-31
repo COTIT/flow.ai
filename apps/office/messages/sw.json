@@ -23,7 +23,8 @@
     "appKeys": "Funguo za programu",
     "webhooks": "Webhooks",
     "stock": "Akiba",
-    "invoices": "Ankara"
+    "invoices": "Ankara",
+    "orders": "Oda"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -204,5 +205,52 @@
     "noPayments": "Bado hakuna malipo.",
     "method": "Njia",
     "amount": "Kiasi"
+  },
+  "orders": {
+    "title": "Oda",
+    "empty": "Bado hakuna oda.",
+    "number": "Oda",
+    "status": "Hali",
+    "customer": "Mteja",
+    "reference": "Kumbukumbu",
+    "paidAt": "Ililipwa",
+    "invoice": "Ankara",
+    "openInvoice": "Fungua ankara",
+    "picked": "Imechukuliwa",
+    "returned": "Imerudishwa",
+    "unitPrice": "Bei ya kipande bila VAT",
+    "lineTotal": "Mstari bila VAT",
+    "subtotal": "Jumla ndogo bila VAT",
+    "vat": "VAT",
+    "statuses": {
+      "draft": "Rasimu",
+      "awaiting_payment": "Inasubiri malipo",
+      "open": "Wazi",
+      "completed": "Imekamilika",
+      "partially_returned": "Imerudishwa kiasi",
+      "returned": "Imerudishwa",
+      "cancelled": "Imeghairiwa"
+    },
+    "confirm": "Thibitisha oda",
+    "pick": "Rekodi uchukuaji",
+    "pickTitle": "Uchukuaji wa {number}",
+    "pickText": "Weka jumla iliyochukuliwa kwa kila mstari hadi sasa.",
+    "complete": "Kamilisha",
+    "completeTitle": "Kamilisha oda {number}?",
+    "completeText": "Akiba iliyohifadhiwa itatolewa ghalani. Hili haliwezi kutenduliwa.",
+    "makeInvoice": "Tengeneza ankara",
+    "returns": "Pokea marejesho",
+    "returnsTitle": "Marejesho ya {number}",
+    "returnsText": "Weka idadi inayorudi kwa kila mstari. Acha mstari wazi kama hakuna kinachorudi.",
+    "restock": "Rudisha bidhaa kwenye akiba",
+    "refund": "Rejesha pesa",
+    "refundTitle": "Kurejesha pesa kwa {number}",
+    "refundText": "Pesa zinarudi kwa mteja kupitia mtoa huduma wa malipo. Hili haliwezi kutenduliwa.",
+    "refundAmount": "Kiasi ({currency})",
+    "badAmount": "Weka kiasi kama 12.50.",
+    "refundQueued": "Marejesho ya {amount} yametumwa kwa mtoa huduma (hali: {status}).",
+    "cancel": "Ghairi oda",
+    "cancelTitle": "Ghairi oda {number}?",
+    "cancelText": "Akiba iliyohifadhiwa itaachiliwa. Oda iliyolipwa inahitaji kurejeshewa pesa kwanza; mfumo utasema."
   }
 }
