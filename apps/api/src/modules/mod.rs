@@ -13,6 +13,8 @@ pub mod discounts;
 pub mod email_profiles;
 pub mod email_templates;
 pub mod email_verification;
+pub mod farm_memberships;
+pub mod farm_villages;
 pub mod files;
 pub mod hourly_rates;
 pub mod invites;

@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH ins AS (\n               INSERT INTO farm_memberships (workspace_id, user_id, role, village_id, created_by)\n               VALUES ($1, $2, $3, $4, $5)\n               ON CONFLICT ON CONSTRAINT farm_memberships_key DO UPDATE SET revoked_at = NULL\n                   WHERE farm_memberships.revoked_at IS NOT NULL\n               RETURNING id, (xmax = 0) AS inserted\n           )\n           SELECT id AS \"id!\", inserted AS \"inserted!\" FROM ins\n           UNION ALL\n           SELECT id, false FROM farm_memberships\n           WHERE workspace_id = $1 AND user_id = $2 AND role = $3\n             AND village_id IS NOT DISTINCT FROM $4 AND NOT EXISTS (SELECT 1 FROM ins)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "inserted!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "e4d7e958e07bc5b5ca2c47a206add465fc05d446bdefeb9698a40e3d70ea72bd"
+}

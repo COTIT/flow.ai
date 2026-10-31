@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Phase 4 farm tenancy (RUAHA, contract `docs/api/farm-tenancy.md`, migration `farm_tenancy`):
+  - `farm_villages` (scopes inside a workspace) and `farm_memberships` (role `farmer|field_officer|ops|admin`, one village for farmers and officers, revoke not delete).
+  - `FarmAccess` guard (`src/http/farm.rs`): staff roles count only while the user is an active workspace member; farmers are not workspace members, so every non-farm route stays `404` for them.
+  - Routes `/workspace/{workspace}/farm/villages` (list, create with client id replay, patch) and `/farm/memberships` (list, grant, revoke). Workspace admins bootstrap the first farm admin; ops grants field officers only; nobody touches their own row.
+  - `farm_audit_log`: trigger-written trail of every farm row change with the actor (`genesy.actor`, set per write transaction); append-only.
 - Phase 1 "lay the pipes" (contracts `docs/api/app-keys.md`, `storefront.md`, `webhooks.md`):
   - **App keys** (migration `app_keys`): `gsk_` keys per workspace and app kind, sha256 only, scopes (`catalog:read`), revoke, `last_used_at` at most once a minute. `AppKey` extractor beside `AuthUser`; the private rate limit buckets per key. Admin routes `/workspace/{workspace}/app-keys`.
   - **Storefront:** `GET /storefront/products[/{product}]` for `catalog:read` keys: active, unarchived products with variants, prices in integer minor units and available stock, one statement per call.

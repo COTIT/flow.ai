@@ -1172,3 +1172,32 @@ fn assert_ops(ops: &[Op]) {
         assert!(has_ws, "{method} {path}: no workspace param");
     }
 }
+
+// ---- Farm (RUAHA phase 4) ----
+
+#[test]
+fn every_farm_tenancy_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/villages", "get", "farm_villages_list", "200"),
+        ("/farm/villages", "post", "farm_villages_create", "201"),
+        (
+            "/farm/villages/{village}",
+            "patch",
+            "farm_villages_update",
+            "200",
+        ),
+        ("/farm/memberships", "get", "farm_memberships_list", "200"),
+        (
+            "/farm/memberships",
+            "post",
+            "farm_memberships_create",
+            "201",
+        ),
+        (
+            "/farm/memberships/{membership}",
+            "delete",
+            "farm_memberships_revoke",
+            "204",
+        ),
+    ]);
+}

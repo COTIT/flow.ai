@@ -4,6 +4,7 @@
 pub mod contract;
 pub mod fake_pdf;
 pub mod fake_smtp;
+pub mod farm;
 pub mod invoicing;
 
 use axum::extract::ConnectInfo;

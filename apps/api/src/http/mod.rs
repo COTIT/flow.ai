@@ -2,6 +2,7 @@
 
 pub mod app_key;
 pub mod auth;
+pub mod farm;
 pub mod json;
 pub mod list;
 pub mod rate_limit;
