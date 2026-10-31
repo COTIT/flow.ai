@@ -868,6 +868,7 @@ dependencies = [
  "dotenvy",
  "getrandom 0.4.3",
  "hex",
+ "hmac",
  "http-body-util",
  "jsonschema",
  "lettre",

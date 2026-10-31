@@ -147,3 +147,49 @@ pub async fn delete(
     .rows_affected();
     Ok(n == 1)
 }
+
+/// Rows one prune statement deletes.
+const PRUNE_BATCH: i64 = 1000;
+
+/// Delete delivered or failed deliveries untouched for 30 days; how many.
+pub async fn prune_deliveries(db: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
+    let mut total = 0;
+    loop {
+        let n = sqlx::query!(
+            "DELETE FROM webhook_deliveries WHERE id = ANY(ARRAY(
+                 SELECT id FROM webhook_deliveries
+                 WHERE status <> 'pending' AND updated_at < now() - interval '30 days'
+                 LIMIT $1))",
+            PRUNE_BATCH,
+        )
+        .execute(db)
+        .await?
+        .rows_affected();
+        total += n;
+        if n < PRUNE_BATCH.unsigned_abs() {
+            return Ok(total);
+        }
+    }
+}
+
+/// Delete events dispatched over 30 days ago that no delivery points at any more; how many.
+pub async fn prune_events(db: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
+    let mut total = 0;
+    loop {
+        let n = sqlx::query!(
+            "DELETE FROM webhook_events WHERE id = ANY(ARRAY(
+                 SELECT e.id FROM webhook_events e
+                 WHERE e.dispatched_at < now() - interval '30 days'
+                   AND NOT EXISTS (SELECT 1 FROM webhook_deliveries d WHERE d.event_id = e.id)
+                 LIMIT $1))",
+            PRUNE_BATCH,
+        )
+        .execute(db)
+        .await?
+        .rows_affected();
+        total += n;
+        if n < PRUNE_BATCH.unsigned_abs() {
+            return Ok(total);
+        }
+    }
+}

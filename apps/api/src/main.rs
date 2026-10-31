@@ -73,6 +73,10 @@ async fn main() {
         .take()
         .map(|s| storage::Store::s3(s, http.clone()).expect("file storage"));
     let job_files = files.clone();
+    // Webhook targets are customer URLs: no operator host is trusted for them.
+    let job_http = outbound::Outbound::new(&[]).expect("outbound http client");
+    let credentials = config.credentials_key.map(std::sync::Arc::new);
+    let job_credentials = credentials.clone();
     if files.is_none() || pdf.is_none() {
         tracing::warn!(
             files = files.is_some(),
@@ -80,7 +84,7 @@ async fn main() {
             "file storage or PDF rendering not configured: those routes answer 503"
         );
     }
-    if config.credentials_key.is_none() {
+    if credentials.is_none() {
         tracing::warn!("CREDENTIALS_KEY not set: integration credentials can't be stored");
     }
     let listener = tokio::net::TcpListener::bind(config.bind_addr)
@@ -127,7 +131,7 @@ async fn main() {
         }),
         request_timeout: Duration::from_secs(config.request_timeout_secs),
         body_deadline: Duration::from_secs(config.request_body_deadline_secs),
-        credentials: config.credentials_key.map(std::sync::Arc::new),
+        credentials,
         files,
         pdf,
     };
@@ -146,6 +150,8 @@ async fn main() {
         handler: jobs::kinds::handler(jobs::kinds::Ctx {
             db: jobs_db,
             files: job_files,
+            http: job_http,
+            credentials: job_credentials,
         }),
     }
     .spawn(jobs_stopped.clone());

@@ -36,6 +36,9 @@ CREATE TABLE webhook_events (
 );
 CREATE INDEX webhook_events_pending_idx ON webhook_events (workspace_id, id)
     WHERE dispatched_at IS NULL;
+-- The 30-day prune.
+CREATE INDEX webhook_events_dispatched_idx ON webhook_events (dispatched_at)
+    WHERE dispatched_at IS NOT NULL;
 
 CREATE TABLE webhook_deliveries (
     id           uuid        PRIMARY KEY DEFAULT uuidv7(),
@@ -60,3 +63,6 @@ CREATE TABLE webhook_deliveries (
 );
 CREATE INDEX webhook_deliveries_endpoint_idx
     ON webhook_deliveries (workspace_id, endpoint_id, created_at DESC);
+-- The 30-day prune.
+CREATE INDEX webhook_deliveries_finished_idx ON webhook_deliveries (updated_at)
+    WHERE status <> 'pending';
