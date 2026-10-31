@@ -9,7 +9,8 @@
       "en": "English",
       "nl": "Nederlands",
       "sw": "Kiswahili"
-    }
+    },
+    "theme": "Wissel tussen licht en donker"
   },
   "auth": {
     "title": "Inloggen",
