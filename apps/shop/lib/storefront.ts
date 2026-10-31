@@ -4,11 +4,13 @@ import { cache } from "react"
 import { notFound } from "next/navigation"
 
 import {
+  storefrontLotsGet,
   storefrontProductsGet,
   storefrontProductsList,
 } from "@genesy/api-client/endpoints/storefront"
 
 import "./api"
+import { earliestLinkExpiry, isProductId, isPublicCode } from "./passport"
 
 /** Axios request options, as the generated calls take them. */
 type RequestOptions = NonNullable<Parameters<typeof storefrontProductsGet>[1]>
@@ -66,6 +68,24 @@ export const listProducts = (page: number) =>
   call((o) => storefrontProductsList({ page, page_size: PAGE_SIZE }, o))
 
 /** Per-request memo: generateMetadata and the page share one call. */
-export const getProduct = cache((id: string) =>
-  call((o) => storefrontProductsGet(id, o)).then((r) => r.data)
-)
+export const getProduct = cache(async (id: string) => {
+  // The id goes into the API path: anything but a UUID could point it elsewhere.
+  if (!isProductId(id)) notFound()
+  return (await call((o) => storefrontProductsGet(id, o))).data
+})
+
+/** A cached reply whose first signed link expires sooner than this is fetched again. */
+const LINK_MARGIN_MS = 2 * 60_000
+
+/** Published batch passport for a QR code (`/b/{public_code}`). */
+export const getLot = cache(async (code: string) => {
+  if (!isPublicCode(code)) notFound()
+  const lot = (await call((o) => storefrontLotsGet(code, o))).data
+  const expiry = earliestLinkExpiry(lot)
+  if (!expiry || expiry.getTime() - Date.now() > LINK_MARGIN_MS) return lot
+  return (
+    await call((o) =>
+      storefrontLotsGet(code, { ...o, fetchOptions: { cache: "no-store" } })
+    )
+  ).data
+})

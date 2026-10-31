@@ -6,7 +6,9 @@ import { contentSecurityPolicy } from "./headers"
  * An app's `proxy.ts` handler: a fresh nonce per request, passed to Next (which tags
  * its scripts with it) and to the layout as `x-nonce`, plus the CSP response header.
  */
-export function cspProxy(options: { frameAncestors?: string } = {}) {
+export function cspProxy(
+  options: { frameAncestors?: string; imgSrc?: string } = {}
+) {
   return function proxy(request: NextRequest) {
     const nonce = Buffer.from(crypto.randomUUID()).toString("base64")
     const csp = contentSecurityPolicy(nonce, {

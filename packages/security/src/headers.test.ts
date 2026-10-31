@@ -32,9 +32,9 @@ describe("contentSecurityPolicy", () => {
 
   it("opens the dev reload websocket only in development", () => {
     expect(directive(csp, "connect-src")).toBe("connect-src 'self'")
-    expect(directive(contentSecurityPolicy("n", { dev: true }), "connect-src")).toBe(
-      "connect-src 'self' ws:"
-    )
+    expect(
+      directive(contentSecurityPolicy("n", { dev: true }), "connect-src")
+    ).toBe("connect-src 'self' ws:")
   })
 
   it("lets a page that must be embedded name who may frame it", () => {
@@ -42,6 +42,31 @@ describe("contentSecurityPolicy", () => {
       frameAncestors: "https://partner.example",
     })
     expect(shop).toContain("frame-ancestors https://partner.example")
+  })
+
+  it("lets images load from one exact file-storage origin", () => {
+    expect(
+      directive(
+        contentSecurityPolicy("n", { imgSrc: "https://s3.eu.example.com" }),
+        "img-src"
+      )
+    ).toBe("img-src 'self' blob: data: https://s3.eu.example.com")
+  })
+
+  it.each([
+    undefined,
+    "",
+    "https://*.example.com",
+    "*",
+    "https://files.example.com/bucket",
+    "https://a.example.com https://b.example.com",
+    "'unsafe-inline'",
+    "javascript:alert(1)",
+    "ftp://files.example.com",
+  ])("adds nothing to img-src for %j", (imgSrc) => {
+    expect(directive(contentSecurityPolicy("n", { imgSrc }), "img-src")).toBe(
+      "img-src 'self' blob: data:"
+    )
   })
 
   it("allows eval only in development, for React's dev tooling", () => {
