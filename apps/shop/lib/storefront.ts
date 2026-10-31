@@ -5,12 +5,16 @@ import { notFound } from "next/navigation"
 
 import {
   storefrontLotsGet,
+  storefrontOrdersCreate,
+  storefrontOrdersGet,
+  storefrontOrdersPayment,
   storefrontProductsGet,
   storefrontProductsList,
 } from "@genesy/api-client/endpoints/storefront"
+import type { CheckoutRequest, StorefrontOrder } from "@genesy/api-client/model"
 
 import "./api"
-import { earliestLinkExpiry, isProductId, isPublicCode } from "./passport"
+import { earliestLinkExpiry, isUuid, isPublicCode } from "./passport"
 
 /** Axios request options, as the generated calls take them. */
 type RequestOptions = NonNullable<Parameters<typeof storefrontProductsGet>[1]>
@@ -76,7 +80,7 @@ export const listProducts = (page: number) =>
 /** Per-request memo: generateMetadata and the page share one call. */
 export const getProduct = cache(async (id: string) => {
   // The id goes into the API path: anything but a UUID could point it elsewhere.
-  if (!isProductId(id)) notFound()
+  if (!isUuid(id)) notFound()
   return (
     await call(`/storefront/products/${id}`, (o) =>
       storefrontProductsGet(id, o)
@@ -100,3 +104,99 @@ export const getLot = cache(async (code: string) => {
     )
   ).data
 })
+
+/** Orders change by the second: never served from the data cache. */
+const fresh = (o: RequestOptions): RequestOptions => ({
+  ...o,
+  fetchOptions: { cache: "no-store" },
+})
+
+const failure = (error: unknown) => {
+  const response = (error as { response?: { status?: number; data?: unknown } })
+    .response
+  return { status: response?.status, data: response?.data }
+}
+
+/** Order page: the server's view of the order (no customer data in it). */
+export const getOrder = cache(async (id: string) => {
+  if (!isUuid(id)) notFound()
+  return (
+    await call(`/storefront/orders/${id}`, (o) =>
+      storefrontOrdersGet(id, fresh(o))
+    )
+  ).data
+})
+
+export type CreateOrderResult =
+  | { ok: true; order: StorefrontOrder }
+  | { ok: false; kind: "invalid"; errors: Record<string, string[]> }
+  | { ok: false; kind: "busy" | "unavailable" }
+
+/**
+ * Places the web order. The API prices it from the catalog and holds the stock; its
+ * reply is the only source of totals. The idempotency key makes a double submit one order.
+ */
+export async function createOrder(
+  body: CheckoutRequest,
+  idempotencyKey: string
+): Promise<CreateOrderResult> {
+  const o = options()
+  try {
+    const { data } = await storefrontOrdersCreate(body, {
+      ...fresh(o),
+      headers: { ...(o.headers as object), "Idempotency-Key": idempotencyKey },
+    })
+    return { ok: true, order: data }
+  } catch (error) {
+    const { status, data } = failure(error)
+    const errors = (data as { errors?: Record<string, string[]> })?.errors
+    if (status === 422 && errors) return { ok: false, kind: "invalid", errors }
+    if (status === 429) return { ok: false, kind: "busy" }
+    console.error(
+      "storefront: POST /storefront/orders failed:",
+      status ?? "network"
+    )
+    return { ok: false, kind: "unavailable" }
+  }
+}
+
+export type PaymentResult =
+  | { ok: true; checkoutUrl: string }
+  | {
+      ok: false
+      kind: "no_provider" | "provider_down" | "not_payable" | "unavailable"
+    }
+
+/** Starts (or resumes) the payment; the provider sends the customer back to `redirectUrl`. */
+export async function startPayment(
+  orderId: string,
+  redirectUrl: string
+): Promise<PaymentResult> {
+  const path = `/storefront/orders/${orderId}/payment`
+  try {
+    const { data } = await storefrontOrdersPayment(
+      orderId,
+      { redirect_url: redirectUrl },
+      fresh(options())
+    )
+    return data.checkout_url
+      ? { ok: true, checkoutUrl: data.checkout_url }
+      : { ok: false, kind: "not_payable" }
+  } catch (error) {
+    if (error instanceof StorefrontUnavailable)
+      return { ok: false, kind: "unavailable" }
+    const { status, data } = failure(error)
+    const message = (data as { message?: string })?.message
+    if (status === 503)
+      return {
+        ok: false,
+        kind:
+          message === "no payment provider configured"
+            ? "no_provider"
+            : "provider_down",
+      }
+    if (status === 409) return { ok: false, kind: "not_payable" }
+    console.error(`storefront: POST ${path} failed:`, status ?? "network")
+    return { ok: false, kind: "unavailable" }
+  }
+}

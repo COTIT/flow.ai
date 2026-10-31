@@ -33,7 +33,12 @@
     },
     "e2e": {
       "dependsOn": ["@genesy/shop#build", "@genesy/office#build"],
-      "passThroughEnv": ["CI", "HOME", "PLAYWRIGHT_BROWSERS_PATH"],
+      "passThroughEnv": [
+        "CI",
+        "HOME",
+        "PLAYWRIGHT_BROWSERS_PATH",
+        "E2E_PORT_OFFSET"
+      ],
       "cache": false
     },
     "openapi": {
