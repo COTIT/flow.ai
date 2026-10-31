@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- OpenAPI group C documented: `product_brands`, `product_categories`, `products`, `product_variants`, `discount_groups`, `discounts`, `price_corrections`, `special_offers`, `warehouses`, `warehouse_locations`, `warehouse_sections`, `warehouse_rows`, `warehouse_shelves`, `warehouse_bins`, `stock`, `storage_locations` moved from `build_app`'s plain list into `openapi::private()`; routers built from each handler's `#[utoipa::path]` (operationIds `<module>_<action>`). Paths, statuses and bodies are unchanged.
+  - Replies built as `json!` literals (products, variants, stock, storage locations, discount-group relations) get hand-written doc-only schemas (`ProductResource`, `ProductVariantResource`, `StockResource`, `StockMovement`, ...); request bodies read key by key get `ProductRequest`, `ProductVariantRequest`, `MutateStockRequest`, ... The contract check validates every real reply in the module suites against them.
+  - Special offers: the global `/erp/special-offers` routes get thin delegating handlers (`*_all` operationIds), since one handler fn carries one documented path. Same code runs.
+  - `http::list::Meta` is now `pub` so the discount-group list (`?limit=` drops `meta`) can name it.
+  - Tests: `every_<module>_operation_is_documented` for all 16 modules (shared `assert_documented` / `assert_crud` helpers).
+  - Gaps the contract check found and now documented: 422 on deleting the default variant, 422 (message only) on deleting a product used on invoice items.
 - OpenAPI rollout group B: `vat_groups`, `hourly_rates`, `sales_groups`, `shipment_methods`, `custom_types`, `custom_statuses`, `relations` (incl. `financial-summary`), `contacts` and the `/searches` registry are documented (40 operations, operationIds `<tag>_<action>`) and mounted from `openapi::private()`. Paths, statuses and bodies are unchanged; the contract check in `send` now validates every reply these modules' tests produce.
   - Lenient inputs are documented as clean types: money and percentages as decimal strings, flags as booleans, ids as uuids.
   - `relations` and contacts read raw JSON objects, so their create/update bodies are documented by doc-only structs (`RelationInput`, `RelationPatchInput`, `ContactInput`, `AddressInput`, `PhoneInput`, `RelationTerms`); the extractors are unchanged.

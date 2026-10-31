@@ -14,11 +14,13 @@ use crate::{
     error::ValidationErrorBody,
     http::response::MessageBody,
     modules::{
-        auth, contacts, currencies, custom_statuses, custom_types, email_verification,
-        hourly_rates, invites, permissions, relations, sales_groups, search, shipment_methods,
-        teams,
+        auth, contacts, currencies, custom_statuses, custom_types, discount_groups, discounts,
+        email_verification, hourly_rates, invites, permissions, price_corrections, product_brands,
+        product_categories, product_variants, products, relations, sales_groups, search,
+        shipment_methods, special_offers, stock, storage_locations, teams,
         users::{self, dto::UserEmailResource},
-        vat_groups, workspaces,
+        vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
+        warehouse_shelves, warehouses, workspaces,
     },
 };
 
@@ -80,6 +82,22 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(sales_groups::routes::private())
         .merge(hourly_rates::routes::private())
         .merge(vat_groups::routes::private())
+        .merge(storage_locations::routes::private())
+        .merge(stock::routes::private())
+        .merge(special_offers::routes::private())
+        .merge(price_corrections::routes::private())
+        .merge(discounts::routes::private())
+        .merge(discount_groups::routes::private())
+        .merge(product_variants::routes::private())
+        .merge(products::routes::private())
+        .merge(product_categories::routes::private())
+        .merge(product_brands::routes::private())
+        .merge(warehouse_bins::routes::private())
+        .merge(warehouse_shelves::routes::private())
+        .merge(warehouse_rows::routes::private())
+        .merge(warehouse_sections::routes::private())
+        .merge(warehouse_locations::routes::private())
+        .merge(warehouses::routes::private())
 }
 
 /// Full spec, built from [`public`] and [`private`], as JSON.

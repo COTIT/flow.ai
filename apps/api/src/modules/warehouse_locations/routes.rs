@@ -1,23 +1,18 @@
-//! Warehouse location routes, mounted under /v1 (paths match vimdesk-api).
+//! Warehouse location routes, mounted under /v1. Paths live in each handler's
+//! `#[utoipa::path]`.
+// Paths match vimdesk-api.
 
-use axum::{Router, routing::get};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::warehouse_locations::handlers};
 
 /// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    let base = "/workspace/{workspace}/erp/warehouses/{warehouse}/locations";
-    Router::new()
-        .route(
-            base,
-            get(handlers::list)
-                .post(handlers::create)
-                .delete(handlers::delete_many),
-        )
-        .route(
-            &format!("{base}/{{location}}"),
-            get(handlers::get)
-                .post(handlers::update)
-                .delete(handlers::delete),
-        )
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(
+            handlers::list,
+            handlers::create,
+            handlers::delete_many
+        ))
+        .routes(routes!(handlers::get, handlers::update, handlers::delete))
 }

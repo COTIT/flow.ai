@@ -1,45 +1,20 @@
-//! Stock routes, mounted under /v1 (paths match vimdesk-api).
+//! Stock routes, mounted under /v1. Paths live in each handler's `#[utoipa::path]`.
+// Paths match vimdesk-api.
 
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::stock::handlers};
 
 /// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    let base = "/workspace/{workspace}/products";
-    let product = format!("{base}/{{product}}");
-    Router::new()
-        .route(&format!("{base}/stocks"), get(handlers::list))
-        .route(&format!("{base}/stocks/negative"), get(handlers::negative))
-        .route(
-            &format!("{product}/stocks"),
-            post(handlers::mutate).delete(handlers::delete),
-        )
-        .route(
-            &format!("{product}/set-stock-levels"),
-            post(handlers::set_levels),
-        )
-        .route(
-            &format!("{product}/set-stock-requirements"),
-            post(handlers::set_requirements),
-        )
-        .route(
-            &format!("{product}/move-stock-between-bins"),
-            post(handlers::move_between_bins),
-        )
-        .route(
-            &format!("{product}/stock-with-bins"),
-            get(handlers::with_bins),
-        )
-        .route(
-            &format!("{product}/configured-bins"),
-            get(handlers::configured_bins),
-        )
-        .route(
-            &format!("{product}/stock-movements"),
-            get(handlers::movements),
-        )
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(handlers::list))
+        .routes(routes!(handlers::negative))
+        .routes(routes!(handlers::mutate, handlers::delete))
+        .routes(routes!(handlers::set_levels))
+        .routes(routes!(handlers::set_requirements))
+        .routes(routes!(handlers::move_between_bins))
+        .routes(routes!(handlers::with_bins))
+        .routes(routes!(handlers::configured_bins))
+        .routes(routes!(handlers::movements))
 }

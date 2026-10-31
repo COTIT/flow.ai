@@ -1,5 +1,6 @@
 //! HTTP edge for /v1/workspace/{workspace}/products: `product.*` permission (via `Can`), call
-//! service, wrap. Laravel's barcode search had no check; genesy asks for `product.list`.
+//! service, wrap. Barcode search asks for `product.list`.
+// Laravel's barcode search had no check.
 
 use axum::{
     Json,
@@ -11,19 +12,21 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search as pattern_of},
-        response::Data,
+        response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
     modules::products::{
         dto::{
-            CreateProductRequest, GetQuery, HistoryQuery, ListQuery, SearchBody,
-            UpdateProductRequest, pos_warehouse,
+            CreateProductRequest, GetQuery, HistoryQuery, LinkedProducts, ListQuery,
+            ProductCreated, ProductRequestDoc, SaleStatics, SearchBody, UpdateProductRequest,
+            pos_warehouse,
         },
         repo::ListFilter,
+        resource::{HistoryDoc, ProductDoc},
         service::{self, Actor},
     },
 };
@@ -45,6 +48,18 @@ fn created(id: Uuid) -> (StatusCode, Data<Value>) {
 }
 
 /// GET /products -> `{data:[...], meta}`, newest first, status `active` unless asked.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products", tag = "products",
+    operation_id = "products_list", summary = "List products",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<ProductDoc>, description = "One page of products, newest first"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long, malformed `supplier_id`, or too many `exclude_ids`"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<ProductList>,
@@ -103,6 +118,17 @@ pub async fn list(
 }
 
 /// GET /products/{product}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/{product}", tag = "products",
+    operation_id = "products_get", summary = "Get a product",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id"), GetQuery),
+    responses(
+        (status = 200, body = Envelope<ProductDoc>, description = "The product"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<ProductView>,
@@ -116,6 +142,19 @@ pub async fn get(
 }
 
 /// POST /products/search `{query}` -> one product by barcode, EAN or id, else 404.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/search", tag = "products",
+    operation_id = "products_search", summary = "Find one product by barcode, EAN or id",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = SearchBody,
+    responses(
+        (status = 200, body = Envelope<ProductDoc>, description = "The product"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn search(
     State(state): State<AppState>,
     access: Can<ProductList>,
@@ -127,6 +166,19 @@ pub async fn search(
 }
 
 /// POST /products -> 201 `{data:{product_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products", tag = "products",
+    operation_id = "products_create", summary = "Create a product",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = ProductRequestDoc,
+    responses(
+        (status = 201, body = Envelope<ProductCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<ProductCreate>,
@@ -141,6 +193,19 @@ pub async fn create(
 }
 
 /// POST /products/{product} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/{product}", tag = "products",
+    operation_id = "products_update", summary = "Update a product (send only changed fields)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    request_body = ProductRequestDoc,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<ProductUpdate>,
@@ -156,6 +221,18 @@ pub async fn update(
 }
 
 /// DELETE /products/{product} -> `{"data":{"message":"The Product has been deleted"}}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/products/{product}", tag = "products",
+    operation_id = "products_delete", summary = "Delete a product",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    responses(
+        (status = 200, body = Envelope<MessageBody>, description = "Deleted; `data.message` confirms"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = MessageBody, description = "Product is used on invoice items"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<ProductDelete>,
@@ -166,6 +243,17 @@ pub async fn delete(
 }
 
 /// POST /products/{product}/duplicate -> 201 `{data:{product_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/{product}/duplicate", tag = "products",
+    operation_id = "products_duplicate", summary = "Copy a product",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    responses(
+        (status = 201, body = Envelope<ProductCreated>, description = "Copied; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.duplicate`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn duplicate(
     State(state): State<AppState>,
     access: Can<ProductDuplicate>,
@@ -176,6 +264,17 @@ pub async fn duplicate(
 }
 
 /// GET /products/{product}/price-history -> `{data:[...], meta}`; `per_page` default 25.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/{product}/price-history", tag = "products",
+    operation_id = "products_price_history", summary = "List a product's price changes",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id"), HistoryQuery),
+    responses(
+        (status = 200, body = Paginated<HistoryDoc>, description = "One page of price changes, newest first"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn price_history(
     State(state): State<AppState>,
     access: Can<ProductView>,
@@ -195,7 +294,18 @@ pub async fn price_history(
 }
 
 /// GET /products/{product}/sale-statics: sales figures from invoices. No invoices exist until
-/// the final batch, so the answer is Laravel's empty-result shape.
+/// the final batch, so the answer is the empty-result shape.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/{product}/sale-statics", tag = "products",
+    operation_id = "products_sale_statics", summary = "Get a product's sales figures",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    responses(
+        (status = 200, body = Envelope<SaleStatics>, description = "Sales figures"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn sale_statics(
     State(state): State<AppState>,
     access: Can<ProductView>,
@@ -209,6 +319,17 @@ pub async fn sale_statics(
 }
 
 /// GET /products/{product}/linked-products: links can't be created in genesy yet, so none.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/{product}/linked-products", tag = "products",
+    operation_id = "products_linked_products", summary = "List linked products",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    responses(
+        (status = 200, body = Envelope<LinkedProducts>, description = "Linked products"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn linked_products(
     State(state): State<AppState>,
     access: Can<ProductView>,
@@ -218,8 +339,20 @@ pub async fn linked_products(
     Ok(Data(json!({ "products": [] })))
 }
 
-/// POST /products/{product}/sync-product-stock-locations-from-external-service: Picqer isn't
-/// ported, which is Laravel's "credentials not configured" case: `{"message":"ok"}`.
+/// POST /products/{product}/sync-product-stock-locations-from-external-service: no external
+/// stock service is connected, so this answers `{"message":"ok"}`.
+// Picqer isn't ported: Laravel's "credentials not configured" case.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/{product}/sync-product-stock-locations-from-external-service", tag = "products",
+    operation_id = "products_sync_external", summary = "Sync stock locations from an external service (no-op)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn sync_external(
     State(state): State<AppState>,
     access: Can<ProductView>,

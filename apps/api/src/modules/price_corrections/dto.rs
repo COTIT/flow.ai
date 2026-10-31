@@ -1,10 +1,11 @@
-//! Price correction request/response bodies (Laravel Store/UpdatePriceCorrectionRequest,
-//! PriceCorrectionResource).
+//! Price correction request/response bodies.
+// Laravel Store/UpdatePriceCorrectionRequest, PriceCorrectionResource.
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -13,15 +14,19 @@ use crate::{
     money::{MAX, Zero, format_decimals},
 };
 
-/// Laravel PriceCorrectionResource: uncast decimal columns through `formatDecimals` (2 dp,
+// Laravel PriceCorrectionResource: uncast decimal columns through `formatDecimals` (2 dp,
 /// trimmed; zero `"0"`, null `"0.00"`).
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(
+    description = "A price correction band: prices from `value_from` to `value_to` get rounded. Decimals are strings, 2 places trimmed (zero `\"0\"`, unset `\"0.00\"`)."
+)]
 pub struct CorrectionResource {
     id: Uuid,
     value_from: String,
     value_to: String,
     round_on: String,
     remove_amount: String,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
@@ -44,30 +49,41 @@ impl From<CorrectionRow> for CorrectionResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct CorrectionCreated {
     pub price_correction_id: Uuid,
 }
 
 /// GET list query.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
 /// POST /price-corrections and POST /price-corrections/{id}.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = PriceCorrectionRequest, description = "Create needs `value_from` and `value_to`; update keeps fields left out. Decimals as strings (`\"12.50\"`); JSON numbers also work.")]
 pub struct CorrectionRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     value_from: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     value_to: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     round_on: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     remove_amount: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

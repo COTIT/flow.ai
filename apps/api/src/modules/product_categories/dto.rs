@@ -1,8 +1,16 @@
-//! Category bodies: Laravel ProductCategoryResource and Store/UpdateProductCategoryRequest.
+//! Category bodies.
+// Laravel ProductCategoryResource and Store/UpdateProductCategoryRequest.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{
+    IntoParams, ToSchema,
+    openapi::{
+        Ref,
+        schema::{ArrayBuilder, ObjectBuilder, OneOfBuilder, Schema, SchemaType, Type},
+    },
+};
 use uuid::Uuid;
 
 use crate::{
@@ -13,17 +21,44 @@ use crate::{
 /// Laravel `rules.ValidateId` for domain `product_category`.
 pub const BAD_PARENT: &str = "The parent id is an invalid id for the product_category domain.";
 
-/// Laravel ProductCategoryResource.
-#[derive(Serialize)]
+// Laravel ProductCategoryResource.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A product category. `relationships` is filled on the single-category GET.")]
 pub struct CategoryResource {
     id: Uuid,
     product_category_id: Uuid,
     name: String,
+    #[schema(required = true)]
     description: Option<String>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    #[schema(schema_with = relationships_schema)]
     relationships: Relationships,
+}
+
+/// Wire shape of [`Relationships`]: untagged and recursive, so derive can't describe it.
+fn relationships_schema() -> Schema {
+    let category = || Ref::from_schema_name("CategoryResource");
+    OneOfBuilder::new()
+        .item(ArrayBuilder::new().max_items(Some(0)).build())
+        .item(
+            ObjectBuilder::new()
+                .property(
+                    "parent",
+                    OneOfBuilder::new()
+                        .item(category())
+                        .item(ObjectBuilder::new().schema_type(SchemaType::Type(Type::Null))),
+                )
+                .property("children", ArrayBuilder::new().items(category()))
+                .required("parent")
+                .required("children"),
+        )
+        .description(Some(
+            "`[]` on lists, otherwise `{\"parent\": ..., \"children\": [...]}`",
+        ))
+        .into()
 }
 
 /// Laravel only loaded `parent` and `children` on GET one; elsewhere both were missing, so
@@ -75,18 +110,29 @@ impl CategoryResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct CategoryCreated {
     pub product_category_id: Uuid,
 }
 
-/// GET list query (Laravel ListProductCategory). Unknown params ignored.
-#[derive(Deserialize)]
+/// GET list query. Unknown params ignored.
+// Laravel ListProductCategory.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on the name.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// Only children of this category.
+    #[param(value_type = Option<Uuid>)]
     pub parent_id: Option<String>,
+    /// `1` = only top-level categories.
+    #[param(value_type = Option<bool>)]
     pub root_only: Option<String>,
 }
 
@@ -99,15 +145,20 @@ pub struct CategoryInput {
 }
 
 /// POST body for create and update.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = ProductCategoryRequest, description = "Create needs `name`; update keeps fields left out, null clears them.")]
 pub struct CategoryBody {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, max_length = 255)]
     name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     parent_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     description: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

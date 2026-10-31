@@ -1,5 +1,6 @@
 //! HTTP edge for /v1/workspace/{workspace}/erp/product-categories: `productcategory.*`
-//! permission (Laravel checked `.view` for one row; genesy uses the catalog's `get`).
+//! permission.
+// Laravel checked `.view` for one row; genesy uses the catalog's `get`.
 
 use std::collections::BTreeMap;
 
@@ -12,17 +13,17 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, flag, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::product_categories::{
         dto::{
-            BAD_PARENT, CategoryCreated, CategoryResource, CreateCategoryRequest, ListQuery,
-            UpdateCategoryRequest,
+            BAD_PARENT, CategoryBody, CategoryCreated, CategoryResource, CreateCategoryRequest,
+            ListQuery, UpdateCategoryRequest,
         },
         repo::ListFilter,
         service,
@@ -40,6 +41,18 @@ permissions! {
 type CategoryPath = Path<(String, String)>;
 
 /// GET /product-categories -> `{data:[...], meta}`; `parent_id` or `root_only=1` filter.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/erp/product-categories", tag = "product_categories",
+    operation_id = "product_categories_list", summary = "List categories",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<CategoryResource>, description = "One page of categories"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productcategory.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long or malformed `parent_id`"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<CategoryList>,
@@ -74,6 +87,17 @@ pub async fn list(
 }
 
 /// GET /product-categories/{category}, with `parent` and `children`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/erp/product-categories/{category}", tag = "product_categories",
+    operation_id = "product_categories_get", summary = "Get a category",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("category" = Uuid, Path, description = "Category id")),
+    responses(
+        (status = 200, body = Envelope<CategoryResource>, description = "The category"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productcategory.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or category, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<CategoryGet>,
@@ -84,6 +108,19 @@ pub async fn get(
 }
 
 /// POST /product-categories -> 201 `{data:{product_category_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/erp/product-categories", tag = "product_categories",
+    operation_id = "product_categories_create", summary = "Create a category",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CategoryBody,
+    responses(
+        (status = 201, body = Envelope<CategoryCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productcategory.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<CategoryCreate>,
@@ -99,6 +136,19 @@ pub async fn create(
 }
 
 /// POST /product-categories/{category} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/erp/product-categories/{category}", tag = "product_categories",
+    operation_id = "product_categories_update", summary = "Update a category (send only changed fields)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("category" = Uuid, Path, description = "Category id")),
+    request_body = CategoryBody,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productcategory.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or category, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<CategoryUpdate>,
@@ -110,6 +160,17 @@ pub async fn update(
 }
 
 /// DELETE /product-categories/{category} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/erp/product-categories/{category}", tag = "product_categories",
+    operation_id = "product_categories_delete", summary = "Delete a category",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("category" = Uuid, Path, description = "Category id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productcategory.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or category, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<CategoryDelete>,

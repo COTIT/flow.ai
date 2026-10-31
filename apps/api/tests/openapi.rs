@@ -587,3 +587,309 @@ fn group_a_operations_are_documented() {
         }
     }
 }
+
+// ---- Group C: catalog, pricing, warehouses, stock ----
+
+const W: &str = "/workspace/{workspace}";
+
+/// Each `(path under /workspace/{workspace}, method, operationId, success)` is documented as a
+/// private operation: success + 401, bearer security, `workspace` path param.
+fn assert_documented(ops: &[(&str, &str, &str, &str)]) {
+    let s = spec();
+    for &(tail, method, id, ok) in ops {
+        let path = format!("{W}{tail}");
+        let op = &s["paths"][&path][method];
+        assert!(op.is_object(), "{method} {path} missing");
+        assert_eq!(op["operationId"], id, "{method} {path}");
+        assert!(op["responses"][ok].is_object(), "{method} {path}: no {ok}");
+        assert!(
+            op["responses"]["401"].is_object(),
+            "{method} {path}: no 401"
+        );
+        assert_eq!(
+            op["security"][0]["bearer"],
+            json!([]),
+            "{method} {path}: no bearer"
+        );
+        let has_ws = op["parameters"].as_array().is_some_and(|ps| {
+            ps.iter()
+                .any(|p| p["name"] == "workspace" && p["in"] == "path")
+        });
+        assert!(has_ws, "{method} {path}: no workspace param");
+    }
+}
+
+/// List + create on `base`, get/update(POST)/delete on `base/{item}`, operationIds
+/// `{module}_{action}{suffix}`, plus `extra`.
+fn assert_crud(base: &str, item: &str, module: &str, extra: &[(&str, &str, &str, &str)]) {
+    assert_crud_as(base, item, module, "", extra);
+}
+
+fn assert_crud_as(
+    base: &str,
+    item: &str,
+    module: &str,
+    suffix: &str,
+    extra: &[(&str, &str, &str, &str)],
+) {
+    let one = format!("{base}/{{{item}}}");
+    let ids: Vec<String> = ["list", "create", "get", "update", "delete"]
+        .iter()
+        .map(|a| format!("{module}_{a}{suffix}"))
+        .collect();
+    let mut all = vec![
+        (base, "get", ids[0].as_str(), "200"),
+        (base, "post", ids[1].as_str(), "201"),
+        (one.as_str(), "get", ids[2].as_str(), "200"),
+        (one.as_str(), "post", ids[3].as_str(), "200"),
+        (one.as_str(), "delete", ids[4].as_str(), "200"),
+    ];
+    all.extend_from_slice(extra);
+    assert_documented(&all);
+}
+
+const WH: &str = "/warehouses/{warehouse}";
+const SECTION: &str = "/warehouses/{warehouse}/sections/{section}";
+const ROW: &str = "/warehouses/{warehouse}/sections/{section}/rows/{row}";
+const SHELF: &str = "/warehouses/{warehouse}/sections/{section}/rows/{row}/shelves/{shelf}";
+
+#[test]
+fn every_warehouses_operation_is_documented() {
+    assert_crud(
+        "/warehouses",
+        "warehouse",
+        "warehouses",
+        &[(
+            "/warehouses/{warehouse}/default",
+            "post",
+            "warehouses_set_default",
+            "200",
+        )],
+    );
+}
+
+#[test]
+fn every_warehouse_locations_operation_is_documented() {
+    let base = "/erp/warehouses/{warehouse}/locations";
+    assert_crud(
+        base,
+        "location",
+        "warehouse_locations",
+        &[(base, "delete", "warehouse_locations_delete_many", "200")],
+    );
+}
+
+#[test]
+fn every_warehouse_sections_operation_is_documented() {
+    assert_crud(
+        &format!("{WH}/sections"),
+        "section",
+        "warehouse_sections",
+        &[],
+    );
+}
+
+#[test]
+fn every_warehouse_rows_operation_is_documented() {
+    assert_crud(&format!("{SECTION}/rows"), "row", "warehouse_rows", &[]);
+}
+
+#[test]
+fn every_warehouse_shelves_operation_is_documented() {
+    assert_crud(&format!("{ROW}/shelves"), "shelf", "warehouse_shelves", &[]);
+}
+
+#[test]
+fn every_warehouse_bins_operation_is_documented() {
+    assert_crud(
+        &format!("{SHELF}/bins"),
+        "bin",
+        "warehouse_bins",
+        &[(
+            "/warehouses/{warehouse}/bins",
+            "get",
+            "warehouse_bins_by_warehouse",
+            "200",
+        )],
+    );
+}
+
+#[test]
+fn every_product_brands_operation_is_documented() {
+    assert_crud("/erp/product-brands", "brand", "product_brands", &[]);
+}
+
+#[test]
+fn every_product_categories_operation_is_documented() {
+    assert_crud(
+        "/erp/product-categories",
+        "category",
+        "product_categories",
+        &[],
+    );
+}
+
+#[test]
+fn every_products_operation_is_documented() {
+    assert_crud(
+        "/products",
+        "product",
+        "products",
+        &[
+            ("/products/search", "post", "products_search", "200"),
+            (
+                "/products/{product}/duplicate",
+                "post",
+                "products_duplicate",
+                "201",
+            ),
+            (
+                "/products/{product}/price-history",
+                "get",
+                "products_price_history",
+                "200",
+            ),
+            (
+                "/products/{product}/sale-statics",
+                "get",
+                "products_sale_statics",
+                "200",
+            ),
+            (
+                "/products/{product}/linked-products",
+                "get",
+                "products_linked_products",
+                "200",
+            ),
+            (
+                "/products/{product}/sync-product-stock-locations-from-external-service",
+                "post",
+                "products_sync_external",
+                "200",
+            ),
+        ],
+    );
+}
+
+#[test]
+fn every_product_variants_operation_is_documented() {
+    let base = "/products/{product}/variants";
+    let one = "/products/{product}/variants/{variant}";
+    assert_documented(&[
+        (base, "get", "product_variants_list", "200"),
+        (base, "post", "product_variants_create", "201"),
+        (
+            "/products/{product}/variants/generate",
+            "post",
+            "product_variants_generate",
+            "201",
+        ),
+        (one, "get", "product_variants_get", "200"),
+        (one, "put", "product_variants_update", "200"),
+        (one, "delete", "product_variants_delete", "204"),
+    ]);
+}
+
+#[test]
+fn every_discount_groups_operation_is_documented() {
+    assert_crud(
+        "/products/discount-groups",
+        "group",
+        "discount_groups",
+        &[
+            (
+                "/products/discount-groups/{group}/relations",
+                "get",
+                "discount_groups_relations",
+                "200",
+            ),
+            (
+                "/products/discount-groups/{group}/attach-to-relations",
+                "post",
+                "discount_groups_attach",
+                "200",
+            ),
+            (
+                "/products/discount-groups/{group}/detach-from-relations",
+                "post",
+                "discount_groups_detach",
+                "200",
+            ),
+        ],
+    );
+}
+
+#[test]
+fn every_discounts_operation_is_documented() {
+    assert_crud("/products/discounts", "discount", "discounts", &[]);
+}
+
+#[test]
+fn every_price_corrections_operation_is_documented() {
+    assert_crud(
+        "/products/price-corrections",
+        "correction",
+        "price_corrections",
+        &[],
+    );
+}
+
+#[test]
+fn every_special_offers_operation_is_documented() {
+    let product = "/erp/products/{product}/special-offers";
+    assert_crud(product, "offer", "special_offers", &[]);
+    assert_crud_as(
+        "/erp/special-offers",
+        "offer",
+        "special_offers",
+        "_all",
+        &[],
+    );
+}
+
+#[test]
+fn every_stock_operation_is_documented() {
+    let p = "/products/{product}";
+    let at = |tail: &str| format!("{p}{tail}");
+    let (stocks, levels, reqs, mv, bins, conf, moves) = (
+        at("/stocks"),
+        at("/set-stock-levels"),
+        at("/set-stock-requirements"),
+        at("/move-stock-between-bins"),
+        at("/stock-with-bins"),
+        at("/configured-bins"),
+        at("/stock-movements"),
+    );
+    assert_documented(&[
+        ("/products/stocks", "get", "stock_list", "200"),
+        ("/products/stocks/negative", "get", "stock_negative", "200"),
+        (&stocks, "post", "stock_mutate", "200"),
+        (&stocks, "delete", "stock_delete", "200"),
+        (&levels, "post", "stock_set_levels", "200"),
+        (&reqs, "post", "stock_set_requirements", "200"),
+        (&mv, "post", "stock_move_between_bins", "200"),
+        (&bins, "get", "stock_with_bins", "200"),
+        (&conf, "get", "stock_configured_bins", "200"),
+        (&moves, "get", "stock_movements", "200"),
+    ]);
+}
+
+#[test]
+fn every_storage_locations_operation_is_documented() {
+    let base = "/erp/storage-locations";
+    assert_documented(&[
+        (base, "post", "storage_locations_create", "201"),
+        (
+            "/erp/storage-locations/{id}",
+            "delete",
+            "storage_locations_delete",
+            "200",
+        ),
+        (
+            "/erp/storage-locations/{domain}/{parent}",
+            "get",
+            "storage_locations_list",
+            "200",
+        ),
+    ]);
+}

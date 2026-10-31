@@ -10,17 +10,17 @@ use serde_json::{Value, json};
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, flag, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::discount_groups::{
         dto::{
-            CreateGroupRequest, GroupCreated, GroupResource, ListQuery, RelationIdsRequest,
-            UpdateGroupRequest,
+            CreateGroupRequest, GroupCreated, GroupListBody, GroupResource, ListQuery,
+            RelationIdsRequest, UpdateGroupRequest,
         },
         repo::ListFilter,
         service,
@@ -39,10 +39,22 @@ permissions! {
 
 type GroupPath = Path<(String, String)>;
 
-/// Laravel `limit` (0..100): a plain list without paging.
+/// `limit` (0..100): a plain list without paging.
 const MAX_LIMIT: i64 = 100;
 
 /// GET /discount-groups -> page, or `{data:[...]}` with `?limit=`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/discount-groups", tag = "discount_groups",
+    operation_id = "discount_groups_list", summary = "List discount groups",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = GroupListBody, description = "A page, or a plain list with `limit`"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discountgroup.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long or bad `limit`"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<GroupList>,
@@ -92,6 +104,17 @@ pub async fn list(
 }
 
 /// GET /discount-groups/{id}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/discount-groups/{group}", tag = "discount_groups",
+    operation_id = "discount_groups_get", summary = "Get a discount group",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("group" = Uuid, Path, description = "Discount group id")),
+    responses(
+        (status = 200, body = Envelope<GroupResource>, description = "The discount group"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discountgroup.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount group, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<GroupView>,
@@ -103,6 +126,19 @@ pub async fn get(
 }
 
 /// POST /discount-groups -> 201 `{data:{discount_group_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/discount-groups", tag = "discount_groups",
+    operation_id = "discount_groups_create", summary = "Create a discount group",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateGroupRequest,
+    responses(
+        (status = 201, body = Envelope<GroupCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discountgroup.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<GroupCreate>,
@@ -116,6 +152,19 @@ pub async fn create(
 }
 
 /// POST /discount-groups/{id}.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/discount-groups/{group}", tag = "discount_groups",
+    operation_id = "discount_groups_update", summary = "Update a discount group (send only changed fields)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("group" = Uuid, Path, description = "Discount group id")),
+    request_body = UpdateGroupRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discountgroup.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount group, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<GroupUpdate>,
@@ -127,6 +176,17 @@ pub async fn update(
 }
 
 /// DELETE /discount-groups/{id}.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/products/discount-groups/{group}", tag = "discount_groups",
+    operation_id = "discount_groups_delete", summary = "Delete a discount group",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("group" = Uuid, Path, description = "Discount group id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discountgroup.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount group, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<GroupDelete>,
@@ -137,13 +197,29 @@ pub async fn delete(
 }
 
 /// Paging params of the relations list.
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct PageQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     page_size: Option<String>,
 }
 
-/// GET /discount-groups/{id}/relations -> page of RelationIndexResource.
+/// GET /discount-groups/{id}/relations -> page of relations (relation index shape).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/discount-groups/{group}/relations", tag = "discount_groups",
+    operation_id = "discount_groups_relations", summary = "List relations linked to a discount group",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("group" = Uuid, Path, description = "Discount group id"), PageQuery),
+    responses(
+        (status = 200, body = Paginated<Value>, description = "One page of relations (relation index shape)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discountgroup.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount group, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn relations(
     State(state): State<AppState>,
     access: Can<GroupView>,
@@ -157,6 +233,19 @@ pub async fn relations(
 }
 
 /// POST /discount-groups/{id}/attach-to-relations.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/discount-groups/{group}/attach-to-relations", tag = "discount_groups",
+    operation_id = "discount_groups_attach", summary = "Link relations to a discount group",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("group" = Uuid, Path, description = "Discount group id")),
+    request_body = RelationIdsRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discountgroup.attach`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount group, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn attach(
     State(state): State<AppState>,
     access: Can<GroupAttach>,
@@ -168,6 +257,19 @@ pub async fn attach(
 }
 
 /// POST /discount-groups/{id}/detach-from-relations.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/discount-groups/{group}/detach-from-relations", tag = "discount_groups",
+    operation_id = "discount_groups_detach", summary = "Unlink relations from a discount group",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("group" = Uuid, Path, description = "Discount group id")),
+    request_body = RelationIdsRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discountgroup.detach`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount group, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn detach(
     State(state): State<AppState>,
     access: Can<GroupDetach>,

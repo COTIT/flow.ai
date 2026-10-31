@@ -1,5 +1,5 @@
-//! HTTP edge for the stock routes under /v1/workspace/{workspace}/products (Laravel StockPolicy
-//! names from the permission catalog).
+//! HTTP edge for the stock routes under /v1/workspace/{workspace}/products (`stock.*`).
+// Laravel StockPolicy names from the permission catalog.
 
 use axum::{
     Json,
@@ -9,19 +9,20 @@ use serde_json::{Value, json};
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search},
-        response::Message,
+        response::{Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::stock::{
         dto::{
-            DeleteQuery, ListQuery, MoveBody, MovementQuery, MutateBody, SetLevelsBody,
-            SetRequirementsBody,
+            DeleteQuery, ListQuery, MoveBody, MoveDoc, MovementQuery, MutateBody, MutateDoc,
+            SetLevelsBody, SetLevelsDoc, SetRequirementsBody, SetRequirementsDoc,
         },
         repo::ListFilter,
+        resource::{ConfiguredDoc, MovementDoc, StockDoc, WithBinsDoc},
         service,
     },
 };
@@ -37,6 +38,19 @@ permissions! {
 type ProductPath = Path<(String, String)>;
 
 /// POST /products/{product}/stocks -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/{product}/stocks", tag = "stock",
+    operation_id = "stock_mutate", summary = "Add to or take from stock",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    request_body = MutateDoc,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.mutate`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn mutate(
     State(state): State<AppState>,
     access: Can<StockMutate>,
@@ -48,6 +62,19 @@ pub async fn mutate(
 }
 
 /// POST /products/{product}/set-stock-levels -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/{product}/set-stock-levels", tag = "stock",
+    operation_id = "stock_set_levels", summary = "Set stock levels per warehouse",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    request_body = SetLevelsDoc,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.set_stock_levels`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn set_levels(
     State(state): State<AppState>,
     access: Can<StockSetLevels>,
@@ -59,6 +86,19 @@ pub async fn set_levels(
 }
 
 /// POST /products/{product}/set-stock-requirements -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/{product}/set-stock-requirements", tag = "stock",
+    operation_id = "stock_set_requirements", summary = "Set minimum and maximum stock per warehouse",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    request_body = SetRequirementsDoc,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.set_stock_requirements`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn set_requirements(
     State(state): State<AppState>,
     access: Can<StockSetRequirements>,
@@ -71,6 +111,19 @@ pub async fn set_requirements(
 
 /// DELETE /products/{product}/stocks?warehouse_id=&bin_id= -> `{"message":"ok"}` (Laravel
 /// checks `setStockLevels` here).
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/products/{product}/stocks", tag = "stock",
+    operation_id = "stock_delete", summary = "Delete an empty stock row",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id"), DeleteQuery),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 400, body = MessageBody, description = "No such stock row, or its level is not 0"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.mutate`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Missing or malformed ids"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<StockSetLevels>,
@@ -83,6 +136,19 @@ pub async fn delete(
 }
 
 /// POST /products/{product}/move-stock-between-bins -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/{product}/move-stock-between-bins", tag = "stock",
+    operation_id = "stock_move_between_bins", summary = "Move stock between bins",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    request_body = MoveDoc,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.move`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn move_between_bins(
     State(state): State<AppState>,
     access: Can<StockMove>,
@@ -94,6 +160,17 @@ pub async fn move_between_bins(
 }
 
 /// GET /products/{product}/stock-with-bins -> `{data:[...]}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/{product}/stock-with-bins", tag = "stock",
+    operation_id = "stock_with_bins", summary = "List a product's stock with bin paths",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    responses(
+        (status = 200, body = Envelope<Vec<WithBinsDoc>>, description = "Every stock row; not paged"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn with_bins(
     State(state): State<AppState>,
     access: Can<StockList>,
@@ -104,6 +181,17 @@ pub async fn with_bins(
 }
 
 /// GET /products/{product}/configured-bins -> `{data:[...]}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/{product}/configured-bins", tag = "stock",
+    operation_id = "stock_configured_bins", summary = "List bins holding the product, by warehouse",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    responses(
+        (status = 200, body = Envelope<Vec<ConfiguredDoc>>, description = "Bins grouped by warehouse; not paged"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn configured_bins(
     State(state): State<AppState>,
     access: Can<StockList>,
@@ -113,8 +201,19 @@ pub async fn configured_bins(
     Ok(Json(json!({ "data": data })))
 }
 
-/// GET /products/{product}/stock-movements -> `{data, meta}` (Laravel dropped `meta`; the
-/// web client reads it).
+/// GET /products/{product}/stock-movements -> `{data, meta}`, newest first.
+// Laravel dropped `meta`; the web client reads it.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/{product}/stock-movements", tag = "stock",
+    operation_id = "stock_movements", summary = "List a product's stock movements",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id"), MovementQuery),
+    responses(
+        (status = 200, body = Paginated<MovementDoc>, description = "One page of movements"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn movements(
     State(state): State<AppState>,
     access: Can<StockList>,
@@ -126,7 +225,19 @@ pub async fn movements(
     Ok(Json(Paginated::new(data, total, page)))
 }
 
-/// GET /products/stocks -> `{data, meta}` (Laravel ListStock, insertion order).
+/// GET /products/stocks -> `{data, meta}`, oldest first.
+// Laravel ListStock.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/stocks", tag = "stock",
+    operation_id = "stock_list", summary = "List stock rows",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<StockDoc>, description = "One page of stock rows"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<StockList>,
@@ -136,7 +247,20 @@ pub async fn list(
 }
 
 /// GET /products/stocks/negative -> store rows below 0, lowest first, `q` on product codes
-/// and warehouse name (Laravel ListNegativeStock; `meta` gains `total`).
+/// and warehouse name.
+// Laravel ListNegativeStock; `meta` gains `total`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/stocks/negative", tag = "stock",
+    operation_id = "stock_negative", summary = "List store stock below zero",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<StockDoc>, description = "One page of negative rows, lowest first"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn negative(
     State(state): State<AppState>,
     access: Can<StockList>,

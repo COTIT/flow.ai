@@ -158,3 +158,112 @@ pub fn movement(m: &MovementRow) -> Value {
         },
     })
 }
+
+// OpenAPI shapes of the `json!` literals above and in `service::list`. Docs only; the
+// contract check validates real replies against them.
+
+/// One stock row of `GET /products/stocks[/negative]`.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+#[schema(as = StockResource)]
+pub struct StockDoc {
+    id: Uuid,
+    /// 2 decimals.
+    stock_lvl: String,
+    /// Always 0 until orders exist.
+    reserved: i64,
+    minimal_stock_level: i32,
+    maximum_stock_level: i32,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    #[schema(inline)]
+    relationships: StockRelationsDoc,
+}
+
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+struct StockRelationsDoc {
+    #[schema(required = true)]
+    product: Option<crate::modules::products::resource::ProductDoc>,
+    #[schema(required = true)]
+    warehouse: Option<crate::modules::warehouses::dto::WarehouseResource>,
+}
+
+/// One row of [`with_bins`].
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+#[schema(as = StockWithBins)]
+pub struct WithBinsDoc {
+    id: Uuid,
+    /// 2 decimals.
+    stock_lvl: String,
+    /// 2 decimals.
+    reserved: String,
+    minimal_stock_level: i32,
+    maximum_stock_level: i32,
+    /// `id`, `name`.
+    #[schema(value_type = Option<Object>, required = true)]
+    warehouse: Option<Value>,
+    /// `id`, `shelf_code`, `shelf_name`, `row` (`id`, `row_code`, `row_name`, `section`).
+    #[schema(value_type = Option<Object>, required = true)]
+    shelf: Option<Value>,
+    /// `id`, `bin_code`, `bin_name`.
+    #[schema(value_type = Option<Object>, required = true)]
+    bin: Option<Value>,
+}
+
+/// One warehouse group of [`configured`].
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+#[schema(as = ConfiguredBins)]
+pub struct ConfiguredDoc {
+    warehouse_id: Uuid,
+    /// Same id as `warehouse_id`; null when the warehouse is gone.
+    #[schema(required = true)]
+    warehouse_uuid: Option<Uuid>,
+    /// `{id, bin_code, bin_name, section, row, shelf}` per bin.
+    #[schema(value_type = Vec<Object>)]
+    bins: Vec<Value>,
+}
+
+/// One row of [`movement`]: the append-only stock ledger.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+#[schema(as = StockMovement)]
+pub struct MovementDoc {
+    id: Uuid,
+    movement_type: String,
+    /// 2 decimals.
+    #[schema(required = true)]
+    quantity_change: Option<String>,
+    #[schema(required = true)]
+    quantity_before: Option<String>,
+    #[schema(required = true)]
+    quantity_after: Option<String>,
+    #[schema(required = true)]
+    minimal_stock_level_before: Option<i32>,
+    #[schema(required = true)]
+    minimal_stock_level_after: Option<i32>,
+    #[schema(required = true)]
+    maximum_stock_level_before: Option<i32>,
+    #[schema(required = true)]
+    maximum_stock_level_after: Option<i32>,
+    #[schema(required = true)]
+    reason: Option<String>,
+    is_correction: bool,
+    #[schema(required = true)]
+    related_domain: Option<String>,
+    #[schema(required = true)]
+    related_id: Option<Uuid>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    created_at: chrono::DateTime<chrono::Utc>,
+    /// Same as `created_at`.
+    updated_at: chrono::DateTime<chrono::Utc>,
+    /// `section.row.shelf` names (codes when unnamed); null without a shelf.
+    #[schema(required = true)]
+    location: Option<String>,
+    /// `picqer_sync` (always null), `warehouse`, `shelf`, `bin`, `user`, `stock`.
+    #[schema(value_type = Object)]
+    relationships: Value,
+}

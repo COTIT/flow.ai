@@ -1,10 +1,12 @@
-//! Bin bodies: Laravel WarehouseSectionRowBinResource, WarehouseBinHierarchyResource and
-//! Store/UpdateWarehouseSectionRowBinRequest (vimdesk-web binPayloadTransformer.ts).
+//! Bin bodies.
+// Laravel WarehouseSectionRowBinResource, WarehouseBinHierarchyResource and
+// Store/UpdateWarehouseSectionRowBinRequest (vimdesk-web binPayloadTransformer.ts).
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -21,8 +23,9 @@ pub const CODE_TAKEN: &str = "The bin code has already been taken.";
 const BIN_TYPES: [&str; 5] = ["standard", "oversize", "fragile", "hazmat", "cold_storage"];
 const ACCESS_TYPES: [&str; 3] = ["manual_access", "conveyor", "robotic_pick"];
 
-/// Laravel WarehouseSectionRowBinResource (parent ids as uuids, Laravel printed integers).
-#[derive(Serialize)]
+// Laravel WarehouseSectionRowBinResource (parent ids as uuids, Laravel printed integers).
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A storage bin on a shelf.")]
 pub struct BinResource {
     id: Uuid,
     bin_id: Uuid,
@@ -33,21 +36,36 @@ pub struct BinResource {
     shelf_id: Uuid,
     uuid: Uuid,
     bin_code: String,
+    #[schema(required = true)]
     bin_name: Option<String>,
     bin_type: String,
+    #[schema(required = true)]
     length_cm: Option<i32>,
+    #[schema(required = true)]
     width_cm: Option<i32>,
+    #[schema(required = true)]
     height_cm: Option<i32>,
+    #[schema(required = true)]
     max_weight_kg: Option<i32>,
+    #[schema(required = true)]
     load_rating: Option<String>,
     access_type: String,
     priority_level: String,
+    #[schema(value_type = Object)]
+    /// `side`, `position`, `bin_type`.
     basic_information: Value,
+    #[schema(value_type = Object)]
+    /// `length_cm`, `width_cm`, `height_cm`, `volume_m3`, `max_weight_kg`, `load_rating`.
     physical_specifications: Value,
+    #[schema(value_type = Object)]
+    /// `access_type`, `priority_level`, `special_features` (`temperature_monitoring`,
+    /// `barcode_scanner`, `rfid_enabled`, `security_lock`), `notes`.
     access_configuration: Value,
-    /// GET one only (Laravel loaded `stocks` there).
+    // Laravel loaded `stocks` there.
+    /// Single-bin GET only; always empty.
     // shortcut: always empty until stock (6F) exists.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Vec<Object>>)]
     stocks: Option<[(); 0]>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -100,15 +118,23 @@ impl BinResource {
     }
 }
 
-/// Laravel WarehouseBinHierarchyResource: a bin with its whole path, for bin pickers.
-#[derive(Serialize)]
+// Laravel WarehouseBinHierarchyResource: a bin with its whole path, for bin pickers.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A bin with its whole warehouse path, for bin pickers.")]
 pub struct BinHierarchyResource {
     id: Uuid,
     bin_code: String,
+    #[schema(required = true)]
     bin_name: Option<String>,
     warehouse: WarehouseRef,
+    #[schema(value_type = Object)]
+    /// `id`, `section_code`, `section_name`.
     section: Value,
+    #[schema(value_type = Object)]
+    /// `id`, `row_code`, `row_name`.
     row: Value,
+    #[schema(value_type = Object)]
+    /// `id`, `shelf_code`, `shelf_name`.
     shelf: Value,
 }
 
@@ -134,7 +160,7 @@ impl From<HierarchyRow> for BinHierarchyResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BinCreated {
     pub bin_id: Uuid,
 }
@@ -163,43 +189,62 @@ pub struct Fields {
 }
 
 /// POST body for create and update (path ids and `uuid` in the body are ignored).
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = WarehouseBinRequest, description = "Create needs `bin_code`; update keeps fields left out.")]
 pub struct BinBody {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     bin_code: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     bin_name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     side: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     position: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     bin_type: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     length_cm: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     width_cm: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     height_cm: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<f64>)]
     volume_m3: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     max_weight_kg: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     load_rating: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     access_type: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     priority_level: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     temperature_monitoring: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     barcode_scanner: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     rfid_enabled: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     security_lock: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     notes: Option<Option<String>>,
 }
 

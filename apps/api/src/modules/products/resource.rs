@@ -1,16 +1,18 @@
-//! Product JSON in Laravel ProductResource shape (detail) and ProductIndexResource shape (list).
-//! One builder for both: list rows carry the detail-only keys too.
+//! Product JSON for detail and list. One builder for both: list rows carry the detail-only
+//! keys too.
+// Laravel ProductResource shape (detail) and ProductIndexResource shape (list).
 // shortcut: list rows carry detail-only keys; split once offers/images add per-row queries.
 
 use std::collections::HashMap;
 
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{
     modules::{
+        currencies::dto::CurrencyResource,
         products::{
             dto::PHYSICAL,
             pricing::{
@@ -318,4 +320,241 @@ pub fn history_row(h: &crate::modules::products::repo::HistoryRow) -> Value {
         row["variant"] = json!({ "id": id, "sku": h.variant_sku });
     }
     row
+}
+
+/// OpenAPI shape of [`render`]'s product JSON. Docs only: `render` builds a `json!` literal,
+/// and the contract check validates real replies against this.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+#[schema(
+    as = ProductResource,
+    description = "A product with prices, stock and embeds. Decimal columns are strings \
+        (`\"12.5000\"`); list rows leave `special_offers` and `child_products_from_set` empty."
+)]
+pub struct ProductDoc {
+    id: Uuid,
+    /// 4 decimals.
+    purchase_price: String,
+    name: String,
+    #[schema(required = true)]
+    brand: Option<String>,
+    product_nr: String,
+    #[schema(required = true)]
+    reference: Option<String>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    hs_group: Option<Value>,
+    #[schema(required = true)]
+    reference_vendor: Option<String>,
+    #[schema(required = true)]
+    reference_vendor2: Option<String>,
+    #[schema(required = true)]
+    reference_vendor3: Option<String>,
+    #[schema(required = true)]
+    url_vendor: Option<String>,
+    #[schema(required = true)]
+    url_vendor_override: Option<String>,
+    #[schema(required = true)]
+    ean13: Option<String>,
+    #[schema(required = true)]
+    hs_code: Option<String>,
+    #[schema(required = true)]
+    barcode: Option<String>,
+    #[schema(required = true)]
+    barcode_vendor: Option<String>,
+    #[schema(rename = "type")]
+    kind: String,
+    /// `0` or `1`.
+    has_stock: i32,
+    is_serialized: bool,
+    #[schema(required = true)]
+    warranty_default_mode: Option<String>,
+    #[schema(required = true)]
+    warranty_duration_value: Option<i32>,
+    #[schema(required = true)]
+    warranty_duration_unit: Option<String>,
+    should_mutate_stock: bool,
+    /// Always null; see `relationships.vat_group`.
+    #[schema(value_type = Option<Object>, required = true)]
+    vat_group: Option<Value>,
+    status: String,
+    business_price: String,
+    business_price_incl: String,
+    impact_on_price: String,
+    impact_on_wholesale_price: String,
+    price: String,
+    price_incl: String,
+    price_without_correction: String,
+    price_without_correction_incl: String,
+    #[schema(required = true)]
+    import_id: Option<String>,
+    #[schema(required = true)]
+    import_source: Option<String>,
+    /// Always empty.
+    import_links: Vec<Value>,
+    original_price: String,
+    original_price_incl: String,
+    wholesale_price: String,
+    gross_price: String,
+    gross_price_incl: String,
+    supplier_wholesale_price: String,
+    /// 8 decimals; null without a supplier discount.
+    #[schema(required = true)]
+    purchase_discount_percentage: Option<String>,
+    supplier_purchase_price_from_discount: String,
+    /// `0` or `1`.
+    archived: i32,
+    #[schema(required = true)]
+    country_of_origin: Option<String>,
+    /// 2 decimals; `"0.1"` when unset.
+    weight: String,
+    /// Always empty.
+    images: Vec<Value>,
+    #[schema(required = true)]
+    stock_level_supplier: Option<i32>,
+    #[schema(required = true)]
+    supplier_discount_code: Option<String>,
+    /// Always null; see `relationships.sales_group`.
+    #[schema(value_type = Option<Object>, required = true)]
+    sales_group: Option<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    supplier_discount_group: Option<Value>,
+    #[schema(required = true)]
+    unit: Option<String>,
+    /// 4 decimals.
+    order_unit: String,
+    /// 4 decimals.
+    sale_unit: String,
+    #[schema(value_type = Option<Object>, required = true)]
+    dimensions: Option<Value>,
+    #[schema(required = true)]
+    short_description: Option<String>,
+    #[schema(required = true)]
+    description: Option<String>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    second_chance_reason: Option<Value>,
+    exclude_price_corrections: bool,
+    total_available_stock: f64,
+    /// Always 0 until orders exist.
+    total_reserved_stock: f64,
+    pos_available_stock: f64,
+    /// `available`, `unavailable` or `not_applicable`.
+    pos_stock_status: String,
+    #[schema(required = true)]
+    pos_stock_warehouse_id: Option<Uuid>,
+    #[schema(required = true)]
+    pos_stock_id: Option<Uuid>,
+    /// Short warehouse on lists, full warehouse on the single GET.
+    #[schema(value_type = Option<Object>, required = true)]
+    default_warehouse: Option<Value>,
+    /// Real stock rows, then a zero row (id `fallback-<warehouse>`) for the default warehouse
+    /// and the first store when they have none.
+    stocks: Vec<ProductStockDoc>,
+    #[schema(value_type = Option<Object>, required = true)]
+    supplier_relation: Option<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    attributes: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    /// Always empty.
+    association_data: Vec<Value>,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+    #[schema(inline)]
+    relationships: ProductRelationsDoc,
+    #[schema(required = true)]
+    vat_group_id: Option<Uuid>,
+    export_enabled: bool,
+    export_price_sync: bool,
+    export_product_data: bool,
+    /// `title`, `description_short`, `description`, `meta_title`, `meta_description`,
+    /// `keywords`.
+    #[schema(value_type = Object)]
+    export_data: Value,
+}
+
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+struct ProductRelationsDoc {
+    #[schema(required = true)]
+    currency: Option<CurrencyResource>,
+    #[schema(required = true)]
+    active_special_offer: Option<OfferResource>,
+    special_offers: Vec<OfferResource>,
+    #[schema(value_type = Option<Object>, required = true)]
+    sales_group: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
+    vat_group: Option<Value>,
+    /// Always empty.
+    custom_sections: Vec<Value>,
+    /// Always empty.
+    child_products: Vec<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    parent_product: Option<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    return_item: Option<Value>,
+    /// Bundle parts (product shape plus `quantity`, 8 decimals), single GET only.
+    #[schema(value_type = Vec<Object>)]
+    child_products_from_set: Vec<Value>,
+    /// Always empty.
+    storage_locations: Vec<Value>,
+}
+
+/// One row of a product's `stocks`.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+#[schema(as = ProductStock)]
+struct ProductStockDoc {
+    /// Stock id, or `fallback-<warehouse id>` for a zero row.
+    id: String,
+    /// 2 decimals.
+    stock_lvl: String,
+    /// 2 decimals.
+    reserved: String,
+    minimal_stock_level: i32,
+    maximum_stock_level: i32,
+    /// `id`, `name`, `alias`, `color`, `icon`, `is_store`, `pickup_enabled`, `location`.
+    #[schema(value_type = Option<Object>, required = true)]
+    warehouse: Option<Value>,
+    /// `id`, `shelf_code`, `shelf_name`.
+    #[schema(value_type = Option<Object>, required = true)]
+    shelf: Option<Value>,
+    /// `id`, `bin_code`, `bin_name`.
+    #[schema(value_type = Option<Object>, required = true)]
+    bin: Option<Value>,
+    /// Zero rows only; always null.
+    #[schema(value_type = Option<Object>)]
+    product: Option<Value>,
+    #[schema(required = true)]
+    updated_at: Option<DateTime<Utc>>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+}
+
+/// OpenAPI shape of [`history_row`]: one price change.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+#[schema(as = ProductPriceHistoryRow)]
+pub struct HistoryDoc {
+    id: Uuid,
+    /// Price column that changed.
+    field: String,
+    /// 4 decimals.
+    #[schema(required = true)]
+    old_value: Option<String>,
+    /// 4 decimals.
+    #[schema(required = true)]
+    new_value: Option<String>,
+    changed_by_flow: String,
+    created_at: DateTime<Utc>,
+    /// Full name; left out when no user made the change.
+    changed_by: Option<String>,
+    /// `id`, `sku`; left out for product-level changes.
+    #[schema(value_type = Option<Object>)]
+    variant: Option<Value>,
 }
