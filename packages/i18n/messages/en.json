@@ -9,7 +9,8 @@
       "en": "English",
       "nl": "Nederlands",
       "sw": "Kiswahili"
-    }
+    },
+    "theme": "Switch light or dark mode"
   },
   "auth": {
     "title": "Log in",

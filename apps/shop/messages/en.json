@@ -1,6 +1,58 @@
 {
   "app": {
     "title": "Genesy Shop",
-    "tagline": "Public web shop, product pages and QR batch pages."
+    "tagline": "Honey and beeswax from the Ilundo beekeepers of Tanzania, traced jar by jar."
+  },
+  "nav": {
+    "shop": "Shop",
+    "home": "Genesy Shop home"
+  },
+  "footer": {
+    "note": "Every jar carries a code. Scan it to see where your honey comes from."
+  },
+  "catalog": {
+    "title": "Shop",
+    "empty": "No products for sale right now.",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page} of {last}"
+  },
+  "product": {
+    "inStock": "In stock",
+    "soldOut": "Sold out",
+    "variants": "Sizes and options",
+    "back": "Back to the shop",
+    "noDescription": "More about this product soon.",
+    "imageSoon": "Photo coming soon"
+  },
+  "errors": {
+    "unavailableTitle": "The shop is taking a break",
+    "unavailableBody": "We can't reach the catalog right now. Please try again in a minute.",
+    "retry": "Try again",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "This page doesn't exist or is no longer for sale.",
+    "home": "Go to the shop"
+  },
+  "batch": {
+    "code": "Batch {code}",
+    "recalled": "This batch has been recalled. Please don't eat it, and contact us for a refund or replacement.",
+    "quarantine": "This batch is on hold while it is being checked.",
+    "produced": "Harvested",
+    "bestBefore": "Best before",
+    "expires": "Use by",
+    "origin": "Origin",
+    "story": "The story",
+    "where": "Where it comes from",
+    "mapNote": "Shown as an area of about 1 km, not an exact spot, to protect the beekeepers' privacy.",
+    "mapLink": "View the area on OpenStreetMap",
+    "materials": "What's inside",
+    "certificates": "Certificates",
+    "issuer": "Issued by {issuer}",
+    "number": "No. {number}",
+    "validUntil": "Valid until {date}",
+    "certFile": "View certificate",
+    "farmers": "Meet the farmers",
+    "harvested": "Harvested {dates}",
+    "published": "Passport version {version}, published {date}"
   }
 }

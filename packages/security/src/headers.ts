@@ -8,14 +8,16 @@ export function contentSecurityPolicy(
   {
     dev = false,
     frameAncestors = "'none'",
-  }: { dev?: boolean; frameAncestors?: string } = {}
+    imgSrc,
+  }: { dev?: boolean; frameAncestors?: string; imgSrc?: string } = {}
 ): string {
+  const files = exactOrigin(imgSrc)
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     // Inline styles stay allowed: style attributes can't run code, and components set them.
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' blob: data:",
+    `img-src 'self' blob: data:${files ? ` ${files}` : ""}`,
     "font-src 'self'",
     `connect-src 'self'${dev ? " ws:" : ""}`,
     "object-src 'none'",
@@ -23,6 +25,23 @@ export function contentSecurityPolicy(
     "form-action 'self'",
     `frame-ancestors ${frameAncestors}`,
   ].join("; ")
+}
+
+/**
+ * `value` if it is exactly one http(s) origin (scheme, host, optional port; no path,
+ * wildcard or second source), else undefined, so a bad setting can only narrow the CSP.
+ */
+function exactOrigin(value: string | undefined): string | undefined {
+  if (!value || value.includes("*")) return undefined
+  try {
+    const url = new URL(value)
+    const ok = url.protocol === "https:" || url.protocol === "http:"
+    return ok && url.origin === value.replace(/\/$/, "")
+      ? url.origin
+      : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /** Headers for every response, set in each app's next.config `headers()`. */

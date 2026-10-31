@@ -5,7 +5,13 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "env": ["NEXT_PUBLIC_*", "API_URL"],
+      "env": [
+        "NEXT_PUBLIC_*",
+        "API_URL",
+        "SITE_URL",
+        "STOREFRONT_APP_KEY",
+        "FILES_ORIGIN"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"]
     },
     "dev": {
@@ -30,7 +36,11 @@
     },
     "generate": {
       "dependsOn": ["@genesy/api#openapi"],
-      "inputs": ["orval.config.ts", "src/mutator.ts", "$TURBO_ROOT$/apps/api/openapi.json"],
+      "inputs": [
+        "orval.config.ts",
+        "src/mutator.ts",
+        "$TURBO_ROOT$/apps/api/openapi.json"
+      ],
       "outputs": ["src/generated/**"]
     },
     "generate:check": {

@@ -1,6 +1,58 @@
 {
   "app": {
     "title": "Genesy Shop",
-    "tagline": "Openbare webshop, productpagina's en QR-batchpagina's."
+    "tagline": "Honing en bijenwas van de imkers van Ilundo in Tanzania, per pot traceerbaar."
+  },
+  "nav": {
+    "shop": "Winkel",
+    "home": "Genesy Shop startpagina"
+  },
+  "footer": {
+    "note": "Elke pot heeft een code. Scan hem en zie waar je honing vandaan komt."
+  },
+  "catalog": {
+    "title": "Winkel",
+    "empty": "Er zijn nu geen producten te koop.",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "page": "Pagina {page} van {last}"
+  },
+  "product": {
+    "inStock": "Op voorraad",
+    "soldOut": "Uitverkocht",
+    "variants": "Maten en opties",
+    "back": "Terug naar de winkel",
+    "noDescription": "Binnenkort meer over dit product.",
+    "imageSoon": "Foto volgt"
+  },
+  "errors": {
+    "unavailableTitle": "De winkel neemt even pauze",
+    "unavailableBody": "We kunnen de catalogus nu niet bereiken. Probeer het over een minuut opnieuw.",
+    "retry": "Opnieuw proberen",
+    "notFoundTitle": "Pagina niet gevonden",
+    "notFoundBody": "Deze pagina bestaat niet of is niet meer te koop.",
+    "home": "Naar de winkel"
+  },
+  "batch": {
+    "code": "Batch {code}",
+    "recalled": "Deze batch is teruggeroepen. Eet hem niet en neem contact met ons op voor terugbetaling of vervanging.",
+    "quarantine": "Deze batch is tijdelijk geblokkeerd terwijl hij wordt gecontroleerd.",
+    "produced": "Geoogst",
+    "bestBefore": "Ten minste houdbaar tot",
+    "expires": "Te gebruiken tot",
+    "origin": "Herkomst",
+    "story": "Het verhaal",
+    "where": "Waar het vandaan komt",
+    "mapNote": "Getoond als een gebied van ongeveer 1 km, niet als exacte plek, voor de privacy van de imkers.",
+    "mapLink": "Bekijk het gebied op OpenStreetMap",
+    "materials": "Wat zit erin",
+    "certificates": "Certificaten",
+    "issuer": "Uitgegeven door {issuer}",
+    "number": "Nr. {number}",
+    "validUntil": "Geldig tot {date}",
+    "certFile": "Bekijk certificaat",
+    "farmers": "Maak kennis met de boeren",
+    "harvested": "Geoogst op {dates}",
+    "published": "Paspoortversie {version}, gepubliceerd op {date}"
   }
 }

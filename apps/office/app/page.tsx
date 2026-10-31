@@ -10,6 +10,7 @@ import { useProductsList } from "@genesy/api-client/endpoints/products"
 import { sessionStore } from "@genesy/api-client/session"
 import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { Button } from "@genesy/ui/components/button"
+import { Logo } from "@genesy/ui/components/logo"
 import {
   Table,
   TableBody,
@@ -18,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 
 export default function ProductsPage() {
   const t = useTranslations()
@@ -40,7 +42,10 @@ export default function ProductsPage() {
   return (
     <main className="flex min-h-svh flex-col gap-4 p-4 md:p-6">
       <header className="flex flex-wrap items-center gap-3">
-        <h1 className="mr-auto text-xl font-medium">{t("app.title")}</h1>
+        <Logo />
+        <h1 className="mr-auto heading-3 text-muted-foreground">
+          {t("app.title")}
+        </h1>
         <select
           aria-label={t("common.workspace")}
           className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
@@ -56,6 +61,7 @@ export default function ProductsPage() {
           ))}
         </select>
         <LocaleSwitcher />
+        <ThemeToggle label={t("common.theme")} />
         <Button
           variant="outline"
           disabled={logout.isPending}
@@ -64,6 +70,7 @@ export default function ProductsPage() {
           {t("common.logout")}
         </Button>
       </header>
+      <div className="gold-rule" />
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-medium">{t("products.title")}</h2>

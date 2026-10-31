@@ -1,19 +1,25 @@
 import type { Metadata } from "next"
 import { NextIntlClientProvider } from "next-intl"
-import { getLocale } from "next-intl/server"
+import { getLocale, getTranslations } from "next-intl/server"
 import { headers } from "next/headers"
-import { Geist, Geist_Mono } from "next/font/google"
 
 import "@genesy/ui/globals.css"
 import { QueryProvider } from "@genesy/api-client/query-provider"
+import { fontSans } from "@genesy/ui/lib/fonts"
 import { cn } from "@genesy/ui/lib/utils"
+import { SiteFooter } from "@/components/site-footer"
+import { SiteHeader } from "@/components/site-header"
 import { ThemeProvider } from "@/components/theme-provider"
 
-const fontSans = Geist({ subsets: ["latin"], variable: "--font-sans" })
-const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
-
-export const metadata: Metadata = {
-  title: "Genesy Shop",
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("app")
+  return {
+    // shortcut: localhost default for dev; every deploy must set SITE_URL.
+    metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:3000"),
+    title: { default: t("title"), template: `%s · ${t("title")}` },
+    description: t("tagline"),
+    openGraph: { siteName: t("title"), type: "website" },
+  }
 }
 
 export default async function RootLayout({
@@ -28,16 +34,20 @@ export default async function RootLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={cn(
-        "font-sans antialiased",
-        fontSans.variable,
-        fontMono.variable
-      )}
+      className={cn("font-sans antialiased", fontSans.variable)}
     >
       <body>
         <NextIntlClientProvider>
           <ThemeProvider nonce={nonce}>
-            <QueryProvider>{children}</QueryProvider>
+            <QueryProvider>
+              <div className="flex min-h-svh flex-col">
+                <SiteHeader />
+                <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-6 md:py-10">
+                  {children}
+                </main>
+                <SiteFooter />
+              </div>
+            </QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
