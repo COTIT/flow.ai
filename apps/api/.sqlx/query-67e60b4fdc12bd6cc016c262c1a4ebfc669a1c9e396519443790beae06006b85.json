@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT f.id AS \"id!\" FROM farms f\n           WHERE f.workspace_id = $1 AND f.id IN (SELECT farm_person_farms($2))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farms",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "67e60b4fdc12bd6cc016c262c1a4ebfc669a1c9e396519443790beae06006b85"
+}

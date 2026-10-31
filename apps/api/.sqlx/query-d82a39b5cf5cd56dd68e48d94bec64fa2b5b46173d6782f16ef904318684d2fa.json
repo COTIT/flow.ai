@@ -1,0 +1,146 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,\n                  s.maximum_stock_level, s.meta, l.id AS \"lot_id?\", l.code AS \"lot_code?\", l.expires_on AS \"lot_expires_on?\",\n                  count(*) OVER () AS \"total!\"\n           FROM stocks s\n           JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL\n           JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN lots l ON l.id = s.lot_id\n           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL AND s.stock_lvl < 0 AND w.is_store\n             AND ($2::text IS NULL OR p.name ILIKE $2 OR p.reference ILIKE $2\n                  OR p.reference_vendor ILIKE $2 OR p.product_nr_formatted ILIKE $2\n                  OR p.ean13 ILIKE $2 OR w.name ILIKE $2 OR w.alias ILIKE $2)\n           ORDER BY s.stock_lvl, s.id\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "stock_lvl",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "stock_lvl"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "minimal_stock_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "minimal_stock_level"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "maximum_stock_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "maximum_stock_level"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "lot_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "lot_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "lot_expires_on?",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "expires_on"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "d82a39b5cf5cd56dd68e48d94bec64fa2b5b46173d6782f16ef904318684d2fa"
+}

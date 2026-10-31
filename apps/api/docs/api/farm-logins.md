@@ -63,3 +63,27 @@ The signed-in phone account. Email accounts get `403`.
   - not containing the last 7 digits of the farmer's phone.
 - `204`; `must_change_password` is cleared. Other sessions stay signed in.
 - Staff passwords keep the staff rule (`auth::password::violations`).
+
+## The signed-in account: `GET /v1/farm/me`
+
+For phone (farmer) and email (staff) tokens alike. No token: `401`.
+
+```json
+{ "data": {
+  "user": { "id": "uuid", "name": "Neema Mwakalinga", "email": null, "phone": "+255712000001" },
+  "locale": "sw",
+  "must_change_password": false,
+  "memberships": [ { "id": "uuid", "workspace_id": "uuid", "workspace_name": "ruaha",
+                     "role": "farmer", "village_id": "uuid", "village_name": "Ilundo", "person_id": "uuid" } ]
+} }
+```
+
+- `memberships` holds the caller's own **live** farm roles across all workspaces; revoked ones are left out.
+- A staff role (field officer, ops, admin) is listed only while the caller is an active member of that workspace, the same rule as the farm guard.
+- `person_id` is the caller's registered person in that workspace, or `null`.
+- `locale` is `sw`, `en` or `nl`. Farmer accounts start with `sw`, others with `en`.
+- The farmer sign-in reply (`POST /v1/farm/login`) carries the same `memberships` shape.
+
+## Choose the language: `PATCH /v1/farm/me`
+
+`{ "locale": "sw" | "en" | "nl" }` → `204`. Any other value, or any other field: `422`.

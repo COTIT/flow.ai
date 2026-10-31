@@ -1,0 +1,104 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Ruaha 360 — redesign tokens
+   Merge into src/styles/globals.css. Tailwind v4 is CSS-first: there is no
+   tailwind.config.js. The brand block is unchanged — #1d70b7, #93c01f,
+   #0c1f5b, #f5f3e5 are the brand book's own values and the same blue and
+   green as the logo. What is new is the ink scale, the surfaces,
+   the radius set and the type scale.
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── brand, unchanged ─────────────────────────────────── */
+  --primary: #1d70b7;
+  --accent: #93c01f;
+  --deep: #0c1f5b;
+  --surface: #f5f3e5;
+
+  /* ── ink scale · replaces every text-deep/NN ──────────── */
+  --ink:        #0c1f5b;  /* body, headings              12.5:1 on sand */
+  --ink-2:      #46547d;  /* secondary strings            6.6:1 on sand */
+  --ink-3:      #5d698b;  /* notes, captions              4.8:1 on sand */
+  /* text-deep/60 measured 4.17:1 and fails. Do not reintroduce it. */
+
+  /* ── deep steps of the brand, for text on tints ───────── */
+  --primary-ink: #14548a; /* 7.0:1 on sand and on primary-tint */
+  --green-ink:   #3f5410; /* 7.5:1 — the only legible green for text */
+  --flag-ink:    #9e1b1b; /* 7.2:1 — errors, destructive, unsaved */
+
+  /* ── surfaces · replaces bg-white/50|60|70 ────────────── */
+  --paper:  #ffffff;      /* cards, inputs, nav, table body */
+  --sand:   #f5f3e5;      /* page ground */
+  --sand-2: #efeada;      /* sunken: table head, quality tile, empty state */
+
+  /* ── tints ────────────────────────────────────────────── */
+  --primary-tint: rgba(29, 112, 183, .08);
+  --green-tint:   rgba(147, 192, 31, .20);
+  --flag-tint:    rgba(158, 27, 27, .07);
+
+  /* ── rules · replaces border-deep/10|15|20|25|30 ──────── */
+  --rule:   rgba(12, 31, 91, .12);  /* every hairline divider */
+  --rule-2: rgba(12, 31, 91, .22);  /* chip, control and card edges */
+
+  /* ── radii ────────────────────────────────────────────── */
+  --radius-control: 8px;   /* buttons, inputs, selects */
+  --radius-card:    12px;  /* cards, tiles, tables, panels */
+  --radius-frame:   14px;  /* screen shells */
+  --radius-pill:    999px; /* chips, meters, badges */
+}
+
+@theme inline {
+  --color-ink:          var(--ink);
+  --color-ink-2:        var(--ink-2);
+  --color-ink-3:        var(--ink-3);
+  --color-primary-ink:  var(--primary-ink);
+  --color-green-ink:    var(--green-ink);
+  --color-flag-ink:     var(--flag-ink);
+  --color-paper:        var(--paper);
+  --color-sand:         var(--sand);
+  --color-sand-2:       var(--sand-2);
+  --color-rule:         var(--rule);
+  --color-rule-2:       var(--rule-2);
+}
+
+@layer base {
+  /* Figures stack in tables and Tower tiles. Spec §14, non-negotiable. */
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* Field phones on 3G: nothing animates, nothing transitions, nothing blurs.
+     A state change is a repaint, not a performance. */
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Themed keyboard focus. The browser default is not enough on this ground. */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TYPE SCALE — Poppins 400/500/600/700, latin subset, already self-hosted.
+   Eight steps. Everything today is text-sm / text-xs with ad-hoc opacity.
+
+   step        size/line  weight  use
+   ─────────────────────────────────────────────────────────────────────────
+   display     30 / 34    700     Tower headline figure only. -0.015em
+   figure      22 / 26    600     tile figures, queue counts. tabular
+   title       19 / 26    600     one per screen. -0.008em
+                24 / 29    700     screen title on a redesigned screen shell
+   section     12 / 16    600     UPPERCASE, 0.12em. replaces text-sm/semibold
+   body        15 / 22    400     default. was 14/20
+   body-strong 15 / 22    500     product-language sentences
+   small       13 / 19    400     secondary strings, --ink-2
+   note        12 / 17    400     floor. --ink-3. nothing smaller ships
+   ─────────────────────────────────────────────────────────────────────────
+
+   SPACING — six steps, 4-point:
+   4  inside a chip · 8  label→field · 12 field→field
+   20 card padding  · 32 section→section · 48 screen block
+
+   TOUCH TARGETS — 48px minimum on field surfaces, 44px on ops,
+   60px tab-bar items. Use min-height, never height.
+   ────────────────────────────────────────────────────────────────────────── */

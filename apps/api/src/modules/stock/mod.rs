@@ -2,6 +2,7 @@
 //! `repo::mutate`, the one stock writer that order flows reuse.
 
 pub mod dto;
+pub mod fefo;
 pub mod handlers;
 pub mod repo;
 pub mod reserve;

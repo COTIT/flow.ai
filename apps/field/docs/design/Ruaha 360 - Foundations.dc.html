@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  /* Poppins, self-hosted from the brand book's own font files — the four
+     weights the app already ships. No web-font request, no new weights. */
+  @font-face { font-family: 'Poppins'; src: url('assets/fonts/Poppins-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap }
+  @font-face { font-family: 'Poppins'; src: url('assets/fonts/Poppins-Medium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap }
+  @font-face { font-family: 'Poppins'; src: url('assets/fonts/Poppins-SemiBold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap }
+  @font-face { font-family: 'Poppins'; src: url('assets/fonts/Poppins-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap }
+  body { margin: 0; background: #f5f3e5; }
+  a { color: #14548a; }
+  a:hover { color: #0c1f5b; }
+  @keyframes ruahaPulse { 0%,100% { opacity: 1 } }
+  /* No motion anywhere. Field phones on 3G: nothing animates, nothing transitions,
+     nothing blurs. State changes are instant. */
+  * { animation: none !important; transition: none !important; }
+</style>
+</helmet>
+
+<div style="--ink:#0c1f5b;--ink-2:#46547d;--ink-3:#5d698b;--paper:#ffffff;--sand:#f5f3e5;--sand-2:#efeada;--rule:rgba(12,31,91,.12);--rule-2:rgba(12,31,91,.22);--primary:#1d70b7;--primary-ink:#14548a;--primary-tint:rgba(29,112,183,.08);--green:#93c01f;--green-ink:#3f5410;--green-tint:rgba(147,192,31,.2);--flag:oklch(0.577 0.245 27.325);--flag-ink:#9e1b1b;--flag-tint:rgba(158,27,27,.07);--hatch:repeating-linear-gradient(135deg,rgba(12,31,91,.16) 0 3px,transparent 3px 7px);font-family:'Poppins',ui-sans-serif,system-ui,sans-serif;color:var(--ink);background:var(--sand);padding:40px 24px 96px;display:flex;flex-direction:column;gap:56px;-webkit-font-smoothing:antialiased">
+
+  <header style="max-width:760px;display:flex;flex-direction:column;gap:14px">
+    <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">Ruaha 360 · foundations</p>
+    <h1 style="margin:0;font-size:34px;line-height:1.12;font-weight:700;letter-spacing:-.015em">A system for saying what is known, and what is only estimated</h1>
+    <p style="margin:0;font-size:16px;line-height:1.6;color:var(--ink-2);text-wrap:pretty">Same four brand colours, same Poppins, same four weights, same no-shadow depth model. What is new is that each has a defined scale and a named set of tokens, so thirty screens stop being assembled out of ad-hoc opacities. Every rule below exists to protect a product-language distinction: planned not measured, prospective never summed with approved, an estimate labelled an estimate, an opportunity that is not a sale.</p>
+  </header>
+
+  <!-- ── 0 · BRAND MARK ───────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">00 · Brand mark</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">The Ruaha Energy lockup, and where the product name sits next to it</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2);text-wrap:pretty">The supplied SVG lockup replaces the text brand in every header. Ruaha 360 is a programme surface, not a second brand — so the lockup stays whole and <b style="font-weight:600">360</b> follows it after a hairline divider, in the interface's own type rather than as a logo of its own. The mark's blue and green are the same <code>#1d70b7</code> and <code>#93c01f</code> the interface is built on, which is why the tokens need no adjustment.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+      <div style="border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--paper)">
+        <div style="padding:26px 20px;display:flex;align-items:center;justify-content:center;background:var(--paper)"><img src="assets/ruaha-logo.svg" alt="Ruaha Energy" width="150" height="52" style="height:52px;width:auto;display:block"></div>
+        <div style="border-top:1px solid var(--rule);padding:12px 14px"><p style="margin:0;font-size:13px;font-weight:600">On white and sand</p><p style="margin:2px 0 0;font-size:12px;color:var(--ink-3)">Logo.svg · headers, login, print</p></div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--paper)">
+        <div style="padding:26px 20px;display:flex;align-items:center;justify-content:center;background:var(--ink)"><img src="assets/ruaha-logo-dark-bg.svg" alt="Ruaha Energy" width="150" height="52" style="height:52px;width:auto;display:block"></div>
+        <div style="border-top:1px solid var(--rule);padding:12px 14px"><p style="margin:0;font-size:13px;font-weight:600">On deep navy</p><p style="margin:2px 0 0;font-size:12px;color:var(--ink-3)">Logo_for_dark_bg.svg</p></div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--paper)">
+        <div style="padding:26px 20px;display:flex;align-items:center;justify-content:center;background:var(--green)"><img src="assets/ruaha-logo-dark-bg.svg" alt="Ruaha Energy" width="150" height="52" style="height:52px;width:auto;display:block"></div>
+        <div style="border-top:1px solid var(--rule);padding:12px 14px"><p style="margin:0;font-size:13px;font-weight:600">On the accent</p><p style="margin:2px 0 0;font-size:12px;line-height:1.45;color:var(--ink-3)">Same dark-bg lockup. <b style="font-weight:600">Logo_white.svg carries no fill</b> in the supplied file, so it renders black — it is a one-colour silhouette that must be given a colour by whatever embeds it (inline SVG or a mask), not an <code>&lt;img&gt;</code>.</p></div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">In the header</p>
+        <div style="border:1px solid var(--rule);border-radius:10px;background:var(--paper);padding:12px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+          <span style="display:inline-flex;align-items:center;gap:11px"><img src="assets/ruaha-logo.svg" alt="Ruaha Energy" width="75" height="26" style="height:26px;width:auto;display:block"><span style="width:1px;height:20px;background:var(--rule-2)"></span><span style="font-size:15px;font-weight:600;letter-spacing:.02em;color:var(--ink-2)">360</span></span>
+          <span style="font-size:13px;color:var(--ink-2)">Asha Ops</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;line-height:1.5;color:var(--ink-3)">
+          <p style="margin:0"><b style="font-weight:600;color:var(--ink)">26px tall</b> in the desktop header, <b style="font-weight:600;color:var(--ink)">23px</b> on field surfaces, <b style="font-weight:600;color:var(--ink)">34px</b> on the login card. Below 20px the wordmark stops being legible — use nothing smaller.</p>
+          <p style="margin:0">Clear space on every side is the height of the flame mark's stem. Never re-colour it, never place it on a photograph, never set it against the accent green in its full-colour form.</p>
+          <p style="margin:0">SVG, not PNG: it is 11 kB, scales on any density, and costs one request the PWA precaches.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 1 · COLOUR ─────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:720px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">01 · Colour</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Four brand colours, and a named ink scale to replace the opacity zoo</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)"><code>text-deep/60</code> on warm sand measures 4.17:1 — the most likely accessibility failure in the app, and it is used for every secondary string. The three inks below are fixed values measured against both grounds, so a secondary string is legible without anyone having to remember which opacity was safe.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px">
+      <div style="border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--paper)">
+        <div style="height:82px;background:#1d70b7"></div>
+        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:3px"><p style="margin:0;font-size:14px;font-weight:600">Ruaha blue</p><p style="margin:0;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums">--primary · #1d70b7</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Actions, links, active nav, field-verified</p></div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--paper)">
+        <div style="height:82px;background:#93c01f"></div>
+        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:3px"><p style="margin:0;font-size:14px;font-weight:600">Ruaha green</p><p style="margin:0;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums">--accent · #93c01f</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Fills and marks only — 1.9:1 as text</p></div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--paper)">
+        <div style="height:82px;background:#0c1f5b"></div>
+        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:3px"><p style="margin:0;font-size:14px;font-weight:600">Deep navy</p><p style="margin:0;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums">--deep · #0c1f5b</p><p style="margin:0;font-size:12px;color:var(--ink-3)">All body text and headings · 12.5:1</p></div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--paper)">
+        <div style="height:82px;background:#f5f3e5;border-bottom:1px solid var(--rule)"></div>
+        <div style="padding:12px 14px;display:flex;flex-direction:column;gap:3px"><p style="margin:0;font-size:14px;font-weight:600">Warm sand</p><p style="margin:0;font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums">--surface · #f5f3e5</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Page ground. Cards are white on it</p></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
+      <div style="border:1px solid var(--rule);border-radius:10px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)">Ink scale</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="font-size:15px;color:#0c1f5b">Primary text · --ink</span><span style="font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums">12.5:1</span></div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="font-size:15px;color:#46547d">Secondary · --ink-2</span><span style="font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums">6.6:1</span></div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="font-size:15px;color:#5d698b">Tertiary notes · --ink-3</span><span style="font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums">4.8:1</span></div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:8px"><span style="font-size:15px;color:#697492">Today: text-deep/60</span><span style="font-size:13px;font-weight:600;color:var(--flag-ink);font-variant-numeric:tabular-nums">4.17:1 ✕</span></div>
+        </div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:10px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)">Deep tints of the brand</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:8px;background:var(--primary-tint);padding:7px 10px"><span style="font-size:14px;font-weight:500;color:var(--primary-ink)">--primary-ink on tint</span><span style="font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">7.0:1</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:8px;background:var(--green-tint);padding:7px 10px"><span style="font-size:14px;font-weight:500;color:var(--green-ink)">--green-ink on tint</span><span style="font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">7.5:1</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:8px;background:var(--flag-tint);padding:7px 10px"><span style="font-size:14px;font-weight:500;color:var(--flag-ink)">--flag-ink on tint</span><span style="font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">7.2:1</span></div>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Brand blue and green stay themselves as fills, marks and chrome. Text takes the deep step of the same hue.</p>
+        </div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:10px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)">Surfaces &amp; rules — the whole set</p>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--ink-2)">
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:20px;border-radius:5px;background:#fff;border:1px solid var(--rule)"></span>--paper · cards, inputs, nav</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:20px;border-radius:5px;background:#f5f3e5;border:1px solid var(--rule)"></span>--sand · page ground</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:20px;border-radius:5px;background:#efeada;border:1px solid var(--rule)"></span>--sand-2 · sunken rows, table head</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:20px;border-radius:5px;background:var(--hatch),#fff;border:1px solid var(--rule)"></span>--hatch · provisional / estimated</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:20px;border-radius:5px;border:1px solid var(--rule)"></span>--rule · hairline, every divider</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:20px;border-radius:5px;border:1px solid var(--rule-2)"></span>--rule-2 · chip and control edges</div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Six values replace <code>/10 /15 /20 /25 /30 /50 /60 /70</code>. Still no shadow anywhere: depth is white-on-sand plus one hairline.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 2 · TYPE ─────────────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:720px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">02 · Type</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Eight steps, Poppins only, four weights</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)">Today everything is <code>text-sm</code> or <code>text-xs</code> with hand-applied opacity, so a screen title and a table cell differ by four pixels. The scale below starts body at 15px — a field phone in sunlight — and gives figures their own step, always tabular.</p>
+    </div>
+    <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);overflow:hidden">
+      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:18px 20px;border-bottom:1px solid var(--rule)"><p style="margin:0;font-size:30px;line-height:34px;font-weight:700;letter-spacing:-.015em">12,000.00 kg expected</p><p style="margin:0;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums">Display · 30/34 · 700 · tabular<br>Tower headline figure only</p></div>
+      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:18px 20px;border-bottom:1px solid var(--rule)"><p style="margin:0;font-size:22px;line-height:26px;font-weight:600;font-variant-numeric:tabular-nums">489.200 kW</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Figure · 22/26 · 600 · tabular<br>Tile figures, queue counts</p></div>
+      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:18px 20px;border-bottom:1px solid var(--rule)"><p style="margin:0;font-size:19px;line-height:26px;font-weight:600;letter-spacing:-.008em">Register a farmer</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Title · 19/26 · 600<br>One per screen</p></div>
+      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:18px 20px;border-bottom:1px solid var(--rule)"><p style="margin:0;font-size:12px;line-height:16px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Villages that could supply this</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Section · 12/16 · 600 · .12em caps<br>Replaces text-sm font-semibold</p></div>
+      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:18px 20px;border-bottom:1px solid var(--rule)"><p style="margin:0;font-size:15px;line-height:22px">Committed supply is promised to a live opportunity and is not available again.</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Body · 15/22 · 400<br>Was 14/20</p></div>
+      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:18px 20px;border-bottom:1px solid var(--rule)"><p style="margin:0;font-size:15px;line-height:22px;font-weight:500">Prospective and approved are separate figures and are never added together.</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Body strong · 15/22 · 500<br>Product-language sentences</p></div>
+      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:18px 20px;border-bottom:1px solid var(--rule)"><p style="margin:0;font-size:13px;line-height:19px;color:var(--ink-2)">Recorded as field-verified, captured by you. This is not a choice.</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Small · 13/19 · --ink-2<br>Every secondary string</p></div>
+      <div style="display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:16px;align-items:baseline;padding:18px 20px"><p style="margin:0;font-size:12px;line-height:17px;color:var(--ink-3)">The sum of cycle areas. Intercropping means several cycles share a plot, so this can exceed the village’s hectares. It is not land area.</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Note · 12/17 · --ink-3<br>Floor. Nothing smaller ships</p></div>
+    </div>
+  </section>
+
+  <!-- ── 3 · PROVENANCE ───────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">03 · ProvenanceBadge</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">One object, two segments: where it came from, and whether anyone checked</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2);text-wrap:pretty">Three loose text chips read as noise because the three are equal in weight, so the eye has nothing to scan. Here the source is a quiet tinted segment with a colour cap; the verification is the loud segment, with a <b style="font-weight:600">mark whose shape differs</b> as well as its colour — so a column of records can be read for state alone, at a glance, and <span style="font-weight:600">verified can never be mistaken for unverified</span>.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:14px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Five sources, five treatments</p>
+        <div style="display:flex;flex-direction:column;gap:9px;align-items:flex-start">
+          <span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:stretch;border:1px solid var(--rule-2);border-radius:999px;overflow:hidden;background:var(--paper);font-size:12px"><span style="display:inline-flex;align-items:center;gap:7px;padding:5px 10px;background:var(--primary-tint);color:var(--primary-ink);font-weight:500"><span style="width:4px;height:13px;border-radius:2px;background:var(--primary)"></span>Field verified</span><span style="display:inline-flex;align-items:center;gap:5px;border-left:1px solid var(--rule-2);padding:5px 10px;font-weight:600;color:var(--green-ink)"><span style="width:13px;height:13px;border-radius:999px;background:var(--green-ink);display:inline-flex;align-items:center;justify-content:center"><span style="display:block;width:5px;height:2.5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(.5px,-1px)"></span></span>Verified</span></span>
+          <span data-testid="provenance-badge" data-source="farmer_reported" data-verification="unverified" style="display:inline-flex;align-items:stretch;border:1px solid var(--rule-2);border-radius:999px;overflow:hidden;background:var(--paper);font-size:12px"><span style="display:inline-flex;align-items:center;gap:7px;padding:5px 10px;color:var(--ink-2);font-weight:500"><span style="width:4px;height:13px;border-radius:2px;background:var(--ink-2)"></span>Farmer reported</span><span style="display:inline-flex;align-items:center;gap:5px;border-left:1px solid var(--rule-2);padding:5px 10px;font-weight:600;color:var(--ink-3)"><span style="width:13px;height:13px;border-radius:999px;border:1.5px dashed var(--ink-3);box-sizing:border-box"></span>Unverified</span></span>
+          <span data-testid="provenance-badge" data-source="transaction_derived" data-verification="pending" style="display:inline-flex;align-items:stretch;border:1px solid var(--rule-2);border-radius:999px;overflow:hidden;background:var(--paper);font-size:12px"><span style="display:inline-flex;align-items:center;gap:7px;padding:5px 10px;background:var(--sand-2);color:var(--ink-2);font-weight:500"><span style="width:4px;height:13px;border-radius:2px;background:var(--ink)"></span>From a transaction</span><span style="display:inline-flex;align-items:center;gap:5px;border-left:1px solid var(--rule-2);padding:5px 10px;font-weight:600;color:var(--primary-ink)"><span style="width:13px;height:13px;border-radius:999px;border:2px solid var(--primary-ink);box-sizing:border-box;background:linear-gradient(90deg,var(--primary-ink) 50%,transparent 50%)"></span>Pending</span></span>
+          <span data-testid="provenance-badge" data-source="sensor_derived" data-verification="verified" style="display:inline-flex;align-items:stretch;border:1px solid var(--rule-2);border-radius:999px;overflow:hidden;background:var(--paper);font-size:12px"><span style="display:inline-flex;align-items:center;gap:7px;padding:5px 10px;background:var(--green-tint);color:var(--green-ink);font-weight:500"><span style="width:4px;height:13px;border-radius:2px;background:var(--green)"></span>Sensor measured</span><span style="display:inline-flex;align-items:center;gap:5px;border-left:1px solid var(--rule-2);padding:5px 10px;font-weight:600;color:var(--green-ink)"><span style="width:13px;height:13px;border-radius:999px;background:var(--green-ink);display:inline-flex;align-items:center;justify-content:center"><span style="display:block;width:5px;height:2.5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(.5px,-1px)"></span></span>Verified</span></span>
+          <span data-testid="provenance-badge" data-source="model_estimated" data-verification="disputed" style="display:inline-flex;align-items:stretch;border:1px solid var(--rule-2);border-radius:999px;overflow:hidden;background:var(--paper);font-size:12px"><span style="display:inline-flex;align-items:center;gap:7px;padding:5px 10px;background:var(--hatch),var(--paper);color:var(--ink-2);font-weight:500;font-style:italic"><span style="width:4px;height:13px;border-radius:2px;background:var(--hatch),var(--ink-3)"></span>Estimated</span><span style="display:inline-flex;align-items:center;gap:5px;border-left:1px solid var(--rule-2);padding:5px 10px;font-weight:600;color:var(--flag-ink);background:var(--flag-tint)"><span style="width:13px;height:13px;border-radius:999px;background:var(--flag-ink);color:#fff;font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;line-height:1">!</span>Disputed</span></span>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Colour cap + fill + case carry the source: blue solid, plain, sunken sand, green, hatched italic. The hatch means provisional everywhere in the system.</p>
+      </div>
+
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:14px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Four verification marks · shape first, colour second</p>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+          <div style="display:flex;align-items:center;gap:9px;border:1px solid var(--rule);border-radius:8px;padding:10px 11px"><span style="width:18px;height:18px;border-radius:999px;background:var(--green-ink);display:inline-flex;align-items:center;justify-content:center;flex:none"><span style="display:block;width:7px;height:3.5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px)"></span></span><span style="display:flex;flex-direction:column"><b style="font-size:13px;font-weight:600">Verified</b><span style="font-size:12px;color:var(--ink-3)">Filled disc, check</span></span></div>
+          <div style="display:flex;align-items:center;gap:9px;border:1px solid var(--rule);border-radius:8px;padding:10px 11px"><span style="width:18px;height:18px;border-radius:999px;border:2.5px solid var(--primary-ink);box-sizing:border-box;background:linear-gradient(90deg,var(--primary-ink) 50%,transparent 50%);flex:none"></span><span style="display:flex;flex-direction:column"><b style="font-size:13px;font-weight:600">Pending</b><span style="font-size:12px;color:var(--ink-3)">Half-filled ring</span></span></div>
+          <div style="display:flex;align-items:center;gap:9px;border:1px solid var(--rule);border-radius:8px;padding:10px 11px"><span style="width:18px;height:18px;border-radius:999px;border:2px dashed var(--ink-3);box-sizing:border-box;flex:none"></span><span style="display:flex;flex-direction:column"><b style="font-size:13px;font-weight:600">Unverified</b><span style="font-size:12px;color:var(--ink-3)">Empty dashed ring</span></span></div>
+          <div style="display:flex;align-items:center;gap:9px;border:1px solid var(--rule);border-radius:8px;padding:10px 11px"><span style="width:18px;height:18px;border-radius:999px;background:var(--flag-ink);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none;line-height:1">!</span><span style="display:flex;flex-direction:column"><b style="font-size:13px;font-weight:600">Disputed</b><span style="font-size:12px;color:var(--ink-3)">Filled disc, bang</span></span></div>
+        </div>
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Confidence · a meter, not a third word</p>
+        <div style="display:flex;flex-wrap:wrap;gap:16px">
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2)"><span style="display:inline-flex;align-items:flex-end;gap:2px;height:11px"><span style="width:3px;height:5px;border-radius:1px;background:var(--ink-2)"></span><span style="width:3px;height:8px;border-radius:1px;background:var(--rule-2)"></span><span style="width:3px;height:11px;border-radius:1px;background:var(--rule-2)"></span></span>Low</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2)"><span style="display:inline-flex;align-items:flex-end;gap:2px;height:11px"><span style="width:3px;height:5px;border-radius:1px;background:var(--ink-2)"></span><span style="width:3px;height:8px;border-radius:1px;background:var(--ink-2)"></span><span style="width:3px;height:11px;border-radius:1px;background:var(--rule-2)"></span></span>Medium</span>
+          <span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2)"><span style="display:inline-flex;align-items:flex-end;gap:2px;height:11px"><span style="width:3px;height:5px;border-radius:1px;background:var(--ink-2)"></span><span style="width:3px;height:8px;border-radius:1px;background:var(--ink-2)"></span><span style="width:3px;height:11px;border-radius:1px;background:var(--ink-2)"></span></span>High</span>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Confidence was competing with verification for the same attention. As three bars it stops reading as a fourth word, and <code>provenance-confidence</code> keeps its testid and its text label for screen readers.</p>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--sand-2);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Today · repeated down the verify queue</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="border:1px solid rgba(12,31,91,.1);border-radius:4px;background:rgba(255,255,255,.7);padding:12px;display:flex;flex-direction:column;gap:4px"><p style="margin:0;font-size:14px;font-weight:500">Amina Sanga</p><span style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(12,31,91,.2);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;width:fit-content"><span style="font-weight:500">Farmer reported</span><span style="color:rgba(12,31,91,.5)">Unverified</span><span style="color:rgba(12,31,91,.6)">Medium</span></span></div>
+          <div style="border:1px solid rgba(12,31,91,.1);border-radius:4px;background:rgba(255,255,255,.7);padding:12px;display:flex;flex-direction:column;gap:4px"><p style="margin:0;font-size:14px;font-weight:500">Kipande cha barabara</p><span style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(12,31,91,.2);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;width:fit-content"><span style="font-weight:500">Farmer reported</span><span style="color:rgba(12,31,91,.5)">Unverified</span><span style="color:rgba(12,31,91,.6)">Low</span></span></div>
+          <div style="border:1px solid rgba(12,31,91,.1);border-radius:4px;background:rgba(255,255,255,.7);padding:12px;display:flex;flex-direction:column;gap:4px"><p style="margin:0;font-size:14px;font-weight:500">Asali · Kipande cha mlima</p><span style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(12,31,91,.2);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;width:fit-content"><span style="font-weight:500">Farmer reported</span><span style="color:rgba(12,31,91,.7)">Pending</span><span style="color:rgba(12,31,91,.6)">Low</span></span></div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Three rows, three states, no scannable difference.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--primary-ink)">Redesigned · state reads down the left edge</p>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--rule);padding:12px 2px"><span style="width:18px;height:18px;border-radius:999px;border:2px dashed var(--ink-3);box-sizing:border-box;flex:none"></span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><b style="font-size:15px;font-weight:500">Amina Sanga</b><span style="font-size:12px;color:var(--ink-3)">Person · Farmer reported · captured 2 Sep 2026</span></span></div>
+          <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--rule);padding:12px 2px"><span style="width:18px;height:18px;border-radius:999px;border:2px dashed var(--ink-3);box-sizing:border-box;flex:none"></span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><b style="font-size:15px;font-weight:500">Kipande cha barabara</b><span style="font-size:12px;color:var(--ink-3)">Plot · Farmer reported · captured 2 Sep 2026</span></span></div>
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 2px"><span style="width:18px;height:18px;border-radius:999px;border:2.5px solid var(--primary-ink);box-sizing:border-box;background:linear-gradient(90deg,var(--primary-ink) 50%,transparent 50%);flex:none"></span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><b style="font-size:15px;font-weight:500">Asali · Kipande cha mlima</b><span style="font-size:12px;color:var(--ink-3)">Crop cycle · Farmer reported · captured 3 Sep 2026</span></span></div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">In a list the mark leads and the full lozenge collapses into one line of detail — the badge stays one component, with a compact variant for repetition.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4 · STATUS ───────────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">04 · StatusPill</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Three vocabularies, and a decision never looks like a conversation</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)">A request's <b style="font-weight:600">Approved</b> is a decision: solid green fill. An opportunity's <b style="font-weight:600">Accepted</b> means both sides agreed to keep talking: outlined, never filled. Terminal-but-inert states (withdrawn, lapsed, cancelled) are hatched. Nothing in the opportunity row is allowed to read as strongly as the request row.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Request</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span data-testid="status-pill" data-status="draft" style="border:1px solid var(--rule-2);border-radius:999px;background:var(--paper);padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink-3)">Draft</span>
+          <span data-testid="status-pill" data-status="submitted" style="border:1px solid rgba(29,112,183,.35);border-radius:999px;background:var(--primary-tint);padding:4px 11px;font-size:12px;font-weight:500;color:var(--primary-ink)">Submitted</span>
+          <span data-testid="status-pill" data-status="under_review" style="border:1px solid var(--primary);border-radius:999px;background:var(--primary-tint);padding:4px 11px;font-size:12px;font-weight:600;color:var(--primary-ink)">Under review</span>
+          <span data-testid="status-pill" data-status="approved" style="border:1px solid var(--green-ink);border-radius:999px;background:var(--green);padding:4px 11px;font-size:12px;font-weight:600;color:#22300a">Approved</span>
+          <span data-testid="status-pill" data-status="rejected" style="border:1px solid rgba(158,27,27,.4);border-radius:999px;background:var(--flag-tint);padding:4px 11px;font-size:12px;font-weight:600;color:var(--flag-ink)">Rejected</span>
+          <span data-testid="status-pill" data-status="withdrawn" style="border:1px solid var(--rule-2);border-radius:999px;background:var(--hatch),var(--paper);padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink-2)">Withdrawn</span>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Only <b style="font-weight:600">Approved</b> gets a solid brand fill. It is the only state in the system that is a decision with capacity consequences.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Demand</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span data-testid="status-pill" data-status="open" style="border:1px solid rgba(29,112,183,.35);border-radius:999px;background:var(--primary-tint);padding:4px 11px;font-size:12px;font-weight:500;color:var(--primary-ink)">Open</span>
+          <span data-testid="status-pill" data-status="matched" style="border:1px solid var(--green-ink);border-radius:999px;background:var(--green-tint);padding:4px 11px;font-size:12px;font-weight:600;color:var(--green-ink)">Matched</span>
+          <span data-testid="status-pill" data-status="closed" style="border:1px solid var(--rule-2);border-radius:999px;background:var(--sand-2);padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink-2)">Closed</span>
+          <span data-testid="status-pill" data-status="cancelled" style="border:1px solid var(--rule-2);border-radius:999px;background:var(--hatch),var(--paper);padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink-2)">Cancelled</span>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Matched is a tint, not a fill: supply was found, nothing was sold.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Opportunity</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span data-testid="status-pill" data-status="proposed" style="border:1px solid var(--rule-2);border-radius:999px;background:var(--paper);padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink-2)">Proposed</span>
+          <span data-testid="status-pill" data-status="shared" style="border:1px solid rgba(29,112,183,.35);border-radius:999px;background:var(--paper);padding:4px 11px;font-size:12px;font-weight:500;color:var(--primary-ink)">Shared</span>
+          <span data-testid="status-pill" data-status="accepted" style="border:1.5px solid var(--green-ink);border-radius:999px;background:var(--paper);padding:4px 11px;font-size:12px;font-weight:600;color:var(--green-ink)">Accepted</span>
+          <span data-testid="status-pill" data-status="declined" style="border:1px solid rgba(158,27,27,.4);border-radius:999px;background:var(--paper);padding:4px 11px;font-size:12px;font-weight:500;color:var(--flag-ink)">Declined</span>
+          <span data-testid="status-pill" data-status="lapsed" style="border:1px solid var(--rule-2);border-radius:999px;background:var(--hatch),var(--paper);padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink-2)">Lapsed</span>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Every opportunity pill is outlined on white. <b style="font-weight:600">Accepted</b> is distinguished by a heavier edge, not by a fill — it is not an approval.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5 · CONTROLS ─────────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">05 · Controls</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">48px tall, 16px type, and wide enough for Kiswahili</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)">Touch targets have never been checked, on a surface whose users are outdoors on phones. Every control below is at least 48px in field surfaces and 40px in the ops desktop, with a visible keyboard focus ring. Nothing is sized to its English label.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Buttons</p>
+        <button type="button" style="font-family:inherit;min-height:48px;width:100%;border:0;border-radius:8px;background:var(--primary);color:#fff;padding:12px 18px;font-size:16px;font-weight:600" style-hover="background:var(--primary-ink)" style-active="background:#0f4470" style-focus="outline:2px solid var(--primary-ink);outline-offset:2px">Register</button>
+        <button type="button" style="font-family:inherit;min-height:48px;width:100%;border:1.5px solid var(--rule-2);border-radius:8px;background:var(--paper);color:var(--ink);padding:12px 18px;font-size:16px;font-weight:500" style-hover="border-color:var(--primary);color:var(--primary-ink)">Start review</button>
+        <button type="button" style="font-family:inherit;min-height:48px;width:100%;border:1.5px solid rgba(158,27,27,.45);border-radius:8px;background:var(--paper);color:var(--flag-ink);padding:12px 18px;font-size:16px;font-weight:500" style-hover="background:var(--flag-tint)">Mark lapsed</button>
+        <button type="button" disabled="disabled" style="font-family:inherit;min-height:48px;width:100%;border:0;border-radius:8px;background:var(--primary);color:#fff;padding:12px 18px;font-size:16px;font-weight:600;opacity:.45">Registering…</button>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Destructive actions are outlined, never filled red: the confirmation dialog carries the weight, not the button that opens it.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Fields</p>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label for="fd-1" style="font-size:13px;font-weight:600;color:var(--ink-2)">Expected harvest (kg)</label>
+          <input id="fd-1" value="4100" inputmode="decimal" style="font-family:inherit;min-height:48px;width:100%;box-sizing:border-box;border:1.5px solid var(--rule-2);border-radius:8px;background:var(--paper);padding:12px 14px;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums" style-focus="border-color:var(--primary);outline:2px solid rgba(29,112,183,.35);outline-offset:1px">
+          <p style="margin:0;font-size:12px;color:var(--ink-3)">This will be stored as 4100.00.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label for="fd-2" style="font-size:13px;font-weight:600;color:var(--ink-2)">Family name</label>
+          <input id="fd-2" value="" aria-invalid="true" style="font-family:inherit;min-height:48px;width:100%;box-sizing:border-box;border:1.5px solid var(--flag-ink);border-radius:8px;background:var(--paper);padding:12px 14px;font-size:17px;color:var(--ink)">
+          <p style="margin:0;display:flex;align-items:center;gap:7px;font-size:13px;font-weight:500;color:var(--flag-ink)"><span style="width:15px;height:15px;border-radius:999px;background:var(--flag-ink);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none;line-height:1">!</span>This is required.</p>
+        </div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Spacing &amp; radii</p>
+        <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;color:var(--ink-2)">
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:4px;height:14px;background:var(--primary);border-radius:1px"></span>4 — inside a chip</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:8px;height:14px;background:var(--primary);border-radius:1px"></span>8 — label to field</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:12px;height:14px;background:var(--primary);border-radius:1px"></span>12 — field to field</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:20px;height:14px;background:var(--primary);border-radius:1px"></span>20 — card padding</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:32px;height:14px;background:var(--primary);border-radius:1px"></span>32 — section to section</div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:48px;height:14px;background:var(--primary);border-radius:1px"></span>48 — screen block</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-end;padding-top:4px">
+          <span style="width:52px;height:40px;border:1px solid var(--rule-2);border-radius:6px;display:flex;align-items:flex-end;justify-content:center;font-size:11px;color:var(--ink-3)">6</span>
+          <span style="width:52px;height:40px;border:1px solid var(--rule-2);border-radius:8px;display:flex;align-items:flex-end;justify-content:center;font-size:11px;color:var(--ink-3)">8</span>
+          <span style="width:52px;height:40px;border:1px solid var(--rule-2);border-radius:12px;display:flex;align-items:flex-end;justify-content:center;font-size:11px;color:var(--ink-3)">12</span>
+          <span style="width:52px;height:40px;border:1px solid var(--rule-2);border-radius:999px;display:flex;align-items:flex-end;justify-content:center;font-size:11px;color:var(--ink-3)">pill</span>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Controls 8, cards 12, chips and meters pill. The 4px <code>rounded</code> everywhere today is what makes the current build feel unfinished.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6 · STATES ───────────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">06 · States</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Empty is an answer. Error is a failure. They must not rhyme</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)">Row-level security returning nothing means "you may not see this" — never red, never a retry. An error carries <code>role="alert"</code>, a red rule, the database's sentence verbatim, and room for two technical lines without truncation.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Empty · zero rows</p>
+        <div data-testid="empty-state" style="border:1px solid var(--rule);border-radius:12px;background:var(--sand-2);padding:28px 20px;text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center">
+          <span style="width:26px;height:26px;border-radius:999px;border:2px dashed var(--ink-3);box-sizing:border-box"></span>
+          <p style="margin:4px 0 0;font-size:16px;font-weight:600">No matching supply</p>
+          <p style="margin:0;max-width:38ch;font-size:13px;line-height:1.5;color:var(--ink-2)">No village has available supply of this crop in this window. That is an honest zero, not a missing row.</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Error · something failed</p>
+        <div data-testid="error-state" role="alert" style="border:1px solid rgba(158,27,27,.35);border-left:4px solid var(--flag-ink);border-radius:12px;background:var(--flag-tint);padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+          <p style="margin:0;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--flag-ink)"><span style="width:17px;height:17px;border-radius:999px;background:var(--flag-ink);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex:none;line-height:1">!</span>Something went wrong</p>
+          <p style="margin:0;font-size:14px;line-height:1.55;color:var(--ink);font-variant-numeric:tabular-nums;text-wrap:pretty">over-commitment: 4100.00 kg available, 4100.00 kg already committed, 100.00 kg requested</p>
+          <button type="button" data-testid="error-retry" style="font-family:inherit;align-self:flex-start;margin-top:6px;min-height:40px;border:1.5px solid rgba(158,27,27,.4);border-radius:8px;background:var(--paper);padding:8px 14px;font-size:14px;font-weight:500;color:var(--flag-ink)">Try again</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Loading · flat blocks, no shimmer</p>
+        <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px" aria-busy="true">
+          <div style="height:11px;width:38%;border-radius:999px;background:var(--sand-2)"></div>
+          <div style="height:26px;width:62%;border-radius:8px;background:var(--sand-2)"></div>
+          <div style="height:11px;width:84%;border-radius:999px;background:var(--sand-2)"></div>
+          <div style="height:11px;width:71%;border-radius:999px;background:var(--sand-2)"></div>
+          <p style="margin:0;font-size:12px;color:var(--ink-3)">On 3G this is what the farmer surface shows most often. Flat blocks, <b style="font-weight:600">no shimmer and no pulse</b> — an animated skeleton repaints every frame on a phone that has better things to do. It holds the shape of what is coming, and <code>tile-drill</code> stays dimmed text until the figure lands.</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Saving · one per write · and the unsaved draft</p>
+        <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px;align-items:flex-start">
+          <span data-testid="status-saving" style="display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-2)"><span style="width:14px;height:14px;border-radius:999px;border:2px solid var(--rule-2);border-top-color:var(--primary);box-sizing:border-box"></span>Saving…</span>
+          <span data-testid="unsaved-draft-badge" style="display:inline-flex;align-items:center;gap:8px;border:1.5px solid rgba(158,27,27,.4);border-radius:999px;background:var(--hatch),var(--paper);padding:6px 12px;font-size:13px;font-weight:600;color:var(--flag-ink)"><span style="width:8px;height:8px;border-radius:999px;background:var(--flag-ink)"></span>Not yet submitted</span>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">The draft badge is hatched and red-edged on purpose: it says this exists only on this phone. Nothing about it may look like a success.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 7 · FIGURES ──────────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">07 · Figures</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Three patterns for saying how much a number is worth</h3>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Figure with a basis</p>
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <p style="margin:0;font-size:13px;color:var(--ink-2)">Planned capacity</p>
+          <p style="margin:0;display:flex;align-items:baseline;gap:9px;font-size:22px;line-height:26px;font-weight:600;font-variant-numeric:tabular-nums">500.000 kW<span style="border:1px solid var(--rule-2);border-radius:999px;background:var(--hatch),var(--paper);padding:2px 9px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)">Planned</span></p>
+          <p style="margin:0;font-size:12px;color:var(--ink-3)">There is no measured capacity in this system. The basis travels with the figure, always.</p>
+        </div>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Two figures that are never summed</p>
+        <div style="display:flex;align-items:stretch;gap:0;border:1px solid var(--rule);border-radius:10px;overflow:hidden">
+          <div style="flex:1;padding:12px 14px;display:flex;flex-direction:column;gap:2px;background:var(--paper)"><p style="margin:0;font-size:12px;color:var(--ink-3)">Prospective peak</p><p style="margin:0;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums">7.200 kW</p><p style="margin:0;font-size:11px;line-height:1.4;color:var(--ink-3)">An application</p></div>
+          <div style="width:1px;background:var(--rule-2);position:relative;flex:none"></div>
+          <div style="flex:1;padding:12px 14px;display:flex;flex-direction:column;gap:2px;background:var(--primary-tint)"><p style="margin:0;font-size:12px;color:var(--primary-ink)">Approved peak</p><p style="margin:0;font-size:19px;font-weight:600;color:var(--primary-ink);font-variant-numeric:tabular-nums">10.800 kW</p><p style="margin:0;font-size:11px;line-height:1.4;color:var(--primary-ink)">A decision</p></div>
+        </div>
+        <p style="margin:0;font-size:13px;line-height:1.5;font-weight:500">Prospective and approved are separate figures and are never added together.</p>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">The divider is structural, so no layout can put them in one bar or one total.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">CoverageBar · three quantities</p>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="font-size:13px;color:var(--ink-2)">Coverage of 9,000.00 kg demand</span><span data-testid="coverage-pct" style="font-size:19px;font-weight:600;font-variant-numeric:tabular-nums">62.2%</span></div>
+          <div role="meter" aria-label="Coverage" aria-valuenow="62.2" aria-valuemin="0" aria-valuemax="100" style="display:flex;height:16px;width:100%;border-radius:999px;overflow:hidden;background:var(--sand-2);border:1px solid var(--rule)">
+            <span style="width:62.2%;background:var(--green);display:block"></span>
+            <span style="width:37.8%;background:var(--hatch),var(--sand-2);display:block"></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:13px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="display:inline-flex;align-items:center;gap:7px;color:var(--ink-2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--green)"></span>Available now</span><span data-testid="coverage-available" style="font-weight:600;font-variant-numeric:tabular-nums">5,600.00 kg</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="display:inline-flex;align-items:center;gap:7px;color:var(--ink-2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--hatch),var(--sand-2);border:1px solid var(--rule-2)"></span>Not covered</span><span style="font-weight:600;font-variant-numeric:tabular-nums">3,400.00 kg</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;border-top:1px solid var(--rule);padding-top:5px"><span style="display:inline-flex;align-items:center;gap:7px;color:var(--ink-2)"><span style="width:10px;height:10px;border-radius:3px;border:2px solid var(--ink-2);box-sizing:border-box"></span>Already committed</span><span data-testid="coverage-committed" style="font-weight:600;font-variant-numeric:tabular-nums">6,400.00 kg</span></div>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Committed sits <b style="font-weight:600">below the rule, outside the track</b>: it is not part of what is available, and no stacked bar may imply that it is.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 8 · LENGTH ───────────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">08 · Length</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Designed for the translated build, not the English one</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2)">557 of 559 strings still render English through the fallback. Below, chrome labels are pseudo-localised at roughly +30% — a length test, <b style="font-weight:600">not Kiswahili</b>; no product string here was invented. Crop and equipment names are the real database values a Swahili-locale user already sees.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Buttons wrap, never clip</p>
+        <button type="button" style="font-family:inherit;min-height:48px;width:100%;border:0;border-radius:8px;background:var(--primary);color:#fff;padding:12px 18px;font-size:16px;font-weight:600;text-wrap:balance">Régïstér à fàrmér ṡ</button>
+        <button type="button" style="font-family:inherit;min-height:48px;width:100%;border:1.5px solid var(--rule-2);border-radius:8px;background:var(--paper);color:var(--ink);padding:12px 18px;font-size:16px;font-weight:500;text-wrap:balance">Öpén thé vérïfy quéué ṡṡ</button>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Full-width in field surfaces, <code>min-height</code> not <code>height</code>, and balanced wrapping. A button sized to "Verify" would break on its translation.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Chips grow, rows reflow</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <span style="display:inline-flex;align-items:stretch;border:1px solid var(--rule-2);border-radius:999px;overflow:hidden;font-size:12px"><span style="padding:5px 10px;background:var(--primary-tint);color:var(--primary-ink);font-weight:500;display:inline-flex;align-items:center;gap:7px"><span style="width:4px;height:13px;border-radius:2px;background:var(--primary)"></span>Fïéld vérïfïéd ṡṡ</span><span style="display:inline-flex;align-items:center;gap:5px;border-left:1px solid var(--rule-2);padding:5px 10px;font-weight:600;color:var(--green-ink)"><span style="width:13px;height:13px;border-radius:999px;background:var(--green-ink);display:inline-flex;align-items:center;justify-content:center"><span style="display:block;width:5px;height:2.5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(.5px,-1px)"></span></span>Vérïfïéd ṡ</span></span>
+          <span style="border:1px solid var(--green-ink);border-radius:999px;background:var(--green);padding:4px 11px;font-size:12px;font-weight:600;color:#22300a">Àpprövéd ṡ</span>
+          <span style="border:1px solid var(--rule-2);border-radius:999px;background:var(--hatch),var(--paper);padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink-2)">Wïthdràwn ṡṡ</span>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">The lozenge is <code>inline-flex</code> with wrapping and no fixed width, so a longer verification word pushes the segment rather than truncating it.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Figures keep their column</p>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline"><span style="font-size:13px;color:var(--ink-2);text-wrap:pretty">Plàntéd àréà àcröss cyclés ṡṡṡ</span><span style="font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">4.9000 ha</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline"><span style="font-size:13px;color:var(--ink-2);text-wrap:pretty">Sïmültànéïty fàctör ṡṡ</span><span style="font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">0.600</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline"><span style="font-size:13px;color:var(--ink-2);text-wrap:pretty">Héàdrööm ṡ</span><span style="font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">489.200 kW</span></div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Label and figure are grid tracks, not a space-between row: the label wraps to two lines and the tabular figures stay aligned to the right edge.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 9 · ICONS ────────────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">09 · Icons</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Lucide, already installed — no new dependency</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2);text-wrap:pretty"><code>lucide-react@1.43</code> is in <code>package.json</code> and <code>components.json</code> names <code>"iconLibrary": "lucide"</code>, so the icon set is a decision already made — nothing is added. Interface icons are 18–22px at stroke 2 (2.25 on the active state, so weight tracks the label). Icons never appear alone in navigation: <b style="font-weight:600">icon plus label</b>, because a Kiswahili-first surface cannot rely on a glyph nobody has been taught.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:14px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Navigation · one icon per destination</p>
+        <div style="display:flex;flex-direction:column;gap:11px;font-size:14px;color:var(--ink-2)">
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M7 20h10"></path><path d="M10 20c5.5-2.5.8-6.4 3-10"></path><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8"></path><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"></path></svg><b style="font-weight:600;color:var(--ink)">sprout</b> · My farm, Production</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg><b style="font-weight:600;color:var(--ink)">wrench</b> · Equipment, pipeline tile</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg><b style="font-weight:600;color:var(--ink)">file-text</b> · farmer Requests</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="m11 17 2 2a1 1 0 1 0 3-3"></path><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"></path><path d="m21 3 1 11h-2"></path><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"></path><path d="M3 4h8"></path></svg><b style="font-weight:600;color:var(--ink)">handshake</b> · Opportunities, Market</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6"></path><path d="M22 11h-6"></path></svg><b style="font-weight:600;color:var(--ink)">user-plus</b> · Register</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><b style="font-weight:600;color:var(--ink)">users</b> · People</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></svg><b style="font-weight:600;color:var(--ink)">circle-check-big</b> · Verify, quality</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><path d="M12 11h4"></path><path d="M12 16h4"></path><path d="M8 11h.01"></path><path d="M8 16h.01"></path></svg><b style="font-weight:600;color:var(--ink)">clipboard-list</b> · ops Requests</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg><b style="font-weight:600;color:var(--ink)">package</b> · Demand</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M12 7v14"></path><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"></path></svg><b style="font-weight:600;color:var(--ink)">book-open</b> · Catalogue</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path><rect width="20" height="14" x="2" y="6" rx="2"></rect></svg><b style="font-weight:600;color:var(--ink)">briefcase</b> · Buyers</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><b style="font-weight:600;color:var(--ink)">map-pin</b> · Villages</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg><b style="font-weight:600;color:var(--ink)">gauge</b> · Control Tower</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg><b style="font-weight:600;color:var(--ink)">zap</b> · Energy</div>
+          <div style="display:flex;align-items:center;gap:11px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg><b style="font-weight:600;color:var(--ink)">arrow-right / arrow-left</b> · drill links, back</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+          <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Where icons are allowed</p>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.55;color:var(--ink-2)">
+            <p style="margin:0"><b style="font-weight:600;color:var(--ink)">Yes:</b> nav destinations (with label), Tower tile headers, queue cards, the Verify and Register actions, drill and back links.</p>
+            <p style="margin:0"><b style="font-weight:600;color:var(--ink)">No:</b> table cells, status pills, provenance. Those already carry a shape system — a source cap, a verification mark, a confidence meter — and adding a second glyph vocabulary on top of it would undo the work of §03.</p>
+            <p style="margin:0"><b style="font-weight:600;color:var(--ink)">Never icon-only</b> in navigation or on a destructive control. A tooltip is not a label on a phone.</p>
+          </div>
+        </div>
+        <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+          <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Sizes, and the marks they must not collide with</p>
+          <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px">
+            <span style="display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--ink-3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg>16 · inline</span>
+            <span style="display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--ink-3)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg>18 · sidebar</span>
+            <span style="display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--ink-3)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 14 4-4"></path><path d="M3.34 19a10 10 0 1 1 17.32 0"></path></svg>22 · tab bar</span>
+            <span style="display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--ink-3)"><span style="width:18px;height:18px;border-radius:999px;background:var(--green-ink);display:inline-flex;align-items:center;justify-content:center"><span style="display:block;width:7px;height:3.5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px)"></span></span>mark, not icon</span>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">The verification marks are filled discs and rings, not stroked Lucide glyphs — deliberately a different visual class, so a state mark is never mistaken for a control.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 10 · UNIT MARKS ──────────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">10 · Unit marks</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Every unit gets the same icon, everywhere it appears</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2);text-wrap:pretty">Six quantities run through this whole product — weight, land, power, energy over time, money, and counts of records. Each takes one Lucide glyph and keeps it on every surface, so a figure is recognisable before it is read. The icon sits with the <b style="font-weight:600">label</b>, not inside the number, so the tabular alignment of stacked figures is never broken.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="12" cy="5" r="3"></circle><path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z"></path></svg><b style="font-weight:600;color:var(--ink)">weight</b> · kg</span><p style="margin:0;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums">12,000.00 kg</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Harvest, demand, supply, contributions</p></div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="m12 8 6-3-6-3v10"></path><path d="m8 11.99-5.5 3.14a1 1 0 0 0 0 1.74l8.5 4.86a2 2 0 0 0 2 0l8.5-4.86a1 1 0 0 0 0-1.74L16 12"></path><path d="m6.49 12.85 11.02 6.3"></path><path d="M17.51 12.85 6.5 19.15"></path></svg><b style="font-weight:600;color:var(--ink)">land-plot</b> · ha</span><p style="margin:0;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums">4.9000 ha</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Plot area, planted area across cycles</p></div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"></path></svg><b style="font-weight:600;color:var(--ink)">zap</b> · kW</span><p style="margin:0;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums">500.000 kW</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Rated power, peaks, capacity, headroom</p></div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M15 7h1a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2"></path><path d="M6 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1"></path><path d="m11 7-3 5h4l-3 5"></path><path d="M22 11v2"></path></svg><b style="font-weight:600;color:var(--ink)">battery-charging</b> · kWh</span><p style="margin:0;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums">450.000 kWh</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Energy per day, per week. Never a peak</p></div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><rect width="20" height="12" x="2" y="6" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg><b style="font-weight:600;color:var(--ink)">banknote</b> · TZS</span><p style="margin:0;display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:8px;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums">TZS 22,000,000.00<span style="border:1px solid var(--rule-2);border-radius:999px;background:var(--hatch),var(--paper);padding:1px 7px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)">Indicative</span></p><p style="margin:0;font-size:12px;color:var(--ink-3)">Never without the indicative pill</p></div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--ink-2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg><b style="font-weight:600;color:var(--ink)">users / map-pin / sprout</b></span><p style="margin:0;font-size:19px;font-weight:600;font-variant-numeric:tabular-nums">3 / 6</p><p style="margin:0;font-size:12px;color:var(--ink-3)">Counts of records: people, farms, cycles</p></div>
+    </div>
+    <div style="border:1px solid var(--rule);border-radius:12px;background:var(--sand-2);padding:18px;display:flex;flex-direction:column;gap:8px;max-width:760px">
+      <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Where a unit mark goes, and where it does not</p>
+      <p style="margin:0;font-size:14px;line-height:1.6;color:var(--ink-2)"><b style="font-weight:600;color:var(--ink)">Yes:</b> the label above or beside a headline figure, a table column header, a legend row, the result of an equation line. <b style="font-weight:600;color:var(--ink)">No:</b> inside every table cell — twenty repeated glyphs down a column is the noise problem the provenance badge already had, and it breaks tabular alignment. One mark in the header does the same work for the whole column.</p>
+    </div>
+  </section>
+
+  <!-- ── 11 · BARS AND METERS ─────────────────────── -->
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+      <h2 style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)">11 · Bars and meters</h2>
+      <h3 style="margin:0;font-size:22px;line-height:1.25;font-weight:600">Three ways to tell two segments apart, not one</h3>
+      <p style="margin:0;font-size:15px;line-height:1.6;color:var(--ink-2);text-wrap:pretty">There is no chart library and none is coming, so every graphic here is a CSS bar. Each segment is distinguished by <b style="font-weight:600">fill, pattern and a legend row carrying its own icon and figure</b> — never by colour alone. Bars are 16–18px tall so a segment is visible on a small, scratched screen in sunlight, and every bar states its own total.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:12px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Anatomy</p>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="12" cy="5" r="3"></circle><path d="M6.5 8a2 2 0 0 0-1.905 1.46L2.1 18.5A2 2 0 0 0 4 21h16a2 2 0 0 0 1.925-2.54L19.4 9.5A2 2 0 0 0 17.48 8Z"></path></svg>Coverage of 9,000.00 kg</span><span style="font-size:22px;font-weight:600;font-variant-numeric:tabular-nums">62.2%</span></div>
+        <div style="display:flex;height:18px;width:100%;border:1px solid var(--rule);border-radius:999px;overflow:hidden;background:var(--sand-2)"><span style="width:62.2%;background:var(--green);display:block"></span><span style="width:37.8%;background:var(--hatch),var(--sand-2);display:block"></span></div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:13px">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline"><span style="display:inline-flex;align-items:center;gap:7px;color:var(--ink-2)"><span style="width:12px;height:12px;border-radius:3px;background:var(--green);flex:none"></span>Solid = available now</span><span style="font-weight:600;font-variant-numeric:tabular-nums">5,600.00 kg</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline"><span style="display:inline-flex;align-items:center;gap:7px;color:var(--ink-2)"><span style="width:12px;height:12px;border-radius:3px;background:var(--hatch),var(--sand-2);border:1px solid var(--rule-2);flex:none"></span>Hatched = not covered</span><span style="font-weight:600;font-variant-numeric:tabular-nums">3,400.00 kg</span></div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline;border-top:1px solid var(--rule);padding-top:6px"><span style="display:inline-flex;align-items:center;gap:7px;color:var(--ink-2)"><span style="width:12px;height:12px;border-radius:3px;border:2px solid var(--ink-2);box-sizing:border-box;flex:none"></span>Outlined, below the rule = committed</span><span style="font-weight:600;font-variant-numeric:tabular-nums">6,400.00 kg</span></div>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">Solid means real and available. Hatched means missing or provisional. Outlined means it exists but is spoken for — and it is drawn <b style="font-weight:600">outside the track</b>, because it is not part of what the bar measures.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:18px;display:flex;flex-direction:column;gap:14px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Ratio meters · data quality</p>
+        <div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>Persons verified</span><span style="font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">3 / 6</span></div><div style="display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--sand-2);border:1px solid var(--rule)"><span style="width:50%;background:var(--green-ink);display:block"></span></div></div>
+        <div style="display:flex;flex-direction:column;gap:5px"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>Farms with GPS</span><span style="font-size:15px;font-weight:600;font-variant-numeric:tabular-nums">3 / 4</span></div><div style="display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--sand-2);border:1px solid var(--rule)"><span style="width:75%;background:var(--green-ink);display:block"></span></div></div>
+        <p style="margin:0;font-size:12px;line-height:1.5;color:var(--ink-3)">A ratio is always written as <b style="font-weight:600">n / total</b> beside its bar. A percentage alone hides how few records the share is drawn from.</p>
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Never</p>
+        <p style="margin:0;font-size:13px;line-height:1.55;color:var(--ink-2)">One bar holding prospective and approved. One bar summing available and committed. A donut, a sparkline, or any figure without its unit — those need a library, and there is not one.</p>
+      </div>
+      <div style="border:1px solid var(--rule);border-radius:12px;background:var(--sand-2);padding:18px;display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)">Performance rules this design commits to</p>
+        <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;line-height:1.55;color:var(--ink-2)">
+          <p style="margin:0"><b style="font-weight:600;color:var(--ink)">No animation, no transition, anywhere.</b> No fades, no slides, no shimmer, no spinner sweep. A state change is a repaint, not a performance.</p>
+          <p style="margin:0"><b style="font-weight:600;color:var(--ink)">No blur, no filter, no box-shadow.</b> Depth stays borders and the white-on-sand contrast — all of it cheap on a low-end GPU.</p>
+          <p style="margin:0"><b style="font-weight:600;color:var(--ink)">No images.</b> Icons are inline SVG paths from the Lucide package already installed; hatching, marks and meters are CSS gradients and borders. Nothing new is downloaded on a 3G connection.</p>
+          <p style="margin:0"><b style="font-weight:600;color:var(--ink)">No new fonts.</b> The four Poppins latin weights already subset are the whole type system.</p>
+          <p style="margin:0"><b style="font-weight:600;color:var(--ink)">Fixed skeleton footprints.</b> Loading blocks match the height of what replaces them, so a tile landing does not reflow the grid — the cheapest kind of fast is a layout that never moves twice.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="max-width:760px;border-top:1px solid var(--rule-2);padding-top:20px;display:flex;flex-direction:column;gap:8px">
+    <p style="margin:0;font-size:13px;line-height:1.6;color:var(--ink-2)">Everything above is Tailwind-expressible against the existing <code>@theme</code> block: three ink values, three surfaces, one hatch, six spacing steps, eight type steps. No new dependency, no chart library, no icon package — the marks, meters and hatches are CSS. No dark palette is defined.</p>
+  </footer>
+</div>
+
+</x-dc>
+</body>
+</html>

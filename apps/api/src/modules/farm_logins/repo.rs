@@ -73,8 +73,8 @@ pub async fn insert_user(
     password_hash: &str,
 ) -> Result<Uuid, sqlx::Error> {
     sqlx::query_scalar!(
-        "INSERT INTO users (phone, first_name, last_name, password_hash, must_change_password)
-         VALUES ($1, $2, $3, $4, true) RETURNING id",
+        "INSERT INTO users (phone, first_name, last_name, password_hash, must_change_password, locale)
+         VALUES ($1, $2, $3, $4, true, 'sw') RETURNING id",
         phone,
         first_name,
         last_name,
@@ -252,17 +252,64 @@ pub async fn set_password(
     Ok(())
 }
 
-/// The account's live farm roles in live workspaces, as `[{workspace_id, role, village_id}]`.
+/// The account's live farm roles in live workspaces, as
+/// `[{id, workspace_id, workspace_name, role, village_id, village_name, person_id}]`. Staff roles
+/// count only while the account is an active member of that workspace, as in the farm guard.
 pub async fn memberships(db: impl PgExecutor<'_>, user_id: Uuid) -> Result<Value, sqlx::Error> {
     sqlx::query_scalar!(
-        r#"SELECT coalesce(jsonb_agg(jsonb_build_object('workspace_id', m.workspace_id, 'role', m.role,
-                                                        'village_id', m.village_id)
-                                     ORDER BY m.created_at), '[]') AS "m!"
+        r#"SELECT coalesce(jsonb_agg(jsonb_build_object(
+                      'id', m.id, 'workspace_id', m.workspace_id, 'workspace_name', w.name, 'role', m.role,
+                      'village_id', m.village_id, 'village_name', v.name, 'person_id', p.id)
+                  ORDER BY m.created_at, m.id), '[]') AS "m!"
            FROM farm_memberships m
            JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
-           WHERE m.user_id = $1 AND m.revoked_at IS NULL"#,
+           LEFT JOIN farm_villages v ON v.id = m.village_id
+           LEFT JOIN farm_persons p ON p.workspace_id = m.workspace_id AND p.user_id = m.user_id
+                                   AND p.deleted_at IS NULL
+           WHERE m.user_id = $1 AND m.revoked_at IS NULL
+             AND (m.role = 'farmer' OR EXISTS (
+                   SELECT 1 FROM workspace_members wm
+                   WHERE wm.workspace_id = m.workspace_id AND wm.user_id = m.user_id AND wm.active))"#,
         user_id,
     )
     .fetch_one(db)
     .await
+}
+
+/// What `/farm/me` shows about the account.
+pub struct MeRow {
+    pub id: Uuid,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub locale: String,
+    pub must_change_password: bool,
+}
+
+pub async fn me(db: impl PgExecutor<'_>, user_id: Uuid) -> Result<Option<MeRow>, sqlx::Error> {
+    sqlx::query_as!(
+        MeRow,
+        "SELECT id, first_name, last_name, email, phone, locale, must_change_password
+         FROM users WHERE id = $1 AND deleted_at IS NULL",
+        user_id
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// Save the account's interface language.
+pub async fn set_locale(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+    locale: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE users SET locale = $2, updated_at = now() WHERE id = $1",
+        user_id,
+        locale
+    )
+    .execute(db)
+    .await?;
+    Ok(())
 }

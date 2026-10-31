@@ -27,7 +27,34 @@ Records are never deleted through the API. A soft-deleted row (`deleted_at`) dis
 - Anything else is `404`, including another workspace.
 - **Phone and GPS** (`phone`, farm and plot `latitude`/`longitude`) are filled only for staff of the record's village. Everyone else gets `null`.
 
-Lists take `?village_id=&page=&page_size=` and come oldest first: `GET /v1/workspace/{workspace}/farm/{persons|households|farms|plots|crop-cycles}`. Each has `GET …/{id}`. Households embed `members [{person_id, is_head}]`; farms embed `managers [{person_id, is_primary}]`.
+Lists come oldest first: `GET /v1/workspace/{workspace}/farm/{persons|households|farms|plots|crop-cycles}`. Each has `GET …/{id}`. Households embed `members [{person_id, is_head}]`; farms embed `managers [{person_id, is_primary}]`.
+
+| Query | Applies to | Meaning |
+|---|---|---|
+| `village_id` | all five | one village |
+| `verification` | all five | comma-separated states, e.g. `unverified,pending` (the verify queue). An unknown state: `422` |
+| `farm_id` | plots | the plots of one farm |
+| `plot_id` | crop-cycles | the cycles on one plot |
+| `page`, `page_size` | all five | default 50, max 100 |
+
+A filter never widens what the caller may see: another village's `farm_id` gives an empty list.
+
+### Holdings: `GET /v1/workspace/{workspace}/farm/persons/{person}/holdings`
+
+One read for a person page. Visible to whoever may see the person: village staff, or the farmer and their household. Anyone else gets `404`.
+
+```json
+{ "data": {
+  "households": [ { …household, "people": [ { "person_id", "given_name", "family_name", "is_head" } ] } ],
+  "farms": [ { …farm, "plots": [ { …plot, "cycles": [ { …cycle,
+      "crop": { "id", "code", "name_en", "name_sw" },
+      "harvests": [ …harvest reports, newest first ] } ] } ] } ]
+} }
+```
+
+- `households` are the ones the person belongs to.
+- `farms` are the ones they manage or their household owns.
+- Every level keeps the usual rules: phone and GPS only for village staff, deleted rows left out.
 
 ## Registration: `POST /v1/workspace/{workspace}/farm/registrations`
 
@@ -88,7 +115,10 @@ For persons, households, farms, plots, crop-cycles and `harvest-reports`. Field 
 A harvest figure is a series. Each crop cycle has one current `expected` and one current `actual` figure at most; older figures stay on record.
 
 - `GET /v1/workspace/{workspace}/farm/crop-cycles/{cycle}/harvest-reports?current=true`: newest first; `current=true` keeps only the current figures. `404` when the cycle isn't visible.
-- `POST` the same path, field staff only: `{ "kind": "expected|actual", "quantity_kg": "4100", "source": "farmer_reported|field_verified", "confidence": "medium", "reported_for": "2026-09-15" }`. The cycle is locked; the current figure of that kind becomes `is_current: false`, and the new one is current. `201` with the new figure.
+- `POST` the same path, field staff only: `{ "kind": "expected|actual", "quantity_kg": "4100", "source": "farmer_reported|field_verified", "confidence": "medium", "reported_for": "2026-09-15", "client_ref": "uuid" }`. The cycle is locked; the current figure of that kind becomes `is_current: false`, and the new one is current. `201` with the new figure.
+- `client_ref` is optional and unique per workspace; it makes a retry safe:
+  - the same ref with the same figure returns that figure (`200`) and writes nothing;
+  - the same ref with a different figure, or on another cycle, gets `409`.
 
 ## Crops: `/v1/workspace/{workspace}/farm/crops`
 

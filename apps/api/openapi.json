@@ -2905,6 +2905,31 @@
         ],
         "type": "object"
       },
+      "CropName": {
+        "description": "The crop of a cycle.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "name_sw": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name_en",
+          "name_sw"
+        ],
+        "type": "object"
+      },
       "CropResource": {
         "description": "A crop farmers grow in this workspace.",
         "properties": {
@@ -4374,6 +4399,18 @@
         ],
         "type": "object"
       },
+      "Envelope_FarmMe": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FarmMe"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_FarmResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4464,6 +4501,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/HarvestReportResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Holdings": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Holdings"
           }
         },
         "required": [
@@ -4632,6 +4681,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/LotResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_LotStockLevel": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LotStockLevel"
           }
         },
         "required": [
@@ -5706,10 +5767,56 @@
         ],
         "type": "object"
       },
+      "FarmMe": {
+        "description": "GET /v1/farm/me: the account, its language and every farm role, for phone and email accounts.",
+        "properties": {
+          "locale": {
+            "description": "Interface language: `sw`, `en` or `nl`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "memberships": {
+            "items": {
+              "$ref": "#/components/schemas/FarmMembershipRef"
+            },
+            "type": "array"
+          },
+          "must_change_password": {
+            "description": "The account still has to replace a temporary password.",
+            "type": "boolean"
+          },
+          "user": {
+            "$ref": "#/components/schemas/MeUser"
+          }
+        },
+        "required": [
+          "user",
+          "locale",
+          "must_change_password",
+          "memberships"
+        ],
+        "type": "object"
+      },
       "FarmMembershipRef": {
         "description": "One farm role of the signed-in account.",
         "properties": {
+          "id": {
+            "description": "The membership id.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "person_id": {
+            "description": "The registered person this account is in that workspace, if any.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "role": {
+            "description": "`farmer`, `field_officer`, `ops` or `admin`.",
             "type": "string"
           },
           "village_id": {
@@ -5719,15 +5826,28 @@
               "null"
             ]
           },
+          "village_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "workspace_id": {
             "format": "uuid",
+            "type": "string"
+          },
+          "workspace_name": {
             "type": "string"
           }
         },
         "required": [
+          "id",
           "workspace_id",
+          "workspace_name",
           "role",
-          "village_id"
+          "village_id",
+          "village_name",
+          "person_id"
         ],
         "type": "object"
       },
@@ -6206,6 +6326,14 @@
       "HarvestRevision": {
         "description": "A new figure for this cycle. It replaces the current one of the same kind, which stays on record.",
         "properties": {
+          "client_ref": {
+            "description": "Made on the device: a retry with the same ref returns the same figure (200); the same\nref with a different figure is a 409.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "confidence": {
             "type": [
               "string",
@@ -6236,6 +6364,153 @@
           "kind",
           "quantity_kg",
           "source"
+        ],
+        "type": "object"
+      },
+      "HoldingCycle": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CropCycleResource"
+          },
+          {
+            "properties": {
+              "crop": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CropName"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "harvests": {
+                "items": {
+                  "$ref": "#/components/schemas/HarvestReportResource"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "crop",
+              "harvests"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A crop cycle with its crop and every harvest figure (newest first)."
+      },
+      "HoldingFarm": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FarmResource"
+          },
+          {
+            "properties": {
+              "plots": {
+                "items": {
+                  "$ref": "#/components/schemas/HoldingPlot"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "plots"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A farm with its plots."
+      },
+      "HoldingHousehold": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/HouseholdResource"
+          },
+          {
+            "properties": {
+              "people": {
+                "description": "The members with their names, in joining order.",
+                "items": {
+                  "$ref": "#/components/schemas/HoldingMember"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "people"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A household with its members' names."
+      },
+      "HoldingMember": {
+        "description": "A household member, named.",
+        "properties": {
+          "family_name": {
+            "type": "string"
+          },
+          "given_name": {
+            "type": "string"
+          },
+          "is_head": {
+            "type": "boolean"
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "given_name",
+          "family_name",
+          "is_head"
+        ],
+        "type": "object"
+      },
+      "HoldingPlot": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PlotResource"
+          },
+          {
+            "properties": {
+              "cycles": {
+                "items": {
+                  "$ref": "#/components/schemas/HoldingCycle"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "cycles"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A plot with its crop cycles."
+      },
+      "Holdings": {
+        "description": "A person's households and the farms they manage or their household owns, with plots, crop cycles and harvest figures. Phone and GPS follow the usual rule: village staff only.",
+        "properties": {
+          "farms": {
+            "items": {
+              "$ref": "#/components/schemas/HoldingFarm"
+            },
+            "type": "array"
+          },
+          "households": {
+            "items": {
+              "$ref": "#/components/schemas/HoldingHousehold"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "households",
+          "farms"
         ],
         "type": "object"
       },
@@ -8452,6 +8727,25 @@
         ],
         "type": "object"
       },
+      "LotStockLevel": {
+        "description": "The lot's level at the warehouse after a stock mutation.",
+        "properties": {
+          "stock_lvl": {
+            "description": "2 decimals.",
+            "example": "12.50",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id",
+          "stock_lvl"
+        ],
+        "type": "object"
+      },
       "MapPoint": {
         "additionalProperties": false,
         "description": "A map pin, rounded to 2 decimals (about 1 km) when saved: never an exact farm point.",
@@ -8684,6 +8978,21 @@
         ],
         "type": "object"
       },
+      "MePatch": {
+        "additionalProperties": false,
+        "description": "PATCH /v1/farm/me.",
+        "properties": {
+          "locale": {
+            "description": "`sw`, `en` or `nl`.",
+            "example": "sw",
+            "type": "string"
+          }
+        },
+        "required": [
+          "locale"
+        ],
+        "type": "object"
+      },
       "MeResponse": {
         "description": "The logged-in user.",
         "properties": {
@@ -8693,6 +9002,38 @@
         },
         "required": [
           "user"
+        ],
+        "type": "object"
+      },
+      "MeUser": {
+        "description": "The signed-in account as the farm apps need it.",
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Full name.",
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "phone"
         ],
         "type": "object"
       },
@@ -13022,6 +13363,13 @@
             "description": "Stock id, or `fallback-<warehouse id>` for a zero row.",
             "type": "string"
           },
+          "lot": {
+            "description": "`id`, `code`, `expires_on`; null for no-lot stock.",
+            "type": [
+              "object",
+              "null"
+            ]
+          },
           "maximum_stock_level": {
             "format": "int32",
             "type": "integer"
@@ -13082,6 +13430,7 @@
           "warehouse",
           "shelf",
           "bin",
+          "lot",
           "updated_at",
           "meta"
         ],
@@ -17091,12 +17440,51 @@
         ],
         "type": "object"
       },
+      "StockMutationRequest": {
+        "description": "Stock in (positive) or out (negative) of this lot at a warehouse.",
+        "properties": {
+          "is_correction": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "quantity": {
+            "description": "Non-zero, 2 decimals; out may not take more than the lot has free (level − reserved).",
+            "example": "12.5",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 255,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "StockResource": {
         "description": "One stock row of `GET /products/stocks[/negative]`.",
         "properties": {
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "lot": {
+            "description": "`id`, `code`, `expires_on`; null for no-lot stock.",
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "maximum_stock_level": {
             "format": "int32",
@@ -17158,6 +17546,7 @@
           "minimal_stock_level",
           "maximum_stock_level",
           "meta",
+          "lot",
           "relationships"
         ],
         "type": "object"
@@ -17175,6 +17564,13 @@
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "lot": {
+            "description": "`id`, `code`, `expires_on`; null for no-lot stock.",
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "maximum_stock_level": {
             "format": "int32",
@@ -17215,7 +17611,8 @@
           "maximum_stock_level",
           "warehouse",
           "shelf",
-          "bin"
+          "bin",
+          "lot"
         ],
         "type": "object"
       },
@@ -21497,6 +21894,202 @@
           }
         },
         "summary": "Farmer sign-in by phone",
+        "tags": [
+          "farm_logins"
+        ]
+      }
+    },
+    "/farm/me": {
+      "get": {
+        "description": "For phone (farmer) and email (staff) accounts alike: name, contact, language, whether a temporary password must be replaced, and every live farm role with its workspace, village and person.",
+        "operationId": "farm_logins_me",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_FarmMe"
+                }
+              }
+            },
+            "description": "The account"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The signed-in account and its farm roles",
+        "tags": [
+          "farm_logins"
+        ]
+      },
+      "patch": {
+        "operationId": "farm_logins_update_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Not sw, en or nl, or another field"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save my language",
         "tags": [
           "farm_logins"
         ]
@@ -35058,6 +35651,36 @@
             }
           },
           {
+            "description": "Comma-separated: `unverified`, `pending`, `verified`, `disputed`.",
+            "example": "unverified,pending",
+            "in": "query",
+            "name": "verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Plots only: the plots of this farm.",
+            "in": "query",
+            "name": "farm_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Crop cycles only: the cycles on this plot.",
+            "in": "query",
+            "name": "plot_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -35108,6 +35731,16 @@
               }
             },
             "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown verification state"
           },
           "429": {
             "content": {
@@ -35623,6 +36256,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_HarvestReportResource"
+                }
+              }
+            },
+            "description": "Replayed: this client_ref already recorded this figure"
+          },
           "201": {
             "content": {
               "application/json": {
@@ -35672,6 +36315,16 @@
               }
             },
             "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "This client_ref recorded a different figure"
           },
           "413": {
             "content": {
@@ -36353,6 +37006,36 @@
             }
           },
           {
+            "description": "Comma-separated: `unverified`, `pending`, `verified`, `disputed`.",
+            "example": "unverified,pending",
+            "in": "query",
+            "name": "verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Plots only: the plots of this farm.",
+            "in": "query",
+            "name": "farm_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Crop cycles only: the cycles on this plot.",
+            "in": "query",
+            "name": "plot_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -36403,6 +37086,16 @@
               }
             },
             "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown verification state"
           },
           "429": {
             "content": {
@@ -37034,6 +37727,36 @@
             }
           },
           {
+            "description": "Comma-separated: `unverified`, `pending`, `verified`, `disputed`.",
+            "example": "unverified,pending",
+            "in": "query",
+            "name": "verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Plots only: the plots of this farm.",
+            "in": "query",
+            "name": "farm_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Crop cycles only: the cycles on this plot.",
+            "in": "query",
+            "name": "plot_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -37084,6 +37807,16 @@
               }
             },
             "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown verification state"
           },
           "429": {
             "content": {
@@ -38461,6 +39194,36 @@
             }
           },
           {
+            "description": "Comma-separated: `unverified`, `pending`, `verified`, `disputed`.",
+            "example": "unverified,pending",
+            "in": "query",
+            "name": "verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Plots only: the plots of this farm.",
+            "in": "query",
+            "name": "farm_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Crop cycles only: the cycles on this plot.",
+            "in": "query",
+            "name": "plot_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -38511,6 +39274,16 @@
               }
             },
             "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown verification state"
           },
           "429": {
             "content": {
@@ -38842,6 +39615,121 @@
           }
         ],
         "summary": "Correct a person",
+        "tags": [
+          "farm_records"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/persons/{person}/holdings": {
+      "get": {
+        "description": "The person's households (members named) and the farms they manage or their household owns, with plots, crop cycles (with crop) and every harvest figure. Same visibility as the person: staff of the village, or the farmer and their household.",
+        "operationId": "farm_records_persons_holdings",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Person id",
+            "in": "path",
+            "name": "person",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Holdings"
+                }
+              }
+            },
+            "description": "The holdings"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown, deleted, or not visible to the caller"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything a person holds, in one read",
         "tags": [
           "farm_records"
         ]
@@ -39660,6 +40548,36 @@
             }
           },
           {
+            "description": "Comma-separated: `unverified`, `pending`, `verified`, `disputed`.",
+            "example": "unverified,pending",
+            "in": "query",
+            "name": "verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Plots only: the plots of this farm.",
+            "in": "query",
+            "name": "farm_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Crop cycles only: the cycles on this plot.",
+            "in": "query",
+            "name": "plot_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -39710,6 +40628,16 @@
               }
             },
             "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown verification state"
           },
           "429": {
             "content": {
@@ -49659,6 +50587,170 @@
           }
         ],
         "summary": "Publish a lot's passport draft",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
+    "/workspace/{workspace}/lots/{lot}/stock-mutations": {
+      "post": {
+        "operationId": "lots_stock_mutate",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_LotStockLevel"
+                }
+              }
+            },
+            "description": "Stock moved; the lot's level at the warehouse"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `product.update`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown warehouse, or more out than the lot has free"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put stock into or take it out of a lot",
         "tags": [
           "lots"
         ]

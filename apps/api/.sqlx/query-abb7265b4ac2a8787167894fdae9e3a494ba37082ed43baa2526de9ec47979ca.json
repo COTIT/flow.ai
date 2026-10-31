@@ -1,0 +1,138 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, product_id, warehouse_id, shelf_id, bin_id, lot_id, stock_lvl, reserved,\n                minimal_stock_level, maximum_stock_level\n         FROM stocks\n         WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3\n           AND bin_id IS NULL AND lot_id IS NOT NULL AND deleted_at IS NULL\n         ORDER BY lot_id\n         FOR NO KEY UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "shelf_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "shelf_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "bin_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "bin_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "stock_lvl",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "stock_lvl"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "reserved",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "reserved"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "minimal_stock_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "minimal_stock_level"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "maximum_stock_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "maximum_stock_level"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "abb7265b4ac2a8787167894fdae9e3a494ba37082ed43baa2526de9ec47979ca"
+}

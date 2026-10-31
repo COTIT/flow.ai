@@ -379,3 +379,18 @@ pub async fn public(
     .fetch_optional(db)
     .await
 }
+
+/// True once any stock row (live or deleted) was made for the lot.
+pub async fn has_stock(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM stocks WHERE workspace_id = $1 AND lot_id = $2) AS "has!""#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(db)
+    .await
+}

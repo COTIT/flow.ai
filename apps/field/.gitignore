@@ -1,0 +1,32 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+
+# supabase CLI local state
+supabase/.branches
+supabase/.temp
+
+# test output
+coverage
+playwright-report
+test-results
+blob-report
+/playwright/.cache
+
+# editors / os
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.log
+
+# Transient: `pnpm db:types` generates here and moves on success, so a failed
+# generation cannot truncate the committed types.
+src/lib/db.types.ts.new
+
+# bug report images downloaded by pnpm bugs:show
+.bug-reports/

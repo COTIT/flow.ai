@@ -1,0 +1,305 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,\n                  s.minimal_stock_level, s.maximum_stock_level, s.meta, s.updated_at,\n                  w.id AS \"w_id?\", w.name AS \"w_name?\", w.alias AS \"w_alias?\",\n                  w.is_store AS \"w_is_store?\", w.pickup_enabled AS \"w_pickup?\",\n                  w.location AS \"w_location?\",\n                  sh.id AS \"shelf_id?\", sh.shelf_code AS \"shelf_code?\", sh.shelf_name AS \"shelf_name?\",\n                  b.id AS \"bin_id?\", b.bin_code AS \"bin_code?\", b.bin_name AS \"bin_name?\",\n                  l.id AS \"lot_id?\", l.code AS \"lot_code?\", l.expires_on AS \"lot_expires_on?\"\n           FROM stocks s\n           LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL\n           LEFT JOIN lots l ON l.id = s.lot_id\n           WHERE s.workspace_id = $1 AND s.product_id = ANY($2) AND s.deleted_at IS NULL\n           ORDER BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "stock_lvl",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "stock_lvl"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "reserved",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "reserved"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "minimal_stock_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "minimal_stock_level"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "maximum_stock_level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "maximum_stock_level"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "w_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "w_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "w_alias?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "alias"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "w_is_store?",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "is_store"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "w_pickup?",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "pickup_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "w_location?",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "warehouses",
+            "name": "location"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "shelf_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "shelf_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_code"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "shelf_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_shelves",
+            "name": "shelf_name"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "bin_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "bin_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_code"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "bin_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "warehouse_section_row_bins",
+            "name": "bin_name"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "lot_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "lot_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "lot_expires_on?",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "expires_on"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "c7b92229dea3ca683c29d1550ec7811afbbb9c7e62dfa322c40a3fa6863f9cc1"
+}

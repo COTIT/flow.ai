@@ -20,9 +20,9 @@ use crate::{
     modules::farm_records::{
         dto::{
             CropCycleResource, CycleCorrection, FarmCorrection, FarmResource, HarvestQuery,
-            HarvestReportResource, HarvestRevision, HouseholdCorrection, HouseholdResource,
-            ListQuery, PersonCorrection, PersonResource, PlotCorrection, PlotResource,
-            RegistrationRequest, RegistrationResult,
+            HarvestReportResource, HarvestRevision, Holdings, HouseholdCorrection,
+            HouseholdResource, ListQuery, PersonCorrection, PersonResource, PlotCorrection,
+            PlotResource, RegistrationRequest, RegistrationResult, verification_filter,
         },
         repo::{self, Pick},
         service::{self, Kind, one, path_id, seen},
@@ -73,7 +73,7 @@ macro_rules! record_handlers {
         verify = $verify:ident / $verify_id:literal,
         verify_path = $verify_path:literal,
         resource = $res:ty, correction = $fix:ty,
-        read = $read:path, fix = $svc_fix:path, kind = $kind:expr
+        read = $read:path, fix = $svc_fix:path, kind = $kind:expr, parent = $parent:expr
     ) => {
         #[doc = concat!("GET ", $base)]
         #[utoipa::path(
@@ -83,6 +83,7 @@ macro_rules! record_handlers {
             params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
             responses(
                 (status = 200, body = Paginated<$res>, description = "One page, oldest first"),
+                (status = 422, body = ValidationErrorBody, description = "Unknown verification state"),
                 (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role and is not a member"),
             ),
             security(("bearer" = []))
@@ -98,7 +99,15 @@ macro_rules! record_handlers {
                 None => None,
             };
             let scope = access.staff_scope();
-            let pick = Pick { village, id: None, limit: page.size, offset: page.offset() };
+            let parent: Option<String> = ($parent)(&q);
+            let pick = Pick {
+                village,
+                verification: verification_filter(q.verification.as_deref())?,
+                parents: parent.as_deref().filter(|v| !v.is_empty()).map(path_id).transpose()?.map(|id| vec![id]),
+                limit: page.size,
+                offset: page.offset(),
+                ..Pick::default()
+            };
             let (rows, total) = $read(&state.db, &seen(&access, &scope.villages), &pick).await?;
             Ok(Json(Paginated::new(rows.into_iter().map(Into::into).collect(), total, page)))
         }
@@ -194,7 +203,8 @@ record_handlers!(
     correction = PersonCorrection,
     read = repo::persons,
     fix = service::correct_person,
-    kind = Kind::Person
+    kind = Kind::Person,
+    parent = |_: &ListQuery| None
 );
 record_handlers!(
     tag = "farm_records",
@@ -211,7 +221,8 @@ record_handlers!(
     correction = HouseholdCorrection,
     read = repo::households,
     fix = service::correct_household,
-    kind = Kind::Household
+    kind = Kind::Household,
+    parent = |_: &ListQuery| None
 );
 record_handlers!(
     tag = "farm_records",
@@ -228,7 +239,8 @@ record_handlers!(
     correction = FarmCorrection,
     read = repo::farms,
     fix = service::correct_farm,
-    kind = Kind::Farm
+    kind = Kind::Farm,
+    parent = |_: &ListQuery| None
 );
 record_handlers!(
     tag = "farm_records",
@@ -245,7 +257,8 @@ record_handlers!(
     correction = PlotCorrection,
     read = repo::plots,
     fix = service::correct_plot,
-    kind = Kind::Plot
+    kind = Kind::Plot,
+    parent = |q: &ListQuery| q.farm_id.clone()
 );
 record_handlers!(
     tag = "farm_records",
@@ -262,7 +275,8 @@ record_handlers!(
     correction = CycleCorrection,
     read = repo::cycles,
     fix = service::correct_cycle,
-    kind = Kind::Cycle
+    kind = Kind::Cycle,
+    parent = |q: &ListQuery| q.plot_id.clone()
 );
 
 /// GET /farm/crop-cycles/{cycle}/harvest-reports.
@@ -310,7 +324,9 @@ pub async fn list_harvests(
     ),
     request_body = HarvestRevision,
     responses(
+        (status = 200, body = Envelope<HarvestReportResource>, description = "Replayed: this client_ref already recorded this figure"),
         (status = 201, body = Envelope<HarvestReportResource>, description = "Recorded"),
+        (status = 409, body = MessageBody, description = "This client_ref recorded a different figure"),
         (status = 403, body = MessageBody, description = "Caller is not field staff"),
         (status = 404, body = MessageBody, description = "Unknown cycle, or outside the caller's villages"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input"),
@@ -323,8 +339,38 @@ pub async fn revise_harvest(
     Path((_, cycle)): Path<(String, String)>,
     ValidatedJson(rev): ValidatedJson<HarvestRevision>,
 ) -> Result<(StatusCode, Data<HarvestReportResource>), AppError> {
-    let row = service::revise_harvest(&state, &access, &cycle, rev).await?;
-    Ok((StatusCode::CREATED, Data(row.into())))
+    let (row, created) = service::revise_harvest(&state, &access, &cycle, rev).await?;
+    let status = if created {
+        StatusCode::CREATED
+    } else {
+        StatusCode::OK
+    };
+    Ok((status, Data(row.into())))
+}
+
+/// GET /farm/persons/{person}/holdings.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/persons/{person}/holdings", tag = "farm_records",
+    operation_id = "farm_records_persons_holdings", summary = "Everything a person holds, in one read",
+    description = "The person's households (members named) and the farms they manage or their household \
+        owns, with plots, crop cycles (with crop) and every harvest figure. Same visibility as the \
+        person: staff of the village, or the farmer and their household.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("person" = Uuid, Path, description = "Person id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<Holdings>, description = "The holdings"),
+        (status = 404, body = MessageBody, description = "Unknown, deleted, or not visible to the caller"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn holdings(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Path((_, person)): Path<(String, String)>,
+) -> Result<Data<Holdings>, AppError> {
+    Ok(Data(service::holdings(&state, &access, &person).await?))
 }
 
 /// POST /farm/harvest-reports/{report}/verification.

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ProductStockBin } from './productStockBin';
+import type { ProductStockLot } from './productStockLot';
 import type { ProductStockMeta } from './productStockMeta';
 import type { ProductStockProduct } from './productStockProduct';
 import type { ProductStockShelf } from './productStockShelf';
@@ -22,6 +23,11 @@ export interface ProductStock {
   bin: ProductStockBin;
   /** Stock id, or `fallback-<warehouse id>` for a zero row. */
   id: string;
+  /**
+     * `id`, `code`, `expires_on`; null for no-lot stock.
+     * @nullable
+     */
+  lot: ProductStockLot;
   maximum_stock_level: number;
   /** @nullable */
   meta: ProductStockMeta;
