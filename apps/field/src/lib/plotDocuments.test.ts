@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { sessionStore } from '@genesy/api-client/session'
 
-const upload = vi.fn()
-const insert = vi.fn()
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    storage: { from: (bucket: string) => ({ upload: (...args: unknown[]) => upload(bucket, ...args) }) },
-    from: (table: string) => ({ insert: (row: unknown) => insert(table, row) }),
-  },
+const create = vi.fn()
+vi.mock('@genesy/api-client/endpoints/farm-documents', () => ({
+  farmDocumentsCreate: (...args: unknown[]) => create(...args),
 }))
+// fetchPlotDocuments (person detail) still reads Supabase until that screen is ported.
+vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 
-const { isDraftFiles, plotDocumentPath, uploadPlotDocuments } = await import('@/lib/plotDocuments')
+const { isDraftFiles, uploadPlotDocuments } = await import('@/lib/plotDocuments')
 
+const WORKSPACE = '20000000-0000-4000-8000-000000000001'
 const VILLAGE = '30000000-0000-4000-8000-000000000001'
 const PLOT = 'a0000000-0000-4000-8000-000000000001'
 
@@ -23,69 +23,44 @@ const draftFile = (name: string, id = 'f1') => ({
 })
 
 beforeEach(() => {
-  upload.mockReset()
-  insert.mockReset()
-  upload.mockResolvedValue({ data: { path: 'x' }, error: null })
-  insert.mockResolvedValue({ error: null })
-})
-
-describe('plotDocumentPath', () => {
-  // The storage policy reads the village from the first folder, and the row's
-  // check reads the plot from the second.
-  test('files under the village, then the plot', () => {
-    expect(plotDocumentPath(VILLAGE, PLOT, 'f1', 'title.jpg')).toBe(`${VILLAGE}/${PLOT}/f1-title.jpg`)
-  })
-
-  test('keeps a file name safe for a storage key', () => {
-    expect(plotDocumentPath(VILLAGE, PLOT, 'f1', 'Hati ya shamba (1)/é.JPG')).toBe(
-      `${VILLAGE}/${PLOT}/f1-Hati-ya-shamba-1-e.JPG`,
-    )
-  })
+  create.mockReset()
+  create.mockResolvedValue({ data: { id: 'f1' } })
+  sessionStore.getState().signIn({ access_token: 'tok', token_type: 'Bearer', workspace_ids: [WORKSPACE] })
 })
 
 describe('uploadPlotDocuments', () => {
-  test('stores each file, then files a row describing it', async () => {
+  // The id is made when the file is picked: a retry after a timeout sends it again, and the API
+  // answers 200 with the document already filed instead of filing a second one.
+  test('files each one against the plot, named, with its device id', async () => {
     const result = await uploadPlotDocuments(VILLAGE, PLOT, [draftFile('title.jpg')])
 
-    expect(upload).toHaveBeenCalledWith(
-      'plot-documents',
-      `${VILLAGE}/${PLOT}/f1-title.jpg`,
-      expect.any(Blob),
-      expect.objectContaining({ contentType: 'image/jpeg', upsert: false }),
-    )
-    expect(insert).toHaveBeenCalledWith('plot_document', {
-      plot_id: PLOT,
-      village_id: VILLAGE,
-      storage_path: `${VILLAGE}/${PLOT}/f1-title.jpg`,
-      file_name: 'title.jpg',
-      mime_type: 'image/jpeg',
-      size_bytes: 3,
-    })
+    expect(create).toHaveBeenCalledWith(WORKSPACE, PLOT, { file: expect.any(File), id: 'f1' })
+    const sent = create.mock.calls[0][2].file as File
+    expect(sent.name).toBe('title.jpg')
+    expect(sent.type).toBe('image/jpeg')
     expect(result).toEqual({ filed: ['f1'], failed: [] })
   })
 
-  // A retry after a timeout: the file and the row are already there, which is
-  // the outcome wanted, not a failure.
-  test('a file already stored and filed counts as filed', async () => {
-    upload.mockResolvedValue({ data: null, error: { message: 'The resource already exists', statusCode: '409' } })
-    insert.mockResolvedValue({ error: { code: '23505', message: 'duplicate key value' } })
-
-    expect(await uploadPlotDocuments(VILLAGE, PLOT, [draftFile('title.jpg')])).toEqual({
-      filed: ['f1'],
-      failed: [],
-    })
-  })
-
   test('one refused file does not stop the others, and says why', async () => {
-    upload
-      .mockResolvedValueOnce({ data: null, error: { message: 'mime type text/plain is not supported' } })
-      .mockResolvedValueOnce({ data: { path: 'x' }, error: null })
+    create
+      .mockRejectedValueOnce({
+        message: 'Request failed with status code 422',
+        response: { status: 422, data: { message: 'invalid', errors: { file: ['this file type is not accepted'] } } },
+      })
+      .mockResolvedValueOnce({ data: { id: 'b' } })
 
     const result = await uploadPlotDocuments(VILLAGE, PLOT, [draftFile('notes.txt', 'a'), draftFile('title.jpg', 'b')])
 
     expect(result.filed).toEqual(['b'])
-    expect(result.failed).toEqual([{ id: 'a', name: 'notes.txt', message: 'mime type text/plain is not supported' }])
-    expect(insert).toHaveBeenCalledTimes(1)
+    expect(result.failed).toEqual([{ id: 'a', name: 'notes.txt', message: 'this file type is not accepted' }])
+  })
+
+  test('a file that never reached the API says so, and stays to retry', async () => {
+    create.mockRejectedValueOnce(new Error('Network Error'))
+
+    const result = await uploadPlotDocuments(VILLAGE, PLOT, [draftFile('title.jpg')])
+
+    expect(result).toEqual({ filed: [], failed: [{ id: 'f1', name: 'title.jpg', message: 'Network Error' }] })
   })
 })
 

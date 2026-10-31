@@ -1,27 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  farmVouchersLookup,
+  farmVouchersRedeem,
+  farmVouchersTimeline,
+} from '@genesy/api-client/endpoints/farm-vouchers'
+import type { Money, Redeemed } from '@genesy/api-client/model'
 
+import { workspaceId } from '@/app/workspace'
 import type { AuditEvent } from '@/components/AuditTimeline'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/db.types'
 
 export type IdDocumentType = Database['public']['Enums']['id_document_type']
 type VoucherStatus = Database['public']['Enums']['voucher_status']
 
-/** `app_voucher_lookup` when the code names a voucher this caller may see. */
+/** `POST /farm/vouchers/lookup` when the code names a voucher this caller may see. */
 export interface VoucherPreview {
   found: true
   voucher_id: string
   status: VoucherStatus
-  /** Derived by the database: issued, and past `expires_at`. */
+  /** Derived by the API: issued, and past `expires_at`. */
   expired: boolean
-  amount: number
-  currency: string
+  amount: Money
   issued_at: string
   expires_at: string
   redeemed_at: string | null
-  redeemed_by_name: string | null
-  void_reason: string | null
   survey_title_en: string | null
   survey_title_sw: string | null
   household_label: string
@@ -38,53 +41,36 @@ export interface VoucherPreview {
  */
 export type VoucherLookup = { found: false } | VoucherPreview
 
-export interface VoucherRedemption {
-  voucher_id: string
-  status: VoucherStatus
-  redeemed_at: string
-  redeemed_by_name: string
-  amount: number
-  currency: string
-  /** A retry by the same staff member after a dropped connection. */
-  replayed: boolean
-}
+/** `replayed`: a retry by the same staff member after a dropped connection; no second payout. */
+export type VoucherRedemption = Redeemed
 
 export interface RedeemInput {
   code: string
-  /** Null when none was chosen: the database refuses it in its own words. */
+  /** Null when none was chosen: the API refuses it in its own words. */
   idType: IdDocumentType | null
   nameConfirmed: boolean
 }
 
 export async function lookupVoucher(code: string): Promise<VoucherLookup> {
-  const { data, error } = await supabase.rpc('app_voucher_lookup', { p_code: code })
-  if (error) throw new Error(error.message)
-  return data as unknown as VoucherLookup
+  // The generated type marks every field optional; with found:true the API fills them.
+  return (await farmVouchersLookup(workspaceId(), { code })).data as VoucherLookup
 }
 
 /**
- * Hand over the incentive. Every rule — four eyes on the household, the audit
- * hold, expiry, a second redeem, the ID and the name check — is the database's,
- * and its refusal is the message the officer reads.
+ * Hand over the incentive. Online only, never queued. Every rule — four eyes on
+ * the household, the audit hold, expiry, a second redeem, the ID and the name
+ * check — is the API's, and its refusal is the message the officer reads.
  */
 export async function redeemVoucher({ code, idType, nameConfirmed }: RedeemInput): Promise<VoucherRedemption> {
-  const { data, error } = await supabase.rpc('app_voucher_redeem', {
-    p_code: code,
-    // The generated type says the argument is never null; the function body
-    // refuses null with 'record which ID document you checked', which is the
-    // sentence the officer should see.
-    p_id_type: idType as IdDocumentType,
-    p_name_confirmed: nameConfirmed,
-  })
-  if (error) throw new Error(error.message)
-  return data as unknown as VoucherRedemption
+  // A blank id_type reaches the API as "none", which it refuses with
+  // 'record which ID document you checked': the sentence the officer should see.
+  const body = { code, id_type: idType ?? '', name_confirmed: nameConfirmed }
+  return (await farmVouchersRedeem(workspaceId(), body)).data
 }
 
 /** The voucher's audit trail, already filtered by the caller's role. */
 export async function fetchVoucherTimeline(voucherId: string): Promise<AuditEvent[]> {
-  const { data, error } = await supabase.rpc('app_voucher_timeline', { p_voucher_id: voucherId })
-  if (error) throw new Error(error.message)
-  return (data ?? []) as AuditEvent[]
+  return (await farmVouchersTimeline(workspaceId(), voucherId)).data
 }
 
 /**

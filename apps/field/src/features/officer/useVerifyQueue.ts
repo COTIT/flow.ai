@@ -1,7 +1,16 @@
 import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import {
+  farmRecordsCropCyclesVerify,
+  farmRecordsFarmsVerify,
+  farmRecordsHarvestReportsVerify,
+  farmRecordsHouseholdsVerify,
+  farmRecordsPersonsVerify,
+  farmRecordsPlotsVerify,
+} from '@genesy/api-client/endpoints/farm-records'
 
+import { workspaceId } from '@/app/workspace'
 import type { VerifiableTable } from '@/features/officer/personDetail'
 import { localisedName, type LocalisedNames } from '@/lib/names'
 import { queryKeys } from '@/lib/queryKeys'
@@ -175,6 +184,16 @@ export function useVerifyQueue() {
   return { ...query, data }
 }
 
+/** `POST /farm/{kind}/{id}/verification`, by table. The API stamps who and when, and refuses a second verify. */
+const VERIFY: Record<VerifiableTable, (workspace: string, id: string) => Promise<unknown>> = {
+  person: farmRecordsPersonsVerify,
+  household: farmRecordsHouseholdsVerify,
+  farm: farmRecordsFarmsVerify,
+  plot: farmRecordsPlotsVerify,
+  crop_cycle: farmRecordsCropCyclesVerify,
+  harvest_report: farmRecordsHarvestReportsVerify,
+}
+
 /**
  * Verify one record from the queue.
  *
@@ -188,8 +207,7 @@ export function useVerifyFromQueue() {
 
   return useMutation({
     mutationFn: async ({ table, id }: { table: VerifiableTable; id: string }) => {
-      const { error } = await supabase.rpc('app_verify', { p_table: table, p_id: id })
-      if (error) throw new Error(error.message)
+      await VERIFY[table](workspaceId(), id)
     },
     onSuccess: async (_data, variables) => {
       await Promise.all([
@@ -198,6 +216,7 @@ export function useVerifyFromQueue() {
         queryClient.invalidateQueries({ queryKey: queryKeys.person(variables.id) }),
         queryClient.invalidateQueries({ queryKey: ['people'] }),
         queryClient.invalidateQueries({ queryKey: ['farm'] }),
+        queryClient.invalidateQueries({ queryKey: ['cycle'] }),
         queryClient.invalidateQueries({ queryKey: queryKeys.farms('mine') }),
         queryClient.invalidateQueries({ queryKey: queryKeys.farmerOpportunities() }),
         // Data quality is a Tower figure and moves the moment a record is

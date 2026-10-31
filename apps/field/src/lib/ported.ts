@@ -4,7 +4,12 @@
  * calls Supabase once the account lives in Genesy. Exact paths or `prefix/*`.
  * shortcut: a transitional allow-list; deleted when the last screen is ported (port step 8).
  */
-export const PORTED: readonly string[] = []
+export const PORTED: readonly string[] = [
+  '/officer/register',
+  '/officer/redeem',
+  '/ops/surveys/redemptions',
+  '/officer/cycles/*',
+]
 
 export function isPorted(pathname: string, ported: readonly string[] = PORTED): boolean {
   const path = pathname.replace(/\/+$/, '') || '/'

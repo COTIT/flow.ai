@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, test, vi } from 'vitest'
 
@@ -55,6 +55,28 @@ describe('OfficerEditDialog', () => {
     await user.click(screen.getByTestId('officer-edit-save'))
     expect(screen.getByTestId('officer-edit-error')).toHaveTextContent('given_name is required')
     expect(onSave).not.toHaveBeenCalled()
+  })
+
+  // A signed-in officer's draft loads from the device first; Enter before then saves nothing.
+  test('a submit before the draft has loaded does nothing', () => {
+    const real = vi.mocked(usePersistentForm).getMockImplementation()!
+    vi.mocked(usePersistentForm).mockImplementation((...args) => ({ ...real(...args), ready: false }))
+    try {
+      const { onSave } = renderForm()
+      fireEvent.submit(screen.getByTestId('officer-edit-save').closest('form')!)
+      expect(onSave).not.toHaveBeenCalled()
+    } finally {
+      vi.mocked(usePersistentForm).mockImplementation(real)
+    }
+  })
+
+  // A failed Genesy API call is an axios error: its body, not axios's summary, is what to read.
+  test('an API refusal shows the API message', () => {
+    const error = Object.assign(new Error('Request failed with status code 422'), {
+      response: { status: 422, data: { message: 'harvest window must end on or after it starts' } },
+    })
+    renderForm({ error })
+    expect(screen.getByTestId('officer-edit-error')).toHaveTextContent('harvest window must end on or after it starts')
   })
 
   test('cancel calls the owner and displays server errors', async () => {

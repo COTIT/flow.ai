@@ -5,9 +5,12 @@ import { useFieldArray, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 import { FileImage, FileText, LocateFixed, Paperclip } from 'lucide-react'
+import { farmRecordsRegister } from '@genesy/api-client/endpoints/farm-records'
+import type { RegistrationResult } from '@genesy/api-client/model'
 
 import { activeMemberships, writableVillageIds } from '@/app/membership'
 import { useSession } from '@/app/session'
+import { workspaceId } from '@/app/workspace'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { UnsavedDraftBadge } from '@/components/UnsavedDraftBadge'
@@ -15,6 +18,7 @@ import { BangMark, PlannedMark, VerificationMark } from '@/components/marks'
 import { Button } from '@/components/ui/button'
 import {
   buildRegisterPayload,
+  registerFieldOf,
   type CycleForm,
   type RegisterForm,
 } from '@/features/officer/registerPayload'
@@ -41,23 +45,9 @@ import {
   uploadPlotDocuments,
   type DraftFile,
 } from '@/lib/plotDocuments'
+import { apiStatus } from '@/lib/apiError'
+import { humanizeDbError } from '@/lib/errors'
 import { queryKeys, isTowerQueryForVillage } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/db.types'
-
-/** What app_register_farmer returns. */
-interface RegisterResult {
-  person_id: string | null
-  household_id: string | null
-  farm_id: string | null
-  plot_id: string | null
-  crop_cycle_id: string | null
-  harvest_report_id: string | null
-  crop_cycle_ids?: string[]
-  harvest_report_ids?: string[]
-  village_id?: string
-  replayed: boolean
-}
 
 const EMPTY: RegisterForm = {
   given_name: '',
@@ -100,12 +90,24 @@ function newClientRef() {
 }
 
 /**
- * Spec 5.2 — one page, one submit, one RPC.
+ * A 422's `errors` split into what the form shows on a field ([form field, text]) and whether
+ * anything is left for the general message (any other status, or a key with no field here).
+ */
+function refusalsOf(error: unknown): { fields: Array<[string, string]>; banner: boolean } {
+  if (apiStatus(error) !== 422) return { fields: [], banner: true }
+  const errors = (error as { response?: { data?: { errors?: Record<string, string[]> } } }).response?.data?.errors ?? {}
+  const entries = Object.entries(errors).map(([key, texts]) => [registerFieldOf(key), texts?.[0]] as const)
+  const fields = entries.flatMap(([field, text]) => (field && text ? [[field, text] as [string, string]] : []))
+  return { fields, banner: fields.length === 0 || fields.length < entries.length }
+}
+
+/**
+ * Spec 5.2 — one page, one submit, one call: `POST …/farm/registrations`.
  *
  * Not five chained client inserts: a phone that loses signal mid-chain leaves
- * orphan rows across five tables. app_register_farmer does the whole thing in
- * one transaction and is idempotent on client_ref, so a retry after a timeout
- * cannot create a second farmer.
+ * orphan rows across five tables. The API does the whole thing in one
+ * transaction and is idempotent on client_ref, so a retry after a timeout
+ * cannot create a second farmer (it answers 200 `replayed: true`).
  */
 export function RegisterScreen() {
   const { t } = useTranslation()
@@ -199,7 +201,7 @@ export function RegisterScreen() {
     [],
   )
 
-  const { control, register, handleSubmit, watch, reset, setValue, getValues, formState } = useForm<
+  const { control, register, handleSubmit, watch, reset, setValue, getValues, setError, formState } = useForm<
     RegisterForm,
     unknown,
     RegisterForm
@@ -312,18 +314,18 @@ export function RegisterScreen() {
       if (!villageId) throw new Error(t('register.noVillage'))
 
       const payload = buildRegisterPayload(form, { clientRef, villageId, measures })
-      // The generated signature types the argument as Json, which is a
-      // recursive index-signature type an interface cannot satisfy. The shape
-      // itself is asserted by registerPayload.test.ts.
-      const { data, error } = await supabase.rpc('app_register_farmer', {
-        payload: payload as unknown as Json,
-      })
-      // Trigger and RPC messages are written to be read by humans; surfaced
-      // verbatim rather than replaced with a generic failure.
-      if (error) throw new Error(error.message)
-      // The RPC returns the ids it created, plus `replayed` when a retry hit
-      // the idempotency receipt rather than creating a second farmer.
-      return data as unknown as RegisterResult
+      // The ids it created, plus `replayed` when a retry hit the same client_ref
+      // rather than creating a second farmer. A refusal rejects with the API body.
+      return (await farmRecordsRegister(workspaceId(), payload)).data as RegistrationResult
+    },
+    // The API's messages are written to be read: each one lands on the field it
+    // names, as written (or in Swahili when dbMessages knows it).
+    onError: (error) => {
+      for (const [field, text] of refusalsOf(error).fields) {
+        const human = humanizeDbError(text)
+        const message = human.kind === 'verbatim' ? human.message : t(human.key, human.values)
+        setError(field as Parameters<typeof setError>[0], { type: 'server', message }, { shouldFocus: true })
+      }
     },
     onSuccess: async (created) => {
       // The registration is saved; now its title documents, if any.
@@ -357,7 +359,7 @@ export function RegisterScreen() {
   }
 
   if (submit.isSuccess) {
-    const created = submit.data
+    const created: RegistrationResult = submit.data
     return (
       <section className="flex max-w-xl flex-col gap-2.5" data-testid="register-success">
         <h1 className="type-screen-title inline-flex items-center gap-2.5">
@@ -456,7 +458,7 @@ export function RegisterScreen() {
    * this resolves it at render. `register.required` is the fallback for an
    * error react-hook-form raised itself, which carries no message.
    */
-  const errorLine = (id: string, message: string | undefined) => (
+  const errorLine = (id: string, message: string | undefined, fromApi = false) => (
     <p
       id={`register-${id}-error`}
       data-testid={`register-${id}-error`}
@@ -464,22 +466,26 @@ export function RegisterScreen() {
       style={{ fontSize: 13, color: 'var(--flag-ink)', textWrap: 'pretty' }}
     >
       <BangMark />
-      {t(message ?? 'register.required')}
+      {/* An API message is already the text to show; t() would split it at ':'. */}
+      {fromApi ? message : t(message ?? 'register.required')}
     </p>
   )
 
   const err = (name: FlatField) =>
-    formState.errors[name] ? errorLine(fieldId(name), formState.errors[name]?.message) : null
+    formState.errors[name]
+      ? errorLine(fieldId(name), formState.errors[name]?.message, formState.errors[name]?.type === 'server')
+      : null
 
   /** A crop card's own field. Test ids match the one-crop form's. */
   const cycleError = (index: number, name: CycleField) => formState.errors.cycles?.[index]?.[name]
   const cycleErr = (index: number, name: CycleField) => {
     const error = cycleError(index, name)
-    return error ? errorLine(CYCLE_FIELD_ID[name], error.message) : null
+    return error ? errorLine(CYCLE_FIELD_ID[name], error.message, error.type === 'server') : null
   }
 
   // "Choose at least one crop": zod's array issue lands on the list itself.
   const cyclesError = formState.errors.cycles?.message ?? formState.errors.cycles?.root?.message
+  const cyclesFromApi = formState.errors.cycles?.root?.type === 'server'
 
   /**
    * A field's whole presentation, in one place: the 48px control, and — when it
@@ -892,7 +898,7 @@ export function RegisterScreen() {
                 />
               ))}
             </div>
-            {cyclesError && errorLine('cycles', cyclesError)}
+            {cyclesError && errorLine('cycles', cyclesError, cyclesFromApi)}
           </fieldset>
 
           {cycleFields.fields.map((field, index) => {
@@ -1019,7 +1025,7 @@ export function RegisterScreen() {
           </fieldset>
         </Fieldset>
 
-        {submit.isError && (
+        {submit.isError && refusalsOf(submit.error).banner && (
           <div data-testid="register-error">
             <ErrorState error={submit.error} onRetry={() => submit.reset()} />
           </div>

@@ -4,9 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { StrictMode, type ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
+import { sessionStore } from '@genesy/api-client/session'
+
 const rpc = vi.fn()
 
-vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (...args: unknown[]) => rpc(...args) } }))
+vi.mock('@genesy/api-client/endpoints/farm-logins', () => ({
+  farmLoginsIssue: (...args: unknown[]) => rpc(...args),
+}))
 
 const { FarmerLoginCard } = await import('@/features/officer/FarmerLoginCard')
 await import('@/i18n')
@@ -20,10 +24,14 @@ function renderCard(ui: ReactNode) {
   return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
 }
 
-const issueCalls = () => rpc.mock.calls.filter(([name]) => name === 'app_farmer_login_issue')
+const WORKSPACE = '20000000-0000-4000-8000-000000000001'
+const issueCalls = () => rpc.mock.calls
+/** An API refusal as axios hands it over. */
+const refused = (message: string) => ({ response: { status: 422, data: { message } } })
 
 beforeEach(() => {
   rpc.mockReset()
+  sessionStore.getState().signIn({ access_token: 'tok', token_type: 'Bearer', workspace_ids: [WORKSPACE] })
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
 })
 
@@ -38,7 +46,7 @@ describe('FarmerLoginCard, created by hand', () => {
   })
 
   test('shows the phone and the temporary password once, with the warning', async () => {
-    rpc.mockResolvedValue({ data: ISSUED, error: null })
+    rpc.mockResolvedValue({ data: ISSUED })
     renderCard(<FarmerLoginCard personId={PERSON} />)
 
     await userEvent.click(screen.getByTestId('farmer-login-issue'))
@@ -46,7 +54,7 @@ describe('FarmerLoginCard, created by hand', () => {
     expect(await screen.findByTestId('farmer-login-password')).toHaveTextContent('K7QXM2PA')
     expect(screen.getByTestId('farmer-login-phone')).toHaveTextContent('+255712000111')
     expect(screen.getByTestId('farmer-login-card')).toHaveTextContent('Shown once.')
-    expect(rpc).toHaveBeenCalledWith('app_farmer_login_issue', { p_person_id: PERSON })
+    expect(rpc).toHaveBeenCalledWith(WORKSPACE, PERSON)
     // No second action while the credential is on screen.
     expect(screen.queryByTestId('farmer-login-issue')).not.toBeInTheDocument()
   })
@@ -64,7 +72,7 @@ describe('FarmerLoginCard, created by hand', () => {
   // The login now exists. Another press of "Create" would reset the password
   // the farmer was just given, so the action becomes Reset, behind a confirm.
   test('Done clears the password; the next action is a confirmed reset', async () => {
-    rpc.mockResolvedValue({ data: ISSUED, error: null })
+    rpc.mockResolvedValue({ data: ISSUED })
     renderCard(<FarmerLoginCard personId={PERSON} />)
 
     await userEvent.click(screen.getByTestId('farmer-login-issue'))
@@ -79,8 +87,8 @@ describe('FarmerLoginCard, created by hand', () => {
   // business-rules §9: the refusal as the database wrote it.
   test('a refusal is shown verbatim, with a retry that issues again', async () => {
     rpc
-      .mockResolvedValueOnce({ data: null, error: { message: 'add a phone number before issuing a login' } })
-      .mockResolvedValueOnce({ data: ISSUED, error: null })
+      .mockRejectedValueOnce(refused('add a phone number before issuing a login'))
+      .mockResolvedValueOnce({ data: ISSUED })
     renderCard(<FarmerLoginCard personId={PERSON} />)
 
     await userEvent.click(screen.getByTestId('farmer-login-issue'))
@@ -100,7 +108,7 @@ describe('FarmerLoginCard, issued on registration', () => {
   // StrictMode runs every effect twice in development. Two calls would create
   // the login and then immediately reset it, invalidating the password shown.
   test('issues exactly once on mount, even under StrictMode', async () => {
-    rpc.mockResolvedValue({ data: ISSUED, error: null })
+    rpc.mockResolvedValue({ data: ISSUED })
     renderCard(
       <StrictMode>
         <FarmerLoginCard personId={PERSON} autoIssue />
@@ -120,7 +128,7 @@ describe('FarmerLoginCard, issued on registration', () => {
   })
 
   test('a failed first issue offers retry, not a fresh Create button', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: 'this phone number already has an app login' } })
+    rpc.mockRejectedValue(refused('this phone number already has an app login'))
     renderCard(<FarmerLoginCard personId={PERSON} autoIssue />)
 
     expect(await screen.findByTestId('farmer-login-error')).toHaveTextContent(
@@ -146,7 +154,7 @@ describe('FarmerLoginCard, when a login exists', () => {
   })
 
   test('a confirmed reset shows the new temporary password', async () => {
-    rpc.mockResolvedValue({ data: { ...ISSUED, temp_password: 'Z9Y8X7W6', kind: 'reset' }, error: null })
+    rpc.mockResolvedValue({ data: { ...ISSUED, temp_password: 'Z9Y8X7W6', kind: 'reset' } })
     renderCard(<FarmerLoginCard personId={PERSON} hasLogin />)
 
     await userEvent.click(screen.getByTestId('farmer-login-reset'))
@@ -170,10 +178,7 @@ describe('FarmerLoginCard, when a login exists', () => {
   // The "registered, but" sentence belongs to the create path. A refused reset
   // is the database's sentence alone.
   test('a refused reset shows the database message without the registration sentence', async () => {
-    rpc.mockResolvedValue({
-      data: null,
-      error: { message: 'this person signs in as staff: their password cannot be reset here' },
-    })
+    rpc.mockRejectedValue(refused('this person signs in as staff: their password cannot be reset here'))
     renderCard(<FarmerLoginCard personId={PERSON} hasLogin />)
 
     await userEvent.click(screen.getByTestId('farmer-login-reset'))
@@ -189,7 +194,7 @@ describe('FarmerLoginCard, when a login exists', () => {
 describe('FarmerLoginCard never keeps the password', () => {
   test('nothing is written to browser storage', async () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem')
-    rpc.mockResolvedValue({ data: ISSUED, error: null })
+    rpc.mockResolvedValue({ data: ISSUED })
     renderCard(<FarmerLoginCard personId={PERSON} autoIssue />)
 
     await screen.findByTestId('farmer-login-password')

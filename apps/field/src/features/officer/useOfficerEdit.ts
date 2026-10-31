@@ -1,4 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  farmRecordsCropCyclesCorrect,
+  farmRecordsHarvestReportsRevise,
+} from '@genesy/api-client/endpoints/farm-records'
+
+import { workspaceId } from '@/app/workspace'
 
 import {
   buildEditPayload,
@@ -11,6 +17,8 @@ import {
 import { queryKeys } from '@/lib/queryKeys'
 import { supabase } from '@/lib/supabase'
 import type { Database, Json } from '@/lib/db.types'
+
+type CyclePayload = ReturnType<typeof buildEditPayload>
 
 export function useOfficerEdit(measure?: Database['public']['Enums']['crop_measure']) {
   const queryClient = useQueryClient()
@@ -35,18 +43,30 @@ export function useOfficerEdit(measure?: Database['public']['Enums']['crop_measu
 
       if (table === 'harvest_report') {
         if (!context.cycleId || !context.harvestKind) throw new Error('harvest context is required')
-        const { error } = await supabase.rpc('app_supersede_harvest', {
-          p_cycle: context.cycleId,
-          p_kind: context.harvestKind,
-          p_quantity_kg: Number(values.quantity_kg),
-          p_source: 'field_verified',
-          p_confidence: values.confidence as Database['public']['Enums']['confidence_level'],
-          p_reported_for: values.reported_for || undefined,
+        // A new figure in the series; the old one stays on record. Kilograms as decimal text.
+        await farmRecordsHarvestReportsRevise(workspaceId(), context.cycleId, {
+          kind: context.harvestKind,
+          quantity_kg: values.quantity_kg.trim(),
+          source: 'field_verified',
+          confidence: values.confidence || null,
+          reported_for: values.reported_for || null,
         })
-        if (error) throw new Error(error.message)
         return
       }
 
+      if (table === 'crop_cycle') {
+        // The crop_cycle branch of the payload; TS cannot narrow the union on the table argument.
+        const payload = buildEditPayload(table, values, activeMeasure) as Extract<CyclePayload, { crop_id: string }>
+        // PUT takes every editable field; the area goes as typed, so no float rounds it.
+        await farmRecordsCropCyclesCorrect(workspaceId(), id, {
+          ...payload,
+          area_ha: payload.area_ha === null ? null : values.area_ha.trim(),
+        })
+        return
+      }
+
+      // shortcut: person, household, farm and plot still correct through Supabase; their screens are gated
+      // until the port reaches them (person detail, farm detail), when this moves to PUT /farm/{kind}/{id}.
       const { error } = await supabase.rpc('app_update_observed_record', {
         p_table: table,
         p_id: id,

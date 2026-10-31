@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { sessionStore } from '@genesy/api-client/session'
 
 const useSession = vi.fn()
 const useCrops = vi.fn()
@@ -38,7 +39,9 @@ vi.mock('@/lib/plotDocuments', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/plotDocuments')>()),
   uploadPlotDocuments: (...args: unknown[]) => uploadPlotDocuments(...args),
 }))
-vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (...args: unknown[]) => rpc(...args) } }))
+vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+  farmRecordsRegister: (...args: unknown[]) => rpc(...args),
+}))
 // The login card has its own tests; here only WHERE and FOR WHOM it appears.
 vi.mock('@/features/officer/FarmerLoginCard', () => ({
   FarmerLoginCard: ({ personId, autoIssue }: { personId: string; autoIssue?: boolean }) => (
@@ -68,12 +71,19 @@ const EMPTY_DRAFT = {
   confidence: 'medium',
 }
 
+const WORKSPACE = '20000000-0000-4000-8000-000000000001'
 const VILLAGE = '30000000-0000-4000-8000-000000000001'
+/** A 422 as axios hands it over: `{message, errors: {field: [text]}}`. */
+const refused = (errors: Record<string, string[]>, status = 422) => ({
+  message: `Request failed with status code ${status}`,
+  response: { status, data: { message: Object.values(errors)[0]?.[0] ?? 'refused', errors } },
+})
 const MAIZE = '40000000-0000-4000-8000-000000000001'
 const COFFEE = '40000000-0000-4000-8000-000000000003'
 
 beforeEach(() => {
   rpc.mockReset()
+  sessionStore.getState().signIn({ access_token: 'tok', token_type: 'Bearer', workspace_ids: [WORKSPACE] })
   navigate.mockReset()
   save.mockReset()
   clear.mockReset()
@@ -96,7 +106,7 @@ beforeEach(() => {
     ],
   })
   useDraft.mockReturnValue({ status: 'clean', draft: null, save, clear })
-  rpc.mockResolvedValue({ data: { person_id: 'new-person' }, error: null })
+  rpc.mockResolvedValue({ data: { person_id: 'new-person' } })
   docsSave.mockReset()
   docsClear.mockReset()
   docsDraft.mockReturnValue({ status: 'empty', draft: undefined, save: docsSave, clear: docsClear })
@@ -160,7 +170,7 @@ describe('whitespace-only names', () => {
     submit()
 
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1))
-    const payload = rpc.mock.calls[0][1].payload as { person: { given_name: string } }
+    const payload = rpc.mock.calls[0][1] as { person: { given_name: string } }
     expect(payload.person.given_name).toBe('Neema')
   })
 })
@@ -370,7 +380,7 @@ describe('a valid registration', () => {
     submit()
 
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1))
-    expect(rpc.mock.calls[0][0]).toBe('app_register_farmer')
+    expect(rpc.mock.calls[0][0]).toBe(WORKSPACE)
   })
 
   // The draft id IS the RPC's client_ref, so a retry after a timeout replays
@@ -381,7 +391,7 @@ describe('a valid registration', () => {
     submit()
 
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1))
-    const payload = rpc.mock.calls[0][1].payload as { client_ref: string; village_id: string }
+    const payload = rpc.mock.calls[0][1] as { client_ref: string; village_id: string }
     expect(payload.client_ref).toBe('draft-ref-1')
     expect(payload.village_id).toBe(VILLAGE)
   })
@@ -408,13 +418,66 @@ describe('a valid registration', () => {
 
   // No person id, no login to create.
   test('a registration with no person returned shows no login card', async () => {
-    rpc.mockResolvedValue({ data: {}, error: null })
+    rpc.mockResolvedValue({ data: {} })
     renderScreen()
     await fillValid()
     submit()
 
     await screen.findByTestId('register-success')
     expect(screen.queryByTestId('farmer-login-card')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * The API is the judge of a registration. Its 422 names the field (`person.phone`,
+ * `cycles.0.area_ha`, `cycles`); the refusal is shown on that field, as written.
+ */
+describe('an API refusal', () => {
+  test('lands on the field it names, as the API wrote it', async () => {
+    rpc.mockRejectedValue(
+      refused({ 'person.phone': ['phone number must be a Tanzanian mobile number, for example +255 712 345 678'] }),
+    )
+    renderScreen()
+    await fillValid()
+    submit()
+
+    const line = await screen.findByTestId('register-phone-error')
+    expect(line).toHaveTextContent('phone number must be a Tanzanian mobile number, for example +255 712 345 678')
+    expect(screen.getByTestId('register-phone')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.queryByTestId('register-error')).not.toBeInTheDocument()
+  })
+
+  test('a crop measure refusal lands on that crop card, and the crop list error on the list', async () => {
+    rpc.mockRejectedValue(
+      refused({ 'cycles.0.area_ha': ['The area_ha must be a number.'], cycles: ['each crop may be registered once per plot'] }),
+    )
+    renderScreen()
+    await fillValid()
+    submit()
+
+    expect(await screen.findByTestId('register-cycle-area-ha-error')).toHaveTextContent('The area_ha must be a number.')
+    expect(screen.getByTestId('register-cycles-error')).toHaveTextContent('each crop may be registered once per plot')
+  })
+
+  test('a refusal that names no field on this form is shown above the submit', async () => {
+    rpc.mockRejectedValue({ response: { status: 409, data: { message: 'this registration was sent by someone else' } } })
+    renderScreen()
+    await fillValid()
+    submit()
+
+    expect(await screen.findByTestId('register-error')).toHaveTextContent('this registration was sent by someone else')
+  })
+
+  // A retry after a timeout answers 200 `replayed: true`: the farmer is registered once, and the
+  // officer sees the same success.
+  test('a replay is the same success', async () => {
+    rpc.mockResolvedValue({ data: { person_id: 'new-person', plot_id: 'p', village_id: VILLAGE, replayed: true } })
+    renderScreen()
+    await fillValid()
+    submit()
+
+    await screen.findByTestId('register-success')
+    expect(screen.getAllByTestId('farmer-login-card')).toHaveLength(1)
   })
 })
 
@@ -468,12 +531,12 @@ describe('several crops', () => {
     submit()
 
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1))
-    const payload = rpc.mock.calls[0][1].payload as {
-      cycles: Array<{ crop_id: string; area_ha: string; tree_count: string; harvest: { quantity_kg: string } }>
+    const payload = rpc.mock.calls[0][1] as {
+      cycles: Array<{ crop_id: string; area_ha: string; tree_count: number; harvest: { quantity_kg: string } }>
     }
     expect(payload.cycles).toHaveLength(2)
     expect(payload.cycles[0]).toMatchObject({ crop_id: MAIZE, area_ha: '1.6', harvest: { quantity_kg: '2000' } })
-    expect(payload.cycles[1]).toMatchObject({ crop_id: COFFEE, tree_count: '40', harvest: { quantity_kg: '300' } })
+    expect(payload.cycles[1]).toMatchObject({ crop_id: COFFEE, tree_count: 40, harvest: { quantity_kg: '300' } })
   })
 
   test('says planted area across crops can exceed the plot area', () => {
@@ -556,7 +619,7 @@ describe('title documents', () => {
   })
 
   test('once the farmer is registered, they are filed against the new plot', async () => {
-    rpc.mockResolvedValue({ data: { person_id: 'new-person', plot_id: 'new-plot', village_id: VILLAGE }, error: null })
+    rpc.mockResolvedValue({ data: { person_id: 'new-person', plot_id: 'new-plot', village_id: VILLAGE } })
     uploadPlotDocuments.mockImplementation(async (_v, _p, files: Array<{ id: string }>) => ({
       filed: files.map((f) => f.id),
       failed: [],
@@ -574,7 +637,7 @@ describe('title documents', () => {
   // The registration is saved either way. What was not filed says so, keeps
   // its draft, and can be tried again.
   test('a file that failed is named, kept and offered again', async () => {
-    rpc.mockResolvedValue({ data: { person_id: 'new-person', plot_id: 'new-plot', village_id: VILLAGE }, error: null })
+    rpc.mockResolvedValue({ data: { person_id: 'new-person', plot_id: 'new-plot', village_id: VILLAGE } })
     uploadPlotDocuments.mockImplementationOnce(async (_v, _p, files: Array<{ id: string; name: string }>) => ({
       filed: [],
       failed: files.map((f) => ({ id: f.id, name: f.name, message: 'Payload too large' })),
@@ -598,7 +661,7 @@ describe('title documents', () => {
   })
 
   test('no files picked, nothing to file', async () => {
-    rpc.mockResolvedValue({ data: { person_id: 'new-person', plot_id: 'new-plot', village_id: VILLAGE }, error: null })
+    rpc.mockResolvedValue({ data: { person_id: 'new-person', plot_id: 'new-plot', village_id: VILLAGE } })
     renderScreen()
     await fillValid()
     submit()

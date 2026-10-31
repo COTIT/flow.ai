@@ -22,8 +22,6 @@ export type NumberSummaryRow = Pick<
   'question_id' | 'answer_count' | 'average' | 'minimum' | 'maximum'
 >
 export type SurveyVoucher = Functions['app_survey_vouchers']['Returns'][number]
-export type RedemptionLogRow = Functions['app_redemption_log']['Returns'][number]
-export type RedemptionTotalRow = Functions['app_redemption_totals']['Returns'][number]
 
 /**
  * Surveys, results and vouchers for ops and admin.
@@ -165,29 +163,6 @@ export function useVoucherTimeline(voucherId: string | null) {
       if (error) throw new Error(error.message)
       return (data ?? []) as unknown as AuditEvent[]
     },
-  })
-}
-
-export interface RedemptionReport {
-  totals: RedemptionTotalRow[]
-  log: RedemptionLogRow[]
-}
-
-/** Both reads for one Tanzanian date range, cached together. */
-export async function fetchRedemptions(from: string, to: string): Promise<RedemptionReport> {
-  const [totals, log] = await Promise.all([
-    supabase.rpc('app_redemption_totals', { p_from: from, p_to: to }),
-    supabase.rpc('app_redemption_log', { p_from: from, p_to: to }),
-  ])
-  if (totals.error) throw new Error(totals.error.message)
-  if (log.error) throw new Error(log.error.message)
-  return { totals: totals.data ?? [], log: log.data ?? [] }
-}
-
-export function useRedemptions(from: string, to: string) {
-  return useQuery({
-    queryKey: queryKeys.redemptionLog(from, to),
-    queryFn: () => fetchRedemptions(from, to),
   })
 }
 

@@ -1,11 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-const rpc = vi.fn()
+const api = { lookup: vi.fn(), redeem: vi.fn(), timeline: vi.fn() }
 
-vi.mock('@/lib/supabase', () => ({ supabase: { rpc: (...args: unknown[]) => rpc(...args) } }))
+vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({
+  farmVouchersLookup: (...args: unknown[]) => api.lookup(...args),
+  farmVouchersRedeem: (...args: unknown[]) => api.redeem(...args),
+  farmVouchersTimeline: (...args: unknown[]) => api.timeline(...args),
+}))
+vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 /**
  * The camera is its own component with its own tests. Here it is a stand-in
@@ -32,6 +37,7 @@ const { default: i18n } = await import('@/i18n')
 
 const CODE = 'K7QXM2PA9D'
 const VOUCHER = '22222222-2222-4222-8222-222222222222'
+const AMOUNT = { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' }
 
 function preview(over: Record<string, unknown> = {}) {
   return {
@@ -39,13 +45,10 @@ function preview(over: Record<string, unknown> = {}) {
     voucher_id: VOUCHER,
     status: 'issued',
     expired: false,
-    amount: 5000,
-    currency: 'TZS',
+    amount: AMOUNT,
     issued_at: '2026-09-20T07:00:00Z',
     expires_at: '2026-10-20T07:00:00Z',
     redeemed_at: null,
-    redeemed_by_name: null,
-    void_reason: null,
     survey_title_en: 'Irrigation interest',
     survey_title_sw: 'Nia ya umwagiliaji',
     household_label: 'Kaya ya Mwakalinga',
@@ -62,9 +65,8 @@ const REDEEMED = {
   voucher_id: VOUCHER,
   status: 'redeemed',
   redeemed_at: '2026-09-29T07:42:00Z',
-  redeemed_by_name: 'Juma Officer',
-  amount: 5000,
-  currency: 'TZS',
+  redeemed_by: { id: 'u-juma', name: 'Juma Officer' },
+  amount: AMOUNT,
   replayed: false,
 }
 
@@ -80,16 +82,20 @@ const TIMELINE = [
   },
 ]
 
-type Reply = { data: unknown; error: { message: string } | null } | Promise<never>
-let replies: Record<string, Reply | Reply[]>
+/** A reply: the API's data, a refusal's message (422), or a call that never answers. */
+type Reply = { data: unknown } | { error: string } | Promise<never>
+let replies: Record<keyof typeof api, Reply | Reply[]>
 
-function reply(name: string): Reply {
+function answer(name: keyof typeof api) {
   const configured = replies[name]
-  if (Array.isArray(configured)) return configured.shift() ?? { data: null, error: { message: `no reply for ${name}` } }
-  return configured ?? { data: null, error: { message: `no reply for ${name}` } }
+  const next = Array.isArray(configured) ? configured.shift() : configured
+  if (!next) return Promise.reject(new Error(`no reply for ${name}`))
+  if (next instanceof Promise) return next
+  if ('error' in next) return Promise.reject({ response: { status: 422, data: { message: next.error } } })
+  return Promise.resolve({ data: next.data })
 }
 
-const calls = (name: string) => rpc.mock.calls.filter(([called]) => called === name)
+const calls = (name: keyof typeof api) => api[name].mock.calls
 
 function renderScreen() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
@@ -109,12 +115,14 @@ async function lookUp(code = 'k7qxm-2pa9d') {
 
 beforeEach(async () => {
   await i18n.changeLanguage('en')
-  rpc.mockReset()
-  rpc.mockImplementation((name: string) => Promise.resolve(reply(name)))
+  for (const name of Object.keys(api) as Array<keyof typeof api>) {
+    api[name].mockReset()
+    api[name].mockImplementation(() => answer(name))
+  }
   replies = {
-    app_voucher_lookup: { data: preview(), error: null },
-    app_voucher_redeem: { data: REDEEMED, error: null },
-    app_voucher_timeline: { data: TIMELINE, error: null },
+    lookup: { data: preview() },
+    redeem: { data: REDEEMED },
+    timeline: { data: TIMELINE },
   }
 })
 
@@ -127,7 +135,7 @@ describe('RedeemScreen entry', () => {
     expect(screen.getByTestId('redeem-code')).toBeVisible()
     expect(screen.getByTestId('redeem-lookup')).toHaveTextContent('Look up')
     expect(screen.queryByTestId('fake-scanner')).not.toBeInTheDocument()
-    expect(rpc).not.toHaveBeenCalled()
+    expect(api.lookup).not.toHaveBeenCalled()
   })
 
   // A voucher code must never be remembered by the browser.
@@ -143,7 +151,7 @@ describe('RedeemScreen entry', () => {
     await lookUp('hello')
 
     expect(screen.getByTestId('redeem-not-a-voucher')).toHaveTextContent('That is not a Ruaha voucher code.')
-    expect(rpc).not.toHaveBeenCalled()
+    expect(api.lookup).not.toHaveBeenCalled()
   })
 
   test('a typed code is normalised before it is looked up', async () => {
@@ -151,18 +159,18 @@ describe('RedeemScreen entry', () => {
     await lookUp('k7qxm-2pa9d')
 
     await screen.findByTestId('redeem-preview')
-    expect(calls('app_voucher_lookup')).toEqual([['app_voucher_lookup', { p_code: CODE }]])
+    expect(calls('lookup')).toEqual([['w1', { code: CODE }]])
   })
 
   test('the lookup button says so while it waits, and cannot be pressed twice', async () => {
-    replies.app_voucher_lookup = new Promise<never>(() => {})
+    replies.lookup = new Promise<never>(() => {})
     renderScreen()
     const user = await lookUp()
 
     expect(screen.getByTestId('redeem-lookup')).toBeDisabled()
     expect(screen.getByTestId('redeem-lookup')).toHaveTextContent('Looking up…')
     await user.click(screen.getByTestId('redeem-lookup'))
-    expect(calls('app_voucher_lookup')).toHaveLength(1)
+    expect(calls('lookup')).toHaveLength(1)
   })
 
   test('submitting the form with Enter looks the code up', async () => {
@@ -196,7 +204,7 @@ describe('RedeemScreen camera', () => {
 
     expect(screen.queryByTestId('fake-scanner')).not.toBeInTheDocument()
     await screen.findByTestId('redeem-preview')
-    expect(calls('app_voucher_lookup')).toEqual([['app_voucher_lookup', { p_code: CODE }]])
+    expect(calls('lookup')).toEqual([['w1', { code: CODE }]])
   })
 
   test('a scan of some other QR code is "not a voucher", with no lookup', async () => {
@@ -207,7 +215,7 @@ describe('RedeemScreen camera', () => {
     await user.click(screen.getByTestId('fake-scan-other'))
 
     expect(screen.getByTestId('redeem-not-a-voucher')).toBeInTheDocument()
-    expect(rpc).not.toHaveBeenCalled()
+    expect(api.lookup).not.toHaveBeenCalled()
   })
 
   test('no camera closes the scanner and points to the typed code', async () => {
@@ -238,7 +246,7 @@ describe('RedeemScreen preview', () => {
   // An unknown code and one outside the officer's villages are the same
   // answer on purpose. It is an answer, not an error.
   test('found:false says no voucher, without an alert', async () => {
-    replies.app_voucher_lookup = { data: { found: false }, error: null }
+    replies.lookup = { data: { found: false } }
     renderScreen()
     await lookUp()
 
@@ -263,7 +271,7 @@ describe('RedeemScreen preview', () => {
     expect(card).toHaveTextContent('Valid until 20 Oct 2026')
     expect(screen.queryByTestId('redeem-needs-ops')).not.toBeInTheDocument()
     expect(screen.getByTestId('redeem-confirm')).toHaveTextContent('Confirm and hand over TZS 5,000.00')
-    expect(calls('app_voucher_redeem')).toHaveLength(0)
+    expect(calls('redeem')).toHaveLength(0)
   })
 
   test('the survey title follows the language', async () => {
@@ -276,7 +284,7 @@ describe('RedeemScreen preview', () => {
   })
 
   test('missing names render as a dash rather than as nothing', async () => {
-    replies.app_voucher_lookup = { data: preview({ head_name: null, respondent_name: null }), error: null }
+    replies.lookup = { data: preview({ head_name: null, respondent_name: null }) }
     renderScreen()
     await lookUp()
 
@@ -285,7 +293,7 @@ describe('RedeemScreen preview', () => {
   })
 
   test('an audit hold is announced', async () => {
-    replies.app_voucher_lookup = { data: preview({ needs_ops: true }), error: null }
+    replies.lookup = { data: preview({ needs_ops: true }) }
     renderScreen()
     await lookUp()
 
@@ -296,13 +304,12 @@ describe('RedeemScreen preview', () => {
 
   // The database decided, and its sentence says why. No form is offered.
   test('a blocked voucher shows the reason and no hand-over form', async () => {
-    replies.app_voucher_lookup = {
+    replies.lookup = {
       data: preview({
         can_redeem: false,
         needs_ops: true,
         blocked_reason: 'this voucher is held for an audit: ops or admin must redeem it in person',
       }),
-      error: null,
     }
     renderScreen()
     await lookUp()
@@ -315,7 +322,7 @@ describe('RedeemScreen preview', () => {
   })
 
   test('a blocked voucher with no stated reason still says it cannot be redeemed', async () => {
-    replies.app_voucher_lookup = { data: preview({ can_redeem: false, blocked_reason: null }), error: null }
+    replies.lookup = { data: preview({ can_redeem: false, blocked_reason: null }) }
     renderScreen()
     await lookUp()
 
@@ -323,9 +330,8 @@ describe('RedeemScreen preview', () => {
   })
 
   test('an expired voucher is shown as expired, not as waiting', async () => {
-    replies.app_voucher_lookup = {
+    replies.lookup = {
       data: preview({ expired: true, can_redeem: false, blocked_reason: 'this voucher expired on 20 Oct 2026' }),
-      error: null,
     }
     renderScreen()
     await lookUp()
@@ -335,13 +341,12 @@ describe('RedeemScreen preview', () => {
   })
 
   test('a redeemed voucher shows as collected', async () => {
-    replies.app_voucher_lookup = {
+    replies.lookup = {
       data: preview({
         status: 'redeemed',
         can_redeem: false,
         blocked_reason: 'voucher already redeemed on 01 Oct 2026 10:42 by Juma Officer',
       }),
-      error: null,
     }
     renderScreen()
     await lookUp()
@@ -354,7 +359,7 @@ describe('RedeemScreen preview', () => {
   })
 
   test('a failed lookup is an error, verbatim', async () => {
-    replies.app_voucher_lookup = { data: null, error: { message: 'only staff may look up vouchers' } }
+    replies.lookup = { error: 'only staff may look up vouchers' }
     renderScreen()
     await lookUp()
 
@@ -363,9 +368,9 @@ describe('RedeemScreen preview', () => {
   })
 
   test('a second lookup replaces the first preview', async () => {
-    replies.app_voucher_lookup = [
-      { data: preview(), error: null },
-      { data: { found: false }, error: null },
+    replies.lookup = [
+      { data: preview() },
+      { data: { found: false } },
     ]
     renderScreen()
     const user = await lookUp()
@@ -423,14 +428,14 @@ describe('RedeemScreen hand-over', () => {
     await user.click(screen.getByTestId('redeem-confirm'))
 
     const done = await screen.findByTestId('redeem-done')
-    expect(calls('app_voucher_redeem')).toEqual([
-      ['app_voucher_redeem', { p_code: CODE, p_id_type: 'voter', p_name_confirmed: true }],
+    expect(calls('redeem')).toEqual([
+      ['w1', { code: CODE, id_type: 'voter', name_confirmed: true }],
     ])
     expect(done).toHaveTextContent('Redeemed')
     expect(done).toHaveTextContent('TZS 5,000.00 handed over. This voucher cannot be used again.')
 
     expect(await screen.findByTestId('audit-timeline')).toBeInTheDocument()
-    expect(calls('app_voucher_timeline')).toEqual([['app_voucher_timeline', { p_voucher_id: VOUCHER }]])
+    expect(calls('timeline')).toEqual([['w1', VOUCHER]])
     expect(screen.getByTestId('audit-event-redeemed')).toHaveTextContent('ID checked: NIDA card')
     // The form is gone: nothing on this screen can be pressed twice.
     expect(screen.queryByTestId('redeem-confirm')).not.toBeInTheDocument()
@@ -440,7 +445,7 @@ describe('RedeemScreen hand-over', () => {
   // Do not pre-validate what the database enforces: an unchosen ID and an
   // unticked box are sent, and the database's sentence comes back.
   test('the database refuses a missing ID in its own words, and the preview stays', async () => {
-    replies.app_voucher_redeem = { data: null, error: { message: 'record which ID document you checked' } }
+    replies.redeem = { error: 'record which ID document you checked' }
     renderScreen()
     const user = await lookUp()
     await screen.findByTestId('redeem-preview')
@@ -448,18 +453,15 @@ describe('RedeemScreen hand-over', () => {
     await user.click(screen.getByTestId('redeem-confirm'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Record which ID document you checked.')
-    expect(calls('app_voucher_redeem')).toEqual([
-      ['app_voucher_redeem', { p_code: CODE, p_id_type: null, p_name_confirmed: false }],
+    expect(calls('redeem')).toEqual([
+      ['w1', { code: CODE, id_type: '', name_confirmed: false }],
     ])
     expect(screen.getByTestId('redeem-preview')).toBeInTheDocument()
     expect(screen.getByTestId('redeem-confirm')).toBeEnabled()
   })
 
   test('a four-eyes refusal is shown verbatim', async () => {
-    replies.app_voucher_redeem = {
-      data: null,
-      error: { message: 'you verified this household, so another staff member must redeem this voucher' },
-    }
+    replies.redeem = { error: 'you verified this household, so another staff member must redeem this voucher' }
     renderScreen()
     const user = await lookUp()
     await screen.findByTestId('redeem-preview')
@@ -472,8 +474,51 @@ describe('RedeemScreen hand-over', () => {
     )
   })
 
+  // Cash leaves the drawer once. Two taps in the same tick, before React has
+  // re-rendered the button disabled, still send one redeem.
+  test('a double tap redeems once', async () => {
+    replies.redeem = new Promise<never>(() => {})
+    renderScreen()
+    await lookUp()
+    await screen.findByTestId('redeem-preview')
+
+    const confirm = screen.getByTestId('redeem-confirm')
+    fireEvent.click(confirm)
+    fireEvent.click(confirm)
+
+    await waitFor(() => expect(screen.getByTestId('redeem-confirm')).toBeDisabled())
+    expect(calls('redeem')).toHaveLength(1)
+  })
+
+  test('a refused redeem can be sent again once corrected', async () => {
+    replies.redeem = [{ error: 'record which ID document you checked' }, { data: REDEEMED }]
+    renderScreen()
+    const user = await lookUp()
+    await screen.findByTestId('redeem-preview')
+    await user.click(screen.getByTestId('redeem-confirm'))
+    await screen.findByRole('alert')
+
+    await user.click(screen.getByTestId('redeem-confirm'))
+    await screen.findByTestId('redeem-done')
+    expect(calls('redeem')).toHaveLength(2)
+  })
+
+  // The same officer retrying after a dropped connection: the API answers with
+  // the first redemption, and the receipt is the same one.
+  test('a replayed redemption shows the same receipt', async () => {
+    replies.redeem = { data: { ...REDEEMED, replayed: true } }
+    renderScreen()
+    const user = await lookUp()
+    await screen.findByTestId('redeem-preview')
+    await user.click(screen.getByTestId('redeem-confirm'))
+
+    expect(await screen.findByTestId('redeem-done')).toHaveTextContent(
+      'TZS 5,000.00 handed over. This voucher cannot be used again.',
+    )
+  })
+
   test('the confirm button says so while it runs', async () => {
-    replies.app_voucher_redeem = new Promise<never>(() => {})
+    replies.redeem = new Promise<never>(() => {})
     renderScreen()
     const user = await lookUp()
     await screen.findByTestId('redeem-preview')
@@ -509,9 +554,9 @@ describe('RedeemScreen hand-over', () => {
   })
 
   test('a failed trail read is an error, with a retry that reads it again', async () => {
-    replies.app_voucher_timeline = [
-      { data: null, error: { message: 'timeline failed' } },
-      { data: TIMELINE, error: null },
+    replies.timeline = [
+      { error: 'timeline failed' },
+      { data: TIMELINE },
     ]
     renderScreen()
     const user = await lookUp()
@@ -525,11 +570,11 @@ describe('RedeemScreen hand-over', () => {
 
     await user.click(screen.getByTestId('error-retry'))
     expect(await screen.findByTestId('audit-timeline')).toBeInTheDocument()
-    expect(calls('app_voucher_timeline')).toHaveLength(2)
+    expect(calls('timeline')).toHaveLength(2)
   })
 
   test('the trail shows loading until it arrives', async () => {
-    replies.app_voucher_timeline = new Promise<never>(() => {})
+    replies.timeline = new Promise<never>(() => {})
     renderScreen()
     const user = await lookUp()
     await screen.findByTestId('redeem-preview')

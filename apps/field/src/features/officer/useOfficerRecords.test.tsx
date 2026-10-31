@@ -3,41 +3,41 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { act } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-const maybeSingle = vi.fn()
+const cycleGet = vi.fn()
 
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: () => ({
-      select: () => ({
-        eq: () => ({ is: () => ({ maybeSingle: () => maybeSingle() }) }),
-      }),
-    }),
-  },
+vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+  farmRecordsCropCyclesGet: (...args: unknown[]) => cycleGet(...args),
+  farmRecordsPlotsGet: () => Promise.resolve({ data: { label: 'Kipande cha juu' } }),
+  farmRecordsHarvestReportsList: () => Promise.resolve({ data: [] }),
 }))
+vi.mock('@genesy/api-client/endpoints/farm-crops', () => ({
+  farmCropsList: () => Promise.resolve({ data: [{ id: 'maize', name_en: 'Maize', name_sw: 'Mahindi' }] }),
+}))
+vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const { useCycleDetail } = await import('@/features/officer/useOfficerRecords')
 const i18n = (await import('@/i18n')).default
 
-/** What PostgREST returns: BOTH names, so the cache holds both. */
+/** What the API returns: the crop by id; its BOTH names come from the crops list. */
 const CYCLE = {
   id: 'cy1',
+  crop_id: 'maize',
+  plot_id: 'p1',
+  village_id: 'v1',
   season_label: 'Msimu 2026 A',
-  area_ha: 1.6,
+  area_ha: '1.6000',
+  tree_count: null,
+  unit_count: null,
   status: 'growing',
+  planted_on: null,
   harvest_start: '2026-09-01',
   harvest_end: '2026-09-30',
-  verification: 'verified',
-  source: 'field_verified',
-  confidence: 'high',
-  captured_at: '2026-09-09T21:30:00Z',
-  crop: { name_en: 'Maize', name_sw: 'Mahindi' },
-  plot: { id: 'p1', label: 'Kipande cha juu', farm: { id: 'f1', label: 'Shamba' } },
-  harvest_report: [],
+  provenance: { verification: 'verified', source: 'field_verified', confidence: 'high', captured_at: '2026-09-09T21:30:00Z' },
 }
 
 beforeEach(async () => {
-  maybeSingle.mockReset()
-  maybeSingle.mockResolvedValue({ data: CYCLE, error: null })
+  cycleGet.mockReset()
+  cycleGet.mockResolvedValue({ data: CYCLE })
   await i18n.changeLanguage('en')
 })
 
@@ -90,17 +90,17 @@ describe('useCycleDetail and the active language', () => {
 
   // One cache entry, not one per language: the row did not change, only the
   // label on it did.
-  test('without going back to the database for it', async () => {
+  test('without going back to the API for it', async () => {
     const { result } = renderCycle()
     await waitFor(() => expect(result.current.cycle?.crop_name).toBe('Maize'))
-    expect(maybeSingle).toHaveBeenCalledTimes(1)
+    expect(cycleGet).toHaveBeenCalledTimes(1)
 
     await act(async () => {
       await i18n.changeLanguage('sw')
     })
     await waitFor(() => expect(result.current.cycle?.crop_name).toBe('Mahindi'))
 
-    expect(maybeSingle).toHaveBeenCalledTimes(1)
+    expect(cycleGet).toHaveBeenCalledTimes(1)
   })
 
   test('and back again', async () => {
@@ -121,7 +121,7 @@ describe('useCycleDetail and the active language', () => {
   // Zero rows is an answer, and it must not become a crash on the way through
   // the render-time mapping.
   test('a missing cycle stays null rather than throwing', async () => {
-    maybeSingle.mockResolvedValue({ data: null, error: null })
+    cycleGet.mockRejectedValue({ response: { status: 404, data: { message: 'The requested resource could not be found.' } } })
     const { result } = renderCycle()
 
     await waitFor(() => expect(result.current.isLoading).toBe(false))

@@ -1,7 +1,16 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { farmCropsList } from '@genesy/api-client/endpoints/farm-crops'
+import {
+  farmRecordsCropCyclesGet,
+  farmRecordsHarvestReportsList,
+  farmRecordsPlotsGet,
+} from '@genesy/api-client/endpoints/farm-records'
+import type { Provenance as ApiProvenance } from '@genesy/api-client/model'
 
+import { workspaceId } from '@/app/workspace'
+import { apiStatus } from '@/lib/apiError'
 import { queryKeys } from '@/lib/queryKeys'
 import { isUuid } from '@/lib/ids'
 import { localisedName, type LocalisedNames } from '@/lib/names'
@@ -108,49 +117,75 @@ export function useFarmDetail(farmId: string) {
  *
  * A harvest figure is a SERIES, not a value (business-rules §6): superseded
  * rows stay auditable and are shown, labelled, beside the current one. Adding
- * a revision goes through `app_supersede_harvest`; old rows remain visible.
+ * a revision goes through `POST /farm/crop-cycles/{cycle}/harvest-reports`; old rows remain visible.
  */
 export async function fetchCycleDetail(cycleId: string): Promise<CycleRow | null> {
   // QA #3: a malformed route param must reach the same "not found" state as a
   // well-formed id matching nothing, rather than a uuid parse failure.
   if (!isUuid(cycleId)) return null
 
-  const { data, error } = await supabase
-    .from('crop_cycle')
-    .select(
-      `id, village_id, crop_id, season_label, status, area_ha, tree_count, unit_count,
-       planted_on, harvest_start, harvest_end, ${PROVENANCE},
-       crop ( name_en, name_sw ),
-       plot!crop_cycle_plot_id_fkey ( label ),
-       harvest_report!harvest_report_crop_cycle_id_fkey (
-         id, kind, quantity_kg, reported_for, is_current, ${PROVENANCE} )`,
-    )
-    .eq('id', cycleId)
-    .is('deleted_at', null)
-    .maybeSingle()
+  const workspace = workspaceId()
+  // shortcut: one page each (100 crops, 100 figures in the series) — plenty for a cycle; read more
+  // pages, or ask the API for a cycle embed (crop names, plot label, series), if either ever runs out.
+  let cycle
+  try {
+    cycle = (await farmRecordsCropCyclesGet(workspace, cycleId)).data
+  } catch (error) {
+    // Another village's cycle and a missing one are the same answer: not found.
+    if (apiStatus(error) === 404) return null
+    throw error
+  }
+  const [plot, series, crops] = await Promise.all([
+    farmRecordsPlotsGet(workspace, cycle.plot_id),
+    farmRecordsHarvestReportsList(workspace, cycleId, { page_size: 100 }),
+    farmCropsList(workspace, { page_size: 100 }),
+  ])
+  const crop = crops.data.find((row) => row.id === cycle.crop_id)
 
-  if (error) throw new Error(error.message)
-  if (!data) return null
-
-  const raw = data as unknown as Record<string, unknown>
-  const crop = raw.crop as { name_en: string; name_sw: string } | null
-  const plot = raw.plot as { label: string } | null
-  const harvests = ((raw.harvest_report ?? []) as CycleHarvest[])
+  const harvests = series.data
+    .map((h) => ({
+      ...provenanceOf(h.provenance),
+      id: h.id,
+      kind: h.kind as Enums['harvest_kind'],
+      // Display only: a weight, never money, and never summed here.
+      quantity_kg: Number(h.quantity_kg),
+      reported_for: h.reported_for,
+      is_current: h.is_current,
+    }))
     // Current first, then most recently reported — the figure in force leads,
     // and the ones it replaced follow in the order they were superseded.
-    .slice()
     .sort((a, b) => {
       if (a.is_current !== b.is_current) return a.is_current ? -1 : 1
       return (b.reported_for ?? '').localeCompare(a.reported_for ?? '')
     })
 
   return {
-    ...(raw as unknown as CycleRow),
+    ...provenanceOf(cycle.provenance),
+    id: cycle.id,
+    crop_id: cycle.crop_id,
+    village_id: cycle.village_id,
     // Both names, so the cache holds both and the language is chosen at
     // render — QA #31.
-    crop,
-    plot_label: plot?.label ?? null,
+    crop: crop ? { name_en: crop.name_en, name_sw: crop.name_sw } : null,
+    season_label: cycle.season_label,
+    status: cycle.status as Enums['crop_cycle_status'],
+    area_ha: cycle.area_ha === null ? null : Number(cycle.area_ha),
+    tree_count: cycle.tree_count,
+    unit_count: cycle.unit_count,
+    planted_on: cycle.planted_on,
+    harvest_start: cycle.harvest_start,
+    harvest_end: cycle.harvest_end,
+    plot_label: plot.data.label,
     harvests,
+  }
+}
+
+function provenanceOf(p: ApiProvenance): Provenance {
+  return {
+    source: p.source as Provenance['source'],
+    verification: p.verification as Provenance['verification'],
+    confidence: p.confidence as Provenance['confidence'],
+    captured_at: p.captured_at,
   }
 }
 

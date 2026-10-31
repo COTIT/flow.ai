@@ -13,7 +13,26 @@ const from = vi.fn((table: string) => {
   return chain
 })
 
+// The queue read is not ported yet (its screen is gated); verifying one record is.
 vi.mock('@/lib/supabase', () => ({ supabase: { from, rpc } }))
+
+const verify = {
+  persons: vi.fn(),
+  households: vi.fn(),
+  farms: vi.fn(),
+  plots: vi.fn(),
+  cycles: vi.fn(),
+  harvests: vi.fn(),
+}
+vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+  farmRecordsPersonsVerify: (...args: unknown[]) => verify.persons(...args),
+  farmRecordsHouseholdsVerify: (...args: unknown[]) => verify.households(...args),
+  farmRecordsFarmsVerify: (...args: unknown[]) => verify.farms(...args),
+  farmRecordsPlotsVerify: (...args: unknown[]) => verify.plots(...args),
+  farmRecordsCropCyclesVerify: (...args: unknown[]) => verify.cycles(...args),
+  farmRecordsHarvestReportsVerify: (...args: unknown[]) => verify.harvests(...args),
+}))
+vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const { fetchVerifyQueue, useVerifyQueue, useVerifyFromQueue } = await import('@/features/officer/useVerifyQueue')
 
@@ -93,8 +112,8 @@ describe('verify queue data', () => {
     expect(result.current.data?.find((row) => row.table === 'crop_cycle')?.label).toBe('')
   })
 
-  test('verify mutation calls RPC and invalidates on success', async () => {
-    rpc.mockResolvedValue({ error: null })
+  test('verify mutation calls the API and invalidates on success', async () => {
+    verify.persons.mockResolvedValue({ data: {} })
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
     client.invalidateQueries = vi.fn((filters?: { predicate?: (query: { queryKey: readonly unknown[] }) => boolean }) => {
       filters?.predicate?.({ queryKey: ['tower'] })
@@ -105,12 +124,32 @@ describe('verify queue data', () => {
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
     })
     await result.current.mutateAsync({ table: 'person', id })
-    expect(rpc).toHaveBeenCalledWith('app_verify', { p_table: 'person', p_id: id })
-    expect(client.invalidateQueries).toHaveBeenCalled()
+    expect(verify.persons).toHaveBeenCalledWith('w1', id)
+    // The cycle detail verifies a cycle and its harvest figures too: its badges must follow.
+    expect(client.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['cycle'] })
+  })
+
+  test('each record type verifies through its own route', async () => {
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+    const { result } = renderHook(() => useVerifyFromQueue(), {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    })
+    const pairs = [
+      ['household', verify.households],
+      ['farm', verify.farms],
+      ['plot', verify.plots],
+      ['crop_cycle', verify.cycles],
+      ['harvest_report', verify.harvests],
+    ] as const
+    for (const [table, fn] of pairs) {
+      fn.mockResolvedValue({ data: {} })
+      await result.current.mutateAsync({ table, id })
+      expect(fn).toHaveBeenCalledWith('w1', id)
+    }
   })
 
   test('verify mutation exposes server failures', async () => {
-    rpc.mockResolvedValue({ error: { message: 'stale record' } })
+    verify.farms.mockRejectedValue(new Error('stale record'))
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
     const { result } = renderHook(() => useVerifyFromQueue(), {
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,

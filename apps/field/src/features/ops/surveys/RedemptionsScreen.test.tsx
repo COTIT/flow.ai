@@ -5,7 +5,7 @@ const useRedemptions = vi.fn()
 const navigate = vi.fn()
 const search = vi.fn()
 
-vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
+vi.mock('@/features/ops/surveys/useRedemptions', () => ({
   useRedemptions: (from: string, to: string) => useRedemptions(from, to),
 }))
 vi.mock('@tanstack/react-router', () => ({
@@ -21,21 +21,20 @@ const { default: i18n } = await import('@/i18n')
 
 const report = {
   totals: [
-    { day: '2026-09-29', redeemed_by: 'u3', redeemed_by_name: 'Asha Officer', vouchers: 2, amount: 10000, currency: 'TZS' },
-    { day: '2026-09-28', redeemed_by: 'u4', redeemed_by_name: 'Juma Ops', vouchers: 1, amount: 5000, currency: 'TZS' },
+    // Summed by the API, in minor units: the screen never adds money.
+    { day: '2026-09-29', redeemed_by: { id: 'u3', name: 'Asha Officer' }, vouchers: 2, minor: 1000000, decimals: 2, currency: 'TZS' },
+    { day: '2026-09-28', redeemed_by: { id: 'u4', name: 'Juma Ops' }, vouchers: 1, minor: 500000, decimals: 2, currency: 'TZS' },
   ],
   log: [
     {
       voucher_id: 'v1',
       redeemed_at: '2026-09-29T06:15:00Z',
-      redeemed_by: 'u3',
-      redeemed_by_name: 'Asha Officer',
+      redeemed_by: { id: 'u3', name: 'Asha Officer' },
       village_name: 'Ilundo',
       household_label: 'Mwakalinga household',
       survey_title_en: 'Harvest intentions',
       survey_title_sw: 'Nia ya mavuno',
-      amount: 5000,
-      currency: 'TZS',
+      amount: { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' },
       id_type_seen: 'nida',
       audit_required: false,
     },
@@ -118,7 +117,7 @@ describe('the date range', () => {
 })
 
 describe('the totals', () => {
-  test('are per officer per day, as the RPC totalled them', () => {
+  test('are per officer per day, as the API totalled them', () => {
     render(<RedemptionsScreen />)
 
     const rows = screen.getAllByTestId('redemption-total-row')

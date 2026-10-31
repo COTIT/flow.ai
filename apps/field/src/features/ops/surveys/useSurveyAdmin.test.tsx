@@ -358,26 +358,3 @@ describe('voiding a voucher', () => {
     expect(rpc).toHaveBeenCalledWith('app_voucher_void', { p_voucher_id: voucherId, p_reason: '' })
   })
 })
-
-describe('redemptions', () => {
-  test('reads totals and the log for the same Tanzanian date range', async () => {
-    rpc.mockImplementation(async (name: string) =>
-      name === 'app_redemption_totals'
-        ? { data: [{ day: '2026-09-29', vouchers: 2, amount: 10000 }], error: null }
-        : { data: [{ voucher_id: voucherId }], error: null },
-    )
-    const { queryClient, wrapper } = client()
-    const { result } = renderHook(() => hooks.useRedemptions('2026-09-22', '2026-09-29'), { wrapper })
-
-    await waitFor(() => expect(result.current.data?.log).toHaveLength(1))
-    expect(result.current.data?.totals[0]).toMatchObject({ vouchers: 2 })
-    expect(rpc).toHaveBeenCalledWith('app_redemption_totals', { p_from: '2026-09-22', p_to: '2026-09-29' })
-    expect(rpc).toHaveBeenCalledWith('app_redemption_log', { p_from: '2026-09-22', p_to: '2026-09-29' })
-    expect(queryClient.getQueryData(queryKeys.redemptionLog('2026-09-22', '2026-09-29'))).toBeDefined()
-  })
-
-  test('a failed read is an error', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: 'only ops' } })
-    await expect(hooks.fetchRedemptions('2026-09-22', '2026-09-29')).rejects.toThrow('only ops')
-  })
-})

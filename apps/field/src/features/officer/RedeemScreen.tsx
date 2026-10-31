@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
+import { formatMoney } from '@genesy/ui/lib/money'
 import { Camera, CameraOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -20,7 +21,7 @@ import {
 } from '@/features/officer/useVoucherRedeem'
 import { Constants } from '@/lib/db.types'
 import { dbReasonText } from '@/lib/dbMessages'
-import { formatMoney, formatTimestamp } from '@/lib/format'
+import { formatTimestamp } from '@/lib/format'
 import { localisedField } from '@/lib/names'
 import { formatVoucherCode, normalizeVoucherCode } from '@/lib/voucherCode'
 
@@ -35,8 +36,8 @@ const ID_TYPES = Constants.public.Enums.id_document_type
  * An incentive is a fixed cash amount per household per survey, handed over
  * in cash here. Every rule that decides whether THIS staff member may hand it
  * over — four eyes on the household, the audit hold, expiry, a second redeem,
- * the ID and the name check — lives in Postgres. The screen shows the
- * database's answer and its sentence; it never decides.
+ * the ID and the name check — lives in the Genesy API. The screen shows the
+ * API's answer and its sentence; it never decides.
  *
  * The lookup is a mutation, never a query: each one writes a 'scanned' event
  * to the voucher's audit trail, and a query would refetch on focus and write
@@ -46,7 +47,7 @@ const ID_TYPES = Constants.public.Enums.id_document_type
  * browser storage.
  */
 export function RedeemScreen() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const lookup = useVoucherLookup()
   const redeem = useVoucherRedeem()
 
@@ -58,6 +59,8 @@ export function RedeemScreen() {
   const [cameraUnavailable, setCameraUnavailable] = useState(false)
   const [idType, setIdType] = useState<IdDocumentType | ''>('')
   const [nameConfirmed, setNameConfirmed] = useState(false)
+  /** Set on the tap itself: a second tap before React re-renders the button disabled must not pay twice. */
+  const redeeming = useRef(false)
 
   const submit = (raw: string) => {
     const normalized = normalizeVoucherCode(raw)
@@ -66,7 +69,7 @@ export function RedeemScreen() {
     setNameConfirmed(false)
 
     // Checked on the device only to spare the audit trail a lookup of
-    // something that is not a code at all. The database resolves the code
+    // something that is not a code at all. The API resolves the code
     // again and is what the answer rests on.
     if (!normalized) {
       lookup.reset()
@@ -93,8 +96,12 @@ export function RedeemScreen() {
 
   const confirm = () => {
     /* c8 ignore next -- the form is only rendered with a looked-up code. */
-    if (!code) return
-    redeem.mutate({ code, idType: idType || null, nameConfirmed })
+    if (!code || redeeming.current) return
+    redeeming.current = true
+    redeem.mutate(
+      { code, idType: idType || null, nameConfirmed },
+      { onSettled: () => (redeeming.current = false) },
+    )
   }
 
   return (
@@ -111,7 +118,7 @@ export function RedeemScreen() {
       {redeem.isSuccess ? (
         <Done
           voucherId={redeem.data.voucher_id}
-          amount={formatMoney(redeem.data.amount, redeem.data.currency)}
+          amount={money(redeem.data.amount, i18n.language)}
           onAnother={startOver}
         />
       ) : (
@@ -263,7 +270,7 @@ function Preview({
   onConfirm: () => void
 }) {
   const { t, i18n } = useTranslation()
-  const amount = formatMoney(voucher.amount, voucher.currency)
+  const amount = money(voucher.amount, i18n.language)
 
   return (
     <article
@@ -358,7 +365,7 @@ function Preview({
             <span className="type-body">{t('redeem.nameConfirm')}</span>
           </label>
 
-          {/* The database's refusal, as written; the preview stays so the
+          {/* The API's refusal, as written; the preview stays so the
               officer can correct what it names and try again. */}
           {error && <ErrorState error={error} />}
 
@@ -389,6 +396,10 @@ function Preview({
       )}
     </article>
   )
+}
+
+function money(amount: VoucherPreview['amount'], language: string) {
+  return formatMoney(amount.minor, amount.decimals, amount.currency, language)
 }
 
 function Fact({ testId, label, value }: { testId: string; label: string; value: string | null }) {

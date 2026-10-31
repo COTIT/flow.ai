@@ -1,44 +1,40 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { farmLoginsHistory, farmLoginsIssue } from '@genesy/api-client/endpoints/farm-logins'
+import type { IssuedLogin, LoginIssue } from '@genesy/api-client/model'
+
+import { workspaceId } from '@/app/workspace'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
-import type { Database } from '@/lib/db.types'
 
 /**
- * What `app_farmer_login_issue` hands back: the ONLY place the temporary
- * password exists in plain text. It lives in the mutation result and in the
- * component showing it — never a query, never a draft, never a URL, never a
- * log line.
+ * What `POST …/farm/persons/{person}/login` hands back: the ONLY place the
+ * temporary password exists in plain text. It lives in the mutation result and
+ * in the component showing it — never a query, never a draft, never a URL,
+ * never a log line.
  */
-export interface FarmerLoginIssued {
-  phone: string
-  temp_password: string
-  kind: 'initial' | 'reset'
-}
+export type FarmerLoginIssued = IssuedLogin
 
-/** One row of `app_person_login_history`. Names and dates, never a password. */
-export type LoginHistoryRow =
-  Database['public']['Functions']['app_person_login_history']['Returns'][number]
+/** One row of the login history. Names and dates, never a password. */
+export type LoginHistoryRow = Omit<LoginIssue, 'issued_by'> & { issued_by_name: string }
 
 /**
- * Create a person's app login, or reset its password if one exists — the
- * database decides which, and records every call. The staff-village scope, the
- * phone requirement and the staff-account refusal are all its rules, so none
- * of them is checked here.
+ * Create a person's app login, or reset its password if one exists — the API
+ * decides which, and records every call. The staff-village scope, the phone
+ * requirement and the staff-account refusal are all its rules, so none of them
+ * is checked here. A refusal rejects with the axios error; its body is the message.
  */
 export async function issueFarmerLogin(personId: string): Promise<FarmerLoginIssued> {
-  const { data, error } = await supabase.rpc('app_farmer_login_issue', { p_person_id: personId })
-  if (error) throw new Error(error.message)
-  return data as unknown as FarmerLoginIssued
+  return (await farmLoginsIssue(workspaceId(), personId)).data
 }
 
-/** Who issued or reset this person's login, newest first. Zero rows: no login yet. */
+/**
+ * Who issued or reset this person's login, newest first. Zero rows: no login yet.
+ * A failed read rejects: it is not "no login yet", which would offer Create on a
+ * person who already has one, and the button would reset their password.
+ */
 export async function fetchLoginHistory(personId: string): Promise<LoginHistoryRow[]> {
-  const { data, error } = await supabase.rpc('app_person_login_history', { p_person_id: personId })
-  // A failed read is not "no login yet": that would offer Create on a person
-  // who already has one, and the button would reset their password.
-  if (error) throw new Error(error.message)
-  return data ?? []
+  const { data } = await farmLoginsHistory(workspaceId(), personId)
+  return data.map(({ issued_by, ...row }) => ({ ...row, issued_by_name: issued_by.name }))
 }
 
 export function useLoginHistory(personId: string) {

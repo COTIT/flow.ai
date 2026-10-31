@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import {
   buildRegisterPayload,
+  registerFieldOf,
   type CycleForm,
   type RegisterForm,
 } from '@/features/officer/registerPayload'
@@ -52,7 +53,7 @@ describe('buildRegisterPayload', () => {
     expect(p.village_id).toBe(VILLAGE)
   })
 
-  test('never sends provenance: the RPC stamps field_verified server-side', () => {
+  test('never sends provenance: the API stamps field_verified server-side', () => {
     const p = build()
     expect(p).not.toHaveProperty('source')
     expect(p.person).not.toHaveProperty('source')
@@ -61,13 +62,13 @@ describe('buildRegisterPayload', () => {
     expect(p.cycles[0]).not.toHaveProperty('source')
   })
 
-  test('an omitted phone is sent as empty, which the RPC nullifs', () => {
-    expect(build({ phone: '' }).person.phone).toBe('')
-    expect(build({ phone: '+255700000999' }).person.phone).toBe('+255700000999')
+  // The API normalises any spelling of a Tanzanian mobile; the app sends what was typed.
+  test('the phone is sent as typed', () => {
+    expect(build({ phone: '0712 345 678' }).person.phone).toBe('0712 345 678')
   })
 
-  test('an omitted household label lets the RPC derive one from the family name', () => {
-    expect(build({ household_label: '' }).household.label).toBe('')
+  test('an omitted household label is null, so the API derives one from the family name', () => {
+    expect(build({ household_label: '' }).household.label).toBeNull()
     expect(build({ household_label: 'Mine' }).household.label).toBe('Mine')
   })
 
@@ -92,9 +93,9 @@ describe('buildRegisterPayload', () => {
         cycle({ crop_id: HONEY, area_ha: '1.2', unit_count: '24' }),
       ],
     })
-    expect(p.cycles[0]).toMatchObject({ area_ha: '1.2', tree_count: '', unit_count: '' })
-    expect(p.cycles[1]).toMatchObject({ area_ha: '', tree_count: '40', unit_count: '' })
-    expect(p.cycles[2]).toMatchObject({ area_ha: '', tree_count: '', unit_count: '24' })
+    expect(p.cycles[0]).toMatchObject({ area_ha: '1.2', tree_count: null, unit_count: null })
+    expect(p.cycles[1]).toMatchObject({ area_ha: null, tree_count: 40, unit_count: null })
+    expect(p.cycles[2]).toMatchObject({ area_ha: null, tree_count: null, unit_count: 24 })
   })
 
   test('each crop carries its own expected harvest, reported for its own window', () => {
@@ -109,8 +110,17 @@ describe('buildRegisterPayload', () => {
   })
 
   // An expected harvest is optional: a cycle can be registered without one.
-  test('an omitted harvest quantity is sent empty so the RPC skips the report', () => {
-    expect(build({ cycles: [cycle({ harvest_quantity_kg: '' })] }).cycles[0].harvest.quantity_kg).toBe('')
+  test('an omitted harvest quantity sends no harvest, so no report is made', () => {
+    expect(build({ cycles: [cycle({ harvest_quantity_kg: '' })] }).cycles[0].harvest).toBeNull()
+  })
+
+  // Genesy takes decimals and dates as strings or null; a blank string is a 422, not "no value".
+  test('blank optional values are sent as null', () => {
+    const p = build({ plot_area_ha: '', season_label: '', planted_on: '' })
+    expect(p.plot.area_ha).toBeNull()
+    expect(p.cycles[0].season_label).toBeNull()
+    expect(p.cycles[0].planted_on).toBeNull()
+    expect(p.farm.latitude).toBeNull()
   })
 
   test('dates pass through untouched, never timezone-converted', () => {
@@ -120,7 +130,7 @@ describe('buildRegisterPayload', () => {
     expect(p.cycles[0].planted_on).toBe('2026-03-05')
   })
 
-  test('the cycle status defaults to growing, matching the RPC default', () => {
+  test('the cycle status defaults to growing, matching the API default', () => {
     expect(build().cycles[0].status).toBe('growing')
   })
 
@@ -130,7 +140,7 @@ describe('buildRegisterPayload', () => {
     expect(p.farm.confidence).toBe('medium')
     expect(p.plot.confidence).toBe('medium')
     expect(p.cycles[0].confidence).toBe('medium')
-    expect(p.cycles[0].harvest.confidence).toBe('medium')
+    expect(p.cycles[0].harvest?.confidence).toBe('medium')
   })
 
   test('GPS is sent as typed', () => {
@@ -144,4 +154,27 @@ describe('buildRegisterPayload', () => {
   test('refuses a crop whose measure is unknown', () => {
     expect(() => build({ cycles: [cycle({ crop_id: 'gone' })] })).toThrow()
   })
+})
+
+describe('registerFieldOf', () => {
+  test.each([
+    ['person.phone', 'phone'],
+    ['person.given_name', 'given_name'],
+    ['farm.latitude', 'farm_latitude'],
+    ['plot.area_ha', 'plot_area_ha'],
+    ['cycles', 'cycles.root'],
+    ['cycles.1.tree_count', 'cycles.1.tree_count'],
+    ['cycles.0.harvest_end', 'cycles.0.harvest_end'],
+    ['cycles.0.harvest.quantity_kg', 'cycles.0.harvest_quantity_kg'],
+  ])('the API field %s is the form field %s', (key, field) => {
+    expect(registerFieldOf(key)).toBe(field)
+  })
+
+  // A field the form has no line for goes to the general message instead of vanishing.
+  test.each(['household.label', 'household.existing_household_id', 'client_ref', 'cycles.0.planted_on'])(
+    '%s has no field here',
+    (key) => {
+      expect(registerFieldOf(key)).toBeNull()
+    },
+  )
 })
