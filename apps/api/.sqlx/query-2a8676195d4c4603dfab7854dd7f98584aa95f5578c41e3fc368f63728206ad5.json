@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, price_per_kg, currency_id FROM farm_supply_batches\n         WHERE workspace_id = $1 AND lot_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "price_per_kg",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "price_per_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "currency_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2a8676195d4c4603dfab7854dd7f98584aa95f5578c41e3fc368f63728206ad5"
+}

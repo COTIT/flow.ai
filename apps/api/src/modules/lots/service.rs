@@ -445,7 +445,7 @@ pub async fn public(
             links.insert(f.id, Link::new(url, expires_at));
         }
     }
-    let farmers = farm_supply::repo::public_groups(&state.db, row.workspace_id, row.id)
+    let farmers = farm_supply::service::public_farmers(&state.db, row.id)
         .await?
         .into_iter()
         .map(|g| PublicFarmerGroup::new(g.village, g.farmers, g.harvest_start, g.harvest_end))

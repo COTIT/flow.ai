@@ -1417,6 +1417,26 @@ fn every_supply_links_operation_is_documented() {
 }
 
 #[test]
+fn every_supply_chain_operation_is_documented() {
+    assert_documented(&[
+        ("/lots/{lot}/packings", "post", "supply_chain_pack", "201"),
+        (
+            "/lots/{lot}/transfers",
+            "post",
+            "supply_chain_dispatch",
+            "201",
+        ),
+        ("/supply-transfers", "get", "supply_chain_list", "200"),
+        (
+            "/supply-transfers/{transfer}/receive",
+            "post",
+            "supply_chain_receive",
+            "201",
+        ),
+    ]);
+}
+
+#[test]
 fn every_farm_logins_operation_is_documented() {
     assert_documented(&[
         (

@@ -304,3 +304,47 @@ pub async fn public_groups(
     .fetch_all(db)
     .await
 }
+
+/// One step back from a lot: its packing parent, or the transfer it was received from.
+pub struct HopRow {
+    pub id: Uuid,
+    pub workspace_id: Uuid,
+    pub parent_lot_id: Option<Uuid>,
+    pub pack_raw_kg: Option<Decimal>,
+    pub pack_units: Option<Decimal>,
+    pub from_lot_id: Option<Uuid>,
+    /// The allow-list frozen when the transfer was received.
+    pub fields: Option<Vec<String>>,
+}
+
+/// The lot `lot_id` and where it came from. Crosses workspaces only through a transfer row.
+pub async fn hop(db: impl PgExecutor<'_>, lot_id: Uuid) -> Result<Option<HopRow>, sqlx::Error> {
+    sqlx::query_as!(
+        HopRow,
+        r#"SELECT l.id, l.workspace_id, l.parent_lot_id, l.pack_raw_kg, l.pack_units,
+                  t.from_lot_id AS "from_lot_id?", t.fields AS "fields?"
+           FROM lots l
+           LEFT JOIN supply_transfers t ON t.to_workspace_id = l.workspace_id AND t.to_lot_id = l.id
+           WHERE l.id = $1"#,
+        lot_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// The batch whose raw lot is `lot_id`, with its price.
+pub async fn batch_of_lot(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    lot_id: Uuid,
+) -> Result<Option<(Uuid, i64, Uuid)>, sqlx::Error> {
+    let row = sqlx::query!(
+        "SELECT id, price_per_kg, currency_id FROM farm_supply_batches
+         WHERE workspace_id = $1 AND lot_id = $2",
+        workspace_id,
+        lot_id,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map(|r| (r.id, r.price_per_kg, r.currency_id)))
+}

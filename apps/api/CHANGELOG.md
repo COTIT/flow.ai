@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Phase 4b step 5, packing and supply transfers (contract `docs/api/supply-chain.md`, migration `supply_chain`):
+  - **Packing:** `POST /lots/{lot}/packings` makes a child lot (`parent_lot_id`, `pack_raw_kg`, `pack_units` as exact numbers). It moves the kg out of the supply lot and the jars into the child in one transaction and writes a `packed` event. Only a lot from a supply batch or a supply transfer can be packed, and never a packed one.
+  - **Transfers:** `POST /lots/{lot}/transfers` sends lot stock over a live link the workspace granted. `GET /supply-transfers` lists both sides with no farmer data. `POST /supply-transfers/{transfer}/receive` (receiver only, once, live link) creates a new lot holding the received stock.
+  - **Public page:** `farmers` follows the lineage (packing parents and transfers) back to the batch, cut to the allow-list frozen on the transfer when it was received (a later revoke changes nothing shown).
 - Phase 4b step 4, supply links (contract `docs/api/supply-links.md`, migration `supply_links`): `/workspace/{workspace}/supply-links` grant, list, accept and revoke, for workspace admins.
   - A farm workspace grants a shop workspace a link with an allow-list of public farmer fields (`farmer_count`, `harvest_window`, `village`); `farmer_names` and `farmer_photos` are refused until the data-protection gate opens.
   - Only the receiver accepts, and either side revokes for good. One open link per pair.

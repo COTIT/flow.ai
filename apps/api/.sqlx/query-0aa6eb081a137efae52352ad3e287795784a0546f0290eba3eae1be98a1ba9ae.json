@@ -1,0 +1,175 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.link_id, t.from_workspace_id, t.to_workspace_id, w.name AS partner_name,\n                  f.code AS from_lot_code, f.public_code AS from_lot_public_code,\n                  t.quantity, t.dispatched_at, t.to_lot_id,\n                  r.code AS \"to_lot_code?\", t.received_quantity, t.received_at\n           FROM supply_transfers t\n           JOIN lots f ON f.workspace_id = t.from_workspace_id AND f.id = t.from_lot_id\n           LEFT JOIN lots r ON r.workspace_id = t.to_workspace_id AND r.id = t.to_lot_id\n           JOIN workspaces w ON w.id = CASE WHEN t.from_workspace_id = $1\n                                            THEN t.to_workspace_id ELSE t.from_workspace_id END\n           WHERE (t.from_workspace_id = $1 OR t.to_workspace_id = $1)\n             AND ($2::uuid IS NULL OR t.id = $2)\n           ORDER BY t.dispatched_at DESC, t.id DESC LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "link_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "link_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "from_workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "from_workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "to_workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "to_workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "partner_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workspaces",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "from_lot_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "from_lot_public_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "public_code"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "dispatched_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "dispatched_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "to_lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "to_lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "to_lot_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "received_quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "received_quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "received_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "received_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "0aa6eb081a137efae52352ad3e287795784a0546f0290eba3eae1be98a1ba9ae"
+}

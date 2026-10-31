@@ -3736,6 +3736,30 @@
         ],
         "type": "object"
       },
+      "DispatchRequest": {
+        "description": "Send lot stock over a live supply link this workspace granted.",
+        "properties": {
+          "link_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "example": "4",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "description": "Where the stock is taken from.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "link_id",
+          "warehouse_id",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "Eligibility": {
         "description": "One live or closed survey and whether the caller's household may answer it.",
         "properties": {
@@ -4784,6 +4808,18 @@
         ],
         "type": "object"
       },
+      "Envelope_PackedLotResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PackedLotResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_PassportResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -5399,6 +5435,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/TokenResponse"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_TransferResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TransferResource"
           }
         },
         "required": [
@@ -9890,6 +9938,117 @@
         ],
         "type": "object"
       },
+      "PackedLotResource": {
+        "description": "The new packed lot.",
+        "properties": {
+          "best_before": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "expires_on": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "pack_raw_kg": {
+            "description": "Kg of the parent used.",
+            "example": "7.50",
+            "type": "string"
+          },
+          "pack_units": {
+            "description": "Units made.",
+            "example": "10.00",
+            "type": "string"
+          },
+          "parent_lot_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "public_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "public_code",
+          "product_id",
+          "parent_lot_id",
+          "pack_raw_kg",
+          "pack_units",
+          "best_before",
+          "expires_on"
+        ],
+        "type": "object"
+      },
+      "PackingRequest": {
+        "description": "Pack kg of a supply lot into a new child lot of units (jars).",
+        "properties": {
+          "best_before": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "code": {
+            "description": "The new lot's code.",
+            "example": "ILU-J-2026-01",
+            "type": "string"
+          },
+          "expires_on": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product_id": {
+            "description": "Stock-tracked product of the jars.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "raw_kg": {
+            "description": "Kg of the parent lot used, more than 0, at most 2 decimals.",
+            "example": "7.50",
+            "type": "string"
+          },
+          "units": {
+            "description": "Units made, more than 0, at most 2 decimals.",
+            "example": "10",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "description": "Where the parent's kg are taken from and the jars go.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "code",
+          "units",
+          "raw_kg",
+          "warehouse_id"
+        ],
+        "type": "object"
+      },
       "Paginated_AppKeyResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -10904,6 +11063,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/TeamResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_TransferResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TransferResource"
             },
             "type": "array"
           },
@@ -14722,6 +14900,53 @@
           "prompt_sw",
           "required",
           "options"
+        ],
+        "type": "object"
+      },
+      "ReceiveRequest": {
+        "description": "Receive a dispatched transfer into a new lot of this workspace.",
+        "properties": {
+          "code": {
+            "example": "AFM-ILU-2026-01",
+            "type": "string"
+          },
+          "product_id": {
+            "description": "Stock-tracked product of the new lot.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "At most the dispatched quantity; a shortfall is recorded.",
+            "example": "4",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "code",
+          "warehouse_id",
+          "quantity"
+        ],
+        "type": "object"
+      },
+      "ReceivedLot": {
+        "description": "The lot a transfer was received into.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code"
         ],
         "type": "object"
       },
@@ -18573,6 +18798,95 @@
           "actor_name",
           "actor_role",
           "detail"
+        ],
+        "type": "object"
+      },
+      "TransferLot": {
+        "description": "The dispatched lot's public codes.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "public_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "public_code"
+        ],
+        "type": "object"
+      },
+      "TransferResource": {
+        "description": "A transfer as one side sees it. No farmers, kg shares or prices.",
+        "properties": {
+          "direction": {
+            "description": "`outgoing` (dispatched by this workspace) or `incoming`.",
+            "type": "string"
+          },
+          "dispatched_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "from_lot": {
+            "$ref": "#/components/schemas/TransferLot"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "link_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "partner": {
+            "$ref": "#/components/schemas/Partner"
+          },
+          "quantity": {
+            "example": "4.00",
+            "type": "string"
+          },
+          "received_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "received_quantity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "`dispatched` or `received`.",
+            "type": "string"
+          },
+          "to_lot": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReceivedLot",
+                "description": "The receiver's lot, once received."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "link_id",
+          "direction",
+          "partner",
+          "from_lot",
+          "quantity",
+          "status",
+          "dispatched_at",
+          "to_lot",
+          "received_quantity",
+          "received_at"
         ],
         "type": "object"
       },
@@ -50050,6 +50364,171 @@
         ]
       }
     },
+    "/workspace/{workspace}/lots/{lot}/packings": {
+      "post": {
+        "description": "Makes a child lot of the jar product with `parent_lot_id`, and the kg used and units made as two exact numbers. Moves `raw_kg` out of the parent and `units` into the child in the warehouse, in one transaction (`lot.created`, `packed` on the parent). Only a lot from a supply batch or a supply transfer; never a packed one.",
+        "operationId": "supply_chain_pack",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Parent lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PackingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PackedLotResource"
+                }
+              }
+            },
+            "description": "Packed"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No `product.update`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown lot, or another workspace's"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, not enough kg free, or a lot that can't be packed"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Pack a supply lot into jars",
+        "tags": [
+          "supply_chain"
+        ]
+      }
+    },
     "/workspace/{workspace}/lots/{lot}/passport": {
       "get": {
         "operationId": "lots_passport_get",
@@ -50753,6 +51232,171 @@
         "summary": "Put stock into or take it out of a lot",
         "tags": [
           "lots"
+        ]
+      }
+    },
+    "/workspace/{workspace}/lots/{lot}/transfers": {
+      "post": {
+        "description": "Over a live link this workspace granted. Takes the quantity out of the lot in the warehouse (never more than it holds free) and leaves a dispatched transfer for the other side.",
+        "operationId": "supply_chain_dispatch",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DispatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TransferResource"
+                }
+              }
+            },
+            "description": "Dispatched"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No `product.update`, or the link is not live"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown lot, or another workspace's"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown link, not enough stock, or not a supply lot"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Send lot stock over a supply link",
+        "tags": [
+          "supply_chain"
         ]
       }
     },
@@ -65680,6 +66324,306 @@
         "summary": "Accept a supply link",
         "tags": [
           "supply_links"
+        ]
+      }
+    },
+    "/workspace/{workspace}/supply-transfers": {
+      "get": {
+        "description": "Transfers this workspace sent (`outgoing`) or is sent (`incoming`), newest first. No farmers, kg shares or prices.",
+        "operationId": "supply_chain_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_TransferResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List supply transfers",
+        "tags": [
+          "supply_chain"
+        ]
+      }
+    },
+    "/workspace/{workspace}/supply-transfers/{transfer}/receive": {
+      "post": {
+        "description": "The receiving workspace, while the link is live, once. Makes a new lot of its product (`lot.created`) holding the received quantity (at most the dispatched one) in its warehouse.",
+        "operationId": "supply_chain_receive",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Transfer id",
+            "in": "path",
+            "name": "transfer",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_TransferResource"
+                }
+              }
+            },
+            "description": "Received"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No `product.update`, the sending side, or the link is not live"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown transfer, or this workspace is no side of it"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Already received"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or more than dispatched"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Receive a supply transfer",
+        "tags": [
+          "supply_chain"
         ]
       }
     },

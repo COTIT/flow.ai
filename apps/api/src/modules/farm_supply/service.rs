@@ -266,3 +266,82 @@ pub async fn list(
         .collect();
     Ok((data, total))
 }
+
+/// Hops a lineage may take back to its batch (packing and transfers; a few in practice).
+const MAX_HOPS: usize = 4;
+
+/// Where a lot's farmers come from: the batch's raw lot, the packing on the way (raw kg,
+/// units), and the allow-list of the first transfer crossed walking back from the lot.
+// shortcut: batch_id, price_per_kg and currency_id are read by the sale credit (step 6).
+#[allow(dead_code)]
+pub struct Lineage {
+    pub batch_id: Uuid,
+    pub root_workspace_id: Uuid,
+    pub root_lot_id: Uuid,
+    pub price_per_kg: i64,
+    pub currency_id: Uuid,
+    pub pack: Option<(Decimal, Decimal)>,
+    /// Public fields allowed, as frozen on the received transfer; None = same workspace.
+    pub fields: Option<Vec<String>>,
+}
+
+/// Walk back from `lot_id` through packing parents and received transfers to a supply
+/// batch. None when the lot doesn't come from one.
+pub async fn lineage(db: &sqlx::PgPool, lot_id: Uuid) -> Result<Option<Lineage>, AppError> {
+    let (mut cur, mut pack, mut fields) = (lot_id, None, None);
+    for _ in 0..=MAX_HOPS {
+        let Some(h) = repo::hop(db, cur).await? else {
+            return Ok(None);
+        };
+        if let (Some(kg), Some(units)) = (h.pack_raw_kg, h.pack_units) {
+            pack = pack.or(Some((kg, units)));
+        }
+        if fields.is_none() {
+            fields = h.fields.clone();
+        }
+        match h.parent_lot_id.or(h.from_lot_id) {
+            Some(next) => cur = next,
+            None => {
+                let batch = repo::batch_of_lot(db, h.workspace_id, h.id).await?;
+                return Ok(batch.map(|(batch_id, price_per_kg, currency_id)| Lineage {
+                    batch_id,
+                    root_workspace_id: h.workspace_id,
+                    root_lot_id: h.id,
+                    price_per_kg,
+                    currency_id,
+                    pack,
+                    fields,
+                }));
+            }
+        }
+    }
+    Ok(None)
+}
+
+/// The public farmer groups of `lot_id`: from its batch, cut to the link's allow-list when it
+/// crossed one (no `village`: nothing; no `farmer_count`: no count; no `harvest_window`: no dates).
+pub async fn public_farmers(
+    db: &sqlx::PgPool,
+    lot_id: Uuid,
+) -> Result<Vec<repo::GroupRow>, AppError> {
+    let Some(l) = lineage(db, lot_id).await? else {
+        return Ok(Vec::new());
+    };
+    let mut groups = repo::public_groups(db, l.root_workspace_id, l.root_lot_id).await?;
+    if let Some(fields) = l.fields {
+        let has = |f: &str| fields.iter().any(|x| x == f);
+        if !has("village") {
+            return Ok(Vec::new());
+        }
+        for g in &mut groups {
+            if !has("farmer_count") {
+                g.farmers = 0;
+            }
+            if !has("harvest_window") {
+                g.harvest_start = None;
+                g.harvest_end = None;
+            }
+        }
+    }
+    Ok(groups)
+}
