@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Docs: `docs/deferred-providers.md` lists third-party providers left out for now (Mollie, US payments, production email, Shippo, FBA): what is prepared and what each still needs.
 - Phase 1 "lay the pipes" (contracts `docs/api/app-keys.md`, `storefront.md`, `webhooks.md`):
   - **App keys** (migration `app_keys`): `gsk_` keys per workspace and app kind, sha256 only, scopes (`catalog:read`), revoke, `last_used_at` at most once a minute. `AppKey` extractor beside `AuthUser`; the private rate limit buckets per key. Admin routes `/workspace/{workspace}/app-keys`.
   - **Storefront:** `GET /storefront/products[/{product}]` for `catalog:read` keys: active, unarchived products with variants, prices in integer minor units and available stock, one statement per call.
