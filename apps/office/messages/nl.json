@@ -15,11 +15,44 @@
   },
   "nav": {
     "label": "Hoofdmenu",
-    "products": "Producten"
+    "products": "Producten",
+    "lots": "Batches"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
     "previous": "Vorige",
     "next": "Volgende"
+  },
+  "actions": {
+    "save": "Opslaan",
+    "saved": "Opgeslagen.",
+    "cancel": "Annuleren"
+  },
+  "lots": {
+    "title": "Batches",
+    "search": "Batches zoeken",
+    "new": "Nieuwe batch",
+    "empty": "Nog geen batches.",
+    "code": "Batchcode",
+    "product": "Product",
+    "status": "Status",
+    "allStatuses": "Alle statussen",
+    "producedOn": "Geproduceerd op",
+    "bestBefore": "Ten minste houdbaar tot",
+    "expiresOn": "Vervalt op",
+    "origin": "Herkomst",
+    "publicCode": "Publieke code",
+    "statuses": {
+      "released": "Vrijgegeven",
+      "quarantine": "Quarantaine",
+      "recalled": "Teruggeroepen"
+    },
+    "events": "Geschiedenis",
+    "eventAt": "Wanneer",
+    "eventKind": "Wat",
+    "eventChange": "Statuswijziging",
+    "recallTitle": "Deze batch terugroepen?",
+    "recallText": "Batch {code} wordt als teruggeroepen getoond op de publieke pagina en via de QR-link van elke pot.",
+    "recallConfirm": "Batch terugroepen"
   }
 }

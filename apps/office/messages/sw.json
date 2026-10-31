@@ -15,11 +15,44 @@
   },
   "nav": {
     "label": "Menyu kuu",
-    "products": "Bidhaa"
+    "products": "Bidhaa",
+    "lots": "Mafungu"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
     "previous": "Iliyotangulia",
     "next": "Inayofuata"
+  },
+  "actions": {
+    "save": "Hifadhi",
+    "saved": "Imehifadhiwa.",
+    "cancel": "Ghairi"
+  },
+  "lots": {
+    "title": "Mafungu",
+    "search": "Tafuta mafungu",
+    "new": "Fungu jipya",
+    "empty": "Bado hakuna mafungu.",
+    "code": "Namba ya fungu",
+    "product": "Bidhaa",
+    "status": "Hali",
+    "allStatuses": "Hali zote",
+    "producedOn": "Tarehe ya uzalishaji",
+    "bestBefore": "Bora kabla ya",
+    "expiresOn": "Inaisha muda",
+    "origin": "Asili",
+    "publicCode": "Namba ya umma",
+    "statuses": {
+      "released": "Imeruhusiwa",
+      "quarantine": "Karantini",
+      "recalled": "Imerudishwa"
+    },
+    "events": "Historia",
+    "eventAt": "Lini",
+    "eventKind": "Nini",
+    "eventChange": "Mabadiliko ya hali",
+    "recallTitle": "Rudisha fungu hili?",
+    "recallText": "Fungu {code} litaonyeshwa kuwa limerudishwa kwenye ukurasa wake wa umma na kwenye kiungo cha QR cha kila chupa.",
+    "recallConfirm": "Rudisha fungu"
   }
 }

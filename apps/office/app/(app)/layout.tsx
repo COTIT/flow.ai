@@ -14,7 +14,10 @@ import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
 
-const nav = [{ href: "/products", label: "nav.products" }] as const
+const nav = [
+  { href: "/products", label: "nav.products" },
+  { href: "/lots", label: "nav.lots" },
+] as const
 
 /** Signed-in frame for every back-office screen: guard, header and menu. */
 export default function AppLayout({ children }: { children: React.ReactNode }) {

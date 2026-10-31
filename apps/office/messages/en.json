@@ -15,11 +15,44 @@
   },
   "nav": {
     "label": "Main menu",
-    "products": "Products"
+    "products": "Products",
+    "lots": "Batches"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
     "previous": "Previous",
     "next": "Next"
+  },
+  "actions": {
+    "save": "Save",
+    "saved": "Saved.",
+    "cancel": "Cancel"
+  },
+  "lots": {
+    "title": "Batches",
+    "search": "Search batches",
+    "new": "New batch",
+    "empty": "No batches yet.",
+    "code": "Batch code",
+    "product": "Product",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "producedOn": "Produced on",
+    "bestBefore": "Best before",
+    "expiresOn": "Expires on",
+    "origin": "Origin",
+    "publicCode": "Public code",
+    "statuses": {
+      "released": "Released",
+      "quarantine": "Quarantine",
+      "recalled": "Recalled"
+    },
+    "events": "History",
+    "eventAt": "When",
+    "eventKind": "What",
+    "eventChange": "Status change",
+    "recallTitle": "Recall this batch?",
+    "recallText": "Batch {code} will show as recalled on its public page and on every jar's QR link.",
+    "recallConfirm": "Recall batch"
   }
 }
