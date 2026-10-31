@@ -1,0 +1,23 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Something went wrong. Try again.",
+    "logout": "Log out",
+    "language": "Language",
+    "workspace": "Workspace",
+    "languages": {
+      "en": "English",
+      "nl": "Nederlands",
+      "sw": "Kiswahili"
+    }
+  },
+  "auth": {
+    "title": "Log in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Log in",
+    "invalidLogin": "Wrong email or password.",
+    "tooManyAttempts": "Too many attempts. Wait a few minutes and try again.",
+    "invalidInput": "Check the email and password fields."
+  }
+}

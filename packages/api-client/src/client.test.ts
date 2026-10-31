@@ -1,4 +1,4 @@
-import type { AxiosAdapter } from "axios"
+import { AxiosError, type AxiosAdapter } from "axios"
 import { describe, expect, it } from "vitest"
 
 import { createApiClient } from "./client"
@@ -61,7 +61,10 @@ describe("createApiClient", () => {
 
   it("reads the token on every request, so a new login applies at once", async () => {
     let token: string | null = null
-    const api = createApiClient({ baseURL: "http://api.test", getToken: () => token })
+    const api = createApiClient({
+      baseURL: "http://api.test",
+      getToken: () => token,
+    })
     api.defaults.adapter = echo
 
     const before = await api.get("/me")
@@ -70,5 +73,35 @@ describe("createApiClient", () => {
 
     expect(before.data.authorization).toBeNull()
     expect(after.data.authorization).toBe("Bearer fresh")
+  })
+
+  it("tells the app when the backend says the token is no longer valid", async () => {
+    let calls = 0
+    const api = createApiClient({
+      baseURL: "http://api.test",
+      onUnauthorized: () => calls++,
+    })
+    // Real adapters reject non-2xx answers; this one does the same.
+    api.defaults.adapter = async (config) => {
+      const response = {
+        data: {},
+        status: 401,
+        statusText: "",
+        headers: {},
+        config,
+      }
+      throw new AxiosError(
+        "Unauthorized",
+        "ERR_BAD_REQUEST",
+        config,
+        null,
+        response
+      )
+    }
+
+    await expect(api.get("/me")).rejects.toMatchObject({
+      response: { status: 401 },
+    })
+    expect(calls).toBe(1)
   })
 })

@@ -1,4 +1,7 @@
 import type { Metadata } from "next"
+import { NextIntlClientProvider } from "next-intl"
+import { getLocale } from "next-intl/server"
+import { headers } from "next/headers"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import "@genesy/ui/globals.css"
@@ -13,21 +16,30 @@ export const metadata: Metadata = {
   title: "Genesy Till",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const locale = await getLocale()
+  // Set by proxy.ts; next-themes' inline script needs it to pass the CSP.
+  const nonce = (await headers()).get("x-nonce") ?? undefined
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
-      className={cn("antialiased font-sans", fontSans.variable, fontMono.variable)}
+      className={cn(
+        "font-sans antialiased",
+        fontSans.variable,
+        fontMono.variable
+      )}
     >
       <body>
-        <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </ThemeProvider>
+        <NextIntlClientProvider>
+          <ThemeProvider nonce={nonce}>
+            <QueryProvider>{children}</QueryProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

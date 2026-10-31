@@ -15,7 +15,8 @@ export async function apiRequest<T>(
   config: AxiosRequestConfig,
   options?: AxiosRequestConfig
 ): Promise<T> {
-  if (!client) throw new Error("API not configured: call configureApi() at app startup")
+  if (!client)
+    throw new Error("API not configured: call configureApi() at app startup")
   const { data } = await client.request<T>({ ...config, ...options })
   return data
 }

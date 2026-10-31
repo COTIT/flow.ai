@@ -1,0 +1,23 @@
+{
+  "common": {
+    "loading": "Laden…",
+    "error": "Er ging iets mis. Probeer het opnieuw.",
+    "logout": "Uitloggen",
+    "language": "Taal",
+    "workspace": "Werkruimte",
+    "languages": {
+      "en": "English",
+      "nl": "Nederlands",
+      "sw": "Kiswahili"
+    }
+  },
+  "auth": {
+    "title": "Inloggen",
+    "email": "E-mailadres",
+    "password": "Wachtwoord",
+    "submit": "Inloggen",
+    "invalidLogin": "Onjuist e-mailadres of wachtwoord.",
+    "tooManyAttempts": "Te veel pogingen. Wacht een paar minuten en probeer het opnieuw.",
+    "invalidInput": "Controleer het e-mailadres en het wachtwoord."
+  }
+}

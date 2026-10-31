@@ -6,10 +6,16 @@ export type ApiClientOptions = {
   baseURL: string
   /** Returns the current login token, or `null` when logged out. Read on every request. */
   getToken?: () => string | null
+  /** Called when the backend answers 401 (token expired or revoked), e.g. to log out. */
+  onUnauthorized?: () => void
 }
 
 /** Axios instance for the Genesy backend: JSON in and out, bearer token when logged in. */
-export function createApiClient({ baseURL, getToken }: ApiClientOptions): AxiosInstance {
+export function createApiClient({
+  baseURL,
+  getToken,
+  onUnauthorized,
+}: ApiClientOptions): AxiosInstance {
   const api = axios.create({
     baseURL,
     headers: { Accept: "application/json" },
@@ -19,6 +25,12 @@ export function createApiClient({ baseURL, getToken }: ApiClientOptions): AxiosI
     const token = getToken?.()
     if (token) config.headers.set("Authorization", `Bearer ${token}`)
     return config
+  })
+
+  api.interceptors.response.use(undefined, (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401)
+      onUnauthorized?.()
+    return Promise.reject(error)
   })
 
   return api
