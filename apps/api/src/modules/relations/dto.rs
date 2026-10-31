@@ -5,18 +5,22 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, Validate, filled, human, is_url},
     modules::{
         contacts::{
-            dto::{ContactFields, ContactResource, contact_fields, invalid_choice, opt_str},
+            dto::{
+                ContactFields, ContactInput, ContactResource, contact_fields, empty_array,
+                invalid_choice, opt_str,
+            },
             repo::ContactRow,
         },
         custom_types::{dto::CustomTypeResource, repo::CustomTypeRow},
         relations::{
-            address::{self, Address, AddressView},
+            address::{self, Address, AddressInput, AddressView},
             countries,
             repo::RelationRow,
             vat_number,
@@ -137,6 +141,53 @@ pub struct NewRelation {
 /// POST /relations. Raw object so unknown keys (`address`, `default_validity_period`) pass.
 #[derive(Deserialize)]
 pub struct CreateRelationRequest(Map<String, Value>);
+
+/// New relation (customer or supplier). Text is trimmed; blank = not set. Unknown keys are
+/// ignored.
+// Doc-only: request_body schema for the raw-object create body; never constructed.
+#[derive(ToSchema)]
+#[allow(dead_code)]
+pub struct RelationInput {
+    /// `business` or `personal`, any case.
+    #[schema(rename = "type", example = "business")]
+    kind: String,
+    /// A `relation` custom type; workspace default when left out.
+    relation_type_id: Option<Uuid>,
+    /// A custom type for where the relation came from.
+    source_type_id: Option<Uuid>,
+    #[schema(max_length = 255)]
+    alias: Option<String>,
+    #[schema(max_length = 255)]
+    company_name: Option<String>,
+    #[schema(max_length = 200)]
+    coc_number: Option<String>,
+    /// EU VAT number format.
+    #[schema(max_length = 255)]
+    vat_number: Option<String>,
+    #[schema(max_length = 255)]
+    email: Option<String>,
+    /// A URL.
+    #[schema(max_length = 255)]
+    website: Option<String>,
+    #[schema(max_length = 55)]
+    phone_number: Option<String>,
+    /// `en` or `nl`.
+    default_language: Option<String>,
+    /// Up to 50.
+    #[schema(max_items = 50)]
+    addresses: Option<Vec<AddressInput>>,
+    /// Bank account details.
+    #[schema(value_type = Option<Object>)]
+    financial_account: Option<Value>,
+    allow_invoicing_on_account: Option<bool>,
+    disable_order_workflow_emails: Option<bool>,
+    #[schema(value_type = Option<Object>)]
+    meta: Option<Value>,
+    /// Created as the relation's default contact.
+    contact: Option<ContactInput>,
+    /// Point-of-sale signup: needs a company name, alias, or contact first and last name.
+    created_from_pos: Option<bool>,
+}
 
 impl Validate for CreateRelationRequest {
     type Valid = NewRelation;
@@ -315,6 +366,72 @@ fn supplier_in(r: &mut Rules, v: Value) -> Option<Value> {
 #[derive(Deserialize)]
 pub struct UpdateRelationRequest(Map<String, Value>);
 
+/// Changes to a relation. `type` and `relation_type_id` are always required; leave another
+/// field out to keep it, send null to clear it. Unknown keys are ignored.
+// Doc-only: request_body schema for the raw-object update body; never constructed.
+#[derive(ToSchema)]
+#[allow(dead_code)]
+pub struct RelationPatchInput {
+    /// `business` or `personal`, any case.
+    #[schema(rename = "type", example = "business")]
+    kind: String,
+    relation_type_id: Uuid,
+    #[schema(max_length = 255)]
+    alias: Option<String>,
+    #[schema(max_length = 255)]
+    company_name: Option<String>,
+    #[schema(max_length = 200)]
+    coc_number: Option<String>,
+    #[schema(max_length = 255)]
+    vat_number: Option<String>,
+    #[schema(max_length = 255)]
+    email: Option<String>,
+    /// A URL.
+    #[schema(max_length = 255)]
+    website: Option<String>,
+    #[schema(max_length = 55)]
+    phone_number: Option<String>,
+    /// `en` or `nl`.
+    default_language: Option<String>,
+    #[schema(max_length = 255)]
+    import_source: Option<String>,
+    #[schema(max_length = 255)]
+    import_id: Option<String>,
+    /// Replaces the whole list. Up to 50.
+    #[schema(max_items = 50)]
+    addresses: Option<Vec<AddressInput>>,
+    /// Bank account details.
+    #[schema(value_type = Option<Object>)]
+    financial_account: Option<Value>,
+    /// Each a whole number of days, 1..=365.
+    terms_and_periods: Option<RelationTerms>,
+    /// Supplier settings (payment term, order type, lead time, minimums, fixed shipping
+    /// cost, FTP). A blank FTP password keeps the stored one.
+    #[schema(value_type = Option<Object>)]
+    supplier_data: Option<Value>,
+    /// Can't be null.
+    allow_invoicing_on_account: Option<bool>,
+    /// Can't be null.
+    disable_order_workflow_emails: Option<bool>,
+    #[schema(value_type = Option<Object>)]
+    meta: Option<Value>,
+}
+
+/// Payment terms and validity periods in days; null = not set.
+// Doc-only: wire shape of the `terms_and_periods` objects; never constructed.
+#[derive(ToSchema)]
+#[allow(dead_code)]
+pub struct RelationTerms {
+    #[schema(required = true)]
+    invoice_payment_term: Option<i64>,
+    #[schema(required = true)]
+    credit_invoice_payment_term: Option<i64>,
+    #[schema(required = true)]
+    collective_invoice_payment_term: Option<i64>,
+    #[schema(required = true)]
+    estimate_validity_period: Option<i64>,
+}
+
 /// Validated update; `None` keeps the stored value, `Some(None)` clears it.
 pub struct RelationPatch {
     pub kind: String,
@@ -407,7 +524,7 @@ pub fn keeps_ftp_password(supplier: &Value) -> bool {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct RelationCreated {
     pub relation_id: Uuid,
 }
@@ -495,64 +612,104 @@ pub fn supplier_out(stored: &Value) -> Value {
 }
 
 /// Unpaid invoice counters; zero until invoices are ported.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct UnpaidInvoices {
     count: i64,
     allowed_for_collective: i64,
     allowed_on_account: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct Relationships {
+    #[schema(required = true)]
     relation_type: Option<CustomTypeResource>,
+    #[schema(required = true)]
     source_type: Option<CustomTypeResource>,
     contacts: Vec<ContactResource>,
+    /// Suppliers only.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Vec<Object>, required = false)]
     supplier_discount_groups: Option<Vec<Value>>,
+    /// Not on suppliers.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Vec<Object>, required = false)]
     relation_discount_groups: Option<Vec<Value>>,
+    #[schema(schema_with = empty_array)]
     custom_sections: [(); 0],
+    #[schema(schema_with = empty_array)]
     custom_section_forms: [(); 0],
+    /// Left out when `include_unpaid_invoices=false`.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(inline)]
     unpaid_invoices: Option<UnpaidInvoices>,
+    /// Related record counters.
+    #[schema(value_type = Object)]
     counts: Value,
 }
 
-/// Laravel RelationResource (GET /relations/{id}). Keys in Laravel order; `Option<Option<_>>`
-/// fields are Laravel `when()` keys: absent, or present (possibly null).
-#[derive(Serialize)]
+// Laravel RelationResource (GET /relations/{id}). Keys in Laravel order; `Option<Option<_>>`
+// fields are Laravel `when()` keys: absent, or present (possibly null).
+/// One relation (customer or supplier) with addresses, contacts and VAT context.
+#[derive(Serialize, ToSchema)]
 pub struct RelationResource {
     id: Uuid,
+    #[schema(required = true)]
     alias: Option<String>,
+    #[schema(required = true)]
     company_name: Option<String>,
+    #[schema(required = true)]
     coc_number: Option<String>,
+    #[schema(required = true)]
     vat_number: Option<String>,
+    /// `business` or `personal`.
     #[serde(rename = "type")]
     kind: String,
+    #[schema(required = true)]
     email: Option<String>,
+    /// Only when `email` is set; null until email checks exist.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Object>, required = false)]
     email_validation: Option<Option<Value>>,
+    #[schema(required = true)]
     website: Option<String>,
+    #[schema(required = true)]
     phone_number: Option<String>,
+    /// Formatted relation number (prefix, padded number, suffix).
+    #[schema(required = true)]
     relation_nr: Option<String>,
+    #[schema(required = true)]
     import_id: Option<String>,
+    #[schema(required = true)]
     import_source: Option<String>,
     allow_invoicing_on_account: bool,
     disable_order_workflow_emails: bool,
+    /// As stored.
+    #[schema(value_type = RelationTerms)]
     terms_and_periods: Value,
+    /// Stored terms with blanks filled from defaults.
+    #[schema(value_type = RelationTerms)]
     used_terms_and_periods: Value,
+    /// Left out in the slim view.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = String, required = false)]
     default_vat_rate: Option<String>,
+    #[schema(required = true)]
     default_language: Option<String>,
     has_reverse_charge: bool,
     addresses: Vec<AddressView>,
+    /// Bank account details.
+    #[schema(value_type = Option<Object>, required = true)]
     financial_account: Option<Value>,
+    /// Suppliers only; FTP password always null.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Object, required = false)]
     supplier_data: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
     vat_groups: Vec<VatGroupResource>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    #[schema(inline)]
     relationships: Relationships,
 }
 
@@ -692,50 +849,75 @@ fn index_supplier(stored: Option<&Value>) -> Option<Value> {
     (!map.values().all(empty)).then(|| supplier_out(stored))
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct IndexRelationships {
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<CustomTypeResource>, required = false)]
     relation_type: Option<Option<CustomTypeResource>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<CustomTypeResource>, required = false)]
     source_type: Option<Option<CustomTypeResource>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Vec<ContactResource>, required = false)]
     contacts: Option<Vec<ContactResource>>,
+    #[schema(schema_with = empty_array)]
     tags: [(); 0],
 }
 
-/// Laravel RelationIndexResource (list rows, `/searches?domain=relation`). Activity and tag
-/// counters are zero until those modules are ported; addresses are the stored ones (no VAT keys).
-#[derive(Serialize)]
+// Laravel RelationIndexResource (list rows, `/searches?domain=relation`). Activity and tag
+// counters are zero until those modules are ported; addresses are the stored ones (no VAT keys).
+/// One relation in a list.
+#[derive(Serialize, ToSchema)]
 pub struct RelationIndexResource {
     id: Uuid,
+    #[schema(required = true)]
     alias: Option<String>,
+    #[schema(required = true)]
     company_name: Option<String>,
+    /// `business` or `personal`.
     #[serde(rename = "type")]
     kind: String,
+    #[schema(required = true)]
     email: Option<String>,
+    /// Only when `email` is set; null until email checks exist.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Object>, required = false)]
     email_validation: Option<Option<Value>>,
+    #[schema(required = true)]
     website: Option<String>,
+    #[schema(required = true)]
     phone_number: Option<String>,
+    #[schema(required = true)]
     relation_nr: Option<String>,
+    #[schema(required = true)]
     default_language: Option<String>,
     addresses: Vec<AddressView>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
     allow_invoicing_on_account: bool,
     disable_order_workflow_emails: bool,
+    /// Suppliers with settings only; FTP password always null.
+    #[schema(value_type = Option<Object>, required = true)]
     supplier_data: Option<Value>,
     activities_count: i64,
     has_activities: bool,
     has_note_activity: bool,
     tags_count: i64,
+    #[schema(inline)]
     relationships: IndexRelationships,
-    /// Laravel `purchase_orders_count`: only loaded on the supplier list.
+    // Laravel `purchase_orders_count`: only loaded on the supplier list.
+    /// Open purchase orders; null outside the supplier list.
+    #[schema(required = true)]
     open_orders: Option<i64>,
+    /// Decimal string.
     open_order_value: String,
+    /// Only with `include_advice`.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = bool, required = false)]
     has_advice: Option<bool>,
+    /// Only with `include_advice`.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = i64, required = false)]
     advice_count: Option<i64>,
 }
 

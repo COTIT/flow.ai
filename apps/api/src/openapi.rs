@@ -14,9 +14,11 @@ use crate::{
     error::ValidationErrorBody,
     http::response::MessageBody,
     modules::{
-        auth, currencies, email_verification, invites, permissions, teams,
+        auth, contacts, currencies, custom_statuses, custom_types, email_verification,
+        hourly_rates, invites, permissions, relations, sales_groups, search, shipment_methods,
+        teams,
         users::{self, dto::UserEmailResource},
-        workspaces,
+        vat_groups, workspaces,
     },
 };
 
@@ -69,6 +71,15 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(permissions::routes::private())
         .merge(workspaces::routes::private())
         .merge(teams::routes::private())
+        .merge(search::routes::private())
+        .merge(relations::routes::private())
+        .merge(contacts::routes::private())
+        .merge(custom_statuses::routes::private())
+        .merge(custom_types::routes::private())
+        .merge(shipment_methods::routes::private())
+        .merge(sales_groups::routes::private())
+        .merge(hourly_rates::routes::private())
+        .merge(vat_groups::routes::private())
 }
 
 /// Full spec, built from [`public`] and [`private`], as JSON.

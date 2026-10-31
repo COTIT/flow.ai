@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -24,15 +25,21 @@ const TEXT_MAX: usize = 255;
 /// Laravel `rules.CustomTypeUnique` / `rules.CustomStatusUnique` for attribute `name`.
 pub const NOT_UNIQUE: &str = "The name is not unique";
 
-/// Laravel CustomTypeResource.
-#[derive(Serialize)]
+// Laravel CustomTypeResource.
+/// A user-defined type (relation type, activity type, ...) for one domain.
+#[derive(Serialize, ToSchema)]
 pub struct CustomTypeResource {
     id: Uuid,
     name: String,
+    /// Domain the type belongs to, lowercase (`relation`, `activity`, ...).
+    #[schema(example = "relation")]
     domain: String,
+    /// Domain-specific settings, e.g. `{"is_supplier": false}` for `relation`.
+    #[schema(value_type = Option<Object>, required = true)]
     properties: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
 }
 
@@ -51,7 +58,7 @@ impl From<CustomTypeRow> for CustomTypeResource {
 }
 
 /// Create response: the new row's id.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct CustomTypeCreated {
     pub custom_type_id: Uuid,
 }
@@ -76,15 +83,29 @@ pub fn domain_filter(value: Option<&str>) -> Result<Option<String>, AppError> {
     Ok(Some(d))
 }
 
-/// GET list query (Laravel ListCustomTypeRequest). Unknown params ignored.
-#[derive(Deserialize)]
+// GET list query (Laravel ListCustomTypeRequest). Unknown params ignored.
+/// GET list query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on name.
     pub q: Option<String>,
+    /// Only this domain, any case; unknown domain is 422.
     pub domain: Option<String>,
+    /// `hour_registration_type` only: filter on that property.
+    #[param(value_type = Option<bool>)]
     pub default_for_work_order: Option<String>,
+    /// `hour_registration_type` only: filter on that property.
+    #[param(value_type = Option<bool>)]
     pub is_leave_hours_type: Option<String>,
+    /// `relation` only: filter on that property.
+    #[param(value_type = Option<bool>)]
     pub is_supplier: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
@@ -200,11 +221,23 @@ pub fn properties(r: &mut Rules, domain: &str, given: Option<Value>) -> Option<V
 }
 
 /// POST /custom-types.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "New custom type. `name` is unique within its domain. `properties` keys \
+        depend on the domain: `relation` {is_supplier}, `activity` {is_ticket_type, icon, \
+        color}, `product_return_reason` {discount_percentage} (required), \
+        `hour_registration_type` {default_for_work_order, is_leave_hours_type, \
+        is_sick_hours_type}; other domains ignore it."
+)]
 pub struct CreateCustomTypeRequest {
+    #[schema(value_type = String, max_length = 55)]
     name: Option<String>,
+    /// Domain, any case.
+    #[schema(value_type = String, example = "relation")]
     domain: Option<String>,
+    #[schema(value_type = Option<Object>)]
     properties: Option<Value>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -230,15 +263,23 @@ impl Validate for CreateCustomTypeRequest {
     }
 }
 
-/// POST /custom-types/{id}. The stored domain is kept (Laravel forced it); `properties` is
-/// checked against that domain by the service. Absent = keep.
-#[derive(Deserialize)]
+// POST /custom-types/{id}. The stored domain is kept (Laravel forced it); `properties` is
+// checked against that domain by the service. Absent = keep.
+/// POST /custom-types/{id}.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to a custom type. The domain can't change; `properties` follows \
+        the same per-domain rules as create. Leave a field out to keep it."
+)]
 pub struct UpdateCustomTypeRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, max_length = 55)]
     name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     properties: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

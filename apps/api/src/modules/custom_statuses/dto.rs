@@ -4,6 +4,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -20,15 +21,19 @@ const NAME_MAX: usize = 55;
 const LIMIT_MAX: i64 = 200;
 const LIMIT_DEFAULT: i64 = 50;
 
-/// Laravel CustomStatusResource; `archived` is a JSON bool (Laravel sent 0/1).
-#[derive(Serialize)]
+// Laravel CustomStatusResource; `archived` is a JSON bool (Laravel sent 0/1).
+/// A user-defined status for one domain.
+#[derive(Serialize, ToSchema)]
 pub struct CustomStatusResource {
     id: Uuid,
     name: String,
+    /// Domain the status belongs to, lowercase.
+    #[schema(example = "deal")]
     domain: String,
     archived: bool,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
 }
 
@@ -47,17 +52,25 @@ impl From<CustomStatusRow> for CustomStatusResource {
 }
 
 /// Create response: the new row's id.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct CustomStatusCreated {
     pub custom_status_id: Uuid,
 }
 
-/// GET list query. Laravel paged by `limit`, not `page_size`. Unknown params ignored.
-#[derive(Deserialize)]
+// GET list query. Laravel paged by `limit`, not `page_size`. Unknown params ignored.
+/// GET list query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on name.
     pub q: Option<String>,
+    /// Only this domain, any case; unknown domain is 422.
     pub domain: Option<String>,
+    /// Page size 1..=200, default 50; anything else is 422.
+    #[param(value_type = Option<i64>)]
     pub limit: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
 }
 
@@ -82,10 +95,15 @@ impl ListQuery {
 }
 
 /// POST /custom-status.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "New custom status. `name` is unique within its domain.")]
 pub struct CreateCustomStatusRequest {
+    #[schema(value_type = String, max_length = 55)]
     name: Option<String>,
+    /// Domain, any case.
+    #[schema(value_type = String, example = "deal")]
     domain: Option<String>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -108,12 +126,19 @@ impl Validate for CreateCustomStatusRequest {
     }
 }
 
-/// POST /custom-status/{id}. Domain and archived can't change here (Laravel rules).
-#[derive(Deserialize)]
+// POST /custom-status/{id}. Domain and archived can't change here (Laravel rules).
+/// POST /custom-status/{id}.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to a custom status. Domain and `archived` can't change here; leave \
+        a field out to keep it."
+)]
 pub struct UpdateCustomStatusRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, max_length = 55)]
     name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

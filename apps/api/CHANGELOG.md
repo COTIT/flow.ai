@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- OpenAPI rollout group B: `vat_groups`, `hourly_rates`, `sales_groups`, `shipment_methods`, `custom_types`, `custom_statuses`, `relations` (incl. `financial-summary`), `contacts` and the `/searches` registry are documented (40 operations, operationIds `<tag>_<action>`) and mounted from `openapi::private()`. Paths, statuses and bodies are unchanged; the contract check in `send` now validates every reply these modules' tests produce.
+  - Lenient inputs are documented as clean types: money and percentages as decimal strings, flags as booleans, ids as uuids.
+  - `relations` and contacts read raw JSON objects, so their create/update bodies are documented by doc-only structs (`RelationInput`, `RelationPatchInput`, `ContactInput`, `AddressInput`, `PhoneInput`, `RelationTerms`); the extractors are unchanged.
+  - `POST /relations/` (trailing slash, older clients) stays served but undocumented; the contract check skips it.
+  - Doc gaps: `/searches` rows are untyped objects (`SearchRow`) because some domains' resources aren't documented yet; `financial-summary` returns a free-form object (`FinancialSummary`, a placeholder until invoices are ported).
+- Pulled the later genesy-360-api work into `apps/api` (old repo `416abee49`): F6 invoice send/numbering/credit notes, F7 invoice payments, B7-1 job rail + idempotency keys, B8-1/B8-2 deal pipelines and deals, `ctutils` 0.4.4 (RUSTSEC-2026-0385). The invoices public hash link joins the public router undocumented; the test `send()` keeps the contract check and delegates to upstream's `send_raw`.
 - OpenAPI rollout group A: `users`, `permissions`, `workspaces` and `teams` are now documented (15 operations) and served through `openapi::private()` instead of `build_app`'s plain list. Paths, statuses and bodies are unchanged; the contract check passes on every reply in the full suite.
   - operationIds: `users_me`, `users_workspaces`, `users_list`, `users_get`, `permissions_catalog`, `workspaces_get`, `workspaces_update`, `teams_create`, `teams_list`, `teams_get`, `teams_update`, `teams_delete`, `teams_add_users`, `teams_remove_users`, `teams_set_permissions`.
   - Hand-written schemas: the permission catalog (`{<group>: [actions], __classification}`, a map serialized by hand) and the workspace update body (`WorkspaceProfilePatch`, the request is parsed as a raw map). `UserDetail` is a `$ref` to `UserResource`.

@@ -9,11 +9,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::shipment_methods::{
@@ -38,6 +38,21 @@ permissions! {
 type MethodPath = Path<(String, String)>;
 
 /// GET /shipment-methods -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/shipment-methods", tag = "shipment_methods",
+    operation_id = "shipment_methods_list", summary = "List shipment methods",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ListQuery,
+    ),
+    responses(
+        (status = 200, body = Paginated<ShipmentMethodResource>, description = "One page of shipment methods"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `shipmentmethod.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<ShipmentMethodList>,
@@ -57,6 +72,20 @@ pub async fn list(
 }
 
 /// GET /shipment-methods/{shipment_method}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/shipment-methods/{shipment_method}", tag = "shipment_methods",
+    operation_id = "shipment_methods_get", summary = "Get a shipment method",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("shipment_method" = Uuid, Path, description = "Shipment method id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<ShipmentMethodResource>, description = "The shipment method"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `shipmentmethod.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or shipment method, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<ShipmentMethodGet>,
@@ -68,6 +97,19 @@ pub async fn get(
 }
 
 /// POST /shipment-methods -> 201 `{data:{shipment_method_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/shipment-methods", tag = "shipment_methods",
+    operation_id = "shipment_methods_create", summary = "Create a shipment method",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateShipmentMethodRequest,
+    responses(
+        (status = 201, body = Envelope<ShipmentMethodCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `shipmentmethod.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<ShipmentMethodCreate>,
@@ -81,6 +123,22 @@ pub async fn create(
 }
 
 /// POST /shipment-methods/{shipment_method} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/shipment-methods/{shipment_method}", tag = "shipment_methods",
+    operation_id = "shipment_methods_update", summary = "Update a shipment method",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("shipment_method" = Uuid, Path, description = "Shipment method id"),
+    ),
+    request_body = UpdateShipmentMethodRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `shipmentmethod.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or shipment method, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<ShipmentMethodUpdate>,
@@ -92,6 +150,20 @@ pub async fn update(
 }
 
 /// DELETE /shipment-methods/{shipment_method} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/shipment-methods/{shipment_method}", tag = "shipment_methods",
+    operation_id = "shipment_methods_delete", summary = "Delete a shipment method",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("shipment_method" = Uuid, Path, description = "Shipment method id"),
+    ),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `shipmentmethod.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or shipment method, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<ShipmentMethodDelete>,

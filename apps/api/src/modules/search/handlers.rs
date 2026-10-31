@@ -11,13 +11,15 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         list::{Page, Paginated, flag, search as pattern_of},
+        response::MessageBody,
         workspace::{Can, permissions},
     },
     modules::{
@@ -51,19 +53,57 @@ permissions! {
 }
 
 /// Query. Unknown params ignored (dropdowns spread their own filters).
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct SearchQuery {
+    /// What to search. Anything else (or none) is 404.
+    #[param(value_type = Option<SearchDomain>, inline)]
     domain: Option<String>,
+    /// Search on the name column.
     q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     page_size: Option<String>,
-    /// Laravel ScoutFilterHelper: shipment methods only.
+    // Laravel ScoutFilterHelper: shipment methods only.
+    /// `shipment_method` only: selectable ones.
+    #[param(value_type = Option<bool>)]
     can_be_selected: Option<String>,
-    /// Relation pickers: suppliers only.
+    /// `relation` only: suppliers only.
+    #[param(value_type = Option<bool>)]
     is_supplier: Option<String>,
-    /// Warehouse location picker: one warehouse's labels.
+    /// `warehouse_location` only: one warehouse's labels.
+    #[param(value_type = Option<Uuid>)]
     warehouse_id: Option<String>,
 }
+
+/// Searchable domains.
+// Doc-only: allowed `domain` values; the handler matches on the raw string.
+#[derive(ToSchema)]
+#[schema(rename_all = "snake_case")]
+#[allow(dead_code)]
+pub enum SearchDomain {
+    Currency,
+    VatGroup,
+    ProductBrand,
+    ProductCategory,
+    WarehouseLocation,
+    SalesGroup,
+    HourlyRate,
+    ShipmentMethod,
+    CustomStatus,
+    CustomType,
+    Relation,
+}
+
+/// One row in the chosen domain's list shape (as that domain's list route returns it).
+// Doc-only: rows differ per domain; never constructed.
+// shortcut: untyped rows; switch to a oneOf of the domain resources once every one has a
+// schema.
+#[derive(ToSchema)]
+pub struct SearchRow {}
 
 fn page_of<T: Serialize, R: Into<T>>(rows: Vec<R>, total: i64, page: Page) -> Response {
     let data: Vec<T> = rows.into_iter().map(Into::into).collect();
@@ -72,6 +112,21 @@ fn page_of<T: Serialize, R: Into<T>>(rows: Vec<R>, total: i64, page: Page) -> Re
 
 /// GET /searches?domain=X&q=... -> the domain's `{data:[...], meta}`. A domain that isn't
 /// ported yet, or none (Laravel's global search), is 404.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/searches", tag = "search",
+    operation_id = "search_search", summary = "Search one domain",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        SearchQuery,
+    ),
+    responses(
+        (status = 200, body = Paginated<SearchRow>, description = "One page of the domain's rows"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `workspace.global-search`"),
+        (status = 404, body = MessageBody, description = "Unknown or unsupported `domain`, unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn search(
     State(state): State<AppState>,
     access: Can<GlobalSearch>,

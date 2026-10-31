@@ -3,6 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use utoipa::ToSchema;
 
 use crate::{
     http::json::{Rules, human},
@@ -62,29 +63,83 @@ fn lenient_flag<'de, D: serde::Deserializer<'de>>(d: D) -> Result<bool, D::Error
     Ok(v == Value::Bool(true) || v.as_i64() == Some(1) || v.as_str() == Some("1"))
 }
 
-/// Address as Laravel serialized it: stored fields in constructor order plus the computed
-/// `formatted`/`search_format` and the three per-address VAT keys (null outside detail).
-#[derive(Serialize)]
+// Address as Laravel serialized it: stored fields in constructor order plus the computed
+// `formatted`/`search_format` and the three per-address VAT keys (null outside detail).
+/// A relation's address. The three VAT keys are null outside the single-relation view.
+#[derive(Serialize, ToSchema)]
 pub struct AddressView {
+    #[schema(required = true)]
     address: Option<String>,
+    #[schema(required = true)]
     house_number: Option<String>,
+    #[schema(required = true)]
     zipcode: Option<String>,
+    #[schema(required = true)]
     city: Option<String>,
+    /// ISO 3166 alpha-2, uppercase.
+    #[schema(required = true)]
     country: Option<String>,
+    #[schema(required = true)]
     house_number_addition: Option<String>,
+    #[schema(required = true)]
     address2: Option<String>,
+    #[schema(required = true)]
     state: Option<String>,
+    #[schema(required = true)]
     label: Option<String>,
     main_address: bool,
     #[serde(rename = "type")]
+    #[schema(required = true)]
     kind: Option<String>,
+    /// Multi-line postal address.
     formatted: String,
     search_format: String,
+    #[schema(required = true)]
     attn: Option<String>,
+    #[schema(required = true)]
     phone_number: Option<String>,
+    #[schema(required = true)]
     pub reverse_charge: Option<bool>,
+    #[schema(required = true)]
     pub shows_reverse_charge_notice: Option<bool>,
+    /// VAT groups for the address country.
+    #[schema(value_type = Option<Vec<Object>>, required = true)]
     pub vat_rates: Option<Value>,
+}
+
+/// One address to store. At most one per list may be the main address.
+// Doc-only: `addresses` item schema for the raw-object relation bodies; never constructed.
+#[derive(ToSchema)]
+#[allow(dead_code)]
+pub struct AddressInput {
+    #[schema(max_length = 255)]
+    address: String,
+    /// A number, as JSON number or numeric text.
+    #[schema(max_length = 20, example = "12")]
+    house_number: String,
+    #[schema(max_length = 10)]
+    house_number_addition: Option<String>,
+    #[schema(max_length = 255)]
+    address2: Option<String>,
+    #[schema(max_length = 20)]
+    zipcode: String,
+    #[schema(max_length = 255)]
+    city: String,
+    /// ISO 3166 alpha-2, any case.
+    #[schema(max_length = 255, example = "NL")]
+    country: String,
+    #[schema(max_length = 255)]
+    state: Option<String>,
+    #[schema(max_length = 55)]
+    label: Option<String>,
+    main_address: Option<bool>,
+    /// Default `other`.
+    #[schema(rename = "type", max_length = 255)]
+    kind: Option<String>,
+    #[schema(max_length = 255)]
+    attn: Option<String>,
+    #[schema(max_length = 255)]
+    phone_number: Option<String>,
 }
 
 impl From<&Address> for AddressView {

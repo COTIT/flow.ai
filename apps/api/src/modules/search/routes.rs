@@ -1,10 +1,11 @@
-//! Search route, mounted under /v1 (path matches vimdesk-api).
+//! Search route, mounted under /v1 (path matches vimdesk-api). Path lives in the handler's
+//! `#[utoipa::path]`, so router and OpenAPI spec share one source.
 
-use axum::{Router, routing::get};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::search::handlers};
 
-/// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    Router::new().route("/workspace/{workspace}/searches", get(handlers::search))
+/// Routes for this module; the handler runs the workspace guard.
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(handlers::search))
 }

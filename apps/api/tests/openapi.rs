@@ -359,6 +359,78 @@ fn every_currency_operation_is_documented() {
     }
 }
 
+/// Settings lists, relations, contacts and the search registry: every route is in the spec
+/// with its operationId, success status, 401 and bearer auth.
+#[test]
+fn group_b_operations_are_documented() {
+    let s = spec();
+    let ws = "/workspace/{workspace}";
+    let mut table = Vec::new();
+    for (tag, base, id) in [
+        ("vat_groups", "settings/vat-groups", "vat_group"),
+        ("hourly_rates", "hourly-rates", "hourly_rate"),
+        ("sales_groups", "settings/sales-groups", "sales_group"),
+        ("shipment_methods", "shipment-methods", "shipment_method"),
+        ("custom_types", "custom-types", "custom_type"),
+        ("custom_statuses", "custom-status", "custom_status"),
+        ("relations", "relations", "relation"),
+    ] {
+        let list = format!("{ws}/{base}");
+        let item = format!("{list}/{{{id}}}");
+        table.extend([
+            (list.clone(), "get", format!("{tag}_list"), "200"),
+            (list, "post", format!("{tag}_create"), "201"),
+            (item.clone(), "get", format!("{tag}_get"), "200"),
+            (item.clone(), "post", format!("{tag}_update"), "200"),
+            (item, "delete", format!("{tag}_delete"), "200"),
+        ]);
+    }
+    let contacts = format!("{ws}/relations/{{relation}}/contacts");
+    let contact = format!("{contacts}/{{contact}}");
+    table.extend([
+        (
+            format!("{ws}/relations/{{relation}}/financial-summary"),
+            "get",
+            "relations_financial_summary".into(),
+            "200",
+        ),
+        (contacts, "post", "contacts_create".into(), "201"),
+        (contact.clone(), "post", "contacts_update".into(), "200"),
+        (contact, "delete", "contacts_delete".into(), "200"),
+        (
+            format!("{ws}/searches"),
+            "get",
+            "search_search".into(),
+            "200",
+        ),
+    ]);
+    for (path, method, id, ok) in table {
+        let op = &s["paths"][&path][method];
+        assert!(op.is_object(), "{method} {path} missing");
+        assert_eq!(op["operationId"], json!(id), "{method} {path}");
+        assert!(op["responses"][ok].is_object(), "{method} {path}: no {ok}");
+        assert!(
+            op["responses"]["401"].is_object(),
+            "{method} {path}: no 401"
+        );
+        assert_eq!(
+            op["security"][0]["bearer"],
+            json!([]),
+            "{method} {path}: no bearer"
+        );
+        assert!(
+            op["parameters"]
+                .as_array()
+                .is_some_and(|ps| ps.iter().any(|p| p["name"] == "workspace")),
+            "{method} {path}: no workspace param"
+        );
+    }
+    // `POST /relations/` is an undocumented alias: the contract check must skip it.
+    assert!(
+        contract::find_route(&s["paths"], &Method::POST, "/v1/workspace/w1/relations/").is_none()
+    );
+}
+
 #[test]
 fn error_responses_are_documented() {
     let s = spec();
