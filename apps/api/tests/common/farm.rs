@@ -502,3 +502,122 @@ impl Farm {
             .unwrap()
     }
 }
+
+/// Supply-chain helpers (Phase 4b): products, warehouses, harvests, batches, lot stock.
+impl Farm {
+    /// `/v1/workspace/{ws}{tail}` of this farm's workspace as `token`.
+    pub async fn ws_call(
+        &self,
+        method: Method,
+        tail: &str,
+        body: Option<Value>,
+        token: &str,
+    ) -> (StatusCode, Value) {
+        let url = format!("/v1/workspace/{}{tail}", self.ws);
+        send(&self.app, method, &url, body, Some(token)).await
+    }
+
+    /// Owner adds a stock-tracked product; its id.
+    pub async fn product(&self, name: &str) -> String {
+        let body = json!({ "name": name, "price": 10 });
+        let (status, res) = self
+            .ws_call(Method::POST, "/products", Some(body), &self.owner)
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        res["data"]["product_id"].as_str().unwrap().to_owned()
+    }
+
+    /// Owner adds a warehouse; its id.
+    pub async fn warehouse(&self, name: &str) -> String {
+        let (status, res) = self
+            .ws_call(
+                Method::POST,
+                "/warehouses",
+                Some(json!({ "name": name })),
+                &self.owner,
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        res["data"]["warehouse_id"].as_str().unwrap().to_owned()
+    }
+
+    /// An Ilundo farmer with one maize-like cycle of `crop`: (person, cycle).
+    pub async fn grower(&self, name: &str, phone: &str, crop: &str) -> (String, String) {
+        let (status, res) = self
+            .register(
+                &self.officer_ilu,
+                json!({
+                    "client_ref": client_ref(), "village_id": self.ilundo,
+                    "person": { "given_name": name, "family_name": "Grower", "phone": phone },
+                    "household": { "label": format!("{name} household") },
+                    "farm": { "label": format!("{name} farm"), "latitude": "-7.75", "longitude": "35.75" },
+                    "plot": { "label": "plot", "area_ha": "1.0" },
+                    "cycles": [{ "crop_id": crop, "area_ha": "1.0",
+                                 "harvest_start": "2026-09-01", "harvest_end": "2026-09-30" }]
+                }),
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        let d = &res["data"];
+        (
+            d["person_id"].as_str().unwrap().to_owned(),
+            d["crop_cycle_ids"][0].as_str().unwrap().to_owned(),
+        )
+    }
+
+    /// The Ilundo officer reports an actual figure on `cycle`; the owner verifies it. Its id.
+    pub async fn actual(&self, cycle: &str, kg: &str) -> String {
+        let (status, res) = self
+            .call(
+                Method::POST,
+                &format!("/crop-cycles/{cycle}/harvest-reports"),
+                Some(json!({ "kind": "actual", "quantity_kg": kg, "source": "field_verified" })),
+                &self.officer_ilu,
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        let id = res["data"]["id"].as_str().unwrap().to_owned();
+        self.verify("harvest-reports", &id, &self.owner).await;
+        id
+    }
+
+    /// ops buys `lines` (harvest, kg) of `crop` in Ilundo at `price_per_kg` into a raw lot of
+    /// `product`; the batch.
+    pub async fn batch(
+        &self,
+        code: &str,
+        crop: &str,
+        product: &str,
+        currency: &str,
+        price_per_kg: i64,
+        lines: &[(&str, &str)],
+    ) -> Value {
+        let lines: Vec<Value> = lines
+            .iter()
+            .map(|(h, kg)| json!({ "harvest_report_id": h, "kg": kg }))
+            .collect();
+        let body = json!({
+            "client_ref": client_ref(), "village_id": self.ilundo, "crop_id": crop, "code": code,
+            "raw_product_id": product, "price_per_kg": price_per_kg, "currency_id": currency,
+            "lines": lines
+        });
+        let (status, res) = self
+            .call(Method::POST, "/supply-batches", Some(body), &self.ops)
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        res["data"].clone()
+    }
+
+    /// Owner puts `qty` of `lot` into `warehouse` (Phase 3 lot stock-in).
+    pub async fn lot_stock(&self, lot: &str, warehouse: &str, qty: &str) {
+        let (status, res) = self
+            .ws_call(
+                Method::POST,
+                &format!("/lots/{lot}/stock-mutations"),
+                Some(json!({ "warehouse_id": warehouse, "quantity": qty, "reason": "received" })),
+                &self.owner,
+            )
+            .await;
+        assert!(status.is_success(), "{status} {res}");
+    }
+}

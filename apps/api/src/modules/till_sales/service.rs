@@ -14,7 +14,7 @@ use crate::{
     error::AppError,
     modules::{
         cash::{repo as cash, service::round_cash},
-        currencies,
+        currencies, farm_supply,
         orders::{
             dto::LineInput,
             repo::{self as orders, NewOrder},
@@ -174,6 +174,7 @@ pub async fn sell(
     };
     // Floor::None never comes back short.
     reserve::take(&mut tx, ws, s.warehouse_id, &wants, Floor::None, &cause).await?;
+    farm_supply::sale::on_sale(&mut tx, ws, order_id, &number).await?;
 
     let server_prices = Value::Array(
         server

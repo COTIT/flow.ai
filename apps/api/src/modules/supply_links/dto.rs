@@ -44,6 +44,13 @@ pub struct Partner {
     name: String,
 }
 
+impl Partner {
+    /// The workspace `id` named `name`.
+    pub fn new(id: Uuid, name: String) -> Self {
+        Self { id, name }
+    }
+}
+
 impl LinkResource {
     /// `l` as `workspace_id` sees it.
     pub fn new(l: LinkRow, workspace_id: Uuid) -> Self {

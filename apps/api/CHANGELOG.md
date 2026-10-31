@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Phase 4b step 7, returns go back into their lots:
+  - **Stock:** `reserve::restock_lots` (new; the unused warehouse-level `restock` is gone) puts an order return's units back on the rows the order took them from, per lot (no-lot units to the no-lot row), through `farm_supply::sale::restock_plan`. A recalled, quarantined or expired lot takes its units back and picking keeps them off sale.
+  - **One spread:** stock and farmer debits both use `farm_supply::sale::fill`, which fills takes in take order and never moves units backwards, so the two always match. A returned jar that sells again credits its farmers again.
+  - **Invoices:** credit notes stay on the no-lot row (invoices are not attributed).
+- Phase 4b step 6, farmers credited at sale (migration `farm_sale_attributions`; contracts `docs/api/farm-passbook.md`, `webhooks.md`):
+  - **At sale:** order completion (`orders::service::complete`) and the till sale (`till_sales::service`, after `take`) call `farm_supply::sale::on_sale` in its transaction. Each supply lot among the units taken is traced to its batch and owes `price × kg in the units sold`, rounded half up once and split by kg (largest remainder). It writes a `sale` attribution in the farm workspace, one passbook credit per farmer and `sale.attributed`, once per order and lot.
+  - **Returns:** `on_return` spreads the cumulative returned units over the order's lots and writes only the change, as `return` attributions and `sale_reversal` lines. A full return nets every farmer to 0.
+  - **Event:** `sale.attributed` is on `EVENTS`. The payload is thin (totals and a farmer count, no person ids), since outbox payloads stay under 16 KiB.
+  - **Stores:** attributions are append-only. New index `stock_movements_related_idx` finds an order's movements in one probe.
+  - **Tests:** done-when e2e runs with the farm and shop as two workspaces over a link, and as one workspace.
+- Phase 4b step 5, packing and supply transfers (contract `docs/api/supply-chain.md`, migration `supply_chain`):
+  - **Packing:** `POST /lots/{lot}/packings` makes a child lot (`parent_lot_id`, `pack_raw_kg`, `pack_units` as exact numbers). It moves the kg out of the supply lot and the jars into the child in one transaction and writes a `packed` event. Only a lot from a supply batch or a supply transfer can be packed, and never a packed one.
+  - **Transfers:** `POST /lots/{lot}/transfers` sends lot stock over a live link the workspace granted. `GET /supply-transfers` lists both sides with no farmer data. `POST /supply-transfers/{transfer}/receive` (receiver only, once, live link) creates a new lot holding the received stock.
+  - **Public page:** `farmers` follows the lineage (packing parents and transfers) back to the batch, cut to the allow-list frozen on the transfer when it was received (a later revoke changes nothing shown).
 - Phase 2b "till", step 1 (contract `docs/api/till.md`):
   - **Registers and till users** (migration `till_login`): `/workspace/{workspace}/till/registers` (list, create, rotate key) and `/till/users` (list, create, patch), behind `cashregister.list|create|update`. A register sells from a store warehouse in one currency. Its device key is an app key of kind `till` with scopes `till:login` (new, never issued by `/app-keys`) and `catalog:read`, shown once. `app_keys` gets `UNIQUE (workspace_id, id)` so till rows reference keys of their own workspace. Till users are shop staff with a 4–8 digit PIN (argon2id), optionally linked to a member; they are deactivated, never deleted.
   - **PIN login** with the device key: `GET /till/login/users`, `POST /till/login`. Wrong PIN, unknown user and inactive user answer the same 401. Every 5th wrong PIN locks the user (15 minutes, doubling up to 24 hours, reset by a right PIN); 20 wrong PINs within an hour lock the register for 15 minutes (429). A login ends the user's older sessions on that register; a new PIN or deactivation ends all of them.

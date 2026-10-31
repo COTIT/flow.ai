@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.lot_id AS \"lot_id?\", m.product_id,\n                  (-sum(m.quantity_change))::numeric(19,2) AS \"qty!\"\n           FROM stock_movements m\n           WHERE m.workspace_id = $1 AND m.related_domain = 'order' AND m.related_id = $2\n             AND m.quantity_change < 0\n           GROUP BY m.lot_id, m.product_id\n           ORDER BY m.product_id, m.lot_id NULLS FIRST",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lot_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stock_movements",
+            "name": "lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stock_movements",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "qty!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "09c5b6e72e9e3bdc509bcac2b38edfb7c31f2eb0eae4aac69888ab6a3ca61fb7"
+}

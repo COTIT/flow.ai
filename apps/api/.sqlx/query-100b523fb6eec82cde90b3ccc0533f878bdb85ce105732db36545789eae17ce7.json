@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT quantity, to_lot_id IS NOT NULL AS received, link_id FROM supply_transfers\n         WHERE id = $1 AND to_workspace_id = $2 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "received",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "link_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "link_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "100b523fb6eec82cde90b3ccc0533f878bdb85ce105732db36545789eae17ce7"
+}

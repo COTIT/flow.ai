@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE supply_transfers t\n         SET to_lot_id = $2, received_quantity = $3, received_by = $4, received_at = now(),\n             fields = l.fields\n         FROM supply_links l\n         WHERE t.id = $1 AND l.id = t.link_id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2797527347891dc1567cb32b92a642a554a14fdecafd557c0da1d71ff4eeb5cf"
+}

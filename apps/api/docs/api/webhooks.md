@@ -11,8 +11,9 @@ Events sent to URLs a workspace registers. Code: `src/modules/webhooks/`.
 | `order.created` | an order is created (office draft or web checkout) | `order_id, number, status, source, currency, subtotal, vat, total` (minor units). Never customer details. |
 | `lot.created` | a lot is created | `lot_id, product_id, code, public_code` |
 | `passport.published` | a lot's passport is published (each new version) | `lot_id, product_id, public_code, version` |
+| `sale.attributed` | farmers of a supply lot were credited for a sale (`kind: sale`) or debited for a return (`kind: return`); sent in the farm workspace only | `attribution_id, kind, sold_workspace_id, order_number, sold_lot_id, batch_id, jars` (decimal string), `price_per_kg, currency_id, total` (minor units), `farmers` (count). Each farmer's amount is in their passbook. |
 
-Payloads are thin: re-read through `/storefront` for the details. Planned, not sent yet: `harvest.reported`, `sale.attributed`.
+Payloads are thin: re-read through `/storefront` for the details. Planned, not sent yet: `harvest.reported`.
 
 ## Delivery
 

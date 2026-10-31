@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(sum(jars), 0)::numeric(19,2) AS \"jars!\" FROM farm_sale_attributions\n           WHERE sold_workspace_id = $1 AND order_id = $2 AND sold_lot_id = $3\n             AND kind = 'return'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "jars!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0c477006855950f17158e8d56c31da27eba9347aad3134c250976fd2c0530ebf"
+}
