@@ -36,7 +36,6 @@
     "./model": "./src/generated/model/index.ts",
     "./endpoints/*": "./src/generated/*/*.ts",
     "./session": "./src/session.ts",
-    "./pending": "./src/pending.ts",
     "./auth": "./src/auth.ts",
     "./setup": "./src/setup.ts"
   }

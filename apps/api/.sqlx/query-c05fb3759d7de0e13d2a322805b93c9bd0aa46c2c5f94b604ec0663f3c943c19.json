@@ -1,0 +1,155 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE lots SET code = $3, status = $4, produced_on = $5, best_before = $6,\n                         expires_on = $7, origin = $8, updated_at = now()\n         WHERE id = $1 AND workspace_id = $2\n         RETURNING id, product_id, code, public_code, status, produced_on, best_before,\n                   expires_on, origin, created_at, updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "public_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "public_code"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "produced_on",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "produced_on"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "best_before",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "best_before"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "expires_on",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "expires_on"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "origin",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "origin"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Date",
+        "Date",
+        "Date",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "c05fb3759d7de0e13d2a322805b93c9bd0aa46c2c5f94b604ec0663f3c943c19"
+}

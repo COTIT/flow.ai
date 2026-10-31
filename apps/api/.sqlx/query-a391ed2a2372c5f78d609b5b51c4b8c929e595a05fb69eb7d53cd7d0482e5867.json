@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT passport_draft AS draft, passport AS published, passport_version AS version,\n                published_at\n         FROM lots WHERE id = $1 AND workspace_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "draft",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "passport_draft"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "published",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "passport"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "passport_version"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "published_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "published_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "a391ed2a2372c5f78d609b5b51c4b8c929e595a05fb69eb7d53cd7d0482e5867"
+}

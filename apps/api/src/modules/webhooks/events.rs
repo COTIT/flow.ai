@@ -1,5 +1,5 @@
 //! The fixed event list and `emit`, the outbox write. Next on the list (not emitted yet):
-//! `lot.created`, `harvest.reported`, `passport.published`, `sale.attributed`.
+//! `harvest.reported`, `sale.attributed`.
 
 use serde_json::Value;
 use sqlx::PgConnection;
@@ -18,13 +18,23 @@ use crate::{
 pub const STOCK_CHANGED: &str = "stock.changed";
 /// A product or one of its variants was created, changed or deleted.
 pub const PRODUCT_CHANGED: &str = "product.changed";
+/// A lot (batch) was created.
+pub const LOT_CREATED: &str = "lot.created";
+/// A lot's passport was published (first time or a new version).
+pub const PASSPORT_PUBLISHED: &str = "passport.published";
 
 /// An order was created (office draft or web checkout). Ids, number, status and totals only:
 /// never customer details.
 pub const ORDER_CREATED: &str = "order.created";
 
 /// Events an endpoint may subscribe to.
-pub const EVENTS: &[&str] = &[ORDER_CREATED, PRODUCT_CHANGED, STOCK_CHANGED];
+pub const EVENTS: &[&str] = &[
+    LOT_CREATED,
+    ORDER_CREATED,
+    PASSPORT_PUBLISHED,
+    PRODUCT_CHANGED,
+    STOCK_CHANGED,
+];
 
 /// Outbox write, in the caller's transaction: the event row when an active endpoint of the
 /// workspace subscribes to `kind` (else one index probe and nothing), plus one fan-out job per

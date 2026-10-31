@@ -43,6 +43,22 @@ pub fn store(state: &AppState) -> Result<&Store, AppError> {
         .ok_or(AppError::Unavailable(NO_STORAGE))
 }
 
+/// A signed link to `f` that works for the usual link lifetime, and when it stops working.
+pub fn signed_link(
+    bucket: &Store,
+    f: &FileRow,
+) -> Result<(String, chrono::DateTime<chrono::Utc>), AppError> {
+    let url = bucket.download_url(
+        &f.key,
+        &download_name(&f.document_name, f.extension.as_deref()),
+        &f.content_type,
+        inline(&f.content_type),
+        LINK_TTL,
+    )?;
+    let ttl = chrono::TimeDelta::from_std(LINK_TTL).unwrap_or_default();
+    Ok((url, chrono::Utc::now() + ttl))
+}
+
 /// Store `f` for `workspace_id`; its id.
 pub async fn create(
     state: &AppState,

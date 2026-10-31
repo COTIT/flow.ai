@@ -18,6 +18,7 @@ pub mod hourly_rates;
 pub mod invites;
 pub mod invoice_payments;
 pub mod invoices;
+pub mod lots;
 pub mod messages;
 pub mod orders;
 pub mod pdf_templates;

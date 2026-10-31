@@ -16,7 +16,7 @@ use crate::{
     modules::{
         app_keys, auth, contacts, currencies, custom_statuses, custom_types, deal_pipelines, deals,
         discount_groups, discounts, email_profiles, email_templates, email_verification, files,
-        hourly_rates, invites, invoice_payments, invoices, messages, orders, pdf_templates,
+        hourly_rates, invites, invoice_payments, invoices, lots, messages, orders, pdf_templates,
         permissions, price_corrections, pricing, product_brands, product_categories,
         product_variants, products, relations, sales_groups, search, settings, shipment_methods,
         special_offers, stock, storage_locations, storefront, teams,
@@ -75,6 +75,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
         .merge(invites::routes::public())
         .merge(email_verification::routes::public())
         .merge(invoices::routes::public())
+        .merge(lots::routes::public())
 }
 
 /// Documented routes that need a token. Modules move here from `build_app`'s plain list
@@ -125,6 +126,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(app_keys::routes::private())
         .merge(storefront::routes::private())
         .merge(webhooks::routes::private())
+        .merge(lots::routes::private())
         .merge(orders::routes::private())
         .merge(orders::routes::storefront())
 }
