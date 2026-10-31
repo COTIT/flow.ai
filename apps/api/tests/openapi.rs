@@ -1366,6 +1366,31 @@ fn every_farm_passbook_operation_is_documented() {
 }
 
 #[test]
+fn every_farm_payouts_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/payouts", "post", "farm_payouts_create", "201"),
+        (
+            "/farm/payouts/{payout}/void",
+            "post",
+            "farm_payouts_void",
+            "200",
+        ),
+        (
+            "/farm/cash/movements",
+            "post",
+            "farm_payouts_cash_movement",
+            "201",
+        ),
+        (
+            "/farm/cash/reconciliation",
+            "get",
+            "farm_payouts_reconciliation",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
 fn every_farm_logins_operation_is_documented() {
     assert_documented(&[
         (

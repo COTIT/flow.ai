@@ -249,6 +249,10 @@ const INCOMING_INVOICE: &[Field] = &[
     f("ledgers", Rule::List(LEDGER, 500)),
 ];
 
+/// Farm desk rules (genesy): the most a field officer pays out at once, in minor units of
+/// the payout's currency; above it only ops or admin pay.
+const FARM: &[Field] = &[f("payout_officer_limit", Rule::Int(0, i64::MAX))];
+
 const GENERAL: &[Field] = &[
     f("language", Rule::Text(255)),
     f("timezone", Rule::Text(255)),
@@ -432,6 +436,7 @@ pub const WRITABLE: &[(&str, &[Field])] = &[
     ("cash_register", CASH_REGISTER),
     ("integrations", INTEGRATIONS),
     ("general", GENERAL),
+    ("farm", FARM),
 ];
 
 /// Sections GET returns (Laravel SettingResource), `meta` last and raw.
@@ -450,6 +455,7 @@ pub const READABLE: &[&str] = &[
     "work_order",
     "incoming_invoice",
     "integrations",
+    "farm",
 ];
 
 /// Laravel `XSetting::empty()` / `from([])` for `section`; None for an unknown section.
@@ -506,6 +512,8 @@ pub fn defaults(section: &str) -> Option<Value> {
                                       "quantity_tolerance_percent": 0.0,
                                       "auto_approve_enabled": false, "auto_approve_min_score": 95,
                                       "review_min_score": 80 }),
+        // TZS 100,000.00 at 2 decimals.
+        "farm" => json!({ "payout_officer_limit": 10_000_000 }),
         "general" => json!({ "language": "en", "timezone": "UTC", "measurement_system": "metric",
                              "datetime_format": "YYYY-mm-dd", "thousand_separator": ".",
                              "decimal_separator": ",", "color": "default" }),

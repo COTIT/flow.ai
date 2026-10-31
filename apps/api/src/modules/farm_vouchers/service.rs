@@ -22,7 +22,8 @@ use serde_json::json;
 
 /// Lookups per account per minute before 429.
 const LOOKUPS_PER_MINUTE: i64 = 30;
-const ID_TYPES: &[&str] = &["nida", "voter", "driving_licence", "village_letter"];
+/// ID documents a payer may check (vouchers and payouts).
+pub const ID_TYPES: &[&str] = &["nida", "voter", "driving_licence", "village_letter"];
 
 fn require_staff(access: &FarmAccess) -> Result<(), AppError> {
     access

@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_passbook_entries (workspace_id, village_id, person_id, currency_id,\n                                            kind, amount, payout_id, created_by)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2f60ad4f7884672d3ecb872d116f2bc9928867f2b03ee74fdb73b12350477af2"
+}
