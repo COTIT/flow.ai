@@ -1,0 +1,131 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.village_id, t.crop_cycle_id, t.kind, t.quantity_kg::text AS \"quantity_kg!\",\n                  t.reported_for, t.is_current,\n                  farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,\n                                  t.verified_by, t.verified_at, t.confidence, t.evidence_ref) AS \"provenance!\",\n                  t.created_at, t.updated_at\n           FROM farm_harvest_reports t\n           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n             AND ($2::uuid IS NULL OR t.crop_cycle_id = $2) AND ($3::uuid IS NULL OR t.id = $3)\n             AND (NOT $4 OR t.is_current)\n           ORDER BY t.created_at DESC, t.id DESC LIMIT $5 OFFSET $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "crop_cycle_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "crop_cycle_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity_kg!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "reported_for",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "reported_for"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "is_current",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "is_current"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "provenance!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      false,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "7a06626c691a9a765072f7b7ebe562fea5287e8ce32ff294201420ff5f964f71"
+}

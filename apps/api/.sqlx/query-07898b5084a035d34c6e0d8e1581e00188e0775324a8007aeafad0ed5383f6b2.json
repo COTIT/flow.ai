@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(jsonb_agg(t ORDER BY t.position), '[]') AS \"n!\" FROM (\n               SELECT q.id AS question_id, q.position, count(*) AS answers,\n                      round(avg((a.value #>> '{}')::numeric), 2)::text AS average,\n                      min((a.value #>> '{}')::numeric)::text AS minimum,\n                      max((a.value #>> '{}')::numeric)::text AS maximum\n               FROM farm_survey_questions q\n               JOIN farm_survey_answers a ON a.question_id = q.id\n               WHERE q.survey_id = $1 AND q.kind = 'number' AND jsonb_typeof(a.value) = 'number'\n               GROUP BY q.id, q.position) t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "07898b5084a035d34c6e0d8e1581e00188e0775324a8007aeafad0ed5383f6b2"
+}

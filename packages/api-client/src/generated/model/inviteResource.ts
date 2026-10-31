@@ -17,8 +17,11 @@ export interface InviteResource {
   expired_at: string;
   invite_id: string;
   invite_status: string;
-  /** Email of whoever sent the invite. */
-  invited_by: string;
+  /**
+     * Email of whoever sent the invite.
+     * @nullable
+     */
+  invited_by: string | null;
   last_updated_at: string;
   /** @nullable */
   meta: InviteResourceMeta;

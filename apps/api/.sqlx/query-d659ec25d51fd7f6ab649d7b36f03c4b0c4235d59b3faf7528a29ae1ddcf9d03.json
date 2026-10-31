@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.village_id, t.label,\n                  coalesce((SELECT jsonb_agg(jsonb_build_object('person_id', m.person_id, 'is_head', m.is_head)\n                                             ORDER BY m.created_at, m.id)\n                            FROM farm_household_members m\n                            JOIN farm_persons mp ON mp.id = m.person_id AND mp.deleted_at IS NULL\n                            WHERE m.household_id = t.id), '[]') AS \"members!\",\n                  farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,\n                                  t.verified_by, t.verified_at, t.confidence, t.evidence_ref) AS \"provenance!\",\n                  t.created_at, t.updated_at\n           FROM farm_households t\n           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n             AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_households($4)))\n             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)\n           ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "label",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "members!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "provenance!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "d659ec25d51fd7f6ab649d7b36f03c4b0c4235d59b3faf7528a29ae1ddcf9d03"
+}

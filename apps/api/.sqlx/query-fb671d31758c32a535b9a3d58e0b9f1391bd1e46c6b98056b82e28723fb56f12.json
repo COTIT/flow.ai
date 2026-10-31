@@ -1,0 +1,266 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, v.village_id, v.household_id, v.status, v.audit_required, v.amount_minor,\n                  v.currency_id, c.asset_type AS currency, c.decimals, v.issued_at, v.expires_at,\n                  v.redeemed_by, v.redeemed_at, v.void_reason, h.label AS household_label,\n                  h.captured_by AS household_captured_by, h.verified_by AS household_verified_by,\n                  s.title_en AS survey_title_en, s.title_sw AS survey_title_sw,\n                  (SELECT concat_ws(' ', p.given_name, p.family_name) FROM farm_household_members hm\n                   JOIN farm_persons p ON p.id = hm.person_id WHERE hm.household_id = h.id AND hm.is_head\n                   LIMIT 1) AS head_name,\n                  (SELECT concat_ws(' ', p.given_name, p.family_name) FROM farm_persons p\n                   WHERE p.id = r.person_id) AS \"respondent_name!\",\n                  (SELECT e.actor_name FROM farm_voucher_events e WHERE e.voucher_id = v.id\n                   AND e.kind = 'redeemed' ORDER BY e.occurred_at DESC LIMIT 1) AS redeemer_name\n               FROM farm_vouchers v\n               JOIN currencies c ON c.id = v.currency_id\n               JOIN farm_households h ON h.id = v.household_id\n               JOIN farm_surveys s ON s.id = v.survey_id\n               JOIN farm_survey_responses r ON r.id = v.response_id\n               WHERE v.workspace_id = $1 AND v.code = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "household_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "household_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "audit_required",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "audit_required"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "amount_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "issued_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "issued_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "redeemed_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "redeemed_by"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "redeemed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "redeemed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "void_reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "void_reason"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "household_label",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "household_captured_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "captured_by"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "household_verified_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "verified_by"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "survey_title_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_surveys",
+            "name": "title_en"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "survey_title_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_surveys",
+            "name": "title_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "head_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 20,
+        "name": "respondent_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 21,
+        "name": "redeemer_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "fb671d31758c32a535b9a3d58e0b9f1391bd1e46c6b98056b82e28723fb56f12"
+}

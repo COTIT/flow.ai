@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_persons SET verification = 'verified', verified_by = $2, verified_at = now(),\n     updated_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8971e334e32276a421a263f05eb04c2174e98a678d4c904a2d55b5f6e35b003e"
+}

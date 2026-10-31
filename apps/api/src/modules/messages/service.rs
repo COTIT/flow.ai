@@ -443,7 +443,8 @@ async fn attachments(
 pub async fn caller_email(state: &AppState, user_id: Uuid) -> Result<String, AppError> {
     users::repo::find_contact(&state.db, user_id)
         .await?
-        .map(|c| c.email.to_lowercase())
+        .and_then(|c| c.email)
+        .map(|e| e.to_lowercase())
         .ok_or(AppError::Unauthorized)
 }
 

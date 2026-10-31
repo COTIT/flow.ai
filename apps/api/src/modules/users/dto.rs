@@ -40,7 +40,8 @@ struct UserResource {
     #[schema(required = true)]
     middle_name: Option<String>,
     last_name: String,
-    email: String,
+    #[schema(required = true)]
+    email: Option<String>,
     initials: String,
     // PIN login not ported yet.
     /// Always `false` for now.
@@ -98,7 +99,8 @@ struct PendingInviteResource {
 
 #[derive(Serialize, ToSchema)]
 struct Inviter {
-    email: String,
+    #[schema(required = true)]
+    email: Option<String>,
     name: String,
 }
 
@@ -190,7 +192,7 @@ impl From<Me> for MeResponse {
 /// Fields UserResource needs from a users row.
 struct Person {
     id: Uuid,
-    email: String,
+    email: Option<String>,
     first_name: String,
     middle_name: Option<String>,
     last_name: String,
@@ -279,7 +281,8 @@ impl UserDetail {
 pub struct MemberResource {
     id: Uuid,
     name: String,
-    email: String,
+    #[schema(required = true)]
+    email: Option<String>,
     // Not ported.
     /// Not supported yet, always null.
     #[schema(required = true)]
@@ -419,7 +422,8 @@ pub struct UserEmailResource {
     id: Uuid,
     name: String,
     initials: String,
-    email: String,
+    #[schema(required = true)]
+    email: Option<String>,
     avatar_path: String,
     /// Display color; not stored yet, always null.
     #[schema(required = true)]
@@ -428,7 +432,13 @@ pub struct UserEmailResource {
 
 impl UserEmailResource {
     /// From the user's name parts.
-    pub fn new(id: Uuid, first: &str, middle: Option<&str>, last: &str, email: String) -> Self {
+    pub fn new(
+        id: Uuid,
+        first: &str,
+        middle: Option<&str>,
+        last: &str,
+        email: Option<String>,
+    ) -> Self {
         let name = full_name(first, middle, last);
         Self {
             id,

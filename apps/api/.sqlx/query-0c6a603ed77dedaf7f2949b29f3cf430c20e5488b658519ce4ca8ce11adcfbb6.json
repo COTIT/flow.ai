@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(jsonb_agg(jsonb_build_object('workspace_id', m.workspace_id, 'role', m.role,\n                                                        'village_id', m.village_id)\n                                     ORDER BY m.created_at), '[]') AS \"m!\"\n           FROM farm_memberships m\n           JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL\n           WHERE m.user_id = $1 AND m.revoked_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "m!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0c6a603ed77dedaf7f2949b29f3cf430c20e5488b658519ce4ca8ce11adcfbb6"
+}

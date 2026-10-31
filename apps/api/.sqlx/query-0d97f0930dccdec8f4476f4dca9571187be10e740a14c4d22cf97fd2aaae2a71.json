@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_survey_questions SET position = $3, kind = $4, prompt_en = $5, prompt_sw = $6,\n             required = $7, options = $8, updated_at = now()\n         WHERE survey_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0d97f0930dccdec8f4476f4dca9571187be10e740a14c4d22cf97fd2aaae2a71"
+}

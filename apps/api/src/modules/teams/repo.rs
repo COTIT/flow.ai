@@ -26,7 +26,7 @@ pub struct TeamUser {
     pub first_name: String,
     pub middle_name: Option<String>,
     pub last_name: String,
-    pub email: String,
+    pub email: Option<String>,
 }
 
 /// Index filter. `sort`: `name`, `-name`, `-created_at`; anything else = oldest first.

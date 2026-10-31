@@ -7,6 +7,7 @@
  */
 
 export interface Inviter {
-  email: string;
+  /** @nullable */
+  email: string | null;
   name: string;
 }

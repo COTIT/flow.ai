@@ -46,7 +46,10 @@ pub async fn verify(State(state): State<AppState>, Path(token): Path<String>) ->
 #[utoipa::path(
     post, path = "/email/verification-notification", tag = "auth",
     operation_id = "auth_resend_verification", summary = "Send the verification email again",
-    responses((status = 200, body = MessageBody, description = "Sent, or already verified")),
+    responses(
+        (status = 200, body = MessageBody, description = "Sent, or already verified"),
+        (status = 403, body = MessageBody, description = "A phone-only (farmer) account: it has no email profile"),
+    ),
     security(("bearer" = []))
 )]
 pub async fn resend(State(state): State<AppState>, user: AuthUser) -> Result<Message, AppError> {

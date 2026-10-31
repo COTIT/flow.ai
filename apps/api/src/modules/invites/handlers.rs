@@ -166,7 +166,7 @@ pub async fn register(
     request_body = AnswerRequest,
     responses(
         (status = 200, body = MessageBody, description = "Done (`ok`)"),
-        (status = 403, body = MessageBody, description = "Invite is for another email"),
+        (status = 403, body = MessageBody, description = "Invite is for another email, or a phone-only (farmer) account"),
         (status = 404, body = MessageBody, description = "Unknown, used or expired invite"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input"),
     ),

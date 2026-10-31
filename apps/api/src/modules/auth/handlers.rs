@@ -6,7 +6,7 @@ use crate::{
     AppState,
     error::{AppError, ValidationErrorBody},
     http::{
-        auth::AuthUser,
+        auth::AnyUser,
         json::ValidatedJson,
         response::{Data, Envelope, Message, MessageBody},
     },
@@ -61,7 +61,10 @@ pub async fn login(
     responses((status = 200, body = MessageBody, description = "Logged out")),
     security(("bearer" = []))
 )]
-pub async fn logout(State(state): State<AppState>, user: AuthUser) -> Result<Message, AppError> {
+pub async fn logout(
+    State(state): State<AppState>,
+    AnyUser(user): AnyUser,
+) -> Result<Message, AppError> {
     service::logout(&state, user.token_id).await?;
     Ok(Message("ok"))
 }

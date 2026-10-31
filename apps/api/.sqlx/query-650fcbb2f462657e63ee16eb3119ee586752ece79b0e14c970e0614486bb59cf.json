@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (v.redeemed_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date AS \"day!\",\n                  v.redeemed_by AS \"redeemed_by!\", concat_ws(' ', u.first_name, u.last_name) AS \"redeemed_by_name!\",\n                  count(*) AS \"vouchers!\", sum(v.amount_minor)::bigint AS \"minor!\",\n                  c.asset_type AS currency, c.decimals\n           FROM farm_vouchers v\n           JOIN users u ON u.id = v.redeemed_by\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.status = 'redeemed'\n             AND (v.redeemed_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date BETWEEN $2 AND $3\n           GROUP BY 1, 2, 3, c.asset_type, c.decimals\n           ORDER BY 1 DESC, 3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day!",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "redeemed_by!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "redeemed_by"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "redeemed_by_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "vouchers!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      null,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "650fcbb2f462657e63ee16eb3119ee586752ece79b0e14c970e0614486bb59cf"
+}

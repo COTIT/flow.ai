@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_survey_answers (workspace_id, response_id, question_id, value)\n         SELECT $1, $2, q, v FROM unnest($3::uuid[], $4::jsonb[]) AS a(q, v)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "JsonbArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "daa97c3e5e7aae35d1aaea8eca1582f4d6b7d8d6177be5882117f10742f5e356"
+}

@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(r.id) AS \"responses!\",\n                  count(v.id) AS \"issued_count!\",\n                  coalesce(sum(v.amount_minor), 0)::bigint AS \"issued_minor!\",\n                  count(v.id) FILTER (WHERE v.status = 'redeemed') AS \"redeemed_count!\",\n                  coalesce(sum(v.amount_minor) FILTER (WHERE v.status = 'redeemed'), 0)::bigint AS \"redeemed_minor!\",\n                  count(v.id) FILTER (WHERE v.status = 'issued' AND v.expires_at > now()) AS \"outstanding_count!\",\n                  coalesce(sum(v.amount_minor) FILTER (WHERE v.status = 'issued' AND v.expires_at > now()), 0)::bigint\n                      AS \"outstanding_minor!\",\n                  count(v.id) FILTER (WHERE v.status = 'issued' AND v.expires_at <= now()) AS \"expired_count!\",\n                  count(v.id) FILTER (WHERE v.status = 'void') AS \"void_count!\"\n           FROM farm_survey_responses r\n           LEFT JOIN farm_vouchers v ON v.response_id = r.id\n           WHERE r.survey_id = $1 AND r.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "responses!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "issued_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "issued_minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "redeemed_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "redeemed_minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "outstanding_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "outstanding_minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "expired_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "void_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "8a45b80cdab614caba03958154a1e70d885553f114460cbf776f97dc7fad27eb"
+}

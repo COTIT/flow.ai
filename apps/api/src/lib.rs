@@ -7,6 +7,7 @@ pub mod config;
 mod crypto;
 pub mod db;
 mod error;
+pub mod farm_demo;
 mod health;
 pub mod healthcheck;
 mod http;

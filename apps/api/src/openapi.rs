@@ -15,11 +15,12 @@ use crate::{
     http::response::MessageBody,
     modules::{
         app_keys, auth, contacts, currencies, custom_statuses, custom_types, deal_pipelines, deals,
-        discount_groups, discounts, email_profiles, email_templates, email_verification, files,
-        hourly_rates, invites, invoice_payments, invoices, lots, messages, pdf_templates,
-        permissions, price_corrections, pricing, product_brands, product_categories,
-        product_variants, products, relations, sales_groups, search, settings, shipment_methods,
-        special_offers, stock, storage_locations, storefront, teams,
+        discount_groups, discounts, email_profiles, email_templates, email_verification,
+        farm_crops, farm_documents, farm_logins, farm_memberships, farm_records, farm_surveys,
+        farm_villages, farm_vouchers, files, hourly_rates, invites, invoice_payments, invoices,
+        lots, messages, pdf_templates, permissions, price_corrections, pricing, product_brands,
+        product_categories, product_variants, products, relations, sales_groups, search, settings,
+        shipment_methods, special_offers, stock, storage_locations, storefront, teams,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -76,6 +77,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
         .merge(email_verification::routes::public())
         .merge(invoices::routes::public())
         .merge(lots::routes::public())
+        .merge(farm_logins::routes::public())
 }
 
 /// Documented routes that need a token. Modules move here from `build_app`'s plain list
@@ -127,6 +129,13 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(storefront::routes::private())
         .merge(webhooks::routes::private())
         .merge(lots::routes::private())
+        .merge(farm_villages::routes::private())
+        .merge(farm_memberships::routes::private())
+        .merge(farm_crops::routes::private())
+        .merge(farm_records::routes::private())
+        .merge(farm_logins::routes::private())
+        .merge(farm_surveys::routes::private())
+        .merge(farm_vouchers::routes::private())
 }
 
 /// Documented routes that need a token and take large bodies (item lines, invoices, uploads);
@@ -136,6 +145,7 @@ pub(crate) fn documents() -> OpenApiRouter<AppState> {
         .merge(pricing::routes::private())
         .merge(invoices::routes::private())
         .merge(files::routes::private())
+        .merge(farm_documents::routes::private())
 }
 
 /// Full spec, built from [`public`], [`private`] and [`documents`], as JSON.

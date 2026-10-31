@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_surveys SET status = 'live', published_at = clock_timestamp(), published_by = $2,\n             closed_at = NULL, updated_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f5bd643120297d6128bcebd9af0674a8ae76b895f5f79c001b5cef6c3e3bd287"
+}

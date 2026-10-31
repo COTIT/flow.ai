@@ -1,0 +1,11 @@
+DROP FUNCTION farm_role_label(uuid, uuid);
+DROP TABLE farm_voucher_lookups;
+DROP TABLE farm_voucher_events;
+DROP TABLE farm_vouchers;
+DROP TABLE farm_survey_answers;
+DROP TABLE farm_survey_responses;
+DROP TABLE farm_survey_questions;
+DROP TABLE farm_surveys;
+DROP FUNCTION farm_voucher_events_append_only();
+DROP FUNCTION farm_survey_questions_guard();
+DROP FUNCTION farm_surveys_guard();

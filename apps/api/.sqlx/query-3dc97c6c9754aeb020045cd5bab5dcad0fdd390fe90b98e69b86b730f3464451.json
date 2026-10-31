@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_vouchers SET status = 'void', voided_by = $2, voided_at = now(), void_reason = $3,\n             updated_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3dc97c6c9754aeb020045cd5bab5dcad0fdd390fe90b98e69b86b730f3464451"
+}
