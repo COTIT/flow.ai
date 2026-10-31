@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.name AS village, count(DISTINCT s.person_id) AS \"farmers!\",\n                  min(c.harvest_start) AS harvest_start, max(c.harvest_end) AS harvest_end\n           FROM farm_supply_batches b\n           JOIN farm_supply_shares s ON s.batch_id = b.id\n           JOIN farm_villages v ON v.workspace_id = s.workspace_id AND v.id = s.village_id\n           JOIN farm_harvest_reports h ON h.id = s.harvest_report_id\n           JOIN farm_crop_cycles c ON c.id = h.crop_cycle_id\n           WHERE b.workspace_id = $1 AND b.lot_id = $2\n           GROUP BY v.id, v.name\n           ORDER BY v.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "village",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "farmers!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "harvest_start",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "harvest_end",
+        "type_info": "Date",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "4be1cb3c5036523d1a1e01eccf7795b08d10fec6c76abe34df33ad0937d38f1d"
+}

@@ -338,6 +338,7 @@ pub async fn unpublish(
 
 /// A published lot for the public page, with its product's public fields.
 pub struct PublicRow {
+    pub id: Uuid,
     pub workspace_id: Uuid,
     pub code: String,
     pub public_code: String,
@@ -363,7 +364,7 @@ pub async fn public(
 ) -> Result<Option<PublicRow>, sqlx::Error> {
     sqlx::query_as!(
         PublicRow,
-        r#"SELECT l.workspace_id, l.code, l.public_code, l.status, l.produced_on, l.best_before,
+        r#"SELECT l.id, l.workspace_id, l.code, l.public_code, l.status, l.produced_on, l.best_before,
                   l.expires_on, l.origin, l.passport AS "passport!", l.passport_version AS version,
                   l.published_at AS "published_at!", p.name AS product_name, p.brand,
                   p.short_description

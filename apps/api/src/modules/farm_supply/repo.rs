@@ -271,3 +271,36 @@ pub async fn lines(
     .fetch_all(db)
     .await
 }
+
+/// Farmers of a supply lot per village (for the public page): count and harvest window.
+pub struct GroupRow {
+    pub village: String,
+    pub farmers: i64,
+    pub harvest_start: Option<chrono::NaiveDate>,
+    pub harvest_end: Option<chrono::NaiveDate>,
+}
+
+/// The farmer groups of `lot_id`'s batch, by village name; empty for a lot without a batch.
+pub async fn public_groups(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    lot_id: Uuid,
+) -> Result<Vec<GroupRow>, sqlx::Error> {
+    sqlx::query_as!(
+        GroupRow,
+        r#"SELECT v.name AS village, count(DISTINCT s.person_id) AS "farmers!",
+                  min(c.harvest_start) AS harvest_start, max(c.harvest_end) AS harvest_end
+           FROM farm_supply_batches b
+           JOIN farm_supply_shares s ON s.batch_id = b.id
+           JOIN farm_villages v ON v.workspace_id = s.workspace_id AND v.id = s.village_id
+           JOIN farm_harvest_reports h ON h.id = s.harvest_report_id
+           JOIN farm_crop_cycles c ON c.id = h.crop_cycle_id
+           WHERE b.workspace_id = $1 AND b.lot_id = $2
+           GROUP BY v.id, v.name
+           ORDER BY v.name"#,
+        workspace_id,
+        lot_id,
+    )
+    .fetch_all(db)
+    .await
+}
