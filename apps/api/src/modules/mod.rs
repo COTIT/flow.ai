@@ -2,6 +2,7 @@
 
 pub mod app_keys;
 pub mod auth;
+pub mod cash;
 pub mod contacts;
 pub mod currencies;
 pub mod custom_statuses;

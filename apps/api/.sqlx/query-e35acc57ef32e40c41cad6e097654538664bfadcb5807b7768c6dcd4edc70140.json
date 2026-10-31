@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(sum(amount), 0)::bigint AS \"b!\" FROM cash_ledger\n           WHERE workspace_id = $1 AND vault_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "b!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e35acc57ef32e40c41cad6e097654538664bfadcb5807b7768c6dcd4edc70140"
+}

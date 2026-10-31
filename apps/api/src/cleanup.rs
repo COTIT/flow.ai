@@ -1,4 +1,4 @@
-//! Cleanup of rows nothing reads anymore (expired tokens, old invites, quota logs, old jobs
+//! Cleanup of rows nothing reads anymore (expired tokens and till sessions, old invites, quota logs, old jobs
 //! and scheduler slots) and of files a crash left half written or half deleted. The job rail
 //! runs it on a schedule (`jobs::kinds`); the work lives in each module. Idempotent.
 
@@ -8,7 +8,8 @@ use crate::{
     jobs,
     modules::{
         auth::repo as auth, email_verification::repo as email_verification, files,
-        invites::repo as invites, messages::repo as messages, webhooks::repo as webhooks,
+        invites::repo as invites, messages::repo as messages, till::repo as till,
+        webhooks::repo as webhooks,
     },
     storage::Store,
 };
@@ -33,6 +34,8 @@ pub struct Pruned {
     pub webhook_deliveries: u64,
     /// Dispatched webhook events older than 30 days with no delivery left.
     pub webhook_events: u64,
+    /// Till sessions ended or expired over a day ago.
+    pub till_sessions: u64,
 }
 
 /// Delete stale rows via each module's repo. Windows are wider than any rule that reads them.
@@ -51,6 +54,7 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
         // Deliveries first: an event goes once its last delivery is gone.
         webhook_deliveries: webhooks::prune_deliveries(db).await?,
         webhook_events: webhooks::prune_events(db).await?,
+        till_sessions: till::prune_sessions(db).await?,
     })
 }
 
@@ -161,6 +165,7 @@ mod tests {
                 idempotency_keys: 1,
                 webhook_deliveries: 0,
                 webhook_events: 0,
+                till_sessions: 0,
             }
         );
         assert_eq!(
@@ -215,6 +220,49 @@ mod tests {
         assert_eq!(
             count(&pool, "SELECT count(*) FROM webhook_deliveries").await,
             1
+        );
+    }
+
+    #[sqlx::test]
+    async fn prune_drops_till_sessions_a_day_after_they_stop(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        run(
+            &pool,
+            "WITH w AS (SELECT id FROM workspaces WHERE created_by_user_id = $1),
+                  c AS (INSERT INTO currencies (workspace_id, name, asset_type)
+                        SELECT id, 'Euro', 'EUR' FROM w RETURNING id, workspace_id),
+                  h AS (INSERT INTO warehouses (workspace_id, name, slug, is_store)
+                        SELECT id, 'Shop', 'shop', true FROM w RETURNING id),
+                  k AS (INSERT INTO app_keys (workspace_id, name, kind, scopes, key_hash, prefix)
+                        SELECT id, 'Till', 'till', '{till:login}', decode(repeat('ab', 32), 'hex'),
+                               'gsk_abcd' FROM w RETURNING id),
+                  r AS (INSERT INTO till_registers (workspace_id, name, warehouse_id, currency_id,
+                                                    app_key_id)
+                        SELECT c.workspace_id, 'Till 1', h.id, c.id, k.id FROM c, h, k
+                        RETURNING id, workspace_id, app_key_id),
+                  u AS (INSERT INTO till_users (workspace_id, name, pin_hash)
+                        SELECT id, 'Mary', 'x' FROM w RETURNING id)
+             INSERT INTO till_sessions (workspace_id, register_id, till_user_id, app_key_id,
+                                        token_hash, created_at, expires_at, ended_at)
+             SELECT r.workspace_id, r.id, u.id, r.app_key_id, sha256(n::text::bytea),
+                    now() - interval '3 days',
+                    CASE n WHEN 1 THEN now() - interval '2 days'
+                           WHEN 4 THEN now() - interval '1 hour'
+                           ELSE now() + interval '1 hour' END,
+                    CASE n WHEN 2 THEN now() - interval '2 days'
+                           WHEN 3 THEN now() - interval '1 hour' END
+             FROM r, u, generate_series(1, 5) n",
+            user,
+        )
+        .await;
+
+        let pruned = prune(&pool).await.unwrap();
+
+        assert_eq!(pruned.till_sessions, 2, "expired and ended over a day ago");
+        assert_eq!(
+            count(&pool, "SELECT count(*) FROM till_sessions").await,
+            3,
+            "recently ended, recently expired and live stay"
         );
     }
 }

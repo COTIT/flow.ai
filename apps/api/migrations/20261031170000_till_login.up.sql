@@ -56,8 +56,7 @@ CREATE INDEX till_users_list_idx ON till_users (workspace_id, name, id);
 CREATE INDEX till_users_user_idx ON till_users (user_id) WHERE user_id IS NOT NULL;
 CREATE INDEX till_users_created_by_idx ON till_users (created_by) WHERE created_by IS NOT NULL;
 
--- shortcut: ended and expired sessions stay (a few per shift); add them to cleanup::prune
--- when the table grows.
+-- `cleanup::prune` drops sessions a day after they end or expire.
 CREATE TABLE till_sessions (
     id           uuid        PRIMARY KEY DEFAULT uuidv7(),
     workspace_id uuid        NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE drawer_shifts SET closed_by = $3, closed_at = now(), expected = $4, counted = $5,\n                                  difference = $5::bigint - $4::bigint\n         WHERE workspace_id = $1 AND id = $2 AND closed_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b994e64745bdd64678b792a524a5a011944d7b2a968d11a6b97d12e62f905903"
+}

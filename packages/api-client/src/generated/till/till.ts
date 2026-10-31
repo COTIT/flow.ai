@@ -25,19 +25,29 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CountRequest,
   CreateRegisterRequest,
   CreateTillUserRequest,
+  CreateVaultRequest,
   EnvelopeKeyRotated,
+  EnvelopeOptionShiftResource,
   EnvelopeRegisterKeyed,
   EnvelopeSessionResource,
+  EnvelopeShiftResource,
   EnvelopeTillLoginResource,
   EnvelopeTillUserResource,
+  EnvelopeTransferResource,
+  EnvelopeVaultResource,
   EnvelopeVecTillUserBrief,
   EnvelopeVecTillUserResource,
+  EnvelopeVecVaultResource,
   MessageBody,
   PaginatedRegisterResource,
+  PaginatedShiftResource,
   TillLoginRequest,
   TillRegistersListParams,
+  TillShiftsListParams,
+  TransferRequest,
   UpdateTillUserRequest,
   ValidationErrorBody
 } from '../model';
@@ -619,6 +629,402 @@ export const useTillRegistersRotateKey = <TError = ErrorType<MessageBody>,
       return useMutation(getTillRegistersRotateKeyMutationOptions(options), queryClient);
     }
     /**
+ * @summary The register's open shift
+ */
+export const tillShiftCurrent = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeOptionShiftResource>(
+      {url: `/workspace/${workspace}/till/shift`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillShiftCurrentQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/till/shift`
+    ] as const;
+    }
+
+
+export const getTillShiftCurrentQueryOptions = <TData = Awaited<ReturnType<typeof tillShiftCurrent>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftCurrent>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillShiftCurrentQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillShiftCurrent>>> = ({ signal }) => tillShiftCurrent(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillShiftCurrent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillShiftCurrentQueryResult = NonNullable<Awaited<ReturnType<typeof tillShiftCurrent>>>
+export type TillShiftCurrentQueryError = ErrorType<MessageBody>
+
+
+export function useTillShiftCurrent<TData = Awaited<ReturnType<typeof tillShiftCurrent>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftCurrent>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillShiftCurrent>>,
+          TError,
+          Awaited<ReturnType<typeof tillShiftCurrent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillShiftCurrent<TData = Awaited<ReturnType<typeof tillShiftCurrent>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftCurrent>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillShiftCurrent>>,
+          TError,
+          Awaited<ReturnType<typeof tillShiftCurrent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillShiftCurrent<TData = Awaited<ReturnType<typeof tillShiftCurrent>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftCurrent>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The register's open shift
+ */
+
+export function useTillShiftCurrent<TData = Awaited<ReturnType<typeof tillShiftCurrent>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftCurrent>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillShiftCurrentQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Close the drawer with a count
+ */
+export const tillShiftClose = (
+    workspace: string,
+    countRequest: BodyType<CountRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeShiftResource>(
+      {url: `/workspace/${workspace}/till/shift/close`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: countRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillShiftCloseMutationKey = () => ['tillShiftClose'] as const;
+
+export const getTillShiftCloseMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillShiftClose>>, TError,TillShiftCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillShiftClose>>, TError,TillShiftCloseMutationVariables, TContext> => {
+
+const mutationKey = getTillShiftCloseMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillShiftClose>>, TillShiftCloseMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillShiftClose(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillShiftCloseMutationResult = NonNullable<Awaited<ReturnType<typeof tillShiftClose>>>
+    export type TillShiftCloseMutationBody = BodyType<CountRequest>
+    export type TillShiftCloseMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillShiftCloseMutationVariables = {workspace: string;data: BodyType<CountRequest>}
+
+    /**
+ * @summary Close the drawer with a count
+ */
+export const useTillShiftClose = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillShiftClose>>, TError,TillShiftCloseMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillShiftClose>>,
+        TError,
+        TillShiftCloseMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillShiftCloseMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Open the drawer with a counted float
+ */
+export const tillShiftOpen = (
+    workspace: string,
+    countRequest: BodyType<CountRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeShiftResource>(
+      {url: `/workspace/${workspace}/till/shift/open`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: countRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillShiftOpenMutationKey = () => ['tillShiftOpen'] as const;
+
+export const getTillShiftOpenMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillShiftOpen>>, TError,TillShiftOpenMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillShiftOpen>>, TError,TillShiftOpenMutationVariables, TContext> => {
+
+const mutationKey = getTillShiftOpenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillShiftOpen>>, TillShiftOpenMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillShiftOpen(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillShiftOpenMutationResult = NonNullable<Awaited<ReturnType<typeof tillShiftOpen>>>
+    export type TillShiftOpenMutationBody = BodyType<CountRequest>
+    export type TillShiftOpenMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillShiftOpenMutationVariables = {workspace: string;data: BodyType<CountRequest>}
+
+    /**
+ * @summary Open the drawer with a counted float
+ */
+export const useTillShiftOpen = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillShiftOpen>>, TError,TillShiftOpenMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillShiftOpen>>,
+        TError,
+        TillShiftOpenMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillShiftOpenMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary List drawer shifts
+ */
+export const tillShiftsList = (
+    workspace: string,
+    params?: TillShiftsListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedShiftResource>(
+      {url: `/workspace/${workspace}/till/shifts`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillShiftsListQueryKey = (workspace: string,
+    params?: TillShiftsListParams,) => {
+    return [
+    `/workspace/${workspace}/till/shifts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getTillShiftsListQueryOptions = <TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    params?: TillShiftsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillShiftsListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillShiftsList>>> = ({ signal }) => tillShiftsList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillShiftsListQueryResult = NonNullable<Awaited<ReturnType<typeof tillShiftsList>>>
+export type TillShiftsListQueryError = ErrorType<MessageBody>
+
+
+export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params: undefined |  TillShiftsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillShiftsList>>,
+          TError,
+          Awaited<ReturnType<typeof tillShiftsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: TillShiftsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillShiftsList>>,
+          TError,
+          Awaited<ReturnType<typeof tillShiftsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: TillShiftsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List drawer shifts
+ */
+
+export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: TillShiftsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillShiftsListQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Move cash between drawer and vault
+ */
+export const tillTransfersCreate = (
+    workspace: string,
+    transferRequest: BodyType<TransferRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeTransferResource>(
+      {url: `/workspace/${workspace}/till/transfers`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: transferRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillTransfersCreateMutationKey = () => ['tillTransfersCreate'] as const;
+
+export const getTillTransfersCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillTransfersCreate>>, TError,TillTransfersCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillTransfersCreate>>, TError,TillTransfersCreateMutationVariables, TContext> => {
+
+const mutationKey = getTillTransfersCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillTransfersCreate>>, TillTransfersCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillTransfersCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillTransfersCreateMutationResult = NonNullable<Awaited<ReturnType<typeof tillTransfersCreate>>>
+    export type TillTransfersCreateMutationBody = BodyType<TransferRequest>
+    export type TillTransfersCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillTransfersCreateMutationVariables = {workspace: string;data: BodyType<TransferRequest>}
+
+    /**
+ * @summary Move cash between drawer and vault
+ */
+export const useTillTransfersCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillTransfersCreate>>, TError,TillTransfersCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillTransfersCreate>>,
+        TError,
+        TillTransfersCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillTransfersCreateMutationOptions(options), queryClient);
+    }
+    /**
  * @summary List till users
  */
 export const tillUsersList = (
@@ -846,4 +1252,164 @@ export const useTillUsersUpdate = <TError = ErrorType<MessageBody | ValidationEr
         TContext
       > => {
       return useMutation(getTillUsersUpdateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary List vaults with balances
+ */
+export const tillVaultsList = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecVaultResource>(
+      {url: `/workspace/${workspace}/till/vaults`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillVaultsListQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/till/vaults`
+    ] as const;
+    }
+
+
+export const getTillVaultsListQueryOptions = <TData = Awaited<ReturnType<typeof tillVaultsList>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillVaultsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillVaultsListQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillVaultsList>>> = ({ signal }) => tillVaultsList(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillVaultsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillVaultsListQueryResult = NonNullable<Awaited<ReturnType<typeof tillVaultsList>>>
+export type TillVaultsListQueryError = ErrorType<MessageBody>
+
+
+export function useTillVaultsList<TData = Awaited<ReturnType<typeof tillVaultsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillVaultsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillVaultsList>>,
+          TError,
+          Awaited<ReturnType<typeof tillVaultsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillVaultsList<TData = Awaited<ReturnType<typeof tillVaultsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillVaultsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillVaultsList>>,
+          TError,
+          Awaited<ReturnType<typeof tillVaultsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillVaultsList<TData = Awaited<ReturnType<typeof tillVaultsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillVaultsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List vaults with balances
+ */
+
+export function useTillVaultsList<TData = Awaited<ReturnType<typeof tillVaultsList>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillVaultsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillVaultsListQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Add a vault
+ */
+export const tillVaultsCreate = (
+    workspace: string,
+    createVaultRequest: BodyType<CreateVaultRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVaultResource>(
+      {url: `/workspace/${workspace}/till/vaults`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createVaultRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillVaultsCreateMutationKey = () => ['tillVaultsCreate'] as const;
+
+export const getTillVaultsCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillVaultsCreate>>, TError,TillVaultsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillVaultsCreate>>, TError,TillVaultsCreateMutationVariables, TContext> => {
+
+const mutationKey = getTillVaultsCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillVaultsCreate>>, TillVaultsCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillVaultsCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillVaultsCreateMutationResult = NonNullable<Awaited<ReturnType<typeof tillVaultsCreate>>>
+    export type TillVaultsCreateMutationBody = BodyType<CreateVaultRequest>
+    export type TillVaultsCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillVaultsCreateMutationVariables = {workspace: string;data: BodyType<CreateVaultRequest>}
+
+    /**
+ * @summary Add a vault
+ */
+export const useTillVaultsCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillVaultsCreate>>, TError,TillVaultsCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillVaultsCreate>>,
+        TError,
+        TillVaultsCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillVaultsCreateMutationOptions(options), queryClient);
     }

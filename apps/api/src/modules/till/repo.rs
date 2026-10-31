@@ -443,3 +443,66 @@ pub async fn end_session(
     .await
     .map(|_| ())
 }
+
+/// Drop sessions ended or expired over a day ago; how many.
+pub async fn prune_sessions(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error> {
+    Ok(sqlx::query!(
+        "DELETE FROM till_sessions
+         WHERE expires_at < now() - interval '1 day' OR ended_at < now() - interval '1 day'"
+    )
+    .execute(db)
+    .await?
+    .rows_affected())
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::PgPool;
+
+    use super::*;
+
+    /// A workspace with a register and a till user: `(workspace, register, user)`.
+    async fn fixture(pool: &PgPool) -> (Uuid, Uuid, Uuid) {
+        sqlx::query_as(
+            "WITH o AS (INSERT INTO users (email, first_name, last_name, password_hash)
+                        VALUES ('ada@example.com', 'Ada', 'L', 'x') RETURNING id),
+                  w AS (INSERT INTO workspaces (name, created_by_user_id)
+                        SELECT 'acme', id FROM o RETURNING id),
+                  c AS (INSERT INTO currencies (workspace_id, name, asset_type)
+                        SELECT id, 'Euro', 'EUR' FROM w RETURNING id, workspace_id),
+                  h AS (INSERT INTO warehouses (workspace_id, name, slug, is_store)
+                        SELECT id, 'Shop', 'shop', true FROM w RETURNING id),
+                  r AS (INSERT INTO till_registers (workspace_id, name, warehouse_id, currency_id)
+                        SELECT c.workspace_id, 'Till 1', h.id, c.id FROM c, h
+                        RETURNING id, workspace_id),
+                  u AS (INSERT INTO till_users (workspace_id, name, pin_hash)
+                        SELECT id, 'Mary', 'x' FROM w RETURNING id)
+             SELECT r.workspace_id, r.id, u.id FROM r, u",
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    /// A right PIN verified while a lock landed (user or register) must not log in.
+    #[sqlx::test]
+    async fn login_ok_refuses_when_a_lock_landed_meanwhile(pool: PgPool) {
+        let (ws, reg, user) = fixture(&pool).await;
+        assert!(login_ok(&pool, ws, reg, user).await.unwrap());
+        for (lock, unlock) in [
+            (
+                "UPDATE till_users SET locked_until = now() + interval '1 minute'",
+                "UPDATE till_users SET locked_until = NULL",
+            ),
+            (
+                "UPDATE till_registers SET locked_until = now() + interval '1 minute'",
+                "UPDATE till_registers SET locked_until = NULL",
+            ),
+        ] {
+            sqlx::query(lock).execute(&pool).await.unwrap();
+            assert!(!login_ok(&pool, ws, reg, user).await.unwrap(), "{lock}");
+            sqlx::query(unlock).execute(&pool).await.unwrap();
+        }
+        assert!(login_ok(&pool, ws, reg, user).await.unwrap());
+    }
+}

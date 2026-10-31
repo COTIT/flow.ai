@@ -1226,6 +1226,9 @@ fn every_till_operation_is_documented() {
         ("/till/users", "get", "till_users_list", "200"),
         ("/till/users", "post", "till_users_create", "201"),
         ("/till/users/{user}", "patch", "till_users_update", "200"),
+        ("/till/vaults", "get", "till_vaults_list", "200"),
+        ("/till/vaults", "post", "till_vaults_create", "201"),
+        ("/till/shifts", "get", "till_shifts_list", "200"),
     ]);
     // Device routes take the register's key, till routes the session token.
     let s = spec();
@@ -1240,6 +1243,34 @@ fn every_till_operation_is_documented() {
         ("/till/login", "post", "till_login", "200", "app_key"),
         ("/till/logout", "post", "till_logout", "204", "till_session"),
         ("/till/me", "get", "till_me", "200", "till_session"),
+        (
+            "/till/shift",
+            "get",
+            "till_shift_current",
+            "200",
+            "till_session",
+        ),
+        (
+            "/till/shift/open",
+            "post",
+            "till_shift_open",
+            "201",
+            "till_session",
+        ),
+        (
+            "/till/shift/close",
+            "post",
+            "till_shift_close",
+            "200",
+            "till_session",
+        ),
+        (
+            "/till/transfers",
+            "post",
+            "till_transfers_create",
+            "201",
+            "till_session",
+        ),
     ] {
         let path = format!("{W}{tail}");
         let op = &s["paths"][&path][method];

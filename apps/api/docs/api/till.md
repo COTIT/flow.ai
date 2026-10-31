@@ -33,7 +33,7 @@ Every path is under `/v1/workspace/{workspace}`. A key or session of another wor
 | `warehouse_id` | required, a live **store** warehouse (`is_store = true`) of the workspace |
 | `currency_id` | optional, a currency of the workspace; default the main currency |
 
-201 `{data: {…register, key}}`. This is the only time `key` is shown. The device key is an app key of kind `till` with scopes `till:login` and `catalog:read`, so the device can also read `/v1/storefront/products` for its offline cache. It is listed under `/app-keys`, and revoking it there disables the register. The `/app-keys` route itself never issues `till:login`.
+201 `{data: {…register, key}}`. This is the only time `key` is shown. The device key is an app key of kind `till` with scopes `till:login` and `catalog:read`, so the device can also read `/v1/storefront/products` for its offline cache. It is listed under `/app-keys`, and revoking it there disables the register. The `/app-keys` route itself never issues `till:login`. Known side effect, accepted: a member with `cashregister.create` or `cashregister.update` gets a key that can read the catalog (products, prices, stock) through `/storefront`, even without product rights.
 
 422 messages: `The selected warehouse id must be a store warehouse.`, `The selected currency id is invalid.`
 
@@ -83,6 +83,7 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 - 20 wrong PINs within an hour on one register lock that register's login for 15 minutes. A right PIN does not reset this count, so a valid user can't hide someone else's guessing.
 - Other registers and users are unaffected. While locked: 429, even with the right PIN, also for a right PIN already in flight when the lock landed.
 - A login ends the same user's older sessions on that register.
+- Known side effect, accepted: a locked user gets 429 at once, while an unknown id gets 401 after the argon2 work, so a device key holder can tell a real locked user id apart. The login picker lists active users anyway.
 - 401: missing, revoked or rotated key, or a key bound to no register. 403: a key without `till:login`.
 
 ## Session (till token)
@@ -91,3 +92,37 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 
 - `GET /till/me` → `{data: {register, user, expires_at}}`
 - `POST /till/logout` → 204
+
+## Cash
+
+All amounts are integer minor units of the register's currency (EUR: cents). A **count** is a list of at most 50 lines `{denomination, count}`: `denomination` 1–1 000 000 000 minor units per note or coin, `count` 0–1 000 000 pieces, each denomination once. Errors are keyed `count.N.denomination` / `count.N.count`.
+
+Every movement is a row in `cash_ledger`, which refuses updates, deletes and truncates. A shift's expected cash is its opening count plus sales (step 4) plus or minus transfers. A vault's balance is the sum of its transfers.
+
+### Drawer (till token)
+
+- `GET /till/shift` → `{data: shift}` or `{data: null}` when the register has no open shift.
+- `POST /till/shift/open` `{count}` → 201. The counted float becomes `opening` and `expected`. 409 `A shift is already open on this register.`
+- `POST /till/shift/close` `{count}` → 200 with `expected`, `counted`, `difference` (counted − expected; negative = short), `closed_by`, `closed_at`. 409 `No shift is open on this register.`
+- `POST /till/transfers` `{vault_id, direction, count}` → 201 `{data: {transfer_id, vault_id, direction, amount}}`.
+  - `direction`: `to_vault` (a drop) or `from_vault` (more float). Needs an open shift (409).
+  - The vault must be of this workspace and in the register's currency (422 on `vault_id`).
+  - The source must hold the amount (422 on `count`, `The drawer holds only N (minor units).`). A count totalling 0 is refused.
+  - Both sides are booked in one transaction under the register's and the vault's row locks, so parallel drops never overdraw.
+
+Each register has its own drawer: one open shift per register, and a session only ever sees its own register's shift.
+
+Shift:
+
+```json
+{ "id": "…", "register_id": "…", "opened_by": "…", "opened_at": "…", "opening": 4515,
+  "expected": 2515, "closed_by": null, "closed_at": null, "counted": null, "difference": null }
+```
+
+### Office (member bearer)
+
+- `GET /till/vaults` (`cashregister.list`) → `{data: [{id, name, currency_id, balance, created_at}]}`
+- `POST /till/vaults` (`cashregister.create`) `{name, currency_id?}` → 201. The currency defaults to the main one.
+- `GET /till/shifts` (`cashregister.list`) `?page=&page_size=` → shifts of every register, newest first.
+
+Vaults fill only from drawer drops for now. Bank deposits and withdrawals come later.
