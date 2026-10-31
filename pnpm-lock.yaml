@@ -37,6 +37,9 @@ importers:
       '@genesy/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@genesy/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       '@genesy/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -98,6 +101,9 @@ importers:
       '@genesy/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@genesy/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       '@genesy/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -159,6 +165,9 @@ importers:
       '@genesy/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@genesy/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       '@genesy/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -220,6 +229,9 @@ importers:
       '@genesy/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@genesy/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       '@genesy/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -373,6 +385,36 @@ importers:
       react:
         specifier: 19.3.1
         version: 19.3.1
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@20.19.43)(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/security:
+    devDependencies:
+      '@genesy/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@genesy/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      eslint:
+        specifier: ^10
+        version: 10.13.0(jiti@2.7.0)
+      next:
+        specifier: 16.4.3
+        version: 16.4.3(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
       typescript:
         specifier: ^5
         version: 5.9.3
@@ -4657,7 +4699,7 @@ snapshots:
       fuzzysort: 3.1.0
       kleur: 4.1.5
       ora: 8.2.0
-      postcss: 8.5.23
+      postcss: 8.5.32
       prompts: 2.4.2
       recast: 0.23.21
       socks: 2.8.10

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { NextIntlClientProvider } from "next-intl"
 import { getLocale } from "next-intl/server"
+import { headers } from "next/headers"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import "@genesy/ui/globals.css"
@@ -21,6 +22,8 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const locale = await getLocale()
+  // Set by proxy.ts; next-themes' inline script needs it to pass the CSP.
+  const nonce = (await headers()).get("x-nonce") ?? undefined
   return (
     <html
       lang={locale}
@@ -33,7 +36,7 @@ export default async function RootLayout({
     >
       <body>
         <NextIntlClientProvider>
-          <ThemeProvider>
+          <ThemeProvider nonce={nonce}>
             <QueryProvider>{children}</QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>

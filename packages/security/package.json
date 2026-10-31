@@ -1,0 +1,30 @@
+{
+  "name": "@genesy/security",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "next": "^16"
+  },
+  "devDependencies": {
+    "@genesy/eslint-config": "workspace:*",
+    "@genesy/typescript-config": "workspace:*",
+    "@types/node": "^20",
+    "eslint": "^10",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  },
+  "exports": {
+    "./headers": "./src/headers.ts",
+    "./proxy": "./src/proxy.ts"
+  }
+}
