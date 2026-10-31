@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_supply_shares (workspace_id, village_id, batch_id, harvest_report_id,\n                                         person_id, kg)\n         SELECT $1, $2, $3, h, p, kg FROM unnest($4::uuid[], $5::uuid[], $6::numeric[]) AS t(h, p, kg)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "NumericArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4d1cef31f976c5f4ac06717c2064e2fc2821164d39af448d8fed6e0d5d57b28b"
+}

@@ -193,7 +193,8 @@ pub struct LotPatch {
     pub origin: Option<Option<String>>,
 }
 
-fn code(r: &mut Rules, v: Option<String>) -> String {
+/// Batch code rule (letters, digits, . _ / -; 1-64 chars). Shared with supply batches.
+pub(crate) fn code(r: &mut Rules, v: Option<String>) -> String {
     let v = r.text("code", v, CODE_MAX);
     let ok = v
         .chars()

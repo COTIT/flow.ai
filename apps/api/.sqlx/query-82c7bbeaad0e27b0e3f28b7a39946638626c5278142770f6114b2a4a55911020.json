@@ -1,0 +1,164 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.client_ref, b.village_id, b.crop_id, b.lot_id, l.code AS lot_code,\n                l.public_code, b.price_per_kg, b.currency_id, b.kg_total, b.created_by,\n                b.created_at\n         FROM farm_supply_batches b\n         JOIN lots l ON l.workspace_id = b.workspace_id AND l.id = b.lot_id\n         WHERE b.workspace_id = $1 AND ($2::bool OR b.village_id = ANY($3))\n         ORDER BY b.created_at DESC, b.id DESC LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "client_ref",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "client_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "crop_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "crop_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "lot_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "public_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "public_code"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "price_per_kg",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "price_per_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "kg_total",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "kg_total"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_supply_batches",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "82c7bbeaad0e27b0e3f28b7a39946638626c5278142770f6114b2a4a55911020"
+}

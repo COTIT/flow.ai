@@ -26,8 +26,13 @@ pub struct Farm {
 
 impl Farm {
     pub async fn new(pool: PgPool) -> Self {
+        Self::new_named(pool, "ruaha.test", "ruaha").await
+    }
+
+    /// The same cast in a workspace named `name`, staff emails at `domain` (two farms in one DB).
+    pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {
         let app = app(pool.clone());
-        let (owner, ws) = signup(&app, "owner@ruaha.test", "ruaha").await;
+        let (owner, ws) = signup(&app, &format!("owner@{domain}"), name).await;
         let mut farm = Self {
             app,
             pool,
@@ -39,18 +44,18 @@ impl Farm {
             ilundo: String::new(),
             mgama: String::new(),
         };
-        let owner_id = farm.user_id("owner@ruaha.test").await;
+        let owner_id = farm.user_id(&format!("owner@{domain}")).await;
         farm.grant(&farm.owner, &owner_id, "admin", None).await;
         farm.ilundo = farm.village("ILUNDO", "Ilundo").await;
         farm.mgama = farm.village("MGAMA", "Mgama").await;
-        farm.ops = farm.staff("ops@ruaha.test", "ops", None).await;
+        farm.ops = farm.staff(&format!("ops@{domain}"), "ops", None).await;
         let ilu = farm.ilundo.clone();
         let mga = farm.mgama.clone();
         farm.officer_ilu = farm
-            .staff("salima@ruaha.test", "field_officer", Some(&ilu))
+            .staff(&format!("salima@{domain}"), "field_officer", Some(&ilu))
             .await;
         farm.officer_mga = farm
-            .staff("peter@ruaha.test", "field_officer", Some(&mga))
+            .staff(&format!("peter@{domain}"), "field_officer", Some(&mga))
             .await;
         farm
     }
@@ -124,7 +129,7 @@ impl Farm {
 
     /// New user who is an active member of this workspace, no farm role.
     pub async fn member(&self, email: &str) -> String {
-        let own = format!("ws-{}", &email[..email.find('@').unwrap()]);
+        let own = format!("ws-{}", email.replace(['@', '.'], "-"));
         let (token, _) = signup(&self.app, email, &own).await;
         join_workspace(&self.pool, &self.ws, email).await;
         token
@@ -133,7 +138,7 @@ impl Farm {
     /// New user with only a farmer membership in `village` (not a workspace member).
     /// Direct SQL: farmer roles come from login issue, not the grant route.
     pub async fn farmer(&self, email: &str, village: &str) -> String {
-        let own = format!("ws-{}", &email[..email.find('@').unwrap()]);
+        let own = format!("ws-{}", email.replace(['@', '.'], "-"));
         let (token, _) = signup(&self.app, email, &own).await;
         sqlx::query(
             "INSERT INTO farm_memberships (workspace_id, user_id, role, village_id)

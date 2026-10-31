@@ -436,6 +436,119 @@
         ],
         "type": "object"
       },
+      "BatchLine": {
+        "description": "One farmer's kg from one harvest.",
+        "properties": {
+          "harvest_report_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kg": {
+            "example": "250.00",
+            "type": "string"
+          },
+          "person_id": {
+            "description": "Credited farmer: the farm's primary manager when the batch was made.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "harvest_report_id",
+          "person_id",
+          "kg"
+        ],
+        "type": "object"
+      },
+      "BatchLot": {
+        "description": "The raw lot a batch became.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "public_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "public_code"
+        ],
+        "type": "object"
+      },
+      "BatchResource": {
+        "description": "Verified harvests bought at one price per kg, held as one raw lot.",
+        "properties": {
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "crop_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kg_total": {
+            "description": "Kilograms as decimal text (2 decimals).",
+            "example": "370.50",
+            "type": "string"
+          },
+          "lines": {
+            "description": "One per harvest, by harvest id.",
+            "items": {
+              "$ref": "#/components/schemas/BatchLine"
+            },
+            "type": "array"
+          },
+          "lot": {
+            "$ref": "#/components/schemas/BatchLot"
+          },
+          "price_per_kg": {
+            "description": "Minor units of the currency per kg.",
+            "example": 800000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "client_ref",
+          "village_id",
+          "crop_id",
+          "price_per_kg",
+          "currency_id",
+          "kg_total",
+          "lot",
+          "lines",
+          "created_by",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "BinCreated": {
         "description": "Create response.",
         "properties": {
@@ -1494,6 +1607,63 @@
           "name",
           "kind",
           "scopes"
+        ],
+        "type": "object"
+      },
+      "CreateBatchRequest": {
+        "description": "Buy verified actual harvests of one village and crop into a raw lot.",
+        "properties": {
+          "client_ref": {
+            "description": "Retry key: the same key and body replay; another body under it is a 409.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "code": {
+            "description": "The raw lot's code (letters, digits, `. _ / -`, unique per workspace).",
+            "example": "ILU-H-2026-01",
+            "type": "string"
+          },
+          "crop_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lines": {
+            "description": "1-500 lines, each harvest once.",
+            "items": {
+              "$ref": "#/components/schemas/LineInput"
+            },
+            "type": "array"
+          },
+          "price_per_kg": {
+            "description": "Agreed price, minor units of `currency_id` per kg; frozen with the batch.",
+            "example": 800000,
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "raw_product_id": {
+            "description": "Stock-tracked product of the raw lot.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_ref",
+          "village_id",
+          "crop_id",
+          "code",
+          "raw_product_id",
+          "price_per_kg",
+          "currency_id",
+          "lines"
         ],
         "type": "object"
       },
@@ -3624,6 +3794,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/AvailableFields"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_BatchResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BatchResource"
           }
         },
         "required": [
@@ -7551,6 +7733,25 @@
         ],
         "type": "object"
       },
+      "LineInput": {
+        "description": "One line of a new batch.",
+        "properties": {
+          "harvest_report_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kg": {
+            "description": "Kilograms, more than 0, at most 2 decimals.",
+            "example": "250.00",
+            "type": "string"
+          }
+        },
+        "required": [
+          "harvest_report_id",
+          "kg"
+        ],
+        "type": "object"
+      },
       "LineRequest": {
         "description": "One order line as sent.",
         "properties": {
@@ -9244,6 +9445,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/AppKeyResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_BatchResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BatchResource"
             },
             "type": "array"
           },
@@ -39969,6 +40189,438 @@
         "summary": "Register a farmer",
         "tags": [
           "farm_records"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-batches": {
+      "get": {
+        "description": "Staff: batches of their villages (ops and admin: all), newest first.",
+        "operationId": "farm_supply_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_BatchResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is a farmer, not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List supply batches",
+        "tags": [
+          "farm_supply"
+        ]
+      },
+      "post": {
+        "description": "ops or admin who verified none of the harvests. Each line is a current, verified, actual harvest of the village and crop; kg over all batches never pass the harvest. Makes the raw lot (`lot.created`) and the frozen batch in one transaction. The same `client_ref` and body replay (200); another body or member under it is 409.",
+        "operationId": "farm_supply_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BatchResource"
+                }
+              }
+            },
+            "description": "Replayed: this client_ref was used with this body"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BatchResource"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not ops or admin, or the caller verified one of the harvests"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "client_ref used with another body or by another member"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, a harvest that can't be bought, over-commitment, or code taken"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Buy harvests into a raw lot",
+        "tags": [
+          "farm_supply"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-batches/{batch}": {
+      "get": {
+        "operationId": "farm_supply_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Batch id",
+            "in": "path",
+            "name": "batch",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BatchResource"
+                }
+              }
+            },
+            "description": "The batch with its lines"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is a farmer, not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown batch, or outside the caller's villages or workspace"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a supply batch",
+        "tags": [
+          "farm_supply"
         ]
       }
     },

@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use chrono::NaiveDate;
 use serde_json::json;
+use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::{
@@ -86,7 +87,7 @@ pub async fn create(
     }
     check_dates(input.produced_on, input.best_before, input.expires_on)?;
     let mut tx = state.db.begin().await?;
-    let mut lot = LotRow {
+    let lot = LotRow {
         id: Uuid::nil(),
         product_id: input.product_id,
         code: input.code,
@@ -99,10 +100,24 @@ pub async fn create(
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
+    let lot = insert_lot(&mut tx, access.workspace_id, access.user_id, lot, None).await?;
+    tx.commit().await?;
+    Ok(lot)
+}
+
+/// Insert `lot` (its id and public code are made here), its `created` event (with `meta`) and
+/// `lot.created`, in the caller's transaction. The caller has checked product and dates.
+pub async fn insert_lot(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    mut lot: LotRow,
+    meta: Option<serde_json::Value>,
+) -> Result<LotRow, AppError> {
     let mut inserted = None;
     for _ in 0..PUBLIC_CODE_TRIES {
         lot.public_code = public_code()?;
-        inserted = repo::insert(&mut tx, access.workspace_id, &lot, access.user_id)
+        inserted = repo::insert(conn, workspace_id, &lot, user_id)
             .await
             .map_err(|e| AppError::unique(e, "lots_code_unique", "code", TAKEN))?;
         if inserted.is_some() {
@@ -115,18 +130,17 @@ pub async fn create(
         kind: "created",
         from_status: None,
         to_status: Some(&lot.status),
-        user_id: access.user_id,
-        meta: None,
+        user_id,
+        meta,
     };
-    repo::add_event(&mut tx, access.workspace_id, &event).await?;
+    repo::add_event(conn, workspace_id, &event).await?;
     let payload = json!({
         "lot_id": lot.id,
         "product_id": lot.product_id,
         "code": lot.code,
         "public_code": lot.public_code,
     });
-    events::emit(&mut tx, access.workspace_id, LOT_CREATED, payload).await?;
-    tx.commit().await?;
+    events::emit(conn, workspace_id, LOT_CREATED, payload).await?;
     Ok(lot)
 }
 

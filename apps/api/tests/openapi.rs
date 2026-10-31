@@ -1327,6 +1327,20 @@ fn every_farm_records_operation_is_documented() {
 }
 
 #[test]
+fn every_farm_supply_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/supply-batches", "get", "farm_supply_list", "200"),
+        ("/farm/supply-batches", "post", "farm_supply_create", "201"),
+        (
+            "/farm/supply-batches/{batch}",
+            "get",
+            "farm_supply_get",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
 fn every_farm_logins_operation_is_documented() {
     assert_documented(&[
         (

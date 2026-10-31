@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Phase 4b step 1, supply batches (contract `docs/api/farm-supply.md`, migration `farm_supply`): `POST/GET /workspace/{workspace}/farm/supply-batches[/{batch}]`. ops or admin buy current, verified, actual harvests of one village and crop at an integer `price_per_kg` (minor units). One transaction makes the raw lot (`lot.created`) and the frozen batch, with one kg share per harvest credited to the farm's primary manager. The buyer must not be a harvest's verifier. RUAHA's double-commit guard and its message are reused through the shared SQL function `farm_harvest_committed_kg`, after locking the harvest rows. A `client_ref` replays the same body and gets 409 for any other. A trigger keeps batches and shares append-only. `lots::service::insert_lot` is split out of lot create.
 - Phase 4 step 7, RUAHA port support (migration `farm_port_support`; contracts `docs/api/farm-logins.md`, `docs/api/farm-records.md`):
   - `GET /v1/farm/me` (phone and email tokens): `user {id, name, email, phone}`, `locale`, `must_change_password` and the caller's own live farm roles with workspace and village names and `person_id`. `PATCH /v1/farm/me {locale}` (sw/en/nl) -> 204, unknown fields refused. New `users.locale` (default `en`; farmer accounts start `sw`). The farmer sign-in reply's `memberships` gained the same fields.
   - Record lists: `?verification=` (comma-separated) on persons, households, farms, plots and crop cycles; `?farm_id=` on plots; `?plot_id=` on crop cycles. Filters never widen the caller's scope.
