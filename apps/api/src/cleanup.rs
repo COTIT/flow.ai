@@ -1,21 +1,17 @@
-//! Hourly cleanup of rows nothing reads anymore (expired tokens, old invites, quota logs) and
-//! of files a crash left half written or half deleted. Scheduler only: the work lives in each
-//! module. Idempotent, so several replicas running it at once is harmless.
-
-use std::time::Duration;
+//! Cleanup of rows nothing reads anymore (expired tokens, old invites, quota logs, old jobs
+//! and scheduler slots) and of files a crash left half written or half deleted. The job rail
+//! runs it on a schedule (`jobs::kinds`); the work lives in each module. Idempotent.
 
 use sqlx::PgPool;
 
 use crate::{
+    jobs,
     modules::{
         auth::repo as auth, email_verification::repo as email_verification, files,
         invites::repo as invites, messages::repo as messages,
     },
     storage::Store,
 };
-
-const EVERY: Duration = Duration::from_secs(60 * 60);
-const SENDS_EVERY: Duration = Duration::from_secs(5 * 60);
 
 /// Rows removed by one `prune` run, per table.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -27,6 +23,12 @@ pub struct Pruned {
     pub login_failures: u64,
     /// Sends a dead request left open, marked `unknown` (never sent again).
     pub stuck_sends: u64,
+    /// Finished jobs past their retention (`jobs::repo::prune`).
+    pub jobs: u64,
+    /// Scheduler slots older than 30 days.
+    pub scheduled_runs: u64,
+    /// Idempotency keys older than a day.
+    pub idempotency_keys: u64,
 }
 
 /// Delete stale rows via each module's repo. Windows are wider than any rule that reads them.
@@ -39,6 +41,9 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
         invites: invites::prune_old(db).await?,
         invite_sends: invites::prune_old_sends(db).await?,
         login_failures: auth::prune_old_login_attempts(db).await?,
+        jobs: jobs::repo::prune(db).await?,
+        scheduled_runs: jobs::scheduler::prune(db).await?,
+        idempotency_keys: crate::idempotency::prune(db).await?,
     })
 }
 
@@ -47,40 +52,6 @@ pub async fn sweep_files(db: &PgPool, bucket: &Store) -> Result<u64, String> {
     files::service::sweep(db, bucket)
         .await
         .map_err(|e| e.to_string())
-}
-
-/// Run `prune` (and the file sweep, with a bucket) every hour in the background. Failures are
-/// logged and retried next tick.
-pub fn spawn(db: PgPool, bucket: Option<Store>) {
-    // Open sends close every few minutes, so one stays open about 10 minutes, not an hour.
-    let sends_db = db.clone();
-    tokio::spawn(async move {
-        let mut tick = tokio::time::interval(SENDS_EVERY);
-        loop {
-            tick.tick().await;
-            if let Err(err) = messages::close_stuck(&sends_db).await {
-                tracing::warn!(error = %err, "closing stuck sends failed");
-            }
-        }
-    });
-    tokio::spawn(async move {
-        let mut tick = tokio::time::interval(EVERY);
-        loop {
-            tick.tick().await;
-            match prune(&db).await {
-                Ok(pruned) => tracing::info!(?pruned, "cleanup done"),
-                Err(err) => tracing::warn!(error = %err, "cleanup failed, retrying next hour"),
-            }
-            if let Some(bucket) = &bucket {
-                match sweep_files(&db, bucket).await {
-                    Ok(n) => tracing::info!(files = n, "file sweep done"),
-                    Err(err) => {
-                        tracing::warn!(error = %err, "file sweep failed, retrying next hour")
-                    }
-                }
-            }
-        }
-    });
 }
 
 #[cfg(test)]
@@ -150,6 +121,15 @@ mod tests {
             user,
         )
         .await;
+        run(
+            &pool,
+            "INSERT INTO idempotency_keys (workspace_id, key, user_id, request_hash, status,
+                                           response, created_at)
+             SELECT w.id, v.key, $1, sha256(v.key::bytea), 201, '', now() - v.age::interval
+             FROM workspaces w, (VALUES ('old', '25 hours'), ('new', '1 hour')) AS v(key, age)",
+            user,
+        )
+        .await;
         sqlx::query(
             "INSERT INTO login_failures (email_norm, failed_at) VALUES
             ('x', now() - interval '25 hours'), ('x', now() - interval '5 minutes')",
@@ -169,6 +149,9 @@ mod tests {
                 invite_sends: 1,
                 login_failures: 1,
                 stuck_sends: 0,
+                jobs: 0,
+                scheduled_runs: 0,
+                idempotency_keys: 1,
             }
         );
         assert_eq!(

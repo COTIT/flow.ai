@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS scheduled_runs;
+DROP TABLE IF EXISTS jobs;

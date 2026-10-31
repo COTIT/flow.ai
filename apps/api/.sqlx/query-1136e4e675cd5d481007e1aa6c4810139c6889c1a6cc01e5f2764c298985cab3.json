@@ -1,0 +1,121 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH busy AS (\n               SELECT workspace_id FROM jobs\n               WHERE status = 'running' AND workspace_id IS NOT NULL\n               GROUP BY workspace_id HAVING count(*) >= $2\n           ),\n           held AS (\n               SELECT concurrency_key FROM jobs\n               WHERE status = 'running' AND concurrency_key IS NOT NULL\n           ),\n           head AS (\n               SELECT id, workspace_id, concurrency_key FROM jobs\n               WHERE status = 'queued' AND run_at <= now() AND kind = ANY($1)\n               ORDER BY priority DESC, run_at, id\n               LIMIT 32\n           ),\n           candidates AS (\n               SELECT h.id FROM head h\n               WHERE (h.workspace_id IS NULL OR h.workspace_id NOT IN (SELECT workspace_id FROM busy))\n                 AND (h.concurrency_key IS NULL\n                      OR h.concurrency_key NOT IN (SELECT concurrency_key FROM held))\n           ),\n           next AS (\n               -- Re-checked on the locked version: another claim may have taken or delayed it.\n               SELECT id FROM jobs\n               WHERE id IN (SELECT id FROM candidates)\n                 AND status = 'queued' AND run_at <= now() AND kind = ANY($1)\n               ORDER BY priority DESC, run_at, id\n               LIMIT 1\n               FOR UPDATE SKIP LOCKED\n           ),\n           claimed AS (\n               UPDATE jobs j\n               SET status = 'running', attempts = j.attempts + 1, locked_by = uuidv7(),\n                   locked_until = now() + make_interval(secs => $3),\n                   started_at = coalesce(j.started_at, now())\n               FROM next WHERE j.id = next.id\n               RETURNING j.id, j.kind, j.workspace_id, j.payload, j.attempts, j.max_attempts,\n                         j.created_by, j.locked_by\n           )\n           SELECT (SELECT count(*) FROM head) AS \"seen!\",\n                  c.id AS \"id?\", c.kind AS \"kind?\", c.workspace_id, c.payload AS \"payload?\",\n                  c.attempts AS \"attempts?\", c.max_attempts AS \"max_attempts?\", c.created_by,\n                  c.locked_by AS \"token?\"\n           FROM (SELECT 1) AS one LEFT JOIN claimed c ON true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "seen!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "kind?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "payload?",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "payload"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "attempts?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "max_attempts?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "max_attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "token?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "locked_by"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Int8",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      null,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "1136e4e675cd5d481007e1aa6c4810139c6889c1a6cc01e5f2764c298985cab3"
+}

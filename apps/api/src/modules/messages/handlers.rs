@@ -68,6 +68,8 @@ pub async fn send_message(
         attachments: &input.attachments,
         email_profile_id: input.email_profile_id,
         message_type: None,
+        entity: None,
+        button: None,
     };
     service::send(&state, access.workspace_id, access.user_id, outgoing).await?;
     Ok(Message("ok"))
@@ -108,6 +110,8 @@ pub async fn profile_test(
         attachments: &[],
         email_profile_id: Some(id),
         message_type: None,
+        entity: None,
+        button: None,
     };
     service::send(&state, access.workspace_id, access.user_id, outgoing).await?;
     Ok(Data(json!({ "success_connection": true })))

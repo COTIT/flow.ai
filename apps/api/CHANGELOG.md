@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Pulled the later genesy-360-api work into `apps/api` (old repo `416abee49`): F6 invoice send/numbering/credit notes, F7 invoice payments, B7-1 job rail + idempotency keys, B8-1/B8-2 deal pipelines and deals, `ctutils` 0.4.4 (RUSTSEC-2026-0385). The invoices public hash link joins the public router undocumented; the test `send()` keeps the contract check and delegates to upstream's `send_raw`.
 - OpenAPI step 2 (TypeScript client):
   - `openapi::spec()` now returns JSON and swaps inline copies of named schemas for `$ref`s (utoipa pastes generic args inline; orval then emitted duplicate anonymous types).
   - Every response has a description (required before OpenAPI 3.2).
@@ -14,6 +15,144 @@
   - Fields that are always sent but may be null are listed as `required` (generated clients type them as present).
   - `openapi.json` is committed. `tests/openapi.rs` fails when it is stale (regenerate locally with `UPDATE_OPENAPI=1 cargo test --test openapi`; refused when `CI` is set), requires unique tag-prefixed operationIds, and checks real currency create/get/list/401/403/404/422 bodies against the documented schemas.
   - Request schemas list the clean types (`decimals` integer, flags boolean); the API still accepts Laravel's lenient forms ("2", "true").
+- Batch 7 B7-1 (background job rail; contract `docs/api/jobs.md`):
+  - **Migration `jobs`:**
+    - `jobs`: one row per job, with kind, payload (cursor), status, lease token and expiry, concurrency/dedupe keys, progress and last error.
+    - `scheduled_runs`: one row per schedule slot.
+  - **Claim:** `FOR UPDATE SKIP LOCKED`, in two statements.
+    - Fast path: the 32 oldest due jobs. Load (dev Mac, Docker): 1,198 trivial jobs/s over two pools of 4 workers.
+    - Fallback: a skip scan over each workspace's first due job, used when all 32 are blocked. A capped tenant's 100k backlog then costs one index probe (claim p95 3.4 ms, measured). With stale statistics the planner used to scan past the whole backlog (268 ms).
+    - Every claim gets a fresh lease token. Checkpoints and outcomes need it, so a worker whose 60 s lease ran out can't save progress or finish the job.
+    - Workers only claim kinds this build knows, so the older blue/green color leaves newer kinds alone.
+    - A workspace running `JOB_MAX_RUNNING_PER_WORKSPACE` (2) jobs is skipped (soft cap). A `concurrency_key` allows one running job per key (unique index).
+  - **Runner:** one handler task per job; lease renewal every 20 s; a lost lease aborts the handler.
+    - Permanent errors fail at once. Others, and panics, retry after a jittered backoff (10 s doubling, 1 h max) until `max_attempts`.
+    - On SIGTERM, workers stop claiming and finish their chunk while requests drain (8 s).
+  - **Scheduler:** every instance ticks every 30 s.
+    - The one holding a transaction advisory lock inserts each due `(name, slot)` and enqueues it once, deduped per schedule.
+    - The same tick reaps expired leases.
+  - **Cleanup moved onto the rail:** stuck sends (5 min), prune (hourly, now also old jobs and slots) and the file sweep (hourly) run as scheduled jobs on one instance, not as loops on every replica. `cleanup::spawn` is gone.
+  - **Warehouse stock sweep (`stock_seed`):** when a warehouse becomes the main one or a store, every stock-tracked product gets its zero row there.
+    - 5000 products per chunk.
+    - The main warehouse becomes the default of products that have none.
+    - Enqueued in the warehouse write's transaction. Re-saving a store enqueues nothing.
+    - **Laravel differences:** Laravel's nightly 02:00 sweep, which could insert duplicate rows, is gone. A chosen default warehouse is never overwritten.
+  - **Pools:** job pool `DATABASE_JOB_CONNECTIONS` (default 4, one connection per worker, no statement timeout; each chunk sets its own). The one-connection background pool now carries scheduler ticks and lease renewals.
+    - Deploy: prod 16 request + 4 job, previews 4 + 1, inside the unchanged role limits (44, 14).
+    - `deploy.sh` refuses a limit below `2 × (request + job + 2)`.
+  - `AppError` is exported for job handlers; `tests/common` gains `Api::as_new_owner`.
+  - Tests: `tests/jobs.rs`, `tests/stock_seed.rs`, `jobs::{runner,scheduler,kinds}` units, and the ignored load tests `tests/load_jobs.rs` (L1, L2).
+  - Review fixes (rust, security, database):
+    - **Coalescing:** only a queued job that hasn't started counts. A sweep queued between chunks had already passed the products before its cursor, so a store added then lost their rows. It also takes an advisory lock per kind and workspace and a share lock on the queued job, so a worker can't claim it before the change commits. It uses an indexable workspace equality.
+    - **Runs:** stopped and retried after `MAX_RUN` (10 min), or when no lease renewal has succeeded for a whole lease (cleanup kinds have no fencing). Outcome writes retry three times. Cancellation is no longer reported as a panic. SQL data and constraint errors (SQLSTATE 22, 23) fail at once.
+    - **Pools:** job connections cap statements at 5 min and transactions at 10 min; the control connection 15 s and locks 5 s, with an acquire timeout.
+    - **Boot:** the rail starts after every boot step that can fail, and its drain starts at the signal, alongside the HTTP drain.
+    - **SQL:**
+      - the fallback claim runs only when due jobs were all blocked, never on an empty queue;
+      - the locking step re-checks `run_at` and `kind`;
+      - `reap` skips rows another transaction holds;
+      - `prune` deletes through the primary key (it planned a full scan per batch);
+      - NUL characters are stripped from `last_error`.
+    - **Table:** no `locked_until` index (lease renewals stay HOT); `fillfactor 70` and per-table autovacuum; a CHECK ties `finished_at` to finished statuses; the FK indexes are partial `IS NOT NULL`.
+    - **Sweep:**
+      - the keyset survives generic plans (`id > coalesce(..)`; `$2 IS NULL OR` measured 404 ms at a 350k cursor);
+      - chunks hold at most 50,000 stock rows;
+      - products are locked in id order before the ordered stock insert;
+      - the main warehouse is read inside the product update.
+    - **Warehouses:** `flags_locked` takes `FOR NO KEY UPDATE`, so stock inserts referencing the warehouse aren't blocked. A default change is re-checked against `warehouse.set_default` under the row lock.
+    - **Deploy:** `deploy.sh` bounds each pool to 1..100 and the limit to three digits.
+  - Parent review: dedupe keys are unique per workspace (system jobs share the nil scope), and so is the lookup. A global key would have handed workspace A's enqueue workspace B's live job.
+- Batch 8 B8-2 (deals and the kanban board; contract `docs/api/deals.md`):
+  - **Migration `deals`:** one card on a board.
+    - `FOREIGN KEY (workspace_id, deal_pipeline_id, deal_pipeline_status_id) → deal_pipeline_statuses`, NOT NULL, so a deal's column is always on its board.
+    - Composite FKs to currencies and relations.
+    - `position bigint` is a gap rank.
+    - Partial indexes: per column by rank and by date, newest-first list, board filter, relation, currency.
+  - **Routes:**
+    - `/deals`: list, get, create, patch, `update-status` (kanban drag), `add-relation`, delete. Each checks its `deal.*` name; Laravel checked none.
+    - `/deal-pipelines/{p}/status/{s}/deals`: one board column, in the board's `sorting` order, pages of 999.
+  - **Drags:**
+    - The SPA's 0-based drop index becomes the midpoint between the two neighbours, so one row is written. A closed gap respaces the column once.
+    - Rank writers lock boards `FOR SHARE` → source and target columns `FOR NO KEY UPDATE` → deal, all in id order, so no deal leaves a column while it respaces and column edits on the board wait for them. A deal moved since the unlocked read is read again. Appends read the last rank only. A drop index is capped at 10000. A drag retries once on a deadlock (`AppError::is_deadlock`).
+    - A column deleted a moment ago is refused.
+    - Load (L-B1/L-B2, `tests/load_deals.rs`, `#[ignore]`, measured at load average ~40):
+      - a 999-deal column reads with p95 31 ms;
+      - 50 movers × 200 drags give 553 drags/s with 0 errors, every deal once and ranks distinct;
+      - one mover alone has p95 5 ms;
+      - contended p95 is 156 ms, the queue on the column locks.
+  - **Pipelines:**
+    - The board `summary` is real: won/lost deal counts and per-currency sums from one grouped query.
+    - Deleting a column moves its deals to the end of the board's first other column. With no other column it is a 409 (`AppError::Conflict`, new).
+  - **Embeds:** relations (list shape), agents, currencies, and boards with their columns: one batch query each per page.
+  - **Laravel differences** (contract): patch semantics, a re-sent past close date saves, `pipeline_id`/`status` list filters, 201 on create, a real "already has a relation" text.
+  - Review fixes:
+    - Appends no longer scan the column.
+    - Drop index cap 10000.
+    - Retry on deadlock.
+    - An edit doesn't re-append a deal a drag just moved.
+    - Checked rank arithmetic.
+    - Board embeds built from typed resources.
+    - Workspace filter on the respace and column-move UPDATEs.
+    - 422 for malformed list filters.
+    - Database review:
+      - A respace or column move only rewrites deals still in that column (a deal moved meanwhile kept a colliding rank; and a cross-board move during a column delete gave a 500).
+      - The source column is locked too.
+      - A deleted column's deals prefer an ordinary column over Won/Lost.
+      - The agent FK now points at `workspace_members` (`ON DELETE SET NULL (sales_agent_id)`).
+      - New indexes on the agent and creator FKs.
+      - The status-FK index is no longer partial.
+      - Pipeline rename takes the board lock with its 5 s limit.
+- Final batch F7 (invoice payments; contract `docs/api/invoice-payments.md`):
+  - **Ledger:** migration `invoice_payments` adds `invoice_payments`: minor units at the invoice's decimals, negative rows for refunds and settle twins. It is append-only: a trigger refuses delete, and any change of amount, invoice, workspace, method, date or twin, an un-void and TRUNCATE. Delete = void (`voided_at`, `voided_by`).
+  - **Balance:** `invoices.paid_total` is recomputed as SUM over paid, unvoided rows in every payment transaction, under the invoice's row lock. The status machine is Laravel's, fixed:
+    - only open/settled statuses move (Laravel reopened cancelled or draft invoices);
+    - the 0.05 tolerance applies only with a cash payment;
+    - a credit note reopens when its refund is voided;
+    - overpayment is kept as Laravel did (`paid`, negative `open`).
+  - **`POST /invoices/{id}/payments`** (`invoicepayment.create`): cash/pin/manual plus Laravel's `mollie` and `bank` (`afas`) aliases, amount > 0 within the currency's decimals, open invoices only, no credit notes. A **settle** writes two linked rows that sum to 0, locks both invoices in id order, and checks the credit note (same relation/currency, open amount) where Laravel checked nothing.
+  - **`DELETE /invoices/{id}/payments/{pid}`** (`invoicepayment.delete`): voids the payment (and its settle twin), looked up within that invoice only.
+  - **`POST /invoices/{id}/mark-as-credited`** (`invoice.credit`): a pending credit note's open balance refunded as a negative payment, then `credited`; already credited is a quiet ok.
+  - **Idempotency-Key** (`src/idempotency.rs`, table `idempotency_keys`): per workspace, bound to method + path + raw body, stored in the write's transaction, replayed byte for byte; another request under a key is a 422; parallel copies wait and replay; pruned after a day by the hourly cleanup.
+  - Invoice detail, list and public page print the real `balance` and `relationships.payments`.
+  - Review fixes (security, Rust, database):
+    - a settle is capped by the invoice's open balance too (credit is never burned on an overpayment) and needs a pending note with the same decimals;
+    - idempotency keys are bound to the member who used them, survive a concurrent prune, reuse ValidatedJson (content-type check) and never replay an unfinished row;
+    - the ledger trigger also freezes id, created_at and paid → unpaid;
+    - the migration alters `invoices` before the FK to avoid a lock-upgrade deadlock during a rolling deploy;
+    - at most 500 live payments per invoice;
+    - `meta` at most 8 KiB so the CHECK can't 500;
+    - paid totals checked against i64;
+    - the public page shows nothing open on paid invoices;
+    - payment routes run with the 64 KiB body limit.
+
+- Batch 8 B8-1 (deal pipelines; contract `docs/api/deal-pipelines.md`):
+  - **Migration `deal_pipelines`:** `deal_pipelines` (`sorting` a-z|pos|z-a) and `deal_pipeline_statuses`.
+    - Lane rules and won/lost flags are columns, not JSON. The custom status FK and the pipeline FK are composite, so they stay inside the workspace.
+    - `UNIQUE (workspace_id, deal_pipeline_id, id)` is the target of the deals FK in B8-2.
+    - Partial unique indexes on live columns: one per (board, custom status), one won and one lost per board.
+  - **Routes** under `/deal-pipelines`: list, get, create, patch, and status create / patch / delete. Each checks its `dealpipeline.*` or `dealpipelinestatus.*` catalog name; Laravel checked three of the seven.
+  - **Positions:** every column write locks the board row. A taken position moves that column and the ones after it one to the right in one statement, so positions stay distinct under parallel saves. The settings page's one-request-per-column reorder gives the requested order.
+  - **Laravel differences:**
+    - The won (or lost) column can be saved with its own flag still set; Laravel counted the edited column and refused.
+    - `type` is kept on create.
+    - Columns are addressed through their board's path.
+    - A status update without `position` keeps it (Laravel answered 500).
+    - Bad ids in a body are 422s, not 404/500.
+  - Review fixes: `position` is capped at 10000 (a column near the int maximum made every later shift a 500); columns pair with their boards through a map; patch binds borrow instead of cloning.
+  - **Not ported:** pipeline delete, duplicate and the single-status GET (no vimdesk-web caller). `summary` stays at zero and status delete moves no deals until the deals module (B8-2).
+- Final batch F6 (sending invoices, numbering, credit notes; contract `docs/api/invoices.md`):
+  - **Numbering:** migration `invoice_send` adds `document_counters` (one row per workspace and series, bumped by `numbering::next` as the last statement of the numbering transaction) and `invoices.invoice_number` / `invoice_appendix`. Invoices and credit notes share the `invoice` series; raising `invoice.start_number` moves it forward, lowering never moves it back. Unique `(workspace_id, invoice_number)` backstop; a clash is logged as an error and answered 503.
+  - **Database guards:** triggers refuse (23001) deleting a numbered invoice, changing its number, appendix, credit flag or workspace, setting it back to draft, soft-deleting it, and `TRUNCATE` while any invoice is numbered. A hard workspace delete with numbered invoices is blocked too (bookkeeping retention).
+  - **`POST /invoices/{id}/send`** (`invoice.send` + `workspace.send-message`): one transaction locks the draft, stores the contact and billing address, moves stock (6F's writer, slots locked sorted; stores may go negative, other warehouses refuse a shortage with 422), sets the dates (Laravel's due-date chain), the status (`pending`; `paid`/`credited` at a zero total), the payment token and, last, the number. After commit: the PDF (built-in layout or `pdf_template_id`) is stored as the invoice's `pdf_file` and mailed through F5b2's pipeline with `{invoice.*}` filled in, the PDF attached and a pay button. A PDF or mail failure keeps the number; resend retries.
+  - **`POST /invoices/{id}/resend`**, **`GET /invoices/send-tasks/active`** (always empty: sends are synchronous).
+  - **`POST /invoices/{id}/credit`** (`invoice.credit` + `invoice.create`): a draft credit note from Laravel's `fromInvoice` math (`credit_all`, `credit_amount`, `return_amount` incl. VAT), `parent_item_id` on its lines, `credited_amount` on the source lines, an unpaid source with nothing left cancelled. Fixes: a working return-amount cap; remaining quantities checked under the source's row lock; a credit note is never credited.
+  - **Public link** `GET /v1/invoices/fetch-from-hashed/{token}` (rate limited): a random token stored as sha256 plus a sealed copy (credential key) so the same link prints again. Purchase prices, stock and product codes are left out of the public lines.
+  - **Lock order:** send = invoice row → currency (shared) → stock slots (sorted) → counter; credit = source invoice row → new credit note. Tested: 20 parallel sends get 20 consecutive numbers; 10 parallel sends of one draft send it once; a refused send takes no number; parallel credits can't over-credit; parallel send and credit of one invoice don't deadlock.
+  - Detail prints `invoice_nr`, `payment_hash`, `previous_invoice_id`, `relationships.pdf_file`, and the lines' `credited_amount` / `amount_left_to_credit` / `mutated_from_stock`; the list keeps `payment_hash` null.
+  - A currency's `decimals` can't change once a sent invoice uses it (422 on `decimals`); the invoice PDF prints with the decimals its totals were priced with.
+  - Review fixes (security, Rust, database): everything the PDF and mail need (sidecar, store, template, attachments, sender, server, a recipient) is checked before the number is taken; delivery runs in its own task so a dropped request can't leave a numbered invoice half delivered; the send share-locks the currency and prices a draft again when its decimals changed; the `{…}` fill is linear and capped at 2 MiB; send/resend bodies are capped at 1 MiB; only numbered invoices are credited; the refund cap uses the engine's per-line rounding; the pay button and the public `open` amount only show while something is to pay; a deleted workspace's links 404 and the public profile drops the credit limit; resend mints a missing token and re-renders a deleted PDF; the down migration refuses to drop numbers.
+  - `Can<P>` takes an optional second permission (`Permission::ALSO`). Mail sends can carry an entity (`email_send_logs.entity_type` / `entity_id`) and a button; `/send-message` checks `pdf_template_id` as a uuid.
+
 - Final batch F5b2 (sending workspace mail; contract `docs/api/messages.md`):
   - **`src/mail`** is now a module, and every mail leaves through `Mailer::dispatch`: the recipient allow-list, then one transport within 15 s.
     - Platform SMTP (Resend in prod).

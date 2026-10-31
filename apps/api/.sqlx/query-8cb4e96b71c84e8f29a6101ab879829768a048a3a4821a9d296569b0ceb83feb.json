@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n             SELECT 1 FROM deal_pipeline_statuses\n             WHERE workspace_id = $5 AND deal_pipeline_id = $1 AND deleted_at IS NULL\n               AND id IS DISTINCT FROM $4 AND ((is_won AND $2) OR (is_lost AND $3))\n           ) AS \"taken!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "taken!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Bool",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8cb4e96b71c84e8f29a6101ab879829768a048a3a4821a9d296569b0ceb83feb"
+}

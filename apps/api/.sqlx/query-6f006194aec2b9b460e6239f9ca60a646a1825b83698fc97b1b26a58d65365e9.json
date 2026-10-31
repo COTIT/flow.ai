@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.invoice_id AS \"twin_invoice?\"\n           FROM invoice_payments p\n           LEFT JOIN invoice_payments t\n             ON t.workspace_id = p.workspace_id AND t.id = p.settle_twin_id\n           WHERE p.workspace_id = $1 AND p.invoice_id = $2 AND p.id = $3\n             AND p.voided_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "twin_invoice?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoice_payments",
+            "name": "invoice_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "6f006194aec2b9b460e6239f9ca60a646a1825b83698fc97b1b26a58d65365e9"
+}

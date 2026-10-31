@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     modules::{
+        invoice_payments::resource as payments,
         invoices::repo::{InvoiceRow, ItemRow},
         pricing::{
             dto::{MarginResource, SummaryResource},
@@ -18,6 +19,7 @@ use crate::{
         relations::address::{Address, AddressView},
     },
     money::{Zero, format_decimals, php_number},
+    numbering::Appendix,
 };
 
 /// Embedded rows, by id, already in their resource shape.
@@ -27,6 +29,10 @@ pub struct Embeds {
     pub currencies: HashMap<Uuid, Value>,
     pub products: HashMap<Uuid, Value>,
     pub warehouses: HashMap<Uuid, Value>,
+    /// Detail only: the opened payment token, the sent PDF's file resource, the payments.
+    pub payment_hash: Option<String>,
+    pub pdf_file: Option<Value>,
+    pub payments: Vec<Value>,
 }
 
 /// `summary` as stored on the invoice: exact decimals as text, how many lines carry a discount
@@ -86,14 +92,37 @@ pub fn discounted(l: &ItemRow, a: &Amounts) -> bool {
     l.discount_percentage > Decimal::ZERO && a.gross > Decimal::ZERO
 }
 
-/// Laravel `invoice_nr`: drafts have no number yet; a cancelled invoice prints "N/A".
-// shortcut: no numbering until F6 (send); print the number once invoices get one.
+/// The formatted number (Laravel Invoice::invoice_nr); None until sent.
+pub fn number(row: &InvoiceRow) -> Option<String> {
+    row.invoice_number.map(|n| {
+        Appendix::from_section(row.invoice_appendix.as_ref().unwrap_or(&Value::Null)).format(n)
+    })
+}
+
+/// `invoice_nr` as the resources print it: a cancelled invoice prints "N/A".
 fn invoice_nr(row: &InvoiceRow) -> Value {
     if row.status == "cancelled" {
         Value::from("N/A")
     } else {
-        Value::Null
+        number(row).map_or(Value::Null, Value::from)
     }
+}
+
+/// Decimals the stored totals (and payments) are in.
+fn dp(row: &InvoiceRow) -> u32 {
+    read_summary(&row.summary).2.unwrap_or(2)
+}
+
+/// Laravel getOpenBalance: total minus what is paid (negative when overpaid).
+fn open(row: &InvoiceRow, total: Decimal) -> Decimal {
+    total
+        .checked_sub(payments::units(row.paid_total, dp(row)))
+        .unwrap_or_default()
+}
+
+/// Laravel getPaidAmount as its resources printed it.
+fn paid(row: &InvoiceRow) -> Value {
+    payments::paid(row.paid_total, dp(row))
 }
 
 fn billing_address(row: &InvoiceRow) -> Value {
@@ -124,15 +153,14 @@ pub fn detail(
         .filter(|(l, a)| discounted(l, a))
         .count();
     let items: Vec<Value> = lines.iter().map(|l| item(l, e)).collect();
-    // shortcut: no payments until F7, so nothing is paid and the whole total is open.
-    let balance = json!({ "open": php_number(summary.total), "paid": 0,
-                          "total": php_number(summary.total) });
+    let balance = json!({ "open": php_number(open(row, summary.total)),
+                          "paid": paid(row), "total": php_number(summary.total) });
     json!({
         "id": row.id,
         "invoice_nr": invoice_nr(row),
         "status": row.status,
         "reference": row.reference,
-        "payment_hash": null,
+        "payment_hash": e.payment_hash,
         "payment_method": row.payment_method,
         "balance": balance,
         "note": row.note,
@@ -141,7 +169,7 @@ pub fn detail(
         "items": items,
         "summary": SummaryResource::of_document(summary, discounted),
         "is_credit": row.is_credit,
-        "previous_invoice_id": null,
+        "previous_invoice_id": row.previous_invoice_id,
         "mollie_refunds": [],
         "addressed_contact": row.addressed_contact,
         "billing_address": billing_address(row),
@@ -153,11 +181,11 @@ pub fn detail(
         "last_updated_at": row.updated_at,
         "meta": row.meta,
         "relationships": {
-            "pdf_file": null,
+            "pdf_file": e.pdf_file,
             "estimate": null,
             "relation": e.relations.get(&row.relation_id),
             "currency": e.currencies.get(&row.currency_id),
-            "payments": [],
+            "payments": e.payments,
             "custom_sections": [],
             "parent_invoice": null,
             "child_invoices": [],
@@ -182,7 +210,7 @@ pub fn index(row: &InvoiceRow, e: &Embeds) -> Value {
         "id": row.id,
         "invoice_nr": invoice_nr(row),
         "status": row.status,
-        "balance": { "paid": 0, "open": php_number(summary.total) },
+        "balance": { "paid": paid(row), "open": php_number(open(row, summary.total)) },
         "reference": row.reference,
         "payment_hash": null,
         "payment_method": row.payment_method,
@@ -300,10 +328,10 @@ fn item(l: &ItemRow, e: &Embeds) -> Value {
         "marge_percentage": marge_percentage,
         "marge_total": fd(mul(marge_each, l.quantity), 2),
         "vat": fd(l.vat, 2),
-        "credited_amount": fd(Decimal::ZERO, 2),
+        "credited_amount": fd(l.credit_amount, 2),
         "from_multi_set": false,
         "is_parent_multi_set_product": false,
-        "amount_left_to_credit": fd(l.quantity, 2),
+        "amount_left_to_credit": fd(sub(l.quantity, l.credit_amount), 2),
         "returnable_serial_numbers": [],
         "subtotal": fd(sum, 2),
         "total": fd(total, 2),
@@ -322,7 +350,7 @@ fn item(l: &ItemRow, e: &Embeds) -> Value {
         "qty_shipped": fd(Decimal::ZERO, 2),
         "qty_cancelled": fd(Decimal::ZERO, 2),
         "billed": false,
-        "mutated_from_stock": fd(Decimal::ZERO, 2),
+        "mutated_from_stock": fd(l.mutated_from_stock, 2),
         "backorder": fd(Decimal::ZERO, 2),
         "position": l.position,
         "able_to_pick": false,
@@ -333,6 +361,78 @@ fn item(l: &ItemRow, e: &Embeds) -> Value {
         "created_at": l.created_at,
         "last_updated_at": l.updated_at,
         "relationships": relationships,
+    })
+}
+
+/// Line fields the public page gets: Laravel ShortItemResource without purchase prices,
+/// stock or product codes (a customer must not see costs).
+const PUBLIC_ITEM_FIELDS: &[&str] = &[
+    "id",
+    "title",
+    "description",
+    "quantity",
+    "price",
+    "price_incl",
+    "price_incl_vat",
+    "vat",
+    "subtotal",
+    "total",
+    "total_incl",
+    "discount_fixed",
+    "discount_percentage",
+    "discount_amount",
+    "discount_amount_incl",
+    "credited_amount",
+    "amount_left_to_credit",
+];
+
+/// Laravel InvoiceFromHashResource for the public payment page. `currency` is the short
+/// currency, `company` the workspace profile.
+pub fn public(
+    row: &InvoiceRow,
+    lines: &[ItemRow],
+    summary: &Summary,
+    token: &str,
+    currency: Value,
+    company: Value,
+) -> Value {
+    let discounted = lines
+        .iter()
+        .zip(&summary.lines)
+        .filter(|(l, a)| discounted(l, a))
+        .count();
+    let items: Vec<Value> = lines
+        .iter()
+        .map(|l| {
+            let mut v = item(l, &Embeds::default());
+            if let Value::Object(m) = &mut v {
+                m.retain(|k, _| PUBLIC_ITEM_FIELDS.contains(&k.as_str()));
+                let discount = m.get("discount_percentage").cloned().unwrap_or_default();
+                m.insert("discount".into(), discount);
+            }
+            v
+        })
+        .collect();
+    // Laravel max(0, open); a settled, void or credited invoice has nothing to pay here (a
+    // cash-rounded paid invoice may show a few cents open in the detail).
+    let open = if matches!(row.status.as_str(), "paid" | "cancelled" | "credited") {
+        Decimal::ZERO
+    } else {
+        open(row, summary.total).max(Decimal::ZERO)
+    };
+    json!({
+        "invoice_nr": number(row),
+        "is_credit": row.is_credit,
+        "status": row.status,
+        "reference": row.reference,
+        "balance": { "open": php_number(open), "paid": paid(row), "total": php_number(summary.total) },
+        "payment_hash": token,
+        "payment_method": row.payment_method,
+        "company_details": company,
+        "due_date": row.due_date,
+        "items": items,
+        "summary": SummaryResource::of_document(summary, discounted),
+        "relationships": { "order_fields": null, "currency": currency },
     })
 }
 

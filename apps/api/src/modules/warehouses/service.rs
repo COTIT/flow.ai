@@ -14,7 +14,7 @@ use crate::{
         workspace::NOT_ALLOWED,
     },
     modules::{
-        stock::repo as stock,
+        stock::{repo as stock, sweep},
         users::repo::{self as users, UserRef},
         warehouses::{
             dto::{BAD_PARENT, Fields, NewWarehouse, WarehousePatch, WarehouseResource},
@@ -158,6 +158,9 @@ pub async fn create(
     )
     .await
     .map_err(slug_race)?;
+    if default || input.fields.is_store == Some(Some(true)) {
+        sweep::enqueue(&mut tx, workspace_id).await?;
+    }
     tx.commit().await?;
     Ok(id)
 }
@@ -184,14 +187,31 @@ pub async fn update(
             return Err(AppError::Forbidden(NOT_ALLOWED));
         }
     }
-    let found = if patch.default_warehouse == Some(true) {
+    let to_default = patch.default_warehouse == Some(true);
+    let to_store = patch.fields.is_store == Some(Some(true));
+    let found = if to_default || to_store {
+        // Lock order: the default lock, then this row.
         let mut tx = state.db.begin().await?;
-        repo::lock_default(&mut tx, workspace_id).await?;
-        repo::clear_default(&mut *tx, workspace_id, Some(id)).await?;
-        let found = update_row(&mut *tx, workspace_id, id, &patch).await?;
-        if found {
-            tx.commit().await?;
+        if to_default {
+            repo::lock_default(&mut tx, workspace_id).await?;
         }
+        let (was_store, was_default) = repo::flags_locked(&mut tx, workspace_id, id)
+            .await?
+            .ok_or(AppError::NotFound)?;
+        // Re-checked under the lock: the default may have moved since the check above.
+        if to_default && !was_default && !may_set_default {
+            return Err(AppError::Forbidden(NOT_ALLOWED));
+        }
+        if to_default {
+            repo::clear_default(&mut *tx, workspace_id, Some(id)).await?;
+        }
+        let found = update_row(&mut *tx, workspace_id, id, &patch).await?;
+        // A new main or store needs its stock rows; re-saving the same flag (the SPA sends
+        // it on every save) doesn't.
+        if (to_store && !was_store) || (to_default && !was_default) {
+            sweep::enqueue(&mut tx, workspace_id).await?;
+        }
+        tx.commit().await?;
         found
     } else {
         update_row(&state.db, workspace_id, id, &patch).await?
@@ -221,9 +241,15 @@ pub async fn set_default(state: &AppState, workspace_id: Uuid, id: &str) -> Resu
     let id = parse(id)?;
     let mut tx = state.db.begin().await?;
     repo::lock_default(&mut tx, workspace_id).await?;
+    let (_, was_default) = repo::flags_locked(&mut tx, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
     repo::clear_default(&mut *tx, workspace_id, Some(id)).await?;
     if !repo::set_default(&mut *tx, workspace_id, id).await? {
         return Err(AppError::NotFound);
+    }
+    if !was_default {
+        sweep::enqueue(&mut tx, workspace_id).await?;
     }
     tx.commit().await?;
     Ok(())

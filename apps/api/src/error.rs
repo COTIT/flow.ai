@@ -40,6 +40,9 @@ pub enum AppError {
     /// 400 with a client-safe message (Laravel exceptions with `statusCode` 400).
     #[error("{0}")]
     BadRequest(String),
+    /// 409 with a client-safe message (Laravel exceptions with `statusCode` 409).
+    #[error("{0}")]
+    Conflict(&'static str),
     /// 422 with only a message (Laravel exceptions with `statusCode` 422, no field errors).
     #[error("{0}")]
     Unprocessable(String),
@@ -71,6 +74,33 @@ pub enum AppError {
 }
 
 impl AppError {
+    /// A job failure a retry can't fix: bad input, a missing or forbidden target, or a SQL
+    /// data or constraint error (SQLSTATE classes 22 and 23).
+    pub fn is_permanent(&self) -> bool {
+        match self {
+            Self::Validation(_)
+            | Self::Unauthorized
+            | Self::InvalidCredentials
+            | Self::Forbidden(_)
+            | Self::BadRequest(_)
+            | Self::Unprocessable(_)
+            | Self::NotFound
+            | Self::PayloadTooLarge => true,
+            Self::Database(e) => e
+                .as_database_error()
+                .and_then(|d| d.code())
+                .is_some_and(|c| c.starts_with("22") || c.starts_with("23")),
+            _ => false,
+        }
+    }
+
+    /// Postgres chose this transaction as a deadlock victim (40P01): the whole transaction may
+    /// be run again.
+    pub fn is_deadlock(&self) -> bool {
+        matches!(self, Self::Database(e)
+            if e.as_database_error().and_then(|d| d.code()).as_deref() == Some("40P01"))
+    }
+
     /// One-field 422 for checks only service can do (e.g. email taken).
     pub fn field(field: &str, message: impl Into<String>) -> Self {
         Self::Validation(BTreeMap::from([(field.to_owned(), vec![message.into()])]))
@@ -169,6 +199,9 @@ impl IntoResponse for AppError {
             }
             Self::BadRequest(message) => {
                 (StatusCode::BAD_REQUEST, Json(json!({ "message": message }))).into_response()
+            }
+            Self::Conflict(message) => {
+                (StatusCode::CONFLICT, Json(json!({ "message": message }))).into_response()
             }
             Self::Unprocessable(message) => (
                 StatusCode::UNPROCESSABLE_ENTITY,

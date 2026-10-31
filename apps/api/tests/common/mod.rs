@@ -2,7 +2,9 @@
 #![allow(dead_code)] // each test binary uses a different subset
 
 pub mod contract;
+pub mod fake_pdf;
 pub mod fake_smtp;
+pub mod invoicing;
 
 use axum::extract::ConnectInfo;
 use axum::{
@@ -90,9 +92,27 @@ pub async fn send(
     body: Option<Value>,
     bearer: Option<&str>,
 ) -> (StatusCode, Value) {
-    let mut req = Request::builder().method(method.clone()).uri(uri);
+    let (status, bytes) = send_raw(app, method.clone(), uri, body, bearer, &[]).await;
+    let body = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
+    contract::check(&method, uri, status, &body);
+    (status, body)
+}
+
+/// `send` with extra headers; the body as raw bytes.
+pub async fn send_raw(
+    app: &Router,
+    method: Method,
+    uri: &str,
+    body: Option<Value>,
+    bearer: Option<&str>,
+    headers: &[(&str, &str)],
+) -> (StatusCode, axum::body::Bytes) {
+    let mut req = Request::builder().method(method).uri(uri);
     if let Some(token) = bearer {
         req = req.header("authorization", format!("Bearer {token}"));
+    }
+    for (name, value) in headers {
+        req = req.header(*name, *value);
     }
     let req = match body {
         Some(json) => req
@@ -107,10 +127,7 @@ pub async fn send(
 
     let res = app.clone().oneshot(req).await.unwrap();
     let status = res.status();
-    let bytes = res.into_body().collect().await.unwrap().to_bytes();
-    let body = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
-    contract::check(&method, uri, status, &body);
-    (status, body)
+    (status, res.into_body().collect().await.unwrap().to_bytes())
 }
 
 pub async fn post(app: &Router, uri: &str, body: Value) -> (StatusCode, Value) {
@@ -273,6 +290,18 @@ impl Api {
             owner,
             ws,
             base,
+        }
+    }
+
+    /// Same app and base, a new user owning a new workspace (cross-workspace checks).
+    pub async fn as_new_owner(&self, email: &str, workspace: &str) -> Self {
+        let (owner, ws) = signup(&self.app, email, workspace).await;
+        Self {
+            app: self.app.clone(),
+            pool: self.pool.clone(),
+            owner,
+            ws,
+            base: self.base,
         }
     }
 

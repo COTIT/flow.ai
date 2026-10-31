@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deals\n         SET title = COALESCE($3, title),\n             description = CASE WHEN $4 THEN $5 ELSE description END,\n             deal_value = COALESCE($6, deal_value),\n             date = CASE WHEN $7 THEN $8 ELSE date END,\n             sales_agent_id = CASE WHEN $9 THEN $10 ELSE sales_agent_id END,\n             deal_priority = COALESCE($11, deal_priority),\n             expected_close_date = CASE WHEN $12 THEN $13 ELSE expected_close_date END,\n             meta = CASE WHEN $14 THEN $15 ELSE meta END,\n             deal_pipeline_id = COALESCE($16, deal_pipeline_id),\n             deal_pipeline_status_id = COALESCE($17, deal_pipeline_status_id),\n             position = COALESCE($18, position),\n             updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Numeric",
+        "Bool",
+        "Date",
+        "Bool",
+        "Uuid",
+        "Text",
+        "Bool",
+        "Date",
+        "Bool",
+        "Jsonb",
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "083efcd2ef4964d7838137eb42e84335e92db55491a2133d19e34699a1b2d6f2"
+}

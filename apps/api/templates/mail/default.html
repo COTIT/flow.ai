@@ -15,6 +15,13 @@
                 <tr>
                     <td style="padding:8px 24px 24px;font-size:14px;line-height:1.6;">{{ body|safe }}</td>
                 </tr>
+                {% if let Some((text, url)) = button %}
+                <tr>
+                    <td style="padding:0 24px 24px;">
+                        <a href="{{ url }}" style="display:inline-block;padding:10px 18px;background:#FE5E17;color:#ffffff;border-radius:6px;text-decoration:none;font-size:14px;font-weight:bold;">{{ text }}</a>
+                    </td>
+                </tr>
+                {% endif %}
                 {% if !footer.is_empty() %}
                 <tr>
                     <td style="padding:0 24px 24px;font-size:13px;line-height:1.5;">{{ footer|safe }}</td>

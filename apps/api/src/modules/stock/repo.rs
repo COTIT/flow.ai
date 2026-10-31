@@ -307,6 +307,80 @@ pub async fn seed(
     .await
 }
 
+/// Most stock rows one sweep chunk inserts: with many stores a chunk takes fewer products.
+const SEED_ROWS: i64 = 50_000;
+
+/// One chunk of the warehouse sweep (Laravel EnsureProductWarehouseStockEntries): zero
+/// warehouse-level rows in the main warehouse and every store for up to `limit` live
+/// stock-tracked products after `after` (id order, fewer when there are many stores), and the
+/// main warehouse as the default of those that have none (a chosen default stays, as in
+/// `seed`). Returns the chunk's last product and size; None when none is left or there is no
+/// main warehouse (Laravel skipped the workspace). Lock order: products by id, then slots.
+pub async fn seed_chunk(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    after: Option<Uuid>,
+    limit: i64,
+) -> Result<Option<(Uuid, i64)>, sqlx::Error> {
+    let t = sqlx::query!(
+        r#"SELECT count(*) FILTER (WHERE default_warehouse) AS "mains!", count(*) AS "targets!"
+           FROM warehouses
+           WHERE workspace_id = $1 AND deleted_at IS NULL AND (default_warehouse OR is_store)"#,
+        workspace_id,
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    if t.mains == 0 {
+        return Ok(None);
+    }
+    let limit = limit.min((SEED_ROWS / t.targets).max(1));
+    // coalesce, not `$2 IS NULL OR`: a cached generic plan keeps the index bound.
+    let ids = sqlx::query_scalar!(
+        "SELECT id FROM products
+         WHERE workspace_id = $1 AND has_stock AND deleted_at IS NULL
+           AND id > coalesce($2, '00000000-0000-0000-0000-000000000000'::uuid)
+         ORDER BY id LIMIT $3",
+        workspace_id,
+        after,
+        limit,
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    let Some(&last) = ids.last() else {
+        return Ok(None);
+    };
+    // Main read in the same statement, so a default moving meanwhile can't be half applied.
+    sqlx::query!(
+        "UPDATE products SET updated_at = now(),
+             default_warehouse_id = (SELECT id FROM warehouses
+                                     WHERE workspace_id = $1 AND default_warehouse
+                                       AND deleted_at IS NULL)
+         WHERE id IN (SELECT id FROM products
+                      WHERE workspace_id = $1 AND id = ANY($2) AND default_warehouse_id IS NULL
+                      ORDER BY id
+                      FOR NO KEY UPDATE)",
+        workspace_id,
+        &ids,
+    )
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO stocks (workspace_id, product_id, warehouse_id)
+         SELECT $1, p.id, w.id
+         FROM unnest($2::uuid[]) AS p(id)
+         CROSS JOIN (SELECT id FROM warehouses
+                     WHERE workspace_id = $1 AND deleted_at IS NULL
+                       AND (default_warehouse OR is_store)) AS w
+         ORDER BY p.id, w.id
+         ON CONFLICT DO NOTHING",
+        workspace_id,
+        &ids,
+    )
+    .execute(&mut *conn)
+    .await?;
+    Ok(Some((last, i64::try_from(ids.len()).unwrap_or(i64::MAX))))
+}
+
 /// Lock (creating when missing) every slot in [`SlotKey`] order, so writers touching the same
 /// slots queue instead of deadlocking. Returns the slots this call created.
 pub async fn lock_all(

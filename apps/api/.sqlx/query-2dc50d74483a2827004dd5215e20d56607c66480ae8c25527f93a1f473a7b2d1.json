@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM products\n         WHERE workspace_id = $1 AND has_stock AND deleted_at IS NULL\n           AND id > coalesce($2, '00000000-0000-0000-0000-000000000000'::uuid)\n         ORDER BY id LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2dc50d74483a2827004dd5215e20d56607c66480ae8c25527f93a1f473a7b2d1"
+}

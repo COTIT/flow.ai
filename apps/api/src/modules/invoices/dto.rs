@@ -450,3 +450,114 @@ fn item_ref(r: &mut Rules, field: &str, v: &Scalar) -> RefId {
         }
     }
 }
+
+/// POST /invoices/{id}/credit (Laravel CreditInvoiceRequest); unknown keys are skipped.
+#[derive(Deserialize, Default)]
+#[serde(default)]
+pub struct CreditInvoiceRequest {
+    credit_all: Scalar,
+    items: Capped,
+}
+
+/// One selected line of a credit. `disable_discount` is accepted and ignored, as Laravel's
+/// credit from an invoice did (a return amount drops the discount instead).
+pub struct CreditLine {
+    pub index: usize,
+    pub id: Uuid,
+    pub credit_amount: Option<Decimal>,
+    pub return_amount: Option<Decimal>,
+}
+
+/// A validated credit: every line's remaining quantity, or the selected lines.
+pub struct CreditInput {
+    pub credit_all: bool,
+    pub items: Vec<CreditLine>,
+}
+
+impl Validate for CreditInvoiceRequest {
+    type Valid = CreditInput;
+
+    fn validate(self, r: &mut Rules) -> Option<CreditInput> {
+        let sent = self
+            .credit_all
+            .filled()
+            .and_then(|v| r.boolean("credit_all", &v));
+        let credit_all = sent.unwrap_or(false);
+        if credit_all {
+            return Some(CreditInput {
+                credit_all,
+                items: Vec::new(),
+            });
+        }
+        let list = match &self.items {
+            // Laravel `required_if:credit_all,false`.
+            Capped::Absent | Capped::Value(Value::Null) if sent == Some(false) => {
+                r.add(
+                    "items",
+                    "The items field is required when credit all is false.",
+                );
+                return None;
+            }
+            Capped::Absent | Capped::Value(Value::Null) => {
+                return Some(CreditInput {
+                    credit_all,
+                    items: Vec::new(),
+                });
+            }
+            Capped::Value(Value::Array(list)) => list,
+            Capped::TooLarge => {
+                r.add("items", "The items is too large.");
+                return None;
+            }
+            Capped::Value(_) => {
+                r.add("items", "The items must be an array.");
+                return None;
+            }
+        };
+        if list.len() > MAX_ITEMS {
+            r.add(
+                "items",
+                format!("The items must not have more than {MAX_ITEMS} items."),
+            );
+            return None;
+        }
+        let mut items = Vec::with_capacity(list.len());
+        for (index, v) in list.iter().enumerate() {
+            let f = |k: &str| format!("items.{index}.{k}");
+            let empty = serde_json::Map::new();
+            let m = v.as_object().unwrap_or(&empty);
+            let field = |k: &str| m.get(k).filter(|v| !v.is_null() && v.as_str() != Some(""));
+            let id = match field("id") {
+                None => {
+                    r.missing(&f("id"));
+                    None
+                }
+                Some(v) => {
+                    let id = v.as_str().and_then(|s| Uuid::parse_str(s.trim()).ok());
+                    if id.is_none() {
+                        r.add(
+                            &f("id"),
+                            format!("The {} must be a valid UUID.", human(&f("id"))),
+                        );
+                    }
+                    id
+                }
+            };
+            let mut num = |k: &str| field(k).and_then(|v| r.decimal(&f(k), v, -MAX, MAX));
+            let credit_amount = num("credit_amount");
+            let return_amount = num("return_amount");
+            if let Some(v) = field("disable_discount") {
+                r.boolean(&f("disable_discount"), v);
+            }
+            if let Some(id) = id {
+                items.push(CreditLine {
+                    index,
+                    id,
+                    credit_amount,
+                    return_amount,
+                });
+            }
+        }
+        Some(CreditInput { credit_all, items })
+    }
+}

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM jobs\n         WHERE kind = $1 AND workspace_id = $2 AND status = 'queued' AND started_at IS NULL\n         LIMIT 1\n         FOR SHARE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ea4a3e64f79693b7e07279f1232e4c16817c21dd89b3dbbe96aab37ed234335e"
+}

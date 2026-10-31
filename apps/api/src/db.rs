@@ -1,6 +1,7 @@
 //! Postgres connections. Request pool (size from config, per-connection timeouts, fast-fail
-//! acquire), a one-connection pool each for /healthz and background jobs, and boot
-//! migrations on their own connection.
+//! acquire), the job pool (one connection per worker), a one-connection pool each for /healthz
+//! and the rail's control work (scheduler ticks, lease renewals), and boot migrations on their
+//! own connection.
 
 use std::time::Duration;
 
@@ -21,8 +22,9 @@ const IDLE_TIMEOUT: Duration = Duration::from_secs(60);
 /// blue/green color still holding the role's slots) before giving up.
 pub const MIGRATE_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// Server-side limits on every request connection, sent as startup options. Numbering keeps
-/// its own `SET LOCAL lock_timeout = '5s'`.
+/// Server-side limits on every request connection, sent as startup options. Relation/product
+/// numbering and stock locks set their own `SET LOCAL lock_timeout = '5s'` (it lasts to
+/// commit, so an invoice send with stock lines waits 5s on the counter, else 10s).
 const REQUEST_LIMITS: [(&str, &str); 3] = [
     ("statement_timeout", "30s"),
     ("idle_in_transaction_session_timeout", "60s"),
@@ -53,15 +55,34 @@ pub async fn health(base: PgConnectOptions) -> Result<PgPool, sqlx::Error> {
         .await
 }
 
-/// One connection for background jobs (hourly cleanup): no statement timeout, so a large
-/// backlog finishes instead of rolling back every hour.
+/// The job pool: `max` connections, one per worker. Statements get 5 min (a chunk lowers it
+/// with `SET LOCAL`), a transaction 10 min: a stuck one can't hold a worker or the vacuum
+/// horizon forever.
+pub async fn jobs(base: PgConnectOptions, max: u32) -> Result<PgPool, sqlx::Error> {
+    PgPoolOptions::new()
+        .max_connections(max)
+        .acquire_timeout(ACQUIRE_TIMEOUT)
+        .idle_timeout(IDLE_TIMEOUT)
+        .connect_with(base.options([
+            ("statement_timeout", "5min"),
+            ("transaction_timeout", "10min"),
+            ("lock_timeout", "10s"),
+            ("idle_in_transaction_session_timeout", "60s"),
+        ]))
+        .await
+}
+
+/// One connection for the job rail's control work (scheduler ticks, lease renewals), apart
+/// from the job pool so busy workers can't starve it. Its statements are tiny, so short caps:
+/// one stuck statement must not hold every renewal past a lease.
 pub async fn background(base: PgConnectOptions) -> Result<PgPool, sqlx::Error> {
     PgPoolOptions::new()
         .max_connections(1)
+        .acquire_timeout(ACQUIRE_TIMEOUT)
         .idle_timeout(IDLE_TIMEOUT)
         .connect_with(base.options([
-            ("statement_timeout", "0"),
-            ("lock_timeout", "10s"),
+            ("statement_timeout", "15s"),
+            ("lock_timeout", "5s"),
             ("idle_in_transaction_session_timeout", "60s"),
         ]))
         .await

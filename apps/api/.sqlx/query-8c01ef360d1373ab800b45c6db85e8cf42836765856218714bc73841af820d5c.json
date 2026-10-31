@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE jobs SET payload = $3, progress_done = $4,\n                 progress_total = coalesce($5, progress_total)\n             WHERE id = $1 AND locked_by = $2 AND status = 'running'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Jsonb",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8c01ef360d1373ab800b45c6db85e8cf42836765856218714bc73841af820d5c"
+}

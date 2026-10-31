@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deals SET relation_id = $3, updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL AND relation_id IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b8d3b5999c4e7585a57d000b5ba1373a90a5023a5297fd23abec00f29f2e3e68"
+}

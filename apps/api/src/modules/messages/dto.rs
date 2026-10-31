@@ -8,7 +8,7 @@ use crate::{
     http::json::{Rules, Validate, human},
     modules::{
         pricing::body::{Capped, Scalar},
-        relations::address,
+        relations::address::{self, Address},
     },
 };
 
@@ -26,11 +26,14 @@ pub struct SendMessageRequest {
     send_method: Scalar,
     attachments: Capped,
     email_profile_id: Scalar,
+    pdf_template_id: Scalar,
 }
 
-/// A validated send. `template_id` and `pdf_template_id` were stored by Laravel, never used.
+/// A validated send. `template_id` was stored by Laravel, never used.
 pub struct SendInput {
     pub addressed_contact_id: Uuid,
+    /// The billing address a sent document takes.
+    pub address: Option<Address>,
     /// `manual`: the user sends it elsewhere; nothing leaves here.
     pub manual: bool,
     pub to: Vec<String>,
@@ -40,6 +43,8 @@ pub struct SendInput {
     pub body: String,
     pub attachments: Vec<Uuid>,
     pub email_profile_id: Option<Uuid>,
+    /// The PDF template a sent document renders with (ignored by `/send-message`).
+    pub pdf_template_id: Option<Uuid>,
 }
 
 impl Validate for SendMessageRequest {
@@ -58,13 +63,17 @@ impl Validate for SendMessageRequest {
                 "The addressed contact id must be a valid UUID.",
             ),
         };
-        match &self.address {
-            Capped::Absent | Capped::Value(Value::Null) => r.missing("address"),
-            Capped::TooLarge => r.add("address", "The address is too large."),
-            Capped::Value(v) => {
-                address::validate_one(r, "address", v);
+        let address = match &self.address {
+            Capped::Absent | Capped::Value(Value::Null) => {
+                r.missing("address");
+                None
             }
-        }
+            Capped::TooLarge => {
+                r.add("address", "The address is too large.");
+                None
+            }
+            Capped::Value(v) => address::validate_one(r, "address", v),
+        };
         let manual = match self.send_method.filled() {
             None => {
                 r.missing("send_method");
@@ -135,8 +144,17 @@ impl Validate for SendMessageRequest {
                 "The selected email profile id is invalid.",
             )
         });
+        let pdf_template_id = self.pdf_template_id.filled().map(|v| {
+            uuid(
+                r,
+                "pdf_template_id",
+                &v,
+                "The selected pdf template id is invalid.",
+            )
+        });
         Some(SendInput {
             addressed_contact_id,
+            address,
             manual,
             to,
             cc,
@@ -145,6 +163,7 @@ impl Validate for SendMessageRequest {
             body,
             attachments,
             email_profile_id,
+            pdf_template_id,
         })
     }
 }

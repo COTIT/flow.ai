@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO deal_pipeline_statuses\n           (workspace_id, deal_pipeline_id, custom_status_id, position, max_items_per_lane,\n            max_days_in_lane, auto_archive_in_days, lane_color, deal_probability, is_won,\n            is_lost, meta)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deal_pipeline_statuses",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7621b0ba98e3cd8a6b6eb25dfa42e23e2b5dd772a647d3857927485306c212b6"
+}

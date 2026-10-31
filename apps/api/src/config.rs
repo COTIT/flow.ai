@@ -11,12 +11,18 @@ const MAX_TOKEN_TTL_DAYS: i64 = 365;
 const DEFAULT_DB_MAX_CONNECTIONS: u32 = 20;
 /// Shared Postgres `max_connections` is 100.
 const MAX_DB_MAX_CONNECTIONS: u32 = 100;
+/// Job pool size: one connection per job worker.
+const DEFAULT_DB_JOB_CONNECTIONS: u32 = 4;
 
 /// Runtime settings. Dev loads `.env`, prod injects real env.
 pub struct Config {
     pub database_url: String,
     /// Request pool size (`DATABASE_MAX_CONNECTIONS`).
     pub db_max_connections: u32,
+    /// Job pool size and worker count (`DATABASE_JOB_CONNECTIONS`).
+    pub db_job_connections: u32,
+    /// Jobs one workspace may run at once (`JOB_MAX_RUNNING_PER_WORKSPACE`, soft cap).
+    pub job_max_running_per_workspace: u32,
     pub bind_addr: SocketAddr,
     /// Bearer token lifetime. Laravel tokens never expired; ours do.
     pub token_ttl_days: i64,
@@ -75,6 +81,11 @@ impl fmt::Debug for Config {
         f.debug_struct("Config")
             .field("database_url", &"***")
             .field("db_max_connections", &self.db_max_connections)
+            .field("db_job_connections", &self.db_job_connections)
+            .field(
+                "job_max_running_per_workspace",
+                &self.job_max_running_per_workspace,
+            )
             .field("bind_addr", &self.bind_addr)
             .field("token_ttl_days", &self.token_ttl_days)
             .field("frontend_url", &self.frontend_url)
@@ -130,17 +141,11 @@ impl Config {
     // Lookup fn instead of env::var so tests skip global env mutation (unsafe in edition 2024).
     fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Result<Self, String> {
         let database_url = get("DATABASE_URL").ok_or("DATABASE_URL not set")?;
-        // Empty counts as unset: compose passes `${GENESY_DATABASE_MAX_CONNECTIONS:-}`.
-        let db_max_connections = match get("DATABASE_MAX_CONNECTIONS").filter(|v| !v.is_empty()) {
-            None => DEFAULT_DB_MAX_CONNECTIONS,
-            Some(raw) => raw
-                .parse()
-                .ok()
-                .filter(|n| (1..=MAX_DB_MAX_CONNECTIONS).contains(n))
-                .ok_or(format!(
-                    "DATABASE_MAX_CONNECTIONS must be 1..={MAX_DB_MAX_CONNECTIONS}, got {raw:?}"
-                ))?,
-        };
+        let db_max_connections =
+            pool_size(&get, "DATABASE_MAX_CONNECTIONS", DEFAULT_DB_MAX_CONNECTIONS)?;
+        let db_job_connections =
+            pool_size(&get, "DATABASE_JOB_CONNECTIONS", DEFAULT_DB_JOB_CONNECTIONS)?;
+        let job_max_running_per_workspace = positive(&get, "JOB_MAX_RUNNING_PER_WORKSPACE", 2)?;
         let bind_addr = get("BIND_ADDR")
             .unwrap_or_else(|| DEFAULT_BIND_ADDR.into())
             .parse()
@@ -226,6 +231,8 @@ impl Config {
         Ok(Self {
             database_url,
             db_max_connections,
+            db_job_connections,
+            job_max_running_per_workspace,
             bind_addr,
             token_ttl_days,
             frontend_url,
@@ -360,6 +367,24 @@ fn base_url(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<String, 
     Ok(url.trim_end_matches('/').to_owned())
 }
 
+/// A pool size within 1..=100. Empty counts as unset: compose passes `${GENESY_…:-}`.
+fn pool_size(
+    get: &impl Fn(&str) -> Option<String>,
+    key: &str,
+    default: u32,
+) -> Result<u32, String> {
+    match get(key).filter(|v| !v.is_empty()) {
+        None => Ok(default),
+        Some(raw) => raw
+            .parse()
+            .ok()
+            .filter(|n| (1..=MAX_DB_MAX_CONNECTIONS).contains(n))
+            .ok_or(format!(
+                "{key} must be 1..={MAX_DB_MAX_CONNECTIONS}, got {raw:?}"
+            )),
+    }
+}
+
 /// Optional integer env var, must be > 0.
 fn positive<T>(get: &impl Fn(&str) -> Option<String>, key: &str, default: T) -> Result<T, String>
 where
@@ -425,6 +450,49 @@ mod tests {
         for bad in ["0", "-1", "abc", "101"] {
             let err = with(bad).unwrap_err();
             assert!(err.contains("DATABASE_MAX_CONNECTIONS"), "{bad}: {err}");
+        }
+    }
+
+    #[test]
+    fn job_pool_and_cap_defaults_and_bounds() {
+        let with = |k: &'static str, v: &'static str| {
+            Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x"), (k, v)]))
+        };
+        let default = Config::from_lookup(lookup(&[("DATABASE_URL", "postgres://x")])).unwrap();
+        assert_eq!(
+            (
+                default.db_job_connections,
+                default.job_max_running_per_workspace
+            ),
+            (4, 2)
+        );
+        // compose passes `${GENESY_DATABASE_JOB_CONNECTIONS:-}`: empty means unset.
+        assert_eq!(
+            with("DATABASE_JOB_CONNECTIONS", "")
+                .unwrap()
+                .db_job_connections,
+            4
+        );
+        assert_eq!(
+            with("DATABASE_JOB_CONNECTIONS", "1")
+                .unwrap()
+                .db_job_connections,
+            1
+        );
+        assert_eq!(
+            with("JOB_MAX_RUNNING_PER_WORKSPACE", "3")
+                .unwrap()
+                .job_max_running_per_workspace,
+            3
+        );
+        for (key, bad) in [
+            ("DATABASE_JOB_CONNECTIONS", "0"),
+            ("DATABASE_JOB_CONNECTIONS", "101"),
+            ("DATABASE_JOB_CONNECTIONS", "x"),
+            ("JOB_MAX_RUNNING_PER_WORKSPACE", "0"),
+        ] {
+            let err = with(key, bad).unwrap_err();
+            assert!(err.contains(key), "{key}={bad}: {err}");
         }
     }
 

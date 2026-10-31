@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM jobs\n             WHERE coalesce(workspace_id, '00000000-0000-0000-0000-000000000000'::uuid)\n                   = coalesce($1, '00000000-0000-0000-0000-000000000000'::uuid)\n               AND dedupe_key = $2 AND status IN ('queued', 'running')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "jobs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dd9b84eeb6bb590356c89f21a73697bea7cb3f56edc3207ff8ae936cd346d0bd"
+}

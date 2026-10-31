@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE items i SET credit_amount = i.credit_amount + u.quantity, updated_at = now()\n         FROM unnest($3::uuid[], $4::numeric[]) AS u(id, quantity)\n         WHERE i.workspace_id = $1 AND i.invoice_id = $2 AND i.id = u.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "NumericArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e3d7dd1015c040e1d6d8d65bf1b084eeb196b831ea398509ee5c086aa59d0443"
+}

@@ -1,0 +1,209 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, deal_pipeline_id, deal_pipeline_status_id, currency_id, relation_id,\n                sales_agent_id, title, description, deal_value, deal_priority, expected_close_date,\n                date, position, meta, created_at, updated_at\n         FROM deals\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL\n         FOR NO KEY UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "deal_pipeline_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "deal_pipeline_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "deal_pipeline_status_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "deal_pipeline_status_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "sales_agent_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "sales_agent_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "deal_value",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "deal_value"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "deal_priority",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "deal_priority"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "expected_close_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "expected_close_date"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "date"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "position",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "position"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deals",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "7057046ca3f4c85c14727abb44a4f04c2a86486908d568367450de9f5a8e1676"
+}

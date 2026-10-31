@@ -39,6 +39,34 @@ async fn timeouts_apply_to_every_connection(pool: PgPool) {
     }
 }
 
+async fn limits(pool: &PgPool) -> (String, String, String) {
+    let mut c = pool.acquire().await.unwrap();
+    sqlx::query_as(
+        "SELECT current_setting('statement_timeout'), current_setting('lock_timeout'),
+                current_setting('idle_in_transaction_session_timeout')",
+    )
+    .fetch_one(&mut *c)
+    .await
+    .unwrap()
+}
+
+/// Job connections: a 5 min statement cap (a chunk lowers it), lock and idle caps kept.
+/// Control connection (ticks, renewals): short caps, its statements are tiny.
+#[sqlx::test]
+async fn job_and_control_pools_cap_their_statements(pool: PgPool) {
+    let base = (*pool.connect_options()).clone();
+    let jobs = db::jobs(base.clone(), 2).await.unwrap();
+    let control = db::background(base).await.unwrap();
+    assert_eq!(
+        limits(&jobs).await,
+        ("5min".into(), "10s".into(), "1min".into())
+    );
+    assert_eq!(
+        limits(&control).await,
+        ("15s".into(), "5s".into(), "1min".into())
+    );
+}
+
 /// Boot migrations fill an empty database through their own connection.
 #[sqlx::test(migrations = false)]
 async fn migrations_fill_an_empty_database(pool: PgPool) {
@@ -162,22 +190,4 @@ async fn migrate_retries_then_gives_up(pool: PgPool) {
         "{:?}",
         started.elapsed()
     );
-}
-
-/// The hourly cleanup runs on its own connection without the request statement timeout, so a
-/// large backlog can finish instead of rolling back every hour.
-#[sqlx::test]
-async fn background_pool_has_no_statement_timeout(pool: PgPool) {
-    let base = (*pool.connect_options()).clone();
-    let bg = db::background(base).await.unwrap();
-    let mut c = bg.acquire().await.unwrap();
-    let statement: String = sqlx::query_scalar("SHOW statement_timeout")
-        .fetch_one(&mut *c)
-        .await
-        .unwrap();
-    let lock: String = sqlx::query_scalar("SHOW lock_timeout")
-        .fetch_one(&mut *c)
-        .await
-        .unwrap();
-    assert_eq!((statement.as_str(), lock.as_str()), ("0", "10s"));
 }

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE idempotency_keys SET status = $3, response = $4\n         WHERE workspace_id = $1 AND key = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int2",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f887ef358cc0428332f08b28214d83c5ecae82d6f3906756cf8192fc0db1b57c"
+}

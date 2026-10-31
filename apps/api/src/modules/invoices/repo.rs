@@ -26,6 +26,15 @@ pub struct InvoiceRow {
     pub summary: Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub invoice_number: Option<i64>,
+    pub invoice_appendix: Option<Value>,
+    pub previous_invoice_id: Option<Uuid>,
+    pub pdf_file_id: Option<Uuid>,
+    /// Sealed payment token and its key id.
+    pub payment_token: Option<Vec<u8>>,
+    pub payment_token_key_id: Option<String>,
+    /// Paid, unvoided payments, minor units.
+    pub paid_total: i64,
 }
 
 /// One stored item line.
@@ -44,6 +53,8 @@ pub struct ItemRow {
     pub position: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub credit_amount: Decimal,
+    pub mutated_from_stock: Decimal,
 }
 
 /// Header fields of a new invoice.
@@ -58,6 +69,9 @@ pub struct NewInvoice<'a> {
     pub addressed_contact: Option<&'a Value>,
     pub meta: Option<&'a Value>,
     pub created_by: Uuid,
+    /// A credit note's source invoice.
+    pub previous_invoice_id: Option<Uuid>,
+    pub customer_ref: Option<&'a Value>,
 }
 
 /// Header fields an update may change; `set_*` false keeps the stored value.
@@ -93,6 +107,8 @@ pub struct NewLines {
     pub discount: Vec<Decimal>,
     pub purchase_price: Vec<Decimal>,
     pub position: Vec<i32>,
+    /// A credit line's source line.
+    pub parent_item_id: Vec<Option<Uuid>>,
 }
 
 /// Changed lines; a None keeps that column, a false `set_*` keeps the paired one (Laravel
@@ -241,8 +257,8 @@ pub async fn insert(
     sqlx::query_scalar!(
         "INSERT INTO invoices (workspace_id, relation_id, currency_id, is_credit, payment_method,
                                reference, note, billing_address, addressed_contact, meta,
-                               created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                               created_by, previous_invoice_id, customer_ref)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING id",
         workspace_id,
         n.relation_id,
@@ -255,6 +271,8 @@ pub async fn insert(
         n.addressed_contact,
         n.meta,
         n.created_by,
+        n.previous_invoice_id,
+        n.customer_ref,
     )
     .fetch_one(conn)
     .await
@@ -265,6 +283,14 @@ pub struct Locked {
     pub status: String,
     pub relation_id: Uuid,
     pub currency_id: Uuid,
+    pub is_credit: bool,
+    pub invoice_number: Option<i64>,
+    pub due_date: Option<DateTime<Utc>>,
+    /// Minor units.
+    pub total: i64,
+    /// Decimals the stored totals were priced at.
+    pub dp: Option<i32>,
+    pub has_token: bool,
 }
 
 /// The live invoice `id`, row locked until commit: one writer per invoice, so item writes and
@@ -276,8 +302,10 @@ pub async fn lock(
 ) -> Result<Option<Locked>, sqlx::Error> {
     sqlx::query_as!(
         Locked,
-        "SELECT status, relation_id, currency_id FROM invoices
-         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE",
+        r#"SELECT status, relation_id, currency_id, is_credit, invoice_number, due_date, total,
+                  (summary ->> 'dp')::int AS dp, payment_token_hash IS NOT NULL AS "has_token!"
+           FROM invoices
+           WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR NO KEY UPDATE"#,
         workspace_id,
         id,
     )
@@ -296,7 +324,8 @@ pub async fn find_for_share(
         InvoiceRow,
         "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,
                 billing_address, addressed_contact, customer_ref, meta, due_date, send_date,
-                summary, created_at, updated_at
+                summary, created_at, updated_at, invoice_number, invoice_appendix,
+                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total
          FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE",
         workspace_id,
         id,
@@ -394,14 +423,14 @@ pub async fn insert_lines(
     sqlx::query!(
         "INSERT INTO items (workspace_id, invoice_id, product_id, product_variant_id,
                             mutate_from_warehouse_id, title, description, quantity, price, vat,
-                            discount_percentage, purchase_price, position)
+                            discount_percentage, purchase_price, position, parent_item_id)
          SELECT $1, $2, u.product_id, u.variant_id, u.warehouse_id, u.title, u.description,
-                u.quantity, u.price, u.vat, u.discount, u.purchase_price, u.position
+                u.quantity, u.price, u.vat, u.discount, u.purchase_price, u.position, u.parent
          FROM unnest($3::uuid[], $4::uuid[], $5::uuid[], $6::text[], $7::text[],
                      $8::numeric[], $9::numeric[], $10::numeric[], $11::numeric[],
-                     $12::numeric[], $13::int4[])
+                     $12::numeric[], $13::int4[], $14::uuid[])
               AS u(product_id, variant_id, warehouse_id, title, description, quantity, price,
-                   vat, discount, purchase_price, position)",
+                   vat, discount, purchase_price, position, parent)",
         workspace_id,
         invoice_id,
         &l.product_id as &[Option<Uuid>],
@@ -415,6 +444,7 @@ pub async fn insert_lines(
         &l.discount,
         &l.purchase_price,
         &l.position,
+        &l.parent_item_id as &[Option<Uuid>],
     )
     .execute(conn)
     .await?;
@@ -519,7 +549,7 @@ pub async fn lines(
         ItemRow,
         "SELECT id, product_id, product_variant_id, mutate_from_warehouse_id, title, description,
                 quantity, price, vat, discount_percentage, purchase_price, position, created_at,
-                updated_at
+                updated_at, credit_amount, mutated_from_stock
          FROM items WHERE workspace_id = $1 AND invoice_id = $2 ORDER BY position, id",
         workspace_id,
         invoice_id,
@@ -614,7 +644,8 @@ pub async fn find(
         InvoiceRow,
         "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,
                 billing_address, addressed_contact, customer_ref, meta, due_date, send_date,
-                summary, created_at, updated_at
+                summary, created_at, updated_at, invoice_number, invoice_appendix,
+                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total
          FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
         workspace_id,
         id,
@@ -649,7 +680,9 @@ pub async fn list(
         InvoiceRow,
         r#"SELECT i.id, i.relation_id, i.currency_id, i.status, i.is_credit, i.payment_method,
                   i.reference, i.note, i.billing_address, i.addressed_contact, i.customer_ref,
-                  i.meta, i.due_date, i.send_date, i.summary, i.created_at, i.updated_at
+                  i.meta, i.due_date, i.send_date, i.summary, i.created_at, i.updated_at,
+                  i.invoice_number, i.invoice_appendix, i.previous_invoice_id, i.pdf_file_id,
+                  i.payment_token, i.payment_token_key_id, i.paid_total
            FROM invoices i
            WHERE i.workspace_id = $1 AND i.deleted_at IS NULL
              AND ($2::uuid IS NULL OR i.relation_id = $2)
@@ -737,6 +770,252 @@ pub async fn relation_has_documents(
                           WHERE workspace_id = $1 AND relation_id = $2 AND deleted_at IS NULL) AS "e!""#,
         workspace_id,
         relation_id,
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// What a send stores on the invoice; a None keeps the stored value.
+pub struct Sent<'a> {
+    pub number: i64,
+    pub appendix: &'a Value,
+    pub status: &'a str,
+    pub due_date: Option<DateTime<Utc>>,
+    pub billing_address: &'a Value,
+    pub addressed_contact: &'a Value,
+    /// New payment token: sha256, sealed copy, key id.
+    pub token: Option<(&'a [u8], &'a [u8], &'a str)>,
+}
+
+/// Number the invoice and record the send (`send_date` once).
+pub async fn mark_sent(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    s: &Sent<'_>,
+) -> Result<(), sqlx::Error> {
+    let (hash, sealed, key_id) = s
+        .token
+        .map_or((None, None, None), |(h, t, k)| (Some(h), Some(t), Some(k)));
+    sqlx::query!(
+        "UPDATE invoices SET
+            invoice_number = $3, invoice_appendix = $4, status = $5,
+            send_date = COALESCE(send_date, clock_timestamp()), due_date = COALESCE(due_date, $6),
+            billing_address = $7, addressed_contact = $8,
+            payment_token_hash = COALESCE($9, payment_token_hash),
+            payment_token = COALESCE($10, payment_token),
+            payment_token_key_id = COALESCE($11, payment_token_key_id),
+            updated_at = now()
+         WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
+        s.number,
+        s.appendix,
+        s.status,
+        s.due_date,
+        s.billing_address,
+        s.addressed_contact,
+        hash,
+        sealed,
+        key_id,
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+/// Resend: the new billing address and addressed contact, and a payment token when the
+/// invoice was sent without one.
+pub async fn set_recipient(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    billing_address: &Value,
+    addressed_contact: &Value,
+    token: Option<(&[u8], &[u8], &str)>,
+) -> Result<(), sqlx::Error> {
+    let (hash, sealed, key_id) =
+        token.map_or((None, None, None), |(h, t, k)| (Some(h), Some(t), Some(k)));
+    sqlx::query!(
+        "UPDATE invoices SET billing_address = $3, addressed_contact = $4,
+            payment_token_hash = COALESCE($5, payment_token_hash),
+            payment_token = COALESCE($6, payment_token),
+            payment_token_key_id = COALESCE($7, payment_token_key_id),
+            updated_at = now()
+         WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
+        billing_address,
+        addressed_contact,
+        hash,
+        sealed,
+        key_id,
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+/// The PDF last sent.
+pub async fn set_pdf(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+    file_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE invoices SET pdf_file_id = $3 WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
+        file_id,
+    )
+    .execute(db)
+    .await?;
+    Ok(())
+}
+
+/// A line whose product keeps stock and whose quantity hasn't fully left stock yet, with the
+/// warehouse it moves in: the line's, else the product's default, else the workspace's main
+/// warehouse (live ones only); None when there is none.
+pub struct StockLine {
+    pub id: Uuid,
+    pub quantity: Decimal,
+    pub mutated_from_stock: Decimal,
+    pub product_id: Uuid,
+    pub product_name: String,
+    pub reference_vendor: Option<String>,
+    pub warehouse_id: Option<Uuid>,
+    pub warehouse_name: Option<String>,
+    pub is_store: Option<bool>,
+}
+
+/// Laravel SendInvoice::mutateStock's lines (Product::shouldMutateStock: physical types with
+/// `has_stock`), in display order.
+pub async fn stock_lines(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+) -> Result<Vec<StockLine>, sqlx::Error> {
+    sqlx::query_as!(
+        StockLine,
+        r#"SELECT i.id, i.quantity, i.mutated_from_stock, p.id AS product_id,
+                  p.name AS product_name, p.reference_vendor,
+                  w.id AS "warehouse_id?", w.name AS "warehouse_name?", w.is_store AS "is_store?"
+           FROM items i
+           JOIN products p ON p.workspace_id = i.workspace_id AND p.id = i.product_id
+           LEFT JOIN LATERAL (
+               SELECT w.id, w.name, COALESCE(w.is_store, false) AS is_store
+               FROM warehouses w
+               WHERE w.workspace_id = i.workspace_id AND w.deleted_at IS NULL
+                 AND (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id)
+                      OR w.default_warehouse)
+               ORDER BY (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id))
+                        IS TRUE DESC
+               LIMIT 1
+           ) w ON true
+           WHERE i.workspace_id = $1 AND i.invoice_id = $2
+             AND p.type IN ('physical', 'physical_second_chance') AND p.has_stock
+             AND i.quantity <> i.mutated_from_stock
+           ORDER BY i.position, i.id"#,
+        workspace_id,
+        invoice_id,
+    )
+    .fetch_all(conn)
+    .await
+}
+
+/// Lines `ids` fully left stock.
+pub async fn mark_mutated(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+    ids: &[Uuid],
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE items SET mutated_from_stock = quantity, updated_at = now()
+         WHERE workspace_id = $1 AND invoice_id = $2 AND id = ANY($3)",
+        workspace_id,
+        invoice_id,
+        ids,
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+/// What a send or credit reads from the relation.
+pub struct RelationTerms {
+    pub kind: String,
+    pub terms_and_periods: Option<Value>,
+    pub allow_invoicing_on_account: bool,
+}
+
+/// The relation's type, payment terms and on-account flag (deleted relations included).
+pub async fn relation_terms(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<RelationTerms>, sqlx::Error> {
+    sqlx::query_as!(
+        RelationTerms,
+        r#"SELECT type AS kind, terms_and_periods, allow_invoicing_on_account
+           FROM relations WHERE workspace_id = $1 AND id = $2"#,
+        workspace_id,
+        id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// The live, sent invoice holding payment token `hash`: (workspace, id).
+pub async fn by_token(
+    db: impl PgExecutor<'_>,
+    hash: &[u8],
+) -> Result<Option<(Uuid, Uuid)>, sqlx::Error> {
+    let row = sqlx::query!(
+        "SELECT workspace_id, id FROM invoices
+         WHERE payment_token_hash = $1 AND deleted_at IS NULL AND invoice_number IS NOT NULL",
+        hash,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map(|r| (r.workspace_id, r.id)))
+}
+
+/// Add `quantities` to the credited amount of lines `ids` (one statement).
+pub async fn add_credited(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+    ids: &[Uuid],
+    quantities: &[Decimal],
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE items i SET credit_amount = i.credit_amount + u.quantity, updated_at = now()
+         FROM unnest($3::uuid[], $4::numeric[]) AS u(id, quantity)
+         WHERE i.workspace_id = $1 AND i.invoice_id = $2 AND i.id = u.id",
+        workspace_id,
+        invoice_id,
+        ids,
+        quantities,
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+/// True when a numbered invoice of the workspace is in currency `currency_id`.
+pub async fn sent_in_currency(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    currency_id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM invoices
+                          WHERE workspace_id = $1 AND currency_id = $2
+                            AND invoice_number IS NOT NULL) AS "e!""#,
+        workspace_id,
+        currency_id,
     )
     .fetch_one(db)
     .await

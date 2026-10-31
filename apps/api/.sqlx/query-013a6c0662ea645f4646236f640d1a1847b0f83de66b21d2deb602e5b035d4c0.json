@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO invoice_payments (id, workspace_id, invoice_id, user_id, date, amount,\n                                       description, payment_method, provider, provider_id,\n                                       status, is_paid, meta, settle_twin_id)\n         SELECT u.id, $1, u.invoice_id, u.user_id, u.date, u.amount, u.description, u.method,\n                u.provider, u.provider_id, 'paid', true, u.meta, u.twin\n         FROM unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::date[], $6::int8[], $7::text[],\n                     $8::text[], $9::text[], $10::text[], $11::jsonb[], $12::uuid[])\n              AS u(id, invoice_id, user_id, date, amount, description, method, provider,\n                   provider_id, meta, twin)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "UuidArray",
+        "UuidArray",
+        "DateArray",
+        "Int8Array",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "JsonbArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "013a6c0662ea645f4646236f640d1a1847b0f83de66b21d2deb602e5b035d4c0"
+}

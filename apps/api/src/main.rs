@@ -3,9 +3,9 @@
 use std::{net::SocketAddr, time::Duration};
 
 use genesy_360_api::{
-    AppState, RateLimit, Slots, WorkspaceSlots, build_app, cleanup,
+    AppState, RateLimit, Slots, WorkspaceSlots, build_app,
     config::Config,
-    db, healthcheck,
+    db, healthcheck, jobs,
     mail::{self, Mailer},
     outbound, pdf, storage, warm_up,
 };
@@ -40,6 +40,9 @@ async fn main() {
     let background_db = db::background(base.clone())
         .await
         .expect("connect postgres (background)");
+    let jobs_db = db::jobs(base.clone(), config.db_job_connections)
+        .await
+        .expect("connect postgres (jobs)");
     let db = db::connect(base, config.db_max_connections)
         .await
         .expect("connect postgres");
@@ -69,7 +72,7 @@ async fn main() {
         .storage
         .take()
         .map(|s| storage::Store::s3(s, http.clone()).expect("file storage"));
-    cleanup::spawn(background_db, files.clone());
+    let job_files = files.clone();
     if files.is_none() || pdf.is_none() {
         tracing::warn!(
             files = files.is_some(),
@@ -128,15 +131,61 @@ async fn main() {
         files,
         pdf,
     };
+    // The job rail starts last: a boot step that panics above must not leave claimed jobs
+    // behind in a process that dies.
+    let (stop_jobs, jobs_stopped) = tokio::sync::watch::channel(false);
+    let runner = jobs::runner::Runner {
+        db: jobs_db.clone(),
+        control: background_db.clone(),
+        kinds: jobs::kinds::KINDS.to_vec(),
+        workers: usize::try_from(config.db_job_connections).unwrap_or(1),
+        cap: i64::from(config.job_max_running_per_workspace),
+        lease: jobs::LEASE,
+        idle: jobs::IDLE,
+        max_run: jobs::MAX_RUN,
+        handler: jobs::kinds::handler(jobs::kinds::Ctx {
+            db: jobs_db,
+            files: job_files,
+        }),
+    }
+    .spawn(jobs_stopped.clone());
+    let scheduler =
+        jobs::scheduler::spawn(background_db, &jobs::kinds::SCHEDULES, jobs_stopped.clone());
+    // Starts at the signal and runs alongside the HTTP drain.
+    let mut stopped = jobs_stopped;
+    let drain_jobs = async move {
+        let _ = stopped.wait_for(|stop| *stop).await;
+        let drained = tokio::time::timeout(JOB_DRAIN, async {
+            if let Err(err) = runner.await {
+                tracing::error!(error = %err, "job runner ended abnormally");
+            }
+            if let Err(err) = scheduler.await {
+                tracing::error!(error = %err, "scheduler ended abnormally");
+            }
+        })
+        .await;
+        if drained.is_err() {
+            tracing::warn!(
+                "jobs still running at exit; their leases expire and another instance resumes them"
+            );
+        }
+    };
     // connect info: rate limit keys on peer IP.
-    axum::serve(
+    let serve = axum::serve(
         listener,
         build_app(state).into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .with_graceful_shutdown(shutdown_signal())
-    .await
-    .expect("server");
+    .with_graceful_shutdown(async move {
+        shutdown_signal().await;
+        // Workers stop claiming now and finish their chunk while requests drain.
+        let _ = stop_jobs.send(true);
+    });
+    let (served, ()) = tokio::join!(std::future::IntoFuture::into_future(serve), drain_jobs);
+    served.expect("server");
 }
+
+/// Docker waits 10 s after SIGTERM before killing: running chunks get most of it.
+const JOB_DRAIN: Duration = Duration::from_secs(8);
 
 // Docker stop sends SIGTERM, terminal sends SIGINT. Either one drains in-flight requests.
 // A listener that fails to register waits forever: completing would shut the server down at boot.

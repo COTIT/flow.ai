@@ -7,3 +7,4 @@ pub mod repo;
 pub mod resource;
 pub mod routes;
 pub mod service;
+pub mod sweep;

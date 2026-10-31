@@ -1,0 +1,209 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, product_id, product_variant_id, mutate_from_warehouse_id, title, description,\n                quantity, price, vat, discount_percentage, purchase_price, position, created_at,\n                updated_at, credit_amount, mutated_from_stock\n         FROM items WHERE workspace_id = $1 AND invoice_id = $2 ORDER BY position, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "product_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "product_variant_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "product_variant_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "mutate_from_warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "mutate_from_warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "quantity",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "price"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "vat",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "vat"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "discount_percentage",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "discount_percentage"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "purchase_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "purchase_price"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "position",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "position"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "credit_amount",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "credit_amount"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "mutated_from_stock",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "mutated_from_stock"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "00613ce242c625804df819c9f996583a67cb559ab6fb0a7c478f55678e7dbcc4"
+}

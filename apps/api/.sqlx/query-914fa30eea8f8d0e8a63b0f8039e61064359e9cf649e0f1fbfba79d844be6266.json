@@ -1,0 +1,305 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at, invoice_number, invoice_appendix,\n                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_credit",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "is_credit"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "payment_method",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "payment_method"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "reference",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "reference"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "billing_address",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "billing_address"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "addressed_contact",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "addressed_contact"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "customer_ref",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "customer_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "due_date",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "due_date"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "send_date",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "send_date"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "summary",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "summary"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "invoice_number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_number"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "invoice_appendix",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "invoice_appendix"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "previous_invoice_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "previous_invoice_id"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "pdf_file_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "pdf_file_id"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "payment_token",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "payment_token"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "payment_token_key_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "payment_token_key_id"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "paid_total",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "paid_total"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "914fa30eea8f8d0e8a63b0f8039e61064359e9cf649e0f1fbfba79d844be6266"
+}
