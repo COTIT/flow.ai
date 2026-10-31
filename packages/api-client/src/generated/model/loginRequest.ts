@@ -10,7 +10,7 @@
  * Login with email and password.
  */
 export interface LoginRequest {
-  email: string;
+  email: string
   /** @maxLength 255 */
-  password: string;
+  password: string
 }

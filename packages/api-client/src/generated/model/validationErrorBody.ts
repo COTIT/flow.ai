@@ -5,12 +5,12 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { ValidationErrorBodyErrors } from './validationErrorBodyErrors';
+import type { ValidationErrorBodyErrors } from "./validationErrorBodyErrors"
 
 /**
  * Validation failed. `errors` maps each field to its messages.
  */
 export interface ValidationErrorBody {
-  errors: ValidationErrorBodyErrors;
-  message: string;
+  errors: ValidationErrorBodyErrors
+  message: string
 }

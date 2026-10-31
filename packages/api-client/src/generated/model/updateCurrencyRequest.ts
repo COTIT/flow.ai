@@ -5,39 +5,39 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { UpdateCurrencyRequestMeta } from './updateCurrencyRequestMeta';
+import type { UpdateCurrencyRequestMeta } from "./updateCurrencyRequestMeta"
 
 /**
  * Changes to a currency. Leave a field out to keep it; send null to clear it.
  */
 export interface UpdateCurrencyRequest {
   /** @nullable */
-  active?: boolean | null;
+  active?: boolean | null
   /** @nullable */
-  asset_type?: string | null;
+  asset_type?: string | null
   /**
-     * @minimum 0
-     * @maximum 8
-     * @nullable
-     */
-  decimals?: number | null;
+   * @minimum 0
+   * @maximum 8
+   * @nullable
+   */
+  decimals?: number | null
   /** @nullable */
-  default_currency?: boolean | null;
+  default_currency?: boolean | null
   /** @nullable */
-  meta?: UpdateCurrencyRequestMeta;
+  meta?: UpdateCurrencyRequestMeta
   /**
-     * @maxLength 255
-     * @nullable
-     */
-  name?: string | null;
+   * @maxLength 255
+   * @nullable
+   */
+  name?: string | null
   /**
-     * @maxLength 10
-     * @nullable
-     */
-  symbol_prefix?: string | null;
+   * @maxLength 10
+   * @nullable
+   */
+  symbol_prefix?: string | null
   /**
-     * @maxLength 10
-     * @nullable
-     */
-  symbol_suffix?: string | null;
+   * @maxLength 10
+   * @nullable
+   */
+  symbol_suffix?: string | null
 }

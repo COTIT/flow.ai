@@ -11,20 +11,20 @@
  */
 export interface PersonFields {
   /** @maxLength 255 */
-  email: string;
+  email: string
   /** @maxLength 55 */
-  first_name: string;
+  first_name: string
   /** @maxLength 55 */
-  last_name: string;
+  last_name: string
   /**
-     * @maxLength 55
-     * @nullable
-     */
-  middle_name?: string | null;
+   * @maxLength 55
+   * @nullable
+   */
+  middle_name?: string | null
   /**
-     * At least 8 characters with upper and lower case, a number and a symbol.
-     * @minLength 8
-     * @maxLength 255
-     */
-  password: string;
+   * At least 8 characters with upper and lower case, a number and a symbol.
+   * @minLength 8
+   * @maxLength 255
+   */
+  password: string
 }

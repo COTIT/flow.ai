@@ -11,12 +11,12 @@
  * What an invite link points to, for the accept or sign-up screen.
  */
 export interface InviteStatusResponse {
-  email: string;
-  id: string;
-  invited_on: string;
+  email: string
+  id: string
+  invited_on: string
   /** No account uses this email yet: show the sign-up form. */
-  new_user: boolean;
+  new_user: boolean
   /** `pending` | `accepted` | `denied` | `expired`. */
-  status: string;
-  workspace_name: string;
+  status: string
+  workspace_name: string
 }

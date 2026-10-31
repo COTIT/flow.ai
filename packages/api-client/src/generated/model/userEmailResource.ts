@@ -11,14 +11,14 @@
  * A user shown inside another record (team member, inviter, ...).
  */
 export interface UserEmailResource {
-  avatar_path: string;
+  avatar_path: string
   /**
-     * Display color; not stored yet, always null.
-     * @nullable
-     */
-  color: string | null;
-  email: string;
-  id: string;
-  initials: string;
-  name: string;
+   * Display color; not stored yet, always null.
+   * @nullable
+   */
+  color: string | null
+  email: string
+  id: string
+  initials: string
+  name: string
 }

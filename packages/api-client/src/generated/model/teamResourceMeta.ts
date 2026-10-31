@@ -9,4 +9,4 @@
 /**
  * @nullable
  */
-export type TeamResourceMeta = { [key: string]: unknown } | null;
+export type TeamResourceMeta = { [key: string]: unknown } | null

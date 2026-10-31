@@ -11,7 +11,7 @@
  * Accept (`true`) or decline (`false`) an invite as the logged-in user.
  */
 export interface AnswerRequest {
-  accept: boolean;
+  accept: boolean
   /** Code from the invite link. */
-  invite_code: string;
+  invite_code: string
 }

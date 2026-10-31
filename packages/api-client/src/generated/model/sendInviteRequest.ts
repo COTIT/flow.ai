@@ -12,10 +12,10 @@
  */
 export interface SendInviteRequest {
   /** @maxLength 255 */
-  email: string;
+  email: string
   /**
-     * Team the invitee joins on accepting.
-     * @nullable
-     */
-  team_id?: string | null;
+   * Team the invitee joins on accepting.
+   * @nullable
+   */
+  team_id?: string | null
 }

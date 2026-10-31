@@ -5,7 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { PersonFields } from './personFields';
+import type { PersonFields } from "./personFields"
 
 /**
  * POST /v1/register: new account through an invite.
@@ -13,5 +13,5 @@ import type { PersonFields } from './personFields';
  */
 export type RegisterRequest = PersonFields & {
   /** Code from the invite link. */
-  invite_code: string;
-};
+  invite_code: string
+}

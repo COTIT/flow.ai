@@ -5,20 +5,20 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { PersonFields } from './personFields';
+import type { PersonFields } from "./personFields"
 
 /**
  * Sign up: a new account plus its first workspace.
  */
-export type CreateWorkspaceRequest = PersonFields & ({
+export type CreateWorkspaceRequest = PersonFields & {
   /**
-     * Lowercase letters, numbers and single dashes.
-     * @maxLength 55
-     */
-  workspace_name: string;
+   * Lowercase letters, numbers and single dashes.
+   * @maxLength 55
+   */
+  workspace_name: string
   /**
-     * `retail` (default) or `manufacturing`.
-     * @nullable
-     */
-  workspace_type?: string | null;
-});
+   * `retail` (default) or `manufacturing`.
+   * @nullable
+   */
+  workspace_type?: string | null
+}

@@ -1,7 +1,9 @@
 import { configureApi } from "@genesy/api-client/mutator"
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL
-if (!baseURL) throw new Error("NEXT_PUBLIC_API_URL is not set (see .env.example)")
-
-/** This app's connection to the Genesy backend; generated hooks send through it too. */
-export const api = configureApi({ baseURL })
+/**
+ * Server-side connection to the Genesy backend (browser calls are set up by QueryProvider).
+ * It holds no login: pass `{ headers: { Authorization: `Bearer ${token}` } }` on each call.
+ */
+export const api = configureApi({
+  baseURL: process.env.API_URL ?? "http://localhost:8080/v1",
+})

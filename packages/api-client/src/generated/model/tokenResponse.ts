@@ -10,8 +10,8 @@
  * A login session: send `access_token` as `Authorization: Bearer <token>`.
  */
 export interface TokenResponse {
-  access_token: string;
-  token_type: string;
+  access_token: string
+  token_type: string
   /** Workspaces this account belongs to. */
-  workspace_ids: string[];
+  workspace_ids: string[]
 }

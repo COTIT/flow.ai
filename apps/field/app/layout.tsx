@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+import { NextIntlClientProvider } from "next-intl"
+import { getLocale } from "next-intl/server"
 import { Geist, Geist_Mono } from "next/font/google"
 
 import "@genesy/ui/globals.css"
@@ -13,21 +15,28 @@ export const metadata: Metadata = {
   title: "Genesy Field",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const locale = await getLocale()
   return (
     <html
-      lang="en"
+      lang={locale}
       suppressHydrationWarning
-      className={cn("antialiased font-sans", fontSans.variable, fontMono.variable)}
+      className={cn(
+        "font-sans antialiased",
+        fontSans.variable,
+        fontMono.variable
+      )}
     >
       <body>
-        <ThemeProvider>
-          <QueryProvider>{children}</QueryProvider>
-        </ThemeProvider>
+        <NextIntlClientProvider>
+          <ThemeProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

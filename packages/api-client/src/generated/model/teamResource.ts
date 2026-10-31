@@ -5,22 +5,22 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { TeamResourceMeta } from './teamResourceMeta';
-import type { TeamResourceRelationships } from './teamResourceRelationships';
+import type { TeamResourceMeta } from "./teamResourceMeta"
+import type { TeamResourceRelationships } from "./teamResourceRelationships"
 
 /**
  * A team: a named group of members sharing a set of permissions.
  */
 export interface TeamResource {
-  created_at: string;
-  description: string;
-  id: string;
-  last_updated_at: string;
+  created_at: string
+  description: string
+  id: string
+  last_updated_at: string
   /** @nullable */
-  meta: TeamResourceMeta;
-  name: string;
+  meta: TeamResourceMeta
+  name: string
   /** Permission names, e.g. `currency.create`. */
-  permissions: string[];
+  permissions: string[]
   /** `[]` when members were not loaded, otherwise `{"users": [...]}` */
-  relationships: TeamResourceRelationships;
+  relationships: TeamResourceRelationships
 }

@@ -5,33 +5,33 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { CreateCurrencyRequestMeta } from './createCurrencyRequestMeta';
+import type { CreateCurrencyRequestMeta } from "./createCurrencyRequestMeta"
 
 /**
  * New currency. `asset_type` is an ISO 4217 code.
  */
 export interface CreateCurrencyRequest {
-  active: boolean;
+  active: boolean
   /** ISO 4217 code, any case. */
-  asset_type: string;
+  asset_type: string
   /**
-     * @minimum 0
-     * @maximum 8
-     */
-  decimals: number;
-  default_currency: boolean;
+   * @minimum 0
+   * @maximum 8
+   */
+  decimals: number
+  default_currency: boolean
   /** @nullable */
-  meta?: CreateCurrencyRequestMeta;
+  meta?: CreateCurrencyRequestMeta
   /** @maxLength 255 */
-  name: string;
+  name: string
   /**
-     * @maxLength 10
-     * @nullable
-     */
-  symbol_prefix?: string | null;
+   * @maxLength 10
+   * @nullable
+   */
+  symbol_prefix?: string | null
   /**
-     * @maxLength 10
-     * @nullable
-     */
-  symbol_suffix?: string | null;
+   * @maxLength 10
+   * @nullable
+   */
+  symbol_suffix?: string | null
 }

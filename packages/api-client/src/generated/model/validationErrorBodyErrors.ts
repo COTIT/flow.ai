@@ -6,4 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ValidationErrorBodyErrors = {[key: string]: string[]};
+export type ValidationErrorBodyErrors = { [key: string]: string[] }

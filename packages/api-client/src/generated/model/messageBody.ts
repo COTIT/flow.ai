@@ -10,5 +10,5 @@
  * A short message: `ok` after an action, or what went wrong.
  */
 export interface MessageBody {
-  message: string;
+  message: string
 }

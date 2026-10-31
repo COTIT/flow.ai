@@ -14,7 +14,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
   return (
     <select
       aria-label={t("language")}
-      className={className}
+      className={`h-8 rounded-lg border border-input bg-background px-2 text-sm ${className ?? ""}`}
       value={locale}
       onChange={(e) => {
         document.cookie = `${LOCALE_COOKIE}=${e.target.value}; path=/; max-age=31536000; samesite=lax`
