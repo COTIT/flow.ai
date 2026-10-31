@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE stock_reservations SET quantity = quantity - $2 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6f9c9fcf2042add52d353fdade901f99de0ee11e4c0ff48492bfa3cc034c85f1"
+}

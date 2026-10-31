@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_harvest_reports SET is_current = false, updated_at = now()\n         WHERE crop_cycle_id = $1 AND kind = $2 AND is_current AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fd95169b3f57b918c89924cdb797ed84df775e24bea77551da77030dde935582"
+}

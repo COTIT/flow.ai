@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.captured_by, r.id AS response_id, v.id AS voucher_id, v.code, v.amount_minor,\n                  v.currency_id, c.asset_type AS currency, c.decimals, v.expires_at\n           FROM farm_survey_responses r\n           JOIN farm_vouchers v ON v.response_id = r.id\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE r.workspace_id = $1 AND r.client_ref = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "captured_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_survey_responses",
+            "name": "captured_by"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "response_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_survey_responses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "voucher_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "amount_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "amount_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "85b9721d6ae9bf08f43b384139acc99fcd8dc4c5bdedc9cad31659cf1eb07738"
+}

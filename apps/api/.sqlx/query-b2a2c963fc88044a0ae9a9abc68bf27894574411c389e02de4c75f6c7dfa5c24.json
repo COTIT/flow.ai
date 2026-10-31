@@ -1,0 +1,182 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, v.survey_id, s.title_en AS survey_title_en, s.title_sw AS survey_title_sw, v.code,\n                  v.amount_minor, v.currency_id, c.asset_type AS currency, c.decimals, v.status,\n                  (v.status = 'issued' AND v.expires_at <= now()) AS \"expired!\",\n                  v.issued_at, v.expires_at, v.redeemed_at\n           FROM farm_vouchers v\n           JOIN farm_surveys s ON s.id = v.survey_id\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.household_id IN (SELECT farm_person_households($2))\n           ORDER BY v.issued_at DESC, v.id DESC LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "survey_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "survey_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "survey_title_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_surveys",
+            "name": "title_en"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "survey_title_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_surveys",
+            "name": "title_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "amount_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "expired!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "issued_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "issued_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "redeemed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "redeemed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "b2a2c963fc88044a0ae9a9abc68bf27894574411c389e02de4c75f6c7dfa5c24"
+}

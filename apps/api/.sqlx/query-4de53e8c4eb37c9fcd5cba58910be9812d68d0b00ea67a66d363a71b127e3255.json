@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_memberships SET revoked_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND revoked_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4de53e8c4eb37c9fcd5cba58910be9812d68d0b00ea67a66d363a71b127e3255"
+}

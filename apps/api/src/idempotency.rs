@@ -67,30 +67,42 @@ impl IntoResponse for Answer {
     }
 }
 
-/// The stored answer when `key` was used before by this member for this request; None when it
+/// Who sent a keyed request: a member or an app key. An answer replays for its actor only.
+#[derive(Clone, Copy, Debug)]
+pub enum Actor {
+    User(Uuid),
+    AppKey(Uuid),
+}
+
+/// The stored answer when `key` was used before by this actor for this request; None when it
 /// is fresh (or there is no key). Run it first in the write's transaction: a copy in flight
 /// holds the key's row until it commits, so this waits for it and then replays its answer.
 pub async fn replay(
     conn: &mut PgConnection,
     workspace_id: Uuid,
-    user_id: Uuid,
+    actor: Actor,
     key: Option<&Key>,
 ) -> Result<Option<Answer>, AppError> {
+    let (user_id, app_key_id) = match actor {
+        Actor::User(id) => (Some(id), None),
+        Actor::AppKey(id) => (None, Some(id)),
+    };
     let Some(key) = key else {
         return Ok(None);
     };
     // Twice at most: a prune may remove the row between the insert and the read.
     for _ in 0..2 {
         let fresh = sqlx::query_scalar!(
-            r#"INSERT INTO idempotency_keys (workspace_id, key, user_id, request_hash, status,
-                                             response)
-               VALUES ($1, $2, $3, $4, 0, '')
+            r#"INSERT INTO idempotency_keys (workspace_id, key, user_id, app_key_id, request_hash,
+                                             status, response)
+               VALUES ($1, $2, $3, $5, $4, 0, '')
                ON CONFLICT (workspace_id, key) DO NOTHING
                RETURNING true AS "fresh!""#,
             workspace_id,
             key.key,
             user_id,
             &key.hash[..],
+            app_key_id,
         )
         .fetch_optional(&mut *conn)
         .await?
@@ -99,7 +111,7 @@ pub async fn replay(
             return Ok(None);
         }
         let Some(stored) = sqlx::query!(
-            "SELECT user_id, request_hash, status, response FROM idempotency_keys
+            "SELECT user_id, app_key_id, request_hash, status, response FROM idempotency_keys
              WHERE workspace_id = $1 AND key = $2",
             workspace_id,
             key.key,
@@ -109,8 +121,11 @@ pub async fn replay(
         else {
             continue;
         };
-        // Another member's key, or another request under it: never their answer.
-        if stored.user_id != Some(user_id) || stored.request_hash != key.hash {
+        // Another actor's key, or another request under it: never their answer.
+        if stored.user_id != user_id
+            || stored.app_key_id != app_key_id
+            || stored.request_hash != key.hash
+        {
             return Err(AppError::Unprocessable(REUSED.into()));
         }
         let status = u16::try_from(stored.status)

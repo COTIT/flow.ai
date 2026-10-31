@@ -21,6 +21,7 @@ One Rust backend (`apps/api`) and four Next.js apps (`apps/shop`, `apps/office`,
 
 - `apps/api`: invoke the `genesy-360-api` skill (`.claude/skills/genesy-360-api/SKILL.md`) before any action.
 - Frontend apps: React + Next.js, Tailwind, shadcn/ui, TanStack Query, Zustand, axios. Shared code goes in `packages/*`, not copied between apps.
+- Web changes are verified by headless Playwright, not by a person clicking through. Every user-facing change adds or updates a Playwright test (desktop + 375px, no console errors, no failed requests), and the e2e run must be green before reporting done. CI runs the same suite.
 
 ## Old repo
 

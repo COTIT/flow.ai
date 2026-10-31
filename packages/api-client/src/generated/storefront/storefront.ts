@@ -6,30 +6,39 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
+  MutationFunction,
   QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
+  CheckoutRequest,
+  EnvelopePaymentIntentResource,
   EnvelopePublicLot,
+  EnvelopeStorefrontOrder,
   EnvelopeStorefrontProduct,
   MessageBody,
   PaginatedStorefrontProduct,
-  StorefrontProductsListParams
+  PaymentRequest,
+  StorefrontProductsListParams,
+  UnprocessableBody
 } from '../model';
 
 import { apiRequest } from '../../mutator';
-import type { ErrorType } from '../../mutator';
+import type { ErrorType , BodyType } from '../../mutator';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -144,6 +153,235 @@ export function useStorefrontLotsGet<TData = Awaited<ReturnType<typeof storefron
 
 
 /**
+ * 429 also when the workspace has `CHECKOUT_HOLD_MAX` web orders awaiting payment.
+ * @summary Place a web order
+ */
+export const storefrontOrdersCreate = (
+    checkoutRequest: BodyType<CheckoutRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontOrder>(
+      {url: `/storefront/orders`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: checkoutRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontOrdersCreateMutationKey = () => ['storefrontOrdersCreate'] as const;
+
+export const getStorefrontOrdersCreateMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontOrdersCreate>>, TError,StorefrontOrdersCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontOrdersCreate>>, TError,StorefrontOrdersCreateMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontOrdersCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontOrdersCreate>>, StorefrontOrdersCreateMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  storefrontOrdersCreate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontOrdersCreateMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontOrdersCreate>>>
+    export type StorefrontOrdersCreateMutationBody = BodyType<CheckoutRequest>
+    export type StorefrontOrdersCreateMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type StorefrontOrdersCreateMutationVariables = {data: BodyType<CheckoutRequest>}
+
+    /**
+ * @summary Place a web order
+ */
+export const useStorefrontOrdersCreate = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontOrdersCreate>>, TError,StorefrontOrdersCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontOrdersCreate>>,
+        TError,
+        StorefrontOrdersCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontOrdersCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Get a web order
+ */
+export const storefrontOrdersGet = (
+    order: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeStorefrontOrder>(
+      {url: `/storefront/orders/${order}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontOrdersGetQueryKey = (order: string,) => {
+    return [
+    `/storefront/orders/${order}`
+    ] as const;
+    }
+
+
+export const getStorefrontOrdersGetQueryOptions = <TData = Awaited<ReturnType<typeof storefrontOrdersGet>>, TError = ErrorType<MessageBody>>(order: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontOrdersGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontOrdersGetQueryKey(order);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontOrdersGet>>> = ({ signal }) => storefrontOrdersGet(order, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: order !== null && order !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontOrdersGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontOrdersGetQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontOrdersGet>>>
+export type StorefrontOrdersGetQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontOrdersGet<TData = Awaited<ReturnType<typeof storefrontOrdersGet>>, TError = ErrorType<MessageBody>>(
+ order: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontOrdersGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontOrdersGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontOrdersGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontOrdersGet<TData = Awaited<ReturnType<typeof storefrontOrdersGet>>, TError = ErrorType<MessageBody>>(
+ order: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontOrdersGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontOrdersGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontOrdersGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontOrdersGet<TData = Awaited<ReturnType<typeof storefrontOrdersGet>>, TError = ErrorType<MessageBody>>(
+ order: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontOrdersGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a web order
+ */
+
+export function useStorefrontOrdersGet<TData = Awaited<ReturnType<typeof storefrontOrdersGet>>, TError = ErrorType<MessageBody>>(
+ order: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontOrdersGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontOrdersGetQueryOptions(order,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * 503 `no payment provider configured` without a provider; 503 while the provider is down (retry).
+ * @summary Start or resume the payment
+ */
+export const storefrontOrdersPayment = (
+    order: string,
+    paymentRequest: BodyType<PaymentRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePaymentIntentResource>(
+      {url: `/storefront/orders/${order}/payment`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: paymentRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontOrdersPaymentMutationKey = () => ['storefrontOrdersPayment'] as const;
+
+export const getStorefrontOrdersPaymentMutationOptions = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontOrdersPayment>>, TError,StorefrontOrdersPaymentMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof storefrontOrdersPayment>>, TError,StorefrontOrdersPaymentMutationVariables, TContext> => {
+
+const mutationKey = getStorefrontOrdersPaymentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof storefrontOrdersPayment>>, StorefrontOrdersPaymentMutationVariables> = (props) => {
+          const {order,data} = props ?? {};
+
+          return  storefrontOrdersPayment(order,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StorefrontOrdersPaymentMutationResult = NonNullable<Awaited<ReturnType<typeof storefrontOrdersPayment>>>
+    export type StorefrontOrdersPaymentMutationBody = BodyType<PaymentRequest>
+    export type StorefrontOrdersPaymentMutationError = ErrorType<MessageBody | UnprocessableBody>
+    export type StorefrontOrdersPaymentMutationVariables = {order: string;data: BodyType<PaymentRequest>}
+
+    /**
+ * @summary Start or resume the payment
+ */
+export const useStorefrontOrdersPayment = <TError = ErrorType<MessageBody | UnprocessableBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof storefrontOrdersPayment>>, TError,StorefrontOrdersPaymentMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof storefrontOrdersPayment>>,
+        TError,
+        StorefrontOrdersPaymentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStorefrontOrdersPaymentMutationOptions(options), queryClient);
+    }
+    /**
  * @summary List sellable products
  */
 export const storefrontProductsList = (

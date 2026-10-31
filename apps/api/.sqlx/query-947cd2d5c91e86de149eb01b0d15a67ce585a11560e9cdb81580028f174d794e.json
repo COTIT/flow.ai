@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, measured_by FROM farm_crops WHERE workspace_id = $1 AND id = ANY($2) AND is_active",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_crops",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "measured_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_crops",
+            "name": "measured_by"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "947cd2d5c91e86de149eb01b0d15a67ce585a11560e9cdb81580028f174d794e"
+}

@@ -1,6 +1,109 @@
 {
   "app": {
     "title": "Genesy Shop",
-    "tagline": "Duka la mtandaoni, kurasa za bidhaa na kurasa za QR za mafungu."
+    "tagline": "Asali na nta kutoka kwa wafugaji nyuki wa Ilundo, Tanzania, inayofuatiliwa chupa kwa chupa."
+  },
+  "nav": {
+    "shop": "Duka",
+    "home": "Ukurasa wa mwanzo wa Genesy Shop"
+  },
+  "footer": {
+    "note": "Kila chupa ina msimbo. Uchanganue uone asali yako inatoka wapi."
+  },
+  "catalog": {
+    "title": "Duka",
+    "empty": "Hakuna bidhaa zinazouzwa kwa sasa.",
+    "previous": "Iliyotangulia",
+    "next": "Inayofuata",
+    "page": "Ukurasa {page} kati ya {last}"
+  },
+  "product": {
+    "inStock": "Ipo stoo",
+    "soldOut": "Imeisha",
+    "variants": "Ukubwa na chaguo",
+    "back": "Rudi dukani",
+    "noDescription": "Maelezo zaidi yanakuja hivi karibuni.",
+    "imageSoon": "Picha inakuja hivi karibuni"
+  },
+  "errors": {
+    "unavailableTitle": "Duka limepumzika kidogo",
+    "unavailableBody": "Hatuwezi kufikia orodha ya bidhaa kwa sasa. Tafadhali jaribu tena baada ya dakika moja.",
+    "retry": "Jaribu tena",
+    "notFoundTitle": "Ukurasa haujapatikana",
+    "notFoundBody": "Ukurasa huu haupo au bidhaa hii haiuzwi tena.",
+    "home": "Nenda dukani"
+  },
+  "cart": {
+    "title": "Kikapu chako",
+    "link": "{count, plural, =0 {Kikapu, kitupu} one {Kikapu, bidhaa #} other {Kikapu, bidhaa #}}",
+    "option": "Ukubwa au chaguo",
+    "quantity": "Idadi",
+    "add": "Weka kwenye kikapu",
+    "added": "Imewekwa kwenye kikapu chako.",
+    "view": "Tazama kikapu",
+    "empty": "Kikapu chako ni kitupu.",
+    "continue": "Endelea kununua",
+    "each": "{price} kila moja",
+    "less": "Punguza {name} moja",
+    "more": "Ongeza {name} moja",
+    "remove": "Ondoa {name}",
+    "totalAtCheckout": "Jumla inahesabiwa wakati wa kulipa: bei, VAT na stoo zinathibitishwa unapoweka oda.",
+    "checkout": "Nenda kulipa"
+  },
+  "checkout": {
+    "title": "Kulipa",
+    "empty": "Kikapu chako ni kitupu.",
+    "shop": "Nenda dukani",
+    "summary": "Oda yako",
+    "totalNext": "Jumla, pamoja na VAT, inaonyeshwa kwenye ukurasa unaofuata kabla ya kulipa.",
+    "place": "Weka oda",
+    "required": "Tafadhali jaza hapa.",
+    "field": {
+      "email": "Barua pepe",
+      "name": "Jina kamili",
+      "phone": "Simu (si lazima)",
+      "line1": "Anwani",
+      "line2": "Anwani mstari wa 2 (si lazima)",
+      "postal_code": "Msimbo wa posta",
+      "city": "Mji",
+      "country": "Nchi"
+    },
+    "problem": {
+      "invalid_input": "Kuna kitu si sahihi kwenye fomu. Tafadhali kagua na ujaribu tena.",
+      "busy": "Duka lina shughuli nyingi sasa. Tafadhali jaribu tena baada ya dakika chache.",
+      "unavailable": "Hatuwezi kupokea oda kwa sasa. Tafadhali jaribu tena baada ya dakika moja."
+    }
+  },
+  "order": {
+    "title": "Oda yako",
+    "heading": "Oda {number}",
+    "awaiting": "Inasubiri malipo.",
+    "heldUntil": "Bidhaa zako zimehifadhiwa hadi <time></time>.",
+    "paid": "Asante! Malipo yamepokelewa na oda yako imethibitishwa.",
+    "cancelled": "Oda hii iliisha muda kabla ya kulipwa, kwa hiyo bidhaa zimerudishwa stoo.",
+    "again": "Rudi kwenye kikapu",
+    "status": "Hali: {status}",
+    "subtotal": "Jumla ndogo",
+    "vat": "VAT",
+    "total": "Jumla",
+    "pay": "Lipa sasa",
+    "problem": {
+      "no_provider": {
+        "title": "Malipo ya mtandaoni bado hayapatikani",
+        "body": "Oda yako imehifadhiwa, lakini duka hili bado haliwezi kupokea malipo ya kadi mtandaoni. Tafadhali wasiliana nasi ili kulipa."
+      },
+      "provider_down": {
+        "title": "Huduma ya malipo haijibu",
+        "body": "Hakuna kilichotozwa. Tafadhali jaribu tena baada ya muda mfupi."
+      },
+      "not_payable": {
+        "title": "Oda hii haiwezi kulipwa tena",
+        "body": "Huenda imeisha muda au tayari imelipwa. Onyesha upya ukurasa kuona hali yake."
+      },
+      "unavailable": {
+        "title": "Malipo hayakuweza kuanza",
+        "body": "Hakuna kilichotozwa. Tafadhali jaribu tena baada ya dakika moja."
+      }
+    }
   }
 }

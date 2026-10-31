@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_crop_cycles SET crop_id = $6, season_label = $7, area_ha = $8, tree_count = $9,\n             unit_count = $10, planted_on = $11, harvest_start = $12, harvest_end = $13, status = $14,\n             source = 'field_verified', captured_at = now(), captured_by = $5,\n             verification = 'unverified', verified_by = NULL, verified_at = NULL, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL AND ($3 OR village_id = ANY($4))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Numeric",
+        "Int4",
+        "Int4",
+        "Date",
+        "Date",
+        "Date",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a1483329bab878f70338ef7c9d785712e38b66435b9e2bc2db01f7dc208ac3ae"
+}

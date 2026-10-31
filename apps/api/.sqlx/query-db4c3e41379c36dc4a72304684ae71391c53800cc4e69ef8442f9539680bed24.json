@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.role, m.village_id\n         FROM farm_memberships m\n         JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL\n         WHERE m.workspace_id = $1 AND m.user_id = $2 AND m.revoked_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "role",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_memberships",
+            "name": "role"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_memberships",
+            "name": "village_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "db4c3e41379c36dc4a72304684ae71391c53800cc4e69ef8442f9539680bed24"
+}

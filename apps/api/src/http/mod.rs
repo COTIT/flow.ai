@@ -2,6 +2,7 @@
 
 pub mod app_key;
 pub mod auth;
+pub mod farm;
 pub mod json;
 pub mod list;
 pub mod rate_limit;
@@ -49,5 +50,7 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
         credentials: None,
         files: None,
         pdf: None,
+        payments: None,
+        checkout_hold_max: 500,
     }
 }

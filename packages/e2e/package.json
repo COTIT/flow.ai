@@ -1,0 +1,25 @@
+{
+  "name": "@genesy/e2e",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "e2e": "playwright test",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@genesy/eslint-config": "workspace:*",
+    "@genesy/typescript-config": "workspace:*",
+    "@playwright/test": "1.64.1",
+    "@types/node": "^20",
+    "eslint": "^10",
+    "typescript": "^5"
+  },
+  "exports": {
+    "./test": "./src/test.ts",
+    "./projects": "./src/projects.ts",
+    "./session": "./src/session.ts",
+    "./api-mock": "./src/api-mock.ts"
+  }
+}

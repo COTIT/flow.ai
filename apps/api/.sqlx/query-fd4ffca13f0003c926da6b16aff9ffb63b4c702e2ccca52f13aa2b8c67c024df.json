@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_survey_responses (workspace_id, village_id, survey_id, household_id, person_id,\n                                            client_ref, source, captured_by)\n         VALUES ($1, $2, $3, $4, $5, $6, 'farmer_reported', $7) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_survey_responses",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fd4ffca13f0003c926da6b16aff9ffb63b4c702e2ccca52f13aa2b8c67c024df"
+}

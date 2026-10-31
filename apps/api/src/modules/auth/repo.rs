@@ -8,6 +8,8 @@ use uuid::Uuid;
 pub struct ActiveToken {
     pub id: Uuid,
     pub user_id: Uuid,
+    /// Account signs in by phone and has no email (a farmer).
+    pub phone_only: bool,
 }
 
 /// Store token hash, return token id. Name fixed to Laravel's `auth_token`.
@@ -37,9 +39,9 @@ pub async fn find_active_by_hash(
 ) -> Result<Option<ActiveToken>, sqlx::Error> {
     sqlx::query_as!(
         ActiveToken,
-        "SELECT t.id, t.user_id FROM access_tokens t
-         JOIN users u ON u.id = t.user_id AND u.deleted_at IS NULL
-         WHERE t.token_hash = $1 AND t.expires_at > now()",
+        r#"SELECT t.id, t.user_id, u.email IS NULL AS "phone_only!" FROM access_tokens t
+           JOIN users u ON u.id = t.user_id AND u.deleted_at IS NULL
+           WHERE t.token_hash = $1 AND t.expires_at > now()"#,
         &token_hash[..],
     )
     .fetch_optional(db)

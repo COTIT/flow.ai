@@ -7,6 +7,8 @@ import { useTranslations } from "next-intl"
 import { useLogin, useSession } from "@genesy/api-client/auth"
 import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { LoginForm } from "@genesy/ui/components/login-form"
+import { Logo } from "@genesy/ui/components/logo"
+import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 
 export default function LoginPage() {
   const t = useTranslations()
@@ -15,7 +17,7 @@ export default function LoginPage() {
   const token = useSession((s) => s.token)
 
   React.useEffect(() => {
-    if (token) router.replace("/")
+    if (token) router.replace("/products")
   }, [token, router])
 
   const status = login.error?.response?.status
@@ -31,6 +33,8 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
+      <Logo className="h-10" />
+      <div className="gold-rule w-full max-w-sm" />
       <LoginForm
         labels={{
           title: t("auth.title"),
@@ -42,7 +46,10 @@ export default function LoginPage() {
         error={error}
         onSubmit={(data) => login.mutate({ data })}
       />
-      <LocaleSwitcher />
+      <div className="flex items-center gap-2">
+        <LocaleSwitcher />
+        <ThemeToggle label={t("common.theme")} />
+      </div>
     </main>
   )
 }

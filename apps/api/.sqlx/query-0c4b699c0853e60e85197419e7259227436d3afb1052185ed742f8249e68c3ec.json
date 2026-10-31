@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM farm_harvest_reports t\n           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n             AND ($2::uuid IS NULL OR t.crop_cycle_id = $2) AND ($3::uuid IS NULL OR t.id = $3)\n             AND (NOT $4 OR t.is_current)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0c4b699c0853e60e85197419e7259227436d3afb1052185ed742f8249e68c3ec"
+}

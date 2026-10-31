@@ -1,6 +1,109 @@
 {
   "app": {
     "title": "Genesy Shop",
-    "tagline": "Openbare webshop, productpagina's en QR-batchpagina's."
+    "tagline": "Honing en bijenwas van de imkers van Ilundo in Tanzania, per pot traceerbaar."
+  },
+  "nav": {
+    "shop": "Winkel",
+    "home": "Genesy Shop startpagina"
+  },
+  "footer": {
+    "note": "Elke pot heeft een code. Scan hem en zie waar je honing vandaan komt."
+  },
+  "catalog": {
+    "title": "Winkel",
+    "empty": "Er zijn nu geen producten te koop.",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "page": "Pagina {page} van {last}"
+  },
+  "product": {
+    "inStock": "Op voorraad",
+    "soldOut": "Uitverkocht",
+    "variants": "Maten en opties",
+    "back": "Terug naar de winkel",
+    "noDescription": "Binnenkort meer over dit product.",
+    "imageSoon": "Foto volgt"
+  },
+  "errors": {
+    "unavailableTitle": "De winkel neemt even pauze",
+    "unavailableBody": "We kunnen de catalogus nu niet bereiken. Probeer het over een minuut opnieuw.",
+    "retry": "Opnieuw proberen",
+    "notFoundTitle": "Pagina niet gevonden",
+    "notFoundBody": "Deze pagina bestaat niet of is niet meer te koop.",
+    "home": "Naar de winkel"
+  },
+  "cart": {
+    "title": "Je winkelwagen",
+    "link": "{count, plural, =0 {Winkelwagen, leeg} one {Winkelwagen, # artikel} other {Winkelwagen, # artikelen}}",
+    "option": "Maat of optie",
+    "quantity": "Aantal",
+    "add": "In winkelwagen",
+    "added": "Toegevoegd aan je winkelwagen.",
+    "view": "Bekijk winkelwagen",
+    "empty": "Je winkelwagen is leeg.",
+    "continue": "Verder winkelen",
+    "each": "{price} per stuk",
+    "less": "Eén {name} minder",
+    "more": "Eén {name} meer",
+    "remove": "{name} verwijderen",
+    "totalAtCheckout": "Het totaal wordt bij het afrekenen berekend: prijzen, btw en voorraad worden bevestigd als je bestelt.",
+    "checkout": "Naar afrekenen"
+  },
+  "checkout": {
+    "title": "Afrekenen",
+    "empty": "Je winkelwagen is leeg.",
+    "shop": "Naar de winkel",
+    "summary": "Je bestelling",
+    "totalNext": "Het totaal, met btw, zie je op de volgende pagina voordat je betaalt.",
+    "place": "Bestelling plaatsen",
+    "required": "Vul dit in.",
+    "field": {
+      "email": "E-mail",
+      "name": "Volledige naam",
+      "phone": "Telefoon (optioneel)",
+      "line1": "Adres",
+      "line2": "Adresregel 2 (optioneel)",
+      "postal_code": "Postcode",
+      "city": "Plaats",
+      "country": "Land"
+    },
+    "problem": {
+      "invalid_input": "Er klopt iets niet in het formulier. Controleer het en probeer opnieuw.",
+      "busy": "Het is nu erg druk in de winkel. Probeer het over een paar minuten opnieuw.",
+      "unavailable": "We kunnen nu geen bestellingen aannemen. Probeer het over een minuut opnieuw."
+    }
+  },
+  "order": {
+    "title": "Je bestelling",
+    "heading": "Bestelling {number}",
+    "awaiting": "Wacht op betaling.",
+    "heldUntil": "Je artikelen zijn gereserveerd tot <time></time>.",
+    "paid": "Bedankt! Je betaling is binnen en je bestelling is bevestigd.",
+    "cancelled": "Deze bestelling is verlopen voordat hij betaald was; de artikelen zijn terug op de plank.",
+    "again": "Terug naar je winkelwagen",
+    "status": "Status: {status}",
+    "subtotal": "Subtotaal",
+    "vat": "Btw",
+    "total": "Totaal",
+    "pay": "Nu betalen",
+    "problem": {
+      "no_provider": {
+        "title": "Online betalen is nog niet mogelijk",
+        "body": "Je bestelling is opgeslagen, maar deze winkel kan nog geen online betalingen aannemen. Neem contact met ons op om te betalen."
+      },
+      "provider_down": {
+        "title": "De betaaldienst reageert niet",
+        "body": "Er is niets afgeschreven. Probeer het zo opnieuw."
+      },
+      "not_payable": {
+        "title": "Deze bestelling kan niet meer betaald worden",
+        "body": "Hij is misschien verlopen of al betaald. Ververs de pagina om de status te zien."
+      },
+      "unavailable": {
+        "title": "Betalen kon niet starten",
+        "body": "Er is niets afgeschreven. Probeer het over een minuut opnieuw."
+      }
+    }
   }
 }

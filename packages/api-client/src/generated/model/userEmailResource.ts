@@ -16,7 +16,8 @@ export interface UserEmailResource {
      * @nullable
      */
   color: string | null;
-  email: string;
+  /** @nullable */
+  email: string | null;
   id: string;
   initials: string;
   name: string;

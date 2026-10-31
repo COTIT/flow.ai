@@ -1174,6 +1174,25 @@ fn assert_ops(ops: &[Op]) {
 }
 
 #[test]
+fn every_orders_operation_is_documented() {
+    let o = "/orders/{order}";
+    assert_documented(&[
+        ("/orders", "get", "orders_list", "200"),
+        ("/orders", "post", "orders_create", "201"),
+        (o, "get", "orders_get", "200"),
+        (o, "patch", "orders_update", "200"),
+        (o, "delete", "orders_delete", "200"),
+        ("/orders/{order}/confirm", "post", "orders_confirm", "200"),
+        ("/orders/{order}/pick", "post", "orders_pick", "200"),
+        ("/orders/{order}/complete", "post", "orders_complete", "200"),
+        ("/orders/{order}/cancel", "post", "orders_cancel", "200"),
+        ("/orders/{order}/returns", "post", "orders_returns", "200"),
+        ("/orders/{order}/invoice", "post", "orders_invoice", "200"),
+        ("/orders/{order}/refunds", "post", "orders_refund", "201"),
+    ]);
+}
+
+#[test]
 fn every_lots_operation_is_documented() {
     assert_documented(&[
         ("/lots", "get", "lots_list", "200"),
@@ -1281,5 +1300,281 @@ fn every_till_operation_is_documented() {
             "{method} {path}: no 401"
         );
         assert_eq!(op["security"][0][scheme], json!([]), "{method} {path}");
+    }
+}
+
+// ---- Farm (RUAHA phase 4) ----
+
+#[test]
+fn every_farm_tenancy_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/villages", "get", "farm_villages_list", "200"),
+        ("/farm/villages", "post", "farm_villages_create", "201"),
+        (
+            "/farm/villages/{village}",
+            "patch",
+            "farm_villages_update",
+            "200",
+        ),
+        ("/farm/memberships", "get", "farm_memberships_list", "200"),
+        (
+            "/farm/memberships",
+            "post",
+            "farm_memberships_create",
+            "201",
+        ),
+        (
+            "/farm/memberships/{membership}",
+            "delete",
+            "farm_memberships_revoke",
+            "204",
+        ),
+    ]);
+}
+
+#[test]
+fn every_farm_records_operation_is_documented() {
+    let mut ops = vec![
+        ("/farm/crops", "get", "farm_crops_list".to_owned(), "200"),
+        ("/farm/crops", "post", "farm_crops_create".to_owned(), "201"),
+        (
+            "/farm/crops/{crop}",
+            "patch",
+            "farm_crops_update".to_owned(),
+            "200",
+        ),
+        (
+            "/farm/registrations",
+            "post",
+            "farm_records_register".to_owned(),
+            "201",
+        ),
+        (
+            "/farm/crop-cycles/{cycle}/harvest-reports",
+            "get",
+            "farm_records_harvest_reports_list".to_owned(),
+            "200",
+        ),
+        (
+            "/farm/crop-cycles/{cycle}/harvest-reports",
+            "post",
+            "farm_records_harvest_reports_revise".to_owned(),
+            "201",
+        ),
+        (
+            "/farm/harvest-reports/{report}/verification",
+            "post",
+            "farm_records_harvest_reports_verify".to_owned(),
+            "200",
+        ),
+    ];
+    let kinds = [
+        ("persons", "person", "persons"),
+        ("households", "household", "households"),
+        ("farms", "farm", "farms"),
+        ("plots", "plot", "plots"),
+        ("crop-cycles", "cycle", "crop_cycles"),
+    ];
+    let paths: Vec<(String, String, String)> = kinds
+        .iter()
+        .map(|(seg, item, _)| {
+            (
+                format!("/farm/{seg}"),
+                format!("/farm/{seg}/{{{item}}}"),
+                format!("/farm/{seg}/{{{item}}}/verification"),
+            )
+        })
+        .collect();
+    for ((base, one, verify), (_, _, id)) in paths.iter().zip(kinds) {
+        ops.push((base, "get", format!("farm_records_{id}_list"), "200"));
+        ops.push((one, "get", format!("farm_records_{id}_get"), "200"));
+        ops.push((one, "put", format!("farm_records_{id}_correct"), "200"));
+        ops.push((verify, "post", format!("farm_records_{id}_verify"), "200"));
+    }
+    let ops: Vec<(&str, &str, &str, &str)> = ops
+        .iter()
+        .map(|(p, m, i, s)| (*p, *m, i.as_str(), *s))
+        .collect();
+    assert_documented(&ops);
+}
+
+#[test]
+fn every_farm_logins_operation_is_documented() {
+    assert_documented(&[
+        (
+            "/farm/persons/{person}/login",
+            "post",
+            "farm_logins_issue",
+            "201",
+        ),
+        (
+            "/farm/persons/{person}/login-history",
+            "get",
+            "farm_logins_history",
+            "200",
+        ),
+    ]);
+    assert_ops(&[
+        ("/farm/login", "post", "farm_logins_login", "200"),
+        (
+            "/farm/password",
+            "post",
+            "farm_logins_change_password",
+            "204",
+        ),
+    ]);
+    let s = spec();
+    assert!(
+        s["paths"]["/farm/login"]["post"].get("security").is_none(),
+        "sign-in needs no token"
+    );
+    assert_eq!(
+        s["components"]["schemas"]["UserResource"]["properties"]["email"]["type"],
+        json!(["string", "null"])
+    );
+}
+
+#[test]
+fn every_farm_documents_operation_is_documented() {
+    assert_documented(&[
+        (
+            "/farm/plots/{plot}/documents",
+            "get",
+            "farm_documents_list",
+            "200",
+        ),
+        (
+            "/farm/plots/{plot}/documents",
+            "post",
+            "farm_documents_create",
+            "201",
+        ),
+        (
+            "/farm/plots/{plot}/documents/{document}",
+            "get",
+            "farm_documents_get",
+            "200",
+        ),
+    ]);
+    let s = spec();
+    let one = &s["paths"]["/workspace/{workspace}/farm/plots/{plot}/documents/{document}"];
+    for method in ["put", "patch", "delete"] {
+        assert!(
+            one.get(method).is_none(),
+            "{method}: documents are append-only"
+        );
+    }
+}
+
+#[test]
+fn every_farm_surveys_and_vouchers_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/surveys", "get", "farm_surveys_list", "200"),
+        ("/farm/surveys", "post", "farm_surveys_create", "201"),
+        (
+            "/farm/surveys/eligibility",
+            "get",
+            "farm_surveys_eligibility",
+            "200",
+        ),
+        ("/farm/surveys/{survey}", "get", "farm_surveys_get", "200"),
+        (
+            "/farm/surveys/{survey}",
+            "patch",
+            "farm_surveys_update",
+            "200",
+        ),
+        (
+            "/farm/surveys/{survey}/questions",
+            "post",
+            "farm_surveys_add_question",
+            "201",
+        ),
+        (
+            "/farm/surveys/{survey}/questions/{question}",
+            "put",
+            "farm_surveys_replace_question",
+            "204",
+        ),
+        (
+            "/farm/surveys/{survey}/questions/{question}",
+            "delete",
+            "farm_surveys_remove_question",
+            "204",
+        ),
+        (
+            "/farm/surveys/{survey}/publish",
+            "post",
+            "farm_surveys_publish",
+            "200",
+        ),
+        (
+            "/farm/surveys/{survey}/close",
+            "post",
+            "farm_surveys_close",
+            "200",
+        ),
+        (
+            "/farm/surveys/{survey}/responses",
+            "post",
+            "farm_surveys_answer",
+            "201",
+        ),
+        (
+            "/farm/surveys/{survey}/results",
+            "get",
+            "farm_surveys_results",
+            "200",
+        ),
+        (
+            "/farm/surveys/{survey}/vouchers",
+            "get",
+            "farm_surveys_vouchers",
+            "200",
+        ),
+        ("/farm/vouchers/mine", "get", "farm_vouchers_mine", "200"),
+        (
+            "/farm/vouchers/lookup",
+            "post",
+            "farm_vouchers_lookup",
+            "200",
+        ),
+        (
+            "/farm/vouchers/redeem",
+            "post",
+            "farm_vouchers_redeem",
+            "200",
+        ),
+        (
+            "/farm/vouchers/{voucher}/void",
+            "post",
+            "farm_vouchers_void",
+            "204",
+        ),
+        (
+            "/farm/vouchers/{voucher}/timeline",
+            "get",
+            "farm_vouchers_timeline",
+            "200",
+        ),
+        (
+            "/farm/redemptions",
+            "get",
+            "farm_vouchers_redemptions",
+            "200",
+        ),
+        (
+            "/farm/redemptions/totals",
+            "get",
+            "farm_vouchers_redemption_totals",
+            "200",
+        ),
+    ]);
+    // Staff-facing voucher shapes never carry the code.
+    let s = spec();
+    for name in ["SurveyVoucher", "LookupResult", "Redemption"] {
+        let props = &s["components"]["schemas"][name]["properties"];
+        assert!(props.is_object(), "{name}");
+        assert!(props.get("code").is_none(), "{name} exposes the code");
     }
 }

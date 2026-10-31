@@ -252,7 +252,7 @@ fn parse(id: &str) -> Result<Uuid, AppError> {
 }
 
 /// A client file name made safe to show: no folders, no control characters, ≤ 255 chars.
-fn display_name(name: &str) -> String {
+pub(crate) fn display_name(name: &str) -> String {
     let base = name.rsplit(['/', '\\']).next().unwrap_or_default();
     let clean: String = base.chars().filter(|c| !hidden(*c)).take(255).collect();
     match clean.trim() {
@@ -287,7 +287,7 @@ fn download_name(name: &str, extension: Option<&str>) -> String {
 
 /// Opened in the browser (PDFs and raster images), else downloaded: an SVG or HTML file opened
 /// inline could run script on the bucket's origin.
-fn inline(content_type: &str) -> bool {
+pub(crate) fn inline(content_type: &str) -> bool {
     matches!(
         content_type,
         "application/pdf" | "image/png" | "image/jpeg" | "image/gif" | "image/webp"

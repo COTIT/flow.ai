@@ -9,9 +9,11 @@ use crate::{
 pub const PREFIX: &str = "gsk_";
 
 /// Scopes the app-keys route issues. Checked on create; the extractor checks them per route.
-pub const SCOPES: &[&str] = &[CATALOG_READ];
+pub const SCOPES: &[&str] = &[CATALOG_READ, CHECKOUT_WRITE];
 /// Read products, variants, prices and available stock (`/storefront`).
 pub const CATALOG_READ: &str = "catalog:read";
+/// Place web orders and start their payment (`/storefront/orders`).
+pub const CHECKOUT_WRITE: &str = "checkout:write";
 /// Log a till user in on a register (`/till/login`). Only a register's own key gets it, never
 /// the app-keys route.
 pub const TILL_LOGIN: &str = "till:login";

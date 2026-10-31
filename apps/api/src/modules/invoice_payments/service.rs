@@ -13,7 +13,7 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
-    idempotency::{self, Answer, Key},
+    idempotency::{self, Actor, Answer, Key},
     modules::{
         invoice_payments::{
             balance::{self, Balance},
@@ -50,7 +50,9 @@ pub async fn create(
 ) -> Result<Answer, AppError> {
     let id = parse(invoice)?;
     let mut tx = state.db.begin().await?;
-    if let Some(answer) = idempotency::replay(&mut tx, workspace_id, user_id, key.as_ref()).await? {
+    if let Some(answer) =
+        idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
+    {
         return Ok(answer);
     }
     let settle = match input.pay {
@@ -171,7 +173,9 @@ pub async fn void(
 ) -> Result<Answer, AppError> {
     let (id, payment) = (parse(invoice)?, parse(payment)?);
     let mut tx = state.db.begin().await?;
-    if let Some(answer) = idempotency::replay(&mut tx, workspace_id, user_id, key.as_ref()).await? {
+    if let Some(answer) =
+        idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
+    {
         return Ok(answer);
     }
     let twin_invoice = repo::find_live(&mut *tx, workspace_id, id, payment)
@@ -206,7 +210,9 @@ pub async fn mark_as_credited(
 ) -> Result<Answer, AppError> {
     let id = parse(invoice)?;
     let mut tx = state.db.begin().await?;
-    if let Some(answer) = idempotency::replay(&mut tx, workspace_id, user_id, key.as_ref()).await? {
+    if let Some(answer) =
+        idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
+    {
         return Ok(answer);
     }
     let note = repo::lock(&mut tx, workspace_id, id)
