@@ -128,7 +128,8 @@ mod tests {
             },
         )
         .await
-        .unwrap();
+        .unwrap()
+        .id;
         (ws, id, plain.expose().to_owned())
     }
 

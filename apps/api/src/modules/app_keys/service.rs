@@ -1,0 +1,66 @@
+//! App key rules: admins only, secret shown once, revoke is idempotent.
+
+use uuid::Uuid;
+
+use crate::{
+    AppState,
+    error::AppError,
+    http::workspace::{NOT_ALLOWED, WorkspaceAccess},
+    modules::app_keys::{
+        dto::NewAppKey,
+        repo::{self, KeyRow, NewKey},
+        secret,
+    },
+    modules::auth::token::PlainSecret,
+};
+
+/// Keys open the workspace's data to an app: only the owner or a `workspace_admin` manages them.
+pub fn admin(access: &WorkspaceAccess) -> Result<(), AppError> {
+    if access.is_admin() {
+        Ok(())
+    } else {
+        Err(AppError::Forbidden(NOT_ALLOWED))
+    }
+}
+
+/// Issue a key: the stored row and the plaintext secret.
+pub async fn create(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    input: NewAppKey,
+) -> Result<(KeyRow, PlainSecret), AppError> {
+    let (plain, hash, prefix) = secret::generate()?;
+    let row = repo::insert(
+        &state.db,
+        &NewKey {
+            workspace_id: access.workspace_id,
+            name: &input.name,
+            kind: &input.kind,
+            scopes: &input.scopes,
+            key_hash: &hash,
+            prefix: &prefix,
+            created_by: Some(access.user_id),
+        },
+    )
+    .await?;
+    Ok((row, plain))
+}
+
+/// One page of this workspace's keys, newest first, with the total.
+pub async fn list(
+    state: &AppState,
+    workspace_id: Uuid,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<KeyRow>, i64), AppError> {
+    Ok(repo::list(&state.db, workspace_id, limit, offset).await?)
+}
+
+/// Revoke a key of this workspace (again is fine), else 404.
+pub async fn revoke(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
+    let id = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
+    repo::revoke(&state.db, workspace_id, id)
+        .await?
+        .then_some(())
+        .ok_or(AppError::NotFound)
+}
