@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Phase 3 "a passport for every batch", step 1 (contract `docs/api/lots.md`):
+  - **Lots** (migration `lots`): `/workspace/{workspace}/lots` list (filter by product, status, code prefix), create, get, patch. A lot belongs to one live stock-tracked product of the workspace; `code` is unique per workspace in any case; `public_code` (10 Crockford base32 chars, global, immutable) is made by the server and retried on a collision. Members read, `product.update` writes.
+  - **Trail** `lot_events`: `created`, `updated` (`meta.changed`), `status_changed` (from/to), written in the change's transaction; append-only, and a test fails if code ever updates or deletes it.
+  - **Event** `lot.created` through the outbox, in the same transaction. `passport.published` is on the event list (sent from step 2).
+  - Passport columns (`passport_draft`, `passport`, `passport_version`, `published_at`) are in the table already; their routes come in step 2.
+
 - Phase 1 "lay the pipes" (contracts `docs/api/app-keys.md`, `storefront.md`, `webhooks.md`):
   - **App keys** (migration `app_keys`): `gsk_` keys per workspace and app kind, sha256 only, scopes (`catalog:read`), revoke, `last_used_at` at most once a minute. `AppKey` extractor beside `AuthUser`; the private rate limit buckets per key. Admin routes `/workspace/{workspace}/app-keys`.
   - **Storefront:** `GET /storefront/products[/{product}]` for `catalog:read` keys: active, unarchived products with variants, prices in integer minor units and available stock, one statement per call.

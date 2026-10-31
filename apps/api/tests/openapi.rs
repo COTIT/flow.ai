@@ -1172,3 +1172,14 @@ fn assert_ops(ops: &[Op]) {
         assert!(has_ws, "{method} {path}: no workspace param");
     }
 }
+
+#[test]
+fn every_lots_operation_is_documented() {
+    assert_documented(&[
+        ("/lots", "get", "lots_list", "200"),
+        ("/lots", "post", "lots_create", "201"),
+        ("/lots/{lot}", "get", "lots_get", "200"),
+        ("/lots/{lot}", "patch", "lots_update", "200"),
+        ("/lots/{lot}/events", "get", "lots_events", "200"),
+    ]);
+}
