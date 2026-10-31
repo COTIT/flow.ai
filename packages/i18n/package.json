@@ -1,0 +1,35 @@
+{
+  "name": "@genesy/i18n",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "next-intl": "4.14.9"
+  },
+  "peerDependencies": {
+    "next": "^16",
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@genesy/eslint-config": "workspace:*",
+    "@genesy/typescript-config": "workspace:*",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "eslint": "^10",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  },
+  "exports": {
+    "./locales": "./src/locales.ts",
+    "./request": "./src/request.ts",
+    "./locale-switcher": "./src/locale-switcher.tsx"
+  }
+}

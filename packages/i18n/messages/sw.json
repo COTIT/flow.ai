@@ -1,0 +1,23 @@
+{
+  "common": {
+    "loading": "Inapakia…",
+    "error": "Hitilafu imetokea. Jaribu tena.",
+    "logout": "Toka",
+    "language": "Lugha",
+    "workspace": "Eneo la kazi",
+    "languages": {
+      "en": "English",
+      "nl": "Nederlands",
+      "sw": "Kiswahili"
+    }
+  },
+  "auth": {
+    "title": "Ingia",
+    "email": "Barua pepe",
+    "password": "Nenosiri",
+    "submit": "Ingia",
+    "invalidLogin": "Barua pepe au nenosiri si sahihi.",
+    "tooManyAttempts": "Majaribio mengi mno. Subiri dakika chache kisha ujaribu tena.",
+    "invalidInput": "Angalia barua pepe na nenosiri."
+  }
+}
