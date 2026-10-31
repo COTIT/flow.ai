@@ -9,8 +9,6 @@ import type { InviteRelationships } from './inviteRelationships';
 import type { InviteResourceMeta } from './inviteResourceMeta';
 
 /**
- * One settings pending-invites row (Laravel InviteResource). `invite_code` is left out: only
- * its hash is stored, and the link goes to the invitee alone.
  * A sent invite, as listed in workspace settings.
  */
 export interface InviteResource {

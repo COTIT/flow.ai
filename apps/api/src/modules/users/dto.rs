@@ -5,7 +5,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -21,80 +21,103 @@ use crate::{
     },
 };
 
-#[derive(Serialize)]
+/// GET /v1/me body.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "The logged-in user.")]
 pub struct MeResponse {
     user: UserResource,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A user with their permissions, teams and pending invites.")]
 struct UserResource {
     id: Uuid,
-    /// Laravel sent the int PK; we have only the uuid. Security.vue skips uuid-looking values.
+    // Laravel sent the int PK; we have only the uuid. Security.vue skips uuid-looking values.
+    /// Same as `id`.
     user_id: Uuid,
     name: String,
     first_name: String,
+    #[schema(required = true)]
     middle_name: Option<String>,
     last_name: String,
     email: String,
     initials: String,
-    /// PIN login not ported yet.
+    // PIN login not ported yet.
+    /// Always `false` for now.
     has_pin_code: bool,
+    /// Display color; not stored yet, always null.
+    #[schema(required = true)]
     color: Option<String>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
     permissions: Vec<WorkspacePermissions>,
     avatar_path: String,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
-    /// No column yet; vimdesk-web falls back to `nl`.
+    // No column yet; vimdesk-web falls back to `nl`.
+    /// Not stored yet, always null.
+    #[schema(required = true)]
     interface_language: Option<String>,
     active: bool,
     relationships: Relationships,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "Effective permission names in one workspace.")]
 struct WorkspacePermissions {
-    /// Same uuid as /me/workspaces[].id (auth.store.js matches on it).
+    // Same uuid as /me/workspaces[].id (auth.store.js matches on it).
+    /// Workspace id.
     workspace: Uuid,
     permissions: Vec<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(as = UserRelationships)]
 struct Relationships {
     pending_invites: Vec<PendingInviteResource>,
     teams: Vec<TeamResource>,
-    /// Employment groups not ported yet.
+    // Employment groups not ported yet.
+    /// Not supported yet, always null.
+    #[schema(value_type = Option<Object>, required = true)]
     employment_group: Option<Value>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "An invite waiting for the user to accept or decline.")]
 struct PendingInviteResource {
     id: Uuid,
+    #[schema(value_type = String, example = "pending")]
     status: &'static str,
     workspace_name: String,
-    /// Invite id: POST /v1/invites accepts it from a verified user with the invited email.
+    // Invite id: POST /v1/invites accepts it from a verified user with the invited email.
+    /// Code to send to `POST /invites` to accept or decline.
     invite_code: String,
     invited_on: DateTime<Utc>,
     invited_by: Inviter,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct Inviter {
     email: String,
     name: String,
 }
 
 /// One /v1/me/workspaces item.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A workspace the user belongs to.")]
 pub struct WorkspaceResource {
     id: Uuid,
     workspace_name: String,
     workspace_type: String,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
-    /// Omitted until a profile is saved (Laravel `when`). POS receipts read it. Any member
-    /// sees this list, so bank details are left out (they stay behind `workspace.get`).
+    // Omitted until a profile is saved (Laravel `when`). POS receipts read it.
+    /// Company profile; left out until one is saved. Bank details (`account`) are never
+    /// included here.
     #[serde(skip_serializing_if = "Option::is_none")]
     workspace_profile: Option<Profile>,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
     relationships: [(); 0],
 }
 
@@ -220,9 +243,10 @@ fn person(m: Member) -> (Person, String) {
     (p, name)
 }
 
-/// GET /v1/workspace/{ws}/users/{id} body: UserResource scoped to this workspace. Permissions,
-/// teams and invites of the user's other workspaces stay hidden (Laravel showed them all).
-#[derive(Serialize)]
+// GET /v1/workspace/{ws}/users/{id} body: UserResource scoped to this workspace. Permissions,
+// teams and invites of the user's other workspaces stay hidden (Laravel showed them all).
+/// A member as seen from one workspace: only that workspace's permissions and teams.
+#[derive(Serialize, ToSchema)]
 #[serde(transparent)]
 pub struct UserDetail(UserResource);
 
@@ -249,34 +273,46 @@ impl UserDetail {
     }
 }
 
-/// One users-tab row (Laravel WorkspaceUserResource).
-#[derive(Serialize)]
+// One users-tab row (Laravel WorkspaceUserResource).
+/// One row of the workspace members list.
+#[derive(Serialize, ToSchema)]
 pub struct MemberResource {
     id: Uuid,
     name: String,
     email: String,
-    /// Not ported.
+    // Not ported.
+    /// Not supported yet, always null.
+    #[schema(required = true)]
     user_type: Option<String>,
     avatar_path: String,
     initials: String,
+    /// Display color; not stored yet, always null.
+    #[schema(required = true)]
     color: Option<String>,
     /// Membership flag in this workspace.
     active: bool,
+    /// Exactly one entry: this workspace.
+    #[schema(value_type = Vec<WorkspacePermissions>, min_items = 1, max_items = 1)]
     permissions: [WorkspacePermissions; 1],
-    /// Top-level here (users.vue reads `teams.0.name`), under `relationships` on the detail.
+    // Top-level here (users.vue reads `teams.0.name`), under `relationships` on the detail.
+    /// The member's teams in this workspace.
     teams: Vec<MemberTeamResource>,
-    /// Employment group not loaded, so Laravel leaves `[]`.
+    // Employment group not loaded, so Laravel leaves `[]`.
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
     relationships: [(); 0],
     created_at: DateTime<Utc>,
 }
 
-/// Laravel WorkspaceTeamResource.
-#[derive(Serialize)]
+// Laravel WorkspaceTeamResource.
+/// A team as listed on a member row.
+#[derive(Serialize, ToSchema)]
 struct MemberTeamResource {
     id: Uuid,
     name: String,
     description: String,
     permissions: Vec<String>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
 }
 
@@ -316,12 +352,22 @@ impl MemberResource {
 }
 
 /// GET /v1/workspace/{ws}/users query. Unknown params ignored.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct MembersQuery {
+    /// Search text, max 100 characters.
     pub q: Option<String>,
+    /// Only members of this team.
+    #[param(value_type = Option<Uuid>)]
     pub team_id: Option<String>,
+    /// `true` = only members with a PIN code.
+    #[param(value_type = Option<bool>)]
     pub has_pin_code: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
@@ -366,7 +412,7 @@ impl MembersQuery {
     }
 }
 
-/// Laravel UserEmailResource: a user embedded in another resource.
+// Laravel UserEmailResource: a user embedded in another resource.
 #[derive(Serialize, ToSchema)]
 /// A user shown inside another record (team member, inviter, ...).
 pub struct UserEmailResource {

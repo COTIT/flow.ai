@@ -1,10 +1,11 @@
-//! Permission routes, mounted under /v1.
+//! Permission routes, mounted under /v1. Paths live in each handler's `#[utoipa::path]`, so
+//! router and OpenAPI spec share one source.
 
-use axum::{Router, routing::get};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::permissions::handlers};
 
 /// Workspace members only (checked by `WorkspaceAccess`).
-pub fn private() -> Router<AppState> {
-    Router::new().route("/workspace/{workspace}/permissions", get(handlers::catalog))
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(handlers::catalog))
 }

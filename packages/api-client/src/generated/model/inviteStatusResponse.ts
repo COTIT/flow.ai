@@ -7,7 +7,6 @@
  */
 
 /**
- * GET /v1/invites/get-invite-status/{code} body (Laravel InviteStatusResource keys).
  * What an invite link points to, for the accept or sign-up screen.
  */
 export interface InviteStatusResponse {

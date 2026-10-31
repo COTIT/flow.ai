@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::{
-    ToSchema,
+    IntoParams, ToSchema,
     openapi::{
         Ref,
         schema::{ArrayBuilder, ObjectBuilder, OneOfBuilder, Schema},
@@ -30,7 +30,7 @@ pub const BAD_USERS: &str = "user ids must be an array of valid user_ids";
 /// Laravel `rules.UserExistInTeam`.
 pub const NOT_IN_TEAM: &str = "This user ids does not exist in the team";
 
-/// Team in Laravel TeamResource shape.
+// Team in Laravel TeamResource shape.
 #[derive(Serialize, ToSchema)]
 #[schema(description = "A team: a named group of members sharing a set of permissions.")]
 pub struct TeamResource {
@@ -119,17 +119,25 @@ impl From<TeamRow> for TeamResource {
     }
 }
 
-#[derive(Serialize)]
+/// Create response: the new team's id.
+#[derive(Serialize, ToSchema)]
 pub struct TeamCreated {
     pub team_id: Uuid,
 }
 
 /// GET list query. Unknown params (`tab`, `team_id`, ...) ignored: vimdesk-web spreads its route query.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on name, max 100 characters.
     pub q: Option<String>,
+    /// `name`, `-name` or `-created_at`; anything else lists oldest first.
     pub sort: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
@@ -170,11 +178,17 @@ fn strings(items: Vec<Value>) -> Vec<String> {
 }
 
 /// POST /users/teams.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "New team.")]
 pub struct CreateTeamRequest {
+    #[schema(value_type = String, max_length = 55)]
     name: Option<String>,
+    #[schema(value_type = String, max_length = 225)]
     description: Option<String>,
+    /// Permission names to grant; unknown names are ignored.
+    #[schema(value_type = Option<Vec<String>>)]
     permissions: Option<Value>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -210,13 +224,19 @@ impl Validate for CreateTeamRequest {
 }
 
 /// POST /users/teams/{team}: absent key = unchanged, `null`/blank on name or description = 422.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to a team. Leave a field out to keep it; send null `meta` to clear it."
+)]
 pub struct UpdateTeamRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, max_length = 55)]
     name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, max_length = 225)]
     description: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 
@@ -250,8 +270,10 @@ impl Validate for UpdateTeamRequest {
 }
 
 /// POST /users/teams/{team}/add-users | remove-users.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Users to add to or remove from the team.")]
 pub struct UserIdsRequest {
+    #[schema(value_type = Vec<Uuid>, min_items = 1)]
     user_ids: Option<Value>,
 }
 
@@ -286,8 +308,12 @@ impl Validate for UserIdsRequest {
 }
 
 /// POST /users/teams/{team}/permissions.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Permission changes: `name` grants it, `-name` revokes it. Unknown names are ignored."
+)]
 pub struct PermissionsRequest {
+    #[schema(value_type = Vec<String>, example = json!(["team.list", "-team.delete"]))]
     permissions: Option<Value>,
 }
 

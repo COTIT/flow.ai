@@ -7,7 +7,6 @@
  */
 
 /**
- * Laravel UserEmailResource: a user embedded in another resource.
  * A user shown inside another record (team member, inviter, ...).
  */
 export interface UserEmailResource {

@@ -3,6 +3,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -10,46 +11,81 @@ use crate::{
     modules::workspaces::repo::Record,
 };
 
-/// Stored profile as rendered. Missing keys come out null, `address`/`account` always objects:
-/// settings.store.js replaces its whole form with this and binds `address.city` etc.
-#[derive(Serialize, Deserialize, Default)]
+// Stored profile as rendered. Missing keys come out null, `address`/`account` always objects:
+// settings.store.js replaces its whole form with this and binds `address.city` etc.
+// Fields are raw `Value`s (stored jsonb); the schema documents what validation stores.
+/// Company profile. Every key is always present; unset values are null.
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 #[serde(default)]
+#[schema(as = WorkspaceProfile)]
 pub struct Profile {
+    #[schema(value_type = Option<String>, required = true)]
     company_name: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     vat_number: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     coc_number: Option<Value>,
     address: Address,
-    /// Bank details: None only in `public()` (any member reads /me/workspaces).
+    // None only in `public()` (any member reads /me/workspaces).
+    /// Bank details; left out where any member can read the profile.
     #[serde(skip_serializing_if = "Option::is_none")]
     account: Option<Account>,
+    #[schema(value_type = Option<String>, required = true)]
     phone_number: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     email: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     website: Option<Value>,
-    /// Files not ported: always null.
+    // Files not ported: always null.
+    /// Not supported yet, always null.
+    #[schema(value_type = Option<String>, required = true)]
     logo_file_id: Option<Value>,
+    /// Not supported yet, always null.
+    #[schema(value_type = Option<String>, required = true)]
     logo: Option<Value>,
+    /// `en` or `nl`.
+    #[schema(value_type = Option<String>, required = true)]
     language: Option<Value>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+/// Company address. Unset values are null.
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 #[serde(default)]
+#[schema(as = WorkspaceAddress)]
 struct Address {
+    #[schema(value_type = Option<String>, required = true)]
     address: Option<Value>,
+    /// Numeric, sent as a string or a number; returned as sent.
+    #[schema(value_type = Option<Value>, required = true)]
     house_number: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     house_number_addition: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     address2: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     zipcode: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     city: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     state: Option<Value>,
+    #[schema(value_type = Option<String>, required = true)]
     country: Option<Value>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+/// Bank details. Unset values are null.
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 #[serde(default)]
+#[schema(as = WorkspaceAccount)]
 struct Account {
+    #[schema(value_type = Option<String>, required = true)]
     account_name: Option<Value>,
+    /// IBAN, without spaces, uppercase.
+    #[schema(value_type = Option<String>, required = true)]
     account_number: Option<Value>,
+    /// BIC / SWIFT code.
+    #[schema(value_type = Option<String>, required = true)]
     bic_swift: Option<Value>,
+    #[schema(value_type = Option<f64>, required = true, minimum = 0)]
     credit_limit: Option<Value>,
 }
 
@@ -92,8 +128,9 @@ impl Profile {
     }
 }
 
-/// GET /v1/workspace/{workspace} body (Laravel WorkspaceResource).
-#[derive(Serialize)]
+// GET /v1/workspace/{workspace} body (Laravel WorkspaceResource).
+/// The workspace record with its full company profile.
+#[derive(Serialize, ToSchema)]
 pub struct WorkspaceRecordResource {
     id: Uuid,
     workspace_name: String,
@@ -103,7 +140,10 @@ pub struct WorkspaceRecordResource {
     workspace_profile: Profile,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
     relationships: [(); 0],
 }
 
@@ -129,6 +169,76 @@ impl From<Record> for WorkspaceRecordResource {
 #[derive(Deserialize)]
 #[serde(transparent)]
 pub struct UpdateWorkspaceRequest(Map<String, Value>);
+
+/// Wire shape of [`UpdateWorkspaceRequest`] for the spec; never built (the handler parses a map).
+#[derive(ToSchema)]
+#[schema(
+    description = "Company profile changes. Leave a key out to keep it; send null (or a blank \
+        string) to clear it. A sent `address` or `account` replaces the stored one."
+)]
+#[allow(dead_code)]
+pub struct WorkspaceProfilePatch {
+    #[schema(max_length = 55)]
+    company_name: Option<String>,
+    #[schema(max_length = 55)]
+    vat_number: Option<String>,
+    #[schema(max_length = 55)]
+    coc_number: Option<String>,
+    #[schema(max_length = 55)]
+    phone_number: Option<String>,
+    /// `en` or `nl`.
+    #[schema(example = "en")]
+    language: Option<String>,
+    #[schema(format = Email, max_length = 255)]
+    email: Option<String>,
+    #[schema(max_length = 255, example = "https://example.com")]
+    website: Option<String>,
+    /// Must be null for now.
+    logo_file_id: Option<Uuid>,
+    address: Option<AddressInput>,
+    account: Option<AccountInput>,
+    #[schema(value_type = Option<Object>)]
+    meta: Option<Value>,
+}
+
+/// New company address.
+#[derive(ToSchema)]
+#[schema(as = WorkspaceAddressInput)]
+#[allow(dead_code)]
+struct AddressInput {
+    #[schema(max_length = 255)]
+    address: String,
+    /// Numeric; a string or a number.
+    #[schema(value_type = String, example = "12")]
+    house_number: String,
+    #[schema(max_length = 10)]
+    house_number_addition: Option<String>,
+    #[schema(max_length = 255)]
+    address2: Option<String>,
+    #[schema(max_length = 20)]
+    zipcode: String,
+    #[schema(max_length = 255)]
+    city: String,
+    #[schema(max_length = 255)]
+    state: Option<String>,
+    #[schema(max_length = 255)]
+    country: String,
+}
+
+/// New bank details.
+#[derive(ToSchema)]
+#[schema(as = WorkspaceAccountInput)]
+#[allow(dead_code)]
+struct AccountInput {
+    #[schema(max_length = 255)]
+    account_name: Option<String>,
+    /// IBAN; spaces and case are normalized.
+    account_number: Option<String>,
+    /// BIC / SWIFT code.
+    bic_swift: Option<String>,
+    #[schema(minimum = 0)]
+    credit_limit: Option<f64>,
+}
 
 /// Validated patch: profile keys to overwrite (null = clear), and meta when sent.
 pub struct ProfilePatch {

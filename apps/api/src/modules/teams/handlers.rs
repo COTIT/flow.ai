@@ -8,11 +8,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, contains_pattern},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, WorkspaceAccess, permissions},
     },
     modules::teams::{
@@ -48,6 +48,19 @@ fn caller(access: &WorkspaceAccess) -> Caller {
 }
 
 /// POST /users/teams -> 201 `{data:{team_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/users/teams", tag = "teams",
+    operation_id = "teams_create", summary = "Create a team",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateTeamRequest,
+    responses(
+        (status = 201, body = Envelope<TeamCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `team.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<TeamCreate>,
@@ -58,6 +71,18 @@ pub async fn create(
 }
 
 /// GET /users/teams -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/users/teams", tag = "teams",
+    operation_id = "teams_list", summary = "List teams",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<TeamResource>, description = "One page of teams, each with its members"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `team.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<TeamList>,
@@ -77,6 +102,20 @@ pub async fn list(
 }
 
 /// GET /users/teams/{team}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/users/teams/{team}", tag = "teams",
+    operation_id = "teams_get", summary = "Get a team",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("team" = Uuid, Path, description = "Team id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<TeamResource>, description = "The team, with its members"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `team.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or team, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<TeamGet>,
@@ -88,6 +127,22 @@ pub async fn get(
 }
 
 /// POST /users/teams/{team} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/users/teams/{team}", tag = "teams",
+    operation_id = "teams_update", summary = "Update a team (send only changed fields)",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("team" = Uuid, Path, description = "Team id"),
+    ),
+    request_body = UpdateTeamRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `team.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or team, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<TeamUpdate>,
@@ -99,6 +154,20 @@ pub async fn update(
 }
 
 /// DELETE /users/teams/{team} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/users/teams/{team}", tag = "teams",
+    operation_id = "teams_delete", summary = "Delete a team",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("team" = Uuid, Path, description = "Team id"),
+    ),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership, missing `team.delete`, or an admin team changed by a non-admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or team, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<TeamDelete>,
@@ -109,6 +178,22 @@ pub async fn delete(
 }
 
 /// POST /users/teams/{team}/add-users -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/users/teams/{team}/add-users", tag = "teams",
+    operation_id = "teams_add_users", summary = "Add members to a team",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("team" = Uuid, Path, description = "Team id"),
+    ),
+    request_body = UserIdsRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership, missing `team.invite`, or an admin team changed by a non-admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or team, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or a user is not a workspace member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn add_users(
     State(state): State<AppState>,
     access: Can<TeamInvite>,
@@ -120,6 +205,22 @@ pub async fn add_users(
 }
 
 /// POST /users/teams/{team}/remove-users -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/users/teams/{team}/remove-users", tag = "teams",
+    operation_id = "teams_remove_users", summary = "Remove members from a team",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("team" = Uuid, Path, description = "Team id"),
+    ),
+    request_body = UserIdsRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership, missing `team.invite`, or an admin team changed by a non-admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or team, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or a user is not in the team"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn remove_users(
     State(state): State<AppState>,
     access: Can<TeamInvite>,
@@ -131,6 +232,22 @@ pub async fn remove_users(
 }
 
 /// POST /users/teams/{team}/permissions -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/users/teams/{team}/permissions", tag = "teams",
+    operation_id = "teams_set_permissions", summary = "Grant or revoke team permissions",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("team" = Uuid, Path, description = "Team id"),
+    ),
+    request_body = PermissionsRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership, missing `team.permissions`, or a non-admin removing `workspace_admin`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or team, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn permissions(
     State(state): State<AppState>,
     access: Can<TeamPermissions>,

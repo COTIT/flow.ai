@@ -1,13 +1,15 @@
 //! /v1/me + workspace user routes. All need a Bearer token (`AuthUser` / `WorkspaceAccess`).
+//! Paths live in each handler's `#[utoipa::path]`, so router and OpenAPI spec share one source.
 
-use axum::{Router, routing::get};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::users::handlers};
 
-pub fn private() -> Router<AppState> {
-    Router::new()
-        .route("/me", get(handlers::me))
-        .route("/me/workspaces", get(handlers::workspaces))
-        .route("/workspace/{workspace}/users", get(handlers::members))
-        .route("/workspace/{workspace}/users/{user}", get(handlers::member))
+/// Bearer token required (checked by each handler's extractor).
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(handlers::me))
+        .routes(routes!(handlers::workspaces))
+        .routes(routes!(handlers::members))
+        .routes(routes!(handlers::member))
 }
