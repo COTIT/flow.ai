@@ -20,6 +20,7 @@ const nav = [
   { href: "/orders", label: "nav.orders" },
   { href: "/lots", label: "nav.lots" },
   { href: "/invoices", label: "nav.invoices" },
+  { href: "/till/registers", label: "nav.till" },
   { href: "/settings/app-keys", label: "nav.appKeys" },
   { href: "/settings/webhooks", label: "nav.webhooks" },
 ] as const
