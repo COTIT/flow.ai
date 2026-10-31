@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, s.stock_lvl, s.reserved, s.minimal_stock_level, s.maximum_stock_level,\n                  w.id AS \"w_id?\", w.name AS \"w_name?\",\n                  sh.id AS \"sh_id?\", sh.shelf_code AS \"sh_code?\", sh.shelf_name AS \"sh_name?\",\n                  r.id AS \"r_id?\", r.row_code AS \"r_code?\", r.row_name AS \"r_name?\",\n                  sec.id AS \"sec_id?\", sec.section_code AS \"sec_code?\",\n                  sec.section_name AS \"sec_name?\",\n                  b.id AS \"b_id?\", b.bin_code AS \"b_code?\", b.bin_name AS \"b_name?\"\n           FROM stocks s\n           LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL\n           LEFT JOIN warehouse_section_rows r ON r.id = sh.row_id AND r.deleted_at IS NULL\n           LEFT JOIN warehouse_sections sec ON sec.id = r.section_id AND sec.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL\n           WHERE s.workspace_id = $1 AND s.product_id = $2 AND s.deleted_at IS NULL\n           ORDER BY s.id",
+  "query": "SELECT s.id, s.stock_lvl, s.reserved, s.minimal_stock_level, s.maximum_stock_level,\n                  w.id AS \"w_id?\", w.name AS \"w_name?\",\n                  sh.id AS \"sh_id?\", sh.shelf_code AS \"sh_code?\", sh.shelf_name AS \"sh_name?\",\n                  r.id AS \"r_id?\", r.row_code AS \"r_code?\", r.row_name AS \"r_name?\",\n                  sec.id AS \"sec_id?\", sec.section_code AS \"sec_code?\",\n                  sec.section_name AS \"sec_name?\",\n                  b.id AS \"b_id?\", b.bin_code AS \"b_code?\", b.bin_name AS \"b_name?\",\n                  l.id AS \"lot_id?\", l.code AS \"lot_code?\", l.expires_on AS \"lot_expires_on?\"\n           FROM stocks s\n           LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL\n           LEFT JOIN warehouse_section_rows r ON r.id = sh.row_id AND r.deleted_at IS NULL\n           LEFT JOIN warehouse_sections sec ON sec.id = r.section_id AND sec.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL\n           LEFT JOIN lots l ON l.id = s.lot_id\n           WHERE s.workspace_id = $1 AND s.product_id = $2 AND s.deleted_at IS NULL\n           ORDER BY s.id",
   "describe": {
     "columns": [
       {
@@ -211,6 +211,39 @@
             "name": "bin_name"
           }
         }
+      },
+      {
+        "ordinal": 19,
+        "name": "lot_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "lot_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "lot_expires_on?",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "expires_on"
+          }
+        }
       }
     ],
     "parameters": {
@@ -225,21 +258,24 @@
       false,
       false,
       false,
-      false,
-      false,
-      false,
-      false,
       true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
-      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "ee295b1ff3c323b00d157309965eba3bd55d776c51207a14dc48e1444f434398"
+  "hash": "848aafc18bd8515181d30e6e6d9ea1dc2de10196c38901259557fe1434028f7e"
 }

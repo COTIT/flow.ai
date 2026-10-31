@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_id, warehouse_id, shelf_id, bin_id, stock_lvl, reserved,\n                minimal_stock_level, maximum_stock_level\n         FROM stocks WHERE workspace_id = $1 AND id = $2\n         FOR NO KEY UPDATE",
+  "query": "SELECT id, product_id, warehouse_id, shelf_id, bin_id, lot_id, stock_lvl, reserved,\n                minimal_stock_level, maximum_stock_level\n         FROM stocks\n         WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3\n           AND bin_id IS NOT DISTINCT FROM $4 AND lot_id IS NOT DISTINCT FROM $5\n           AND deleted_at IS NULL\n         FOR NO KEY UPDATE",
   "describe": {
     "columns": [
       {
@@ -60,6 +60,17 @@
       },
       {
         "ordinal": 5,
+        "name": "lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
         "name": "stock_lvl",
         "type_info": "Numeric",
         "origin": {
@@ -70,7 +81,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "reserved",
         "type_info": "Numeric",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "minimal_stock_level",
         "type_info": "Int4",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "maximum_stock_level",
         "type_info": "Int4",
         "origin": {
@@ -106,6 +117,9 @@
     "parameters": {
       "Left": [
         "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
         "Uuid"
       ]
     },
@@ -115,11 +129,12 @@
       false,
       true,
       true,
+      true,
       false,
       false,
       false,
       false
     ]
   },
-  "hash": "9960e5107584049672926a5740cc8c04d25ab804f5ab85ed13f25c65c2b0856f"
+  "hash": "286cb6753587e0551476e2b22dfb6b9089a98e35f4344b2bdcd12169fc9f715d"
 }

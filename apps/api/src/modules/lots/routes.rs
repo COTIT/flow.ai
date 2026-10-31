@@ -17,6 +17,7 @@ pub fn private() -> OpenApiRouter<AppState> {
             handlers::passport_unpublish
         ))
         .routes(routes!(handlers::storefront_get))
+        .routes(routes!(handlers::stock_mutate))
 }
 
 /// The lot's public page; `build_app` puts it behind the IP rate limit.

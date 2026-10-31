@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,\n                  s.minimal_stock_level, s.maximum_stock_level, s.meta, s.updated_at,\n                  w.id AS \"w_id?\", w.name AS \"w_name?\", w.alias AS \"w_alias?\",\n                  w.is_store AS \"w_is_store?\", w.pickup_enabled AS \"w_pickup?\",\n                  w.location AS \"w_location?\",\n                  sh.id AS \"shelf_id?\", sh.shelf_code AS \"shelf_code?\", sh.shelf_name AS \"shelf_name?\",\n                  b.id AS \"bin_id?\", b.bin_code AS \"bin_code?\", b.bin_name AS \"bin_name?\"\n           FROM stocks s\n           LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL\n           WHERE s.workspace_id = $1 AND s.product_id = ANY($2) AND s.deleted_at IS NULL\n           ORDER BY s.id",
+  "query": "SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,\n                  s.minimal_stock_level, s.maximum_stock_level, s.meta, s.updated_at,\n                  w.id AS \"w_id?\", w.name AS \"w_name?\", w.alias AS \"w_alias?\",\n                  w.is_store AS \"w_is_store?\", w.pickup_enabled AS \"w_pickup?\",\n                  w.location AS \"w_location?\",\n                  sh.id AS \"shelf_id?\", sh.shelf_code AS \"shelf_code?\", sh.shelf_name AS \"shelf_name?\",\n                  b.id AS \"bin_id?\", b.bin_code AS \"bin_code?\", b.bin_name AS \"bin_name?\",\n                  l.id AS \"lot_id?\", l.code AS \"lot_code?\", l.expires_on AS \"lot_expires_on?\"\n           FROM stocks s\n           LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL\n           LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL\n           LEFT JOIN lots l ON l.id = s.lot_id\n           WHERE s.workspace_id = $1 AND s.product_id = ANY($2) AND s.deleted_at IS NULL\n           ORDER BY s.id",
   "describe": {
     "columns": [
       {
@@ -233,6 +233,39 @@
             "name": "bin_name"
           }
         }
+      },
+      {
+        "ordinal": 21,
+        "name": "lot_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "lot_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "lot_expires_on?",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "expires_on"
+          }
+        }
       }
     ],
     "parameters": {
@@ -251,19 +284,22 @@
       false,
       true,
       false,
-      false,
-      false,
       true,
       true,
-      false,
       true,
-      false,
-      false,
       true,
-      false,
-      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "ca43ded2489c9834ccc2d5b84f5fc8512aa6ab2f8117f89989ead6855ab63e7d"
+  "hash": "c7b92229dea3ca683c29d1550ec7811afbbb9c7e62dfa322c40a3fa6863f9cc1"
 }

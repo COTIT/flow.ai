@@ -44,6 +44,42 @@ A PATCH that changes nothing writes nothing. Each row has `user_id` (null once t
 
 `lot.created` (on POST, same transaction): `{lot_id, product_id, code, public_code}`.
 
+## Stock per lot
+
+Stock rows carry an optional `lot_id`. Null is the product's no-lot stock, which keeps the old one row per product, warehouse and bin. Each lot gets its own warehouse-level row next to it. Every ledger line (`stock_movements`) carries the row's `lot_id`, and so does `stock.changed`.
+
+`POST /lots/{lot}/stock-mutations` (`product.update`) with body `{warehouse_id, quantity, reason?, is_correction?}`:
+
+- `quantity`: non-zero, rounded to 2 decimals. Positive puts stock in, negative takes it out.
+- Out may not take more than the row has free (level − reserved). Otherwise `422` on `quantity`: "Insufficient stock in this lot. Available: …, Reserved: …, Requested: …".
+- An unknown or foreign warehouse gives `422` on `warehouse_id`.
+- Reply: `200 {data: {warehouse_id, stock_lvl}}`.
+
+Once a lot holds any stock row, its `code` can't change (`422` on `code`); the code is printed on labels.
+
+The product read (`stocks[]`), `GET /products/stocks` and `stock-with-bins` show lot rows as rows of their own, with `lot: {id, code, expires_on}`. No-lot rows have `lot: null`.
+
+### Orders on lot stock
+
+An order's hold (confirm) and shipment (complete) pick rows first-expired-first:
+
+1. The product's no-lot stock goes first. It has no date, and selling it first clears untracked stock.
+2. Then sellable lots by their earliest date (expiry or best-before, whichever is sooner). Undated lots go last.
+
+Only `released` lots that are not past `expires_on` are sellable; quarantined, recalled and expired lots are never held. A hold may spread over several lots, and completing ships from exactly the rows held. Each ledger line names its lot.
+
+Completing an order that holds a lot recalled since the hold gives `409 {"message": "lot_recalled"}`. A lot put in quarantine since gives `409 {"message": "lot_quarantined"}`, and a lot past its expiry date since gives `409 {"message": "lot_expired"}`. In both cases nothing is written and the hold stays, so the office can cancel the order or release the hold; nothing is swapped to another lot silently.
+
+The storefront's `available_stock` counts only no-lot stock and sellable lot stock.
+
+### Sales without a hold (till, invoices)
+
+Till sales and sent invoices take stock straight away, through the stock seam's `take`. They use the same order: no-lot stock first, then sellable lots first-expired-first. Each ledger line names its lot.
+
+- **Store warehouses** never refuse. What the rows can't cover lands on the no-lot row, which may go below zero, as before.
+- **Other warehouses** refuse an invoice that asks for more than the no-lot row and the sellable lots have free (level − what orders hold): `422` "Insufficient stock for product … Available stock: … Required: …". Nothing is written. An invoice never takes stock a web order holds.
+- **Credit notes** put stock back on the no-lot row, never into a lot.
+
 ## Passport
 
 One per lot: a **draft** the office edits and a **published** copy the public page shows. Routes (same access rules as above):

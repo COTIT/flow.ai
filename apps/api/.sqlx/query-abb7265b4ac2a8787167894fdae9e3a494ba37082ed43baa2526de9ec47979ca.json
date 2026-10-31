@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_id, warehouse_id, shelf_id, bin_id, stock_lvl, reserved,\n                minimal_stock_level, maximum_stock_level\n         FROM stocks\n         WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3\n           AND bin_id IS NOT DISTINCT FROM $4 AND deleted_at IS NULL\n         FOR NO KEY UPDATE",
+  "query": "SELECT id, product_id, warehouse_id, shelf_id, bin_id, lot_id, stock_lvl, reserved,\n                minimal_stock_level, maximum_stock_level\n         FROM stocks\n         WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3\n           AND bin_id IS NULL AND lot_id IS NOT NULL AND deleted_at IS NULL\n         ORDER BY lot_id\n         FOR NO KEY UPDATE",
   "describe": {
     "columns": [
       {
@@ -60,6 +60,17 @@
       },
       {
         "ordinal": 5,
+        "name": "lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
         "name": "stock_lvl",
         "type_info": "Numeric",
         "origin": {
@@ -70,7 +81,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "reserved",
         "type_info": "Numeric",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "minimal_stock_level",
         "type_info": "Int4",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "maximum_stock_level",
         "type_info": "Int4",
         "origin": {
@@ -107,7 +118,6 @@
       "Left": [
         "Uuid",
         "Uuid",
-        "Uuid",
         "Uuid"
       ]
     },
@@ -117,11 +127,12 @@
       false,
       true,
       true,
+      true,
       false,
       false,
       false,
       false
     ]
   },
-  "hash": "138d2c3dd5a4af74d85db9038ecdb0c84c307d615e3b2ec14be53e61bca2f2d2"
+  "hash": "abb7265b4ac2a8787167894fdae9e3a494ba37082ed43baa2526de9ec47979ca"
 }

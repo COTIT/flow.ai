@@ -4474,6 +4474,18 @@
         ],
         "type": "object"
       },
+      "Envelope_LotStockLevel": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LotStockLevel"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_MarginResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -8388,6 +8400,25 @@
           "origin",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "LotStockLevel": {
+        "description": "The lot's level at the warehouse after a stock mutation.",
+        "properties": {
+          "stock_lvl": {
+            "description": "2 decimals.",
+            "example": "12.50",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id",
+          "stock_lvl"
         ],
         "type": "object"
       },
@@ -12891,6 +12922,13 @@
             "description": "Stock id, or `fallback-<warehouse id>` for a zero row.",
             "type": "string"
           },
+          "lot": {
+            "description": "`id`, `code`, `expires_on`; null for no-lot stock.",
+            "type": [
+              "object",
+              "null"
+            ]
+          },
           "maximum_stock_level": {
             "format": "int32",
             "type": "integer"
@@ -12951,6 +12989,7 @@
           "warehouse",
           "shelf",
           "bin",
+          "lot",
           "updated_at",
           "meta"
         ],
@@ -16960,12 +16999,51 @@
         ],
         "type": "object"
       },
+      "StockMutationRequest": {
+        "description": "Stock in (positive) or out (negative) of this lot at a warehouse.",
+        "properties": {
+          "is_correction": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "quantity": {
+            "description": "Non-zero, 2 decimals; out may not take more than the lot has free (level − reserved).",
+            "example": "12.5",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 255,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "StockResource": {
         "description": "One stock row of `GET /products/stocks[/negative]`.",
         "properties": {
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "lot": {
+            "description": "`id`, `code`, `expires_on`; null for no-lot stock.",
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "maximum_stock_level": {
             "format": "int32",
@@ -17027,6 +17105,7 @@
           "minimal_stock_level",
           "maximum_stock_level",
           "meta",
+          "lot",
           "relationships"
         ],
         "type": "object"
@@ -17044,6 +17123,13 @@
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "lot": {
+            "description": "`id`, `code`, `expires_on`; null for no-lot stock.",
+            "type": [
+              "object",
+              "null"
+            ]
           },
           "maximum_stock_level": {
             "format": "int32",
@@ -17084,7 +17170,8 @@
           "maximum_stock_level",
           "warehouse",
           "shelf",
-          "bin"
+          "bin",
+          "lot"
         ],
         "type": "object"
       },
@@ -49395,6 +49482,170 @@
           }
         ],
         "summary": "Publish a lot's passport draft",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
+    "/workspace/{workspace}/lots/{lot}/stock-mutations": {
+      "post": {
+        "operationId": "lots_stock_mutate",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockMutationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_LotStockLevel"
+                }
+              }
+            },
+            "description": "Stock moved; the lot's level at the warehouse"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `product.update`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown warehouse, or more out than the lot has free"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put stock into or take it out of a lot",
         "tags": [
           "lots"
         ]

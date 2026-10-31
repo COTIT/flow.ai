@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { StockWithBinsBin } from './stockWithBinsBin';
+import type { StockWithBinsLot } from './stockWithBinsLot';
 import type { StockWithBinsShelf } from './stockWithBinsShelf';
 import type { StockWithBinsWarehouse } from './stockWithBinsWarehouse';
 
@@ -19,6 +20,11 @@ export interface StockWithBins {
      */
   bin: StockWithBinsBin;
   id: string;
+  /**
+     * `id`, `code`, `expires_on`; null for no-lot stock.
+     * @nullable
+     */
+  lot: StockWithBinsLot;
   maximum_stock_level: number;
   minimal_stock_level: number;
   /** 2 decimals. */

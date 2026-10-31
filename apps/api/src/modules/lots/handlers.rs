@@ -21,8 +21,8 @@ use crate::{
         app_keys::secret::CATALOG_READ,
         lots::{
             dto::{
-                CreateLotRequest, ListQuery, LotEventResource, LotResource, PageQuery,
-                PassportResource, UpdateLotRequest,
+                CreateLotRequest, ListQuery, LotEventResource, LotResource, LotStockLevel,
+                PageQuery, PassportResource, StockMutationRequest, UpdateLotRequest,
             },
             passport::Passport,
             public::PublicLot,
@@ -311,5 +311,33 @@ pub async fn storefront_get(
     key.require(CATALOG_READ)?;
     Ok(Data(
         service::public(&state, &code, Some(key.workspace_id)).await?,
+    ))
+}
+
+/// POST /lots/{lot}/stock-mutations -> the lot's level at the warehouse.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/lots/{lot}/stock-mutations", tag = "lots",
+    operation_id = "lots_stock_mutate", summary = "Put stock into or take it out of a lot",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    request_body = StockMutationRequest,
+    responses(
+        (status = 200, body = Envelope<LotStockLevel>, description = "Stock moved; the lot's level at the warehouse"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown warehouse, or more out than the lot has free"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn stock_mutate(
+    State(state): State<AppState>,
+    access: Can<ProductUpdate>,
+    Path((_, id)): LotPath,
+    ValidatedJson(m): ValidatedJson<StockMutationRequest>,
+) -> Result<Data<LotStockLevel>, AppError> {
+    Ok(Data(
+        service::stock_mutation(&state, &access, &id, m).await?,
     ))
 }
