@@ -11,14 +11,18 @@
     "price": "Bei pamoja na VAT",
     "status": "Hali",
     "empty": "Bado hakuna bidhaa.",
-    "search": "Tafuta bidhaa"
+    "search": "Tafuta bidhaa",
+    "netPrice": "Bei bila VAT",
+    "shortDescription": "Maelezo mafupi",
+    "description": "Maelezo"
   },
   "nav": {
     "label": "Menyu kuu",
     "products": "Bidhaa",
     "lots": "Mafungu",
     "appKeys": "Funguo za programu",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "stock": "Akiba"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -152,5 +156,27 @@
       "factLabel": "Jina",
       "factValue": "Thamani"
     }
+  },
+  "stock": {
+    "title": "Akiba",
+    "all": "Akiba yote",
+    "negative": "Chini ya sifuri",
+    "negativeHint": "Mistari ya duka iliyouzwa chini ya sifuri kwenye kaunta. Ihesabu na urekebishe akiba.",
+    "noNegative": "Hakuna chini ya sifuri.",
+    "perWarehouse": "Akiba kwa ghala",
+    "empty": "Bado hakuna mistari ya akiba.",
+    "warehouse": "Ghala",
+    "bin": "Kisanduku",
+    "level": "Iliyopo",
+    "reserved": "Imehifadhiwa",
+    "minimum": "Kiwango cha chini",
+    "movements": "Mabadiliko ya akiba",
+    "noMovements": "Bado hakuna mabadiliko.",
+    "type": "Aina",
+    "change": "Badilisha akiba",
+    "after": "Baada",
+    "reason": "Sababu",
+    "changeHint": "Mabadiliko (k.m. 10 au -3)",
+    "quantityChange": "Mabadiliko"
   }
 }

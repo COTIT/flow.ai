@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
@@ -83,7 +84,14 @@ export default function ProductsPage({
             <TableBody>
               {products.data.data.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell>{p.name}</TableCell>
+                  <TableCell>
+                    <Link
+                      className="font-medium underline-offset-4 hover:underline"
+                      href={`/products/${p.id}`}
+                    >
+                      {p.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>{p.product_nr}</TableCell>
                   <TableCell>{p.reference}</TableCell>
                   {/* The API prints prices as exact strings; shown as-is, never parsed. */}

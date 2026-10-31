@@ -11,14 +11,18 @@
     "price": "Prijs incl. btw",
     "status": "Status",
     "empty": "Nog geen producten.",
-    "search": "Producten zoeken"
+    "search": "Producten zoeken",
+    "netPrice": "Prijs excl. btw",
+    "shortDescription": "Korte omschrijving",
+    "description": "Omschrijving"
   },
   "nav": {
     "label": "Hoofdmenu",
     "products": "Producten",
     "lots": "Batches",
     "appKeys": "App-sleutels",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "stock": "Voorraad"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -152,5 +156,27 @@
       "factLabel": "Label",
       "factValue": "Waarde"
     }
+  },
+  "stock": {
+    "title": "Voorraad",
+    "all": "Alle voorraad",
+    "negative": "Onder nul",
+    "negativeHint": "Winkelregels die aan de kassa onder nul zijn verkocht. Tel ze en corrigeer de voorraad.",
+    "noNegative": "Niets onder nul.",
+    "perWarehouse": "Voorraad per magazijn",
+    "empty": "Nog geen voorraadregels.",
+    "warehouse": "Magazijn",
+    "bin": "Vak",
+    "level": "Op voorraad",
+    "reserved": "Gereserveerd",
+    "minimum": "Minimum",
+    "movements": "Voorraadmutaties",
+    "noMovements": "Nog geen mutaties.",
+    "type": "Soort",
+    "change": "Voorraad wijzigen",
+    "after": "Daarna",
+    "reason": "Reden",
+    "changeHint": "Wijziging (bv. 10 of -3)",
+    "quantityChange": "Wijziging"
   }
 }

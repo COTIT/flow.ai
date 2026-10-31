@@ -11,14 +11,18 @@
     "price": "Price incl. VAT",
     "status": "Status",
     "empty": "No products yet.",
-    "search": "Search products"
+    "search": "Search products",
+    "netPrice": "Price excl. VAT",
+    "shortDescription": "Short description",
+    "description": "Description"
   },
   "nav": {
     "label": "Main menu",
     "products": "Products",
     "lots": "Batches",
     "appKeys": "App keys",
-    "webhooks": "Webhooks"
+    "webhooks": "Webhooks",
+    "stock": "Stock"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -152,5 +156,27 @@
       "factLabel": "Label",
       "factValue": "Value"
     }
+  },
+  "stock": {
+    "title": "Stock",
+    "all": "All stock",
+    "negative": "Below zero",
+    "negativeHint": "Store rows sold below zero at the till. Count them and correct the stock.",
+    "noNegative": "Nothing below zero.",
+    "perWarehouse": "Stock per warehouse",
+    "empty": "No stock rows yet.",
+    "warehouse": "Warehouse",
+    "bin": "Bin",
+    "level": "In stock",
+    "reserved": "Reserved",
+    "minimum": "Minimum",
+    "movements": "Stock movements",
+    "noMovements": "No movements yet.",
+    "type": "Type",
+    "change": "Change stock",
+    "after": "After",
+    "reason": "Reason",
+    "changeHint": "Change (e.g. 10 or -3)",
+    "quantityChange": "Change"
   }
 }
