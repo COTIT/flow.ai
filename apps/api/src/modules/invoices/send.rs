@@ -7,6 +7,7 @@
 //! (sorted), the counter last. A PDF or mail failure keeps the number; resend retries.
 
 use chrono::{DateTime, Days, NaiveTime, Utc};
+use rust_decimal::Decimal;
 use serde_json::Value;
 use sqlx::PgConnection;
 use uuid::Uuid;
@@ -28,7 +29,10 @@ use crate::{
         },
         pdf_templates::{self, repo::TemplateRow},
         settings,
-        stock::repo::{self as stock, Cause, Floor, Mutated, Slot},
+        stock::{
+            repo::{self as stock, Cause, Floor, Mutated, Slot},
+            reserve::{self, Taken, Want},
+        },
     },
     money::round,
     numbering::{self, Appendix, Series},
@@ -357,8 +361,8 @@ async fn move_stock(
         ..Cause::default()
     };
     for (l, slot) in lines.iter().zip(&slots) {
-        let change = l.mutated_from_stock - l.quantity;
-        if round(change, 2).is_zero() {
+        let change = round(l.mutated_from_stock - l.quantity, 2);
+        if change.is_zero() {
             continue;
         }
         let floor = if l.is_store == Some(true) {
@@ -366,24 +370,49 @@ async fn move_stock(
         } else {
             Floor::Zero
         };
-        match stock::mutate(conn, workspace_id, *slot, change, floor, &cause).await? {
-            Mutated::Done { .. } => {}
-            Mutated::Short { level, .. } => {
-                return Err(AppError::Unprocessable(format!(
-                    "Insufficient stock for product {} in {}. Available stock: {}. Required: {}",
-                    product_ref(l),
-                    l.warehouse_name.as_deref().unwrap_or_default(),
-                    level.normalize(),
-                    (-change).normalize(),
-                )));
+        let short = |available: Decimal| {
+            AppError::Unprocessable(format!(
+                "Insufficient stock for product {} in {}. Available stock: {}. Required: {}",
+                product_ref(l),
+                l.warehouse_name.as_deref().unwrap_or_default(),
+                available.normalize(),
+                (-change).normalize(),
+            ))
+        };
+        let out_of_range = || {
+            AppError::Unprocessable(format!(
+                "The stock level of {} in {} would be out of range.",
+                product_ref(l),
+                l.warehouse_name.as_deref().unwrap_or_default(),
+            ))
+        };
+        // Credit notes put stock back on the no-lot row; sales take first-expired-first.
+        if change > Decimal::ZERO {
+            match stock::mutate(conn, workspace_id, *slot, change, floor, &cause).await? {
+                Mutated::Done { .. } => {}
+                Mutated::Short { level, .. } => return Err(short(level)),
+                Mutated::OutOfRange => return Err(out_of_range()),
             }
-            Mutated::OutOfRange => {
-                return Err(AppError::Unprocessable(format!(
-                    "The stock level of {} in {} would be out of range.",
-                    product_ref(l),
-                    l.warehouse_name.as_deref().unwrap_or_default(),
-                )));
-            }
+            continue;
+        }
+        let want = Want {
+            product_id: l.product_id,
+            quantity: -change,
+        };
+        match reserve::take(
+            conn,
+            workspace_id,
+            slot.warehouse_id,
+            &[want],
+            floor,
+            &cause,
+        )
+        .await
+        {
+            Ok(Taken::Done) => {}
+            Ok(Taken::Short { available, .. }) => return Err(short(available)),
+            Err(reserve::Error::OutOfRange(_)) => return Err(out_of_range()),
+            Err(e) => return Err(e.into()),
         }
     }
     let ids: Vec<Uuid> = lines.iter().map(|l| l.id).collect();

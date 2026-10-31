@@ -68,9 +68,17 @@ An order's hold (confirm) and shipment (complete) pick rows first-expired-first:
 
 Only `released` lots that are not past `expires_on` are sellable; quarantined, recalled and expired lots are never held. A hold may spread over several lots, and completing ships from exactly the rows held. Each ledger line names its lot.
 
-Completing an order that holds a lot recalled since the hold gives `409 {"message": "lot_recalled"}`. A lot past its expiry date since the hold gives `409 {"message": "lot_expired"}`. In both cases nothing is written and the hold stays, so the office can cancel the order or release the hold; nothing is swapped to another lot silently.
+Completing an order that holds a lot recalled since the hold gives `409 {"message": "lot_recalled"}`. A lot put in quarantine since gives `409 {"message": "lot_quarantined"}`, and a lot past its expiry date since gives `409 {"message": "lot_expired"}`. In both cases nothing is written and the hold stays, so the office can cancel the order or release the hold; nothing is swapped to another lot silently.
 
 The storefront's `available_stock` counts only no-lot stock and sellable lot stock.
+
+### Sales without a hold (till, invoices)
+
+Till sales and sent invoices take stock straight away, through the stock seam's `take`. They use the same order: no-lot stock first, then sellable lots first-expired-first. Each ledger line names its lot.
+
+- **Store warehouses** never refuse. What the rows can't cover lands on the no-lot row, which may go below zero, as before.
+- **Other warehouses** refuse an invoice that asks for more than the no-lot row and the sellable lots hold: `422` "Insufficient stock for product … Available stock: … Required: …". Nothing is written.
+- **Credit notes** put stock back on the no-lot row, never into a lot.
 
 ## Passport
 

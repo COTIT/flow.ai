@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Phase 3 step 6, `take` on the stock seam (till sales, invoice sends):
+  - `reserve::take(conn, ws, warehouse_id, wants, floor, cause) -> Taken {Done | Short{index, available}}`. It takes rows first-expired-first. Every line is checked before any write under `Floor::Zero`/`Available`. Under `Floor::None` (stores) the remainder lands on the no-lot row, which may go negative. A level past the range is `Error::OutOfRange`.
+  - Invoice sends take through `take` (stores `Floor::None`, others `Floor::Zero`); error texts are unchanged, and "Available stock" is the summed level of the usable rows. Credit notes still put stock back on the no-lot row.
+  - `commit` also refuses a hold on a lot put in quarantine since (409 `lot_quarantined`).
 - Phase 3 step 5, first-expired-first on the order seam (`stock/reserve.rs`, new pure `stock/fefo.rs`):
   - `pick` locks a product's no-lot row and lot rows in key order and orders them: no-lot stock first, then sellable lots (released, not expired) by earliest expiry or best-before date, undated last. Holds split across lots.
   - `consume` takes those key-order locks before working through the holds, so holds spread over lots can't deadlock two orders.

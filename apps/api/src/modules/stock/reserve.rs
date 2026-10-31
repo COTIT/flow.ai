@@ -13,7 +13,7 @@ use crate::{
     modules::{
         stock::{
             fefo,
-            repo::{self, Cause, Floor, Movement, Slot, StockRow},
+            repo::{self, Cause, Floor, Movement, Mutated, Slot, StockRow},
         },
         webhooks,
     },
@@ -37,6 +37,17 @@ pub enum Reserved {
     },
 }
 
+/// Result of [`take`].
+#[derive(Debug, PartialEq, Eq)]
+pub enum Taken {
+    Done,
+    /// `wants[index]` asked more than `available` under the floor; nothing written.
+    Short {
+        index: usize,
+        available: Decimal,
+    },
+}
+
 /// Why a hold change was refused.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -54,6 +65,13 @@ pub enum Error {
     /// Commit of a hold on a lot past its expiry date since: never shipped, the hold stays.
     #[error("lot {lot_id} of product {product_id} has expired")]
     LotExpired { product_id: Uuid, lot_id: Uuid },
+    /// Commit of a hold on a lot put in quarantine since: never shipped, the hold stays.
+    #[error("lot {lot_id} of product {product_id} is in quarantine")]
+    LotQuarantined { product_id: Uuid, lot_id: Uuid },
+    /// A take would push the product's no-lot row past the level range; the caller's
+    /// transaction is rolled back.
+    #[error("stock level out of range: {0}")]
+    OutOfRange(Uuid),
 }
 
 impl From<Error> for AppError {
@@ -62,6 +80,10 @@ impl From<Error> for AppError {
             Error::Db(e) => Self::Database(e),
             Error::LotRecalled { .. } => Self::Conflict("lot_recalled"),
             Error::LotExpired { .. } => Self::Conflict("lot_expired"),
+            Error::LotQuarantined { .. } => Self::Conflict("lot_quarantined"),
+            Error::OutOfRange(_) => {
+                Self::Unprocessable("The stock level would be out of range.".into())
+            }
             other => Self::Internal(other.to_string()),
         }
     }
@@ -134,8 +156,8 @@ async fn pick(
     ))
 }
 
-/// Refuse a commit when a lot the record holds for `product_id` is recalled or past its
-/// expiry date (food safety): nothing is written and the hold stays for the office.
+/// Refuse a commit when a lot the record holds for `product_id` is recalled, in quarantine or
+/// past its expiry date (food safety): nothing is written and the hold stays for the office.
 async fn check_lots(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -162,6 +184,12 @@ async fn check_lots(
     for l in held {
         if l.status == "recalled" {
             return Err(Error::LotRecalled {
+                product_id,
+                lot_id: l.id,
+            });
+        }
+        if l.status == "quarantine" {
+            return Err(Error::LotQuarantined {
                 product_id,
                 lot_id: l.id,
             });
@@ -286,6 +314,74 @@ pub async fn commit(
         }
     }
     Ok(())
+}
+
+/// Take stock without a hold (till sale, invoice): ledger `decrease` related to `cause`, from
+/// the rows [`pick`] gives (no-lot stock, then sellable lots first-expired-first). A row gives
+/// its level (`Floor::Available`: level − reserved). What they can't cover is Short under
+/// `Floor::Zero`/`Available` (all lines checked, nothing written) and lands on the no-lot row
+/// under `Floor::None` (store warehouses), which may go negative.
+/// Locks every product's rows first, in product order; a caller spanning warehouses locks
+/// them all with [`repo::lock_all`] before calling.
+pub async fn take(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    warehouse_id: Uuid,
+    wants: &[Want],
+    floor: Floor,
+    cause: &Cause<'_>,
+) -> Result<Taken, Error> {
+    let wants = totals(wants);
+    let slots: Vec<Slot> = wants
+        .iter()
+        .map(|(_, w)| slot(warehouse_id, w.product_id))
+        .collect();
+    // Creates a missing no-lot row first, so a store remainder never locks out of order.
+    repo::lock_all(conn, workspace_id, &slots).await?;
+    let mut plans = Vec::new();
+    for (index, w) in wants {
+        let rows = pick(conn, workspace_id, warehouse_id, w.product_id).await?;
+        let free = |r: &StockRow| {
+            let held = if floor == Floor::Available {
+                r.reserved
+            } else {
+                Decimal::ZERO
+            };
+            (r.stock_lvl - held).max(Decimal::ZERO)
+        };
+        let available: Decimal = rows.iter().map(free).sum();
+        if available < w.quantity && floor != Floor::None {
+            return Ok(Taken::Short { index, available });
+        }
+        let mut left = w.quantity;
+        let mut plan = Vec::new();
+        for row in rows {
+            let q = left.min(free(&row));
+            if q > Decimal::ZERO {
+                plan.push((row.lot_id, q));
+                left -= q;
+            }
+        }
+        if left > Decimal::ZERO {
+            plan.push((None, left));
+        }
+        plans.push((index, w, plan));
+    }
+    for (_, w, plan) in plans {
+        for (lot_id, q) in plan {
+            let s = Slot {
+                lot_id,
+                ..slot(warehouse_id, w.product_id)
+            };
+            // Floor checked above; a store's remainder may go negative.
+            if let Mutated::OutOfRange =
+                repo::mutate(conn, workspace_id, s, -q, Floor::None, cause).await?
+            {
+                return Err(Error::OutOfRange(w.product_id));
+            }
+        }
+    }
+    Ok(Taken::Done)
 }
 
 /// Put returned stock back on the warehouse-level row (ledger `increase`).
@@ -740,5 +836,129 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!(rows, (5, "5.00".into()));
+    }
+
+    /// A lot of `product` with `qty` at the warehouse.
+    async fn lot_stock(pool: &PgPool, ws: Uuid, product: Uuid, wh: Uuid, code: &str, qty: i64) {
+        let lot: Uuid = sqlx::query_scalar(
+            "INSERT INTO lots (workspace_id, product_id, code, public_code, expires_on)
+             VALUES ($1, $2, $3, upper(substr(md5($3 || $2::text), 1, 10)), '2099-01-01')
+             RETURNING id",
+        )
+        .bind(ws)
+        .bind(product)
+        .bind(code)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+        let mut tx = pool.begin().await.unwrap();
+        let s = Slot {
+            lot_id: Some(lot),
+            ..slot(wh, product)
+        };
+        repo::mutate(
+            &mut tx,
+            ws,
+            s,
+            Decimal::from(qty),
+            Floor::None,
+            &Cause::default(),
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn takes_in_opposite_orders_over_lots_run_in_parallel(pool: PgPool) {
+        let (ws, a, b, wh) = fixture(&pool, 0).await;
+        for (p, c) in [(a, "A"), (b, "B")] {
+            lot_stock(&pool, ws, p, wh, &format!("{c}1"), 30).await;
+            lot_stock(&pool, ws, p, wh, &format!("{c}2"), 30).await;
+        }
+        let tasks: Vec<_> = (0..40)
+            .map(|i| {
+                let pool = pool.clone();
+                tokio::spawn(async move {
+                    let wants = if i % 2 == 0 {
+                        [want(a, 1), want(b, 1)]
+                    } else {
+                        [want(b, 1), want(a, 1)]
+                    };
+                    let mut tx = pool.begin().await.unwrap();
+                    let taken = take(&mut tx, ws, wh, &wants, Floor::Zero, &Cause::default())
+                        .await
+                        .unwrap();
+                    tx.commit().await.unwrap();
+                    taken
+                })
+            })
+            .collect();
+        for t in tasks {
+            assert_eq!(t.await.unwrap(), Taken::Done);
+        }
+        let left: Decimal = sqlx::query_scalar(
+            "SELECT sum(stock_lvl) FROM stocks WHERE product_id = ANY($1) AND lot_id IS NOT NULL",
+        )
+        .bind(vec![a, b])
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(left, Decimal::from(40));
+    }
+
+    #[sqlx::test]
+    async fn short_takes_write_nothing_and_stores_go_negative(pool: PgPool) {
+        let (ws, a, b, wh) = fixture(&pool, 2).await;
+        lot_stock(&pool, ws, a, wh, "L1", 3).await;
+
+        let mut tx = pool.begin().await.unwrap();
+        let short = take(
+            &mut tx,
+            ws,
+            wh,
+            &[want(a, 4), want(b, 3)],
+            Floor::Zero,
+            &Cause::default(),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            short,
+            Taken::Short {
+                index: 1,
+                available: Decimal::from(2)
+            },
+            "all lines checked before any write"
+        );
+        drop(tx);
+        assert_eq!(levels(&pool, b).await.0, "2.00");
+
+        let mut tx = pool.begin().await.unwrap();
+        let done = take(
+            &mut tx,
+            ws,
+            wh,
+            &[want(a, 7)],
+            Floor::None,
+            &Cause::default(),
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+        assert_eq!(done, Taken::Done);
+        let a_rows: Vec<(Option<Uuid>, String)> = sqlx::query_as(
+            "SELECT lot_id, stock_lvl::text FROM stocks WHERE product_id = $1 ORDER BY lot_id NULLS FIRST",
+        )
+        .bind(a)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        let levels: Vec<&str> = a_rows.iter().map(|r| r.1.as_str()).collect();
+        assert_eq!(
+            levels,
+            ["-2.00", "0.00"],
+            "no-lot 2 and lot 3 taken, 2 more below zero"
+        );
     }
 }

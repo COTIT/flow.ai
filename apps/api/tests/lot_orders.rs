@@ -347,3 +347,22 @@ async fn opposite_line_orders_on_lot_stock_ship_in_parallel(pool: PgPool) {
         [r("W1", "10.00", "0.00"), r("W2", "60.00", "0.00")]
     );
 }
+
+#[sqlx::test]
+async fn a_hold_on_a_lot_quarantined_since_is_not_shipped(pool: PgPool) {
+    let w = world(pool).await;
+    let held = lot(&w, &w.honey, "Q", Some("2099-01-01"), 5).await;
+    let a = draft(&w, json!([line(&w.honey, "2")])).await;
+    act(&w, &a, "confirm").await;
+    pick_all(&w, &a).await;
+
+    set_lot(&w, &held, json!({ "status": "quarantine" })).await;
+    let (s, res) = act(&w, &a, "complete").await;
+
+    assert_eq!(
+        (s, &res["message"]),
+        (StatusCode::CONFLICT, &json!("lot_quarantined")),
+        "{res}"
+    );
+    assert_eq!(rows(&w, &w.honey).await, [r("Q", "5.00", "2.00")]);
+}
