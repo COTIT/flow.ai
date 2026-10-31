@@ -4,6 +4,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -13,15 +14,19 @@ use crate::{
 
 const MAX: usize = 150;
 
-/// Laravel SalesGroupResource.
-#[derive(Serialize)]
+// Laravel SalesGroupResource.
+/// Bookkeeping group with purchase and revenue ledger codes.
+#[derive(Serialize, ToSchema)]
 pub struct SalesGroupResource {
     id: Uuid,
     name: String,
+    #[schema(required = true)]
     purchase_code: Option<String>,
+    #[schema(required = true)]
     revenue_code: Option<String>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
 }
 
@@ -40,25 +45,36 @@ impl From<SalesGroupRow> for SalesGroupResource {
 }
 
 /// Create response: the new row's id.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SalesGroupCreated {
     pub sales_group_id: Uuid,
 }
 
 /// GET list query. Unknown params ignored.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search text.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
 /// POST /settings/sales-groups.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "New sales group. `name` is unique per workspace.")]
 pub struct CreateSalesGroupRequest {
+    #[schema(value_type = String, max_length = 150)]
     name: Option<String>,
+    #[schema(max_length = 150)]
     purchase_code: Option<String>,
+    #[schema(max_length = 150)]
     revenue_code: Option<String>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -83,16 +99,25 @@ impl Validate for CreateSalesGroupRequest {
     }
 }
 
-/// POST /settings/sales-groups/{id}. `name` stays required (Laravel update rules); codes and
-/// meta patch (absent = keep, null = clear).
-#[derive(Deserialize)]
+// POST /settings/sales-groups/{id}. `name` stays required (Laravel update rules); codes and
+// meta patch (absent = keep, null = clear).
+/// POST /settings/sales-groups/{id}.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to a sales group. `name` is always required; leave another field \
+        out to keep it, send null to clear it."
+)]
 pub struct UpdateSalesGroupRequest {
+    #[schema(value_type = String, max_length = 150)]
     name: Option<String>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 150)]
     purchase_code: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 150)]
     revenue_code: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

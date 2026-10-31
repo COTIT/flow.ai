@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -22,24 +23,36 @@ pub fn weight_message(min: Decimal) -> String {
     format!("The max weight must be greater than {}.", min.normalize())
 }
 
-/// Laravel ShipmentMethodResource. Uncast decimal columns came out as 8-decimal strings and
-/// the double weights as numbers; `can_be_selected` is a JSON bool here (Laravel sent 0/1).
-#[derive(Serialize)]
+// Laravel ShipmentMethodResource. Uncast decimal columns came out as 8-decimal strings and
+// the double weights as numbers; `can_be_selected` is a JSON bool here (Laravel sent 0/1).
+/// A way to ship orders, with its costs and per-country prices.
+#[derive(Serialize, ToSchema)]
 pub struct ShipmentMethodResource {
     id: Uuid,
     name: String,
     carrier: String,
+    /// Decimal string, 8 decimals.
+    #[schema(example = "4.95000000")]
     shipping_costs: String,
     min_weight: f64,
     max_weight: f64,
+    #[schema(required = true)]
     provider: Option<String>,
+    /// Percentage -100..=100, decimal string with 8 decimals.
+    #[schema(example = "0.00000000")]
     price_impact_business: String,
+    /// Percentage -100..=100, decimal string with 8 decimals.
+    #[schema(example = "0.00000000")]
     price_impact_consumer: String,
+    #[schema(required = true)]
     provider_id: Option<String>,
+    /// Per-country rows `{name, country, price, lead_time_hours}`; each key only when sent.
+    #[schema(value_type = Option<Vec<Object>>, required = true)]
     countries: Option<Value>,
     can_be_selected: bool,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
 }
 
@@ -71,16 +84,23 @@ impl From<ShipmentMethodRow> for ShipmentMethodResource {
 }
 
 /// Create response: the new row's id.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ShipmentMethodCreated {
     pub shipment_method_id: Uuid,
 }
 
-/// GET list query. Unknown params (`sort_by`, `sort_direction`) ignored, like Laravel.
-#[derive(Deserialize)]
+// GET list query. Unknown params (`sort_by`, `sort_direction`) ignored, like Laravel.
+/// GET list query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search text.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
@@ -162,19 +182,40 @@ fn selectable(r: &mut Rules, v: Option<Value>) -> bool {
         .unwrap_or_default()
 }
 
-/// POST /shipment-methods. Unlike Laravel, price impacts, countries and `can_be_selected`
-/// are kept on create (Laravel's store rules silently dropped them).
-#[derive(Deserialize)]
+// POST /shipment-methods. Unlike Laravel, price impacts, countries and `can_be_selected`
+// are kept on create (Laravel's store rules silently dropped them).
+/// POST /shipment-methods.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "New shipment method. Amounts are decimal strings; `max_weight` must be \
+        greater than `min_weight`."
+)]
 pub struct CreateShipmentMethodRequest {
+    #[schema(value_type = String, max_length = 255)]
     name: Option<String>,
+    #[schema(value_type = String, max_length = 255)]
     carrier: Option<String>,
+    /// >= 0.
+    #[schema(value_type = String, example = "4.95")]
     shipping_costs: Option<Value>,
+    /// >= 0.
+    #[schema(value_type = String, example = "0")]
     min_weight: Option<Value>,
+    /// >= 0, greater than `min_weight`.
+    #[schema(value_type = String, example = "30")]
     max_weight: Option<Value>,
+    /// Percentage -100..=100; default 0.
+    #[schema(value_type = String, required = false, example = "0")]
     price_impact_business: Option<Value>,
+    /// Percentage -100..=100; default 0.
+    #[schema(value_type = String, required = false, example = "0")]
     price_impact_consumer: Option<Value>,
+    /// Up to 300 rows `{name?, country? (ISO alpha-2), price? (>= 0), lead_time_hours? (>= 0)}`.
+    #[schema(value_type = Option<Vec<Object>>)]
     countries: Option<Value>,
+    #[schema(value_type = Option<bool>)]
     can_be_selected: Option<Value>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -229,26 +270,44 @@ impl Validate for CreateShipmentMethodRequest {
     }
 }
 
-/// POST /shipment-methods/{id}. Laravel update rules: price impacts and `countries` required
-/// (an empty array is accepted here; Laravel's `required` refused it), the rest patches.
-#[derive(Deserialize)]
+// POST /shipment-methods/{id}. Laravel update rules: price impacts and `countries` required
+// (an empty array is accepted here; Laravel's `required` refused it), the rest patches.
+/// POST /shipment-methods/{id}.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to a shipment method. Both price impacts and `countries` are always \
+        required (`countries` may be empty); leave another field out to keep it."
+)]
 pub struct UpdateShipmentMethodRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, max_length = 255)]
     name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, max_length = 255)]
     carrier: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, example = "4.95")]
     shipping_costs: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, example = "0")]
     min_weight: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, example = "30")]
     max_weight: Option<Option<Value>>,
+    /// Percentage -100..=100.
+    #[schema(value_type = String, example = "0")]
     price_impact_business: Option<Value>,
+    /// Percentage -100..=100.
+    #[schema(value_type = String, example = "0")]
     price_impact_consumer: Option<Value>,
+    /// Up to 300 rows `{name?, country? (ISO alpha-2), price? (>= 0), lead_time_hours? (>= 0)}`.
+    #[schema(value_type = Vec<Object>)]
     countries: Option<Value>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     can_be_selected: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

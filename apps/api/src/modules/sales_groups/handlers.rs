@@ -9,11 +9,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::sales_groups::{
@@ -37,6 +37,21 @@ permissions! {
 type GroupPath = Path<(String, String)>;
 
 /// GET /settings/sales-groups -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/settings/sales-groups", tag = "sales_groups",
+    operation_id = "sales_groups_list", summary = "List sales groups",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ListQuery,
+    ),
+    responses(
+        (status = 200, body = Paginated<SalesGroupResource>, description = "One page of sales groups"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `salesgroup.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<SalesGroupList>,
@@ -57,6 +72,20 @@ pub async fn list(
 }
 
 /// GET /settings/sales-groups/{sales_group}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/settings/sales-groups/{sales_group}", tag = "sales_groups",
+    operation_id = "sales_groups_get", summary = "Get a sales group",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("sales_group" = Uuid, Path, description = "Sales group id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<SalesGroupResource>, description = "The sales group"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `salesgroup.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or sales group, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<SalesGroupGet>,
@@ -68,6 +97,19 @@ pub async fn get(
 }
 
 /// POST /settings/sales-groups -> 201 `{data:{sales_group_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/settings/sales-groups", tag = "sales_groups",
+    operation_id = "sales_groups_create", summary = "Create a sales group",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateSalesGroupRequest,
+    responses(
+        (status = 201, body = Envelope<SalesGroupCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `salesgroup.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `name` already taken"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<SalesGroupCreate>,
@@ -81,6 +123,22 @@ pub async fn create(
 }
 
 /// POST /settings/sales-groups/{sales_group} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/settings/sales-groups/{sales_group}", tag = "sales_groups",
+    operation_id = "sales_groups_update", summary = "Update a sales group (`name` always required)",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("sales_group" = Uuid, Path, description = "Sales group id"),
+    ),
+    request_body = UpdateSalesGroupRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `salesgroup.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or sales group, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or `name` already taken"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<SalesGroupUpdate>,
@@ -92,6 +150,20 @@ pub async fn update(
 }
 
 /// DELETE /settings/sales-groups/{sales_group} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/settings/sales-groups/{sales_group}", tag = "sales_groups",
+    operation_id = "sales_groups_delete", summary = "Delete a sales group",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("sales_group" = Uuid, Path, description = "Sales group id"),
+    ),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `salesgroup.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or sales group, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<SalesGroupDelete>,

@@ -13,7 +13,11 @@ use crate::{
     AppState,
     error::ValidationErrorBody,
     http::response::MessageBody,
-    modules::{auth, currencies, email_verification, invites, users::dto::UserEmailResource},
+    modules::{
+        auth, contacts, currencies, custom_statuses, custom_types, email_verification,
+        hourly_rates, invites, relations, sales_groups, search, shipment_methods,
+        users::dto::UserEmailResource, vat_groups,
+    },
 };
 
 #[derive(OpenApi)]
@@ -61,6 +65,15 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(invites::routes::private())
         .merge(email_verification::routes::private())
         .merge(currencies::routes::private())
+        .merge(search::routes::private())
+        .merge(relations::routes::private())
+        .merge(contacts::routes::private())
+        .merge(custom_statuses::routes::private())
+        .merge(custom_types::routes::private())
+        .merge(shipment_methods::routes::private())
+        .merge(sales_groups::routes::private())
+        .merge(hourly_rates::routes::private())
+        .merge(vat_groups::routes::private())
 }
 
 /// Full spec, built from [`public`] and [`private`], as JSON.

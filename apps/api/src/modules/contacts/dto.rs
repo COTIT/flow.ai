@@ -4,6 +4,10 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use utoipa::{
+    ToSchema,
+    openapi::{ArrayBuilder, Schema},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -45,34 +49,78 @@ pub fn full_name(c: &ContactRow) -> String {
     format!("{first}{middle}{last}")
 }
 
-/// Laravel ContactResource. `prefix`/`attn`/`salutation` only when set; `email_validation`
-/// only with an email, always null until email checks are ported.
-#[derive(Serialize)]
+// Laravel ContactResource. `prefix`/`attn`/`salutation` only when set; `email_validation`
+// only with an email, always null until email checks are ported.
+/// A person at a relation.
+#[derive(Serialize, ToSchema)]
 pub struct ContactResource {
     id: Uuid,
+    /// First name (else salutation), lowercase middle name, last name.
     full_name: String,
+    /// Only when set.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = String)]
     prefix: Option<String>,
+    /// Only when set.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = String)]
     attn: Option<String>,
+    /// Only when set.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = String)]
     salutation: Option<String>,
+    #[schema(required = true)]
     initials: Option<String>,
+    #[schema(required = true)]
     job_title: Option<String>,
+    #[schema(required = true)]
     first_name: Option<String>,
+    /// Lowercase.
+    #[schema(required = true)]
     middle_name: Option<String>,
+    #[schema(required = true)]
     last_name: Option<String>,
+    #[schema(required = true)]
     email: Option<String>,
+    /// Only when `email` is set; null until email checks exist.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Object>, required = false)]
     email_validation: Option<Option<Value>>,
+    #[schema(value_type = Vec<ContactPhone>)]
     phones: Value,
     default_contact: bool,
+    /// One of `default_for_estimate`, `default_for_invoice`, `default_for_order`,
+    /// `default_for_purchase_order`, `default_for_work_order`.
+    #[schema(required = true)]
     default_for: Option<String>,
     relation_id: Uuid,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    #[schema(schema_with = empty_array)]
     relationships: [(); 0],
+}
+
+/// One stored phone number.
+// Doc-only: describes the `phones` items; never constructed.
+#[derive(ToSchema)]
+#[allow(dead_code)]
+pub struct ContactPhone {
+    /// `home`, `mobile`, `phone`, `phone2` or `work`.
+    #[schema(rename = "type", example = "mobile")]
+    kind: String,
+    /// Digits, with `+<country code>` when known; null when nothing usable was sent.
+    #[schema(required = true, example = "+31612345678")]
+    number: Option<String>,
+}
+
+/// Wire shape of a `[(); 0]` field: always `[]`.
+pub fn empty_array() -> Schema {
+    ArrayBuilder::new()
+        .max_items(Some(0))
+        .description(Some("Always empty"))
+        .into()
 }
 
 impl From<ContactRow> for ContactResource {
@@ -104,7 +152,7 @@ impl From<ContactRow> for ContactResource {
 }
 
 /// Create response: the new contact's id.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ContactCreated {
     pub contact_id: Uuid,
 }
@@ -266,6 +314,55 @@ pub fn contact_fields(
 #[derive(Deserialize)]
 pub struct CreateContactRequest(Map<String, Value>);
 
+/// Contact fields. Text is trimmed; blank = not set.
+// Doc-only: request_body schema for the raw-object create body (and a relation's inline
+// `contact`); never constructed.
+#[derive(ToSchema)]
+#[allow(dead_code)]
+pub struct ContactInput {
+    /// Required on the contact routes, optional inline on a relation.
+    #[schema(max_length = 55)]
+    first_name: Option<String>,
+    #[schema(max_length = 55)]
+    middle_name: Option<String>,
+    /// Required on the contact routes, optional inline on a relation.
+    #[schema(max_length = 55)]
+    last_name: Option<String>,
+    #[schema(max_length = 55)]
+    prefix: Option<String>,
+    #[schema(max_length = 55)]
+    initials: Option<String>,
+    #[schema(max_length = 100)]
+    job_title: Option<String>,
+    #[schema(max_length = 55)]
+    salutation: Option<String>,
+    #[schema(max_length = 255)]
+    email: Option<String>,
+    #[schema(max_length = 55)]
+    phone_number: Option<String>,
+    /// Up to 20; numbers are normalized to `+<country code>` from the relation's address.
+    #[schema(max_items = 20)]
+    phones: Option<Vec<PhoneInput>>,
+    default_contact: Option<bool>,
+    /// One of `default_for_estimate`, `default_for_invoice`, `default_for_order`,
+    /// `default_for_purchase_order`, `default_for_work_order`.
+    default_for: Option<String>,
+    #[schema(value_type = Option<Object>)]
+    meta: Option<Value>,
+}
+
+/// One phone number to store.
+// Doc-only: `phones` item schema; never constructed.
+#[derive(ToSchema)]
+#[allow(dead_code)]
+pub struct PhoneInput {
+    /// `home`, `mobile`, `phone`, `phone2` or `work`, any case.
+    #[schema(rename = "type", example = "mobile")]
+    kind: String,
+    #[schema(max_length = 30, example = "06 12345678")]
+    number: String,
+}
+
 impl Validate for CreateContactRequest {
     type Valid = ContactFields;
 
@@ -274,33 +371,50 @@ impl Validate for CreateContactRequest {
     }
 }
 
-/// POST /relations/{relation}/contacts/{contact}: every key is a patch (absent = keep).
-/// Laravel nulled `email`/`phone_number` whenever they were left out; genesy keeps them.
-#[derive(Deserialize)]
+// POST /relations/{relation}/contacts/{contact}: every key is a patch (absent = keep).
+// Laravel nulled `email`/`phone_number` whenever they were left out; genesy keeps them.
+/// POST /relations/{relation}/contacts/{contact}.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to a contact, same rules as create. Leave a field out to keep it, \
+        send null to clear it (`first_name` and `last_name` can't be cleared)."
+)]
 pub struct UpdateContactRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     first_name: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     middle_name: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     last_name: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     prefix: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     initials: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 100)]
     job_title: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     salutation: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 255)]
     email: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     phone_number: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Vec<PhoneInput>>, max_items = 20)]
     phones: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     default_contact: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     default_for: Option<Option<Value>>,
 }
 

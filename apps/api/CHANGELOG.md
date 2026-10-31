@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- OpenAPI rollout group B: `vat_groups`, `hourly_rates`, `sales_groups`, `shipment_methods`, `custom_types`, `custom_statuses`, `relations` (incl. `financial-summary`), `contacts` and the `/searches` registry are documented (40 operations, operationIds `<tag>_<action>`) and mounted from `openapi::private()`. Paths, statuses and bodies are unchanged; the contract check in `send` now validates every reply these modules' tests produce.
+  - Lenient inputs are documented as clean types: money and percentages as decimal strings, flags as booleans, ids as uuids.
+  - `relations` and contacts read raw JSON objects, so their create/update bodies are documented by doc-only structs (`RelationInput`, `RelationPatchInput`, `ContactInput`, `AddressInput`, `PhoneInput`, `RelationTerms`); the extractors are unchanged.
+  - `POST /relations/` (trailing slash, older clients) stays served but undocumented; the contract check skips it.
+  - Doc gaps: `/searches` rows are untyped objects (`SearchRow`) because some domains' resources aren't documented yet; `financial-summary` returns a free-form object (`FinancialSummary`, a placeholder until invoices are ported).
+- Pulled the later genesy-360-api work into `apps/api` (old repo `416abee49`): F6 invoice send/numbering/credit notes, F7 invoice payments, B7-1 job rail + idempotency keys, B8-1/B8-2 deal pipelines and deals, `ctutils` 0.4.4 (RUSTSEC-2026-0385). The invoices public hash link joins the public router undocumented; the test `send()` keeps the contract check and delegates to upstream's `send_raw`.
 - Pulled the later genesy-360-api work into `apps/api` (old repo `416abee49`): F6 invoice send/numbering/credit notes, F7 invoice payments, B7-1 job rail + idempotency keys, B8-1/B8-2 deal pipelines and deals, `ctutils` 0.4.4 (RUSTSEC-2026-0385). The invoices public hash link joins the public router undocumented; the test `send()` keeps the contract check and delegates to upstream's `send_raw`.
 - OpenAPI step 2 (TypeScript client):
   - `openapi::spec()` now returns JSON and swaps inline copies of named schemas for `$ref`s (utoipa pastes generic args inline; orval then emitted duplicate anonymous types).

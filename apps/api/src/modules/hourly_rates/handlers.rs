@@ -9,11 +9,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::hourly_rates::{
@@ -38,6 +38,21 @@ permissions! {
 type RatePath = Path<(String, String)>;
 
 /// GET /hourly-rates -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/hourly-rates", tag = "hourly_rates",
+    operation_id = "hourly_rates_list", summary = "List hourly rates",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ListQuery,
+    ),
+    responses(
+        (status = 200, body = Paginated<HourlyRateResource>, description = "One page of hourly rates"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `hourlyrate.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<HourlyRateList>,
@@ -58,6 +73,20 @@ pub async fn list(
 }
 
 /// GET /hourly-rates/{hourly_rate}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/hourly-rates/{hourly_rate}", tag = "hourly_rates",
+    operation_id = "hourly_rates_get", summary = "Get an hourly rate",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("hourly_rate" = Uuid, Path, description = "Hourly rate id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<HourlyRateResource>, description = "The hourly rate"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `hourlyrate.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or hourly rate, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<HourlyRateGet>,
@@ -69,6 +98,19 @@ pub async fn get(
 }
 
 /// POST /hourly-rates -> 201 `{data:{hourly_rate_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/hourly-rates", tag = "hourly_rates",
+    operation_id = "hourly_rates_create", summary = "Create an hourly rate",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateHourlyRateRequest,
+    responses(
+        (status = 201, body = Envelope<HourlyRateCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `hourlyrate.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<HourlyRateCreate>,
@@ -82,6 +124,22 @@ pub async fn create(
 }
 
 /// POST /hourly-rates/{hourly_rate} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/hourly-rates/{hourly_rate}", tag = "hourly_rates",
+    operation_id = "hourly_rates_update", summary = "Update an hourly rate (both prices always required)",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("hourly_rate" = Uuid, Path, description = "Hourly rate id"),
+    ),
+    request_body = UpdateHourlyRateRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `hourlyrate.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or hourly rate, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<HourlyRateUpdate>,
@@ -93,6 +151,20 @@ pub async fn update(
 }
 
 /// DELETE /hourly-rates/{hourly_rate} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/hourly-rates/{hourly_rate}", tag = "hourly_rates",
+    operation_id = "hourly_rates_delete", summary = "Delete an hourly rate",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("hourly_rate" = Uuid, Path, description = "Hourly rate id"),
+    ),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `hourlyrate.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or hourly rate, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<HourlyRateDelete>,

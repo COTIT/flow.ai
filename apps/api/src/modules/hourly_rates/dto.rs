@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -18,25 +19,37 @@ const LEDGER_MAX: usize = 55;
 /// Laravel `rules.ValidateId` for attribute `vat group id`, domain `vat_group`.
 pub const BAD_VAT_GROUP: &str = "The vat group id is an invalid id for the vat_group domain.";
 
-/// Laravel HourlyRateResource. Prices went through MoneyHelper::formatDecimals uncast,
-/// so a zero price is "0" and a null purchase price "0.00".
-#[derive(Serialize)]
+// Laravel HourlyRateResource. Prices went through MoneyHelper::formatDecimals uncast,
+// so a zero price is "0" and a null purchase price "0.00".
+/// A billable hourly rate with its VAT group.
+#[derive(Serialize, ToSchema)]
 pub struct HourlyRateResource {
     id: Uuid,
     title: String,
     description: String,
+    /// Decimal string, 2 decimals (zero is `"0"`).
+    #[schema(example = "65.00")]
     consumer_price: String,
+    /// Decimal string, 2 decimals (zero is `"0"`).
+    #[schema(example = "55.00")]
     business_price: String,
+    #[schema(required = true)]
     ledger_number: Option<String>,
+    /// Decimal string, 2 decimals; `"0.00"` when not set.
+    #[schema(example = "40.00")]
     purchase_price: String,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    #[schema(inline)]
     relationships: Relationships,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct Relationships {
+    /// Null when the VAT group was deleted.
+    #[schema(required = true)]
     vat_group: Option<VatGroupResource>,
 }
 
@@ -65,16 +78,22 @@ impl From<HourlyRateRow> for HourlyRateResource {
 }
 
 /// Create response: the new row's id.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct HourlyRateCreated {
     pub hourly_rate_id: Uuid,
 }
 
 /// GET list query. Unknown params ignored.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search text.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
@@ -96,16 +115,26 @@ fn vat_group_id(r: &mut Rules, v: &str) -> Option<Uuid> {
     id
 }
 
-/// POST /hourly-rates.
-#[derive(Deserialize)]
+/// POST /hourly-rates. Raw `Value`s keep lenient parsing; the schema documents the clean
+/// types clients should send.
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "New hourly rate. Prices are decimal strings >= 0.")]
 pub struct CreateHourlyRateRequest {
+    #[schema(value_type = String, max_length = 255)]
     title: Option<String>,
+    #[schema(value_type = String, max_length = 255)]
     description: Option<String>,
+    #[schema(value_type = String, example = "65.00")]
     consumer_price: Option<Value>,
+    #[schema(value_type = String, example = "55.00")]
     business_price: Option<Value>,
+    #[schema(value_type = Option<String>, example = "40.00")]
     purchase_price: Option<Value>,
+    #[schema(max_length = 55)]
     ledger_number: Option<String>,
+    #[schema(value_type = Uuid)]
     vat_group_id: Option<String>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -144,23 +173,36 @@ impl Validate for CreateHourlyRateRequest {
     }
 }
 
-/// POST /hourly-rates/{id}. Laravel requires both prices on update; the rest patches
-/// (absent = keep, null clears the nullable ones, null title/description = 422).
-#[derive(Deserialize)]
+// POST /hourly-rates/{id}. Laravel requires both prices on update; the rest patches
+// (absent = keep, null clears the nullable ones, null title/description = 422).
+/// POST /hourly-rates/{id}.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to an hourly rate. Both prices are always required; leave another \
+        field out to keep it, send null to clear it (`title` and `description` can't be null)."
+)]
 pub struct UpdateHourlyRateRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, max_length = 255)]
     title: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, required = false, max_length = 255)]
     description: Option<Option<String>>,
+    #[schema(value_type = String, example = "65.00")]
     consumer_price: Option<Value>,
+    #[schema(value_type = String, example = "55.00")]
     business_price: Option<Value>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, example = "40.00")]
     purchase_price: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     ledger_number: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     vat_group_id: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

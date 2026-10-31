@@ -9,11 +9,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::vat_groups::{
@@ -39,6 +39,21 @@ permissions! {
 type VatGroupPath = Path<(String, String)>;
 
 /// GET /settings/vat-groups -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/settings/vat-groups", tag = "vat_groups",
+    operation_id = "vat_groups_list", summary = "List VAT groups",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ListQuery,
+    ),
+    responses(
+        (status = 200, body = Paginated<VatGroupResource>, description = "One page of VAT groups"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `vatgroup.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long, or `country` not an ISO code"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<VatGroupList>,
@@ -59,6 +74,20 @@ pub async fn list(
 }
 
 /// GET /settings/vat-groups/{vat_group}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/settings/vat-groups/{vat_group}", tag = "vat_groups",
+    operation_id = "vat_groups_get", summary = "Get a VAT group",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("vat_group" = Uuid, Path, description = "VAT group id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<VatGroupResource>, description = "The VAT group"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `vatgroup.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or VAT group, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<VatGroupGet>,
@@ -70,6 +99,19 @@ pub async fn get(
 }
 
 /// POST /settings/vat-groups -> 201 `{data:{vat_group_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/settings/vat-groups", tag = "vat_groups",
+    operation_id = "vat_groups_create", summary = "Create a VAT group",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateVatGroupRequest,
+    responses(
+        (status = 201, body = Envelope<VatGroupCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `vatgroup.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<VatGroupCreate>,
@@ -80,6 +122,22 @@ pub async fn create(
 }
 
 /// POST /settings/vat-groups/{vat_group} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/settings/vat-groups/{vat_group}", tag = "vat_groups",
+    operation_id = "vat_groups_update", summary = "Update a VAT group (`name` and `vat_amount` always required)",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("vat_group" = Uuid, Path, description = "VAT group id"),
+    ),
+    request_body = UpdateVatGroupRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `vatgroup.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or VAT group, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<VatGroupUpdate>,
@@ -91,6 +149,20 @@ pub async fn update(
 }
 
 /// DELETE /settings/vat-groups/{vat_group} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/settings/vat-groups/{vat_group}", tag = "vat_groups",
+    operation_id = "vat_groups_delete", summary = "Delete a VAT group",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("vat_group" = Uuid, Path, description = "VAT group id"),
+    ),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `vatgroup.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or VAT group, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<VatGroupDelete>,
