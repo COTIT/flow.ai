@@ -1,11 +1,12 @@
-//! App key rules: admins only, secret shown once, revoke is idempotent.
+//! App key rules: secret shown once, revoke is idempotent. Routes take `Can<WorkspaceAdmin>`:
+//! keys open the workspace's data to an app, so only the owner or a `workspace_admin` manages them.
 
 use uuid::Uuid;
 
 use crate::{
     AppState,
     error::AppError,
-    http::workspace::{NOT_ALLOWED, WorkspaceAccess},
+    http::workspace::WorkspaceAccess,
     modules::app_keys::{
         dto::NewAppKey,
         repo::{self, KeyRow, NewKey},
@@ -13,15 +14,6 @@ use crate::{
     },
     modules::auth::token::PlainSecret,
 };
-
-/// Keys open the workspace's data to an app: only the owner or a `workspace_admin` manages them.
-pub fn admin(access: &WorkspaceAccess) -> Result<(), AppError> {
-    if access.is_admin() {
-        Ok(())
-    } else {
-        Err(AppError::Forbidden(NOT_ALLOWED))
-    }
-}
 
 /// Issue a key: the stored row and the plaintext secret.
 pub async fn create(

@@ -14,13 +14,17 @@ use crate::{
         json::ValidatedJson,
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
-        workspace::WorkspaceAccess,
+        workspace::{Can, permissions},
     },
     modules::app_keys::{
         dto::{AppKeyCreated, AppKeyResource, CreateAppKeyRequest, ListQuery},
-        service::{self, admin},
+        service,
     },
 };
+
+permissions! {
+    WorkspaceAdmin => "workspace_admin",
+}
 
 /// GET /app-keys -> `{data:[...], meta}`.
 #[utoipa::path(
@@ -36,10 +40,9 @@ use crate::{
 )]
 pub async fn list(
     State(state): State<AppState>,
-    access: WorkspaceAccess,
+    access: Can<WorkspaceAdmin>,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Paginated<AppKeyResource>>, AppError> {
-    admin(&access)?;
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
     let (rows, total) =
         service::list(&state, access.workspace_id, page.size, page.offset()).await?;
@@ -63,10 +66,9 @@ pub async fn list(
 )]
 pub async fn create(
     State(state): State<AppState>,
-    access: WorkspaceAccess,
+    access: Can<WorkspaceAdmin>,
     ValidatedJson(input): ValidatedJson<CreateAppKeyRequest>,
 ) -> Result<(StatusCode, Data<AppKeyCreated>), AppError> {
-    admin(&access)?;
     let (row, plain) = service::create(&state, &access, input).await?;
     let body = AppKeyCreated::new(row, plain.expose().to_owned());
     Ok((StatusCode::CREATED, Data(body)))
@@ -89,10 +91,9 @@ pub async fn create(
 )]
 pub async fn revoke(
     State(state): State<AppState>,
-    access: WorkspaceAccess,
+    access: Can<WorkspaceAdmin>,
     Path((_, id)): Path<(String, String)>,
 ) -> Result<StatusCode, AppError> {
-    admin(&access)?;
     service::revoke(&state, access.workspace_id, &id).await?;
     Ok(StatusCode::NO_CONTENT)
 }

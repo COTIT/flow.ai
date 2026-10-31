@@ -10,7 +10,8 @@ use crate::jobs::{
     repo::{self as jobs, NewJob},
 };
 
-/// Stock level of a product changed somewhere (`stock::repo::record`, `soft_delete`).
+/// Stock level of a product changed somewhere (`stock::repo::record`; a stock row is only
+/// deleted at level 0, so deletes send nothing).
 pub const STOCK_CHANGED: &str = "stock.changed";
 /// A product or one of its variants was created, changed or deleted.
 pub const PRODUCT_CHANGED: &str = "product.changed";

@@ -158,6 +158,12 @@ async fn only_workspace_admins_manage_endpoints(pool: PgPool) {
     for (method, path, body) in [
         (Method::GET, String::new(), None),
         (Method::POST, String::new(), Some(hook())),
+        // 403 before the body is read: no validation rules leak to non-admins.
+        (
+            Method::POST,
+            String::new(),
+            Some(json!({ "url": "http://x" })),
+        ),
         (Method::GET, format!("/{id}"), None),
         (
             Method::PATCH,
@@ -206,4 +212,22 @@ async fn bad_ids_are_404(pool: PgPool) {
             assert_eq!(status, StatusCode::NOT_FOUND, "{method} {id}");
         }
     }
+}
+
+#[sqlx::test]
+async fn a_workspace_holds_at_most_10_endpoints(pool: PgPool) {
+    let api = Api::new(pool, "/webhook-endpoints").await;
+    for _ in 0..10 {
+        create(&api).await;
+    }
+
+    let (status, res) = api.call(Method::POST, "", Some(hook()), &api.owner).await;
+
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(
+        res["errors"]["url"][0]
+            .as_str()
+            .unwrap()
+            .contains("at most 10")
+    );
 }

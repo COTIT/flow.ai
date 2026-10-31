@@ -86,6 +86,8 @@ fn client(trusted: Arc<HashSet<String>>) -> Result<reqwest::Client, String> {
         .tls_backend_preconfigured(tls)
         .connect_timeout(CONNECT_TIMEOUT)
         .redirect(reqwest::redirect::Policy::none())
+        // A proxy would resolve names itself, past the guard.
+        .no_proxy()
         .dns_resolver(Arc::new(Guard { trusted }))
         .build()
         .map_err(|e| format!("http client: {e}"))
@@ -148,8 +150,18 @@ fn public_v4(ip: Ipv4Addr) -> bool {
 }
 
 fn public_v6(ip: Ipv6Addr) -> bool {
-    let first = ip.segments()[0];
+    let seg = ip.segments();
+    let first = seg[0];
+    // NAT64 (64:ff9b::/96) carries an IPv4 address: judge that one.
+    if seg[..6] == [0x64, 0xff9b, 0, 0, 0, 0] {
+        let [.., a, b, c, d] = ip.octets();
+        return public_v4(Ipv4Addr::new(a, b, c, d));
+    }
     !(ip.is_unspecified()
+        || first == 0x2002 // 6to4 embeds any IPv4
+        || (first == 0x2001 && seg[1] == 0) // Teredo
+        || (first == 0x64 && seg[1] == 0xff9b) // local-use NAT64 64:ff9b:1::/48
+        || (first & 0xffc0) == 0xfec0 // site local fec0::/10
         || ip.is_loopback()
         || ip.is_multicast()
         || (first & 0xfe00) == 0xfc00 // unique local fc00::/7
@@ -193,10 +205,22 @@ mod tests {
             "::ffff:127.0.0.1",
             "::ffff:169.254.169.254",
             "::127.0.0.1",
+            "64:ff9b::a9fe:a9fe",
+            "64:ff9b::10.0.0.1",
+            "64:ff9b:1::1",
+            "2002:a9fe:a9fe::1",
+            "2001:0:4136:e378::1",
+            "fec0::1",
         ] {
             assert!(!is_public(ip.parse().unwrap()), "{ip}");
         }
-        for ip in ["1.1.1.1", "8.8.8.8", "185.199.108.153", "2606:4700::1111"] {
+        for ip in [
+            "1.1.1.1",
+            "8.8.8.8",
+            "185.199.108.153",
+            "2606:4700::1111",
+            "64:ff9b::808:808",
+        ] {
             assert!(is_public(ip.parse().unwrap()), "{ip}");
         }
     }

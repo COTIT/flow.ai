@@ -29,7 +29,7 @@ pub struct Pruned {
     pub scheduled_runs: u64,
     /// Idempotency keys older than a day.
     pub idempotency_keys: u64,
-    /// Delivered or failed webhook deliveries older than 30 days.
+    /// Webhook deliveries finished (or stuck pending) over 30 days ago.
     pub webhook_deliveries: u64,
     /// Dispatched webhook events older than 30 days with no delivery left.
     pub webhook_events: u64,
@@ -178,7 +178,7 @@ mod tests {
     #[sqlx::test]
     async fn prune_drops_finished_webhook_rows_after_30_days_only(pool: PgPool) {
         let user = seed_user(&pool).await;
-        // Endpoint + 4 events: old done, old with a pending delivery, old undispatched, fresh done.
+        // Endpoint + 4 events: old failed, old stuck pending, old undispatched, fresh delivered.
         run(
             &pool,
             "WITH w AS (SELECT id FROM workspaces WHERE created_by_user_id = $1),
@@ -205,16 +205,16 @@ mod tests {
 
         let pruned = prune(&pool).await.unwrap();
 
-        assert_eq!((pruned.webhook_deliveries, pruned.webhook_events), (1, 1));
+        assert_eq!((pruned.webhook_deliveries, pruned.webhook_events), (2, 2));
         let left: Vec<i32> =
             sqlx::query_scalar("SELECT (payload->>'n')::int FROM webhook_events ORDER BY 1")
                 .fetch_all(&pool)
                 .await
                 .unwrap();
-        assert_eq!(left, [2, 3, 4], "pending, undispatched and fresh rows stay");
+        assert_eq!(left, [3, 4], "undispatched and fresh rows stay");
         assert_eq!(
             count(&pool, "SELECT count(*) FROM webhook_deliveries").await,
-            2
+            1
         );
     }
 }

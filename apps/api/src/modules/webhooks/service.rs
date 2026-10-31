@@ -16,6 +16,9 @@ use crate::{
     },
 };
 
+/// Endpoints per workspace: each one costs a delivery job per event on the shared rail.
+pub const MAX_ENDPOINTS: i64 = 10;
+
 /// Standard Webhooks secret prefix.
 pub const SECRET_PREFIX: &str = "whsec_";
 
@@ -33,6 +36,13 @@ pub async fn create(
     let key = state.credentials.as_ref().ok_or(AppError::Unavailable(
         "Webhooks are not configured on this server.",
     ))?;
+    // shortcut: two concurrent creates can pass the cap by one; add a lock if that matters.
+    if repo::count(&state.db, access.workspace_id).await? >= MAX_ENDPOINTS {
+        return Err(AppError::field(
+            "url",
+            "A workspace can have at most 10 webhook endpoints.",
+        ));
+    }
     let mut bytes = [0u8; 32];
     getrandom::fill(&mut bytes).map_err(|e| AppError::Internal(format!("os rng: {e}")))?;
     let secret = PlainSecret::new(format!("{SECRET_PREFIX}{}", STANDARD.encode(bytes)));

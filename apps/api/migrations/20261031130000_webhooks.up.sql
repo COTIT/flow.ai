@@ -64,5 +64,4 @@ CREATE TABLE webhook_deliveries (
 CREATE INDEX webhook_deliveries_endpoint_idx
     ON webhook_deliveries (workspace_id, endpoint_id, created_at DESC);
 -- The 30-day prune.
-CREATE INDEX webhook_deliveries_finished_idx ON webhook_deliveries (updated_at)
-    WHERE status <> 'pending';
+CREATE INDEX webhook_deliveries_updated_idx ON webhook_deliveries (updated_at);

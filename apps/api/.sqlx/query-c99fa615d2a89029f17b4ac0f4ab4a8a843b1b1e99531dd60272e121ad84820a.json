@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO webhook_events (workspace_id, type, payload)\n           SELECT $1, $2, $3\n           WHERE EXISTS (SELECT 1 FROM webhook_endpoints\n                         WHERE workspace_id = $1 AND active AND $2 = ANY (events))\n           RETURNING pg_current_xact_id()::text AS \"xid!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "xid!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c99fa615d2a89029f17b4ac0f4ab4a8a843b1b1e99531dd60272e121ad84820a"
+}

@@ -22,7 +22,8 @@ use crate::{
 };
 
 /// Pending events one fan-out chunk takes.
-const FANOUT_CHUNK: i64 = 500;
+// Small enough that one chunk (a delivery job per event x endpoint) stays a short transaction.
+const FANOUT_CHUNK: i64 = 100;
 /// Tries per delivery. The rail backs off 10 s doubling to 1 h, so about 3.5 h in all.
 pub const DELIVER_ATTEMPTS: i32 = 12;
 /// Longest one POST may take.
@@ -125,58 +126,11 @@ pub async fn deliver(ctx: &Ctx, job: &Claimed) -> Result<Step, AppError> {
         .and_then(|v| v.as_str())
         .and_then(|s| Uuid::parse_str(s).ok())
         .ok_or_else(|| AppError::BadRequest("delivery job without delivery_id".into()))?;
-    let Some(d) = sqlx::query!(
-        r#"SELECT d.status, d.endpoint_id, e.id AS event_id, e.type AS kind, e.payload,
-                  e.created_at, ep.url, ep.active, ep.secret_sealed
-           FROM webhook_deliveries d
-           JOIN webhook_events e ON e.workspace_id = d.workspace_id AND e.id = d.event_id
-           JOIN webhook_endpoints ep ON ep.workspace_id = d.workspace_id AND ep.id = d.endpoint_id
-           WHERE d.workspace_id = $1 AND d.id = $2"#,
-        ws,
-        id,
-    )
-    .fetch_optional(&ctx.db)
-    .await?
-    else {
-        return Ok(Step::Done);
-    };
-    if d.status != "pending" {
-        return Ok(Step::Done);
-    }
-    if !d.active {
-        record(&ctx.db, ws, id, "failed", None, Some("endpoint inactive")).await?;
-        return Ok(Step::Done);
-    }
-    let key = ctx
-        .credentials
-        .as_ref()
-        .ok_or_else(|| AppError::Internal("CREDENTIALS_KEY not set: can't sign webhooks".into()))?;
-    let secret = key.open(ws, &seal_path(d.endpoint_id), &d.secret_sealed)?;
-    let event_id = d.event_id.to_string();
-    let body = json!({
-        "id": event_id, "type": d.kind, "created_at": d.created_at, "data": d.payload,
-    })
-    .to_string();
-    let timestamp = chrono::Utc::now().timestamp();
-    let signature = sign(secret.expose(), &event_id, timestamp, &body)?;
-    let req = ctx
-        .http
-        .request(reqwest::Method::POST, &d.url)
-        .timeout(SEND_TIMEOUT)
-        .header("content-type", "application/json")
-        .header("webhook-id", &event_id)
-        .header("webhook-timestamp", timestamp.to_string())
-        .header("webhook-signature", signature)
-        .body(body);
-    let outcome = match ctx.http.send(req).await {
-        Ok(res) if res.status().is_success() => Outcome::Delivered(res.status().as_u16()),
-        Ok(res) => Outcome::Retry(
-            Some(res.status().as_u16()),
-            format!("endpoint answered {}", res.status()),
-        ),
-        // `Outbound::send` refuses an inward IP literal before connecting: no retry helps.
-        Err(e) if e.contains("is not a public address") => Outcome::Refused(e),
-        Err(e) => Outcome::Retry(None, e),
+    let outcome = match attempt(ctx, ws, id).await {
+        Ok(None) => return Ok(Step::Done),
+        Ok(Some(outcome)) => outcome,
+        // Failed before sending (no key, DB): still an attempt, so the last one ends it.
+        Err(e) => Outcome::Retry(None, e.to_string()),
     };
     match outcome {
         Outcome::Delivered(status) => {
@@ -194,6 +148,70 @@ pub async fn deliver(ctx: &Ctx, job: &Claimed) -> Result<Step, AppError> {
             Err(AppError::Internal(format!("webhook delivery: {e}")))
         }
     }
+}
+
+/// Load, sign and send one delivery. None: nothing to send.
+async fn attempt(ctx: &Ctx, ws: Uuid, id: Uuid) -> Result<Option<Outcome>, AppError> {
+    let Some(d) = sqlx::query!(
+        r#"SELECT d.status, d.endpoint_id, e.id AS event_id, e.type AS kind, e.payload,
+                  e.created_at, ep.url, ep.active, ep.secret_sealed
+           FROM webhook_deliveries d
+           JOIN webhook_events e ON e.workspace_id = d.workspace_id AND e.id = d.event_id
+           JOIN webhook_endpoints ep ON ep.workspace_id = d.workspace_id AND ep.id = d.endpoint_id
+           WHERE d.workspace_id = $1 AND d.id = $2"#,
+        ws,
+        id,
+    )
+    .fetch_optional(&ctx.db)
+    .await?
+    else {
+        return Ok(None);
+    };
+    if d.status != "pending" {
+        return Ok(None);
+    }
+    if !d.active {
+        record(&ctx.db, ws, id, "failed", None, Some("endpoint inactive")).await?;
+        return Ok(None);
+    }
+    let key = ctx
+        .credentials
+        .as_ref()
+        .ok_or_else(|| AppError::Internal("CREDENTIALS_KEY not set: can't sign webhooks".into()))?;
+    let event_id = d.event_id.to_string();
+    let body = json!({
+        "id": event_id, "type": d.kind, "created_at": d.created_at, "data": d.payload,
+    })
+    .to_string();
+    let timestamp = chrono::Utc::now().timestamp();
+    // A secret that won't open or decode never will: no retry.
+    let Ok(signature) = key
+        .open(ws, &seal_path(d.endpoint_id), &d.secret_sealed)
+        .and_then(|secret| sign(secret.expose(), &event_id, timestamp, &body))
+    else {
+        return Ok(Some(Outcome::Refused(
+            "webhook secret can't be opened".into(),
+        )));
+    };
+    let req = ctx
+        .http
+        .request(reqwest::Method::POST, &d.url)
+        .timeout(SEND_TIMEOUT)
+        .header("content-type", "application/json")
+        .header("webhook-id", &event_id)
+        .header("webhook-timestamp", timestamp.to_string())
+        .header("webhook-signature", signature)
+        .body(body);
+    Ok(Some(match ctx.http.send(req).await {
+        Ok(res) if res.status().is_success() => Outcome::Delivered(res.status().as_u16()),
+        Ok(res) => Outcome::Retry(
+            Some(res.status().as_u16()),
+            format!("endpoint answered {}", res.status()),
+        ),
+        // `Outbound::send` refuses an inward IP literal before connecting: no retry helps.
+        Err(e) if e.contains("is not a public address") => Outcome::Refused(e),
+        Err(e) => Outcome::Retry(None, e),
+    }))
 }
 
 /// Count one attempt and its result.
@@ -215,7 +233,7 @@ async fn record(
         workspace_id,
         id,
         status,
-        http_status.map(|s| s as i16),
+        http_status.and_then(|s| i16::try_from(s).ok()),
         error,
     )
     .execute(db)
@@ -412,7 +430,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(step, Step::Done);
-        let seen = seen.lock().unwrap();
+        let seen = seen.lock().unwrap().clone();
         let (_, headers, body) = &seen[0];
         let h = |n: &str| headers.get(n).unwrap().to_str().unwrap().to_owned();
         assert_eq!(h("webhook-id"), ev.to_string());
@@ -428,7 +446,6 @@ mod tests {
         let body: Value = serde_json::from_str(body).unwrap();
         assert_eq!(body["type"], "stock.changed");
         assert_eq!(body["data"]["product_id"], "p");
-        drop(seen);
         assert_eq!(
             delivery(&db, ids[0]).await,
             ("delivered".into(), 1, Some(200), None)
@@ -592,5 +609,54 @@ mod tests {
         assert_eq!(step, Step::Done);
         assert!(seen.lock().unwrap().is_empty());
         assert_eq!(delivery(&db, id).await.0, "pending");
+    }
+
+    #[sqlx::test]
+    async fn a_last_attempt_that_fails_before_sending_ends_the_delivery(db: PgPool) {
+        let (base, seen, _) = receiver(200).await;
+        let ws = workspace(&db, "o@x.io").await;
+        endpoint(&db, ws, &format!("{base}/hook"), "{stock.changed}", true).await;
+        event(&db, ws, "stock.changed").await;
+        let id = fan(&db, ws).await[0];
+        let keyless = Ctx {
+            credentials: None,
+            ..ctx(&db, &["127.0.0.1"])
+        };
+
+        deliver(&keyless, &job(ws, id, 1)).await.unwrap_err();
+        assert_eq!(
+            delivery(&db, id).await.0,
+            "pending",
+            "retried while attempts are left"
+        );
+        deliver(&keyless, &job(ws, id, DELIVER_ATTEMPTS))
+            .await
+            .unwrap_err();
+
+        let (status, attempts, _, error) = delivery(&db, id).await;
+        assert_eq!((status.as_str(), attempts), ("failed", 2));
+        assert!(error.unwrap().contains("CREDENTIALS_KEY"));
+        assert!(seen.lock().unwrap().is_empty());
+    }
+
+    #[sqlx::test]
+    async fn a_secret_that_wont_open_is_not_retried(db: PgPool) {
+        let (base, seen, _) = receiver(200).await;
+        let ws = workspace(&db, "o@x.io").await;
+        endpoint(&db, ws, &format!("{base}/hook"), "{stock.changed}", true).await;
+        event(&db, ws, "stock.changed").await;
+        let id = fan(&db, ws).await[0];
+        sqlx::query("UPDATE webhook_endpoints SET secret_sealed = '\\x00'")
+            .execute(&db)
+            .await
+            .unwrap();
+
+        let step = deliver(&ctx(&db, &["127.0.0.1"]), &job(ws, id, 1))
+            .await
+            .unwrap();
+
+        assert_eq!(step, Step::Done);
+        assert_eq!(delivery(&db, id).await.0, "failed");
+        assert!(seen.lock().unwrap().is_empty());
     }
 }

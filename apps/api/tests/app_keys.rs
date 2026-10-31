@@ -111,6 +111,12 @@ async fn only_workspace_admins_manage_keys(pool: PgPool) {
     for (method, path, body) in [
         (Method::GET, String::new(), None),
         (Method::POST, String::new(), Some(shop_key())),
+        // 403 before the body is read: no validation rules leak to non-admins.
+        (
+            Method::POST,
+            String::new(),
+            Some(json!({ "kind": "robot" })),
+        ),
         (Method::DELETE, format!("/{id}"), None),
     ] {
         let (status, res) = api.call(method.clone(), &path, body, &bob).await;

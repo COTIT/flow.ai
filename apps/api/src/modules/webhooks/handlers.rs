@@ -14,10 +14,10 @@ use crate::{
         json::ValidatedJson,
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
-        workspace::WorkspaceAccess,
+        workspace::Can,
     },
     modules::{
-        app_keys::service::admin,
+        app_keys::handlers::WorkspaceAdmin,
         webhooks::{
             dto::{
                 CreateEndpointRequest, ListQuery, UpdateEndpointRequest, WebhookEndpointCreated,
@@ -45,10 +45,9 @@ type EndpointPath = Path<(String, String)>;
 )]
 pub async fn list(
     State(state): State<AppState>,
-    access: WorkspaceAccess,
+    access: Can<WorkspaceAdmin>,
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Paginated<WebhookEndpointResource>>, AppError> {
-    admin(&access)?;
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
     let (rows, total) =
         service::list(&state, access.workspace_id, page.size, page.offset()).await?;
@@ -72,10 +71,9 @@ pub async fn list(
 )]
 pub async fn create(
     State(state): State<AppState>,
-    access: WorkspaceAccess,
+    access: Can<WorkspaceAdmin>,
     ValidatedJson(input): ValidatedJson<CreateEndpointRequest>,
 ) -> Result<(StatusCode, Data<WebhookEndpointCreated>), AppError> {
-    admin(&access)?;
     let (row, secret) = service::create(&state, &access, input).await?;
     let body = WebhookEndpointCreated::new(row, secret.expose().to_owned());
     Ok((StatusCode::CREATED, Data(body)))
@@ -98,10 +96,9 @@ pub async fn create(
 )]
 pub async fn get(
     State(state): State<AppState>,
-    access: WorkspaceAccess,
+    access: Can<WorkspaceAdmin>,
     Path((_, id)): EndpointPath,
 ) -> Result<Data<WebhookEndpointResource>, AppError> {
-    admin(&access)?;
     Ok(Data(
         service::get(&state, access.workspace_id, &id).await?.into(),
     ))
@@ -126,11 +123,10 @@ pub async fn get(
 )]
 pub async fn update(
     State(state): State<AppState>,
-    access: WorkspaceAccess,
+    access: Can<WorkspaceAdmin>,
     Path((_, id)): EndpointPath,
     ValidatedJson(patch): ValidatedJson<UpdateEndpointRequest>,
 ) -> Result<Data<WebhookEndpointResource>, AppError> {
-    admin(&access)?;
     let row = service::update(&state, access.workspace_id, &id, patch).await?;
     Ok(Data(row.into()))
 }
@@ -152,10 +148,9 @@ pub async fn update(
 )]
 pub async fn delete(
     State(state): State<AppState>,
-    access: WorkspaceAccess,
+    access: Can<WorkspaceAdmin>,
     Path((_, id)): EndpointPath,
 ) -> Result<StatusCode, AppError> {
-    admin(&access)?;
     service::delete(&state, access.workspace_id, &id).await?;
     Ok(StatusCode::NO_CONTENT)
 }

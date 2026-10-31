@@ -102,6 +102,16 @@ pub async fn list(
     Ok((rows, total))
 }
 
+/// Endpoints of the workspace.
+pub async fn count(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM webhook_endpoints WHERE workspace_id = $1"#,
+        workspace_id
+    )
+    .fetch_one(db)
+    .await
+}
+
 /// Apply `patch`; None when no such endpoint in this workspace.
 pub async fn update(
     db: impl PgExecutor<'_>,
@@ -151,14 +161,15 @@ pub async fn delete(
 /// Rows one prune statement deletes.
 const PRUNE_BATCH: i64 = 1000;
 
-/// Delete delivered or failed deliveries untouched for 30 days; how many.
+/// Delete deliveries untouched for 30 days: finished ones, and pending ones a job that died
+/// mid-run never finished (retries end within hours); how many.
 pub async fn prune_deliveries(db: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
     let mut total = 0;
     loop {
         let n = sqlx::query!(
             "DELETE FROM webhook_deliveries WHERE id = ANY(ARRAY(
                  SELECT id FROM webhook_deliveries
-                 WHERE status <> 'pending' AND updated_at < now() - interval '30 days'
+                 WHERE updated_at < now() - interval '30 days'
                  LIMIT $1))",
             PRUNE_BATCH,
         )
