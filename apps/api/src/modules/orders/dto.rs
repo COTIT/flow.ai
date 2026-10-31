@@ -14,6 +14,10 @@ use crate::http::json::{Rules, Validate, present};
 pub const LINES_MAX: usize = 50;
 /// Largest quantity of one line.
 pub const QUANTITY_MAX: Decimal = Decimal::from_parts(100_000, 0, 0, false, 0);
+/// Largest quantity of one web shop line (a fake checkout can't hold a warehouse).
+pub const WEB_QUANTITY_MAX: Decimal = Decimal::from_parts(1_000, 0, 0, false, 0);
+const URL_MAX: usize = 2048;
+const ADDRESS_MAX: usize = 4096;
 const TEXT_MAX: usize = 255;
 const NOTE_MAX: usize = 1000;
 
@@ -110,6 +114,13 @@ pub fn lines(r: &mut Rules, v: Option<Vec<LineRequest>>, office: bool) -> Vec<Li
                 q.scale() <= 2 && !q.is_zero(),
                 "The quantity must be more than 0 with at most 2 decimal places.",
             );
+            if !office {
+                r.check(
+                    &f("quantity"),
+                    q <= WEB_QUANTITY_MAX,
+                    format!("The quantity must not be greater than {WEB_QUANTITY_MAX}."),
+                );
+            }
         }
         let (mut unit_price, mut discount, mut title) = (None, Decimal::ZERO, None);
         if office {
@@ -402,4 +413,183 @@ pub struct OrderResource {
     pub lines: Vec<OrderLineResource>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// The web customer, kept on the order for the office; never sent back to the shop or in
+/// events.
+#[derive(Deserialize, ToSchema)]
+pub struct CustomerRequest {
+    #[schema(value_type = String, example = "kim@example.com")]
+    email: Option<String>,
+    #[schema(value_type = String, max_length = 255)]
+    name: Option<String>,
+    #[schema(max_length = 50)]
+    phone: Option<String>,
+    /// Free-form address object (street, city, country, ...), at most 4 KiB.
+    #[schema(value_type = Option<Object>)]
+    shipping_address: Option<Value>,
+    #[schema(value_type = Option<Object>)]
+    billing_address: Option<Value>,
+}
+
+/// POST /storefront/orders.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "A web order. Prices come from the catalog; stock is held until paid or expired."
+)]
+pub struct CheckoutRequest {
+    /// 1 to 50 lines: `product_id`, optional `product_variant_id`, `quantity` (at most 1000).
+    lines: Option<Vec<LineRequest>>,
+    customer: Option<CustomerRequest>,
+}
+
+/// Validated checkout.
+pub struct CheckoutInput {
+    pub lines: Vec<LineInput>,
+    pub customer: Value,
+}
+
+fn address(r: &mut Rules, field: &str, v: Option<Value>) -> Value {
+    match v {
+        None | Some(Value::Null) => Value::Null,
+        Some(v @ Value::Object(_)) if v.to_string().len() <= ADDRESS_MAX => v,
+        Some(_) => {
+            r.add(
+                field,
+                format!("The {field} must be an object of at most 4 KiB."),
+            );
+            Value::Null
+        }
+    }
+}
+
+impl Validate for CheckoutRequest {
+    type Valid = CheckoutInput;
+
+    fn validate(self, r: &mut Rules) -> Option<CheckoutInput> {
+        let lines = lines(r, self.lines, false);
+        let Some(c) = self.customer else {
+            r.missing("customer");
+            return None;
+        };
+        let email = r.text("customer.email", c.email, TEXT_MAX);
+        if !email.is_empty() {
+            r.email("customer.email", &email);
+        }
+        let name = r.text("customer.name", c.name, TEXT_MAX);
+        let phone = r.opt_text("customer.phone", c.phone, 50);
+        let shipping = address(r, "customer.shipping_address", c.shipping_address);
+        let billing = address(r, "customer.billing_address", c.billing_address);
+        Some(CheckoutInput {
+            lines,
+            customer: serde_json::json!({
+                "email": email, "name": name, "phone": phone,
+                "shipping_address": shipping, "billing_address": billing,
+            }),
+        })
+    }
+}
+
+/// POST /storefront/orders/{order}/payment.
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Where the customer returns after paying.")]
+pub struct PaymentRequest {
+    /// https (http only for localhost), at most 2048 characters.
+    #[schema(value_type = String, example = "https://shop.example.com/thanks")]
+    redirect_url: Option<String>,
+}
+
+/// Validated redirect.
+pub struct PaymentInput {
+    pub redirect_url: String,
+}
+
+/// https, or http to localhost / 127.0.0.1 (a shop in development).
+fn redirect(v: &str) -> bool {
+    let clean = !v
+        .chars()
+        .any(|c| c.is_whitespace() || c.is_control() || "@\"'<>`\\".contains(c));
+    let local = clean
+        && ["http://localhost", "http://127.0.0.1"].iter().any(|p| {
+            v.strip_prefix(p)
+                .is_some_and(|rest| rest.is_empty() || rest.starts_with([':', '/']))
+        });
+    (v.starts_with("https://") && crate::http::json::is_url(v)) || local
+}
+
+impl Validate for PaymentRequest {
+    type Valid = PaymentInput;
+
+    fn validate(self, r: &mut Rules) -> Option<PaymentInput> {
+        let url = r.text("redirect_url", self.redirect_url, URL_MAX);
+        if !url.is_empty() {
+            r.check(
+                "redirect_url",
+                redirect(&url),
+                "The redirect url must be an https URL (http only for localhost).",
+            );
+        }
+        Some(PaymentInput { redirect_url: url })
+    }
+}
+
+/// What the shop sees of its order: ids, number, status, totals and currency; never the
+/// customer.
+#[derive(Serialize, ToSchema)]
+pub struct StorefrontOrder {
+    pub id: Uuid,
+    #[schema(example = "ORD-0001")]
+    pub number: String,
+    /// `awaiting_payment`, `open` (paid), `cancelled` (expired), `completed`, ...
+    pub status: String,
+    #[schema(example = "EUR")]
+    pub currency: String,
+    pub decimals: i16,
+    /// Minor units, excl VAT.
+    pub subtotal: i64,
+    pub vat: i64,
+    pub total: i64,
+    /// When an unpaid order gives its stock back.
+    #[schema(required = true)]
+    pub expires_at: Option<DateTime<Utc>>,
+    #[schema(required = true)]
+    pub paid_at: Option<DateTime<Utc>>,
+}
+
+/// A payment intent.
+#[derive(Serialize, ToSchema)]
+pub struct PaymentIntentResource {
+    pub payment_id: Uuid,
+    /// `open` until the provider confirms.
+    pub status: String,
+    /// Send the customer here.
+    #[schema(required = true)]
+    pub checkout_url: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn redirects_are_https_or_local_http() {
+        for ok in [
+            "https://shop.example.com/x",
+            "http://localhost",
+            "http://localhost:3000/t",
+            "http://127.0.0.1/t",
+        ] {
+            assert!(redirect(ok), "{ok}");
+        }
+        for bad in [
+            "http://shop.example.com",
+            "http://localhost.evil.com/",
+            "http://localhost:3000@evil.com/",
+            "ftp://x",
+            "https://",
+            "javascript:alert(1)",
+        ] {
+            assert!(!redirect(bad), "{bad}");
+        }
+    }
 }

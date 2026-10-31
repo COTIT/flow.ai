@@ -126,6 +126,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(storefront::routes::private())
         .merge(webhooks::routes::private())
         .merge(orders::routes::private())
+        .merge(orders::routes::storefront())
 }
 
 /// Documented routes that need a token and take large bodies (item lines, invoices, uploads);

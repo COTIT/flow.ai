@@ -71,8 +71,6 @@ impl IntoResponse for Answer {
 #[derive(Clone, Copy, Debug)]
 pub enum Actor {
     User(Uuid),
-    // shortcut: storefront checkout uses it from phase 2a step 5; drop the allow then.
-    #[allow(dead_code)]
     AppKey(Uuid),
 }
 

@@ -141,6 +141,7 @@ async fn main() {
         files,
         pdf,
         payments: payments.clone(),
+        checkout_hold_max: config.checkout_hold_max,
     };
     // The job rail starts last: a boot step that panics above must not leave claimed jobs
     // behind in a process that dies.

@@ -79,6 +79,8 @@ pub struct AppState {
     pub pdf: Option<pdf::Renderer>,
     /// Web payments (`PAYMENTS_PROVIDER`); None answers payment intents with 503.
     pub payments: Option<payments::Provider>,
+    /// Most web orders one workspace may have awaiting payment (`CHECKOUT_HOLD_MAX`).
+    pub checkout_hold_max: i64,
 }
 
 /// One-off boot work before serving (precomputes the login timing-equalizer hash).

@@ -71,6 +71,7 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         files: Some(genesy_360_api::storage::Store::memory()),
         pdf: None,
         payments: None,
+        checkout_hold_max: 500,
     }
 }
 

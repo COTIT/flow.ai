@@ -855,6 +855,32 @@
         ],
         "type": "object"
       },
+      "CheckoutRequest": {
+        "description": "A web order. Prices come from the catalog; stock is held until paid or expired.",
+        "properties": {
+          "customer": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CustomerRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lines": {
+            "description": "1 to 50 lines: `product_id`, optional `product_variant_id`, `quantity` (at most 1000).",
+            "items": {
+              "$ref": "#/components/schemas/LineRequest"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "Conditions": {
         "description": "When a template or profile is picked.",
         "properties": {
@@ -2242,6 +2268,44 @@
         ],
         "type": "object"
       },
+      "CustomerRequest": {
+        "description": "The web customer, kept on the order for the office; never sent back to the shop or in\nevents.",
+        "properties": {
+          "billing_address": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "email": {
+            "example": "kim@example.com",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 50,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shipping_address": {
+            "description": "Free-form address object (street, city, country, ...), at most 4 KiB.",
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "name"
+        ],
+        "type": "object"
+      },
       "DealCreated": {
         "description": "Create response.",
         "properties": {
@@ -3381,6 +3445,18 @@
         ],
         "type": "object"
       },
+      "Envelope_PaymentIntentResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PaymentIntentResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_PdfTemplateCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -3698,6 +3774,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/StatusCreated"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_StorefrontOrder": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StorefrontOrder"
           }
         },
         "required": [
@@ -7434,6 +7522,46 @@
         },
         "required": [
           "invoice_payment_id"
+        ],
+        "type": "object"
+      },
+      "PaymentIntentResource": {
+        "description": "A payment intent.",
+        "properties": {
+          "checkout_url": {
+            "description": "Send the customer here.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "payment_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "description": "`open` until the provider confirms.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payment_id",
+          "status",
+          "checkout_url"
+        ],
+        "type": "object"
+      },
+      "PaymentRequest": {
+        "description": "Where the customer returns after paying.",
+        "properties": {
+          "redirect_url": {
+            "description": "https (http only for localhost), at most 2048 characters.",
+            "example": "https://shop.example.com/thanks",
+            "type": "string"
+          }
+        },
+        "required": [
+          "redirect_url"
         ],
         "type": "object"
       },
@@ -12545,6 +12673,72 @@
         ],
         "type": "object"
       },
+      "StorefrontOrder": {
+        "description": "What the shop sees of its order: ids, number, status, totals and currency; never the\ncustomer.",
+        "properties": {
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "expires_at": {
+            "description": "When an unpaid order gives its stock back.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "number": {
+            "example": "ORD-0001",
+            "type": "string"
+          },
+          "paid_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "`awaiting_payment`, `open` (paid), `cancelled` (expired), `completed`, ...",
+            "type": "string"
+          },
+          "subtotal": {
+            "description": "Minor units, excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "vat": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "status",
+          "currency",
+          "decimals",
+          "subtotal",
+          "vat",
+          "total",
+          "expires_at",
+          "paid_at"
+        ],
+        "type": "object"
+      },
       "StorefrontProduct": {
         "description": "A product the shop may sell. Prices are integer minor units (cents) of `currency`; `currency_decimals` says where the decimal point goes.",
         "properties": {
@@ -16701,6 +16895,432 @@
         "summary": "Create an account through an invite",
         "tags": [
           "invites"
+        ]
+      }
+    },
+    "/storefront/orders": {
+      "post": {
+        "description": "429 also when the workspace has `CHECKOUT_HOLD_MAX` web orders awaiting payment.",
+        "operationId": "storefront_orders_create",
+        "parameters": [
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request or another key's use of it is a 422. Kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StorefrontOrder"
+                }
+              }
+            },
+            "description": "Awaiting payment; the stock is held until `expires_at`"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, unknown or revoked app key"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Key lacks `checkout:write`"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid lines or customer, a price sent, not enough stock, or invalid Idempotency-Key"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "app_key": []
+          }
+        ],
+        "summary": "Place a web order",
+        "tags": [
+          "storefront"
+        ]
+      }
+    },
+    "/storefront/orders/{order}": {
+      "get": {
+        "operationId": "storefront_orders_get",
+        "parameters": [
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StorefrontOrder"
+                }
+              }
+            },
+            "description": "Ids, number, status, totals and currency; never the customer"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, unknown or revoked app key"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Key lacks `checkout:write`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown order, an office order, or another workspace's"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "app_key": []
+          }
+        ],
+        "summary": "Get a web order",
+        "tags": [
+          "storefront"
+        ]
+      }
+    },
+    "/storefront/orders/{order}/payment": {
+      "post": {
+        "description": "503 `no payment provider configured` without a provider; 503 while the provider is down (retry).",
+        "operationId": "storefront_orders_payment",
+        "parameters": [
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PaymentIntentResource"
+                }
+              }
+            },
+            "description": "The order's payment intent (the same one on every call while it is open)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, unknown or revoked app key"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Key lacks `checkout:write`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown order, an office order, or another workspace's"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The order isn't awaiting payment (paid, expired or cancelled)"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid redirect_url"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "app_key": []
+          }
+        ],
+        "summary": "Start or resume the payment",
+        "tags": [
+          "storefront"
         ]
       }
     },

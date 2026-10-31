@@ -75,6 +75,9 @@ pub struct Config {
     pub graph_api_url: String,
     /// `PAYMENTS_PROVIDER`: unset = no web payments (503); `fake` in debug builds only.
     pub payments_provider: Option<String>,
+    /// `CHECKOUT_HOLD_MAX`: web orders awaiting payment per workspace (default 500), so fake
+    /// checkouts can't hold all the stock.
+    pub checkout_hold_max: i64,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -129,6 +132,7 @@ impl fmt::Debug for Config {
             .field("graph_login_url", &self.graph_login_url)
             .field("graph_api_url", &self.graph_api_url)
             .field("payments_provider", &self.payments_provider)
+            .field("checkout_hold_max", &self.checkout_hold_max)
             .finish()
     }
 }
@@ -209,6 +213,7 @@ impl Config {
                  REQUEST_BODY_DEADLINE_SECS ({request_body_deadline_secs})"
             ));
         }
+        let checkout_hold_max: i64 = positive(&get, "CHECKOUT_HOLD_MAX", 500)?;
         let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
         crate::payments::select(payments_provider.as_deref(), !cfg!(debug_assertions))?;
         let credentials_key = get("CREDENTIALS_KEY")
@@ -264,6 +269,7 @@ impl Config {
             graph_login_url,
             graph_api_url,
             payments_provider,
+            checkout_hold_max,
         })
     }
 }

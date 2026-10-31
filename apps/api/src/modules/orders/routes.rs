@@ -2,7 +2,10 @@
 
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::{AppState, modules::orders::handlers};
+use crate::{
+    AppState,
+    modules::orders::{handlers, storefront},
+};
 
 /// Office routes; each handler runs the workspace guard and its `order.*` permission.
 pub fn private() -> OpenApiRouter<AppState> {
@@ -15,4 +18,12 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::cancel))
         .routes(routes!(handlers::returns))
         .routes(routes!(handlers::invoice))
+}
+
+/// Web shop routes (`/storefront/orders`); each handler checks the key's `checkout:write`.
+pub fn storefront() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(storefront::create))
+        .routes(routes!(storefront::get))
+        .routes(routes!(storefront::payment))
 }
