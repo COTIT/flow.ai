@@ -20,7 +20,6 @@ use crate::{
 /// App calling with its key. The workspace comes from the key, never from the request.
 #[derive(Debug)]
 pub struct AppKey {
-    pub key_id: Uuid,
     pub workspace_id: Uuid,
     scopes: Vec<String>,
     /// Same in-flight cap as members, with the key in the user's place.
@@ -48,7 +47,6 @@ impl FromRequestParts<AppState> for AppKey {
             .ok_or(AppError::Unauthorized)?;
         let slot = state.slots.take(key.id, key.workspace_id).await?;
         Ok(Self {
-            key_id: key.id,
             workspace_id: key.workspace_id,
             scopes: key.scopes,
             _slot: slot,

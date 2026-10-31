@@ -14,7 +14,8 @@ use crate::{
     error::ValidationErrorBody,
     http::response::MessageBody,
     modules::{
-        app_keys, auth, currencies, email_verification, invites, users::dto::UserEmailResource,
+        app_keys, auth, currencies, email_verification, invites, storefront,
+        users::dto::UserEmailResource,
     },
 };
 
@@ -33,7 +34,8 @@ use crate::{
 )]
 struct ApiDoc;
 
-/// Registers the `bearer` scheme that private operations list under `security`.
+/// Registers the `bearer` scheme (user tokens) and the `app_key` scheme (`gsk_…` app keys,
+/// same header) that operations list under `security`.
 struct BearerAuth;
 
 impl Modify for BearerAuth {
@@ -43,6 +45,18 @@ impl Modify for BearerAuth {
             .add_security_scheme(
                 "bearer",
                 SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),
+            );
+        doc.components
+            .get_or_insert_with(Default::default)
+            .add_security_scheme(
+                "app_key",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("gsk_ app key")
+                        .description(Some("App key issued under /workspace/{workspace}/app-keys"))
+                        .build(),
+                ),
             );
     }
 }
@@ -64,6 +78,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(email_verification::routes::private())
         .merge(currencies::routes::private())
         .merge(app_keys::routes::private())
+        .merge(storefront::routes::private())
 }
 
 /// Full spec, built from [`public`] and [`private`], as JSON.

@@ -35,6 +35,7 @@ pub mod shipment_methods;
 pub mod special_offers;
 pub mod stock;
 pub mod storage_locations;
+pub mod storefront;
 pub mod teams;
 pub mod users;
 pub mod vat_groups;
