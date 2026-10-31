@@ -25,6 +25,8 @@ export * from './invoice-payments/invoice-payments';
 export * from './invoices/invoices';
 export * from './lots/lots';
 export * from './messages/messages';
+export * from './orders/orders';
+export * from './payments/payments';
 export * from './pdf-templates/pdf-templates';
 export * from './permissions/permissions';
 export * from './price-corrections/price-corrections';

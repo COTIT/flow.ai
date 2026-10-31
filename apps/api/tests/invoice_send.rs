@@ -619,3 +619,56 @@ async fn a_currency_used_by_a_sent_invoice_keeps_its_decimals(pool: PgPool) {
         "same decimals: fine"
     );
 }
+
+/// An invoice made from an order paid online goes out paid (or partially paid after a
+/// refund), not pending: send counts the payments already booked on it.
+#[sqlx::test]
+async fn a_paid_orders_invoice_is_sent_paid(pool: PgPool) {
+    let f = setup(pool).await;
+    let orders = f.api.with_base("/orders");
+    let invoiced = |quantity: i64, refunded: i64| {
+        let orders = orders.with_base("/orders");
+        let (rel, product) = (f.rel.clone(), f.product.clone());
+        async move {
+            let body = json!({ "relation_id": rel, "lines": [{ "product_id": product, "quantity": quantity }] });
+            let (s, o) = orders
+                .call(Method::POST, "", Some(body), &orders.owner)
+                .await;
+            assert_eq!(s, StatusCode::CREATED, "{o}");
+            let id = o["data"]["order_id"].as_str().unwrap().to_owned();
+            orders
+                .call(Method::POST, &format!("/{id}/confirm"), None, &orders.owner)
+                .await;
+            // Paid online (the payment suites drive this through the provider).
+            sqlx::query(
+                "WITH o AS (UPDATE orders SET paid_at = now() WHERE id = $1::uuid
+                            RETURNING workspace_id, id, total),
+                      p AS (INSERT INTO order_payments (workspace_id, order_id, kind, provider,
+                                                        provider_id, amount, currency, status)
+                            SELECT workspace_id, id, 'payment', 'fake', 'fk_' || id, total, 'EUR', 'paid'
+                            FROM o RETURNING workspace_id, order_id, id)
+                 INSERT INTO order_payments (workspace_id, order_id, kind, provider, provider_id,
+                                             parent_id, amount, currency, status)
+                 SELECT workspace_id, order_id, 'refund', 'fake', 'fr_' || id, id, $2, 'EUR', 'refunded'
+                 FROM p WHERE $2 > 0",
+            )
+            .bind(&id)
+            .bind(refunded)
+            .execute(&orders.pool)
+            .await
+            .unwrap();
+            let (s, o) = orders
+                .call(Method::POST, &format!("/{id}/invoice"), None, &orders.owner)
+                .await;
+            assert_eq!(s, StatusCode::OK, "{o}");
+            o["data"]["invoice_id"].as_str().unwrap().to_owned()
+        }
+    };
+    let full = invoiced(1, 0).await;
+    let part = invoiced(2, 500).await;
+    for id in [&full, &part] {
+        assert_eq!(send(&f, id, message(&f, "manual")).await, ok());
+    }
+    assert_eq!(numbered(&f, &full).await.1, "paid");
+    assert_eq!(numbered(&f, &part).await.1, "partially_paid");
+}

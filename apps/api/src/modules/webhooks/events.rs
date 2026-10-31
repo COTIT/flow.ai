@@ -1,5 +1,5 @@
 //! The fixed event list and `emit`, the outbox write. Next on the list (not emitted yet):
-//! `order.created`, `harvest.reported`, `sale.attributed`.
+//! `harvest.reported`, `sale.attributed`.
 
 use serde_json::Value;
 use sqlx::PgConnection;
@@ -23,9 +23,14 @@ pub const LOT_CREATED: &str = "lot.created";
 /// A lot's passport was published (first time or a new version).
 pub const PASSPORT_PUBLISHED: &str = "passport.published";
 
+/// An order was created (office draft or web checkout). Ids, number, status and totals only:
+/// never customer details.
+pub const ORDER_CREATED: &str = "order.created";
+
 /// Events an endpoint may subscribe to.
 pub const EVENTS: &[&str] = &[
     LOT_CREATED,
+    ORDER_CREATED,
     PASSPORT_PUBLISHED,
     PRODUCT_CHANGED,
     STOCK_CHANGED,

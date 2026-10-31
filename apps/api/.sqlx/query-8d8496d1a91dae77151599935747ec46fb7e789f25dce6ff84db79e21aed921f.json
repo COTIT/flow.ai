@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE orders SET status = $3, updated_at = now(),\n             expires_at = CASE WHEN $3 = 'awaiting_payment' THEN expires_at END,\n             completed_at = CASE WHEN $3 = 'completed' THEN now() ELSE completed_at END,\n             cancelled_at = CASE WHEN $3 = 'cancelled' THEN now()\n                                 WHEN $3 = 'open' THEN NULL ELSE cancelled_at END\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8d8496d1a91dae77151599935747ec46fb7e789f25dce6ff84db79e21aed921f"
+}

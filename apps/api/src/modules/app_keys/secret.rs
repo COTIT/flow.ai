@@ -9,9 +9,11 @@ use crate::{
 pub const PREFIX: &str = "gsk_";
 
 /// Scopes a key may hold. Checked on create; the extractor checks them per route.
-pub const SCOPES: &[&str] = &[CATALOG_READ];
+pub const SCOPES: &[&str] = &[CATALOG_READ, CHECKOUT_WRITE];
 /// Read products, variants, prices and available stock (`/storefront`).
 pub const CATALOG_READ: &str = "catalog:read";
+/// Place web orders and start their payment (`/storefront/orders`).
+pub const CHECKOUT_WRITE: &str = "checkout:write";
 
 /// App kinds a key is issued to.
 pub const KINDS: &[&str] = &["shop", "till", "field", "partner"];

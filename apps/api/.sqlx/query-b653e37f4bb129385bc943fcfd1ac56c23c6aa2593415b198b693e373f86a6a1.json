@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO order_payments (workspace_id, order_id, kind, provider, parent_id, auto,\n                                     amount, currency)\n         VALUES ($1, $2, 'refund', $3, $4, true, $5, $6)\n         ON CONFLICT (parent_id) WHERE kind = 'refund' AND auto DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b653e37f4bb129385bc943fcfd1ac56c23c6aa2593415b198b693e373f86a6a1"
+}

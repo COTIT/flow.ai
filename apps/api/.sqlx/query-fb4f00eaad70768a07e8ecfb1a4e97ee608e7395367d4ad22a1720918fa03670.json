@@ -1,0 +1,297 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,\n                  o.updated_at, count(*) OVER () AS \"total_rows!\"\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)\n           ORDER BY o.created_at DESC, o.id DESC\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "customer",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "customer"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "reference",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "reference"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "note"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "subtotal",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "subtotal"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "vat",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "vat"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "total",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "total"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "summary",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "summary"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "paid_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "paid_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "completed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "completed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "cancelled_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "cancelled_at"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "invoice_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "invoice_id"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "total_rows!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "fb4f00eaad70768a07e8ecfb1a4e97ee608e7395367d4ad22a1720918fa03670"
+}

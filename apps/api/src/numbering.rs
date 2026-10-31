@@ -11,12 +11,15 @@ use uuid::Uuid;
 pub enum Series {
     /// Invoices and credit notes (Laravel's MAX+1 over both).
     Invoice,
+    /// Orders (office and web shop).
+    Order,
 }
 
 impl Series {
     fn key(self) -> &'static str {
         match self {
             Self::Invoice => "invoice",
+            Self::Order => "order",
         }
     }
 }

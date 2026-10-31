@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT user_id, request_hash, status, response FROM idempotency_keys\n             WHERE workspace_id = $1 AND key = $2",
+  "query": "SELECT user_id, app_key_id, request_hash, status, response FROM idempotency_keys\n             WHERE workspace_id = $1 AND key = $2",
   "describe": {
     "columns": [
       {
@@ -16,6 +16,17 @@
       },
       {
         "ordinal": 1,
+        "name": "app_key_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "idempotency_keys",
+            "name": "app_key_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
         "name": "request_hash",
         "type_info": "Bytea",
         "origin": {
@@ -26,7 +37,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "status",
         "type_info": "Int2",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "response",
         "type_info": "Bytea",
         "origin": {
@@ -56,10 +67,11 @@
     },
     "nullable": [
       true,
+      true,
       false,
       false,
       false
     ]
   },
-  "hash": "7f085f2a18f03b3fe687d5f548cf97cc3a02ee1b6e060cd48b58a3a40e9e6b37"
+  "hash": "cfc7223f34f3337315ca1450dcd797e2d439b2303d481f66d5b2eace650128fc"
 }
