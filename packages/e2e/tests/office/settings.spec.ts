@@ -1,12 +1,7 @@
-import type {
-  AppKeyResource,
-  WebhookEndpointResource,
-} from "@genesy/api-client/model"
-
-import { expect, paged, test, type FakeApi } from "./fixtures"
+import { expect, paged, test, type FakeApi } from "./fake-api"
 
 function keysApi(api: FakeApi) {
-  const keys: AppKeyResource[] = [
+  const keys = [
     {
       id: "key-1",
       name: "Shop",
@@ -15,7 +10,7 @@ function keysApi(api: FakeApi) {
       prefix: "gk_live_ab12",
       created_at: "2026-10-01T08:00:00Z",
       last_used_at: null,
-      revoked_at: null,
+      revoked_at: null as string | null,
     },
   ]
   api
@@ -44,7 +39,7 @@ function keysApi(api: FakeApi) {
 }
 
 function hooksApi(api: FakeApi) {
-  const hooks: WebhookEndpointResource[] = [
+  const hooks = [
     {
       id: "wh-1",
       url: "https://erp.example.com/hooks",
@@ -58,7 +53,11 @@ function hooksApi(api: FakeApi) {
   api
     .on("GET", "/workspace/:ws/webhook-endpoints", () => paged(hooks))
     .on("POST", "/workspace/:ws/webhook-endpoints", ({ body }) => {
-      const hook = { ...hooks[0]!, ...(body as object), id: "wh-2" }
+      const hook = {
+        ...hooks[0]!,
+        ...(body as Record<string, unknown>),
+        id: "wh-2",
+      }
       hooks.push(hook)
       return {
         status: 201,
@@ -107,16 +106,22 @@ test("app key: secret shown once, gone after closing", async ({
   await expect(page.getByText("gk_live_cd34_SECRET")).toHaveCount(0)
 })
 
-test("app key: unknown scope shows the API's 422", async ({ page, api }) => {
-  keysApi(api)
-  await page.goto("/settings/app-keys")
-  await page.getByRole("button", { name: "New app key" }).click()
-  const dialog = page.getByRole("dialog")
-  await dialog.getByLabel("Name").fill("Bad")
-  await dialog.getByLabel("Kind").fill("shop")
-  await dialog.getByLabel("Scopes").fill("x")
-  await dialog.getByRole("button", { name: "Save" }).click()
-  await expect(dialog.getByText("Unknown scope x.")).toBeVisible()
+test.describe(() => {
+  test.use({
+    allow: { responses: [{ url: "/v1/workspace/w1/app-keys", status: 422 }] },
+  })
+
+  test("app key: unknown scope shows the API's 422", async ({ page, api }) => {
+    keysApi(api)
+    await page.goto("/settings/app-keys")
+    await page.getByRole("button", { name: "New app key" }).click()
+    const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("Name").fill("Bad")
+    await dialog.getByLabel("Kind").fill("shop")
+    await dialog.getByLabel("Scopes").fill("x")
+    await dialog.getByRole("button", { name: "Save" }).click()
+    await expect(dialog.getByText("Unknown scope x.")).toBeVisible()
+  })
 })
 
 test("revoke: cancelling sends nothing; confirming revokes", async ({

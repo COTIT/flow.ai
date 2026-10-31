@@ -29,7 +29,7 @@ export default function ProductsPage({
   const workspaceId = useSession((s) => s.workspaceId)
   const products = useProductsList(
     workspaceId ?? "",
-    { q: q || undefined, page: Number(page) || 1 },
+    { q: q || undefined, page: Number(page) || undefined },
     { query: { enabled: Boolean(workspaceId) } }
   )
   const go = (next: { q?: string; page?: number }) => {

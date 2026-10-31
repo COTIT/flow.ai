@@ -1,6 +1,4 @@
-import type { StockMovement, StockWithBins } from "@genesy/api-client/model"
-
-import { expect, paged, test, type FakeApi } from "./fixtures"
+import { expect, paged, test, type FakeApi } from "./fake-api"
 
 const product = {
   id: "prod-honey",
@@ -15,7 +13,7 @@ const product = {
 const warehouse = { id: "wh-1", name: "Dar es Salaam" }
 
 function stockApi(api: FakeApi) {
-  const rows: StockWithBins[] = [
+  const rows = [
     {
       id: "st-1",
       stock_lvl: "120.00",
@@ -27,7 +25,7 @@ function stockApi(api: FakeApi) {
       bin: null,
     },
   ]
-  const movements: StockMovement[] = []
+  const movements: Record<string, unknown>[] = []
   api
     .on("GET", "/workspace/:ws/products/:id", () => ({ data: product }))
     .on("POST", "/workspace/:ws/products/:id", ({ body }) => {
@@ -66,7 +64,7 @@ function stockApi(api: FakeApi) {
         quantity_after: "130.00",
         reason: b.reason,
         created_at: "2026-10-31T10:00:00Z",
-      } as StockMovement)
+      })
       return { data: rows[0] }
     })
 }
@@ -87,12 +85,20 @@ test("edit product: only the form's keys are sent", async ({ page, api }) => {
   })
 })
 
-test("edit product: 422 shows at the price", async ({ page, api }) => {
-  stockApi(api)
-  await page.goto("/products/prod-honey")
-  await page.getByLabel("Price excl. VAT").fill("abc")
-  await page.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByText("The price must be a number.")).toBeVisible()
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/products/prod-honey", status: 422 }],
+    },
+  })
+
+  test("edit product: 422 shows at the price", async ({ page, api }) => {
+    stockApi(api)
+    await page.goto("/products/prod-honey")
+    await page.getByLabel("Price excl. VAT").fill("abc")
+    await page.getByRole("button", { name: "Save" }).click()
+    await expect(page.getByText("The price must be a number.")).toBeVisible()
+  })
 })
 
 test("stock per warehouse; a change shows as a movement", async ({
@@ -119,16 +125,29 @@ test("stock per warehouse; a change shows as a movement", async ({
   })
 })
 
-test("stock change refused: the API's message shows", async ({ page, api }) => {
-  stockApi(api)
-  await page.goto("/products/prod-honey")
-  await page.getByRole("button", { name: "Change stock" }).click()
-  await page
-    .getByRole("dialog")
-    .getByLabel("Change (e.g. 10 or -3)")
-    .fill("-500")
-  await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("alert")).toHaveText("Not enough stock.")
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [
+        { url: "/v1/workspace/w1/products/prod-honey/stocks", status: 422 },
+      ],
+    },
+  })
+
+  test("stock change refused: the API's message shows", async ({
+    page,
+    api,
+  }) => {
+    stockApi(api)
+    await page.goto("/products/prod-honey")
+    await page.getByRole("button", { name: "Change stock" }).click()
+    await page
+      .getByRole("dialog")
+      .getByLabel("Change (e.g. 10 or -3)")
+      .fill("-500")
+    await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
+    await expect(page.getByRole("alert")).toHaveText("Not enough stock.")
+  })
 })
 
 test("all stock and below-zero lists", async ({ page, api }) => {
@@ -141,6 +160,8 @@ test("all stock and below-zero lists", async ({ page, api }) => {
     meta: null,
     relationships: { product, warehouse },
   })
+  // The product page the last click opens.
+  stockApi(api)
   api
     .on("GET", "/workspace/:ws/products/stocks", () =>
       paged([row("s1", "120.00")])
@@ -155,4 +176,7 @@ test("all stock and below-zero lists", async ({ page, api }) => {
   await expect(page.getByRole("cell", { name: "-3.00" })).toBeVisible()
   await page.getByRole("link", { name: "AFM Honey 500g" }).click()
   await expect(page).toHaveURL(/\/products\/prod-honey$/)
+  await expect(
+    page.getByRole("heading", { name: "AFM Honey 500g" })
+  ).toBeVisible()
 })

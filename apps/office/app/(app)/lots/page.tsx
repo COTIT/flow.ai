@@ -49,7 +49,11 @@ export default function LotsPage({
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const lots = useLotsList(
     workspaceId,
-    { q: q || undefined, status: status || undefined, page: Number(page) || 1 },
+    {
+      q: q || undefined,
+      status: status || undefined,
+      page: Number(page) || undefined,
+    },
     { query: { enabled: Boolean(workspaceId) } }
   )
   // shortcut: first 100 products only; swap for a search picker when the catalog grows past that.

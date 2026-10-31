@@ -31,7 +31,7 @@ export default function InvoicesPage({
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const invoices = useInvoicesList(
     workspaceId,
-    { q: q || undefined, page: Number(page) || 1 },
+    { q: q || undefined, page: Number(page) || undefined },
     { query: { enabled: Boolean(workspaceId) } }
   )
   const meta = invoices.data?.meta

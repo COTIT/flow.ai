@@ -1,6 +1,5 @@
-import type { ProductResource } from "@genesy/api-client/model"
-
-import { expect, paged, test, WS, WS2 } from "./fixtures"
+import { expectNoHorizontalScroll } from "../../src/test"
+import { expect, paged, test, WS, WS2 } from "./fake-api"
 
 const products = Array.from({ length: 120 }, (_, i) => ({
   id: `p-${i + 1}`,
@@ -9,7 +8,7 @@ const products = Array.from({ length: 120 }, (_, i) => ({
   reference: `AFM-${i + 1}`,
   price_incl: "12.50",
   status: "active",
-})) satisfies Partial<ProductResource>[]
+}))
 
 test.beforeEach(({ api }) => {
   api.on("GET", "/workspace/:ws/products", ({ params, query }) => {
@@ -75,10 +74,5 @@ test("signed-out visitor is sent to login", async ({ page }) => {
 test("no sideways scroll", async ({ page }) => {
   await page.goto("/products")
   await expect(page.getByText("1–50 of 120")).toBeVisible()
-  const overflow = await page.evaluate(
-    () =>
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
-  )
-  expect(overflow).toBeLessThanOrEqual(0)
+  await expectNoHorizontalScroll(page)
 })

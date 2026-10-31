@@ -16,6 +16,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  // shortcut: e2e is type-checked by Playwright, not tsc, until @genesy/e2e brings @playwright/test; then drop these two.
-  "exclude": ["node_modules", "e2e", "playwright.config.ts"]
+  "exclude": ["node_modules"]
 }

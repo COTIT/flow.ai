@@ -1,11 +1,9 @@
-import type { LotEventResource, LotResource } from "@genesy/api-client/model"
-
-import { expect, paged, test } from "./fixtures"
+import { expect, paged, test, type FakeApi } from "./fake-api"
 
 const product = { id: "prod-honey", name: "AFM Honey 500g" }
 
-function lotsApi(api: import("./fixtures").FakeApi) {
-  const lots: LotResource[] = [
+function lotsApi(api: FakeApi) {
+  const lots = [
     {
       id: "lot-1",
       product_id: product.id,
@@ -20,11 +18,11 @@ function lotsApi(api: import("./fixtures").FakeApi) {
       updated_at: "2026-09-02T08:00:00Z",
     },
   ]
-  const events: LotEventResource[] = [
+  const events = [
     {
       id: "ev-1",
       kind: "created",
-      from_status: null,
+      from_status: null as string | null,
       to_status: "released",
       user_id: null,
       meta: null,
@@ -41,7 +39,7 @@ function lotsApi(api: import("./fixtures").FakeApi) {
       )
     )
     .on("POST", "/workspace/:ws/lots", ({ body }) => {
-      const b = body as Partial<LotResource>
+      const b = body as Record<string, string>
       if (lots.some((l) => l.code.toLowerCase() === b.code?.toLowerCase()))
         return {
           status: 409,
@@ -52,7 +50,7 @@ function lotsApi(api: import("./fixtures").FakeApi) {
         ...b,
         id: `lot-${lots.length + 1}`,
         public_code: "AB12CD34EF",
-      } as LotResource
+      }
       lots.push(lot)
       return { status: 201, body: { data: lot } }
     })
@@ -60,7 +58,7 @@ function lotsApi(api: import("./fixtures").FakeApi) {
       data: lots.find((l) => l.id === params[1]),
     }))
     .on("PATCH", "/workspace/:ws/lots/:lot", ({ params, body }) => {
-      const b = body as Partial<LotResource>
+      const b = body as Record<string, string>
       if (b.best_before && b.produced_on && b.best_before < b.produced_on)
         return {
           status: 422,
@@ -111,18 +109,24 @@ test("create a batch: it opens and shows in the list", async ({
   })
 })
 
-test("duplicate code: the API's 409 message is shown", async ({
-  page,
-  api,
-}) => {
-  lotsApi(api)
-  await page.goto("/lots")
-  await page.getByRole("button", { name: "New batch" }).click()
-  await page.getByRole("dialog").getByLabel("Batch code").fill("ilu-2026-01")
-  await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("alert")).toHaveText(
-    "A lot with this code already exists."
-  )
+test.describe(() => {
+  test.use({
+    allow: { responses: [{ url: "/v1/workspace/w1/lots", status: 409 }] },
+  })
+
+  test("duplicate code: the API's 409 message is shown", async ({
+    page,
+    api,
+  }) => {
+    lotsApi(api)
+    await page.goto("/lots")
+    await page.getByRole("button", { name: "New batch" }).click()
+    await page.getByRole("dialog").getByLabel("Batch code").fill("ilu-2026-01")
+    await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
+    await expect(page.getByRole("alert")).toHaveText(
+      "A lot with this code already exists."
+    )
+  })
 })
 
 test("status filter goes to the API", async ({ page, api }) => {
@@ -133,18 +137,27 @@ test("status filter goes to the API", async ({ page, api }) => {
   expect(api.calls.at(-1)?.path).toMatch(/\/lots$/)
 })
 
-test("edit: 422 field error shows next to the field", async ({ page, api }) => {
-  lotsApi(api)
-  await page.goto("/lots/lot-1")
-  await page.getByLabel("Best before").fill("2026-01-01")
-  await page.getByRole("button", { name: "Save" }).click()
-  await expect(
-    page.getByText("Best before must be on or after produced on.")
-  ).toBeVisible()
-  await expect(page.getByLabel("Best before")).toHaveAttribute(
-    "aria-invalid",
-    "true"
-  )
+test.describe(() => {
+  test.use({
+    allow: { responses: [{ url: "/v1/workspace/w1/lots/lot-1", status: 422 }] },
+  })
+
+  test("edit: 422 field error shows next to the field", async ({
+    page,
+    api,
+  }) => {
+    lotsApi(api)
+    await page.goto("/lots/lot-1")
+    await page.getByLabel("Best before").fill("2026-01-01")
+    await page.getByRole("button", { name: "Save" }).click()
+    await expect(
+      page.getByText("Best before must be on or after produced on.")
+    ).toBeVisible()
+    await expect(page.getByLabel("Best before")).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    )
+  })
 })
 
 test("recall asks first; cancelling sends nothing", async ({ page, api }) => {

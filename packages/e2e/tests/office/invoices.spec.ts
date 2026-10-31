@@ -1,4 +1,4 @@
-import { expect, paged, test, type FakeApi } from "./fixtures"
+import { expect, paged, test, type FakeApi } from "./fake-api"
 
 const invoice = {
   id: "inv-1",

@@ -1,12 +1,6 @@
-import type {
-  LotResource,
-  Passport,
-  PassportResource,
-} from "@genesy/api-client/model"
+import { expect, paged, test, type FakeApi } from "./fake-api"
 
-import { expect, paged, test, type FakeApi } from "./fixtures"
-
-const lot: LotResource = {
+const lot = {
   id: "lot-1",
   product_id: "prod-honey",
   code: "ILU-2026-01",
@@ -20,8 +14,13 @@ const lot: LotResource = {
   updated_at: "2026-09-02T08:00:00Z",
 }
 
-function passportApi(api: FakeApi, draft: Passport = {}) {
-  const state: PassportResource = {
+function passportApi(api: FakeApi, draft: Record<string, unknown> = {}) {
+  const state: {
+    draft: Record<string, unknown>
+    published: Record<string, unknown> | null
+    published_at: string | null
+    version: number
+  } = {
     draft,
     published: null,
     published_at: null,
@@ -40,7 +39,7 @@ function passportApi(api: FakeApi, draft: Passport = {}) {
     .on("GET", "/workspace/:ws/files", () => paged([]))
     .on("GET", "/workspace/:ws/lots/:lot/passport", () => ({ data: state }))
     .on("PUT", "/workspace/:ws/lots/:lot/passport", ({ body }) => {
-      state.draft = body as Passport
+      state.draft = body as Record<string, unknown>
       return { data: state }
     })
     .on("POST", "/workspace/:ws/lots/:lot/passport/publish", () => {
@@ -155,19 +154,34 @@ test("publish: cancel sends nothing; confirm publishes version 1", async ({
   await expect(page.getByText(/Published: version 1/)).toBeVisible()
 })
 
-test("publish refused: the API's 422 shows at the title", async ({
-  page,
-  api,
-}) => {
-  passportApi(api)
-  await page.goto("/lots/lot-1/passport")
-  await page.getByRole("button", { name: "Publish" }).click()
-  await page
-    .getByRole("alertdialog")
-    .getByRole("button", { name: "Publish" })
-    .click()
-  await expect(page.getByText("A title is required to publish.")).toBeVisible()
-  await expect(page.getByLabel("Title")).toHaveAttribute("aria-invalid", "true")
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [
+        { url: "/v1/workspace/w1/lots/lot-1/passport/publish", status: 422 },
+      ],
+    },
+  })
+
+  test("publish refused: the API's 422 shows at the title", async ({
+    page,
+    api,
+  }) => {
+    passportApi(api)
+    await page.goto("/lots/lot-1/passport")
+    await page.getByRole("button", { name: "Publish" }).click()
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Publish" })
+      .click()
+    await expect(
+      page.getByText("A title is required to publish.")
+    ).toBeVisible()
+    await expect(page.getByLabel("Title")).toHaveAttribute(
+      "aria-invalid",
+      "true"
+    )
+  })
 })
 
 test("unpublish: cancel sends nothing; confirm takes it offline", async ({
