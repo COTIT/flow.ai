@@ -18,6 +18,7 @@ const nav = [
   { href: "/products", label: "nav.products" },
   { href: "/stock", label: "nav.stock" },
   { href: "/lots", label: "nav.lots" },
+  { href: "/invoices", label: "nav.invoices" },
   { href: "/settings/app-keys", label: "nav.appKeys" },
   { href: "/settings/webhooks", label: "nav.webhooks" },
 ] as const

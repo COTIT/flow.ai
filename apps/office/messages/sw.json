@@ -22,7 +22,8 @@
     "lots": "Mafungu",
     "appKeys": "Funguo za programu",
     "webhooks": "Webhooks",
-    "stock": "Akiba"
+    "stock": "Akiba",
+    "invoices": "Ankara"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -178,5 +179,30 @@
     "reason": "Sababu",
     "changeHint": "Mabadiliko (k.m. 10 au -3)",
     "quantityChange": "Mabadiliko"
+  },
+  "invoices": {
+    "title": "Ankara",
+    "search": "Tafuta ankara",
+    "empty": "Bado hakuna ankara.",
+    "number": "Namba",
+    "status": "Hali",
+    "date": "Tarehe",
+    "due": "Tarehe ya mwisho",
+    "total": "Jumla",
+    "paid": "Imelipwa",
+    "open": "Inadaiwa",
+    "draft": "Rasimu",
+    "credit": "Hati ya mkopo",
+    "openPdf": "Fungua PDF",
+    "makePdf": "Tengeneza PDF",
+    "lines": "Mistari",
+    "item": "Bidhaa",
+    "quantity": "Idadi",
+    "unitPrice": "Bei pamoja na VAT",
+    "lineTotal": "Jumla ya mstari",
+    "payments": "Malipo",
+    "noPayments": "Bado hakuna malipo.",
+    "method": "Njia",
+    "amount": "Kiasi"
   }
 }

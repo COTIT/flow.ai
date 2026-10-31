@@ -22,7 +22,8 @@
     "lots": "Batches",
     "appKeys": "App keys",
     "webhooks": "Webhooks",
-    "stock": "Stock"
+    "stock": "Stock",
+    "invoices": "Invoices"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -178,5 +179,30 @@
     "reason": "Reason",
     "changeHint": "Change (e.g. 10 or -3)",
     "quantityChange": "Change"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "search": "Search invoices",
+    "empty": "No invoices yet.",
+    "number": "Number",
+    "status": "Status",
+    "date": "Date",
+    "due": "Due",
+    "total": "Total",
+    "paid": "Paid",
+    "open": "Open",
+    "draft": "Draft",
+    "credit": "Credit note",
+    "openPdf": "Open PDF",
+    "makePdf": "Make PDF",
+    "lines": "Lines",
+    "item": "Item",
+    "quantity": "Qty",
+    "unitPrice": "Price incl. VAT",
+    "lineTotal": "Line total",
+    "payments": "Payments",
+    "noPayments": "No payments yet.",
+    "method": "Method",
+    "amount": "Amount"
   }
 }

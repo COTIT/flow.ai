@@ -22,7 +22,8 @@
     "lots": "Batches",
     "appKeys": "App-sleutels",
     "webhooks": "Webhooks",
-    "stock": "Voorraad"
+    "stock": "Voorraad",
+    "invoices": "Facturen"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -178,5 +179,30 @@
     "reason": "Reden",
     "changeHint": "Wijziging (bv. 10 of -3)",
     "quantityChange": "Wijziging"
+  },
+  "invoices": {
+    "title": "Facturen",
+    "search": "Facturen zoeken",
+    "empty": "Nog geen facturen.",
+    "number": "Nummer",
+    "status": "Status",
+    "date": "Datum",
+    "due": "Vervaldatum",
+    "total": "Totaal",
+    "paid": "Betaald",
+    "open": "Openstaand",
+    "draft": "Concept",
+    "credit": "Creditnota",
+    "openPdf": "PDF openen",
+    "makePdf": "PDF maken",
+    "lines": "Regels",
+    "item": "Artikel",
+    "quantity": "Aantal",
+    "unitPrice": "Prijs incl. btw",
+    "lineTotal": "Regeltotaal",
+    "payments": "Betalingen",
+    "noPayments": "Nog geen betalingen.",
+    "method": "Methode",
+    "amount": "Bedrag"
   }
 }
