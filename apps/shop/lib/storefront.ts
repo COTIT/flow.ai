@@ -45,8 +45,12 @@ function options(): RequestOptions {
   }
 }
 
-/** 404 -> Next's not-found page; anything else -> StorefrontUnavailable (status only is logged). */
+/**
+ * 404 -> Next's not-found page; anything else -> StorefrontUnavailable. The log line holds
+ * only the API path and the upstream status: never the key, headers or response body.
+ */
 async function call<T>(
+  path: string,
   request: (options: RequestOptions) => Promise<T>
 ): Promise<T> {
   const opts = options()
@@ -57,7 +61,7 @@ async function call<T>(
       ?.status
     if (status === 404) notFound()
     console.error(
-      "storefront: call failed",
+      `storefront: GET ${path} failed:`,
       status ?? (error as { code?: string }).code ?? "network"
     )
     throw new StorefrontUnavailable()
@@ -65,13 +69,19 @@ async function call<T>(
 }
 
 export const listProducts = (page: number) =>
-  call((o) => storefrontProductsList({ page, page_size: PAGE_SIZE }, o))
+  call("/storefront/products", (o) =>
+    storefrontProductsList({ page, page_size: PAGE_SIZE }, o)
+  )
 
 /** Per-request memo: generateMetadata and the page share one call. */
 export const getProduct = cache(async (id: string) => {
   // The id goes into the API path: anything but a UUID could point it elsewhere.
   if (!isProductId(id)) notFound()
-  return (await call((o) => storefrontProductsGet(id, o))).data
+  return (
+    await call(`/storefront/products/${id}`, (o) =>
+      storefrontProductsGet(id, o)
+    )
+  ).data
 })
 
 /** A cached reply whose first signed link expires sooner than this is fetched again. */
@@ -80,11 +90,12 @@ const LINK_MARGIN_MS = 2 * 60_000
 /** Published batch passport for a QR code (`/b/{public_code}`). */
 export const getLot = cache(async (code: string) => {
   if (!isPublicCode(code)) notFound()
-  const lot = (await call((o) => storefrontLotsGet(code, o))).data
+  const path = `/storefront/lots/${code}`
+  const lot = (await call(path, (o) => storefrontLotsGet(code, o))).data
   const expiry = earliestLinkExpiry(lot)
   if (!expiry || expiry.getTime() - Date.now() > LINK_MARGIN_MS) return lot
   return (
-    await call((o) =>
+    await call(path, (o) =>
       storefrontLotsGet(code, { ...o, fetchOptions: { cache: "no-store" } })
     )
   ).data

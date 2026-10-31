@@ -1,13 +1,16 @@
 import { renderToStaticMarkup } from "react-dom/server"
-import { createTranslator } from "next-intl"
 import { describe, expect, it } from "vitest"
 
 import type { PublicLot } from "@genesy/api-client/model"
 
-import en from "../messages/en.json"
-import { Passport } from "./passport"
+import en from "../../../i18n/messages/en.json"
+import { PassportView } from "./passport-view"
 
-const t = createTranslator({ locale: "en", messages: en, namespace: "batch" })
+// The shared English texts with ICU {placeholders} filled in; enough for these messages.
+const t = (key: string, values: Record<string, string | number> = {}) =>
+  (en.batch as Record<string, string>)[key]!.replace(/\{(\w+)\}/g, (_, k) =>
+    String(values[k])
+  )
 const link = (name: string) => ({
   url: `https://files.example.com/${name}`,
   expires_at: "2026-10-31T10:10:00Z",
@@ -51,10 +54,12 @@ const lot = (over: Partial<PublicLot> = {}): PublicLot => ({
   ...over,
 })
 
-const render = (l: PublicLot) =>
-  renderToStaticMarkup(<Passport lot={l} locale="en" t={t} />)
+const render = ({ passport, ...l }: PublicLot) =>
+  renderToStaticMarkup(
+    <PassportView passport={passport} lot={l} locale="en" t={t} />
+  )
 
-describe("Passport", () => {
+describe("PassportView", () => {
   it("shows title, intro, origin, materials, certificates and every story block", () => {
     const html = render(lot())
     for (const text of [

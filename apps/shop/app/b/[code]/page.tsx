@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { getLocale, getTranslations } from "next-intl/server"
 
-import { Passport } from "@/components/passport"
+import { PassportView } from "@genesy/ui/components/passport-view"
+
 import { getLot } from "@/lib/storefront"
 
 type Props = { params: Promise<{ code: string }> }
@@ -31,5 +32,7 @@ export default async function BatchPage({ params }: Props) {
     getLocale(),
     getLot(code),
   ])
-  return <Passport lot={lot} locale={locale} t={t} />
+  return (
+    <PassportView passport={lot.passport} lot={lot} locale={locale} t={t} />
+  )
 }
