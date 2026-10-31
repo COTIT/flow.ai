@@ -11,6 +11,15 @@
     "price": "Price incl. VAT",
     "status": "Status",
     "empty": "No products yet.",
-    "total": "{count, plural, one {# product} other {# products}}"
+    "search": "Search products"
+  },
+  "nav": {
+    "label": "Main menu",
+    "products": "Products"
+  },
+  "pager": {
+    "summary": "{from}–{to} of {total}",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

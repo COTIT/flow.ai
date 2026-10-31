@@ -11,6 +11,15 @@
     "price": "Prijs incl. btw",
     "status": "Status",
     "empty": "Nog geen producten.",
-    "total": "{count, plural, one {# product} other {# producten}}"
+    "search": "Producten zoeken"
+  },
+  "nav": {
+    "label": "Hoofdmenu",
+    "products": "Producten"
+  },
+  "pager": {
+    "summary": "{from}–{to} van {total}",
+    "previous": "Vorige",
+    "next": "Volgende"
   }
 }

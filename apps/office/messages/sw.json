@@ -11,6 +11,15 @@
     "price": "Bei pamoja na VAT",
     "status": "Hali",
     "empty": "Bado hakuna bidhaa.",
-    "total": "{count, plural, one {Bidhaa #} other {Bidhaa #}}"
+    "search": "Tafuta bidhaa"
+  },
+  "nav": {
+    "label": "Menyu kuu",
+    "products": "Bidhaa"
+  },
+  "pager": {
+    "summary": "{from}–{to} kati ya {total}",
+    "previous": "Iliyotangulia",
+    "next": "Inayofuata"
   }
 }
