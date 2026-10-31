@@ -1,0 +1,5 @@
+# An SPA with no SSR: one HTML file, and every route below it is the
+# router. 200 is a rewrite, not a redirect, so the address stays the one
+# the user typed. Duplicated from netlify.toml on purpose: the toml is not
+# inside dist/, so a hand-dropped deploy would lose the rule without this.
+/*  /index.html  200
