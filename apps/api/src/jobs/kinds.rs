@@ -13,7 +13,8 @@ use crate::{
         runner::{Handler, Step},
         scheduler::{Every, Schedule},
     },
-    modules::{messages::repo as messages, stock::sweep},
+    modules::{messages::repo as messages, stock::sweep, webhooks::deliver},
+    outbound::Outbound,
     storage::Store,
 };
 
@@ -26,14 +27,31 @@ pub const FILE_SWEEP: &str = "file_sweep";
 /// Zero stock rows for every product in a new main or store warehouse (`stock::sweep`).
 pub const STOCK_SEED: &str = "stock_seed";
 
+/// Turns a workspace's pending webhook events into deliveries (`webhooks::deliver`).
+pub const WEBHOOK_FANOUT: &str = "webhook_fanout";
+
+/// POSTs one signed webhook delivery (`webhooks::deliver`).
+pub const WEBHOOK_DELIVER: &str = "webhook_deliver";
+
+/// Re-queues fan-outs for events left pending (every minute, `webhooks::deliver::sweep`).
+pub const WEBHOOK_SWEEP: &str = "webhook_sweep";
+
 /// Every kind this build can run; the claim never takes another.
-pub const KINDS: &[&str] = &[CLOSE_STUCK_SENDS, PRUNE, FILE_SWEEP, STOCK_SEED];
+pub const KINDS: &[&str] = &[
+    CLOSE_STUCK_SENDS,
+    PRUNE,
+    FILE_SWEEP,
+    STOCK_SEED,
+    WEBHOOK_FANOUT,
+    WEBHOOK_DELIVER,
+    WEBHOOK_SWEEP,
+];
 
 /// One sweep chunk outside the rail (tests, load tests): see `stock::repo::seed_chunk`.
 pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
-pub static SCHEDULES: [Schedule; 3] = [
+pub static SCHEDULES: [Schedule; 4] = [
     Schedule {
         name: CLOSE_STUCK_SENDS,
         kind: CLOSE_STUCK_SENDS,
@@ -49,6 +67,11 @@ pub static SCHEDULES: [Schedule; 3] = [
         kind: FILE_SWEEP,
         every: Every::Minutes(60),
     },
+    Schedule {
+        name: WEBHOOK_SWEEP,
+        kind: WEBHOOK_SWEEP,
+        every: Every::Minutes(1),
+    },
 ];
 
 /// What handlers reach: the job pool and, when configured, the file bucket.
@@ -58,6 +81,10 @@ pub struct Ctx {
     pub db: PgPool,
     /// The file bucket, when configured.
     pub files: Option<Store>,
+    /// Outbound HTTP behind the address guard (webhook deliveries).
+    pub http: Outbound,
+    /// Opens webhook secrets; None fails deliveries until configured.
+    pub credentials: Option<std::sync::Arc<crate::CredentialKey>>,
 }
 
 /// The runner's handler over `dispatch`.
@@ -87,6 +114,9 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
             }
         }
         STOCK_SEED => return sweep::run(&ctx.db, &job).await,
+        WEBHOOK_FANOUT => return deliver::fanout(&ctx.db, &job).await,
+        WEBHOOK_DELIVER => return deliver::deliver(ctx, &job).await,
+        WEBHOOK_SWEEP => return deliver::sweep(&ctx.db).await,
         // The claim only takes `KINDS`, so this means a kind was listed without an arm.
         other => {
             return Err(AppError::Internal(format!(
@@ -124,6 +154,8 @@ mod tests {
         Ctx {
             db: db.clone(),
             files: None,
+            http: Outbound::new(&[]).unwrap(),
+            credentials: None,
         }
     }
 

@@ -28,6 +28,7 @@ use crate::{
         stock::repo as stock,
         vat_groups::repo as vat_groups,
         warehouses::{dto::WarehouseCompacted, repo as warehouses, service as warehouse_service},
+        webhooks::events,
     },
 };
 
@@ -202,6 +203,7 @@ pub async fn create(
             repo::set_default_warehouse(&mut tx, workspace_id, row.id, main).await?;
         }
     }
+    events::product_changed(&mut tx, workspace_id, row.id, "created").await?;
     tx.commit().await?;
     Ok(row.id)
 }
@@ -248,6 +250,7 @@ pub async fn update(
     if let Some(children) = bundle_children(&row, &f) {
         repo::set_children(&mut tx, workspace_id, id, children).await?;
     }
+    events::product_changed(&mut tx, workspace_id, id, "updated").await?;
     tx.commit().await?;
     Ok(())
 }
@@ -329,6 +332,7 @@ pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<()
     }
     invoices::service::product_deletable(&mut tx, workspace_id, id).await?;
     repo::soft_delete(&mut *tx, workspace_id, id).await?;
+    events::product_changed(&mut tx, workspace_id, id, "deleted").await?;
     tx.commit().await?;
     Ok(())
 }

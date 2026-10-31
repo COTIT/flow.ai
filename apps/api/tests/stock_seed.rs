@@ -21,6 +21,8 @@ async fn run_jobs(pool: &PgPool) {
     let ctx = Ctx {
         db: pool.clone(),
         files: None,
+        http: genesy_360_api::outbound::Outbound::new(&[]).unwrap(),
+        credentials: None,
     };
     while let Some(job) = repo::claim(pool, kinds::KINDS, 100, Duration::from_secs(60))
         .await

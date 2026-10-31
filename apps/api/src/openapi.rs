@@ -14,15 +14,15 @@ use crate::{
     error::{UnprocessableBody, ValidationErrorBody},
     http::response::MessageBody,
     modules::{
-        auth, contacts, currencies, custom_statuses, custom_types, deal_pipelines, deals,
+        app_keys, auth, contacts, currencies, custom_statuses, custom_types, deal_pipelines, deals,
         discount_groups, discounts, email_profiles, email_templates, email_verification, files,
         hourly_rates, invites, invoice_payments, invoices, messages, pdf_templates, permissions,
         price_corrections, pricing, product_brands, product_categories, product_variants, products,
         relations, sales_groups, search, settings, shipment_methods, special_offers, stock,
-        storage_locations, teams,
+        storage_locations, storefront, teams,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
-        warehouse_shelves, warehouses, workspaces,
+        warehouse_shelves, warehouses, webhooks, workspaces,
     },
 };
 
@@ -41,7 +41,8 @@ use crate::{
 )]
 struct ApiDoc;
 
-/// Registers the `bearer` scheme that private operations list under `security`.
+/// Registers the `bearer` scheme (user tokens) and the `app_key` scheme (`gsk_…` app keys,
+/// same header) that operations list under `security`.
 struct BearerAuth;
 
 impl Modify for BearerAuth {
@@ -51,6 +52,18 @@ impl Modify for BearerAuth {
             .add_security_scheme(
                 "bearer",
                 SecurityScheme::Http(HttpBuilder::new().scheme(HttpAuthScheme::Bearer).build()),
+            );
+        doc.components
+            .get_or_insert_with(Default::default)
+            .add_security_scheme(
+                "app_key",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("gsk_ app key")
+                        .description(Some("App key issued under /workspace/{workspace}/app-keys"))
+                        .build(),
+                ),
             );
     }
 }
@@ -109,6 +122,9 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(email_profiles::routes::private())
         .merge(messages::routes::private())
         .merge(settings::routes::private())
+        .merge(app_keys::routes::private())
+        .merge(storefront::routes::private())
+        .merge(webhooks::routes::private())
 }
 
 /// Documented routes that need a token and take large bodies (item lines, invoices, uploads);

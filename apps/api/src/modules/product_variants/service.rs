@@ -21,6 +21,7 @@ use crate::{
             repo::{self as products, PriceChange, ProductRow},
             service::{Actor, render_index},
         },
+        webhooks::events,
     },
 };
 
@@ -156,6 +157,7 @@ pub async fn create(
         actor.flow,
     )
     .await?;
+    events::product_changed(&mut tx, workspace_id, p.id, "updated").await?;
     tx.commit().await?;
     Ok(v.id)
 }
@@ -208,6 +210,7 @@ pub async fn update(
         actor.flow,
     )
     .await?;
+    events::product_changed(&mut tx, workspace_id, p.id, "updated").await?;
     tx.commit().await?;
     // Re-read: the row's `updated_at` comes from the database.
     let v = repo::find(&state.db, workspace_id, p.id, v.id)
@@ -238,6 +241,7 @@ pub async fn delete(
         ));
     }
     repo::soft_delete(&mut tx, workspace_id, v.id).await?;
+    events::product_changed(&mut tx, workspace_id, p.id, "updated").await?;
     tx.commit().await?;
     Ok(())
 }
@@ -329,6 +333,7 @@ pub async fn generate(
         .await?;
         made.push(v);
     }
+    events::product_changed(&mut tx, workspace_id, p.id, "updated").await?;
     tx.commit().await?;
     render_all(state, workspace_id, &made, &pv).await
 }

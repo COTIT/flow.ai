@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE webhook_deliveries SET\n             attempts = attempts + 1, status = $3, last_status = $4, last_error = $5,\n             delivered_at = CASE WHEN $3 = 'delivered' THEN now() END, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int2",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "650c725d79c4deed0fdc200f96c38854aa3daa9408c6cdde208f7d9e46ca8eca"
+}

@@ -8,7 +8,7 @@ use crate::{
     jobs,
     modules::{
         auth::repo as auth, email_verification::repo as email_verification, files,
-        invites::repo as invites, messages::repo as messages,
+        invites::repo as invites, messages::repo as messages, webhooks::repo as webhooks,
     },
     storage::Store,
 };
@@ -29,6 +29,10 @@ pub struct Pruned {
     pub scheduled_runs: u64,
     /// Idempotency keys older than a day.
     pub idempotency_keys: u64,
+    /// Webhook deliveries finished (or stuck pending) over 30 days ago.
+    pub webhook_deliveries: u64,
+    /// Dispatched webhook events older than 30 days with no delivery left.
+    pub webhook_events: u64,
 }
 
 /// Delete stale rows via each module's repo. Windows are wider than any rule that reads them.
@@ -44,6 +48,9 @@ pub async fn prune(db: &PgPool) -> Result<Pruned, sqlx::Error> {
         jobs: jobs::repo::prune(db).await?,
         scheduled_runs: jobs::scheduler::prune(db).await?,
         idempotency_keys: crate::idempotency::prune(db).await?,
+        // Deliveries first: an event goes once its last delivery is gone.
+        webhook_deliveries: webhooks::prune_deliveries(db).await?,
+        webhook_events: webhooks::prune_events(db).await?,
     })
 }
 
@@ -152,6 +159,8 @@ mod tests {
                 jobs: 0,
                 scheduled_runs: 0,
                 idempotency_keys: 1,
+                webhook_deliveries: 0,
+                webhook_events: 0,
             }
         );
         assert_eq!(
@@ -163,6 +172,49 @@ mod tests {
             prune(&pool).await.unwrap(),
             Pruned::default(),
             "second run is a no-op"
+        );
+    }
+
+    #[sqlx::test]
+    async fn prune_drops_finished_webhook_rows_after_30_days_only(pool: PgPool) {
+        let user = seed_user(&pool).await;
+        // Endpoint + 4 events: old failed, old stuck pending, old undispatched, fresh delivered.
+        run(
+            &pool,
+            "WITH w AS (SELECT id FROM workspaces WHERE created_by_user_id = $1),
+                  ep AS (INSERT INTO webhook_endpoints (workspace_id, url, events, secret_sealed,
+                                                        secret_key_id)
+                         SELECT id, 'https://a.io/h', '{stock.changed}', '\\x00', 'k' FROM w
+                         RETURNING id, workspace_id),
+                  ev AS (INSERT INTO webhook_events (workspace_id, type, payload, dispatched_at)
+                         SELECT w.id, 'stock.changed', jsonb_build_object('n', n),
+                                CASE WHEN n = 3 THEN NULL
+                                     WHEN n = 4 THEN now() - interval '1 day'
+                                     ELSE now() - interval '31 days' END
+                         FROM w, generate_series(1, 4) n
+                         RETURNING id, workspace_id, (payload->>'n')::int AS n)
+             INSERT INTO webhook_deliveries (workspace_id, event_id, endpoint_id, status, updated_at)
+             SELECT ev.workspace_id, ev.id, ep.id,
+                    CASE ev.n WHEN 2 THEN 'pending' WHEN 1 THEN 'failed' ELSE 'delivered' END,
+                    CASE WHEN ev.n = 4 THEN now() - interval '1 day'
+                         ELSE now() - interval '31 days' END
+             FROM ev, ep WHERE ev.n <> 3",
+            user,
+        )
+        .await;
+
+        let pruned = prune(&pool).await.unwrap();
+
+        assert_eq!((pruned.webhook_deliveries, pruned.webhook_events), (2, 2));
+        let left: Vec<i32> =
+            sqlx::query_scalar("SELECT (payload->>'n')::int FROM webhook_events ORDER BY 1")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert_eq!(left, [3, 4], "undispatched and fresh rows stay");
+        assert_eq!(
+            count(&pool, "SELECT count(*) FROM webhook_deliveries").await,
+            1
         );
     }
 }

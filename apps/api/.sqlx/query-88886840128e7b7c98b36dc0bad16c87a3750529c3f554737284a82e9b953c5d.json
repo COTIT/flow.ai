@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM webhook_events WHERE id = ANY(ARRAY(\n                 SELECT e.id FROM webhook_events e\n                 WHERE e.dispatched_at < now() - interval '30 days'\n                   AND NOT EXISTS (SELECT 1 FROM webhook_deliveries d WHERE d.event_id = e.id)\n                 LIMIT $1))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "88886840128e7b7c98b36dc0bad16c87a3750529c3f554737284a82e9b953c5d"
+}

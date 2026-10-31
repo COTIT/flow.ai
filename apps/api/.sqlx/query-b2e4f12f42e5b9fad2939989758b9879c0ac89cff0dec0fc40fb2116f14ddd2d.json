@@ -1,0 +1,169 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH page AS (\n               SELECT p.id, p.name, p.brand, p.type, p.short_description, p.description,\n                      p.ean13, p.barcode, p.price, p.gross_price, p.has_stock, p.currency_id,\n                      count(*) OVER () AS total\n               FROM products p\n               WHERE p.workspace_id = $1 AND p.deleted_at IS NULL\n                 AND p.status = 'active' AND NOT p.archived\n                 AND ($2::uuid IS NULL OR p.id = $2)\n               ORDER BY p.id\n               LIMIT $3 OFFSET $4\n           )\n           SELECT pg.id, pg.name, pg.brand, pg.type, pg.short_description, pg.description,\n                  pg.ean13, pg.barcode,\n                  round(pg.gross_price * 10::numeric ^ c.decimals)::bigint AS \"price_gross!\",\n                  round(pg.price * 10::numeric ^ c.decimals)::bigint AS \"price_net!\",\n                  upper(c.asset_type) AS \"currency!\", c.decimals AS currency_decimals,\n                  CASE WHEN pg.has_stock THEN (\n                      SELECT coalesce(sum(s.stock_lvl - s.reserved), 0.00::numeric(19, 2))::text\n                      FROM stocks s\n                      WHERE s.workspace_id = $1 AND s.product_id = pg.id AND s.deleted_at IS NULL\n                  ) END AS available_stock,\n                  (SELECT coalesce(json_agg(json_build_object(\n                              'id', v.id, 'sku', v.sku, 'barcode', v.barcode, 'ean13', v.ean13,\n                              'is_default', v.is_default,\n                              'price_gross', round(v.gross_price * 10::numeric ^ c.decimals)::bigint,\n                              'price_net', round(v.price * 10::numeric ^ c.decimals)::bigint,\n                              'options', (\n                                  SELECT coalesce(json_agg(json_build_object(\n                                             'type', ot.display_name, 'value', ov.display_value)\n                                         ORDER BY ot.display_name, ov.sort_order, ov.id), '[]')\n                                  FROM variant_option_values vov\n                                  JOIN option_values ov ON ov.id = vov.option_value_id\n                                       AND ov.workspace_id = $1 AND ov.deleted_at IS NULL\n                                  JOIN option_types ot ON ot.id = ov.option_type_id\n                                       AND ot.workspace_id = $1 AND ot.deleted_at IS NULL\n                                  WHERE vov.workspace_id = $1 AND vov.product_variant_id = v.id))\n                          ORDER BY v.is_default DESC, v.id), '[]')\n                   FROM product_variants v\n                   WHERE v.workspace_id = $1 AND v.product_id = pg.id AND v.deleted_at IS NULL\n                  ) AS \"variants!: Json<Vec<VariantRow>>\",\n                  pg.total AS \"total!\"\n           FROM page pg\n           JOIN currencies c ON c.workspace_id = $1 AND c.id = pg.currency_id\n           ORDER BY pg.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "brand",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "brand"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "short_description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "short_description"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "ean13",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "ean13"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "barcode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "barcode"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "price_gross!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "price_net!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "currency!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "currency_decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "available_stock",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 13,
+        "name": "variants!: Json<Vec<VariantRow>>",
+        "type_info": "Json",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "b2e4f12f42e5b9fad2939989758b9879c0ac89cff0dec0fc40fb2116f14ddd2d"
+}
