@@ -12,21 +12,20 @@ export function Field({
   id: string
   label: string
   errors?: string[]
-  children: React.ReactElement<{
-    id?: string
-    "aria-invalid"?: boolean
-    "aria-describedby"?: string
-  }>
+  children: React.ReactElement<{ id?: string }>
 }) {
   const errorId = `${id}-error`
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      {React.cloneElement(children, {
-        id,
-        "aria-invalid": errors?.length ? true : undefined,
-        "aria-describedby": errors?.length ? errorId : undefined,
-      })}
+      {React.cloneElement(
+        children as React.ReactElement<Record<string, unknown>>,
+        {
+          id,
+          "aria-invalid": errors?.length ? true : undefined,
+          "aria-describedby": errors?.length ? errorId : undefined,
+        }
+      )}
       {errors?.length ? (
         <p id={errorId} className="text-sm text-destructive">
           {errors.join(" ")}

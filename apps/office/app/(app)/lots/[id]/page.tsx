@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -87,6 +88,12 @@ export default function LotPage({
           <span className="ml-auto font-mono text-xs text-muted-foreground">
             {current.public_code}
           </span>
+          <Link
+            href={`/lots/${id}/passport`}
+            className="text-sm font-medium underline-offset-4 hover:underline"
+          >
+            {t("lots.passport")}
+          </Link>
         </div>
         <form
           key={current.updated_at}
