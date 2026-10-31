@@ -52,11 +52,15 @@ describe("connectBrowser", () => {
     expect(body).toMatchObject({ baseURL: "/v1", authorization: "Bearer t1" })
   })
 
-  it("logs out when the backend refuses the token", async () => {
+  it("logs out and drops cached data when the backend refuses the token", async () => {
     const { sessionStore, apiRequest } = await load(401)
+    const { clearOnSignOut } = await import("./session")
+    const cache = { clear: vi.fn() }
+    clearOnSignOut(cache)
     sessionStore.getState().signIn(login)
 
     await expect(apiRequest({ url: "/me" })).rejects.toBeInstanceOf(AxiosError)
     expect(sessionStore.getState().token).toBeNull()
+    expect(cache.clear).toHaveBeenCalledOnce()
   })
 })

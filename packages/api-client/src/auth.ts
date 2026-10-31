@@ -1,6 +1,5 @@
 "use client"
 
-import { useQueryClient } from "@tanstack/react-query"
 import { useStore } from "zustand"
 
 import { useAuthLogin, useAuthLogout } from "./generated/auth/auth"
@@ -20,13 +19,8 @@ export function useLogin() {
 
 /** Logout mutation: ends the token on the backend, then forgets it here even if that call fails. */
 export function useLogout() {
-  const queryClient = useQueryClient()
+  // The query cache is emptied by clearOnSignOut, wired in QueryProvider.
   return useAuthLogout({
-    mutation: {
-      onSettled: () => {
-        sessionStore.getState().signOut()
-        queryClient.clear()
-      },
-    },
+    mutation: { onSettled: () => sessionStore.getState().signOut() },
   })
 }

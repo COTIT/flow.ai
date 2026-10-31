@@ -75,4 +75,25 @@ describe("sessionStore", () => {
       hydrated: true,
     })
   })
+
+  it("removes the saved login from the browser on logout", async () => {
+    const store = await load()
+    store.getState().signIn(login)
+    store.getState().signOut()
+    expect(saved.has("genesy.session")).toBe(false)
+  })
+
+  it("empties the query cache when the user logs out, and only then", async () => {
+    const store = await load()
+    const { clearOnSignOut } = await import("./session")
+    const cache = { clear: vi.fn() }
+    clearOnSignOut(cache)
+
+    store.getState().signIn(login)
+    store.getState().selectWorkspace("w2")
+    expect(cache.clear).not.toHaveBeenCalled()
+
+    store.getState().signOut()
+    expect(cache.clear).toHaveBeenCalledOnce()
+  })
 })

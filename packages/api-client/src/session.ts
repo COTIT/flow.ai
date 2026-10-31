@@ -37,7 +37,11 @@ export const sessionStore = createStore<Session>()(
       selectWorkspace: (id) => {
         if (get().workspaceIds.includes(id)) set({ workspaceId: id })
       },
-      signOut: () => set(loggedOut),
+      signOut: () => {
+        set(loggedOut)
+        // Drop the saved copy too, not just the token inside it.
+        sessionStore.persist.clearStorage()
+      },
     }),
     {
       name: "genesy.session",
@@ -53,3 +57,13 @@ export const sessionStore = createStore<Session>()(
     }
   )
 )
+
+/**
+ * Empties a query cache whenever the user logs out (button or a 401), so the next
+ * user never sees the previous one's data. Returns the unsubscribe function.
+ */
+export function clearOnSignOut(cache: { clear: () => void }) {
+  return sessionStore.subscribe((now, before) => {
+    if (before.token && !now.token) cache.clear()
+  })
+}

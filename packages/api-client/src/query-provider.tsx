@@ -3,7 +3,7 @@
 import * as React from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { sessionStore } from "./session"
+import { clearOnSignOut, sessionStore } from "./session"
 import { connectBrowser } from "./setup"
 
 if (typeof window !== "undefined") connectBrowser()
@@ -16,5 +16,6 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     void sessionStore.persist.rehydrate()
   }, [])
+  React.useEffect(() => clearOnSignOut(client), [client])
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>
 }
