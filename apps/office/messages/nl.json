@@ -2,5 +2,15 @@
   "app": {
     "title": "Genesy Office",
     "tagline": "Backoffice: producten, voorraad, batches, facturen en orders."
+  },
+  "products": {
+    "title": "Producten",
+    "name": "Naam",
+    "number": "Nummer",
+    "reference": "Referentie",
+    "price": "Prijs incl. btw",
+    "status": "Status",
+    "empty": "Nog geen producten.",
+    "total": "{count, plural, one {# product} other {# producten}}"
   }
 }

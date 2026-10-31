@@ -2,5 +2,15 @@
   "app": {
     "title": "Genesy Office",
     "tagline": "Ofisi: bidhaa, akiba, mafungu, ankara na oda."
+  },
+  "products": {
+    "title": "Bidhaa",
+    "name": "Jina",
+    "number": "Namba",
+    "reference": "Kumbukumbu",
+    "price": "Bei pamoja na VAT",
+    "status": "Hali",
+    "empty": "Bado hakuna bidhaa.",
+    "total": "{count, plural, one {Bidhaa #} other {Bidhaa #}}"
   }
 }

@@ -2,5 +2,15 @@
   "app": {
     "title": "Genesy Office",
     "tagline": "Back office: products, stock, batches, invoices and orders."
+  },
+  "products": {
+    "title": "Products",
+    "name": "Name",
+    "number": "Number",
+    "reference": "Reference",
+    "price": "Price incl. VAT",
+    "status": "Status",
+    "empty": "No products yet.",
+    "total": "{count, plural, one {# product} other {# products}}"
   }
 }
