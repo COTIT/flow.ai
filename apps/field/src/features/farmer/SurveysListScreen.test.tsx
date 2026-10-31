@@ -39,8 +39,7 @@ const survey = (id: string, over: Record<string, unknown> = {}) => ({
   title_sw: null,
   description_en: 'How you store maize after harvest.',
   description_sw: null,
-  reward_amount: 5000,
-  currency: 'TZS',
+  reward: { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' },
   closes_at: '2099-10-31T09:00:00Z',
   status: 'live',
   questions: [{ id: 'q1' }, { id: 'q2' }, { id: 'q3' }],
@@ -50,7 +49,7 @@ const survey = (id: string, over: Record<string, unknown> = {}) => ({
 const voucher = (over: Record<string, unknown> = {}) => ({
   id: VOUCHER,
   status: 'issued',
-  expires_at: '2099-01-01T00:00:00Z',
+  expired: false,
   ...over,
 })
 
@@ -183,9 +182,9 @@ describe('a survey card', () => {
     expect(within(card).queryByTestId('survey-open')).not.toBeInTheDocument()
   })
 
-  // `expired` is derived from the date; the row still says `issued`.
+  // `expired` is the API's flag; the row still says `issued`.
   test('an answered survey whose voucher lapsed reads as expired', () => {
-    given([{ ...answeredRow, voucher: voucher({ expires_at: '2020-01-01T00:00:00Z' }) }])
+    given([{ ...answeredRow, voucher: voucher({ expired: true }) }])
     render(<SurveysListScreen />)
 
     expect(screen.getByTestId('status-pill')).toHaveTextContent('Expired')

@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { formatMoney } from '@genesy/ui/lib/money'
 
 import { AuditTimeline } from '@/components/AuditTimeline'
 import { EmptyState } from '@/components/EmptyState'
@@ -7,15 +7,9 @@ import { ErrorState } from '@/components/ErrorState'
 import { Loading, ProductNote } from '@/components/controls'
 import { QrCode } from '@/components/QrCode'
 import { StatusPill } from '@/components/StatusPill'
-import {
-  redeemedByName,
-  useVoucher,
-  useVoucherCode,
-  useVoucherTimeline,
-  voucherDisplayStatus,
-  type FarmerVoucher,
-} from '@/features/farmer/useVouchers'
-import { formatMoney, formatTimestamp } from '@/lib/format'
+import { redeemedByName, useVoucher, voucherDisplayStatus, type FarmerVoucher } from '@/features/farmer/useVouchers'
+import { useVoucherTimeline } from '@/features/officer/useVoucherRedeem'
+import { formatTimestamp } from '@/lib/format'
 import { formatVoucherCode, voucherQrPayload } from '@/lib/voucherCode'
 
 /**
@@ -25,30 +19,28 @@ import { formatVoucherCode, voucherQrPayload } from '@/lib/voucherCode'
  * An incentive is a fixed cash amount per household per survey, handed over
  * in cash at the office. The QR code is drawn only while the voucher can
  * still be collected — a used, cancelled or expired voucher must not look
- * usable. Whether a scan is accepted is decided at the office by the
- * database, never here.
+ * usable. Whether a scan is accepted is decided at the office by the API,
+ * never here. The code comes with the household's own voucher row
+ * (`vouchers/mine`, the only place a code is shown); the QR carries the
+ * prefixed code and nothing else.
  */
 export function VoucherCard({ voucherId }: { voucherId: string }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const voucher = useVoucher(voucherId)
-  const code = useVoucherCode(voucherId)
   const timeline = useVoucherTimeline(voucherId)
-  // Read once per mount: expiry is a date, and a screen left open over the
-  // boundary is corrected by the office's refusal, not by a ticking clock.
-  const [now] = useState(() => Date.now())
 
   if (voucher.error) {
     return <ErrorState error={voucher.error} onRetry={() => void voucher.refetch()} />
   }
   if (voucher.isLoading) return <Loading testId="voucher-loading" />
 
-  // Zero rows is an answer: RLS does not show this voucher.
+  // Not in the household's list is an answer: this voucher is not theirs to see.
   if (!voucher.data) {
     return <EmptyState title={t('empty.noAccessToThis')} detail={t('empty.noAccessDetail')} />
   }
 
   const row = voucher.data
-  const status = voucherDisplayStatus(row, now)
+  const status = voucherDisplayStatus(row)
   const collectable = status === 'issued'
   const events = timeline.data ?? []
 
@@ -68,36 +60,28 @@ export function VoucherCard({ voucherId }: { voucherId: string }) {
         <StatusPill kind="voucher" status={status} />
       </header>
 
-      {collectable && code.data && (
+      {collectable && (
         // QrCode owns its white quiet zone in both themes; nothing to add.
-        <div className="flex justify-center">
+        <div data-testid="voucher-qr" data-payload={voucherQrPayload(row.code)} className="flex justify-center">
           <QrCode
-            value={voucherQrPayload(code.data)}
-            label={t('voucher.qrLabel', { code: formatVoucherCode(code.data) })}
+            value={voucherQrPayload(row.code)}
+            label={t('voucher.qrLabel', { code: formatVoucherCode(row.code) })}
           />
         </div>
       )}
 
-      {(code.isLoading || code.data) && (
-        <div className="flex flex-col items-center gap-1">
-          <span className="type-section" style={{ color: 'var(--ink-3)' }}>
-            {t('voucher.code')}
-          </span>
-          {code.isLoading ? (
-            <span data-testid="voucher-code-loading" className="type-body" style={{ color: 'var(--ink-2)' }}>
-              {t('common.loading')}
-            </span>
-          ) : (
-            <span
-              data-testid="voucher-code"
-              className="type-figure tabular"
-              style={{ letterSpacing: '0.08em', color: 'var(--ink)' }}
-            >
-              {formatVoucherCode(code.data!)}
-            </span>
-          )}
-        </div>
-      )}
+      <div className="flex flex-col items-center gap-1">
+        <span className="type-section" style={{ color: 'var(--ink-3)' }}>
+          {t('voucher.code')}
+        </span>
+        <span
+          data-testid="voucher-code"
+          className="type-figure tabular"
+          style={{ letterSpacing: '0.08em', color: 'var(--ink)' }}
+        >
+          {formatVoucherCode(row.code)}
+        </span>
+      </div>
 
       <dl
         className="flex flex-col gap-0.5 px-3.5 py-3"
@@ -111,20 +95,19 @@ export function VoucherCard({ voucherId }: { voucherId: string }) {
           {t('voucher.amount')}
         </dt>
         <dd data-testid="voucher-amount" className="type-figure tabular" style={{ color: 'var(--primary-ink)' }}>
-          {formatMoney(row.amount, row.currency)}
+          {formatMoney(row.amount.minor, row.amount.decimals, row.amount.currency, i18n.language)}
         </dd>
         <dd className="type-small" style={{ color: 'var(--primary-ink)' }}>
           {t('surveys.incentiveNote')}
         </dd>
       </dl>
 
-      <p
-        data-testid="voucher-validity"
-        className="type-body-strong"
-        style={{ color: status === 'void' ? 'var(--flag-ink)' : 'var(--ink)', textWrap: 'pretty' }}
-      >
-        {validityLine(t, row, status, redeemedByName(events))}
-      </p>
+      {/* shortcut: vouchers/mine has no void_reason, so a cancelled voucher shows only its pill; show the reason once the API sends it. */}
+      {status !== 'void' && (
+        <p data-testid="voucher-validity" className="type-body-strong" style={{ color: 'var(--ink)', textWrap: 'pretty' }}>
+          {validityLine(t, row, status, redeemedByName(events))}
+        </p>
+      )}
 
       {collectable && <ProductNote>{t('voucher.showAtOffice')}</ProductNote>}
 
@@ -162,6 +145,6 @@ function validityLine(
       // The name is the redeemed event's snapshot, never a raw user id.
       return t('voucher.redeemedBy', { date: formatTimestamp(row.redeemed_at), name: redeemer ?? '—' })
     case 'void':
-      return t('voucher.voided', { reason: row.void_reason ?? '—' })
+      return ''
   }
 }

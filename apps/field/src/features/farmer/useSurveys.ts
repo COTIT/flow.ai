@@ -1,21 +1,18 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { farmSurveysAnswer, farmSurveysGet } from '@genesy/api-client/endpoints/farm-surveys'
+import type { Money, QuestionOption, Submitted } from '@genesy/api-client/model'
 
+import { workspaceId } from '@/app/workspace'
 import { useSurveyEligibility, type SurveyEligibility } from '@/features/farmer/useSurveyEligibility'
 import { useFarmerVouchers, type FarmerVoucher } from '@/features/farmer/useVouchers'
-import type { Database } from '@/lib/db.types'
+import { apiStatus } from '@/lib/apiError'
 import { isUuid } from '@/lib/ids'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
 
-type Enums = Database['public']['Enums']
-export type SurveyQuestionKind = Enums['survey_question_kind']
+export type SurveyQuestionKind = 'single_choice' | 'multi_choice' | 'number' | 'text' | 'yes_no'
 
 /** An option as authored. Swahili is null until a native reviewer supplies it. */
-export interface SurveyOption {
-  value: string
-  label_en: string
-  label_sw: string | null
-}
+export type SurveyOption = QuestionOption
 
 export interface SurveyQuestion {
   id: string
@@ -29,7 +26,7 @@ export interface SurveyQuestion {
 
 /**
  * One survey as a farmer answers it: both languages cached, neither chosen —
- * `localisedField` picks at render.
+ * `localisedField` picks at render. The reward is the API's Money.
  */
 export interface FarmerSurvey {
   id: string
@@ -37,81 +34,36 @@ export interface FarmerSurvey {
   title_sw: string | null
   description_en: string | null
   description_sw: string | null
-  reward_amount: number
-  currency: string
+  reward: Money
   closes_at: string | null
-  status: Enums['survey_status']
+  status: string
   questions: SurveyQuestion[]
 }
 
-const SURVEY_SELECT = `id, title_en, title_sw, description_en, description_sw,
-  reward_amount, currency, closes_at, status,
-  survey_question ( id, position, kind, prompt_en, prompt_sw, required, options )`
-
-function parseOptions(raw: unknown): SurveyOption[] {
-  if (!Array.isArray(raw)) return []
-  return raw.flatMap((option) => {
-    if (typeof option !== 'object' || option === null) return []
-    const o = option as Record<string, unknown>
-    if (typeof o.value !== 'string' || o.value === '') return []
-    return [
-      {
-        value: o.value,
-        label_en: typeof o.label_en === 'string' && o.label_en !== '' ? o.label_en : o.value,
-        label_sw: typeof o.label_sw === 'string' && o.label_sw !== '' ? o.label_sw : null,
-      },
-    ]
-  })
-}
-
 /**
- * One survey and its live questions, in position order.
- *
- * `survey_read` shows a farmer the live and closed surveys of their project
- * and village; `survey_question_read` follows it. Deleted questions are left
- * out on the server, so the form can never offer one the submit would refuse.
+ * One survey and its live questions, in position order (the API orders them
+ * and leaves deleted ones out). `null` when the API says 404: not visible to
+ * this household, or not a survey.
  */
 export async function fetchSurvey(surveyId: string): Promise<FarmerSurvey | null> {
-  // A malformed route param reaches the same "not found" as an id matching
-  // nothing, rather than a uuid parse failure (QA #3).
+  // A malformed route param reaches the same "not found" as an id matching nothing (QA #3).
   if (!isUuid(surveyId)) return null
-
-  const { data, error } = await supabase
-    .from('survey')
-    .select(SURVEY_SELECT)
-    .eq('id', surveyId)
-    .is('survey_question.deleted_at', null)
-    .order('position', { referencedTable: 'survey_question' })
-    .maybeSingle()
-
-  if (error) throw new Error(error.message)
-  if (!data) return null
-
-  const row = data as unknown as Record<string, unknown>
-  const questions = ((row.survey_question ?? []) as Array<Record<string, unknown>>)
-    .map((q) => ({
-      id: q.id as string,
-      position: Number(q.position),
-      kind: q.kind as SurveyQuestionKind,
-      prompt_en: q.prompt_en as string,
-      prompt_sw: (q.prompt_sw as string | null) ?? null,
-      required: Boolean(q.required),
-      options: parseOptions(q.options),
-    }))
-    .sort((a, b) => a.position - b.position)
-
-  return {
-    id: row.id as string,
-    title_en: row.title_en as string,
-    title_sw: (row.title_sw as string | null) ?? null,
-    description_en: (row.description_en as string | null) ?? null,
-    description_sw: (row.description_sw as string | null) ?? null,
-    // numeric(14,2): PostgREST may send it as text.
-    reward_amount: Number(row.reward_amount),
-    currency: row.currency as string,
-    closes_at: (row.closes_at as string | null) ?? null,
-    status: row.status as Enums['survey_status'],
-    questions,
+  try {
+    const { data } = await farmSurveysGet(workspaceId(), surveyId)
+    return {
+      id: data.id,
+      title_en: data.title_en,
+      title_sw: data.title_sw,
+      description_en: data.description_en,
+      description_sw: data.description_sw,
+      reward: data.reward,
+      closes_at: data.closes_at,
+      status: data.status,
+      questions: data.questions.map((q) => ({ ...q, kind: q.kind as SurveyQuestionKind })),
+    }
+  } catch (error) {
+    if (apiStatus(error) === 404) return null
+    throw error
   }
 }
 
@@ -125,7 +77,7 @@ export type SurveyCardState = 'new' | 'answered' | 'unavailable'
 export interface SurveyListRow {
   survey: FarmerSurvey
   state: SurveyCardState
-  /** The database's sentence for why this household cannot answer. */
+  /** The API's sentence for why this household cannot answer. */
   reason: string | null
   voucherId: string | null
   voucher: FarmerVoucher | null
@@ -147,8 +99,8 @@ function closesAt(survey: FarmerSurvey): number {
  * Eligibility joined to the survey rows and the household's vouchers.
  *
  * Nothing here decides who may answer: `eligible` and `reason` are the
- * database's, from the same `survey_block_reason` the submit runs. A survey
- * the RPC names but RLS does not show is left out — zero rows is an answer.
+ * API's, the same text a submit would refuse with. A survey
+ * the eligibility list names but GET answers 404 for is left out — zero rows is an answer.
  *
  * Order: surveys to answer now, then answered ones, then the rest; within
  * each, the one closing soonest first.
@@ -247,7 +199,7 @@ export function readChoices(raw: string | undefined): string[] {
   }
 }
 
-/** `p_answers`, keyed by question id. */
+/** `answers`, keyed by question id. */
 export type SurveyAnswers = Record<string, string | string[] | boolean>
 
 /**
@@ -284,35 +236,21 @@ export function toSurveyAnswers(
   return answers
 }
 
-/** What `app_survey_submit` returns. `replayed` is a retry of an earlier save. */
-export interface SurveySubmitResult {
-  response_id: string
-  voucher_id: string
-  code: string
-  amount: number
-  currency: string
-  expires_at: string
-  replayed: boolean
-}
+/** `replayed`: a retry of an earlier save with the same `client_ref`; the same voucher comes back. */
+export type SurveySubmitResult = Submitted
 
 /**
  * One call answers the survey and issues the voucher. `clientRef` makes it
  * idempotent: a retry after a timeout replays the first save's voucher
- * instead of being refused as a second answer.
+ * instead of being refused as a second answer. A refusal rejects with the
+ * API error; its sentence is shown as written.
  */
 export async function submitSurvey(
   surveyId: string,
   answers: SurveyAnswers,
   clientRef: string,
 ): Promise<SurveySubmitResult> {
-  const { data, error } = await supabase.rpc('app_survey_submit', {
-    p_survey_id: surveyId,
-    p_answers: answers,
-    p_client_ref: clientRef,
-  })
-  // The refusal reasons are sentences written to be read; surfaced verbatim.
-  if (error) throw new Error(error.message)
-  return data as unknown as SurveySubmitResult
+  return (await farmSurveysAnswer(workspaceId(), surveyId, { answers, client_ref: clientRef })).data
 }
 
 export function useSubmitSurvey(surveyId: string) {
@@ -322,9 +260,6 @@ export function useSubmitSurvey(surveyId: string) {
     mutationFn: ({ answers, clientRef }: { answers: SurveyAnswers; clientRef: string }) =>
       submitSurvey(surveyId, answers, clientRef),
     onSuccess: async (result) => {
-      // The RPC has just returned the code; reading it back would be a
-      // second round trip for the same ten characters.
-      queryClient.setQueryData(queryKeys.voucherCode(result.voucher_id), result.code)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.surveyEligibility() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.farmerVouchers() }),

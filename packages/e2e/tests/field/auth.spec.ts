@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test"
 import { mockApi } from "../../src/api-mock"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { farmLogin, me, role, staffLogin, villages } from "./api"
+import { farmerHome } from "./farmer.api"
 
 const TEMP = "Temp-pass-8x"
 
@@ -52,6 +53,7 @@ test("a farmer signs in by phone, must change the temporary password, and it nev
     "POST /farm/login": farmLogin(true),
     "GET /farm/me": me({ name: "Neema", email: null, phone: "+255712345678", mustChange: true, memberships: [role("farmer")] }),
     "GET /workspace/w1/farm/villages": villages,
+    ...farmerHome,
   })
   const login = page.waitForRequest("**/v1/farm/login")
   await signIn(page, "0712 345 678", TEMP)
@@ -68,6 +70,7 @@ test("a farmer signs in by phone, must change the temporary password, and it nev
     "POST /farm/password": { status: 204 },
     "GET /farm/me": me({ name: "Neema", email: null, phone: "+255712345678", memberships: [role("farmer")] }),
     "GET /workspace/w1/farm/villages": villages,
+    ...farmerHome,
   })
   const change = page.waitForRequest("**/v1/farm/password")
   await page.getByTestId("set-password-new").fill("my-own-pass-2026")
@@ -83,6 +86,7 @@ test("after a reload the farmer types the temporary password", async ({ page }) 
   await mockApi(page, {
     "POST /farm/login": farmLogin(true),
     "GET /farm/me": me({ name: "Neema", email: null, mustChange: true, memberships: [role("farmer")] }),
+    ...farmerHome,
   })
   await signIn(page, "0712 345 678", TEMP)
   await expect(page).toHaveURL(/\/set-password$/)

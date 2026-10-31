@@ -2,45 +2,37 @@ import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const useVoucher = vi.fn()
-const useVoucherCode = vi.fn()
 const useVoucherTimeline = vi.fn()
 
 vi.mock('@/features/farmer/useVouchers', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/farmer/useVouchers')>()
-  return {
-    ...actual,
-    useVoucher: (id: string) => useVoucher(id),
-    useVoucherCode: (id: string) => useVoucherCode(id),
-    useVoucherTimeline: (id: string) => useVoucherTimeline(id),
-  }
+  return { ...actual, useVoucher: (id: string) => useVoucher(id) }
 })
+vi.mock('@/features/officer/useVoucherRedeem', () => ({
+  useVoucherTimeline: (id: string) => useVoucherTimeline(id),
+}))
 
 const { VoucherCard } = await import('@/features/farmer/VoucherCard')
 await import('@/i18n')
 
 const VOUCHER = '51000000-0000-4000-8000-000000000001'
 
-// Far enough ahead and behind that the test does not depend on today's date.
 const FUTURE = '2099-01-15T09:00:00Z'
 const PAST = '2020-01-15T09:00:00Z'
 
+/** One row of GET /farm/vouchers/mine: the code comes with it. */
 const voucher = (over: Record<string, unknown> = {}) => ({
   id: VOUCHER,
-  response_id: 'r1',
   survey_id: 's1',
-  household_id: 'h1',
-  village_id: 'v1',
-  amount: 5000,
-  currency: 'TZS',
+  survey_title_en: 'Maize storage',
+  survey_title_sw: null,
+  code: 'K7QXM2PA9D',
+  amount: { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' },
   status: 'issued',
+  expired: false,
   issued_at: '2026-09-20T08:00:00Z',
   expires_at: FUTURE,
-  redeemed_by: null,
   redeemed_at: null,
-  id_type_seen: null,
-  voided_by: null,
-  voided_at: null,
-  void_reason: null,
   ...over,
 })
 
@@ -49,19 +41,13 @@ const issuedEvents = [
   { occurred_at: '2026-09-20T08:00:01Z', kind: 'issued', actor_name: 'Amina Farmer', actor_role: 'farmer', detail: {} },
 ]
 
-function given({
-  row = voucher(),
-  code = 'K7QXM2PA9D' as string | null,
-  events = issuedEvents as unknown[],
-} = {}) {
+function given({ row = voucher(), events = issuedEvents as unknown[] } = {}) {
   useVoucher.mockReturnValue({ isLoading: false, error: null, data: row, refetch: vi.fn() })
-  useVoucherCode.mockReturnValue({ isLoading: false, error: null, data: code })
   useVoucherTimeline.mockReturnValue({ isLoading: false, error: null, data: events, refetch: vi.fn() })
 }
 
 beforeEach(() => {
   useVoucher.mockReset()
-  useVoucherCode.mockReset()
   useVoucherTimeline.mockReset()
 })
 
@@ -98,7 +84,6 @@ describe('VoucherCard states', () => {
     render(<VoucherCard voucherId={VOUCHER} />)
 
     expect(useVoucher).toHaveBeenCalledWith(VOUCHER)
-    expect(useVoucherCode).toHaveBeenCalledWith(VOUCHER)
     expect(useVoucherTimeline).toHaveBeenCalledWith(VOUCHER)
   })
 })
@@ -118,6 +103,14 @@ describe('an uncollected voucher', () => {
     render(<VoucherCard voucherId={VOUCHER} />)
 
     expect(screen.getByRole('img', { name: /K7QXM-2PA9D/ })).toBeInTheDocument()
+  })
+
+  // Nothing about the household rides in the QR: only the prefixed code.
+  test('the QR carries the voucher code and nothing else', () => {
+    given()
+    render(<VoucherCard voucherId={VOUCHER} />)
+
+    expect(screen.getByTestId('voucher-qr')).toHaveAttribute('data-payload', 'R360V:K7QXM2PA9D')
   })
 
   test('states the incentive and where it is paid', () => {
@@ -152,24 +145,6 @@ describe('an uncollected voucher', () => {
     expect(screen.getByTestId('audit-event-issued')).toBeInTheDocument()
     expect(screen.getByTestId('audit-event-answered')).toBeInTheDocument()
   })
-
-  test('the code is still loading: no QR yet, and no invented code', () => {
-    given()
-    useVoucherCode.mockReturnValue({ isLoading: true, error: null, data: undefined })
-    render(<VoucherCard voucherId={VOUCHER} />)
-
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
-    expect(screen.getByTestId('voucher-code-loading')).toBeInTheDocument()
-  })
-
-  // NULL is the database saying this code is not yours to read.
-  test('a code the database withholds is not drawn', () => {
-    given({ code: null })
-    render(<VoucherCard voucherId={VOUCHER} />)
-
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('voucher-code')).not.toBeInTheDocument()
-  })
 })
 
 describe('a collected voucher', () => {
@@ -179,7 +154,7 @@ describe('a collected voucher', () => {
   ]
 
   test('says when and by whom it was handed over', () => {
-    given({ row: voucher({ status: 'redeemed', redeemed_at: '2026-09-25T10:30:00Z', redeemed_by: 'u7' }), events })
+    given({ row: voucher({ status: 'redeemed', redeemed_at: '2026-09-25T10:30:00Z' }), events })
     render(<VoucherCard voucherId={VOUCHER} />)
 
     expect(screen.getByTestId('voucher-validity')).toHaveTextContent(
@@ -199,20 +174,21 @@ describe('a collected voucher', () => {
 })
 
 describe('a cancelled voucher', () => {
-  test('gives the reason it was cancelled, and no QR code', () => {
-    given({ row: voucher({ status: 'void', voided_at: '2026-09-22T10:00:00Z', void_reason: 'duplicate household' }) })
+  // vouchers/mine has no void_reason yet, so the reason line is left out rather than shown as "—".
+  test('is marked cancelled, with no reason line and no QR code', () => {
+    given({ row: voucher({ status: 'void' }) })
     render(<VoucherCard voucherId={VOUCHER} />)
 
-    expect(screen.getByTestId('voucher-validity')).toHaveTextContent('Cancelled: duplicate household')
+    expect(screen.queryByTestId('voucher-validity')).not.toBeInTheDocument()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(screen.getByTestId('status-pill')).toHaveTextContent('Cancelled')
   })
 })
 
 describe('an expired voucher', () => {
-  // `expired` is not stored: the row still says `issued`.
-  test('is derived from its date, with no QR code', () => {
-    given({ row: voucher({ status: 'issued', expires_at: PAST }) })
+  // The API derives `expired`: the row still says `issued`.
+  test('follows the API flag, with no QR code', () => {
+    given({ row: voucher({ status: 'issued', expired: true, expires_at: PAST }) })
     render(<VoucherCard voucherId={VOUCHER} />)
 
     expect(screen.getByTestId('status-pill')).toHaveTextContent('Expired')
@@ -248,7 +224,7 @@ describe('the timeline', () => {
  */
 describe('the language of the incentive', () => {
   test.each(['issued', 'redeemed', 'void'])('%s never calls it earnings, a wallet, a balance or a payment', (status) => {
-    given({ row: voucher({ status, redeemed_at: '2026-09-25T10:30:00Z', void_reason: 'duplicate household' }) })
+    given({ row: voucher({ status, redeemed_at: '2026-09-25T10:30:00Z' }) })
     render(<VoucherCard voucherId={VOUCHER} />)
 
     const card = screen.getByTestId('voucher-card')

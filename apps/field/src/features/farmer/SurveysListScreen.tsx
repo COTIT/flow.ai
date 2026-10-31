@@ -1,6 +1,8 @@
-import { useState, type CSSProperties } from 'react'
+import { type CSSProperties } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import type { Money } from '@genesy/api-client/model'
+import { formatMoney } from '@genesy/ui/lib/money'
 
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -14,7 +16,7 @@ import {
   type SurveyListRow,
 } from '@/features/farmer/useSurveys'
 import { voucherDisplayStatus } from '@/features/farmer/useVouchers'
-import { formatMoney, formatTimestamp } from '@/lib/format'
+import { formatTimestamp } from '@/lib/format'
 import { dbReasonText } from '@/lib/dbMessages'
 import { localisedField } from '@/lib/names'
 
@@ -23,15 +25,13 @@ import { localisedField } from '@/lib/names'
  * with each.
  *
  * Nothing here decides eligibility. "New", "Not available" and the reason are
- * the database's answer from `app_survey_eligibility`, which shares
- * `survey_block_reason` with the submit — so the list can never offer a
- * survey the submit would refuse, nor hide one it would accept.
+ * the API's answer from `GET /farm/surveys/eligibility`, whose reason is the
+ * same text a submit refuses with — so the list can never offer a survey the
+ * submit would refuse, nor hide one it would accept.
  */
 export function SurveysListScreen() {
   const { t } = useTranslation()
   const query = useSurveyList()
-  // Read once per mount; expiry is a date, not a countdown.
-  const [now] = useState(() => Date.now())
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => query.refetch()} />
 
@@ -53,7 +53,7 @@ export function SurveysListScreen() {
       ) : (
         <ul className="flex flex-col gap-3">
           {rows.map((row) => (
-            <SurveyCard key={row.survey.id} row={row} now={now} />
+            <SurveyCard key={row.survey.id} row={row} />
           ))}
         </ul>
       )}
@@ -61,7 +61,7 @@ export function SurveysListScreen() {
   )
 }
 
-function SurveyCard({ row, now }: { row: SurveyListRow; now: number }) {
+function SurveyCard({ row }: { row: SurveyListRow }) {
   const { t, i18n } = useTranslation()
   const language = i18n.resolvedLanguage
   const { survey } = row
@@ -92,7 +92,7 @@ function SurveyCard({ row, now }: { row: SurveyListRow; now: number }) {
         </p>
       )}
 
-      <SurveyIncentive amount={survey.reward_amount} currency={survey.currency} />
+      <SurveyIncentive reward={survey.reward} />
       <SurveyFacts survey={survey} />
 
       {row.state === 'new' && (
@@ -111,7 +111,7 @@ function SurveyCard({ row, now }: { row: SurveyListRow; now: number }) {
         <div className="flex flex-col gap-2.5">
           {row.voucher && (
             <div>
-              <StatusPill kind="voucher" status={voucherDisplayStatus(row.voucher, now)} />
+              <StatusPill kind="voucher" status={voucherDisplayStatus(row.voucher)} />
             </div>
           )}
           <Link
@@ -151,8 +151,8 @@ function SurveyCard({ row, now }: { row: SurveyListRow; now: number }) {
  * amount is fixed. One rendering, shared by the list and the survey screen,
  * so the sentence cannot drift between them.
  */
-export function SurveyIncentive({ amount, currency }: { amount: number; currency: string }) {
-  const { t } = useTranslation()
+export function SurveyIncentive({ reward }: { reward: Money }) {
+  const { t, i18n } = useTranslation()
   return (
     <div
       data-testid="survey-incentive"
@@ -165,7 +165,7 @@ export function SurveyIncentive({ amount, currency }: { amount: number; currency
       }}
     >
       <span className="type-note">{t('surveys.incentive')}</span>
-      <span className="type-figure tabular">{formatMoney(amount, currency)}</span>
+      <span className="type-figure tabular">{formatMoney(reward.minor, reward.decimals, reward.currency, i18n.language)}</span>
       <span className="type-small">{t('surveys.incentiveNote')}</span>
     </div>
   )

@@ -1,31 +1,21 @@
 import { useQuery } from '@tanstack/react-query'
+import { farmSurveysEligibility } from '@genesy/api-client/endpoints/farm-surveys'
+import type { Eligibility } from '@genesy/api-client/model'
 
-import type { Database } from '@/lib/db.types'
+import { workspaceId } from '@/app/workspace'
+import { allPages } from '@/features/farmer/pages'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
 
-type EligibilityRow = Database['public']['Functions']['app_survey_eligibility']['Returns'][number]
-
-/**
- * The generated type cannot see nullability through RETURNS TABLE; these three
- * are NULL whenever the household has not answered, or may answer.
- */
-export type SurveyEligibility = Omit<EligibilityRow, 'reason' | 'response_id' | 'voucher_id'> & {
-  reason: string | null
-  response_id: string | null
-  voucher_id: string | null
-}
+export type SurveyEligibility = Eligibility
 
 /**
  * One row per survey the farmer can see: whether their household may answer
- * it, and if not, the database's reason. The farmer list and the submit RPC
- * share `survey_block_reason`, so the two can never disagree — nothing here
+ * it, and if not, the API's reason — the same text a submit would refuse
+ * with, so the list and the submit can never disagree. Nothing here
  * re-derives eligibility.
  */
-export async function fetchSurveyEligibility(): Promise<SurveyEligibility[]> {
-  const { data, error } = await supabase.rpc('app_survey_eligibility')
-  if (error) throw new Error(error.message)
-  return (data ?? []) as SurveyEligibility[]
+export function fetchSurveyEligibility(): Promise<SurveyEligibility[]> {
+  return allPages((params) => farmSurveysEligibility(workspaceId(), params))
 }
 
 export function useSurveyEligibility() {
@@ -34,7 +24,7 @@ export function useSurveyEligibility() {
 
 /**
  * The Surveys tab badge: surveys this household may answer now. The count is
- * the database's answer; zero renders nothing.
+ * the API's answer; zero renders nothing.
  */
 export function useSurveyBadgeCount(): number {
   const { data } = useSurveyEligibility()

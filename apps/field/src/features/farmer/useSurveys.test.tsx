@@ -3,30 +3,20 @@ import { renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-type Result = { data: unknown; error: { message: string } | null }
+const farmSurveysGet = vi.fn()
+const farmSurveysAnswer = vi.fn()
+const farmSurveysEligibility = vi.fn()
+const farmVouchersMine = vi.fn()
 
-const responses = new Map<string, Result>()
-const calls: Array<{ table: string; method: string; args: unknown[] }> = []
-const rpc = vi.fn()
-const from = vi.fn((table: string) => {
-  const chain: Record<string, unknown> = {}
-  const record = (method: string) =>
-    vi.fn((...args: unknown[]) => {
-      calls.push({ table, method, args })
-      return chain
-    })
-  for (const method of ['select', 'eq', 'is', 'order', 'in']) chain[method] = record(method)
-  const settle = () => Promise.resolve(responses.get(table) ?? { data: [], error: null })
-  chain.maybeSingle = vi.fn(() => {
-    calls.push({ table, method: 'maybeSingle', args: [] })
-    return settle()
-  })
-  chain.then = (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
-    settle().then(resolve, reject)
-  return chain
-})
-
-vi.mock('@/lib/supabase', () => ({ supabase: { from, rpc } }))
+vi.mock('@genesy/api-client/endpoints/farm-surveys', () => ({
+  farmSurveysGet: (...args: unknown[]) => farmSurveysGet(...args),
+  farmSurveysAnswer: (...args: unknown[]) => farmSurveysAnswer(...args),
+  farmSurveysEligibility: (...args: unknown[]) => farmSurveysEligibility(...args),
+}))
+vi.mock('@genesy/api-client/endpoints/farm-vouchers', () => ({
+  farmVouchersMine: (...args: unknown[]) => farmVouchersMine(...args),
+}))
+vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const {
   buildSurveyList,
@@ -46,19 +36,24 @@ const SURVEY_2 = 'f1000000-0000-4000-8000-000000000002'
 const SURVEY_3 = 'f1000000-0000-4000-8000-000000000003'
 const VOUCHER = '51000000-0000-4000-8000-000000000001'
 const CLIENT_REF = '99000000-0000-4000-8000-000000000001'
+const REWARD = { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' }
+const failed = (status: number, message: string) => ({ response: { status, data: { message } } })
+const page = (data: unknown[]) => ({
+  data,
+  meta: { current_page: 1, last_page: 1, per_page: 100, from: 1, to: data.length, total: data.length },
+})
 
+/** GET /farm/surveys/{survey}: questions embedded and already in position order. */
 const surveyRow = (over: Record<string, unknown> = {}) => ({
   id: SURVEY,
   title_en: 'Maize storage — DEMO',
   title_sw: null,
   description_en: 'How you store maize after harvest.',
   description_sw: null,
-  reward_amount: 5000,
-  currency: 'TZS',
+  reward: REWARD,
   closes_at: '2026-10-31T20:59:00Z',
   status: 'live',
-  survey_question: [
-    { id: 'q2', position: 2, kind: 'yes_no', prompt_en: 'Do you use bags?', prompt_sw: null, required: false, options: [] },
+  questions: [
     {
       id: 'q1',
       position: 1,
@@ -67,19 +62,20 @@ const surveyRow = (over: Record<string, unknown> = {}) => ({
       prompt_sw: null,
       required: true,
       options: [
-        { value: 'house', label_en: 'In the house' },
+        { value: 'house', label_en: 'In the house', label_sw: null },
         { value: 'crib', label_en: 'In a crib', label_sw: 'Kichanja' },
       ],
     },
+    { id: 'q2', position: 2, kind: 'yes_no', prompt_en: 'Do you use bags?', prompt_sw: null, required: false, options: [] },
   ],
   ...over,
 })
 
 beforeEach(() => {
-  responses.clear()
-  calls.length = 0
-  rpc.mockReset()
-  from.mockClear()
+  farmSurveysGet.mockReset()
+  farmSurveysAnswer.mockReset()
+  farmSurveysEligibility.mockReset()
+  farmVouchersMine.mockReset()
 })
 
 function client() {
@@ -93,81 +89,37 @@ function wrapperFor(queryClient: QueryClient) {
 }
 
 describe('one survey and its questions', () => {
-  test('asks for both languages and never chooses one', async () => {
-    responses.set('survey', { data: surveyRow(), error: null })
-    await fetchSurvey(SURVEY)
-
-    const select = String(calls.find((c) => c.table === 'survey' && c.method === 'select')?.args[0])
-    for (const column of ['title_en', 'title_sw', 'description_en', 'description_sw', 'prompt_en', 'prompt_sw', 'options']) {
-      expect(select).toContain(column)
-    }
-  })
-
-  test('leaves deleted questions out on the server', async () => {
-    responses.set('survey', { data: surveyRow(), error: null })
-    await fetchSurvey(SURVEY)
-
-    expect(calls).toContainEqual({ table: 'survey', method: 'is', args: ['survey_question.deleted_at', null] })
-  })
-
-  test('returns the questions in position order', async () => {
-    responses.set('survey', { data: surveyRow(), error: null })
+  test('reads the survey of this workspace, both languages, questions in the API order', async () => {
+    farmSurveysGet.mockResolvedValue({ data: surveyRow() })
     const survey = await fetchSurvey(SURVEY)
+
+    expect(farmSurveysGet).toHaveBeenCalledWith('w1', SURVEY)
     expect(survey?.questions.map((q) => q.id)).toEqual(['q1', 'q2'])
-  })
-
-  test('keeps both option labels, with Swahili absent when it was never written', async () => {
-    responses.set('survey', { data: surveyRow(), error: null })
-    const survey = await fetchSurvey(SURVEY)
     expect(survey?.questions[0].options).toEqual([
       { value: 'house', label_en: 'In the house', label_sw: null },
       { value: 'crib', label_en: 'In a crib', label_sw: 'Kichanja' },
     ])
   })
 
-  test('an option without a value is not offered', async () => {
-    responses.set('survey', {
-      data: surveyRow({
-        survey_question: [
-          { id: 'q1', position: 1, kind: 'single_choice', prompt_en: 'P', prompt_sw: null, required: true, options: [{ label_en: 'No value' }, 'junk', { value: 'a', label_en: 'A' }] },
-        ],
-      }),
-      error: null,
-    })
-    const survey = await fetchSurvey(SURVEY)
-    expect(survey?.questions[0].options.map((o) => o.value)).toEqual(['a'])
+  test('the reward is the API Money, integer minor units', async () => {
+    farmSurveysGet.mockResolvedValue({ data: surveyRow() })
+    expect((await fetchSurvey(SURVEY))?.reward).toEqual(REWARD)
   })
 
-  test('options that are not an array read as none', async () => {
-    responses.set('survey', {
-      data: surveyRow({
-        survey_question: [{ id: 'q1', position: 1, kind: 'text', prompt_en: 'P', prompt_sw: null, required: false, options: null }],
-      }),
-      error: null,
-    })
-    const survey = await fetchSurvey(SURVEY)
-    expect(survey?.questions[0].options).toEqual([])
-  })
-
-  test('the reward arrives as a number', async () => {
-    responses.set('survey', { data: surveyRow({ reward_amount: '5000.00' }), error: null })
-    expect((await fetchSurvey(SURVEY))?.reward_amount).toBe(5000)
-  })
-
-  // Zero rows is an answer: RLS says this survey is not visible.
+  // 404 is an answer: not visible to this household, or not a survey.
   test('a survey that is not visible is null', async () => {
-    responses.set('survey', { data: null, error: null })
+    farmSurveysGet.mockRejectedValue(failed(404, 'not found'))
     await expect(fetchSurvey(SURVEY)).resolves.toBeNull()
   })
 
-  test('a malformed id reaches "not found" without a uuid parse failure', async () => {
+  test('a malformed id reaches "not found" without a round trip', async () => {
     await expect(fetchSurvey('not-a-uuid')).resolves.toBeNull()
-    expect(from).not.toHaveBeenCalled()
+    expect(farmSurveysGet).not.toHaveBeenCalled()
   })
 
-  test('a failed read rejects', async () => {
-    responses.set('survey', { data: null, error: { message: 'survey read failed' } })
-    await expect(fetchSurvey(SURVEY)).rejects.toThrow('survey read failed')
+  test('any other failure rejects', async () => {
+    farmSurveysGet.mockRejectedValue(failed(500, 'survey read failed'))
+    await expect(fetchSurvey(SURVEY)).rejects.toMatchObject({ response: { status: 500 } })
   })
 })
 
@@ -205,7 +157,7 @@ describe('multi-choice answers in a string-valued draft', () => {
  * unlisted option or text in a number field is the database's refusal to
  * make, in its own words.
  */
-describe('the answers sent to app_survey_submit', () => {
+describe('the answers sent to POST farm/surveys/{survey}/responses', () => {
   const q = (id: string, kind: string, required = true) => ({
     id,
     position: 1,
@@ -247,36 +199,32 @@ describe('submitting a survey', () => {
     response_id: 'r1',
     voucher_id: VOUCHER,
     code: 'K7QXM2PA9D',
-    amount: 5000,
-    currency: 'TZS',
+    amount: REWARD,
     expires_at: '2026-10-29T00:00:00Z',
     replayed: false,
   }
 
-  test('calls the RPC with the survey, the answers and the client reference', async () => {
-    rpc.mockResolvedValue({ data: result, error: null })
+  test('posts the answers with the client reference', async () => {
+    farmSurveysAnswer.mockResolvedValue({ data: result })
     await expect(submitSurvey(SURVEY, { q1: 'crib' }, CLIENT_REF)).resolves.toEqual(result)
-    expect(rpc).toHaveBeenCalledWith('app_survey_submit', {
-      p_survey_id: SURVEY,
-      p_answers: { q1: 'crib' },
-      p_client_ref: CLIENT_REF,
+    expect(farmSurveysAnswer).toHaveBeenCalledWith('w1', SURVEY, { answers: { q1: 'crib' }, client_ref: CLIENT_REF })
+  })
+
+  test('a refusal rejects with the API error, its sentence untouched', async () => {
+    farmSurveysAnswer.mockRejectedValue(failed(422, 'question 1 is required'))
+    await expect(submitSurvey(SURVEY, {}, CLIENT_REF)).rejects.toMatchObject({
+      response: { data: { message: 'question 1 is required' } },
     })
   })
 
-  test('a refusal rejects with the database sentence, word for word', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: 'question 1 is required' } })
-    await expect(submitSurvey(SURVEY, {}, CLIENT_REF)).rejects.toThrow(/^question 1 is required$/)
-  })
-
-  test('success keeps the code and refreshes eligibility, vouchers and the trail', async () => {
-    rpc.mockResolvedValue({ data: result, error: null })
+  test('success refreshes eligibility, vouchers and the trail', async () => {
+    farmSurveysAnswer.mockResolvedValue({ data: result })
     const queryClient = client()
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
     const { result: hook } = renderHook(() => useSubmitSurvey(SURVEY), { wrapper: wrapperFor(queryClient) })
 
     await hook.current.mutateAsync({ answers: { q1: 'crib' }, clientRef: CLIENT_REF })
 
-    expect(queryClient.getQueryData(queryKeys.voucherCode(VOUCHER))).toBe('K7QXM2PA9D')
     const keys = invalidate.mock.calls.map(([filters]) => filters?.queryKey)
     expect(keys).toContainEqual(queryKeys.surveyEligibility())
     expect(keys).toContainEqual(queryKeys.farmerVouchers())
@@ -284,12 +232,12 @@ describe('submitting a survey', () => {
   })
 
   test('a failure invalidates nothing', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: 'this survey is closed' } })
+    farmSurveysAnswer.mockRejectedValue(failed(422, 'this survey is closed'))
     const queryClient = client()
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
     const { result: hook } = renderHook(() => useSubmitSurvey(SURVEY), { wrapper: wrapperFor(queryClient) })
 
-    await expect(hook.current.mutateAsync({ answers: {}, clientRef: CLIENT_REF })).rejects.toThrow('this survey is closed')
+    await expect(hook.current.mutateAsync({ answers: {}, clientRef: CLIENT_REF })).rejects.toBeTruthy()
     expect(invalidate).not.toHaveBeenCalled()
   })
 })
@@ -300,10 +248,9 @@ const survey = (id: string, over: Record<string, unknown> = {}) => ({
   title_sw: null,
   description_en: null,
   description_sw: null,
-  reward_amount: 5000,
-  currency: 'TZS',
+  reward: REWARD,
   closes_at: null,
-  status: 'live' as const,
+  status: 'live',
   questions: [],
   ...over,
 })
@@ -383,14 +330,11 @@ describe('the list a farmer sees', () => {
     expect(rows.map((r) => r.survey.id)).toEqual([SURVEY])
   })
 
+
   test('the hook joins eligibility, surveys and vouchers', async () => {
-    rpc.mockImplementation(async (name: string) =>
-      name === 'app_survey_eligibility'
-        ? { data: [eligibility(SURVEY, { eligible: true })], error: null }
-        : { data: null, error: null },
-    )
-    responses.set('survey', { data: surveyRow(), error: null })
-    responses.set('survey_voucher', { data: [], error: null })
+    farmSurveysEligibility.mockResolvedValue(page([eligibility(SURVEY, { eligible: true })]))
+    farmSurveysGet.mockResolvedValue({ data: surveyRow() })
+    farmVouchersMine.mockResolvedValue(page([]))
 
     const { result } = renderHook(() => useSurveyList(), { wrapper: wrapperFor(client()) })
     await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -402,8 +346,9 @@ describe('the list a farmer sees', () => {
   })
 
   test('the hook reports a failed survey read as an error, not as no surveys', async () => {
-    rpc.mockResolvedValue({ data: [eligibility(SURVEY, { eligible: true })], error: null })
-    responses.set('survey', { data: null, error: { message: 'survey read failed' } })
+    farmSurveysEligibility.mockResolvedValue(page([eligibility(SURVEY, { eligible: true })]))
+    farmSurveysGet.mockRejectedValue(new Error('survey read failed'))
+    farmVouchersMine.mockResolvedValue(page([]))
 
     const { result } = renderHook(() => useSurveyList(), { wrapper: wrapperFor(client()) })
     await waitFor(() => expect(result.current.error).not.toBeNull())

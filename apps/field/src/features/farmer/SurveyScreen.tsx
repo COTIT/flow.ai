@@ -39,9 +39,8 @@ const route = getRouteApi('/_farmer/farm/surveys/$surveyId')
  *   neither       the database's reason, and no form
  *
  * Nothing here re-derives eligibility, required answers or option validity.
- * The submit RPC runs the same `survey_block_reason` the list does, checks
- * every answer, and refuses in a sentence that names the question — which is
- * shown as written.
+ * The API's submit refuses with the same reasons the list shows, checks every
+ * answer, and names the question in its refusal — which is shown as written.
  */
 export function SurveyScreen() {
   const { surveyId } = route.useParams()
@@ -93,7 +92,7 @@ export function SurveyScreen() {
             {description}
           </p>
         )}
-        <SurveyIncentive amount={survey.reward_amount} currency={survey.currency} />
+        <SurveyIncentive reward={survey.reward} />
         <SurveyFacts survey={survey} />
       </header>
 
@@ -149,7 +148,7 @@ type SubmitMutation = ReturnType<typeof useSubmitSurvey>
  *
  * Mounted only once the questions are known, so the draft's shape — one
  * string per question id — is fixed from its first render. The draft's
- * `clientRef` is the RPC's `p_client_ref`: a submit retried after a timeout,
+ * `clientRef` is the submit's `client_ref`: a submit retried after a timeout,
  * or after a reload, replays the first save's voucher instead of being
  * refused as a second answer.
  */

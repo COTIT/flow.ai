@@ -10,6 +10,7 @@ import { useMyFarm } from '@/features/farmer/useMyFarm'
 import { useMyRequests } from '@/features/farmer/useRequests'
 import { useSurveyBadgeCount } from '@/features/farmer/useSurveyEligibility'
 import { resourcesEnabled } from '@/lib/features'
+import { isPorted } from '@/lib/ported'
 
 type LinkTo = Parameters<typeof Link>[0]['to']
 
@@ -48,22 +49,17 @@ function Figure({ label, value, testId }: { label: string; value: number; testId
 export function FarmHomeScreen() {
   const { t } = useTranslation()
   const farmQuery = useMyFarm()
-  const requestsQuery = useMyRequests({ enabled: resourcesEnabled })
-  const opportunities = useFarmerOpportunities()
   const newSurveys = useSurveyBadgeCount()
 
-  const error = farmQuery.error ?? requestsQuery.error ?? opportunities.error
-  if (error) {
-    return <ErrorState error={error} onRetry={() => void farmQuery.refetch()} />
+  if (farmQuery.error) {
+    return <ErrorState error={farmQuery.error} onRetry={() => void farmQuery.refetch()} />
   }
 
-  if (farmQuery.isLoading || requestsQuery.isLoading || opportunities.isLoading) {
+  if (farmQuery.isLoading) {
     return <Loading testId="farm-home-loading" />
   }
 
   const farms = farmQuery.farms ?? []
-  const requests = requestsQuery.requests ?? []
-  const opportunityCount = (opportunities.data ?? []).length
 
   // No farm yet is a real state with a next step, not a blank list: a farmer
   // whose officer has not registered them yet cannot do anything else here.
@@ -78,8 +74,6 @@ export function FarmHomeScreen() {
 
   const plots = farms.flatMap((f) => f.plots ?? [])
   const cycles = plots.flatMap((p) => p.cycles ?? [])
-  // useMyRequests orders by created_at descending, so the first is the latest.
-  const latest = requests[0]
 
   return (
     <section data-testid="farm-home" className="flex flex-col gap-4">
@@ -115,6 +109,26 @@ export function FarmHomeScreen() {
       </section>
       </Card>
 
+      {/* shortcut: the API has no opportunities or PUE requests yet; these cards stay hidden until their screens are ported. */}
+      {isPorted('/farm/opportunities') && <OpportunitiesCard />}
+      {resourcesEnabled && isPorted('/farm/requests') && <LatestRequestCard />}
+    </section>
+  )
+}
+
+/** Mounted only once its screen is on the API, so its query never runs before. */
+function OpportunitiesCard() {
+  const { t } = useTranslation()
+  const opportunities = useFarmerOpportunities()
+
+  if (opportunities.error) {
+    return <ErrorState error={opportunities.error} onRetry={() => void opportunities.refetch()} />
+  }
+  if (opportunities.isLoading) return <Loading testId="farm-home-opportunities-loading" />
+
+  const opportunityCount = (opportunities.data ?? []).length
+
+  return (
       <Card className="flex flex-col gap-2.5 p-4">
       <section data-testid="farm-home-opportunities" className="flex flex-col gap-2.5">
         <h2 className="type-section" style={{ color: 'var(--ink-3)' }}>
@@ -136,8 +150,23 @@ export function FarmHomeScreen() {
         </Link>
       </section>
       </Card>
+  )
+}
 
-      {resourcesEnabled && (
+/** Same: mounted only once requests are on the API. */
+function LatestRequestCard() {
+  const { t } = useTranslation()
+  const requestsQuery = useMyRequests()
+
+  if (requestsQuery.error) {
+    return <ErrorState error={requestsQuery.error} onRetry={() => void requestsQuery.refetch()} />
+  }
+  if (requestsQuery.isLoading) return <Loading testId="farm-home-requests-loading" />
+
+  // useMyRequests orders by created_at descending, so the first is the latest.
+  const latest = (requestsQuery.requests ?? [])[0]
+
+  return (
         <Card className="flex flex-col gap-2.5 p-4">
           <h2 className="type-section" style={{ color: 'var(--ink-3)' }}>
             {t('farmHome.latestRequest')}
@@ -156,8 +185,6 @@ export function FarmHomeScreen() {
             {t('farmHome.browseEquipment')}
           </Link>
         </Card>
-      )}
-    </section>
   )
 }
 

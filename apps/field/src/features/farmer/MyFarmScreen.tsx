@@ -56,6 +56,11 @@ export function MyFarmScreen() {
             <h2 style={{ fontSize: 17, fontWeight: 600 }}>{farm.label}</h2>
             <Badge record={farm} />
           </div>
+          {farm.household_label && (
+            <p data-testid="farm-household" className="type-note" style={{ color: 'var(--ink-2)' }}>
+              {farm.household_label}
+            </p>
+          )}
 
           {farm.plots.length === 0 ? (
             <EmptyState title={t('myFarm.noPlots')} />

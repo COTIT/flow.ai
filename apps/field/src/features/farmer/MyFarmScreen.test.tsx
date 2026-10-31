@@ -56,6 +56,13 @@ describe('MyFarmScreen states', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  test('a farm owned by the household names the household', () => {
+    useMyFarm.mockReturnValue({ isLoading: false, error: null, farms: [farm({ household_label: 'Mwakalinga household' })] })
+    render(<MyFarmScreen />)
+
+    expect(screen.getByTestId('farm-household')).toHaveTextContent('Mwakalinga household')
+  })
+
   test('a farm with no plots says so rather than rendering nothing', () => {
     useMyFarm.mockReturnValue({ isLoading: false, error: null, farms: [farm()] })
     render(<MyFarmScreen />)
