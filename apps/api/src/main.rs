@@ -7,7 +7,7 @@ use genesy_360_api::{
     config::Config,
     db, healthcheck, jobs,
     mail::{self, Mailer},
-    outbound, pdf, storage, warm_up,
+    outbound, payments, pdf, storage, warm_up,
 };
 use sqlx::postgres::PgConnectOptions;
 use tracing_subscriber::EnvFilter;
@@ -76,6 +76,12 @@ async fn main() {
     // Webhook targets are customer URLs: no operator host is trusted for them.
     let job_http = outbound::Outbound::new(&[]).expect("outbound http client");
     let credentials = config.credentials_key.map(std::sync::Arc::new);
+    // Checked by Config: fake is refused in a release build.
+    let payments = payments::select(config.payments_provider.as_deref(), !cfg!(debug_assertions))
+        .expect("payments provider");
+    if payments.is_none() {
+        tracing::warn!("PAYMENTS_PROVIDER not set: web payments answer 503");
+    }
     let job_credentials = credentials.clone();
     if files.is_none() || pdf.is_none() {
         tracing::warn!(
@@ -134,6 +140,7 @@ async fn main() {
         credentials,
         files,
         pdf,
+        payments: payments.clone(),
     };
     // The job rail starts last: a boot step that panics above must not leave claimed jobs
     // behind in a process that dies.
@@ -152,6 +159,7 @@ async fn main() {
             files: job_files,
             http: job_http,
             credentials: job_credentials,
+            payments: payments.clone(),
         }),
     }
     .spawn(jobs_stopped.clone());

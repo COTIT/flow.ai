@@ -73,6 +73,8 @@ pub struct Config {
     /// `GRAPH_LOGIN_URL` / `GRAPH_API_URL`: Microsoft's by default; set only for local fakes.
     pub graph_login_url: String,
     pub graph_api_url: String,
+    /// `PAYMENTS_PROVIDER`: unset = no web payments (503); `fake` in debug builds only.
+    pub payments_provider: Option<String>,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -126,6 +128,7 @@ impl fmt::Debug for Config {
             .field("mail_trusted_smtp_hosts", &self.mail_trusted_smtp_hosts)
             .field("graph_login_url", &self.graph_login_url)
             .field("graph_api_url", &self.graph_api_url)
+            .field("payments_provider", &self.payments_provider)
             .finish()
     }
 }
@@ -206,6 +209,8 @@ impl Config {
                  REQUEST_BODY_DEADLINE_SECS ({request_body_deadline_secs})"
             ));
         }
+        let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
+        crate::payments::select(payments_provider.as_deref(), !cfg!(debug_assertions))?;
         let credentials_key = get("CREDENTIALS_KEY")
             .filter(|v| !v.is_empty())
             .map(|mut v| {
@@ -258,6 +263,7 @@ impl Config {
             mail_trusted_smtp_hosts,
             graph_login_url,
             graph_api_url,
+            payments_provider,
         })
     }
 }
@@ -754,6 +760,22 @@ mod tests {
         .unwrap_err();
 
         assert!(err.starts_with("BIND_ADDR invalid"), "{err}");
+    }
+
+    #[test]
+    fn payments_provider_is_optional_and_fake_is_debug_only() {
+        let with = |v: &'static str| {
+            Config::from_lookup(lookup(&[
+                ("DATABASE_URL", "postgres://x"),
+                ("PAYMENTS_PROVIDER", v),
+            ]))
+        };
+        assert_eq!(with("").unwrap().payments_provider, None);
+        assert_eq!(
+            with("fake").unwrap().payments_provider.as_deref(),
+            Some("fake")
+        );
+        assert!(with("mollie").unwrap_err().contains("not a known provider"));
     }
 
     #[test]

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Phase 2a step 4: provider-neutral `payments` module (`Provider` enum: `create`, `fetch`, `refund`, `fetch_refund`; `Status`, `Intent`, `NewIntent`, `NewRefund`, `Error`). Only adapter: `Fake`, in-process and scriptable, chosen by `PAYMENTS_PROVIDER=fake` and refused at boot in a release build. Unset = no provider. `AppState.payments` and the job `Ctx.payments`. The `orders_payments` migration's provider CHECKs now allow `fake` only (real providers widen them in their own migration).
 - Phase 2a step 3: order `returns` (restock optional, `partially_returned`/`returned`) and `invoice` (one draft invoice per order through `invoices::service::create_in`, the new in-transaction half of `create`; its lines carry no warehouse, so sending it moves no stock).
 - Phase 2a step 2, office orders (contract `docs/api/orders.md`): `/workspace/{workspace}/orders` list/create/get/patch/delete plus `confirm`, `pick`, `complete`, `cancel` (`order.*` permissions, optional Idempotency-Key on every write). Lines priced from the catalog through the pricing engine in integer minor units; numbering series `order`; statuses draft → open → completed, cancel gives holds back, wrong moves 409, a paid order 409 `refund_required`. `order.created` joins the webhook events (no customer details). `idempotency::replay` takes an `Actor` (member or app key); an answer replays only for its actor.
 - Phase 2a "open the web shop", step 1:

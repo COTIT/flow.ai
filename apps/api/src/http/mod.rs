@@ -49,5 +49,6 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
         credentials: None,
         files: None,
         pdf: None,
+        payments: None,
     }
 }

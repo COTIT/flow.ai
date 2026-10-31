@@ -132,7 +132,7 @@ CREATE TABLE order_payments (
     workspace_id uuid        NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
     order_id     uuid        NOT NULL,
     kind         text        NOT NULL CHECK (kind IN ('payment', 'refund')),
-    provider     text        NOT NULL CHECK (provider IN ('mollie')),
+    provider     text        NOT NULL CHECK (provider IN ('fake')),
     provider_id  text        CHECK (char_length(provider_id) BETWEEN 1 AND 64),
     -- A refund's payment.
     parent_id    uuid,
@@ -172,11 +172,11 @@ CREATE INDEX order_payments_pending_idx ON order_payments (updated_at)
     WHERE status IN ('creating', 'open');
 CREATE INDEX order_payments_created_by_idx ON order_payments (created_by) WHERE created_by IS NOT NULL;
 
--- Provider webhooks waiting for a re-fetch. The body is never trusted, so only the id is kept;
+-- Provider webhooks waiting for a re-fetch (a real provider widens the provider CHECKs). The body is never trusted, so only the id is kept;
 -- one pending row per payment coalesces repeats.
 CREATE TABLE payment_webhook_inbox (
     id           uuid        PRIMARY KEY DEFAULT uuidv7(),
-    provider     text        NOT NULL CHECK (provider IN ('mollie')),
+    provider     text        NOT NULL CHECK (provider IN ('fake')),
     workspace_id uuid        NOT NULL REFERENCES workspaces (id) ON DELETE CASCADE,
     external_id  text        NOT NULL CHECK (char_length(external_id) BETWEEN 1 AND 64),
     status       text        NOT NULL DEFAULT 'pending'
