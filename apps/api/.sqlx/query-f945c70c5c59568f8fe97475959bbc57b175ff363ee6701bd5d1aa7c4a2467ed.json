@@ -1,0 +1,87 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH u AS (\n               UPDATE till_users SET name = coalesce($3, name), pin_hash = coalesce($4, pin_hash),\n                      active = coalesce($5, active),\n                      failed_pins = CASE WHEN $4::text IS NULL THEN failed_pins ELSE 0 END,\n                      locked_until = CASE WHEN $4::text IS NULL THEN locked_until END,\n                      updated_at = now()\n               WHERE workspace_id = $1 AND id = $2\n               RETURNING id, name, user_id, active, locked_until, created_at\n           ), ended AS (\n               UPDATE till_sessions SET ended_at = now()\n               WHERE workspace_id = $1 AND till_user_id = (SELECT id FROM u) AND ended_at IS NULL\n                 AND ($4::text IS NOT NULL OR $5::bool IS FALSE)\n           )\n           SELECT id AS \"id!\", name AS \"name!\", user_id, active AS \"active!\",\n                  coalesce(locked_until > now(), false) AS \"locked!\", created_at AS \"created_at!\"\n           FROM u",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_users",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "till_users",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_users",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "active!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "till_users",
+            "name": "active"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "locked!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "till_users",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "f945c70c5c59568f8fe97475959bbc57b175ff363ee6701bd5d1aa7c4a2467ed"
+}

@@ -5,27 +5,14 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { Partner } from './partner';
-import type { ReceivedLot } from './receivedLot';
-import type { TransferLot } from './transferLot';
 
 /**
- * A transfer as one side sees it. No farmers, kg shares or prices.
+ * A transfer as booked.
  */
 export interface TransferResource {
-  /** `outgoing` (dispatched by this workspace) or `incoming`. */
+  /** Minor units moved. */
+  amount: number;
   direction: string;
-  dispatched_at: string;
-  from_lot: TransferLot;
-  id: string;
-  link_id: string;
-  partner: Partner;
-  quantity: string;
-  /** @nullable */
-  received_at: string | null;
-  /** @nullable */
-  received_quantity: string | null;
-  /** `dispatched` or `received`. */
-  status: string;
-  to_lot: ReceivedLot | null;
+  transfer_id: string;
+  vault_id: string;
 }

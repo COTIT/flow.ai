@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE till_sessions SET ended_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND ended_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0b9075d794e98883c51639242c0fc396cfd19655ded69dfed0a5f6296e18bad0"
+}

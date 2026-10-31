@@ -19,7 +19,7 @@ use crate::{
     modules::supply_chain::{
         dto::{
             DispatchRequest, ListQuery, PackedLotResource, PackingRequest, ReceiveRequest,
-            TransferResource,
+            SupplyTransferResource,
         },
         service,
     },
@@ -68,7 +68,7 @@ pub async fn pack(
     ),
     request_body = DispatchRequest,
     responses(
-        (status = 201, body = Envelope<TransferResource>, description = "Dispatched"),
+        (status = 201, body = Envelope<SupplyTransferResource>, description = "Dispatched"),
         (status = 403, body = MessageBody, description = "No `product.update`, or the link is not live"),
         (status = 404, body = MessageBody, description = "Unknown lot, or another workspace's"),
         (status = 422, body = UnprocessableBody, description = "Invalid input, unknown link, not enough stock, or not a supply lot"),
@@ -80,10 +80,10 @@ pub async fn dispatch(
     access: Can<ProductUpdate>,
     Path((_, id)): Path<(String, String)>,
     ValidatedJson(d): ValidatedJson<DispatchRequest>,
-) -> Result<(StatusCode, Data<TransferResource>), AppError> {
+) -> Result<(StatusCode, Data<SupplyTransferResource>), AppError> {
     let t = service::dispatch(&state, &access, &id, d).await?;
     let ws = access.workspace_id;
-    Ok((StatusCode::CREATED, Data(TransferResource::new(t, ws))))
+    Ok((StatusCode::CREATED, Data(SupplyTransferResource::new(t, ws))))
 }
 
 /// GET /supply-transfers -> `{data:[...], meta}`.
@@ -93,7 +93,7 @@ pub async fn dispatch(
     description = "Transfers this workspace sent (`outgoing`) or is sent (`incoming`), newest first. No farmers, kg shares or prices.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
-        (status = 200, body = Paginated<TransferResource>, description = "One page"),
+        (status = 200, body = Paginated<SupplyTransferResource>, description = "One page"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
     ),
     security(("bearer" = []))
@@ -102,13 +102,13 @@ pub async fn list(
     State(state): State<AppState>,
     access: WorkspaceAccess,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Paginated<TransferResource>>, AppError> {
+) -> Result<Json<Paginated<SupplyTransferResource>>, AppError> {
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
     let (rows, total) = service::list(&state, &access, page.size, page.offset()).await?;
     let ws = access.workspace_id;
     let data = rows
         .into_iter()
-        .map(|t| TransferResource::new(t, ws))
+        .map(|t| SupplyTransferResource::new(t, ws))
         .collect();
     Ok(Json(Paginated::new(data, total, page)))
 }
@@ -124,7 +124,7 @@ pub async fn list(
     ),
     request_body = ReceiveRequest,
     responses(
-        (status = 201, body = Envelope<TransferResource>, description = "Received"),
+        (status = 201, body = Envelope<SupplyTransferResource>, description = "Received"),
         (status = 403, body = MessageBody, description = "No `product.update`, the sending side, or the link is not live"),
         (status = 404, body = MessageBody, description = "Unknown transfer, or this workspace is no side of it"),
         (status = 409, body = MessageBody, description = "Already received"),
@@ -137,8 +137,8 @@ pub async fn receive(
     access: Can<ProductUpdate>,
     Path((_, id)): Path<(String, String)>,
     ValidatedJson(r): ValidatedJson<ReceiveRequest>,
-) -> Result<(StatusCode, Data<TransferResource>), AppError> {
+) -> Result<(StatusCode, Data<SupplyTransferResource>), AppError> {
     let t = service::receive(&state, &access, &id, r).await?;
     let ws = access.workspace_id;
-    Ok((StatusCode::CREATED, Data(TransferResource::new(t, ws))))
+    Ok((StatusCode::CREATED, Data(SupplyTransferResource::new(t, ws))))
 }

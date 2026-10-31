@@ -199,7 +199,7 @@ impl Validate for ReceiveRequest {
 
 /// A transfer as one side sees it. No farmers, kg shares or prices.
 #[derive(Serialize, ToSchema)]
-pub struct TransferResource {
+pub struct SupplyTransferResource {
     id: Uuid,
     link_id: Uuid,
     /// `outgoing` (dispatched by this workspace) or `incoming`.
@@ -234,7 +234,7 @@ pub struct ReceivedLot {
     code: String,
 }
 
-impl TransferResource {
+impl SupplyTransferResource {
     /// `t` as `workspace_id` sees it.
     pub fn new(t: TransferRow, workspace_id: Uuid) -> Self {
         let outgoing = t.from_workspace_id == workspace_id;

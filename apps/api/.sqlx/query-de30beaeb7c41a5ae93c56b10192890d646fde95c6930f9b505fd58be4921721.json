@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT name, app_key_id FROM till_registers WHERE workspace_id = $1 AND id = $2\n         FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "app_key_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "app_key_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "de30beaeb7c41a5ae93c56b10192890d646fde95c6930f9b505fd58be4921721"
+}

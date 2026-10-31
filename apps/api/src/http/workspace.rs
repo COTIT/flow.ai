@@ -54,14 +54,7 @@ impl FromRequestParts<AppState> for WorkspaceAccess {
     async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
         // Phone-only accounts pass here and fail the membership check: 404, not 403.
         let user = AuthUser::any(parts, state).await?;
-        let params = RawPathParams::from_request_parts(parts, state)
-            .await
-            .map_err(|_| AppError::NotFound)?;
-        let raw = params
-            .iter()
-            .find_map(|(k, v)| (k == "workspace").then_some(v))
-            .ok_or_else(|| AppError::Internal("route has no {workspace} segment".into()))?;
-        let workspace_id = Uuid::parse_str(raw).map_err(|_| AppError::NotFound)?;
+        let workspace_id = path_workspace(parts, state).await?;
         let access = repo::access(&state.db, workspace_id, user.user_id)
             .await?
             .ok_or(AppError::NotFound)?;
@@ -77,6 +70,18 @@ impl FromRequestParts<AppState> for WorkspaceAccess {
             _slot: slot,
         })
     }
+}
+
+/// The `{workspace}` path segment; malformed -> 404.
+pub(crate) async fn path_workspace(parts: &mut Parts, state: &AppState) -> Result<Uuid, AppError> {
+    let params = RawPathParams::from_request_parts(parts, state)
+        .await
+        .map_err(|_| AppError::NotFound)?;
+    let raw = params
+        .iter()
+        .find_map(|(k, v)| (k == "workspace").then_some(v))
+        .ok_or_else(|| AppError::Internal("route has no {workspace} segment".into()))?;
+    Uuid::parse_str(raw).map_err(|_| AppError::NotFound)
 }
 
 /// A permission name as a type, so `Can<P>` can check it while extracting.

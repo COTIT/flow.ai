@@ -2,6 +2,7 @@
 
 pub mod app_keys;
 pub mod auth;
+pub mod cash;
 pub mod contacts;
 pub mod currencies;
 pub mod custom_statuses;
@@ -52,6 +53,8 @@ pub mod storefront;
 pub mod supply_chain;
 pub mod supply_links;
 pub mod teams;
+pub mod till;
+pub mod till_sales;
 pub mod users;
 pub mod vat_groups;
 pub mod warehouse_bins;
