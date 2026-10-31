@@ -17,7 +17,9 @@ describe("pickLocale", () => {
 
 describe("loadMessages", () => {
   it("merges shared texts with the app's own", async () => {
-    const messages = await loadMessages("sw", async () => ({ app: { title: "Shamba" } }))
+    const messages = await loadMessages("sw", async () => ({
+      app: { title: "Shamba" },
+    }))
     expect(messages.app).toEqual({ title: "Shamba" })
     expect(messages.auth).toBeDefined()
   })
@@ -27,7 +29,9 @@ describe("loadMessages", () => {
 const root = join(import.meta.dirname, "../../..")
 const folders = [
   join(root, "packages/i18n/messages"),
-  ...readdirSync(join(root, "apps")).map((app) => join(root, "apps", app, "messages")),
+  ...readdirSync(join(root, "apps")).map((app) =>
+    join(root, "apps", app, "messages")
+  ),
 ].filter((dir) => {
   try {
     return readdirSync(dir).includes("en.json")
@@ -38,14 +42,19 @@ const folders = [
 
 function keys(value: unknown, prefix = ""): string[] {
   if (typeof value !== "object" || value === null) return [prefix]
-  return Object.entries(value).flatMap(([k, v]) => keys(v, prefix ? `${prefix}.${k}` : k))
+  return Object.entries(value).flatMap(([k, v]) =>
+    keys(v, prefix ? `${prefix}.${k}` : k)
+  )
 }
 
 const read = (dir: string, locale: string) =>
   keys(JSON.parse(readFileSync(join(dir, `${locale}.json`), "utf8"))).sort()
 
 describe.each(folders)("messages in %s", (dir) => {
-  it.each(locales.filter((l) => l !== "en"))("%s has every en key and no extras", (locale) => {
-    expect(read(dir, locale)).toEqual(read(dir, "en"))
-  })
+  it.each(locales.filter((l) => l !== "en"))(
+    "%s has every en key and no extras",
+    (locale) => {
+      expect(read(dir, locale)).toEqual(read(dir, "en"))
+    }
+  )
 })

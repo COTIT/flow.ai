@@ -42,7 +42,11 @@ export const sessionStore = createStore<Session>()(
     {
       name: "genesy.session",
       storage: createJSONStorage(() => localStorage),
-      partialize: ({ token, workspaceIds, workspaceId }) => ({ token, workspaceIds, workspaceId }),
+      partialize: ({ token, workspaceIds, workspaceId }) => ({
+        token,
+        workspaceIds,
+        workspaceId,
+      }),
       // Read storage after the first render, so server and browser HTML match.
       skipHydration: true,
       onRehydrateStorage: () => () => sessionStore.setState({ hydrated: true }),

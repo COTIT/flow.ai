@@ -13,7 +13,9 @@ export function useSession<T>(pick: (s: Session) => T): T {
 
 /** Login mutation that keeps the token on success. */
 export function useLogin() {
-  return useAuthLogin({ mutation: { onSuccess: ({ data }) => sessionStore.getState().signIn(data) } })
+  return useAuthLogin({
+    mutation: { onSuccess: ({ data }) => sessionStore.getState().signIn(data) },
+  })
 }
 
 /** Logout mutation: ends the token on the backend, then forgets it here even if that call fails. */

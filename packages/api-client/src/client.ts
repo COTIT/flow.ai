@@ -28,7 +28,8 @@ export function createApiClient({
   })
 
   api.interceptors.response.use(undefined, (error) => {
-    if (axios.isAxiosError(error) && error.response?.status === 401) onUnauthorized?.()
+    if (axios.isAxiosError(error) && error.response?.status === 401)
+      onUnauthorized?.()
     return Promise.reject(error)
   })
 

@@ -18,8 +18,14 @@ export type WorkspaceSummary = {
 }
 
 // TODO(openapi group A): replace with the generated `GET /me/workspaces` hook.
-export const meWorkspaces = (options?: AxiosRequestConfig, signal?: AbortSignal) =>
-  apiRequest<{ data: WorkspaceSummary[] }>({ url: "/me/workspaces", method: "GET", signal }, options)
+export const meWorkspaces = (
+  options?: AxiosRequestConfig,
+  signal?: AbortSignal
+) =>
+  apiRequest<{ data: WorkspaceSummary[] }>(
+    { url: "/me/workspaces", method: "GET", signal },
+    options
+  )
 
 export const useMeWorkspaces = (enabled = true) =>
   useQuery({
@@ -52,9 +58,13 @@ export const productsList = (
     options
   )
 
-export const useProductsList = (workspace: string | null, params?: ProductsListParams) =>
+export const useProductsList = (
+  workspace: string | null,
+  params?: ProductsListParams
+) =>
   useQuery({
     queryKey: [`/workspace/${workspace}/products`, params],
-    queryFn: ({ signal }) => productsList(workspace!, params, undefined, signal),
+    queryFn: ({ signal }) =>
+      productsList(workspace!, params, undefined, signal),
     enabled: Boolean(workspace),
   })

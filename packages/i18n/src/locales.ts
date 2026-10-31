@@ -12,7 +12,10 @@ export type Messages = AbstractIntlMessages
 export const LOCALE_COOKIE = "NEXT_LOCALE"
 
 /** The cookie's locale when supported, else the app's default (field: sw). */
-export function pickLocale(cookie: string | undefined, fallback: Locale): Locale {
+export function pickLocale(
+  cookie: string | undefined,
+  fallback: Locale
+): Locale {
   return locales.find((l) => l === cookie) ?? fallback
 }
 

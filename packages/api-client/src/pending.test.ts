@@ -43,7 +43,9 @@ describe("pending endpoints", () => {
 
   it("lets server code pass the token per call instead of the shared store", async () => {
     const { meWorkspaces } = await load()
-    const body = (await meWorkspaces({ headers: { Authorization: "Bearer srv" } })) as unknown as {
+    const body = (await meWorkspaces({
+      headers: { Authorization: "Bearer srv" },
+    })) as unknown as {
       authorization: string
     }
     expect(body.authorization).toBe("Bearer srv")

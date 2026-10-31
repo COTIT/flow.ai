@@ -50,6 +50,8 @@
 }
 
 :root {
+  /* Brand swap point (gate G7): neutral placeholders until the Genesy look is decided.
+     Change :root (light) and .dark here; every app and component reads these. */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
