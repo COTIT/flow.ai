@@ -1,0 +1,95 @@
+# CI on the self-hosted runner on the VPS (setup: deploy/ci-runner/README.md).
+# Every job runs in a container on the runner's own rootless Docker; the runner
+# refuses jobs without one. No deploy job here.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  SQLX_OFFLINE: "true"
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  api:
+    # Same-repo pushes and PRs only: fork code never runs on the VPS.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, genesy-ci]
+    timeout-minutes: 60
+    container:
+      # Same image as apps/api/Dockerfile.
+      image: rust:1.99-slim-trixie
+      volumes:
+        - genesy-ci-cargo-registry:/usr/local/cargo/registry
+        - genesy-ci-cargo-target:/ci-target
+        - genesy-ci-tools:/opt/ci-tools
+    services:
+      # Throwaway DB on the job's private network (no host port); removed with the job.
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_PASSWORD: ci-only
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:ci-only@postgres:5432/postgres
+      # Outside the checkout, which is wiped each run; size capped by deploy/ci-runner/cleanup.sh.
+      CARGO_TARGET_DIR: /ci-target
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup component add rustfmt clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --no-fail-fast
+      - name: OpenAPI spec is fresh
+        run: cargo test --test openapi committed_spec
+      - name: No internal names in the spec
+        run: test "$(grep -ciE 'laravel|vimdesk' openapi.json)" = 0
+      - name: Known vulnerabilities
+        run: |
+          cargo install --locked --root /opt/ci-tools cargo-audit@0.22.2
+          /opt/ci-tools/bin/cargo-audit audit
+
+  web:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, genesy-ci]
+    timeout-minutes: 45
+    container:
+      # Full image: has git (checkout, generate:check's git diff) and corepack.
+      image: node:24-trixie
+      volumes:
+        - genesy-ci-pnpm-store:/pnpm-store
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      # apps/*/lib/api.ts refuses to load without it; nothing is called at build.
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --store-dir /pnpm-store
+      # --only: skip @genesy/api#openapi (it sets UPDATE_OPENAPI, which tests/openapi.rs
+      # refuses under CI). Uses the committed openapi.json; the api job proves it fresh.
+      - name: Generated API client matches openapi.json
+        run: pnpm turbo run generate:check --filter=@genesy/api-client --only
+      - run: pnpm turbo run typecheck lint test build --filter='!@genesy/api' --concurrency=2
