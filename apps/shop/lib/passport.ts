@@ -4,8 +4,8 @@ import type { Link, PublicBlock } from "@genesy/api-client/model"
 export const isPublicCode = (code: string) =>
   /^[0-9A-HJKMNP-TV-Z]{10}$/.test(code)
 
-/** Product ids are UUIDs; anything else would change the API path the server calls. */
-export const isProductId = (id: string) =>
+/** Product and order ids are UUIDs; anything else would change the API path the server calls. */
+export const isUuid = (id: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
 
 /** The parts of a batch reply that carry signed file links. */
