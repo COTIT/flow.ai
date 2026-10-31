@@ -45,4 +45,5 @@ pub mod warehouse_rows;
 pub mod warehouse_sections;
 pub mod warehouse_shelves;
 pub mod warehouses;
+pub mod webhooks;
 pub mod workspaces;

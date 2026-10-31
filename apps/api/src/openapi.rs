@@ -15,7 +15,7 @@ use crate::{
     http::response::MessageBody,
     modules::{
         app_keys, auth, currencies, email_verification, invites, storefront,
-        users::dto::UserEmailResource,
+        users::dto::UserEmailResource, webhooks,
     },
 };
 
@@ -79,6 +79,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(currencies::routes::private())
         .merge(app_keys::routes::private())
         .merge(storefront::routes::private())
+        .merge(webhooks::routes::private())
 }
 
 /// Full spec, built from [`public`] and [`private`], as JSON.
