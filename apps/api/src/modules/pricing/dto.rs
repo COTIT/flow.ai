@@ -4,6 +4,7 @@
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -16,14 +17,62 @@ use crate::{
 };
 
 /// Body of both routes. Unknown keys (`disable_client_discounts`, row UI state) are skipped.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Lines to price. Unknown keys are ignored.")]
 pub struct CalculateRequest {
+    /// 1 to 1000 lines.
     #[serde(default)]
+    #[schema(value_type = Vec<ItemLine>, min_items = 1, max_items = 1000)]
     items: Items,
+    /// Currency to price in; the workspace default when left out.
     #[serde(default)]
+    #[schema(value_type = Option<Uuid>)]
     currency_id: Scalar,
+    /// Customer whose discounts apply.
     #[serde(default)]
+    #[schema(value_type = Option<Uuid>)]
     relation_id: Scalar,
+}
+
+// Doc-only: wire shape of one `RawItem` (parsed by `body.rs`, never built as this struct).
+/// One item line as clients send it. Numbers may also be sent as decimal strings.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    description = "One item line. Numbers may also be sent as decimal strings; unknown keys are ignored."
+)]
+pub struct ItemLine {
+    /// Echoed back as sent.
+    id: Option<Value>,
+    #[schema(max_length = 500)]
+    title: Option<String>,
+    #[schema(max_length = 5000)]
+    description: Option<String>,
+    quantity: Option<f64>,
+    /// Unit price excluding VAT.
+    price: Option<f64>,
+    /// VAT percentage, 0 or more.
+    vat: Option<f64>,
+    /// Discount percentage, 0 to 100.
+    #[schema(rename = "productDiscount", minimum = 0, maximum = 100)]
+    product_discount: Option<f64>,
+    purchase_price: Option<f64>,
+    product_id: Option<Uuid>,
+    /// Set when the line is part of a multi-set product; echoed back.
+    multi_set_item_id: Option<Value>,
+    client_default_discount: Option<f64>,
+    /// Stored documents only: 0-based line order.
+    position: Option<i64>,
+    /// Stored documents only: true drops the line.
+    deleted: Option<bool>,
+    /// Stored documents only.
+    parent_deleted: Option<bool>,
+    /// Stored documents only.
+    product_variant_id: Option<Uuid>,
+    /// Stored documents only: warehouse to take stock from.
+    mutate_from_warehouse_id: Option<Uuid>,
+    /// Stored documents only.
+    multi_set_product_id: Option<Uuid>,
 }
 
 /// A reference id as sent: None = not sent, Some(None) = sent but not a uuid (never matches).
@@ -167,20 +216,87 @@ fn text(r: &mut Rules, field: &str, v: Scalar, max: usize) -> Option<String> {
     }
 }
 
-/// `{data: …}` of calculate-items (Laravel `ItemsSummary::toArray`).
-#[derive(Serialize)]
+// `{data: …}` of calculate-items (Laravel `ItemsSummary::toArray`).
+/// Document totals. Amounts are JSON numbers.
+#[derive(Serialize, ToSchema)]
+#[schema(
+    description = "Document totals. Amounts are JSON numbers (whole amounts print without decimals)."
+)]
 pub struct SummaryResource {
+    /// Gross total before discounts.
+    #[schema(value_type = f64)]
     sum_total: Value,
+    #[schema(value_type = f64)]
     total_discount: Value,
+    /// Same as `sum_total`.
+    #[schema(value_type = f64)]
     sub_total: Value,
+    /// VAT per rate, keyed by the rate as text (e.g. `"21"`).
+    #[schema(value_type = HashMap<String, VatTotal>)]
     total_vats: Map<String, Value>,
+    #[schema(value_type = f64)]
     total_vat: Value,
+    /// Total including VAT.
+    #[schema(value_type = f64)]
     total: Value,
+    /// Total excluding VAT.
+    #[schema(value_type = f64)]
     total_excl: Value,
+    #[schema(value_type = f64)]
     total_excl_materials: Value,
+    /// Always 0.
+    #[schema(value_type = f64)]
     total_excl_hours: Value,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
     total_excl_hours_users: Vec<Value>,
+    /// One entry per discounted line: the line on calculate-items, null on stored documents.
+    #[schema(value_type = Vec<Option<LineDiscount>>)]
     discounts: Vec<Value>,
+}
+
+// Doc-only: shape of one `total_vats` entry built with `json!` below.
+/// VAT for one rate.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct VatTotal {
+    /// The rate.
+    percentage: f64,
+    /// VAT amount at this rate.
+    total_amount: f64,
+}
+
+// Doc-only: shape of one calculate-items `discounts` entry built with `json!` below.
+/// A discounted line as priced.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct LineDiscount {
+    /// As sent.
+    #[schema(required = true)]
+    id: Option<Value>,
+    #[schema(required = true)]
+    title: Option<String>,
+    #[schema(required = true)]
+    description: Option<String>,
+    quantity: f64,
+    price: f64,
+    vat: f64,
+    #[schema(required = true)]
+    product_id: Option<String>,
+    /// Line total excluding VAT, after discount.
+    total: f64,
+    /// Line total before discount.
+    subtotal: f64,
+    /// Discount percentage as text, e.g. `"10"`.
+    #[schema(rename = "productDiscount")]
+    product_discount: String,
+    #[schema(required = true)]
+    purchase_price: Option<f64>,
+    /// As text.
+    client_default_discount: String,
+    /// As sent.
+    #[schema(required = true)]
+    multi_set_item_id: Option<Value>,
 }
 
 impl SummaryResource {
@@ -245,14 +361,61 @@ impl SummaryResource {
     }
 }
 
-/// `{data: …}` of calculate-marge (Laravel `ItemsMargeCalculationSummary`). Transfer lists
-/// and hours only exist on stored work orders, so their parts are always 0 here.
-#[derive(Serialize)]
+// `{data: …}` of calculate-marge (Laravel `ItemsMargeCalculationSummary`). Transfer lists
+// and hours only exist on stored work orders, so their parts are always 0 here.
+/// Margin of the lines. Amounts are JSON numbers.
+#[derive(Serialize, ToSchema)]
+#[schema(
+    description = "Margin of the lines. Amounts are JSON numbers; transfer-list and hour parts are always 0."
+)]
 pub struct MarginResource {
+    #[schema(value_type = f64)]
     total_purchase_price: Value,
+    #[schema(value_type = f64)]
     marge_percentage: Value,
+    #[schema(value_type = f64)]
     marge_total_amount: Value,
+    #[schema(value_type = MarginExtra)]
     extra_data: Value,
+}
+
+// Doc-only: shape of `extra_data` built with `json!` below.
+/// Margin breakdown; legacy keys kept.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct MarginExtra {
+    items_percentage: f64,
+    items_purchase_price: f64,
+    items_amount: f64,
+    transfer_lists_percentage: f64,
+    transfer_lists_purchase_price: f64,
+    transfer_lists_amount: f64,
+    hours_purchase_price: f64,
+    hours_sale_price: f64,
+    components: MarginComponents,
+    /// Same as `components.items`.
+    totals: MarginPart,
+}
+
+// Doc-only: `extra_data.components`.
+/// Margin per source.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct MarginComponents {
+    items: MarginPart,
+    transfer_lists: MarginPart,
+    hours: MarginPart,
+}
+
+// Doc-only: one margin part.
+/// Cost, revenue and margin of one source.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct MarginPart {
+    cost_excl: f64,
+    revenue_excl: f64,
+    margin_amount: f64,
+    margin_percentage: f64,
 }
 
 impl MarginResource {

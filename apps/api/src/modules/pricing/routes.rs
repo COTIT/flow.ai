@@ -1,6 +1,7 @@
 //! Pricing routes, mounted under /v1 (paths match vimdesk-api Shared/Item routes).
 
-use axum::{Router, extract::DefaultBodyLimit, routing::post};
+use axum::extract::DefaultBodyLimit;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::pricing::handlers};
 
@@ -10,15 +11,9 @@ use crate::{AppState, modules::pricing::handlers};
 const BODY_LIMIT: usize = 2 * 1024 * 1024;
 
 /// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    Router::new()
-        .route(
-            "/workspace/{workspace}/calculate-items",
-            post(handlers::calculate_items),
-        )
-        .route(
-            "/workspace/{workspace}/calculate-marge",
-            post(handlers::calculate_marge),
-        )
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(handlers::calculate_items))
+        .routes(routes!(handlers::calculate_marge))
         .layer(DefaultBodyLimit::max(BODY_LIMIT))
 }

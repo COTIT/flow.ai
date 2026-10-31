@@ -1,13 +1,11 @@
-//! Settings routes, mounted under /v1 (paths match vimdesk-api; update is POST).
+//! Settings routes, mounted under /v1 (paths match vimdesk-api; update is POST). Paths live in
+//! each handler's `#[utoipa::path]`, so router and OpenAPI spec share one source.
 
-use axum::{Router, routing::get};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::settings::handlers};
 
 /// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    Router::new().route(
-        "/workspace/{workspace}/settings",
-        get(handlers::get).post(handlers::update),
-    )
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(handlers::get, handlers::update))
 }

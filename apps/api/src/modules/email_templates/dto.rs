@@ -1,13 +1,15 @@
 //! Email template bodies (Laravel Store/UpdateEmailTemplateRequest) and the list query.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, Validate, human},
     modules::{
-        pdf_templates::dto::{Conditions, Patch, conditions, object},
+        pdf_templates::dto::{Conditions, Patch, conditions, object, variables_schema},
         pricing::body::{Capped, Scalar},
     },
 };
@@ -101,26 +103,76 @@ pub const DOMAINS: &[&str] = &[
 ];
 
 /// Body of create and update; unknown keys are skipped.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(
+    description = "An email template. Create needs every field but `conditions` and `meta`; update needs only `body`, ignores `template_domain` and keeps what is left out."
+)]
+#[schema(as = EmailTemplateBody)]
 pub struct TemplateBody {
+    #[schema(value_type = String, max_length = 255)]
+    #[serde(default)]
     template_name: Scalar,
+    /// What the template is for (`invoice`, `estimate`, ...); create only.
+    #[schema(value_type = String)]
+    #[serde(default)]
     template_domain: Scalar,
+    #[schema(value_type = bool)]
+    #[serde(default)]
     default_template: Scalar,
+    #[schema(value_type = String, max_length = 255)]
+    #[serde(default)]
     subject: Scalar,
+    #[schema(value_type = String, max_length = 25000, required = true)]
+    #[serde(default)]
     body: Scalar,
+    /// When this template is picked; null clears them.
+    #[schema(value_type = Option<Conditions>)]
+    #[serde(default)]
     conditions: Capped,
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     meta: Capped,
 }
 
 /// `POST /email-templates`.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = CreateEmailTemplateRequest)]
 pub struct CreateTemplateRequest(TemplateBody);
 
-/// `POST /email-templates/{id}`: Laravel's update rules make only `body` required and
-/// don't take the domain.
-#[derive(Deserialize)]
+// `POST /email-templates/{id}`: Laravel's update rules make only `body` required and
+// don't take the domain.
+/// `POST /email-templates/{id}`.
+#[derive(Deserialize, ToSchema)]
+#[schema(as = UpdateEmailTemplateRequest)]
 pub struct UpdateTemplateRequest(TemplateBody);
+
+// Doc-only: one template as `service::render` prints it with `json!`.
+/// An email template.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct EmailTemplateResource {
+    id: Uuid,
+    template_name: String,
+    template_domain: String,
+    default_template: bool,
+    subject: String,
+    body: String,
+    #[schema(required = true)]
+    conditions: Option<Conditions>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+}
+
+// Doc-only: `variables` serves generated JSON text in this shape.
+/// Template variables of one domain.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct TemplateVariables {
+    #[schema(schema_with = variables_schema)]
+    variables: Value,
+}
 
 /// A validated body; on update None keeps the stored value.
 pub struct TemplateInput {
@@ -135,21 +187,33 @@ pub struct TemplateInput {
 }
 
 /// `{data:{email_template_id}}`.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(as = EmailTemplateCreated)]
 pub struct TemplateCreated {
     pub email_template_id: Uuid,
 }
 
-/// List query (Laravel ListEmailTemplateRequest; `relation_id` and `items` were unused).
-#[derive(Deserialize, Default)]
+// List query (Laravel ListEmailTemplateRequest; `relation_id` and `items` were unused).
+/// List query.
+#[derive(Deserialize, Default, IntoParams)]
 #[serde(default)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// Only templates for this domain.
     pub template_domain: Option<String>,
+    /// Search text.
     pub q: Option<String>,
+    /// Only templates for `business` or `personal` relations.
     pub relation_type: Option<String>,
+    /// Only templates for this language.
     pub language: Option<String>,
+    /// Only templates for this relation custom type.
     pub relation_custom_type_id: Option<String>,
 }
 

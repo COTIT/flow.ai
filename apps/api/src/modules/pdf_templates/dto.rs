@@ -1,14 +1,17 @@
 //! PDF template bodies (Laravel Store/UpdatePdfTemplateRequest) and PdfTemplateResource.
 //! Columns, conditions, extra fields and meta are capped while parsing (`pricing::body`).
 
+use chrono::{DateTime, Utc};
 use rust_decimal::{Decimal, RoundingStrategy, prelude::ToPrimitive};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, Validate, human},
     modules::{
+        files::dto::FileResource,
         pdf_templates::fields,
         pricing::body::{Capped, Scalar},
     },
@@ -41,36 +44,136 @@ const EXTRA_FLAGS: &[&str] = &[
 pub type Patch<T> = Option<Option<T>>;
 
 /// Body of create and update; unknown keys are skipped.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(
+    description = "A PDF template. On update the domain stays as stored and fields left out are kept."
+)]
+#[schema(as = PdfTemplateBody)]
 pub struct TemplateBody {
+    /// `invoice`, `estimate`, `order`, `purchase_order`, `collective_invoice`, `work_order`, `cash_register` or `relation`.
+    #[schema(value_type = String)]
+    #[serde(default)]
     domain: Scalar,
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     domain_action: Scalar,
+    #[schema(value_type = String, required = true)]
+    #[serde(default)]
     name: Scalar,
+    /// Item table columns; each names a field of the domain (see available-fields).
+    #[schema(value_type = Vec<Object>, required = true)]
+    #[serde(default)]
     columns: Capped,
+    /// HTML.
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     header_left: Scalar,
+    /// HTML.
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     header_right: Scalar,
+    /// HTML.
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     header_top: Scalar,
+    /// HTML.
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     footer: Scalar,
+    #[schema(value_type = i32, required = true)]
+    #[serde(default)]
     padding_top: Scalar,
+    #[schema(value_type = i32, required = true)]
+    #[serde(default)]
     padding_bottom: Scalar,
+    #[schema(value_type = i32, required = true)]
+    #[serde(default)]
     padding_x: Scalar,
+    #[schema(value_type = Option<bool>)]
+    #[serde(default)]
     enable_summary: Scalar,
+    #[schema(value_type = Option<bool>)]
+    #[serde(default)]
     default: Scalar,
+    /// A file of this workspace.
+    #[schema(value_type = Option<Uuid>)]
+    #[serde(default)]
     background_file_id: Scalar,
+    /// A file of this workspace.
+    #[schema(value_type = Option<Uuid>)]
+    #[serde(default)]
     logo_file_id: Scalar,
+    /// When this template is picked; null clears them.
+    #[schema(value_type = Option<Conditions>)]
+    #[serde(default)]
     conditions: Capped,
+    /// Display flags (`display_signature`, ...) and the specification template id.
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     extra_fields: Capped,
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     meta: Capped,
 }
 
 /// `POST /settings/pdf-templates`.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = CreatePdfTemplateRequest)]
 pub struct CreateTemplateRequest(TemplateBody);
 
 /// `POST /settings/pdf-templates/{id}`.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = UpdatePdfTemplateRequest)]
 pub struct UpdateTemplateRequest(TemplateBody);
+
+// Doc-only: one template as `service::render` prints it with `json!`.
+/// A PDF template.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PdfTemplateResource {
+    id: Uuid,
+    name: String,
+    domain: String,
+    #[schema(required = true)]
+    domain_action: Option<String>,
+    #[schema(value_type = Vec<Object>)]
+    columns: Value,
+    padding_top: i32,
+    padding_bottom: i32,
+    padding_x: i32,
+    /// 1 or 0.
+    enable_summary: i32,
+    #[schema(required = true)]
+    header_left: Option<String>,
+    #[schema(required = true)]
+    header_right: Option<String>,
+    #[schema(required = true)]
+    header_top: Option<String>,
+    #[schema(required = true)]
+    footer: Option<String>,
+    #[schema(rename = "default")]
+    is_default: bool,
+    #[schema(required = true)]
+    conditions: Option<Conditions>,
+    #[schema(value_type = Option<Object>, required = true)]
+    extra_fields: Option<Value>,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    relationships: PdfTemplateFiles,
+}
+
+// Doc-only: `relationships` of `PdfTemplateResource`.
+/// Background and logo files; null when unset or gone.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PdfTemplateFiles {
+    #[schema(rename = "backgroundFile", required = true)]
+    background_file: Option<FileResource>,
+    #[schema(rename = "logoFile", required = true)]
+    logo_file: Option<FileResource>,
+}
 
 /// A validated body. On update the domain is the stored one (checked by the service) and
 /// every optional field is a patch; on create absent optional fields are their defaults.
@@ -97,31 +200,101 @@ pub struct TemplateInput {
     pub meta: Patch<Value>,
 }
 
-/// Laravel Conditions value.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+// Laravel Conditions value.
+/// When a template or profile is picked.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct Conditions {
+    /// Language code, at most 3 characters.
+    #[schema(required = true, max_length = 3)]
     pub language: Option<String>,
+    /// `business` or `personal`.
+    #[schema(required = true)]
     pub relation_type: Option<String>,
-    /// A custom relation type; Some(nil) = not a uuid (never matches).
+    // A custom relation type; Some(nil) = not a uuid (never matches).
+    /// A relation custom type.
+    #[schema(required = true)]
     pub relation_custom_type_id: Option<Uuid>,
 }
 
+/// `variables` of the field catalogue: group -> variable key -> label, or `[]` when the
+/// domain has none.
+pub(crate) fn variables_schema() -> utoipa::openapi::Schema {
+    use utoipa::openapi::schema::{ArrayBuilder, ObjectBuilder, OneOfBuilder, Type};
+    let labels = ObjectBuilder::new()
+        .additional_properties(Some(ObjectBuilder::new().schema_type(Type::String)));
+    OneOfBuilder::new()
+        .item(ArrayBuilder::new().max_items(Some(0)))
+        .item(ObjectBuilder::new().additional_properties(Some(labels)))
+        .description(Some(
+            "Variables per group (`model`, ...): key -> label; `[]` for a domain without any",
+        ))
+        .into()
+}
+
+/// `fields` of the field catalogue: item field key -> its description, or `[]`.
+fn fields_schema() -> utoipa::openapi::Schema {
+    use utoipa::openapi::schema::{ArrayBuilder, ObjectBuilder, OneOfBuilder, Type};
+    let field = ObjectBuilder::new()
+        .property("label", ObjectBuilder::new().schema_type(Type::String))
+        .property("type", ObjectBuilder::new().schema_type(Type::String))
+        .property("group", ObjectBuilder::new().schema_type(Type::String))
+        .property(
+            "example",
+            ObjectBuilder::new().schema_type(utoipa::openapi::schema::SchemaType::AnyValue),
+        )
+        .property(
+            "valueObject",
+            ObjectBuilder::new().schema_type(Type::Boolean),
+        )
+        .required("label")
+        .required("type");
+    OneOfBuilder::new()
+        .item(ArrayBuilder::new().max_items(Some(0)))
+        .item(ObjectBuilder::new().additional_properties(Some(field)))
+        .description(Some(
+            "Item fields a column may show, keyed by field: label, type (`text`, `currency`, `image`, ...), group, example; `[]` for a domain without any",
+        ))
+        .into()
+}
+
+// Doc-only: `available_fields` serves generated JSON text in this shape.
+/// Field and variable catalogue of one domain.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+pub struct AvailableFields {
+    #[schema(schema_with = fields_schema)]
+    fields: Value,
+    #[schema(schema_with = variables_schema)]
+    variables: Value,
+}
+
 /// `{data:{pdf_template_id}}`.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(as = PdfTemplateCreated)]
 pub struct TemplateCreated {
     pub pdf_template_id: Uuid,
 }
 
 /// List query.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, IntoParams)]
 #[serde(default)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// Only templates for this domain.
     pub domain: Option<String>,
+    /// Search text.
     pub q: Option<String>,
+    /// Only templates for `business` or `personal` relations.
     pub relation_type: Option<String>,
+    /// Only templates for this language.
     pub language: Option<String>,
+    /// Only templates for this relation custom type.
     pub relation_custom_type_id: Option<String>,
 }
 

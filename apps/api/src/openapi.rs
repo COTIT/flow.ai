@@ -11,9 +11,13 @@ use utoipa_axum::router::OpenApiRouter;
 
 use crate::{
     AppState,
-    error::ValidationErrorBody,
+    error::{UnprocessableBody, ValidationErrorBody},
     http::response::MessageBody,
-    modules::{auth, currencies, email_verification, invites, users::dto::UserEmailResource},
+    modules::{
+        auth, currencies, deal_pipelines, deals, email_profiles, email_templates,
+        email_verification, files, invites, invoice_payments, invoices, messages, pdf_templates,
+        pricing, settings, users::dto::UserEmailResource,
+    },
 };
 
 #[derive(OpenApi)]
@@ -26,7 +30,7 @@ use crate::{
     ),
     servers((url = "/v1")),
     // UserEmailResource: referenced by name from the hand-written team `relationships` schema.
-    components(schemas(MessageBody, ValidationErrorBody, UserEmailResource)),
+    components(schemas(MessageBody, ValidationErrorBody, UnprocessableBody, UserEmailResource)),
     modifiers(&BearerAuth)
 )]
 struct ApiDoc;
@@ -51,6 +55,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
         .merge(auth::routes::public())
         .merge(invites::routes::public())
         .merge(email_verification::routes::public())
+        .merge(invoices::routes::public())
 }
 
 /// Documented routes that need a token. Modules move here from `build_app`'s plain list
@@ -61,13 +66,31 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(invites::routes::private())
         .merge(email_verification::routes::private())
         .merge(currencies::routes::private())
+        .merge(deal_pipelines::routes::private())
+        .merge(deals::routes::private())
+        .merge(invoice_payments::routes::private())
+        .merge(pdf_templates::routes::private())
+        .merge(email_templates::routes::private())
+        .merge(email_profiles::routes::private())
+        .merge(messages::routes::private())
+        .merge(settings::routes::private())
 }
 
-/// Full spec, built from [`public`] and [`private`], as JSON.
+/// Documented routes that need a token and take large bodies (item lines, invoices, uploads);
+/// `build_app` gives them twice the body deadline.
+pub(crate) fn documents() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .merge(pricing::routes::private())
+        .merge(invoices::routes::private())
+        .merge(files::routes::private())
+}
+
+/// Full spec, built from [`public`], [`private`] and [`documents`], as JSON.
 pub fn spec() -> Result<Value, serde_json::Error> {
     let doc = ApiDoc::openapi()
         .merge_from(public().split_for_parts().1)
-        .merge_from(private().split_for_parts().1);
+        .merge_from(private().split_for_parts().1)
+        .merge_from(documents().split_for_parts().1);
     let mut doc = serde_json::to_value(doc)?;
     add_shared_responses(&mut doc);
     reference_named_schemas(&mut doc);

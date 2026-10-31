@@ -1,10 +1,7 @@
 //! Mail routes, mounted under /v1 (paths match vimdesk-api).
 
-use axum::{
-    Router,
-    extract::DefaultBodyLimit,
-    routing::{get, post},
-};
+use axum::extract::DefaultBodyLimit;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::messages::handlers};
 
@@ -12,24 +9,14 @@ use crate::{AppState, modules::messages::handlers};
 const SEND_LIMIT: usize = 1024 * 1024;
 
 /// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    let ws = "/workspace/{workspace}";
-    Router::new()
-        .route(
-            &format!("{ws}/send-message"),
-            post(handlers::send_message).layer(DefaultBodyLimit::max(SEND_LIMIT)),
-        )
-        .route(&format!("{ws}/settings/email-logs"), get(handlers::logs))
-        .route(
-            &format!("{ws}/settings/office365/test-connection"),
-            post(handlers::office365_connection),
-        )
-        .route(
-            &format!("{ws}/settings/office365/test-send"),
-            post(handlers::office365_send),
-        )
-        .route(
-            &format!("{ws}/email-profiles/{{profile}}/test-connection"),
-            get(handlers::profile_test),
-        )
+pub fn private() -> OpenApiRouter<AppState> {
+    let send = OpenApiRouter::new()
+        .routes(routes!(handlers::send_message))
+        .layer(DefaultBodyLimit::max(SEND_LIMIT));
+    OpenApiRouter::new()
+        .merge(send)
+        .routes(routes!(handlers::logs))
+        .routes(routes!(handlers::office365_connection))
+        .routes(routes!(handlers::office365_send))
+        .routes(routes!(handlers::profile_test))
 }

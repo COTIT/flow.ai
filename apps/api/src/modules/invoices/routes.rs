@@ -1,10 +1,7 @@
 //! Invoice routes, mounted under /v1 (paths match vimdesk-api; update is POST).
 
-use axum::{
-    Router,
-    extract::DefaultBodyLimit,
-    routing::{get, post},
-};
+use axum::extract::DefaultBodyLimit;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::invoices::handlers};
 
@@ -14,44 +11,23 @@ const BODY_LIMIT: usize = 2 * 1024 * 1024;
 const SEND_LIMIT: usize = 1024 * 1024;
 
 /// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    let base = "/workspace/{workspace}/invoices";
-    Router::new()
-        .route(base, get(handlers::list).post(handlers::create))
-        .route(
-            &format!("{base}/{{invoice}}"),
-            get(handlers::get)
-                .post(handlers::update)
-                .delete(handlers::delete),
-        )
-        .route(
-            &format!("{base}/{{invoice}}/duplicate"),
-            post(handlers::duplicate),
-        )
-        .route(
-            &format!("{base}/{{invoice}}/preview"),
-            get(handlers::preview),
-        )
-        .route(
-            &format!("{base}/{{invoice}}/send"),
-            post(handlers::send).layer(DefaultBodyLimit::max(SEND_LIMIT)),
-        )
-        .route(
-            &format!("{base}/{{invoice}}/resend"),
-            post(handlers::resend).layer(DefaultBodyLimit::max(SEND_LIMIT)),
-        )
-        .route(
-            &format!("{base}/{{invoice}}/credit"),
-            post(handlers::credit),
-        )
-        .route(
-            &format!("{base}/send-tasks/active"),
-            get(handlers::send_tasks),
-        )
+pub fn private() -> OpenApiRouter<AppState> {
+    let send = OpenApiRouter::new()
+        .routes(routes!(handlers::send))
+        .routes(routes!(handlers::resend))
+        .layer(DefaultBodyLimit::max(SEND_LIMIT));
+    OpenApiRouter::new()
+        .routes(routes!(handlers::list, handlers::create))
+        .routes(routes!(handlers::get, handlers::update, handlers::delete))
+        .routes(routes!(handlers::duplicate))
+        .routes(routes!(handlers::preview))
+        .merge(send)
+        .routes(routes!(handlers::credit))
+        .routes(routes!(handlers::send_tasks))
         .layer(DefaultBodyLimit::max(BODY_LIMIT))
 }
 
-/// No token: the payment page's link. lib.rs puts it behind the rate limit.
-pub fn public() -> Router<AppState> {
-    Router::new().route("/invoices/fetch-from-hashed/{token}", get(handlers::public))
+/// The public payment page link; `build_app` puts it behind the IP rate limit.
+pub fn public() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(handlers::public))
 }

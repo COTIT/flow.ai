@@ -5,6 +5,7 @@ use chrono::{DateTime, NaiveDate, NaiveDateTime};
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde_json::Value;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -45,15 +46,35 @@ fn method_of(sent: &str) -> Option<Method> {
 }
 
 /// `POST /invoices/{id}/payments`.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(
+    description = "A payment on an invoice: money (`payment_method`) or a credit note (`settle_invoice_id`)."
+)]
 pub struct CreatePaymentRequest {
+    /// `YYYY-MM-DD` (a datetime is accepted too).
+    #[schema(value_type = String, example = "2026-10-31", required = true)]
+    #[serde(default)]
     date: Scalar,
+    /// Decimal amount in currency units, greater than 0, within the currency's decimals.
+    #[schema(value_type = String, example = "125.50", required = true)]
+    #[serde(default)]
     amount: Scalar,
+    /// `cash`, `pin`, `manual`, `mollie` or `bank`; required without `settle_invoice_id`.
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     payment_method: Scalar,
+    #[schema(value_type = Option<String>, max_length = 180)]
+    #[serde(default)]
     description: Scalar,
+    #[schema(value_type = Option<String>, max_length = 255)]
+    #[serde(default)]
     provider_id: Scalar,
+    /// Pending credit note of the same relation to settle with.
+    #[schema(value_type = Option<Uuid>)]
+    #[serde(default)]
     settle_invoice_id: Scalar,
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     meta: Capped,
 }
 
@@ -129,14 +150,34 @@ impl Validate for CreatePaymentRequest {
 }
 
 /// `POST /invoices/{id}/mark-as-credited`.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(description = "Mark a pending credit note as paid out.")]
 pub struct MarkCreditedRequest {
+    /// `YYYY-MM-DD` (a datetime is accepted too).
+    #[schema(value_type = String, example = "2026-10-31", required = true)]
+    #[serde(default)]
     date: Scalar,
+    /// `cash`, `pin`, `manual`, `mollie` or `bank`.
+    #[schema(value_type = String, required = true)]
+    #[serde(default)]
     payment_method: Scalar,
+    #[schema(value_type = Option<String>, max_length = 180)]
+    #[serde(default)]
     description: Scalar,
+    #[schema(value_type = Option<String>, max_length = 255)]
+    #[serde(default)]
     provider_id: Scalar,
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     meta: Capped,
+}
+
+/// Payment create response.
+// Doc-only: `Answer::created` writes this shape as raw JSON.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PaymentCreated {
+    pub invoice_payment_id: Uuid,
 }
 
 /// A validated mark-as-credited.

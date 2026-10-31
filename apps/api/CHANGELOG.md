@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- OpenAPI groups D and E: `pricing`, `invoices` (send, resend, credit, preview, duplicate and the public payment link), `invoice_payments`, `files`, `pdf_templates`, `email_templates`, `email_profiles`, `messages`, `settings`, `deal_pipelines` and `deals` are documented and built from `#[utoipa::path]`. Paths, statuses, bodies and body limits are unchanged.
+  - New `openapi::documents()` router (pricing, invoices, files): `build_app` still gives it twice the body deadline. The invoices public hash link moved into `openapi::public()`, so the `shortcut:` in `build_app` is gone.
+  - Per-route body limits stay as they were (send/resend and `/send-message` 1 MiB, invoices and item totals 2 MiB, PDF templates 512 KiB, uploads 10 MB plus form overhead); `tests/body_limits.rs` proves each cap and the 64 KiB default elsewhere.
+  - `UnprocessableBody` (anyOf `ValidationErrorBody` / `MessageBody`) documents the 422s that can also be a rule's `{message}` alone (idempotency key, invoice status, payments, uploads, mail). The Office 365 tests document their `{data:{ok, stage, message}}` 422 too.
+  - Resources built with `json!` (invoices, templates, profiles, mail logs) are described by doc-only structs; the contract check validates every real reply against them. Money keeps its frozen /v1 wire forms and is documented as sent: totals as JSON numbers, line amounts as decimal text, `balance.paid` as `0` or decimal text.
+  - Payment writes document the optional `Idempotency-Key` header. Uploads document both the multipart form and the base64 JSON body.
+  - Embedded resources of modules not documented yet (relation, product, warehouse, custom status, address) are plain objects for now.
 - Pulled the later genesy-360-api work into `apps/api` (old repo `416abee49`): F6 invoice send/numbering/credit notes, F7 invoice payments, B7-1 job rail + idempotency keys, B8-1/B8-2 deal pipelines and deals, `ctutils` 0.4.4 (RUSTSEC-2026-0385). The invoices public hash link joins the public router undocumented; the test `send()` keeps the contract check and delegates to upstream's `send_raw`.
 - OpenAPI step 2 (TypeScript client):
   - `openapi::spec()` now returns JSON and swaps inline copies of named schemas for `$ref`s (utoipa pastes generic args inline; orval then emitted duplicate anonymous types).

@@ -6,8 +6,12 @@ use axum::extract::State;
 
 use crate::{
     AppState,
-    error::AppError,
-    http::{json::ValidatedJson, response::Data, workspace::WorkspaceAccess},
+    error::{AppError, ValidationErrorBody},
+    http::{
+        json::ValidatedJson,
+        response::{Data, Envelope, MessageBody},
+        workspace::WorkspaceAccess,
+    },
     modules::pricing::{
         dto::{CalculateRequest, MarginResource, SummaryResource},
         service,
@@ -15,6 +19,19 @@ use crate::{
 };
 
 /// POST /calculate-items -> `{data: ItemsSummary}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/calculate-items", tag = "pricing",
+    operation_id = "pricing_calculate_items", summary = "Price item lines (totals, VAT, discounts)",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CalculateRequest,
+    responses(
+        (status = 200, body = Envelope<SummaryResource>, description = "Totals of the lines"),
+        (status = 403, body = MessageBody, description = "Membership is inactive"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid lines, or unknown currency or no default currency"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn calculate_items(
     State(state): State<AppState>,
     access: WorkspaceAccess,
@@ -34,6 +51,19 @@ pub async fn calculate_items(
 }
 
 /// POST /calculate-marge -> `{data: ItemsMargeCalculationSummary}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/calculate-marge", tag = "pricing",
+    operation_id = "pricing_calculate_marge", summary = "Margin of item lines",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CalculateRequest,
+    responses(
+        (status = 200, body = Envelope<MarginResource>, description = "Margin of the lines"),
+        (status = 403, body = MessageBody, description = "Membership is inactive"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid lines, or unknown currency or no default currency"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn calculate_marge(
     State(state): State<AppState>,
     access: WorkspaceAccess,

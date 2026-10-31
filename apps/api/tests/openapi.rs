@@ -445,3 +445,206 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     assert_eq!(status, StatusCode::FORBIDDEN);
     check(&s, LIST, "post", "403", &err, "403");
 }
+
+/// One documented operation: (path, method, operationId, success status).
+type Op = (&'static str, &'static str, &'static str, &'static str);
+
+/// Each op exists with its operationId and success reply; private ones (`workspace` in the
+/// path) also need the bearer scheme, a 401 and the `workspace` path param.
+fn assert_documented(ops: &[Op]) {
+    let s = spec();
+    for &(path, method, id, ok) in ops {
+        let op = &s["paths"][path][method];
+        assert!(op.is_object(), "{method} {path} missing");
+        assert_eq!(op["operationId"], id, "{method} {path}");
+        assert!(op["responses"][ok].is_object(), "{method} {path}: no {ok}");
+        if !path.starts_with("/workspace/{workspace}") {
+            continue;
+        }
+        assert!(
+            op["responses"]["401"].is_object(),
+            "{method} {path}: no 401"
+        );
+        assert_eq!(
+            op["security"][0]["bearer"],
+            json!([]),
+            "{method} {path}: no bearer"
+        );
+        let has_ws = op["parameters"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|p| p["name"] == "workspace" && p["in"] == "path");
+        assert!(has_ws, "{method} {path}: no workspace param");
+    }
+}
+
+#[test]
+fn group_e_operations_are_documented() {
+    const PIPES: &str = "/workspace/{workspace}/deal-pipelines";
+    const PIPE: &str = "/workspace/{workspace}/deal-pipelines/{pipeline}";
+    const STATUSES: &str = "/workspace/{workspace}/deal-pipelines/{pipeline}/status";
+    const STATUS: &str = "/workspace/{workspace}/deal-pipelines/{pipeline}/status/{status}";
+    const DEALS: &str = "/workspace/{workspace}/deals";
+    const DEAL: &str = "/workspace/{workspace}/deals/{deal}";
+    assert_documented(&[
+        (PIPES, "get", "deal_pipelines_list", "200"),
+        (PIPES, "post", "deal_pipelines_create", "201"),
+        (PIPE, "get", "deal_pipelines_get", "200"),
+        (PIPE, "post", "deal_pipelines_update", "200"),
+        (STATUSES, "post", "deal_pipelines_create_status", "201"),
+        (STATUS, "post", "deal_pipelines_update_status", "200"),
+        (STATUS, "delete", "deal_pipelines_delete_status", "200"),
+        (DEALS, "get", "deals_list", "200"),
+        (DEALS, "post", "deals_create", "201"),
+        (DEAL, "get", "deals_get", "200"),
+        (DEAL, "post", "deals_update", "200"),
+        (DEAL, "delete", "deals_delete", "200"),
+        (
+            "/workspace/{workspace}/deals/{deal}/update-status",
+            "post",
+            "deals_move",
+            "200",
+        ),
+        (
+            "/workspace/{workspace}/deals/{deal}/add-relation",
+            "post",
+            "deals_add_relation",
+            "200",
+        ),
+        (
+            "/workspace/{workspace}/deal-pipelines/{pipeline}/status/{status}/deals",
+            "get",
+            "deals_column",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
+fn group_d_operations_are_documented() {
+    const W: &str = "/workspace/{workspace}";
+    let p = |rest: &str| -> &'static str { format!("{W}{rest}").leak() };
+    let inv = |rest: &str| p(&format!("/invoices/{{invoice}}{rest}"));
+    let pdf = |rest: &str| p(&format!("/settings/pdf-templates{rest}"));
+    let mail = |rest: &str| p(&format!("/email-templates{rest}"));
+    let prof = |rest: &str| p(&format!("/email-profiles{rest}"));
+    assert_documented(&[
+        (
+            p("/calculate-items"),
+            "post",
+            "pricing_calculate_items",
+            "200",
+        ),
+        (
+            p("/calculate-marge"),
+            "post",
+            "pricing_calculate_marge",
+            "200",
+        ),
+        (p("/invoices"), "get", "invoices_list", "200"),
+        (p("/invoices"), "post", "invoices_create", "201"),
+        (inv(""), "get", "invoices_get", "200"),
+        (inv(""), "post", "invoices_update", "200"),
+        (inv(""), "delete", "invoices_delete", "200"),
+        (inv("/duplicate"), "post", "invoices_duplicate", "201"),
+        (inv("/preview"), "get", "invoices_preview", "200"),
+        (inv("/send"), "post", "invoices_send", "200"),
+        (inv("/resend"), "post", "invoices_resend", "200"),
+        (inv("/credit"), "post", "invoices_credit", "201"),
+        (
+            p("/invoices/send-tasks/active"),
+            "get",
+            "invoices_send_tasks",
+            "200",
+        ),
+        (
+            "/invoices/fetch-from-hashed/{token}",
+            "get",
+            "invoices_public",
+            "200",
+        ),
+        (inv("/payments"), "post", "invoice_payments_create", "201"),
+        (
+            inv("/payments/{payment}"),
+            "delete",
+            "invoice_payments_void",
+            "200",
+        ),
+        (
+            inv("/mark-as-credited"),
+            "post",
+            "invoice_payments_mark_as_credited",
+            "200",
+        ),
+        (p("/files"), "get", "files_list", "200"),
+        (p("/files"), "post", "files_create", "201"),
+        (p("/files/{file}"), "get", "files_get", "200"),
+        (p("/files/{file}"), "delete", "files_delete", "200"),
+        (pdf(""), "get", "pdf_templates_list", "200"),
+        (pdf(""), "post", "pdf_templates_create", "200"),
+        (
+            pdf("/available-fields/{domain}"),
+            "get",
+            "pdf_templates_available_fields",
+            "200",
+        ),
+        (pdf("/{template}"), "get", "pdf_templates_get", "200"),
+        (pdf("/{template}"), "post", "pdf_templates_update", "200"),
+        (pdf("/{template}"), "delete", "pdf_templates_delete", "200"),
+        (
+            pdf("/{template}/preview"),
+            "get",
+            "pdf_templates_preview",
+            "200",
+        ),
+        (mail(""), "get", "email_templates_list", "200"),
+        (mail(""), "post", "email_templates_create", "201"),
+        (
+            mail("/variables/{domain}"),
+            "get",
+            "email_templates_variables",
+            "200",
+        ),
+        (mail("/{template}"), "get", "email_templates_get", "200"),
+        (mail("/{template}"), "post", "email_templates_update", "200"),
+        (
+            mail("/{template}"),
+            "delete",
+            "email_templates_delete",
+            "200",
+        ),
+        (prof(""), "get", "email_profiles_list", "200"),
+        (prof(""), "post", "email_profiles_create", "201"),
+        (prof("/{profile}"), "get", "email_profiles_get", "200"),
+        (prof("/{profile}"), "post", "email_profiles_update", "200"),
+        (prof("/{profile}"), "delete", "email_profiles_delete", "200"),
+        (p("/send-message"), "post", "messages_send", "200"),
+        (p("/settings/email-logs"), "get", "messages_logs", "200"),
+        (
+            p("/settings/office365/test-connection"),
+            "post",
+            "messages_office365_connection",
+            "200",
+        ),
+        (
+            p("/settings/office365/test-send"),
+            "post",
+            "messages_office365_send",
+            "200",
+        ),
+        (
+            prof("/{profile}/test-connection"),
+            "get",
+            "messages_profile_test",
+            "200",
+        ),
+        (p("/settings"), "get", "settings_get", "200"),
+        (p("/settings"), "post", "settings_update", "200"),
+    ]);
+    let public = &spec()["paths"]["/invoices/fetch-from-hashed/{token}"]["get"];
+    assert!(
+        public["security"].is_null(),
+        "public hash link must not need a token"
+    );
+}

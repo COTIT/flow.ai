@@ -1,7 +1,9 @@
 //! `POST /send-message` (Laravel SendMessageRequest) and the Office 365 test bodies.
 
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
 use serde_json::Value;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -13,21 +15,134 @@ use crate::{
 };
 
 /// `POST /send-message`; unknown keys are skipped.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(
+    description = "A message to send. With `send_method` `manual` nothing is sent; without `to` the addressed contact gets it."
+)]
 pub struct SendMessageRequest {
+    #[schema(value_type = Uuid, required = true)]
+    #[serde(default)]
     addressed_contact_id: Scalar,
+    /// Billing address (address object) a sent document takes.
+    #[schema(value_type = Object, required = true)]
+    #[serde(default)]
     address: Capped,
+    #[schema(value_type = Option<Vec<String>>)]
+    #[serde(default)]
     to: Capped,
+    #[schema(value_type = Option<Vec<String>>)]
+    #[serde(default)]
     cc: Capped,
+    #[schema(value_type = Option<Vec<String>>)]
+    #[serde(default)]
     bcc: Capped,
+    /// Required for `email`.
+    #[schema(value_type = Option<String>, max_length = 100)]
+    #[serde(default)]
     subject: Scalar,
+    /// HTML; required for `email`.
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     body: Scalar,
+    /// `email` or `manual`.
+    #[schema(value_type = String, required = true)]
+    #[serde(default)]
     send_method: Scalar,
+    /// File ids of this workspace.
+    #[schema(value_type = Option<Vec<Uuid>>)]
+    #[serde(default)]
     attachments: Capped,
+    #[schema(value_type = Option<Uuid>)]
+    #[serde(default)]
     email_profile_id: Scalar,
+    /// The PDF template a sent document renders with; ignored by `/send-message`.
+    #[schema(value_type = Option<Uuid>)]
+    #[serde(default)]
     pdf_template_id: Scalar,
 }
+
+// Doc-only: one send log as `service::log_resource` prints it with `json!`.
+/// One sent message.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct EmailLog {
+    id: Uuid,
+    subject: String,
+    status: String,
+    provider: String,
+    /// The workspace id.
+    mailer: Uuid,
+    recipient_count: i64,
+    opened_count: i64,
+    #[schema(value_type = Vec<String>)]
+    to_recipients: Value,
+    #[schema(value_type = Vec<String>)]
+    cc_recipients: Value,
+    #[schema(value_type = Vec<String>)]
+    bcc_recipients: Value,
+    /// Every recipient, comma separated.
+    recipients_summary: String,
+    #[schema(required = true)]
+    sent_at: Option<DateTime<Utc>>,
+    #[schema(required = true)]
+    delivered_at: Option<DateTime<Utc>>,
+    #[schema(required = true)]
+    bounced_at: Option<DateTime<Utc>>,
+    #[schema(required = true)]
+    opened_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+}
+
+// Doc-only: profile test-connection reply built with `json!`.
+/// Profile connection test result.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct ProfileTestResult {
+    /// Always true (a failure is an error reply).
+    success_connection: bool,
+}
+
+// Doc-only: `data` of an Office 365 test reply built with `json!`.
+/// Office 365 test result.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct Office365Answer {
+    ok: bool,
+    /// Step reached: `token`, `mailbox` or `send`.
+    stage: String,
+    message: String,
+    /// test-connection success only.
+    messages_with_attachments: Option<i64>,
+    /// test-connection mailbox failure only.
+    reason: Option<String>,
+}
+
+/// Office 365 test reply: `{data: {ok, stage, message, ...}}`.
+// Doc-only, like `Office365Answer`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct Office365Reply {
+    data: Office365Answer,
+}
+
+/// 422 of the Office 365 tests: invalid input, a refused credential, or a failed test.
+pub struct Office365Failure;
+
+impl utoipa::PartialSchema for Office365Failure {
+    fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        use utoipa::openapi::{Ref, schema::AnyOfBuilder};
+        AnyOfBuilder::new()
+            .item(Ref::from_schema_name("ValidationErrorBody"))
+            .item(Ref::from_schema_name("MessageBody"))
+            .item(Ref::from_schema_name("Office365Reply"))
+            .description(Some(
+                "Invalid input, or the test failed (`data.ok` false, `data.stage` says where)",
+            ))
+            .into()
+    }
+}
+
+impl ToSchema for Office365Failure {}
 
 /// A validated send. `template_id` was stored by Laravel, never used.
 pub struct SendInput {
@@ -204,22 +319,38 @@ fn emails(r: &mut Rules, field: &str, v: &Capped) -> Vec<String> {
     out
 }
 
-/// `graph` of the Office 365 tests (Laravel TestGraphMailConnectionRequest).
-#[derive(Deserialize, Default)]
-#[serde(default)]
+// `graph` of the Office 365 tests (Laravel TestGraphMailConnectionRequest).
+/// Microsoft Graph app credentials.
+#[derive(Deserialize, Default, ToSchema)]
 pub struct GraphBody {
+    #[schema(value_type = String, max_length = 255, required = true)]
+    #[serde(default)]
     tenant_id: Scalar,
+    #[schema(value_type = String, max_length = 255, required = true)]
+    #[serde(default)]
     client_id: Scalar,
+    /// Send the mask back to use the stored secret.
+    #[schema(value_type = String, max_length = 1000, required = true)]
+    #[serde(default)]
     client_secret: Scalar,
+    #[schema(value_type = String, format = Email, max_length = 255, required = true)]
+    #[serde(default)]
     mailbox: Scalar,
 }
 
 /// `POST /settings/office365/test-connection` and `test-send`.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+#[derive(Deserialize, Default, ToSchema)]
 pub struct Office365Request {
+    #[schema(value_type = GraphBody, required = true)]
+    #[serde(default)]
     graph: Option<GraphBody>,
+    /// test-send: sender; defaults to the mailbox.
+    #[schema(value_type = Option<String>, format = Email)]
+    #[serde(default)]
     from: Scalar,
+    /// test-send: recipient (required there).
+    #[schema(value_type = Option<String>, format = Email)]
+    #[serde(default)]
     to: Scalar,
 }
 

@@ -11,19 +11,20 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         json::{Rules, ValidatedJson},
         list::{self, Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, Permission, permissions},
     },
     modules::{
+        files::dto::FileResource,
         invoices::{
             credit,
             dto::{
-                CreateInvoiceRequest, CreditInvoiceRequest, InvoiceCreated, ListQuery,
-                UpdateInvoiceRequest,
+                CreateInvoiceRequest, CreditInvoiceRequest, InvoiceCreated, InvoiceListPage,
+                InvoiceResource, ListQuery, PublicInvoice, UpdateInvoiceRequest,
             },
             repo::ListFilter,
             send,
@@ -71,6 +72,18 @@ const STATUSES: &[&str] = &[
 ];
 
 /// GET /invoices: a page (`page`, `page_size`), or `limit` rows without `meta`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/invoices", tag = "invoices",
+    operation_id = "invoices_list", summary = "List invoices (a page, or `limit` rows without `meta`)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = InvoiceListPage, description = "Invoices, newest first"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed relation id, limit or status filter, or search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<InvoiceList>,
@@ -141,6 +154,17 @@ pub async fn list(
 }
 
 /// GET /invoices/{id}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/invoices/{invoice}", tag = "invoices",
+    operation_id = "invoices_get", summary = "Get an invoice with lines, totals and payments",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
+    responses(
+        (status = 200, body = Envelope<InvoiceResource>, description = "The invoice"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<InvoiceView>,
@@ -150,6 +174,19 @@ pub async fn get(
 }
 
 /// POST /invoices -> 201 `{data:{invoice_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invoices", tag = "invoices",
+    operation_id = "invoices_create", summary = "Create a draft invoice",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateInvoiceRequest,
+    responses(
+        (status = 201, body = Envelope<InvoiceCreated>, description = "Created; returns the new invoice id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or unknown relation, currency, contact, product or warehouse"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<InvoiceCreate>,
@@ -160,6 +197,19 @@ pub async fn create(
 }
 
 /// POST /invoices/{id}.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invoices/{invoice}", tag = "invoices",
+    operation_id = "invoices_update", summary = "Update a draft invoice and the lines sent",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
+    request_body = UpdateInvoiceRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, unknown references, or the invoice is no longer a draft"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<InvoiceUpdate>,
@@ -171,6 +221,18 @@ pub async fn update(
 }
 
 /// DELETE /invoices/{id}: cancels the draft.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/invoices/{invoice}", tag = "invoices",
+    operation_id = "invoices_delete", summary = "Cancel a draft invoice",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 422, body = MessageBody, description = "The invoice is no longer a draft"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<InvoiceDelete>,
@@ -180,20 +242,45 @@ pub async fn delete(
     Ok(Message("ok"))
 }
 
-/// `?pdf_template_id=` of the preview (`print_with_ftp` is not ported: no FTP servers).
-#[derive(serde::Deserialize, Default)]
+// `?pdf_template_id=` of the preview (`print_with_ftp` is not ported: no FTP servers).
+/// Preview query.
+#[derive(serde::Deserialize, Default, utoipa::IntoParams)]
 #[serde(default)]
+#[into_params(parameter_in = Query)]
 pub struct PreviewQuery {
+    /// An invoice PDF template of this workspace; the built-in layout when left out or unknown.
+    #[param(value_type = Option<Uuid>)]
     pdf_template_id: Option<String>,
 }
 
+/// `send-tasks/active` reply: always an empty list.
+// Doc-only: the handler writes `{"data": []}` directly.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+pub struct SendTasks {
+    #[schema(value_type = Vec<Object>, max_items = 0)]
+    data: Vec<Value>,
+}
+
 /// GET /invoices/{id}/preview -> `{data: FileResource}` of a new PDF.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/invoices/{invoice}/preview", tag = "invoices",
+    operation_id = "invoices_preview", summary = "Render the invoice as a PDF",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id"), PreviewQuery),
+    responses(
+        (status = 200, body = Envelope<FileResource>, description = "The rendered PDF, stored as a file"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 422, body = UnprocessableBody, description = "Malformed template id, or the renderer refused the document"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn preview(
     State(state): State<AppState>,
     access: Can<InvoiceView>,
     Path((_, id)): Path<(String, String)>,
     Query(q): Query<PreviewQuery>,
-) -> Result<Data<crate::modules::files::dto::FileResource>, AppError> {
+) -> Result<Data<FileResource>, AppError> {
     let template = match q
         .pdf_template_id
         .as_deref()
@@ -214,6 +301,17 @@ pub async fn preview(
 }
 
 /// POST /invoices/{id}/duplicate -> 201 `{data:{invoice_id}}` (needs `invoice.create`).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invoices/{invoice}/duplicate", tag = "invoices",
+    operation_id = "invoices_duplicate", summary = "Copy an invoice as a new draft",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
+    responses(
+        (status = 201, body = Envelope<InvoiceCreated>, description = "Created; returns the new invoice id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn duplicate(
     State(state): State<AppState>,
     access: Can<InvoiceCreate>,
@@ -224,6 +322,19 @@ pub async fn duplicate(
 }
 
 /// POST /invoices/{id}/send (Laravel SendInvoiceController).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invoices/{invoice}/send", tag = "invoices",
+    operation_id = "invoices_send", summary = "Number, render and email an invoice",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
+    request_body = SendMessageRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.send` / `workspace.send-message`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, or no usable mail server"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn send(
     State(state): State<AppState>,
     access: Can<InvoiceSend>,
@@ -235,6 +346,19 @@ pub async fn send(
 }
 
 /// POST /invoices/{id}/resend (Laravel ResendInvoiceController).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invoices/{invoice}/resend", tag = "invoices",
+    operation_id = "invoices_resend", summary = "Email a sent invoice again",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
+    request_body = SendMessageRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.send` / `workspace.send-message`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid message, wrong status, unknown contact, template or attachment, no recipient, no stock warehouse, or no usable mail server"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn resend(
     State(state): State<AppState>,
     access: Can<InvoiceSend>,
@@ -247,11 +371,31 @@ pub async fn resend(
 
 /// GET /invoices/send-tasks/active: sends finish inside their request, so none is ever
 /// running (Laravel listed its queued send jobs).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/invoices/send-tasks/active", tag = "invoices",
+    operation_id = "invoices_send_tasks", summary = "Running invoice sends (always none: sends finish in their request)",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = SendTasks, description = "Always `{data: []}`"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn send_tasks(_access: Can<InvoiceList>) -> Json<Value> {
     Json(json!({ "data": [] }))
 }
 
 /// GET /v1/invoices/fetch-from-hashed/{token}: public, rate limited.
+#[utoipa::path(
+    get, path = "/invoices/fetch-from-hashed/{token}", tag = "invoices",
+    operation_id = "invoices_public", summary = "Public payment page of a sent invoice (no login)",
+    params(("token" = String, Path, description = "Token from the payment link")),
+    responses(
+        (status = 200, body = Envelope<PublicInvoice>, description = "The invoice as the customer sees it"),
+        (status = 404, body = MessageBody, description = "Unknown or revoked token"),
+    )
+)]
 pub async fn public(
     State(state): State<AppState>,
     Path(token): Path<String>,
@@ -260,6 +404,19 @@ pub async fn public(
 }
 
 /// POST /invoices/{id}/credit (Laravel CreditInvoiceController): 201 with the credit note.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/invoices/{invoice}/credit", tag = "invoices",
+    operation_id = "invoices_credit", summary = "Create a credit note for an invoice",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("invoice" = Uuid, Path, description = "Invoice id")),
+    request_body = CreditInvoiceRequest,
+    responses(
+        (status = 201, body = Envelope<InvoiceCreated>, description = "Created; returns the credit note id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `invoice.credit` / `invoice.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or invoice, or caller not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid lines or amounts, a credit note, or nothing left to credit"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn credit(
     State(state): State<AppState>,
     access: Can<InvoiceCredit>,
