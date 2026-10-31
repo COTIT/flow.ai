@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Phase 2b "till", step 1 (contract `docs/api/till.md`):
+  - **Registers and till users** (migration `till_login`): `/workspace/{workspace}/till/registers` (list, create, rotate key) and `/till/users` (list, create, patch), behind `cashregister.list|create|update`. A register sells from a store warehouse in one currency. Its device key is an app key of kind `till` with scopes `till:login` (new, never issued by `/app-keys`) and `catalog:read`, shown once. `app_keys` gets `UNIQUE (workspace_id, id)` so till rows reference keys of their own workspace. Till users are shop staff with a 4–8 digit PIN (argon2id), optionally linked to a member; they are deactivated, never deleted.
+  - **PIN login** with the device key: `GET /till/login/users`, `POST /till/login`. Wrong PIN, unknown user and inactive user answer the same 401. Every 5th wrong PIN locks the user (15 minutes, doubling up to 24 hours, reset by a right PIN); 20 wrong PINs within an hour lock the register for 15 minutes (429). A login ends the user's older sessions on that register; a new PIN or deactivation ends all of them.
+  - **Till session**: 8-hour token (sha256 only), `TillSession` extractor, `GET /till/me`, `POST /till/logout`. A rotated or revoked key, or a deactivated user, ends live sessions on their next request.
+  - `AppKey` now carries the key `id`; `http::workspace::path_workspace` is shared by both workspace extractors.
+
 - Phase 3 "a passport for every batch", step 1 (contract `docs/api/lots.md`):
   - **Lots** (migration `lots`): `/workspace/{workspace}/lots` list (filter by product, status, code prefix), create, get, patch. A lot belongs to one live stock-tracked product of the workspace; `code` is unique per workspace in any case; `public_code` (10 Crockford base32 chars, global, immutable) is made by the server and retried on a collision. Members read, `product.update` writes.
   - **Trail** `lot_events`: `created`, `updated` (`meta.changed`), `status_changed` (from/to), written in the change's transaction; append-only, and a test fails if code ever updates or deletes it.

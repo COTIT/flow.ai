@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE till_users\n         SET failed_pins = least(failed_pins + 1, 10000),\n             locked_until = CASE WHEN (failed_pins + 1) % 5 = 0\n                 THEN now() + least(interval '15 minutes'\n                                    * power(2, least((failed_pins + 1) / 5 - 1, 7)),\n                                    interval '24 hours')\n                 ELSE locked_until END\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4bf8f6f8b4e55fd724bbbecae9ad3c88c14ed821f7c67fbaf110ec33814fd53d"
+}

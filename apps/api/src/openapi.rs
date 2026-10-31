@@ -19,7 +19,7 @@ use crate::{
         hourly_rates, invites, invoice_payments, invoices, lots, messages, pdf_templates,
         permissions, price_corrections, pricing, product_brands, product_categories,
         product_variants, products, relations, sales_groups, search, settings, shipment_methods,
-        special_offers, stock, storage_locations, storefront, teams,
+        special_offers, stock, storage_locations, storefront, teams, till,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -41,8 +41,9 @@ use crate::{
 )]
 struct ApiDoc;
 
-/// Registers the `bearer` scheme (user tokens) and the `app_key` scheme (`gsk_…` app keys,
-/// same header) that operations list under `security`.
+/// Registers the `bearer` scheme (user tokens), the `app_key` scheme (`gsk_…` app keys) and
+/// the `till_session` scheme (till tokens), all the same header, that operations list under
+/// `security`.
 struct BearerAuth;
 
 impl Modify for BearerAuth {
@@ -62,6 +63,19 @@ impl Modify for BearerAuth {
                         .scheme(HttpAuthScheme::Bearer)
                         .bearer_format("gsk_ app key")
                         .description(Some("App key issued under /workspace/{workspace}/app-keys"))
+                        .build(),
+                ),
+            );
+        doc.components
+            .get_or_insert_with(Default::default)
+            .add_security_scheme(
+                "till_session",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .description(Some(
+                            "Till session token from /workspace/{workspace}/till/login",
+                        ))
                         .build(),
                 ),
             );
@@ -127,6 +141,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(storefront::routes::private())
         .merge(webhooks::routes::private())
         .merge(lots::routes::private())
+        .merge(till::routes::private())
 }
 
 /// Documented routes that need a token and take large bodies (item lines, invoices, uploads);

@@ -35,6 +35,7 @@ export * from './stock/stock';
 export * from './storage-locations/storage-locations';
 export * from './storefront/storefront';
 export * from './teams/teams';
+export * from './till/till';
 export * from './users/users';
 export * from './vat-groups/vat-groups';
 export * from './warehouse-bins/warehouse-bins';
