@@ -307,12 +307,40 @@ pub struct ListQuery {
     /// Only this village.
     #[param(value_type = Option<Uuid>)]
     pub village_id: Option<String>,
+    /// Comma-separated: `unverified`, `pending`, `verified`, `disputed`.
+    #[param(value_type = Option<String>, example = "unverified,pending")]
+    pub verification: Option<String>,
+    /// Plots only: the plots of this farm.
+    #[param(value_type = Option<Uuid>)]
+    pub farm_id: Option<String>,
+    /// Crop cycles only: the cycles on this plot.
+    #[param(value_type = Option<Uuid>)]
+    pub plot_id: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+}
+
+const VERIFICATION: &[&str] = &["unverified", "pending", "verified", "disputed"];
+
+/// `?verification=a,b` -> the states, else a 422 naming the bad one.
+pub fn verification_filter(
+    raw: Option<&str>,
+) -> Result<Option<Vec<String>>, crate::error::AppError> {
+    let Some(raw) = raw.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok(None);
+    };
+    let states: Vec<String> = raw.split(',').map(|s| s.trim().to_owned()).collect();
+    if let Some(bad) = states.iter().find(|s| !VERIFICATION.contains(&s.as_str())) {
+        return Err(crate::error::AppError::field(
+            "verification",
+            format!("Unknown verification state {bad}."),
+        ));
+    }
+    Ok(Some(states))
 }
 
 /// GET harvest reports query.
@@ -1049,6 +1077,10 @@ pub struct HarvestRevision {
     confidence: Option<String>,
     #[schema(value_type = Option<NaiveDate>)]
     reported_for: Option<String>,
+    /// Made on the device: a retry with the same ref returns the same figure (200); the same
+    /// ref with a different figure is a 409.
+    #[schema(value_type = Option<Uuid>)]
+    client_ref: Option<String>,
 }
 
 /// Validated revision.
@@ -1058,6 +1090,7 @@ pub struct NewRevision {
     pub source: String,
     pub confidence: Option<String>,
     pub reported_for: Option<NaiveDate>,
+    pub client_ref: Option<Uuid>,
 }
 
 impl Validate for HarvestRevision {
@@ -1083,6 +1116,153 @@ impl Validate for HarvestRevision {
             source: source?,
             confidence: confidence_at(r, "confidence", self.confidence),
             reported_for: date_at(r, "reported_for", self.reported_for),
+            client_ref: uuid_at(r, "client_ref", self.client_ref),
         })
+    }
+}
+
+// ---- holdings ----
+
+/// A household member, named.
+#[derive(Serialize, ToSchema)]
+pub struct HoldingMember {
+    person_id: Uuid,
+    given_name: String,
+    family_name: String,
+    is_head: bool,
+}
+
+/// A household with its members' names.
+#[derive(Serialize, ToSchema)]
+pub struct HoldingHousehold {
+    #[serde(flatten)]
+    household: HouseholdResource,
+    /// The members with their names, in joining order.
+    people: Vec<HoldingMember>,
+}
+
+/// The crop of a cycle.
+#[derive(Serialize, ToSchema)]
+pub struct CropName {
+    id: Uuid,
+    code: String,
+    name_en: String,
+    name_sw: String,
+}
+
+/// A crop cycle with its crop and every harvest figure (newest first).
+#[derive(Serialize, ToSchema)]
+pub struct HoldingCycle {
+    #[serde(flatten)]
+    cycle: CropCycleResource,
+    #[schema(required = true)]
+    crop: Option<CropName>,
+    harvests: Vec<HarvestReportResource>,
+}
+
+/// A plot with its crop cycles.
+#[derive(Serialize, ToSchema)]
+pub struct HoldingPlot {
+    #[serde(flatten)]
+    plot: PlotResource,
+    cycles: Vec<HoldingCycle>,
+}
+
+/// A farm with its plots.
+#[derive(Serialize, ToSchema)]
+pub struct HoldingFarm {
+    #[serde(flatten)]
+    farm: FarmResource,
+    plots: Vec<HoldingPlot>,
+}
+
+/// Everything one person holds, as the caller may see it.
+#[derive(Serialize, ToSchema)]
+#[schema(
+    description = "A person's households and the farms they manage or their household owns, \
+    with plots, crop cycles and harvest figures. Phone and GPS follow the usual rule: village staff only."
+)]
+pub struct Holdings {
+    households: Vec<HoldingHousehold>,
+    farms: Vec<HoldingFarm>,
+}
+
+impl Holdings {
+    /// Nest the flat reads: plots under farms, cycles under plots, figures under cycles.
+    #[allow(clippy::too_many_arguments)]
+    pub fn assemble(
+        households: Vec<HouseholdRow>,
+        members: Vec<crate::modules::farm_records::repo::NamedMember>,
+        farms: Vec<FarmRow>,
+        plots: Vec<PlotRow>,
+        cycles: Vec<CycleRow>,
+        harvests: Vec<HarvestRow>,
+        crops: Vec<crate::modules::farm_crops::repo::CropRow>,
+    ) -> Self {
+        let mut harvests: Vec<HarvestRow> = harvests;
+        let mut cycles: Vec<CycleRow> = cycles;
+        let mut plots: Vec<PlotRow> = plots;
+        let crop = |id: Uuid| {
+            crops.iter().find(|c| c.id == id).map(|c| CropName {
+                id: c.id,
+                code: c.code.clone(),
+                name_en: c.name_en.clone(),
+                name_sw: c.name_sw.clone(),
+            })
+        };
+        let farms = farms
+            .into_iter()
+            .map(|f| {
+                let (mine, rest): (Vec<_>, Vec<_>) =
+                    plots.drain(..).partition(|p| p.farm_id == f.id);
+                plots = rest;
+                let plots = mine
+                    .into_iter()
+                    .map(|p| {
+                        let (mine, rest): (Vec<_>, Vec<_>) =
+                            cycles.drain(..).partition(|c| c.plot_id == p.id);
+                        cycles = rest;
+                        let cycles = mine
+                            .into_iter()
+                            .map(|c| {
+                                let (mine, rest): (Vec<_>, Vec<_>) =
+                                    harvests.drain(..).partition(|h| h.crop_cycle_id == c.id);
+                                harvests = rest;
+                                HoldingCycle {
+                                    crop: crop(c.crop_id),
+                                    cycle: c.into(),
+                                    harvests: mine.into_iter().map(Into::into).collect(),
+                                }
+                            })
+                            .collect();
+                        HoldingPlot {
+                            plot: p.into(),
+                            cycles,
+                        }
+                    })
+                    .collect();
+                HoldingFarm {
+                    farm: f.into(),
+                    plots,
+                }
+            })
+            .collect();
+        let households = households
+            .into_iter()
+            .map(|h| HoldingHousehold {
+                people: members
+                    .iter()
+                    .filter(|m| m.household_id == h.id)
+                    .map(|m| HoldingMember {
+                        person_id: m.person_id,
+                        given_name: m.given_name.clone(),
+                        family_name: m.family_name.clone(),
+                        is_head: m.is_head,
+                    })
+                    .collect(),
+                household: h.into(),
+            })
+            .collect();
+        Self { households, farms }
     }
 }

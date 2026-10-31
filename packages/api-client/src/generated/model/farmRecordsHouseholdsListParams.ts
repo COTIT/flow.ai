@@ -12,6 +12,18 @@ export type FarmRecordsHouseholdsListParams = {
  */
 village_id?: string;
 /**
+ * Comma-separated: `unverified`, `pending`, `verified`, `disputed`.
+ */
+verification?: string;
+/**
+ * Plots only: the plots of this farm.
+ */
+farm_id?: string;
+/**
+ * Crop cycles only: the cycles on this plot.
+ */
+plot_id?: string;
+/**
  * 1-based; junk falls back to 1.
  */
 page?: number;
