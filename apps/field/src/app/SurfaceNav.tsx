@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { NavBadgeSource, NavItem, NavLayout } from '@/app/nav'
 import { useSurveyBadgeCount } from '@/features/farmer/useSurveyEligibility'
+import { isPorted } from '@/lib/ported'
 
 // navItemsFor builds paths from the route map as plain strings. The router's
 // `to` is a typed union, and this is the single place the two meet.
@@ -180,7 +181,8 @@ function SurfaceLink({
     >
       {Icon && <Icon aria-hidden size={sidebar ? 18 : 22} strokeWidth={2} />}
       {label}
-      {item.badge && <NavBadge source={item.badge} layout={layout} />}
+      {/* The badge reads the screen's data, so it waits until that screen is on the Genesy API. */}
+      {item.badge && isPorted(item.to) && <NavBadge source={item.badge} layout={layout} />}
     </Link>
   )
 }

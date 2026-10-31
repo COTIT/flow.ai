@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -13,13 +13,17 @@ import { CONTROL_FIELD } from '@/components/controlStyles'
 import { Card } from '@/components/controls'
 import { BangMark } from '@/components/marks'
 import { Button } from '@/components/ui/button'
+import { clearTempPassword, peekTempPassword } from '@/app/tempPassword'
 import { translateDbMessage } from '@/lib/dbMessages'
-import { supabase } from '@/lib/supabase'
+import { apiErrorMessage } from '@/lib/apiError'
+import { farmLoginsChangePassword } from '@genesy/api-client/endpoints/farm-logins'
 
 // Only "is it there, and typed twice the same" is checked here. What makes a
 // password acceptable is the auth server's rule, and its message says so.
 const schema = z
   .object({
+    // Only asked for when the sign-in password is no longer in memory (after a reload).
+    current: z.string(),
     password: z.string().min(1, 'setPassword.required'),
     confirm: z.string().min(1, 'setPassword.required'),
   })
@@ -36,15 +40,17 @@ type FormValues = z.infer<typeof schema>
  * them here — and the database refuses their survey answers, so the officer
  * who knows the temporary password cannot answer on their behalf.
  *
- * Two steps, in this order: the auth server stores the new password, then
- * app_password_changed checks the stored hash is no longer the temporary one
- * and clears the flag. The second cannot be faked by skipping the first.
+ * One call: `POST /v1/farm/password` checks the current (temporary) password,
+ * applies the farmer password rule and clears `must_change_password`.
  */
 export function SetPasswordScreen() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState<string | null>(null)
+  // Copied out of memory once, then cleared there: it lives only in this screen's state.
+  const [heldCurrent] = useState(peekTempPassword)
+  useEffect(() => clearTempPassword(), [])
   // The raw message is kept and read at render, so it follows a language
   // switch. A message the app names exactly is read from the bundle; any other
   // (a GoTrue sentence, say) is shown as written.
@@ -55,25 +61,21 @@ export function SetPasswordScreen() {
     register,
     handleSubmit,
     formState: { isSubmitting, errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) })
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { current: '' } })
 
   const onSubmit = async (values: FormValues) => {
     setFormError(null)
     try {
-      const updated = await supabase.auth.updateUser({ password: values.password })
-      if (updated.error) {
-        setFormError(updated.error.message)
+      const current = heldCurrent ?? values.current
+      if (!current) {
+        setFormError(t('setPassword.currentRequired'))
         return
       }
-      const changed = await supabase.rpc('app_password_changed')
-      if (changed.error) {
-        setFormError(changed.error.message)
-        return
-      }
+      await farmLoginsChangePassword({ current_password: current, password: values.password })
       const session = await queryClient.fetchQuery(sessionQuery)
       await navigate({ to: resolveLanding(session?.memberships ?? []).to, replace: true })
     } catch (cause) {
-      setFormError(cause instanceof Error ? cause.message : t('setPassword.unexpected'))
+      setFormError(apiErrorMessage(cause) ?? t('setPassword.unexpected'))
     }
   }
 
@@ -94,6 +96,15 @@ export function SetPasswordScreen() {
         </div>
 
         <form className="flex flex-col gap-3" onSubmit={handleSubmit(onSubmit)} noValidate>
+          {heldCurrent === null && (
+            <PasswordField
+              id="set-password-current"
+              label={t('setPassword.current')}
+              error={fieldError('current')}
+              registration={register('current')}
+              autoComplete="current-password"
+            />
+          )}
           <PasswordField
             id="set-password-new"
             label={t('setPassword.password')}
@@ -149,11 +160,13 @@ function PasswordField({
   label,
   error,
   registration,
+  autoComplete = 'new-password',
 }: {
   id: string
   label: string
   error: string | undefined
   registration: ReturnType<ReturnType<typeof useForm<FormValues>>['register']>
+  autoComplete?: string
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -164,7 +177,7 @@ function PasswordField({
         id={id}
         data-testid={id}
         type="password"
-        autoComplete="new-password"
+        autoComplete={autoComplete}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         style={error ? INVALID_FIELD : CONTROL_FIELD}

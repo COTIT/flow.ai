@@ -14,17 +14,20 @@ import { z } from 'zod'
 
 import { resolveLanding, safeRedirect } from '@/app/membership'
 import { sessionQuery } from '@/app/session'
+import { holdTempPassword } from '@/app/tempPassword'
+import { apiErrorMessage, apiStatus } from '@/lib/apiError'
 import { loginEmailFor } from '@/lib/phone'
-import { supabase } from '@/lib/supabase'
+import { authLogin } from '@genesy/api-client/endpoints/auth'
+import { farmLoginsLogin } from '@genesy/api-client/endpoints/farm-logins'
+import { sessionStore } from '@genesy/api-client/session'
 
 // By route id rather than by importing the route, which would be circular.
 const route = getRouteApi('/(auth)/login')
 
 // Messages are i18n keys, resolved at render. Validation is client-side only
 // because it costs a round trip to learn an empty field is empty — it is not a
-// copy of any server rule. Staff type an email; farmers type the phone their
-// officer registered, which maps to the hidden address their login was
-// created under (src/lib/phone.ts).
+// copy of any server rule. Staff type an email (Genesy sign-in); farmers type
+// the phone their officer registered (farm sign-in, which normalises it).
 const schema = z.object({
   email: z
     .string()
@@ -52,20 +55,19 @@ export function LoginScreen() {
     setFormError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        // Never null here: the schema refused anything loginEmailFor rejects.
-        email: loginEmailFor(values.email) as string,
-        password: values.password,
-      })
-
-      if (error) {
-        // Three distinguishable states, per spec 4.2: bad credentials, an
-        // unreachable server, and anything else — which is surfaced verbatim
-        // because the messages in this system are written to be read.
-        if (error.status === 400) setFormError(t('login.invalid'))
-        else if (error.status === undefined) setFormError(t('login.network'))
-        else setFormError(error.message)
-        return
+      const id = values.email.trim()
+      if (id.includes('@')) {
+        const { data } = await authLogin({ email: id, password: values.password })
+        sessionStore.getState().signIn(data)
+      } else {
+        const { data } = await farmLoginsLogin({ phone: id, password: values.password })
+        sessionStore.getState().signIn({
+          access_token: data.access_token,
+          token_type: data.token_type,
+          workspace_ids: [...new Set(data.memberships.map((m) => m.workspace_id))],
+        })
+        // The forced change needs it as current_password; memory only (tempPassword.ts).
+        if (data.must_change_password) holdTempPassword(values.password)
       }
 
       /**
@@ -94,9 +96,12 @@ export function LoginScreen() {
       const target = safeRedirect(requested) ?? resolveLanding(session?.memberships ?? []).to
       await navigate({ to: target, replace: true })
     } catch (cause) {
-      // signInWithPassword can reject outright, not just resolve with an
-      // error — a rejection here must not escape into an unhandled promise.
-      setFormError(cause instanceof Error ? cause.message : t('login.unexpected'))
+      // Three distinguishable states, per spec 4.2: bad credentials, an
+      // unreachable server, and anything else — surfaced as the API wrote it.
+      const status = apiStatus(cause)
+      if (status === 401) setFormError(t('login.invalid'))
+      else if (status === undefined) setFormError(t('login.network'))
+      else setFormError(apiErrorMessage(cause) ?? t('login.unexpected'))
     }
   }
 

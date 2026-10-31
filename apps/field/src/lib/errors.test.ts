@@ -282,3 +282,17 @@ describe('isTransientError', () => {
     expect(isTransientError(new Error('Invalid login credentials'))).toBe(false)
   })
 })
+
+describe('a failed Genesy API call', () => {
+  test('shows the message the API wrote, not the HTTP library summary', () => {
+    const error = Object.assign(new Error('Request failed with status code 422'), {
+      response: { status: 422, data: { message: 'a household must be verified by someone other than the officer who registered it' } },
+    })
+    // It reaches the Swahili mapping: the API sends RUAHA's wording.
+    expect(humanizeDbError(error)).toEqual({ kind: 'key', key: 'dbError.verifyOtherOfficer', values: {} })
+    const other = Object.assign(new Error('Request failed with status code 403'), {
+      response: { status: 403, data: { message: 'only ops or admin may void a voucher' } },
+    })
+    expect(humanizeDbError(other)).toEqual({ kind: 'verbatim', message: 'only ops or admin may void a voucher' })
+  })
+})

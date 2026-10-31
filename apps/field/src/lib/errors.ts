@@ -1,3 +1,5 @@
+import { apiErrorMessage } from '@/lib/apiError'
+
 /**
  * What a user reads when a write fails — QA #3, #4, #20, #25.
  *
@@ -82,6 +84,9 @@ const NETWORK = /failed to fetch|networkerror|network request failed|load failed
 const JS_EXCEPTION = /^(Type|Reference|Syntax|Range|Eval|URI|Internal)Error\b/
 
 function messageOf(error: unknown): string {
+  // A failed Genesy API call: its body says what went wrong, not axios's "Request failed with status code …".
+  const api = apiErrorMessage(error)
+  if (api) return api
   if (error instanceof Error) return error.message
   if (typeof error === 'string') return error
   if (error && typeof error === 'object' && 'message' in error) {

@@ -3,14 +3,16 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-const update = vi.fn()
+const updateFarmMe = vi.fn()
 const useSession = vi.fn()
+/** An axios error: the API answered 403. */
+const REFUSED = Object.assign(new Error('Request failed with status code 403'), {
+  response: { status: 403, data: { message: 'This action is unauthorized.' } },
+})
 /** The route the shell is currently on. Mutated by the navigation tests. */
 let pathname = '/officer/register'
 
-vi.mock('@/lib/supabase', () => ({
-  supabase: { from: () => ({ update: (v: unknown) => ({ eq: () => update(v) }) }) },
-}))
+vi.mock('@/lib/farmMe', () => ({ updateFarmMe: (v: unknown) => updateFarmMe(v) }))
 vi.mock('@/app/session', () => ({ useSession: () => useSession() }))
 vi.mock('@tanstack/react-router', () => ({
   useRouterState: ({ select }: { select: (s: unknown) => unknown }) =>
@@ -50,7 +52,7 @@ const signedIn = (locale: string) => ({
 })
 
 beforeEach(async () => {
-  update.mockReset()
+  updateFarmMe.mockReset()
   useSession.mockReset()
   pathname = '/officer/register'
   await i18n.changeLanguage('en')
@@ -75,7 +77,7 @@ describe('LanguageSwitch loading and signed-out states', () => {
     await chooseLanguage('Kiswahili')
     await waitFor(() => expect(i18n.resolvedLanguage).toBe('sw'))
     // Nothing to persist to yet, so nothing is attempted.
-    expect(update).not.toHaveBeenCalled()
+    expect(updateFarmMe).not.toHaveBeenCalled()
   })
 
   test('signed out, the choice is not persisted', async () => {
@@ -84,50 +86,48 @@ describe('LanguageSwitch loading and signed-out states', () => {
 
     await chooseLanguage('Kiswahili')
     await waitFor(() => expect(i18n.resolvedLanguage).toBe('sw'))
-    expect(update).not.toHaveBeenCalled()
+    expect(updateFarmMe).not.toHaveBeenCalled()
   })
 })
 
 describe('LanguageSwitch persistence', () => {
-  test('a change is written to app_user.locale', async () => {
+  test('a change is written to the account locale', async () => {
     useSession.mockReturnValue(signedIn('en'))
-    update.mockResolvedValue({ error: null })
+    updateFarmMe.mockResolvedValue(undefined)
     renderSwitch()
 
     await chooseLanguage('Kiswahili')
-    await waitFor(() => expect(update).toHaveBeenCalledWith({ locale: 'sw' }))
+    await waitFor(() => expect(updateFarmMe).toHaveBeenCalledWith({ locale: 'sw' }))
   })
 
   test('the control is disabled while the write is in flight', async () => {
     useSession.mockReturnValue(signedIn('en'))
     let release: (v: unknown) => void = () => {}
-    update.mockReturnValue(new Promise((r) => (release = r)))
+    updateFarmMe.mockReturnValue(new Promise((r) => (release = r)))
     renderSwitch()
 
     await chooseLanguage('Kiswahili')
     await waitFor(() => expect(screen.getByTestId('language-switch')).toBeDisabled())
 
-    release({ error: null })
+    release(undefined)
     await waitFor(() => expect(screen.getByTestId('language-switch')).toBeEnabled())
   })
 
   // The gap this pass exists to close: the write could fail and say nothing.
   // The language had already changed on screen, so the user believed it saved.
-  test('a failed write is reported rather than failing silently', async () => {
+  test('a refused write is reported rather than failing silently', async () => {
     useSession.mockReturnValue(signedIn('en'))
-    update.mockResolvedValue({ error: { message: 'permission denied for table app_user' } })
+    updateFarmMe.mockRejectedValue(REFUSED)
     renderSwitch()
 
     await chooseLanguage('Kiswahili')
 
-    expect(await screen.findByTestId('language-error')).toHaveTextContent(
-      'permission denied for table app_user',
-    )
+    expect(await screen.findByTestId('language-error')).toHaveTextContent(i18n.t('language.notSaved'))
   })
 
   test('a rejected write is reported too', async () => {
     useSession.mockReturnValue(signedIn('en'))
-    update.mockRejectedValue(new Error('offline'))
+    updateFarmMe.mockRejectedValue(new Error('offline'))
     renderSwitch()
 
     await chooseLanguage('Kiswahili')
@@ -136,13 +136,13 @@ describe('LanguageSwitch persistence', () => {
 
   test('the error clears on a later successful write', async () => {
     useSession.mockReturnValue(signedIn('en'))
-    update.mockResolvedValueOnce({ error: { message: 'offline' } })
+    updateFarmMe.mockRejectedValueOnce(new Error('offline'))
     renderSwitch()
 
     await chooseLanguage('Kiswahili')
     await screen.findByTestId('language-error')
 
-    update.mockResolvedValueOnce({ error: null })
+    updateFarmMe.mockResolvedValueOnce(undefined)
     await chooseLanguage('Kiingereza')
     await waitFor(() => expect(screen.queryByTestId('language-error')).not.toBeInTheDocument())
   })
@@ -170,7 +170,7 @@ describe('LanguageSwitch applies the stored locale', () => {
 describe('what the failure says, and how long it says it', () => {
   test('a JS exception is not what the officer reads', async () => {
     useSession.mockReturnValue(signedIn('en'))
-    update.mockRejectedValue(new TypeError('Failed to fetch'))
+    updateFarmMe.mockRejectedValue(new TypeError('Failed to fetch'))
     renderSwitch()
 
     await chooseLanguage('Kiswahili')
@@ -185,18 +185,6 @@ describe('what the failure says, and how long it says it', () => {
     expect(banner).toHaveTextContent(i18n.t('language.notSaved'))
   })
 
-  // A message the schema wrote is still shown as written.
-  test('a real database message still comes through', async () => {
-    useSession.mockReturnValue(signedIn('en'))
-    update.mockResolvedValue({ error: { message: 'permission denied for table app_user' } })
-    renderSwitch()
-
-    await chooseLanguage('Kiswahili')
-    expect(await screen.findByTestId('language-error')).toHaveTextContent(
-      'permission denied for table app_user',
-    )
-  })
-
   /**
    * QA #24. The banner described an event that was over, on a screen with
    * nothing to do with it — it survived the route change and two more after
@@ -204,7 +192,7 @@ describe('what the failure says, and how long it says it', () => {
    */
   test('the banner does not follow the user to the next screen', async () => {
     useSession.mockReturnValue(signedIn('en'))
-    update.mockRejectedValue(new Error('offline'))
+    updateFarmMe.mockRejectedValue(new Error('offline'))
     const { rerender } = renderSwitch()
 
     await chooseLanguage('Kiswahili')
@@ -220,7 +208,7 @@ describe('what the failure says, and how long it says it', () => {
 
   test('but it survives a re-render on the same screen', async () => {
     useSession.mockReturnValue(signedIn('en'))
-    update.mockRejectedValue(new Error('offline'))
+    updateFarmMe.mockRejectedValue(new Error('offline'))
     const { rerender } = renderSwitch()
 
     await chooseLanguage('Kiswahili')

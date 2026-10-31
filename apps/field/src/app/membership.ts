@@ -1,13 +1,15 @@
-import type { Database } from '@/lib/db.types'
+import type { FarmRole } from '@/lib/farmMe'
 
-type MembershipRow = Database['public']['Tables']['membership']['Row']
-export type AppRole = Database['public']['Enums']['app_role']
+export type AppRole = FarmRole
 
-/** The subset of a membership row the routing decision needs. */
-export type ActiveMembership = Pick<
-  MembershipRow,
-  'id' | 'role' | 'project_id' | 'village_id' | 'revoked_at'
->
+/** The subset of a farm role the routing decision needs. `project_id` is the Genesy workspace. */
+export interface ActiveMembership {
+  id: string
+  role: AppRole
+  project_id: string
+  village_id: string | null
+  revoked_at: string | null
+}
 
 /**
  * Where a role starts.

@@ -1,10 +1,12 @@
-import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+
+import { PortedOutlet } from '@/app/PortedOutlet'
 
 import { canAccessSurface, resolveLanding } from '@/app/membership'
 import { ensureSession, passwordChangeRequired } from '@/app/session'
 
-// Route guards are UX, not security. RLS is the boundary: anyone who reaches a
-// surface anyway gets the page shell and zero rows, which is correct.
+// Route guards are UX, not security. The API is the boundary: anyone who reaches a
+// surface anyway gets the page shell and nothing they may not see.
 export const Route = createFileRoute('/_officer')({
   beforeLoad: async ({ context, location }) => {
     const session = await ensureSession(context.queryClient)
@@ -16,5 +18,5 @@ export const Route = createFileRoute('/_officer')({
       throw redirect({ to: resolveLanding(session.memberships).to })
     }
   },
-  component: () => <Outlet />,
+  component: PortedOutlet,
 })

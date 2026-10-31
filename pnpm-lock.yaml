@@ -40,6 +40,9 @@ importers:
       '@fontsource/poppins':
         specifier: ^5.3.0
         version: 5.3.0
+      '@genesy/api-client':
+        specifier: workspace:^
+        version: link:../../packages/api-client
       '@hookform/resolvers':
         specifier: ^5.9.1
         version: 5.9.2(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.91.0(@types/react@19.3.0)(react@19.3.1))(zod@4.6.7)

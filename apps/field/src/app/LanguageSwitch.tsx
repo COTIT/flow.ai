@@ -5,15 +5,15 @@ import { useTranslation } from 'react-i18next'
 
 import { useSession } from '@/app/session'
 import { humanizeDbError } from '@/lib/errors'
-import { supabase } from '@/lib/supabase'
+import { updateFarmMe } from '@/lib/farmMe'
 import { queryKeys } from '@/lib/queryKeys'
-import { isSupportedLanguage, supportedLanguages } from '@/i18n'
+import { isSupportedLanguage, supportedLanguages, type SupportedLanguage } from '@/i18n'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { clsx as cx } from 'clsx'
 /**
- * Spec 4.1: the language choice is persisted to `app_user.locale`.
+ * Spec 4.1: the language choice is persisted to the account (`PATCH /v1/farm/me`).
  *
- * app_user.locale is the source of truth rather than localStorage, so the
+ * The account's locale is the source of truth rather than localStorage, so the
  * choice follows the user to their next device. Signed out there is nothing to
  * persist to, and the switch is in-memory only.
  */
@@ -41,13 +41,8 @@ export function LanguageSwitch({ className = '' }: { className?: string }) {
     mutationFn: async (locale: string) => {
       const userId = session?.appUser?.id
       if (!userId) return
-      // app_user_update_self: `id = auth.uid()`. Nobody else's locale is
-      // writable, so there is nothing to guard client-side.
-      const { error } = await supabase.from('app_user').update({ locale }).eq('id', userId)
-      // Wrapped, not rethrown as-is: a PostgrestError is a plain object and
-      // stringifies to [object Object], which would hide the message the
-      // schema wrote to be read.
-      if (error) throw new Error(error.message)
+      // Only the caller's own locale is writable; nothing to guard client-side.
+      await updateFarmMe({ locale: locale as SupportedLanguage })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.session() }),
   })

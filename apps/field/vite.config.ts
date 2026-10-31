@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Same variable as the Next apps (e.g. http://localhost:8080/v1); the proxy keeps the /v1 path.
+const apiOrigin = new URL(process.env.API_URL ?? 'http://localhost:8080/v1').origin
+
 export default defineConfig({
   plugins: [
     // must precede the react plugin: it generates routeTree.gen.ts
@@ -32,6 +35,9 @@ export default defineConfig({
       },
     }),
   ],
+  // The browser calls same-origin /v1 (the API sends no CORS headers); Traefik does this in prod.
+  server: { proxy: { '/v1': apiOrigin } },
+  preview: { proxy: { '/v1': apiOrigin } },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

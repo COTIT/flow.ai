@@ -1230,7 +1230,9 @@
     "submitting": "Inahifadhi…",
     "required": "Weka neno la siri jipya.",
     "mismatch": "Maneno mawili ya siri hayafanani.",
-    "unexpected": "Kuna tatizo katika kuhifadhi neno lako la siri."
+    "unexpected": "Kuna tatizo katika kuhifadhi neno lako la siri.",
+    "current": "Nenosiri la muda",
+    "currentRequired": "Weka nenosiri la muda ulilopewa na afisa wako."
   },
   "surveys": {
     "title": "Madodoso",
@@ -1501,5 +1503,9 @@
     "sending": "Inatuma…",
     "cancel": "Ghairi",
     "sent": "Asante. Ripoti yako imetumwa."
+  },
+  "notYet": {
+    "title": "Bado haipatikani",
+    "detail": "Skrini hii inahamia kwenye mfumo mpya wa Ruaha 360 na itarudi hivi karibuni."
   }
 }

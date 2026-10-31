@@ -1092,6 +1092,8 @@
   "setPassword.required": "0d5077aaa7",
   "setPassword.mismatch": "83838bde4b",
   "setPassword.unexpected": "42b4bf66ae",
+  "setPassword.current": "62d6062845",
+  "setPassword.currentRequired": "af42709df6",
   "surveys.title": "0762895fdf",
   "surveys.intro": "4845c31719",
   "surveys.incentive": "ab6bbb03e4",
@@ -1317,5 +1319,7 @@
   "bugReport.submit": "a5b32af957",
   "bugReport.sending": "cf765512cc",
   "bugReport.cancel": "77dfd2135f",
-  "bugReport.sent": "7a2385e36a"
+  "bugReport.sent": "7a2385e36a",
+  "notYet.title": "a1db9d598b",
+  "notYet.detail": "a01540ea07"
 }

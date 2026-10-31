@@ -366,5 +366,9 @@
   "bugReport.screenshot": "Drafter: 'picha ya skrini' (screenshot) composed; no Tanzanian source. Same term in bugReport.capturing, screenshotFailed, photoHint, imageRequired, intro.",
   "bugReport.intro": "Drafter: 'kuambatisha' (attach) composed; no glossary term. Same verb in bugReport.actions.",
   "bugReport.cancel": "Drafter: 'Ghairi' is UNVERIFIED in the glossary (cancel row).",
-  "bugReport.submit": "Drafter: 'Tuma' (send, verified) + 'ripoti' (unverified)."
+  "bugReport.submit": "Drafter: 'Tuma' (send, verified) + 'ripoti' (unverified).",
+  "setPassword.current": "Drafter: Claude, Genesy port step 2; unreviewed.",
+  "setPassword.currentRequired": "Drafter: Claude, Genesy port step 2; unreviewed.",
+  "notYet.title": "Drafter: Claude, Genesy port step 2; unreviewed.",
+  "notYet.detail": "Drafter: Claude, Genesy port step 2; unreviewed."
 }

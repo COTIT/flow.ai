@@ -1,36 +1,33 @@
 import { useQuery } from '@tanstack/react-query'
+import { farmVillagesList } from '@genesy/api-client/endpoints/farm-villages'
 
-import { supabase } from '@/lib/supabase'
+import { fetchSession } from '@/app/session'
 import { queryKeys } from '@/lib/queryKeys'
 
 export interface ScopeNames {
   villages: Record<string, string>
+  /** Genesy workspaces (RUAHA projects). */
   projects: Record<string, string>
 }
 
 /**
- * Village and project names, for labelling a membership's scope.
- *
- * Both tables are readable by any signed-in user — village names are not
- * personal data and every surface needs them to render — so this is one cheap
- * lookup rather than a join through a restricted table.
+ * Village and workspace names, for labelling a membership's scope. Workspace
+ * names come with the caller's roles; villages are read per workspace, since
+ * ops and admin cover villages their role row does not name.
  */
 export async function fetchScopeNames(): Promise<ScopeNames> {
-  const [villageResult, projectResult] = await Promise.all([
-    supabase.from('village').select('id, name'),
-    supabase.from('project').select('id, name'),
-  ])
-
-  // A failed read is not an empty set: labelling a membership "no village"
-  // because a query broke would misdescribe someone's access.
-  if (villageResult.error) throw new Error(villageResult.error.message)
-  if (projectResult.error) throw new Error(projectResult.error.message)
-
-  const villages: Record<string, string> = {}
-  for (const v of villageResult.data ?? []) villages[v.id] = v.name
+  const session = await fetchSession()
   const projects: Record<string, string> = {}
-  for (const p of projectResult.data ?? []) projects[p.id] = p.name
+  for (const m of session?.me.memberships ?? []) projects[m.workspace_id] = m.workspace_name
 
+  // A failed read throws: labelling a membership "no village" because a query
+  // broke would misdescribe someone's access.
+  // shortcut: first 100 villages per workspace (API max page size); page further when a workspace has more.
+  const pages = await Promise.all(
+    Object.keys(projects).map((workspace) => farmVillagesList(workspace, { page_size: 100 })),
+  )
+  const villages: Record<string, string> = {}
+  for (const page of pages) for (const v of page.data) villages[v.id] = v.name
   return { villages, projects }
 }
 

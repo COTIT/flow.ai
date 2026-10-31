@@ -1230,7 +1230,9 @@
     "submitting": "Saving…",
     "required": "Enter a new password.",
     "mismatch": "The two passwords are not the same.",
-    "unexpected": "Something went wrong saving your password."
+    "unexpected": "Something went wrong saving your password.",
+    "current": "Temporary password",
+    "currentRequired": "Enter the temporary password your officer gave you."
   },
   "surveys": {
     "title": "Surveys",
@@ -1501,5 +1503,9 @@
     "sending": "Sending…",
     "cancel": "Cancel",
     "sent": "Thank you. Your report was sent."
+  },
+  "notYet": {
+    "title": "Not available yet",
+    "detail": "This screen is moving to the new Ruaha 360 system and will be back soon."
   }
 }
