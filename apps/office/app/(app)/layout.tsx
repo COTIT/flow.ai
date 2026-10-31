@@ -17,6 +17,7 @@ import { cn } from "@genesy/ui/lib/utils"
 const nav = [
   { href: "/products", label: "nav.products" },
   { href: "/stock", label: "nav.stock" },
+  { href: "/orders", label: "nav.orders" },
   { href: "/lots", label: "nav.lots" },
   { href: "/invoices", label: "nav.invoices" },
   { href: "/settings/app-keys", label: "nav.appKeys" },

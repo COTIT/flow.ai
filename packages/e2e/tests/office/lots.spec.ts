@@ -123,9 +123,11 @@ test.describe(() => {
     await page.getByRole("button", { name: "New batch" }).click()
     await page.getByRole("dialog").getByLabel("Batch code").fill("ilu-2026-01")
     await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
-    await expect(page.getByRole("alert")).toHaveText(
-      "A lot with this code already exists."
-    )
+    await expect(
+      page
+        .getByRole("alert")
+        .filter({ hasText: "A lot with this code already exists." })
+    ).toBeVisible()
   })
 })
 

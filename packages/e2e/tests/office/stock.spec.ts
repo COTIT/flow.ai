@@ -146,7 +146,9 @@ test.describe(() => {
       .getByLabel("Change (e.g. 10 or -3)")
       .fill("-500")
     await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
-    await expect(page.getByRole("alert")).toHaveText("Not enough stock.")
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Not enough stock." })
+    ).toBeVisible()
   })
 })
 

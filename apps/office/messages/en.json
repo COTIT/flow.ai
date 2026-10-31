@@ -23,7 +23,8 @@
     "appKeys": "App keys",
     "webhooks": "Webhooks",
     "stock": "Stock",
-    "invoices": "Invoices"
+    "invoices": "Invoices",
+    "orders": "Orders"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -204,5 +205,52 @@
     "noPayments": "No payments yet.",
     "method": "Method",
     "amount": "Amount"
+  },
+  "orders": {
+    "title": "Orders",
+    "empty": "No orders yet.",
+    "number": "Order",
+    "status": "Status",
+    "customer": "Customer",
+    "reference": "Reference",
+    "paidAt": "Paid on",
+    "invoice": "Invoice",
+    "openInvoice": "Open invoice",
+    "picked": "Picked",
+    "returned": "Returned",
+    "unitPrice": "Unit price excl. VAT",
+    "lineTotal": "Line excl. VAT",
+    "subtotal": "Subtotal excl. VAT",
+    "vat": "VAT",
+    "statuses": {
+      "draft": "Draft",
+      "awaiting_payment": "Awaiting payment",
+      "open": "Open",
+      "completed": "Completed",
+      "partially_returned": "Partly returned",
+      "returned": "Returned",
+      "cancelled": "Cancelled"
+    },
+    "confirm": "Confirm order",
+    "pick": "Record picking",
+    "pickTitle": "Picking for {number}",
+    "pickText": "Enter the total picked per line so far.",
+    "complete": "Complete",
+    "completeTitle": "Complete order {number}?",
+    "completeText": "The reserved stock is taken out of the warehouse. This cannot be undone.",
+    "makeInvoice": "Make invoice",
+    "returns": "Take back returns",
+    "returnsTitle": "Returns for {number}",
+    "returnsText": "Enter the quantity coming back per line. Leave a line empty if nothing comes back.",
+    "restock": "Put returned goods back on stock",
+    "refund": "Refund",
+    "refundTitle": "Refund on {number}",
+    "refundText": "Money goes back to the customer through the payment provider. This cannot be undone.",
+    "refundAmount": "Amount ({currency})",
+    "badAmount": "Enter an amount like 12.50.",
+    "refundQueued": "Refund of {amount} sent to the provider (status: {status}).",
+    "cancel": "Cancel order",
+    "cancelTitle": "Cancel order {number}?",
+    "cancelText": "Reserved stock is released. A paid order needs a refund first; the system will say so."
   }
 }
