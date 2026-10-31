@@ -8,12 +8,15 @@ use crate::{
 /// Marks an app key, so it never passes for a user token (64 bare hex) or the other way round.
 pub const PREFIX: &str = "gsk_";
 
-/// Scopes a key may hold. Checked on create; the extractor checks them per route.
+/// Scopes the app-keys route issues. Checked on create; the extractor checks them per route.
 pub const SCOPES: &[&str] = &[CATALOG_READ, CHECKOUT_WRITE];
 /// Read products, variants, prices and available stock (`/storefront`).
 pub const CATALOG_READ: &str = "catalog:read";
 /// Place web orders and start their payment (`/storefront/orders`).
 pub const CHECKOUT_WRITE: &str = "checkout:write";
+/// Log a till user in on a register (`/till/login`). Only a register's own key gets it, never
+/// the app-keys route.
+pub const TILL_LOGIN: &str = "till:login";
 
 /// App kinds a key is issued to.
 pub const KINDS: &[&str] = &["shop", "till", "field", "partner"];

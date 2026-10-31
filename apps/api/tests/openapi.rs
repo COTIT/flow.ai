@@ -1237,6 +1237,93 @@ fn lot_page_mounts_are_documented() {
     assert!(shop["responses"]["404"].is_object());
 }
 
+#[test]
+fn every_till_operation_is_documented() {
+    assert_documented(&[
+        ("/till/registers", "get", "till_registers_list", "200"),
+        ("/till/registers", "post", "till_registers_create", "201"),
+        (
+            "/till/registers/{register}/key",
+            "post",
+            "till_registers_rotate_key",
+            "200",
+        ),
+        ("/till/users", "get", "till_users_list", "200"),
+        ("/till/users", "post", "till_users_create", "201"),
+        ("/till/users/{user}", "patch", "till_users_update", "200"),
+        ("/till/vaults", "get", "till_vaults_list", "200"),
+        ("/till/vaults", "post", "till_vaults_create", "201"),
+        ("/till/shifts", "get", "till_shifts_list", "200"),
+        ("/till/sales", "get", "till_sales_list", "200"),
+    ]);
+    // Device routes take the register's key, till routes the session token.
+    let s = spec();
+    for (tail, method, id, ok, scheme) in [
+        (
+            "/till/login/users",
+            "get",
+            "till_login_users",
+            "200",
+            "app_key",
+        ),
+        ("/till/login", "post", "till_login", "200", "app_key"),
+        ("/till/logout", "post", "till_logout", "204", "till_session"),
+        ("/till/me", "get", "till_me", "200", "till_session"),
+        (
+            "/till/sales",
+            "post",
+            "till_sales_create",
+            "201",
+            "till_session",
+        ),
+        (
+            "/till/sales/{client_ref}",
+            "get",
+            "till_sales_get",
+            "200",
+            "till_session",
+        ),
+        (
+            "/till/shift",
+            "get",
+            "till_shift_current",
+            "200",
+            "till_session",
+        ),
+        (
+            "/till/shift/open",
+            "post",
+            "till_shift_open",
+            "201",
+            "till_session",
+        ),
+        (
+            "/till/shift/close",
+            "post",
+            "till_shift_close",
+            "200",
+            "till_session",
+        ),
+        (
+            "/till/transfers",
+            "post",
+            "till_transfers_create",
+            "201",
+            "till_session",
+        ),
+    ] {
+        let path = format!("{W}{tail}");
+        let op = &s["paths"][&path][method];
+        assert_eq!(op["operationId"], id, "{method} {path}");
+        assert!(op["responses"][ok].is_object(), "{method} {path}: no {ok}");
+        assert!(
+            op["responses"]["401"].is_object(),
+            "{method} {path}: no 401"
+        );
+        assert_eq!(op["security"][0][scheme], json!([]), "{method} {path}");
+    }
+}
+
 // ---- Farm (RUAHA phase 4) ----
 
 #[test]

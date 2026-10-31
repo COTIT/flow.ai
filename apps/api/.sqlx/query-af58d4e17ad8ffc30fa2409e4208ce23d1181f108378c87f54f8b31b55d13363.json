@@ -1,0 +1,132 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.register_id, s.opened_by, s.opened_at, s.opening,\n                  coalesce(s.expected,\n                           (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                            WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id\n                              AND l.kind <> 'close_count')) AS \"expected!\",\n                  s.closed_by, s.closed_at, s.counted, s.difference\n           FROM drawer_shifts s WHERE s.workspace_id = $1 AND s.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "register_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "register_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "opened_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "opened_by"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "opened_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "opened_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "opening",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "opening"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expected!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "closed_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "closed_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "closed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "closed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "counted",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "counted"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "difference",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "drawer_shifts",
+            "name": "difference"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "af58d4e17ad8ffc30fa2409e4208ce23d1181f108378c87f54f8b31b55d13363"
+}

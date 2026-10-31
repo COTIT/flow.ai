@@ -45,13 +45,13 @@ pub struct LineRequest {
     quantity: Option<Value>,
     /// Minor units excl VAT; default the catalog price. Office only.
     #[schema(value_type = Option<i64>, example = 1250)]
-    unit_price: Option<Value>,
+    pub(crate) unit_price: Option<Value>,
     /// 0..=100; default 0. Office only.
     #[schema(value_type = Option<String>, example = "10")]
-    discount_percentage: Option<Value>,
+    pub(crate) discount_percentage: Option<Value>,
     /// Default the product name. Office only.
     #[schema(max_length = 255)]
-    title: Option<String>,
+    pub(crate) title: Option<String>,
 }
 
 /// A validated line.

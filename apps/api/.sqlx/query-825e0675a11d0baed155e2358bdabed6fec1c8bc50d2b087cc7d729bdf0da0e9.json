@@ -1,0 +1,97 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.name, r.warehouse_id, r.currency_id, r.created_at,\n                  a.prefix AS \"key_prefix?\", count(*) OVER () AS \"total!\"\n           FROM till_registers r\n           LEFT JOIN app_keys a ON a.id = r.app_key_id AND a.revoked_at IS NULL\n           WHERE r.workspace_id = $1\n           ORDER BY r.created_at DESC, r.id DESC\n           LIMIT $2 OFFSET $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "key_prefix?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "app_keys",
+            "name": "prefix"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "825e0675a11d0baed155e2358bdabed6fec1c8bc50d2b087cc7d729bdf0da0e9"
+}

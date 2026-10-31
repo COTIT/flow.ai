@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE till_users SET failed_pins = 0\n           WHERE workspace_id = $1 AND id = $3\n             AND (locked_until IS NULL OR locked_until <= now())\n             AND EXISTS (SELECT 1 FROM till_registers\n                         WHERE workspace_id = $1 AND id = $2\n                           AND (locked_until IS NULL OR locked_until <= now()))\n           RETURNING true AS \"ok!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ok!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "539fc67af48d5714ed4d44a94b61719ca3c20301ea01323653f90f9a6b3d5420"
+}
