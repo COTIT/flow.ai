@@ -11,7 +11,10 @@ use uuid::Uuid;
 use crate::{
     error::AppError,
     modules::{
-        stock::repo::{self, Cause, Floor, Movement, Slot, StockRow},
+        stock::{
+            fefo,
+            repo::{self, Cause, Floor, Movement, Slot, StockRow},
+        },
         webhooks,
     },
 };
@@ -45,12 +48,20 @@ pub enum Error {
     /// Release or commit of more than the record holds; never clamped.
     #[error("more than held: {0}")]
     OverRelease(Uuid),
+    /// Commit of a hold on a lot recalled since: never shipped, the hold stays.
+    #[error("lot {lot_id} of product {product_id} is recalled")]
+    LotRecalled { product_id: Uuid, lot_id: Uuid },
+    /// Commit of a hold on a lot past its expiry date since: never shipped, the hold stays.
+    #[error("lot {lot_id} of product {product_id} has expired")]
+    LotExpired { product_id: Uuid, lot_id: Uuid },
 }
 
 impl From<Error> for AppError {
     fn from(e: Error) -> Self {
         match e {
             Error::Db(e) => Self::Database(e),
+            Error::LotRecalled { .. } => Self::Conflict("lot_recalled"),
+            Error::LotExpired { .. } => Self::Conflict("lot_expired"),
             other => Self::Internal(other.to_string()),
         }
     }
@@ -84,16 +95,85 @@ fn totals(wants: &[Want]) -> Vec<(usize, Want)> {
     out
 }
 
-/// Locked rows a product's hold may come from, in pick order. Reserves come from the
-/// warehouse-level row (bin NULL) only: phase 3 relies on that.
+/// Locks a product's warehouse-level rows (no bin) at the warehouse in key order (no-lot row,
+/// then lots) and returns those a hold or take may use, first-expired-first ([`fefo`]).
 async fn pick(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     warehouse_id: Uuid,
     product_id: Uuid,
 ) -> Result<Vec<StockRow>, sqlx::Error> {
-    let row = repo::locked(conn, workspace_id, slot(warehouse_id, product_id)).await?;
-    Ok(row.into_iter().collect())
+    let no_lot = repo::locked(conn, workspace_id, slot(warehouse_id, product_id)).await?;
+    let lots = repo::lot_rows(conn, workspace_id, product_id, warehouse_id).await?;
+    if lots.is_empty() {
+        return Ok(no_lot.into_iter().collect());
+    }
+    let ids: Vec<Uuid> = lots.iter().filter_map(|r| r.lot_id).collect();
+    let info = sqlx::query!(
+        r#"SELECT id, status, best_before, expires_on, current_date AS "today!"
+           FROM lots WHERE workspace_id = $1 AND id = ANY($2)"#,
+        workspace_id,
+        &ids,
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    let today = info.first().map(|l| l.today).unwrap_or_default();
+    let info: Vec<fefo::LotInfo> = info
+        .into_iter()
+        .map(|l| fefo::LotInfo {
+            id: l.id,
+            status: l.status,
+            best_before: l.best_before,
+            expires_on: l.expires_on,
+        })
+        .collect();
+    Ok(fefo::order(
+        no_lot.into_iter().chain(lots).collect(),
+        &info,
+        today,
+    ))
+}
+
+/// Refuse a commit when a lot the record holds for `product_id` is recalled or past its
+/// expiry date (food safety): nothing is written and the hold stays for the office.
+async fn check_lots(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    warehouse_id: Uuid,
+    (domain, id): (&str, Uuid),
+    product_id: Uuid,
+) -> Result<(), Error> {
+    let held = sqlx::query!(
+        r#"SELECT l.id, l.status, coalesce(l.expires_on < current_date, false) AS "expired!"
+           FROM stock_reservations r
+           JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id
+           JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id
+           WHERE r.workspace_id = $1 AND r.related_domain = $2 AND r.related_id = $3
+             AND r.product_id = $4 AND s.warehouse_id = $5
+           ORDER BY l.id"#,
+        workspace_id,
+        domain,
+        id,
+        product_id,
+        warehouse_id,
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    for l in held {
+        if l.status == "recalled" {
+            return Err(Error::LotRecalled {
+                product_id,
+                lot_id: l.id,
+            });
+        }
+        if l.expired {
+            return Err(Error::LotExpired {
+                product_id,
+                lot_id: l.id,
+            });
+        }
+    }
+    Ok(())
 }
 
 /// Hold `wants` at the warehouse for `cause.related`: all or nothing. Short when a product's
@@ -173,7 +253,13 @@ pub async fn commit(
     cause: &Cause<'_>,
 ) -> Result<(), Error> {
     let related = related(cause)?;
-    for (_, w) in totals(wants) {
+    let wants = totals(wants);
+    // Every lot checked before anything is written.
+    for (_, w) in &wants {
+        pick(conn, workspace_id, warehouse_id, w.product_id).await?;
+        check_lots(conn, workspace_id, warehouse_id, related, w.product_id).await?;
+    }
+    for (_, w) in wants {
         for (row, take) in consume(conn, workspace_id, warehouse_id, related, w).await? {
             let after = row.stock_lvl - take;
             set_reserved(conn, workspace_id, row.id, -take).await?;
@@ -233,6 +319,9 @@ async fn consume(
     (domain, id): (&str, Uuid),
     want: Want,
 ) -> Result<Vec<(StockRow, Decimal)>, Error> {
+    // All the product's rows in key order first: holds spread over lots would otherwise be
+    // locked in hold order and two orders could wait on each other.
+    pick(conn, workspace_id, warehouse_id, want.product_id).await?;
     let held = sqlx::query!(
         "SELECT r.id, r.stock_id, r.quantity FROM stock_reservations r
          JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id

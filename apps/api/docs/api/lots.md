@@ -59,6 +59,19 @@ Once a lot holds any stock row, its `code` can't change (`422` on `code`); the c
 
 The product read (`stocks[]`), `GET /products/stocks` and `stock-with-bins` show lot rows as rows of their own, with `lot: {id, code, expires_on}`. No-lot rows have `lot: null`.
 
+### Orders on lot stock
+
+An order's hold (confirm) and shipment (complete) pick rows first-expired-first:
+
+1. The product's no-lot stock goes first. It has no date, and selling it first clears untracked stock.
+2. Then sellable lots by their earliest date (expiry or best-before, whichever is sooner). Undated lots go last.
+
+Only `released` lots that are not past `expires_on` are sellable; quarantined, recalled and expired lots are never held. A hold may spread over several lots, and completing ships from exactly the rows held. Each ledger line names its lot.
+
+Completing an order that holds a lot recalled since the hold gives `409 {"message": "lot_recalled"}`. A lot past its expiry date since the hold gives `409 {"message": "lot_expired"}`. In both cases nothing is written and the hold stays, so the office can cancel the order or release the hold; nothing is swapped to another lot silently.
+
+The storefront's `available_stock` counts only no-lot stock and sellable lot stock.
+
 ## Passport
 
 One per lot: a **draft** the office edits and a **published** copy the public page shows. Routes (same access rules as above):

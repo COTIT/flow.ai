@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Phase 3 step 5, first-expired-first on the order seam (`stock/reserve.rs`, new pure `stock/fefo.rs`):
+  - `pick` locks a product's no-lot row and lot rows in key order and orders them: no-lot stock first, then sellable lots (released, not expired) by earliest expiry or best-before date, undated last. Holds split across lots.
+  - `consume` takes those key-order locks before working through the holds, so holds spread over lots can't deadlock two orders.
+  - `commit` refuses a hold on a lot recalled or expired since (`Error::LotRecalled` / `LotExpired`, 409 `lot_recalled` / `lot_expired`); nothing is written and the hold stays.
+  - Storefront `available_stock` leaves out stock of quarantined, recalled and expired lots.
 - Phase 3 step 4, stock per lot (migration `stock_lots`):
   - `stocks.lot_id` and `stock_movements.lot_id` (nullable; FK to a lot of the same product). The slot is now unique on product, warehouse, bin and lot. No backfill: existing rows are no-lot stock.
   - `stock::repo`: `Slot` and `StockRow` carry the lot. `lock_all` also locks a product's lot rows right after its no-lot warehouse row (still key order). New `lot_rows`. Ledger lines and `stock.changed` carry `lot_id`.
