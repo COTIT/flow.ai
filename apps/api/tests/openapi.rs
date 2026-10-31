@@ -1506,3 +1506,31 @@ fn every_farm_surveys_and_vouchers_operation_is_documented() {
         assert!(props.get("code").is_none(), "{name} exposes the code");
     }
 }
+
+#[test]
+fn every_farm_port_support_operation_is_documented() {
+    assert_documented(&[(
+        "/farm/persons/{person}/holdings",
+        "get",
+        "farm_records_persons_holdings",
+        "200",
+    )]);
+    assert_ops(&[
+        ("/farm/me", "get", "farm_logins_me", "200"),
+        ("/farm/me", "patch", "farm_logins_update_me", "204"),
+    ]);
+    let s = spec();
+    let list = &s["paths"]["/workspace/{workspace}/farm/plots"]["get"]["parameters"];
+    for name in ["verification", "farm_id", "village_id"] {
+        assert!(
+            list.as_array().unwrap().iter().any(|p| p["name"] == name),
+            "plots list: {name}"
+        );
+    }
+    let revise = &s["paths"]["/workspace/{workspace}/farm/crop-cycles/{cycle}/harvest-reports"]["post"]
+        ["responses"];
+    assert!(
+        revise["200"].is_object() && revise["409"].is_object(),
+        "replay and conflict documented"
+    );
+}

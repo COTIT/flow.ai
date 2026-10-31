@@ -516,3 +516,157 @@ async fn crops_are_config_ops_writes_everyone_reads(pool: PgPool) {
     assert_eq!(status, StatusCode::OK, "{res}");
     assert_eq!(res["data"]["is_active"], false);
 }
+
+#[sqlx::test]
+async fn a_harvest_revision_with_a_client_ref_replays_and_refuses_a_different_body(pool: PgPool) {
+    let (f, c, _) = setup(pool.clone()).await;
+    let tail = format!("/crop-cycles/{}/harvest-reports", c.neema.cycles[0]);
+    let r = common::farm::client_ref();
+    let body = json!({ "kind": "actual", "quantity_kg": "2900", "source": "field_verified", "client_ref": r });
+    let (status, first) = f
+        .call(Method::POST, &tail, Some(body.clone()), &f.officer_ilu)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{first}");
+    let (status, again) = f
+        .call(Method::POST, &tail, Some(body), &f.officer_ilu)
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "the same ref returns the same revision: {again}"
+    );
+    assert_eq!(again["data"]["id"], first["data"]["id"]);
+    let n: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM farm_harvest_reports WHERE kind = 'actual'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(n, 1, "a replay writes nothing");
+
+    let changed = json!({ "kind": "actual", "quantity_kg": "3000", "source": "field_verified", "client_ref": r });
+    let (status, _) = f
+        .call(Method::POST, &tail, Some(changed), &f.officer_ilu)
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::CONFLICT,
+        "the same ref with another body"
+    );
+    let other = format!("/crop-cycles/{}/harvest-reports", c.asha.cycles[0]);
+    let elsewhere = json!({ "kind": "actual", "quantity_kg": "2900", "source": "field_verified", "client_ref": r });
+    let (status, _) = f
+        .call(Method::POST, &other, Some(elsewhere), &f.officer_ilu)
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::CONFLICT,
+        "the same ref on another cycle"
+    );
+}
+
+#[sqlx::test]
+async fn lists_filter_by_verification_farm_and_plot_within_scope(pool: PgPool) {
+    let (f, c, _) = setup(pool).await;
+    f.verify("persons", &c.neema.person, &f.ops).await;
+    f.verify("farms", &c.asha.farm, &f.ops).await;
+    let unverified = f
+        .list("/persons?verification=unverified,pending", &f.officer_ilu)
+        .await;
+    assert_eq!(
+        ids(&unverified),
+        sorted(vec![&c.rehema.person, &c.asha.person])
+    );
+    let verified = f.list("/farms?verification=verified", &f.ops).await;
+    assert_eq!(ids(&verified), vec![c.asha.farm.clone()]);
+    assert_eq!(
+        f.list("/households?verification=unverified", &f.officer_mga)
+            .await["meta"]["total"],
+        1
+    );
+    assert_eq!(
+        f.list("/plots?verification=verified", &f.ops).await["meta"]["total"],
+        0
+    );
+    let (status, res) = f
+        .call(Method::GET, "/persons?verification=maybe", None, &f.ops)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+
+    let plots = f
+        .list(&format!("/plots?farm_id={}", c.neema.farm), &f.officer_ilu)
+        .await;
+    assert_eq!(ids(&plots), sorted(vec![&c.neema.plot, &c.rehema.plot]));
+    let cycles = f
+        .list(
+            &format!("/crop-cycles?plot_id={}", c.neema.plot),
+            &f.officer_ilu,
+        )
+        .await;
+    assert_eq!(cycles["meta"]["total"], 2);
+    // A filter never widens the scope: another village's farm gives an empty list.
+    let foreign = f
+        .list(&format!("/plots?farm_id={}", c.neema.farm), &f.officer_mga)
+        .await;
+    assert_eq!(foreign["meta"]["total"], 0);
+    let foreign = f
+        .list(
+            &format!("/crop-cycles?plot_id={}", c.neema.plot),
+            &f.officer_mga,
+        )
+        .await;
+    assert_eq!(foreign["meta"]["total"], 0);
+}
+
+#[sqlx::test]
+async fn holdings_read_a_persons_households_farms_plots_and_cycles_in_one_call(pool: PgPool) {
+    let (f, c, neema) = setup(pool).await;
+    let tail = format!("/persons/{}/holdings", c.neema.person);
+    for token in [&f.officer_ilu, &neema] {
+        let (status, res) = f.call(Method::GET, &tail, None, token).await;
+        assert_eq!(status, StatusCode::OK, "{res}");
+        let d = &res["data"];
+        let house = &d["households"][0];
+        assert_eq!(house["id"], c.neema.household.as_str());
+        let names: Vec<&str> = house["people"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|m| m["given_name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, ["Neema", "Rehema"]);
+        let farm = &d["farms"][0];
+        assert_eq!(farm["id"], c.neema.farm.as_str());
+        assert_eq!(farm["plots"].as_array().unwrap().len(), 2);
+        let riverside = farm["plots"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["id"] == c.neema.plot.as_str())
+            .unwrap();
+        let cycles = riverside["cycles"].as_array().unwrap();
+        assert_eq!(cycles.len(), 2);
+        let maize = cycles
+            .iter()
+            .find(|cy| cy["crop"]["name_en"] == "MAIZE")
+            .unwrap();
+        assert_eq!(maize["harvests"][0]["quantity_kg"], "3200.00");
+    }
+    // A farmer's holdings view keeps phone and GPS for staff only.
+    let (_, own) = f.call(Method::GET, &tail, None, &neema).await;
+    assert!(own["data"]["farms"][0]["latitude"].is_null());
+
+    let (status, _) = f.call(Method::GET, &tail, None, &f.officer_mga).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another village");
+    let (status, _) = f
+        .call(
+            Method::GET,
+            &format!("/persons/{}/holdings", c.asha.person),
+            None,
+            &neema,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another household");
+    let (outsider, _) = signup(&f.app, "out@else.test", "elsewhere").await;
+    let (status, _) = f.call(Method::GET, &tail, None, &outsider).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another workspace");
+}

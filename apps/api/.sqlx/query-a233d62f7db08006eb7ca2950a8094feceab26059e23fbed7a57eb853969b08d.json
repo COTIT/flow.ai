@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, crop_cycle_id, kind, quantity_kg, source, confidence, reported_for\n         FROM farm_harvest_reports WHERE workspace_id = $1 AND client_ref = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "crop_cycle_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "crop_cycle_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "quantity_kg",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "quantity_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "confidence",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "confidence"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "reported_for",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "reported_for"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "a233d62f7db08006eb7ca2950a8094feceab26059e23fbed7a57eb853969b08d"
+}

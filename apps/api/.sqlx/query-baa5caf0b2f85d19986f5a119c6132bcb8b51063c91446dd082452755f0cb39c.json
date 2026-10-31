@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t.id, t.village_id, t.farm_id, t.label, t.area_ha::text AS area_ha,\n                  CASE WHEN $2 OR t.village_id = ANY($3) THEN t.latitude::text END AS latitude,\n                  CASE WHEN $2 OR t.village_id = ANY($3) THEN t.longitude::text END AS longitude,\n                  farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,\n                                  t.verified_by, t.verified_at, t.confidence, t.evidence_ref) AS \"provenance!\",\n                  t.created_at, t.updated_at\n           FROM farm_plots t\n           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n             AND ($2 OR t.village_id = ANY($3) OR t.farm_id IN (SELECT farm_person_farms($4)))\n             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)\n           ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8",
+  "query": "SELECT t.id, t.village_id, t.farm_id, t.label, t.area_ha::text AS area_ha,\n                  CASE WHEN $2 OR t.village_id = ANY($3) THEN t.latitude::text END AS latitude,\n                  CASE WHEN $2 OR t.village_id = ANY($3) THEN t.longitude::text END AS longitude,\n                  farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,\n                                  t.verified_by, t.verified_at, t.confidence, t.evidence_ref) AS \"provenance!\",\n                  t.created_at, t.updated_at\n           FROM farm_plots t\n           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n             AND ($2 OR t.village_id = ANY($3) OR t.farm_id IN (SELECT farm_person_farms($4)))\n             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)\n             AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))\n             AND ($11::uuid[] IS NULL OR t.farm_id = ANY($11))\n           ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8",
   "describe": {
     "columns": [
       {
@@ -103,7 +103,10 @@
         "Uuid",
         "Uuid",
         "Int8",
-        "Int8"
+        "Int8",
+        "TextArray",
+        "UuidArray",
+        "UuidArray"
       ]
     },
     "nullable": [
@@ -119,5 +122,5 @@
       false
     ]
   },
-  "hash": "f57fa6ce805951a4064490391b755a1807a19dfd69bd5bd0cdee4ca6b822ef53"
+  "hash": "baa5caf0b2f85d19986f5a119c6132bcb8b51063c91446dd082452755f0cb39c"
 }

@@ -29,6 +29,7 @@ import type {
   EnvelopeCropCycleResource,
   EnvelopeFarmResource,
   EnvelopeHarvestReportResource,
+  EnvelopeHoldings,
   EnvelopeHouseholdResource,
   EnvelopePersonResource,
   EnvelopePlotResource,
@@ -107,7 +108,7 @@ export const getFarmRecordsCropCyclesListQueryKey = (workspace: string,
     }
 
 
-export const getFarmRecordsCropCyclesListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getFarmRecordsCropCyclesListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: FarmRecordsCropCyclesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -127,10 +128,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type FarmRecordsCropCyclesListQueryResult = NonNullable<Awaited<ReturnType<typeof farmRecordsCropCyclesList>>>
-export type FarmRecordsCropCyclesListQueryError = ErrorType<MessageBody>
+export type FarmRecordsCropCyclesListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  FarmRecordsCropCyclesListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -141,7 +142,7 @@ export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof f
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsCropCyclesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -152,7 +153,7 @@ export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof f
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsCropCyclesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -161,7 +162,7 @@ export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof f
  * @summary List crop cycles
  */
 
-export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsCropCyclesList<TData = Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsCropCyclesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsCropCyclesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -622,7 +623,7 @@ export const getFarmRecordsFarmsListQueryKey = (workspace: string,
     }
 
 
-export const getFarmRecordsFarmsListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getFarmRecordsFarmsListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: FarmRecordsFarmsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -642,10 +643,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type FarmRecordsFarmsListQueryResult = NonNullable<Awaited<ReturnType<typeof farmRecordsFarmsList>>>
-export type FarmRecordsFarmsListQueryError = ErrorType<MessageBody>
+export type FarmRecordsFarmsListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  FarmRecordsFarmsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -656,7 +657,7 @@ export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRe
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsFarmsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -667,7 +668,7 @@ export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRe
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsFarmsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -676,7 +677,7 @@ export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRe
  * @summary List farms
  */
 
-export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsFarmsList<TData = Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsFarmsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsFarmsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -1025,7 +1026,7 @@ export const getFarmRecordsHouseholdsListQueryKey = (workspace: string,
     }
 
 
-export const getFarmRecordsHouseholdsListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getFarmRecordsHouseholdsListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: FarmRecordsHouseholdsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -1045,10 +1046,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type FarmRecordsHouseholdsListQueryResult = NonNullable<Awaited<ReturnType<typeof farmRecordsHouseholdsList>>>
-export type FarmRecordsHouseholdsListQueryError = ErrorType<MessageBody>
+export type FarmRecordsHouseholdsListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  FarmRecordsHouseholdsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -1059,7 +1060,7 @@ export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof f
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsHouseholdsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -1070,7 +1071,7 @@ export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof f
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsHouseholdsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -1079,7 +1080,7 @@ export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof f
  * @summary List households
  */
 
-export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsHouseholdsList<TData = Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsHouseholdsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHouseholdsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -1362,7 +1363,7 @@ export const getFarmRecordsPersonsListQueryKey = (workspace: string,
     }
 
 
-export const getFarmRecordsPersonsListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getFarmRecordsPersonsListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: FarmRecordsPersonsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -1382,10 +1383,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type FarmRecordsPersonsListQueryResult = NonNullable<Awaited<ReturnType<typeof farmRecordsPersonsList>>>
-export type FarmRecordsPersonsListQueryError = ErrorType<MessageBody>
+export type FarmRecordsPersonsListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  FarmRecordsPersonsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -1396,7 +1397,7 @@ export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farm
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsPersonsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -1407,7 +1408,7 @@ export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farm
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsPersonsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -1416,7 +1417,7 @@ export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farm
  * @summary List persons
  */
 
-export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsPersonsList<TData = Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsPersonsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -1604,6 +1605,106 @@ export const useFarmRecordsPersonsCorrect = <TError = ErrorType<MessageBody | Va
       return useMutation(getFarmRecordsPersonsCorrectMutationOptions(options), queryClient);
     }
     /**
+ * The person's households (members named) and the farms they manage or their household owns, with plots, crop cycles (with crop) and every harvest figure. Same visibility as the person: staff of the village, or the farmer and their household.
+ * @summary Everything a person holds, in one read
+ */
+export const farmRecordsPersonsHoldings = (
+    workspace: string,
+    person: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeHoldings>(
+      {url: `/workspace/${workspace}/farm/persons/${person}/holdings`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmRecordsPersonsHoldingsQueryKey = (workspace: string,
+    person: string,) => {
+    return [
+    `/workspace/${workspace}/farm/persons/${person}/holdings`
+    ] as const;
+    }
+
+
+export const getFarmRecordsPersonsHoldingsQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError = ErrorType<MessageBody>>(workspace: string,
+    person: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmRecordsPersonsHoldingsQueryKey(workspace,person);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>> = ({ signal }) => farmRecordsPersonsHoldings(workspace,person, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && person !== null && person !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmRecordsPersonsHoldingsQueryResult = NonNullable<Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>>
+export type FarmRecordsPersonsHoldingsQueryError = ErrorType<MessageBody>
+
+
+export function useFarmRecordsPersonsHoldings<TData = Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    person: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>,
+          TError,
+          Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmRecordsPersonsHoldings<TData = Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    person: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>,
+          TError,
+          Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmRecordsPersonsHoldings<TData = Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    person: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Everything a person holds, in one read
+ */
+
+export function useFarmRecordsPersonsHoldings<TData = Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    person: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPersonsHoldings>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmRecordsPersonsHoldingsQueryOptions(workspace,person,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * Field staff of the record's village. One-way: a verified or disputed record is refused.
  * @summary Verify a person
  */
@@ -1699,7 +1800,7 @@ export const getFarmRecordsPlotsListQueryKey = (workspace: string,
     }
 
 
-export const getFarmRecordsPlotsListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getFarmRecordsPlotsListQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: FarmRecordsPlotsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -1719,10 +1820,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type FarmRecordsPlotsListQueryResult = NonNullable<Awaited<ReturnType<typeof farmRecordsPlotsList>>>
-export type FarmRecordsPlotsListQueryError = ErrorType<MessageBody>
+export type FarmRecordsPlotsListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  FarmRecordsPlotsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -1733,7 +1834,7 @@ export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRe
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsPlotsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -1744,7 +1845,7 @@ export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRe
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsPlotsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -1753,7 +1854,7 @@ export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRe
  * @summary List plots
  */
 
-export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody>>(
+export function useFarmRecordsPlotsList<TData = Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: FarmRecordsPlotsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsPlotsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient

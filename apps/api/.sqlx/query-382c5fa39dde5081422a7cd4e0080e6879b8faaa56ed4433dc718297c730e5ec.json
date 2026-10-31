@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO farm_harvest_reports (workspace_id, village_id, crop_cycle_id, kind, quantity_kg,\n                                           reported_for, source, captured_by, confidence)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+  "query": "INSERT INTO farm_harvest_reports (workspace_id, village_id, crop_cycle_id, kind, quantity_kg,\n                                           reported_for, source, captured_by, confidence, client_ref)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -25,12 +25,13 @@
         "Date",
         "Text",
         "Uuid",
-        "Text"
+        "Text",
+        "Uuid"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "f4fec3ae7944c036618717ef02e40eea8f023d20f6b2724de6ab6a7660930dfa"
+  "hash": "382c5fa39dde5081422a7cd4e0080e6879b8faaa56ed4433dc718297c730e5ec"
 }
