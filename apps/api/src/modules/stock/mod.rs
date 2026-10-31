@@ -4,6 +4,7 @@
 pub mod dto;
 pub mod handlers;
 pub mod repo;
+pub mod reserve;
 pub mod resource;
 pub mod routes;
 pub mod service;

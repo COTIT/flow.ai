@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Phase 2a "open the web shop", step 1:
+  - **Migration `orders_payments`:** `orders`, `order_lines` (money in bigint minor units), `stock_reservations` (holds per stock row), `order_payments` (provider payments and refunds, one live intent per order, one auto refund per payment), `payment_webhook_inbox`; `document_counters` gains the `order` series; `idempotency_keys.app_key_id` (one actor per key).
+  - **`stock::reserve`:** `reserve`/`release`/`commit`/`restock` with `Want { product_id, quantity }`. Reserve is all or nothing from the warehouse-level row (no overselling), writes one `stock_reservations` row per stock row and raises `stocks.reserved`; release and commit consume that record's rows oldest first and refuse more than held. Every call needs `cause.related`. Holds emit `stock.changed` (reason `reserved`/`released`). Slots lock in product order: 100 opposite-order orders at once never deadlock.
+
 - Phase 1 "lay the pipes" (contracts `docs/api/app-keys.md`, `storefront.md`, `webhooks.md`):
   - **App keys** (migration `app_keys`): `gsk_` keys per workspace and app kind, sha256 only, scopes (`catalog:read`), revoke, `last_used_at` at most once a minute. `AppKey` extractor beside `AuthUser`; the private rate limit buckets per key. Admin routes `/workspace/{workspace}/app-keys`.
   - **Storefront:** `GET /storefront/products[/{product}]` for `catalog:read` keys: active, unarchived products with variants, prices in integer minor units and available stock, one statement per call.
