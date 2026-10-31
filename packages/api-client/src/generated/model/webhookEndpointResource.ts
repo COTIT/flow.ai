@@ -15,7 +15,7 @@ export interface WebhookEndpointResource {
   created_at: string;
   /** @nullable */
   description: string | null;
-  /** Subscribed events: `product.changed`, `stock.changed`. */
+  /** Subscribed events: `order.created`, `product.changed`, `stock.changed`. */
   events: string[];
   id: string;
   updated_at: string;

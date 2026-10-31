@@ -17,6 +17,7 @@ use crate::{
     modules::{
         auth::token,
         currencies, files,
+        invoice_payments::{self, balance},
         invoices::{
             pdf, repo,
             service::{parse, store_totals},
@@ -213,11 +214,27 @@ async fn number(
     } else {
         new_token(state, workspace_id, id)?
     };
-    // Laravel UpdateInvoiceBalanceAfterPayment on a zero total: paid, or credited.
+    // Laravel UpdateInvoiceBalanceAfterPayment on a zero total: paid, or credited. Payments
+    // booked on the draft (an order paid online) count from the start.
+    let (paid, cash) = invoice_payments::repo::sums(&mut tx, workspace_id, id).await?;
+    let dp = currencies::repo::share_decimals(&mut tx, workspace_id, locked.currency_id)
+        .await?
+        .and_then(|d| u32::try_from(d).ok())
+        .unwrap_or(2);
     let status = match (total, locked.is_credit) {
         (0, false) => "paid",
         (0, true) => "credited",
-        _ => "pending",
+        _ => balance::status(
+            "pending",
+            locked.is_credit,
+            balance::Balance {
+                total,
+                paid,
+                cash,
+                dp,
+            },
+        )
+        .unwrap_or("pending"),
     };
     let appendix = Appendix::from_section(own).to_json();
     // Last: the counter row stays locked from here to commit only.

@@ -623,3 +623,76 @@ async fn an_invoice_of_a_paid_order_books_paid_minus_refunded(pool: PgPool) {
     drain(&w).await;
     assert_eq!(to_invoice(part).await.0, 1800);
 }
+
+async fn available(w: &W) -> Value {
+    let path = format!("/products/{}", w.honey);
+    shop(w, Method::GET, &path, None).await.1["data"]["available_stock"].clone()
+}
+
+async fn level(w: &W) -> String {
+    sqlx::query_scalar(
+        "SELECT stock_lvl::text FROM stocks WHERE product_id = $1::uuid AND bin_id IS NULL",
+    )
+    .bind(&w.honey)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap()
+}
+
+/// Phase 2a done-when: a paid web order lowers the same stock the till sees. Checkout holds
+/// it (the shop's availability drops), the provider confirms payment, the office picks and
+/// completes, and the warehouse level itself is lower.
+#[sqlx::test]
+async fn a_paid_web_order_lowers_the_stock_the_till_sees(pool: PgPool) {
+    let w = world(pool).await;
+    assert_eq!(
+        (available(&w).await, level(&w).await),
+        (json!("5.00"), "5.00".to_owned())
+    );
+    let id = paid(&w, 2).await;
+    assert_eq!(order(&w, &id).await["status"], "open");
+    assert_eq!(available(&w).await, "3.00", "held for the paid order");
+    let lines: Vec<Value> = order(&w, &id).await["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| json!({ "line_id": l["id"], "quantity": l["quantity"] }))
+        .collect();
+    let (s, _) = w
+        .api
+        .call(
+            Method::POST,
+            &format!("/{id}/pick"),
+            Some(json!({ "lines": lines })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, o) = w
+        .api
+        .call(Method::POST, &format!("/{id}/complete"), None, &w.api.owner)
+        .await;
+    assert_eq!(
+        (s, &o["data"]["status"]),
+        (StatusCode::OK, &json!("completed"))
+    );
+    assert_eq!(
+        (available(&w).await, level(&w).await),
+        (json!("3.00"), "3.00".to_owned())
+    );
+    let (s, stocks) = w
+        .api
+        .with_base("/products")
+        .call(
+            Method::GET,
+            &format!("/{}/stock-movements", w.honey),
+            None,
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{stocks}");
+    assert!(
+        stocks.to_string().contains("-2.00"),
+        "the office ledger shows the sale: {stocks}"
+    );
+}
