@@ -25,12 +25,6 @@ async function load() {
 describe("pending endpoints", () => {
   beforeEach(() => vi.resetModules())
 
-  it("lists my workspaces", async () => {
-    const { meWorkspaces } = await load()
-    const body = (await meWorkspaces()) as unknown as { url: string }
-    expect(body.url).toBe("http://api.test/v1/me/workspaces")
-  })
-
   it("lists one workspace's products, page by page", async () => {
     const { productsList } = await load()
     const body = (await productsList("ws-1", { page: 2 })) as unknown as {
@@ -42,10 +36,14 @@ describe("pending endpoints", () => {
   })
 
   it("lets server code pass the token per call instead of the shared store", async () => {
-    const { meWorkspaces } = await load()
-    const body = (await meWorkspaces({
-      headers: { Authorization: "Bearer srv" },
-    })) as unknown as {
+    const { productsList } = await load()
+    const body = (await productsList(
+      "ws-1",
+      {},
+      {
+        headers: { Authorization: "Bearer srv" },
+      }
+    )) as unknown as {
       authorization: string
     }
     expect(body.authorization).toBe("Bearer srv")
