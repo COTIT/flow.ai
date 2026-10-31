@@ -272,8 +272,6 @@ const MAX_HOPS: usize = 4;
 
 /// Where a lot's farmers come from: the batch's raw lot, the packing on the way (raw kg,
 /// units), and the allow-list of the first transfer crossed walking back from the lot.
-// shortcut: batch_id, price_per_kg and currency_id are read by the sale credit (step 6).
-#[allow(dead_code)]
 pub struct Lineage {
     pub batch_id: Uuid,
     pub root_workspace_id: Uuid,
@@ -287,10 +285,13 @@ pub struct Lineage {
 
 /// Walk back from `lot_id` through packing parents and received transfers to a supply
 /// batch. None when the lot doesn't come from one.
-pub async fn lineage(db: &sqlx::PgPool, lot_id: Uuid) -> Result<Option<Lineage>, AppError> {
+pub async fn lineage(
+    conn: &mut sqlx::PgConnection,
+    lot_id: Uuid,
+) -> Result<Option<Lineage>, AppError> {
     let (mut cur, mut pack, mut fields) = (lot_id, None, None);
     for _ in 0..=MAX_HOPS {
-        let Some(h) = repo::hop(db, cur).await? else {
+        let Some(h) = repo::hop(&mut *conn, cur).await? else {
             return Ok(None);
         };
         if let (Some(kg), Some(units)) = (h.pack_raw_kg, h.pack_units) {
@@ -302,7 +303,7 @@ pub async fn lineage(db: &sqlx::PgPool, lot_id: Uuid) -> Result<Option<Lineage>,
         match h.parent_lot_id.or(h.from_lot_id) {
             Some(next) => cur = next,
             None => {
-                let batch = repo::batch_of_lot(db, h.workspace_id, h.id).await?;
+                let batch = repo::batch_of_lot(&mut *conn, h.workspace_id, h.id).await?;
                 return Ok(batch.map(|(batch_id, price_per_kg, currency_id)| Lineage {
                     batch_id,
                     root_workspace_id: h.workspace_id,
@@ -324,7 +325,7 @@ pub async fn public_farmers(
     db: &sqlx::PgPool,
     lot_id: Uuid,
 ) -> Result<Vec<repo::GroupRow>, AppError> {
-    let Some(l) = lineage(db, lot_id).await? else {
+    let Some(l) = lineage(&mut *db.acquire().await?, lot_id).await? else {
         return Ok(Vec::new());
     };
     let mut groups = repo::public_groups(db, l.root_workspace_id, l.root_lot_id).await?;

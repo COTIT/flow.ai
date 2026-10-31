@@ -113,7 +113,7 @@ pub async fn pack(
     let parent = lots::find(&state.db, ws, parse(id)?)
         .await?
         .ok_or(AppError::NotFound)?;
-    let line = lineage(&state.db, parent.id).await?;
+    let line = lineage(&mut *state.db.acquire().await?, parent.id).await?;
     match &line {
         None => return Err(AppError::Unprocessable(NOT_SUPPLY.into())),
         Some(l) if l.pack.is_some() => return Err(AppError::Unprocessable(PACKED.into())),
@@ -203,7 +203,10 @@ pub async fn dispatch(
     if !link.live {
         return Err(AppError::Forbidden(NOT_LIVE));
     }
-    if lineage(&state.db, lot.id).await?.is_none() {
+    if lineage(&mut *state.db.acquire().await?, lot.id)
+        .await?
+        .is_none()
+    {
         return Err(AppError::Unprocessable(NOT_SUPPLY_SEND.into()));
     }
     if !warehouses::exists(&state.db, ws, d.warehouse_id).await? {

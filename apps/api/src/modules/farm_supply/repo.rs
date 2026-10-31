@@ -348,3 +348,199 @@ pub async fn batch_of_lot(
     .await?;
     Ok(row.map(|r| (r.id, r.price_per_kg, r.currency_id)))
 }
+
+/// What an order took off the shelf: per lot (None = no-lot stock) and product, by product
+/// then lot (no-lot first).
+pub struct TakeRow {
+    pub lot_id: Option<Uuid>,
+    pub product_id: Uuid,
+    pub qty: Decimal,
+}
+
+/// The order's stock decreases (commit or take) in `workspace_id`, summed per lot.
+pub async fn order_takes(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    order_id: Uuid,
+) -> Result<Vec<TakeRow>, sqlx::Error> {
+    sqlx::query_as!(
+        TakeRow,
+        r#"SELECT m.lot_id AS "lot_id?", m.product_id,
+                  (-sum(m.quantity_change))::numeric(19,2) AS "qty!"
+           FROM stock_movements m
+           WHERE m.workspace_id = $1 AND m.related_domain = 'order' AND m.related_id = $2
+             AND m.quantity_change < 0
+           GROUP BY m.lot_id, m.product_id
+           ORDER BY m.product_id, m.lot_id NULLS FIRST"#,
+        workspace_id,
+        order_id,
+    )
+    .fetch_all(conn)
+    .await
+}
+
+/// A farmer's kg in a batch.
+pub struct WeightRow {
+    pub person_id: Uuid,
+    pub village_id: Uuid,
+    pub kg: Decimal,
+}
+
+/// Each farmer's kg in `batch_id`, by person id.
+pub async fn weights(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    batch_id: Uuid,
+) -> Result<Vec<WeightRow>, sqlx::Error> {
+    sqlx::query_as!(
+        WeightRow,
+        r#"SELECT person_id, village_id, sum(kg)::numeric(12,2) AS "kg!" FROM farm_supply_shares
+           WHERE workspace_id = $1 AND batch_id = $2
+           GROUP BY person_id, village_id ORDER BY person_id"#,
+        workspace_id,
+        batch_id,
+    )
+    .fetch_all(conn)
+    .await
+}
+
+/// A new attribution row.
+pub struct NewAttribution<'a> {
+    pub workspace_id: Uuid,
+    pub batch_id: Uuid,
+    pub kind: &'static str,
+    pub sold_workspace_id: Uuid,
+    pub order_id: Uuid,
+    pub order_number: &'a str,
+    pub sold_lot_id: Uuid,
+    pub jars: Decimal,
+    pub pack_raw_kg: Decimal,
+    pub pack_units: Decimal,
+    pub price_per_kg: i64,
+    pub currency_id: Uuid,
+    pub total: i64,
+}
+
+/// Insert an attribution; its id.
+pub async fn insert_attribution(
+    conn: &mut PgConnection,
+    a: &NewAttribution<'_>,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar!(
+        "INSERT INTO farm_sale_attributions (workspace_id, batch_id, kind, sold_workspace_id,
+                                             order_id, order_number, sold_lot_id, jars,
+                                             pack_raw_kg, pack_units, price_per_kg, currency_id,
+                                             total)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id",
+        a.workspace_id,
+        a.batch_id,
+        a.kind,
+        a.sold_workspace_id,
+        a.order_id,
+        a.order_number,
+        a.sold_lot_id,
+        a.jars,
+        a.pack_raw_kg,
+        a.pack_units,
+        a.price_per_kg,
+        a.currency_id,
+        a.total,
+    )
+    .fetch_one(conn)
+    .await
+}
+
+/// A passbook line for an attribution (`kind` sale_credit or sale_reversal, signed amount).
+#[allow(clippy::too_many_arguments)]
+pub async fn attribution_line(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    village_id: Uuid,
+    person_id: Uuid,
+    currency_id: Uuid,
+    kind: &str,
+    amount: i64,
+    attribution_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "INSERT INTO farm_passbook_entries (workspace_id, village_id, person_id, currency_id,
+                                            kind, amount, attribution_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        workspace_id,
+        village_id,
+        person_id,
+        currency_id,
+        kind,
+        amount,
+        attribution_id,
+    )
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
+/// The sale attribution of an order's lot.
+pub struct SaleRow {
+    pub workspace_id: Uuid,
+    pub batch_id: Uuid,
+    pub pack_raw_kg: Decimal,
+    pub pack_units: Decimal,
+    pub price_per_kg: i64,
+    pub currency_id: Uuid,
+}
+
+/// The `sale` attribution of `lot_id` on the order, if its farmers were credited.
+pub async fn sale_of(
+    conn: &mut PgConnection,
+    sold_workspace_id: Uuid,
+    order_id: Uuid,
+    lot_id: Uuid,
+) -> Result<Option<SaleRow>, sqlx::Error> {
+    sqlx::query_as!(
+        SaleRow,
+        "SELECT workspace_id, batch_id, pack_raw_kg, pack_units, price_per_kg, currency_id
+         FROM farm_sale_attributions
+         WHERE sold_workspace_id = $1 AND order_id = $2 AND sold_lot_id = $3 AND kind = 'sale'",
+        sold_workspace_id,
+        order_id,
+        lot_id,
+    )
+    .fetch_optional(conn)
+    .await
+}
+
+/// Units already returned on the order's lot, and each farmer's reversal lines so far.
+pub async fn returned_so_far(
+    conn: &mut PgConnection,
+    sold_workspace_id: Uuid,
+    order_id: Uuid,
+    lot_id: Uuid,
+) -> Result<(Decimal, Vec<(Uuid, i64)>), sqlx::Error> {
+    let jars = sqlx::query_scalar!(
+        r#"SELECT coalesce(sum(jars), 0)::numeric(19,2) AS "jars!" FROM farm_sale_attributions
+           WHERE sold_workspace_id = $1 AND order_id = $2 AND sold_lot_id = $3
+             AND kind = 'return'"#,
+        sold_workspace_id,
+        order_id,
+        lot_id,
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    let lines = sqlx::query!(
+        r#"SELECT e.person_id, sum(e.amount)::bigint AS "amount!"
+           FROM farm_sale_attributions a
+           JOIN farm_passbook_entries e ON e.attribution_id = a.id
+           WHERE a.sold_workspace_id = $1 AND a.order_id = $2 AND a.sold_lot_id = $3
+             AND a.kind = 'return'
+           GROUP BY e.person_id"#,
+        sold_workspace_id,
+        order_id,
+        lot_id,
+    )
+    .fetch_all(conn)
+    .await?;
+    Ok((
+        jars,
+        lines.into_iter().map(|l| (l.person_id, l.amount)).collect(),
+    ))
+}

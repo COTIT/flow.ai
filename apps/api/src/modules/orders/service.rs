@@ -15,7 +15,7 @@ use crate::{
     error::AppError,
     idempotency::{self, Actor, Answer, Key},
     modules::{
-        currencies, invoice_payments,
+        currencies, farm_supply, invoice_payments,
         invoices::{
             self,
             dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
@@ -712,6 +712,7 @@ pub async fn complete(
                 .map(|l| (l.id, l.picked, l.quantity, l.returned))
                 .collect();
             repo::set_line_quantities(conn, workspace_id, &rows).await?;
+            farm_supply::sale::on_sale(conn, workspace_id, o.id, &o.number).await?;
             repo::set_status(conn, workspace_id, o.id, "completed").await?;
             Ok(())
         },
@@ -848,6 +849,11 @@ pub async fn returns(
                 .map(|l| (l.id, l.picked, l.deducted, l.returned))
                 .collect();
             repo::set_line_quantities(conn, workspace_id, &rows).await?;
+            let mut returned = std::collections::BTreeMap::new();
+            for l in lines.iter().filter(|l| l.tracked && !l.returned.is_zero()) {
+                *returned.entry(l.product_id).or_insert(Decimal::ZERO) += l.returned;
+            }
+            farm_supply::sale::on_return(conn, workspace_id, o.id, &o.number, &returned).await?;
             let all = lines.iter().all(|l| l.returned == l.quantity);
             let status = if all {
                 "returned"

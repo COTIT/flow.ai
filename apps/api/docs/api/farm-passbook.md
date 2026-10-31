@@ -17,7 +17,21 @@ Line: `{id, kind, amount, balance_after, attribution_id, payout_id, created_at}`
 - `amount`: signed, credits positive, debits negative; never 0.
 - `balance_after`: the balance in that currency right after this line, summed over all lines before the page is cut. The first line of page 1 is the current balance.
 
-## Credit math (`farm_supply::credit`, used at sale time)
+## Credits at sale and debits on return (`farm_supply::sale`)
+
+- **When:** an order is completed and its jars leave the shelf (office or web order; the till follows). Every supply lot among them is traced back to its batch through packing and transfers (`supply-chain.md`).
+- **One transaction with the sale, in the farm workspace:**
+  - a `sale` row in `farm_sale_attributions` (order, lot, jars, kg per jar, price, total)
+  - a `sale_credit` passbook line per farmer
+  - `sale.attributed`
+
+  A lot is credited once per order. The sale amount (in the shop's currency) is not used: farmers are owed the agreed price per kg, in the batch currency, so no exchange rate is needed.
+- **Returns:** after the order's returned quantities change, the returned units of each product are spread over the lots the order took, by units taken (largest remainder). For each credited lot, the target debit is the same credit function applied to its returned units, split by kg. Only the change since the last return is written: a `return` row and `sale_reversal` lines.
+  - A full return brings every farmer back to exactly 0.
+  - A partial return may move one minor unit between farmers (the largest-remainder rule re-splits a new total); the next return evens it out. Lines are signed, so the money stays exact.
+- **Append-only:** attributions and passbook lines are never changed; a trigger refuses `UPDATE`, `DELETE` and `TRUNCATE`.
+
+## Credit math (`farm_supply::credit`)
 
 - **Credit:** a sale of `jars` from a lot packed `units` jars from `raw_kg` kg owes `price_per_kg × jars × raw_kg ÷ units`. That total is rounded once, half up, to a minor unit (a raw lot sold by the kg is 1:1).
 - **Split:** the total is split over the batch's farmers by their kg with the largest-remainder rule. Each farmer gets `floor(total × kg ÷ all kg)`; the leftover units go one each to the largest remainders, ties to the smaller person id. The credits always sum to the total exactly. Integers only.

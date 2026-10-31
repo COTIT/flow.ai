@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT workspace_id, batch_id, pack_raw_kg, pack_units, price_per_kg, currency_id\n         FROM farm_sale_attributions\n         WHERE sold_workspace_id = $1 AND order_id = $2 AND sold_lot_id = $3 AND kind = 'sale'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "batch_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "batch_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "pack_raw_kg",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "pack_raw_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "pack_units",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "pack_units"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "price_per_kg",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "price_per_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "currency_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "110885cbd4c55bbd2b4298a0f95368ce551c5e54578a299862a8bae7a68ca80b"
+}
