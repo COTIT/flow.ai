@@ -1303,3 +1303,35 @@ fn every_farm_logins_operation_is_documented() {
         json!(["string", "null"])
     );
 }
+
+#[test]
+fn every_farm_documents_operation_is_documented() {
+    assert_documented(&[
+        (
+            "/farm/plots/{plot}/documents",
+            "get",
+            "farm_documents_list",
+            "200",
+        ),
+        (
+            "/farm/plots/{plot}/documents",
+            "post",
+            "farm_documents_create",
+            "201",
+        ),
+        (
+            "/farm/plots/{plot}/documents/{document}",
+            "get",
+            "farm_documents_get",
+            "200",
+        ),
+    ]);
+    let s = spec();
+    let one = &s["paths"]["/workspace/{workspace}/farm/plots/{plot}/documents/{document}"];
+    for method in ["put", "patch", "delete"] {
+        assert!(
+            one.get(method).is_none(),
+            "{method}: documents are append-only"
+        );
+    }
+}

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Phase 4 plot title documents (contract `docs/api/farm-documents.md`, migration `farm_plot_documents`): `/farm/plots/{plot}/documents` list, multipart upload (JPEG/PNG/WebP/HEIC/PDF sniffed from the bytes, 10 MB, client `id` makes retries safe, a fresh object per attempt) and get with a 10-minute presigned link. Staff of the plot's village only; farmers get 404. Own append-only table (trigger), key tied to the plot folder by CHECK and re-checked in Rust; never visible to the workspace file list or file delete. `files::service::{display_name, inline}` are now `pub(crate)` for reuse.
 - Phase 4 farmer logins (G11, contract `docs/api/farm-logins.md`, migration `farm_logins`):
   - `users.email` nullable, `users.phone` (unique, E.164) and `users.must_change_password`; an account has an email or a phone. The down migration refuses while phone-only accounts exist.
   - Officers issue/reset a farmer login from a person (`POST /farm/persons/{person}/login`, temporary password shown once, reset ends every session); history at `/login-history`; `farm_login_issues` append-only.

@@ -3896,6 +3896,52 @@
         ],
         "type": "object"
       },
+      "Envelope_PlotDocumentDownload": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlotDocumentResource"
+              },
+              {
+                "properties": {
+                  "download_expires_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "download_url": {
+                    "description": "Works until `download_expires_at` (at most 15 minutes).",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "download_url",
+                  "download_expires_at"
+                ],
+                "type": "object"
+              }
+            ],
+            "description": "One document plus a short-lived link to the file."
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_PlotDocumentResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PlotDocumentResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_PlotResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -7963,6 +8009,25 @@
         ],
         "type": "object"
       },
+      "Paginated_PlotDocumentResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PlotDocumentResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_PlotResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -9088,6 +9153,98 @@
         },
         "required": [
           "label"
+        ],
+        "type": "object"
+      },
+      "PlotDocumentDownload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PlotDocumentResource"
+          },
+          {
+            "properties": {
+              "download_expires_at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "download_url": {
+                "description": "Works until `download_expires_at` (at most 15 minutes).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "download_url",
+              "download_expires_at"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "One document plus a short-lived link to the file."
+      },
+      "PlotDocumentForm": {
+        "description": "Multipart form: `file` (required) and `id` (optional uuid; send the same one on a retry).",
+        "properties": {
+          "file": {
+            "format": "binary",
+            "type": "string"
+          },
+          "id": {
+            "description": "Client-made id, so a retried upload lands on the same document.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "type": "object"
+      },
+      "PlotDocumentResource": {
+        "description": "A plot's title document. Never changed or deleted.",
+        "properties": {
+          "content_type": {
+            "description": "`image/jpeg`, `image/png`, `image/webp`, `image/heic` or `application/pdf`, read from the bytes.",
+            "type": "string"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "plot_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "size_bytes": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "uploaded_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "uploaded_by": {
+            "$ref": "#/components/schemas/UploaderRef"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "village_id",
+          "plot_id",
+          "file_name",
+          "content_type",
+          "size_bytes",
+          "uploaded_by",
+          "uploaded_at"
         ],
         "type": "object"
       },
@@ -15078,6 +15235,23 @@
           "upload",
           "document_name",
           "public"
+        ],
+        "type": "object"
+      },
+      "UploaderRef": {
+        "description": "Who filed a document.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
         ],
         "type": "object"
       },
@@ -34094,6 +34268,438 @@
         "summary": "Correct a plot",
         "tags": [
           "farm_records"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/plots/{plot}/documents": {
+      "get": {
+        "description": "Field staff of the plot's village. Farmers see no documents, their own plot's included.",
+        "operationId": "farm_documents_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Plot id",
+            "in": "path",
+            "name": "plot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_PlotDocumentResource"
+                }
+              }
+            },
+            "description": "One page, oldest first"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown plot, or caller not staff of its village"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List a plot's title documents",
+        "tags": [
+          "farm_documents"
+        ]
+      },
+      "post": {
+        "description": "Field staff of the plot's village. Multipart `file` (JPEG, PNG, WebP, HEIC or PDF, at most 10 MB; the type is read from the bytes) and an optional `id`: a retry with the same id returns the document already filed and stores nothing.",
+        "operationId": "farm_documents_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Plot id",
+            "in": "path",
+            "name": "plot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PlotDocumentForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PlotDocumentResource"
+                }
+              }
+            },
+            "description": "Already filed under this id"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PlotDocumentResource"
+                }
+              }
+            },
+            "description": "Filed"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown plot, or caller not staff of its village"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id is used by another plot's document"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Not a multipart form, unknown field, file type not allowed, or over 10 MB"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "File a plot title document",
+        "tags": [
+          "farm_documents"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/plots/{plot}/documents/{document}": {
+      "get": {
+        "operationId": "farm_documents_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Plot id",
+            "in": "path",
+            "name": "plot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Document id",
+            "in": "path",
+            "name": "document",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PlotDocumentDownload"
+                }
+              }
+            },
+            "description": "The document; the link expires at `download_expires_at`"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown plot or document, or caller not staff of its village"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a title document and a download link",
+        "tags": [
+          "farm_documents"
         ]
       }
     },
