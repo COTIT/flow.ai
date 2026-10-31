@@ -15,6 +15,7 @@ export * from './hourly-rates/hourly-rates';
 export * from './invites/invites';
 export * from './invoice-payments/invoice-payments';
 export * from './invoices/invoices';
+export * from './lots/lots';
 export * from './messages/messages';
 export * from './pdf-templates/pdf-templates';
 export * from './permissions/permissions';

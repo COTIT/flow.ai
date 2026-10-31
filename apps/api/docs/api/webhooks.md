@@ -8,8 +8,10 @@ Events sent to URLs a workspace registers. Code: `src/modules/webhooks/`.
 |---|---|---|
 | `stock.changed` | a stock level changes (mutations, set levels, bin moves, invoice stock moves). Requirement-only changes send nothing. | `stock_id, product_id, warehouse_id, reason` (increase, decrease, set_level), `quantity_change, quantity_after` (decimal strings) |
 | `product.changed` | a product or one of its variants is created, updated or deleted | `product_id, action` (created, updated, deleted; variant writes are `updated`) |
+| `lot.created` | a lot is created | `lot_id, product_id, code, public_code` |
+| `passport.published` | a lot's passport is published (each new version) | `lot_id, product_id, public_code, version` |
 
-Payloads are thin: re-read through `/storefront` for the details. Planned, not sent yet: `order.created`, `lot.created`, `harvest.reported`, `passport.published`, `sale.attributed`.
+Payloads are thin: re-read through `/storefront` for the details. Planned, not sent yet: `order.created`, `harvest.reported`, `sale.attributed`.
 
 ## Delivery
 

@@ -1172,3 +1172,42 @@ fn assert_ops(ops: &[Op]) {
         assert!(has_ws, "{method} {path}: no workspace param");
     }
 }
+
+#[test]
+fn every_lots_operation_is_documented() {
+    assert_documented(&[
+        ("/lots", "get", "lots_list", "200"),
+        ("/lots", "post", "lots_create", "201"),
+        ("/lots/{lot}", "get", "lots_get", "200"),
+        ("/lots/{lot}", "patch", "lots_update", "200"),
+        ("/lots/{lot}/events", "get", "lots_events", "200"),
+        ("/lots/{lot}/passport", "get", "lots_passport_get", "200"),
+        ("/lots/{lot}/passport", "put", "lots_passport_save", "200"),
+        (
+            "/lots/{lot}/passport/publish",
+            "post",
+            "lots_passport_publish",
+            "200",
+        ),
+        (
+            "/lots/{lot}/passport/publish",
+            "delete",
+            "lots_passport_unpublish",
+            "200",
+        ),
+    ]);
+}
+
+/// The lot page: no auth on the public mount, an app key on the storefront mount.
+#[test]
+fn lot_page_mounts_are_documented() {
+    let s = spec();
+    let public = &s["paths"]["/public/lots/{code}"]["get"];
+    assert_eq!(public["operationId"], "lots_public_get");
+    assert!(public["responses"]["200"].is_object() && public["responses"]["404"].is_object());
+    assert!(public.get("security").is_none(), "public: {public}");
+    let shop = &s["paths"]["/storefront/lots/{code}"]["get"];
+    assert_eq!(shop["operationId"], "storefront_lots_get");
+    assert_eq!(shop["security"][0]["app_key"], json!([]));
+    assert!(shop["responses"]["404"].is_object());
+}
