@@ -78,6 +78,7 @@
   /* Gold is too light for text on white: use it as a ground under navy text, or decoration. */
   --gold: #d0a55f;
   --gold-foreground: #0a183a;
+  /* Navy on teal is 4.54:1, just over AA: teal only behind short labels or large text. */
   --teal: #01909b;
   --teal-foreground: #0a183a;
   --gold-gradient: linear-gradient(

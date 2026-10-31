@@ -60,6 +60,19 @@ describe("storefront calls", () => {
     }
   )
 
+  it("log the API path and upstream status, never the key or request headers", async () => {
+    api.storefrontLotsGet.mockRejectedValue(
+      Object.assign(httpError(503), {
+        config: { headers: { Authorization: "Bearer gsk_test_key" } },
+      })
+    )
+    await getLot("7K3M9QX2WD").catch(() => {})
+    const logged = JSON.stringify(vi.mocked(console.error).mock.calls)
+    expect(logged).toContain("/storefront/lots/7K3M9QX2WD")
+    expect(logged).toContain("503")
+    expect(logged).not.toMatch(/gsk_|Bearer|Authorization/)
+  })
+
   it("treat a timeout or network error as unavailable", async () => {
     api.storefrontProductsList.mockRejectedValue(
       Object.assign(new Error("timeout of 8000ms exceeded"), {
