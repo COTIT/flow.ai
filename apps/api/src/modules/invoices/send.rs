@@ -329,8 +329,8 @@ async fn recipient(
 }
 
 /// Laravel SendInvoice::mutateStock: each stock-keeping line moves its quantity not yet moved
-/// (a credit note's negative lines put it back). A store may go negative, another warehouse
-/// may not (422, nothing stored). The movement points at the invoice: its number comes later.
+/// (a credit note's negative lines put it back). A store may go negative; another warehouse
+/// may not, nor take what orders hold (422, nothing stored). The movement points at the invoice: its number comes later.
 // shortcut: no order rule (Laravel skipped invoices of orders) until orders land in F12.
 async fn move_stock(
     conn: &mut PgConnection,
@@ -368,7 +368,8 @@ async fn move_stock(
         let floor = if l.is_store == Some(true) {
             Floor::None
         } else {
-            Floor::Zero
+            // Never stock an order holds: web orders are paid against their hold.
+            Floor::Available
         };
         let short = |available: Decimal| {
             AppError::Unprocessable(format!(

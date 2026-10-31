@@ -77,7 +77,7 @@ The storefront's `available_stock` counts only no-lot stock and sellable lot sto
 Till sales and sent invoices take stock straight away, through the stock seam's `take`. They use the same order: no-lot stock first, then sellable lots first-expired-first. Each ledger line names its lot.
 
 - **Store warehouses** never refuse. What the rows can't cover lands on the no-lot row, which may go below zero, as before.
-- **Other warehouses** refuse an invoice that asks for more than the no-lot row and the sellable lots hold: `422` "Insufficient stock for product … Available stock: … Required: …". Nothing is written.
+- **Other warehouses** refuse an invoice that asks for more than the no-lot row and the sellable lots have free (level − what orders hold): `422` "Insufficient stock for product … Available stock: … Required: …". Nothing is written. An invoice never takes stock a web order holds.
 - **Credit notes** put stock back on the no-lot row, never into a lot.
 
 ## Passport

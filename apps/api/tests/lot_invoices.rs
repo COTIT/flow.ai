@@ -139,3 +139,53 @@ async fn a_credit_note_puts_stock_back_on_the_no_lot_row(pool: PgPool) {
 
     assert_eq!(rows(&f, &f.main).await, [r("-", "1.00"), r("L1", "1.00")]);
 }
+
+#[sqlx::test]
+async fn an_invoice_never_takes_stock_an_order_holds(pool: PgPool) {
+    let f = setup(pool).await;
+    let orders = f.api.with_base("/orders");
+    let (s, res) = orders
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "lines": [{ "product_id": f.product, "quantity": "5" }] })),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let order = res["data"]["order_id"].as_str().unwrap().to_owned();
+    let (s, res) = orders
+        .call(
+            Method::POST,
+            &format!("/{order}/confirm"),
+            None,
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+
+    let (s, res) = sent(&f, chairs(&f, 6, Some(&f.main)), false).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["message"],
+        "Insufficient stock for product Chair in Main. Available stock: 5. Required: 6"
+    );
+
+    let (s, res) = sent(&f, chairs(&f, 5, Some(&f.main)), false).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let left: (String, String) = sqlx::query_as(
+        "SELECT stock_lvl::text, reserved::text FROM stocks
+         WHERE product_id = $1::uuid AND warehouse_id = $2::uuid AND bin_id IS NULL
+           AND lot_id IS NULL AND deleted_at IS NULL",
+    )
+    .bind(&f.product)
+    .bind(&f.main)
+    .fetch_one(&f.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        left,
+        ("5.00".to_owned(), "5.00".to_owned()),
+        "the hold is intact"
+    );
+}
