@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- OpenAPI rollout group A: `users`, `permissions`, `workspaces` and `teams` are now documented (15 operations) and served through `openapi::private()` instead of `build_app`'s plain list. Paths, statuses and bodies are unchanged; the contract check passes on every reply in the full suite.
+  - operationIds: `users_me`, `users_workspaces`, `users_list`, `users_get`, `permissions_catalog`, `workspaces_get`, `workspaces_update`, `teams_create`, `teams_list`, `teams_get`, `teams_update`, `teams_delete`, `teams_add_users`, `teams_remove_users`, `teams_set_permissions`.
+  - Hand-written schemas: the permission catalog (`{<group>: [actions], __classification}`, a map serialized by hand) and the workspace update body (`WorkspaceProfilePatch`, the request is parsed as a raw map). `UserDetail` is a `$ref` to `UserResource`.
+  - Doc gaps: profile fields are stored as raw JSON, so the schema lists what validation stores (strings, `credit_limit` a number); `address.house_number` may come back as a string or a number (any type in the schema). `workspace_profile` is optional on `/me/workspaces` (left out until saved) and has no `account` there.
+  - Generic schema names got a prefix to avoid future clashes: `UserRelationships`, `WorkspaceProfile`, `WorkspaceAddress`, `WorkspaceAccount`.
+  - Laravel/internal wording removed from the spec: `InviteResource`, `InviteStatusResponse` and `UserEmailResource` descriptions now hold public text only; internal notes moved to `//` comments.
 - Pulled the later genesy-360-api work into `apps/api` (old repo `416abee49`): F6 invoice send/numbering/credit notes, F7 invoice payments, B7-1 job rail + idempotency keys, B8-1/B8-2 deal pipelines and deals, `ctutils` 0.4.4 (RUSTSEC-2026-0385). The invoices public hash link joins the public router undocumented; the test `send()` keeps the contract check and delegates to upstream's `send_raw`.
 - OpenAPI step 2 (TypeScript client):
   - `openapi::spec()` now returns JSON and swaps inline copies of named schemas for `$ref`s (utoipa pastes generic args inline; orval then emitted duplicate anonymous types).

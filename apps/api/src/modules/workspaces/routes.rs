@@ -1,15 +1,13 @@
-//! Workspace record routes, mounted under /v1 (paths match vimdesk-api).
+//! Workspace record routes, mounted under /v1 (paths match vimdesk-api). Paths live in each
+//! handler's `#[utoipa::path]`, so router and OpenAPI spec share one source.
 
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::workspaces::handlers};
 
 /// Workspace members with `workspace.get` / `workspace.update` (`Can`).
-pub fn private() -> Router<AppState> {
-    Router::new()
-        .route("/workspace/{workspace}", get(handlers::get))
-        .route("/workspace/{workspace}/update", post(handlers::update))
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(handlers::get))
+        .routes(routes!(handlers::update))
 }

@@ -5,11 +5,11 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { InviteStatusResponse } from "./inviteStatusResponse"
+import type { InviteStatusResponse } from './inviteStatusResponse';
 
 /**
  * Success body: the result under `data`.
  */
 export interface EnvelopeInviteStatusResponse {
-  data: InviteStatusResponse
+  data: InviteStatusResponse;
 }

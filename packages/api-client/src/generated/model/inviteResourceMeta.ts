@@ -9,4 +9,4 @@
 /**
  * @nullable
  */
-export type InviteResourceMeta = { [key: string]: unknown } | null
+export type InviteResourceMeta = { [key: string]: unknown } | null;

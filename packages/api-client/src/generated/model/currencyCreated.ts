@@ -10,5 +10,5 @@
  * Create response: the new row's id.
  */
 export interface CurrencyCreated {
-  currency_id: string
+  currency_id: string;
 }

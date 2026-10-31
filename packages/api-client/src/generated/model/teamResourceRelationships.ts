@@ -5,13 +5,11 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { UserEmailResource } from "./userEmailResource"
+import type { UserEmailResource } from './userEmailResource';
 
 /**
  * `[]` when members were not loaded, otherwise `{"users": [...]}`
  */
-export type TeamResourceRelationships =
-  | unknown[]
-  | {
-      users: UserEmailResource[]
-    }
+export type TeamResourceRelationships = unknown[] | {
+  users: UserEmailResource[];
+};

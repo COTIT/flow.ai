@@ -120,7 +120,7 @@ pub struct InviteCreated {
     pub invite_id: Uuid,
 }
 
-/// GET /v1/invites/get-invite-status/{code} body (Laravel InviteStatusResource keys).
+// GET /v1/invites/get-invite-status/{code} body (Laravel InviteStatusResource keys).
 #[derive(Serialize, ToSchema)]
 /// What an invite link points to, for the accept or sign-up screen.
 pub struct InviteStatusResponse {
@@ -149,8 +149,8 @@ impl From<StatusView> for InviteStatusResponse {
     }
 }
 
-/// One settings pending-invites row (Laravel InviteResource). `invite_code` is left out: only
-/// its hash is stored, and the link goes to the invitee alone.
+// One settings pending-invites row (Laravel InviteResource). `invite_code` is left out: only
+// its hash is stored, and the link goes to the invitee alone.
 #[derive(Serialize, ToSchema)]
 /// A sent invite, as listed in workspace settings.
 pub struct InviteResource {

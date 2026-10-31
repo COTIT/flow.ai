@@ -1,12 +1,45 @@
 //! Catalog response body: Laravel ListPermissionController shape.
 
 use serde::{Serialize, Serializer, ser::SerializeMap};
+use utoipa::{
+    PartialSchema, ToSchema,
+    openapi::{
+        RefOr,
+        schema::{ArrayBuilder, ObjectBuilder, Schema, Type},
+    },
+};
 
 use crate::modules::permissions::catalog::{FRONTEND_ONLY, GROUPS, names};
 
 /// `{<group>: [actions], ..., "__classification": {frontend_only, api_enforced}}`, groups in
 /// catalog order and `__classification` last, as Laravel sends it.
 pub struct CatalogResponse;
+
+/// Hand-written: the body is a map serialized by hand, so derive can't describe it.
+impl PartialSchema for CatalogResponse {
+    fn schema() -> RefOr<Schema> {
+        let names = || ArrayBuilder::new().items(ObjectBuilder::new().schema_type(Type::String));
+        ObjectBuilder::new()
+            .description(Some(
+                "Permission groups: each key is a group, its value the group's actions \
+                 (permission name = `group.action`). `__classification` sorts the names by \
+                 who enforces them.",
+            ))
+            .property(
+                "__classification",
+                ObjectBuilder::new()
+                    .property("frontend_only", names())
+                    .property("api_enforced", names())
+                    .required("frontend_only")
+                    .required("api_enforced"),
+            )
+            .required("__classification")
+            .additional_properties(Some(names()))
+            .into()
+    }
+}
+
+impl ToSchema for CatalogResponse {}
 
 #[derive(Serialize)]
 struct Classification {

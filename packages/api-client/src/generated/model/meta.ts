@@ -10,15 +10,15 @@
  * Paging details. `total` counts matches across all pages.
  */
 export interface Meta {
-  current_page: number
+  current_page: number;
   /**
-   * 1-based index of first row on this page; null when the page is empty.
-   * @nullable
-   */
-  from: number | null
-  last_page: number
-  per_page: number
+     * 1-based index of first row on this page; null when the page is empty.
+     * @nullable
+     */
+  from: number | null;
+  last_page: number;
+  per_page: number;
   /** @nullable */
-  to: number | null
-  total: number
+  to: number | null;
+  total: number;
 }

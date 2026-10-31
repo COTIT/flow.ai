@@ -7,5 +7,5 @@
  */
 
 export interface InviteCreated {
-  invite_id: string
+  invite_id: string;
 }

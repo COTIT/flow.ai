@@ -41,11 +41,10 @@ pub use http::{
 use modules::{
     contacts, custom_statuses, custom_types, deal_pipelines, deals, discount_groups, discounts,
     email_profiles, email_templates, files, hourly_rates, invoice_payments, invoices, messages,
-    pdf_templates, permissions, price_corrections, pricing, product_brands, product_categories,
+    pdf_templates, price_corrections, pricing, product_brands, product_categories,
     product_variants, products, relations, sales_groups, search, settings, shipment_methods,
-    special_offers, stock, storage_locations, teams, users, vat_groups, warehouse_bins,
-    warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves, warehouses,
-    workspaces,
+    special_offers, stock, storage_locations, vat_groups, warehouse_bins, warehouse_locations,
+    warehouse_rows, warehouse_sections, warehouse_shelves, warehouses,
 };
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
@@ -107,10 +106,6 @@ pub fn build_app(state: AppState) -> Router {
     let public = http::timeout::body_deadline(public, state.body_deadline);
     let private = Router::new()
         .merge(openapi::private().split_for_parts().0)
-        .merge(users::routes::private())
-        .merge(permissions::routes::private())
-        .merge(teams::routes::private())
-        .merge(workspaces::routes::private())
         .merge(vat_groups::routes::private())
         .merge(hourly_rates::routes::private())
         .merge(sales_groups::routes::private())

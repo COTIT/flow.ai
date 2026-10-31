@@ -5,24 +5,22 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { InviteRelationships } from "./inviteRelationships"
-import type { InviteResourceMeta } from "./inviteResourceMeta"
+import type { InviteRelationships } from './inviteRelationships';
+import type { InviteResourceMeta } from './inviteResourceMeta';
 
 /**
- * One settings pending-invites row (Laravel InviteResource). `invite_code` is left out: only
- * its hash is stored, and the link goes to the invitee alone.
  * A sent invite, as listed in workspace settings.
  */
 export interface InviteResource {
-  created_at: string
-  email: string
-  expired_at: string
-  invite_id: string
-  invite_status: string
+  created_at: string;
+  email: string;
+  expired_at: string;
+  invite_id: string;
+  invite_status: string;
   /** Email of whoever sent the invite. */
-  invited_by: string
-  last_updated_at: string
+  invited_by: string;
+  last_updated_at: string;
   /** @nullable */
-  meta: InviteResourceMeta
-  relationships: InviteRelationships
+  meta: InviteResourceMeta;
+  relationships: InviteRelationships;
 }

@@ -7,16 +7,16 @@
  */
 
 export type CurrenciesListParams = {
-  /**
-   * Search on name and asset type.
-   */
-  q?: string
-  /**
-   * 1-based; junk falls back to 1.
-   */
-  page?: number
-  /**
-   * Default 50, max 100.
-   */
-  page_size?: number
-}
+/**
+ * Search on name and asset type.
+ */
+q?: string;
+/**
+ * 1-based; junk falls back to 1.
+ */
+page?: number;
+/**
+ * Default 50, max 100.
+ */
+page_size?: number;
+};

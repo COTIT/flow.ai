@@ -5,8 +5,8 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { TeamResource } from "./teamResource"
+import type { TeamResource } from './teamResource';
 
 export interface InviteRelationships {
-  team: TeamResource | null
+  team: TeamResource | null;
 }

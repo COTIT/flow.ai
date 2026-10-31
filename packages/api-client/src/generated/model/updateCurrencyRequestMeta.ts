@@ -9,4 +9,4 @@
 /**
  * @nullable
  */
-export type UpdateCurrencyRequestMeta = { [key: string]: unknown } | null
+export type UpdateCurrencyRequestMeta = { [key: string]: unknown } | null;

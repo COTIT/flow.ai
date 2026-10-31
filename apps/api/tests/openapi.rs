@@ -445,3 +445,73 @@ async fn real_currency_responses_match_the_spec(pool: PgPool) {
     assert_eq!(status, StatusCode::FORBIDDEN);
     check(&s, LIST, "post", "403", &err, "403");
 }
+
+/// Group A of the rollout: users, permissions, workspaces, teams.
+#[test]
+fn group_a_operations_are_documented() {
+    const TEAMS: &str = "/workspace/{workspace}/users/teams";
+    const TEAM: &str = "/workspace/{workspace}/users/teams/{team}";
+    let s = spec();
+    for (path, method, id, ok) in [
+        ("/me", "get", "users_me", "200"),
+        ("/me/workspaces", "get", "users_workspaces", "200"),
+        ("/workspace/{workspace}/users", "get", "users_list", "200"),
+        (
+            "/workspace/{workspace}/users/{user}",
+            "get",
+            "users_get",
+            "200",
+        ),
+        (
+            "/workspace/{workspace}/permissions",
+            "get",
+            "permissions_catalog",
+            "200",
+        ),
+        ("/workspace/{workspace}", "get", "workspaces_get", "200"),
+        (
+            "/workspace/{workspace}/update",
+            "post",
+            "workspaces_update",
+            "200",
+        ),
+        (TEAMS, "post", "teams_create", "201"),
+        (TEAMS, "get", "teams_list", "200"),
+        (TEAM, "get", "teams_get", "200"),
+        (TEAM, "post", "teams_update", "200"),
+        (TEAM, "delete", "teams_delete", "200"),
+        (
+            "/workspace/{workspace}/users/teams/{team}/add-users",
+            "post",
+            "teams_add_users",
+            "200",
+        ),
+        (
+            "/workspace/{workspace}/users/teams/{team}/remove-users",
+            "post",
+            "teams_remove_users",
+            "200",
+        ),
+        (
+            "/workspace/{workspace}/users/teams/{team}/permissions",
+            "post",
+            "teams_set_permissions",
+            "200",
+        ),
+    ] {
+        let op = &s["paths"][path][method];
+        let at = format!("{method} {path}");
+        assert!(op.is_object(), "{at} missing");
+        assert_eq!(op["operationId"], id, "{at}");
+        assert!(op["responses"][ok].is_object(), "{at}: no {ok}");
+        assert!(op["responses"]["401"].is_object(), "{at}: no 401");
+        assert_eq!(op["security"][0]["bearer"], json!([]), "{at}: no bearer");
+        if path.starts_with("/workspace/") {
+            let has_ws = op["parameters"].as_array().is_some_and(|ps| {
+                ps.iter()
+                    .any(|p| p["name"] == "workspace" && p["in"] == "path")
+            });
+            assert!(has_ws, "{at}: no workspace param");
+        }
+    }
+}

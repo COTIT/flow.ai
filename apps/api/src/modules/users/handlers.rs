@@ -7,11 +7,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         auth::AuthUser,
         list::{Page, Paginated, contains_pattern},
-        response::Data,
+        response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
     modules::users::{
@@ -28,6 +28,18 @@ permissions! {
 }
 
 /// GET /v1/workspace/{workspace}/users -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/users", tag = "users",
+    operation_id = "users_list", summary = "List workspace members",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), MembersQuery),
+    responses(
+        (status = 200, body = Paginated<MemberResource>, description = "One page of members"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `workspace.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid filter"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn members(
     State(state): State<AppState>,
     access: Can<WorkspaceList>,
@@ -52,6 +64,20 @@ pub async fn members(
 }
 
 /// GET /v1/workspace/{workspace}/users/{user} -> `{data:{...}}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/users/{user}", tag = "users",
+    operation_id = "users_get", summary = "Get a workspace member",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("user" = Uuid, Path, description = "User id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<UserDetail>, description = "The member, scoped to this workspace"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `user.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or user, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn member(
     State(state): State<AppState>,
     access: Can<UserGet>,
@@ -62,6 +88,14 @@ pub async fn member(
 }
 
 /// GET /v1/me -> `{data:{user:{...}}}`.
+#[utoipa::path(
+    get, path = "/me", tag = "users",
+    operation_id = "users_me", summary = "Get the logged-in user",
+    responses(
+        (status = 200, body = Envelope<MeResponse>, description = "The user, with permissions per workspace and pending invites"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn me(
     State(state): State<AppState>,
     user: AuthUser,
@@ -70,6 +104,14 @@ pub async fn me(
 }
 
 /// GET /v1/me/workspaces -> `{data:[...]}`.
+#[utoipa::path(
+    get, path = "/me/workspaces", tag = "users",
+    operation_id = "users_workspaces", summary = "List the logged-in user's workspaces",
+    responses(
+        (status = 200, body = Envelope<Vec<WorkspaceResource>>, description = "Workspaces where the user is an active member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn workspaces(
     State(state): State<AppState>,
     user: AuthUser,

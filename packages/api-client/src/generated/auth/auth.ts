@@ -5,7 +5,10 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import { useMutation, useQuery } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -18,563 +21,393 @@ import type {
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query"
+  UseQueryResult
+} from '@tanstack/react-query';
 
 import type {
   CreateWorkspaceRequest,
   EnvelopeTokenResponse,
   LoginRequest,
   MessageBody,
-  ValidationErrorBody,
-} from "../model"
+  ValidationErrorBody
+} from '../model';
 
-import { apiRequest } from "../../mutator"
-import type { ErrorType, BodyType } from "../../mutator"
+import { apiRequest } from '../../mutator';
+import type { ErrorType , BodyType } from '../../mutator';
 
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1]
 
-const withQueryKey = <T extends object, K>(
-  query: T,
-  queryKey: K
-): T & { queryKey: K } => {
-  const result = { queryKey } as T & { queryKey: K }
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
   for (const key of Object.keys(query)) {
     // The explicit queryKey always wins, matching the previous
     // `{ ...query, queryKey }` spread where it was set last.
-    if (key === "queryKey") continue
+    if (key === 'queryKey') continue;
     Object.defineProperty(result, key, {
       enumerable: true,
       configurable: true,
       get: () => (query as Record<string, unknown>)[key],
-    })
+    });
   }
-  return result
-}
+  return result;
+};
 
 /**
  * @summary Sign up with a new workspace
  */
 export const authCreateWorkspace = (
-  createWorkspaceRequest: BodyType<CreateWorkspaceRequest>,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    createWorkspaceRequest: BodyType<CreateWorkspaceRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<EnvelopeTokenResponse>(
-    {
-      url: `/create-workspace`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: createWorkspaceRequest,
-      signal,
+
+
+      return apiRequest<EnvelopeTokenResponse>(
+      {url: `/create-workspace`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createWorkspaceRequest, signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getAuthCreateWorkspaceMutationKey = () =>
-  ["authCreateWorkspace"] as const
 
-export const getAuthCreateWorkspaceMutationOptions = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof authCreateWorkspace>>,
-    TError,
-    AuthCreateWorkspaceMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof authCreateWorkspace>>,
-  TError,
-  AuthCreateWorkspaceMutationVariables,
-  TContext
-> => {
-  const mutationKey = getAuthCreateWorkspaceMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof authCreateWorkspace>>,
-    AuthCreateWorkspaceMutationVariables
-  > = (props) => {
-    const { data } = props ?? {}
 
-    return authCreateWorkspace(data, requestOptions)
-  }
+export const getAuthCreateWorkspaceMutationKey = () => ['authCreateWorkspace'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getAuthCreateWorkspaceMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authCreateWorkspace>>, TError,AuthCreateWorkspaceMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof authCreateWorkspace>>, TError,AuthCreateWorkspaceMutationVariables, TContext> => {
 
-export type AuthCreateWorkspaceMutationResult = NonNullable<
-  Awaited<ReturnType<typeof authCreateWorkspace>>
->
-export type AuthCreateWorkspaceMutationBody = BodyType<CreateWorkspaceRequest>
-export type AuthCreateWorkspaceMutationError = ErrorType<
-  MessageBody | ValidationErrorBody
->
-export type AuthCreateWorkspaceMutationVariables = {
-  data: BodyType<CreateWorkspaceRequest>
-}
+const mutationKey = getAuthCreateWorkspaceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authCreateWorkspace>>, AuthCreateWorkspaceMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  authCreateWorkspace(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthCreateWorkspaceMutationResult = NonNullable<Awaited<ReturnType<typeof authCreateWorkspace>>>
+    export type AuthCreateWorkspaceMutationBody = BodyType<CreateWorkspaceRequest>
+    export type AuthCreateWorkspaceMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AuthCreateWorkspaceMutationVariables = {data: BodyType<CreateWorkspaceRequest>}
+
+    /**
  * @summary Sign up with a new workspace
  */
-export const useAuthCreateWorkspace = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof authCreateWorkspace>>,
-      TError,
-      AuthCreateWorkspaceMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof authCreateWorkspace>>,
-  TError,
-  AuthCreateWorkspaceMutationVariables,
-  TContext
-> => {
-  return useMutation(
-    getAuthCreateWorkspaceMutationOptions(options),
-    queryClient
-  )
-}
-/**
+export const useAuthCreateWorkspace = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authCreateWorkspace>>, TError,AuthCreateWorkspaceMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authCreateWorkspace>>,
+        TError,
+        AuthCreateWorkspaceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAuthCreateWorkspaceMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Send the verification email again
  */
 export const authResendVerification = (
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<MessageBody>(
-    { url: `/email/verification-notification`, method: "POST", signal },
-    options
-  )
-}
 
-export const getAuthResendVerificationMutationKey = () =>
-  ["authResendVerification"] as const
 
-export const getAuthResendVerificationMutationOptions = <
-  TError = ErrorType<MessageBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof authResendVerification>>,
-    TError,
-    void,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof authResendVerification>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = getAuthResendVerificationMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
+      return apiRequest<MessageBody>(
+      {url: `/email/verification-notification`, method: 'POST', signal
+    },
+      options);
+    }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof authResendVerification>>,
-    void
-  > = () => {
-    return authResendVerification(requestOptions)
-  }
 
-  return { mutationFn, ...mutationOptions }
-}
 
-export type AuthResendVerificationMutationResult = NonNullable<
-  Awaited<ReturnType<typeof authResendVerification>>
->
 
-export type AuthResendVerificationMutationError = ErrorType<MessageBody>
+export const getAuthResendVerificationMutationKey = () => ['authResendVerification'] as const;
 
-/**
+export const getAuthResendVerificationMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authResendVerification>>, TError,void, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof authResendVerification>>, TError,void, TContext> => {
+
+const mutationKey = getAuthResendVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authResendVerification>>, void> = () => {
+
+
+          return  authResendVerification(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthResendVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof authResendVerification>>>
+
+    export type AuthResendVerificationMutationError = ErrorType<MessageBody>
+
+
+    /**
  * @summary Send the verification email again
  */
-export const useAuthResendVerification = <
-  TError = ErrorType<MessageBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof authResendVerification>>,
-      TError,
-      void,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof authResendVerification>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(
-    getAuthResendVerificationMutationOptions(options),
-    queryClient
-  )
-}
-/**
+export const useAuthResendVerification = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authResendVerification>>, TError,void, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authResendVerification>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAuthResendVerificationMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Log in
  */
 export const authLogin = (
-  loginRequest: BodyType<LoginRequest>,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    loginRequest: BodyType<LoginRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<EnvelopeTokenResponse>(
-    {
-      url: `/login`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: loginRequest,
-      signal,
+
+
+      return apiRequest<EnvelopeTokenResponse>(
+      {url: `/login`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: loginRequest, signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getAuthLoginMutationKey = () => ["authLogin"] as const
 
-export const getAuthLoginMutationOptions = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof authLogin>>,
-    TError,
-    AuthLoginMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof authLogin>>,
-  TError,
-  AuthLoginMutationVariables,
-  TContext
-> => {
-  const mutationKey = getAuthLoginMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof authLogin>>,
-    AuthLoginMutationVariables
-  > = (props) => {
-    const { data } = props ?? {}
 
-    return authLogin(data, requestOptions)
-  }
+export const getAuthLoginMutationKey = () => ['authLogin'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getAuthLoginMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authLogin>>, TError,AuthLoginMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof authLogin>>, TError,AuthLoginMutationVariables, TContext> => {
 
-export type AuthLoginMutationResult = NonNullable<
-  Awaited<ReturnType<typeof authLogin>>
->
-export type AuthLoginMutationBody = BodyType<LoginRequest>
-export type AuthLoginMutationError = ErrorType<
-  MessageBody | ValidationErrorBody
->
-export type AuthLoginMutationVariables = { data: BodyType<LoginRequest> }
+const mutationKey = getAuthLoginMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authLogin>>, AuthLoginMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  authLogin(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthLoginMutationResult = NonNullable<Awaited<ReturnType<typeof authLogin>>>
+    export type AuthLoginMutationBody = BodyType<LoginRequest>
+    export type AuthLoginMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type AuthLoginMutationVariables = {data: BodyType<LoginRequest>}
+
+    /**
  * @summary Log in
  */
-export const useAuthLogin = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof authLogin>>,
-      TError,
-      AuthLoginMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof authLogin>>,
-  TError,
-  AuthLoginMutationVariables,
-  TContext
-> => {
-  return useMutation(getAuthLoginMutationOptions(options), queryClient)
-}
-/**
+export const useAuthLogin = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authLogin>>, TError,AuthLoginMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authLogin>>,
+        TError,
+        AuthLoginMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAuthLoginMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Log out (ends this token)
  */
 export const authLogout = (
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<MessageBody>(
-    { url: `/logout`, method: "POST", signal },
-    options
-  )
-}
 
-export const getAuthLogoutMutationKey = () => ["authLogout"] as const
 
-export const getAuthLogoutMutationOptions = <
-  TError = ErrorType<MessageBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof authLogout>>,
-    TError,
-    void,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof authLogout>>,
-  TError,
-  void,
-  TContext
-> => {
-  const mutationKey = getAuthLogoutMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
+      return apiRequest<MessageBody>(
+      {url: `/logout`, method: 'POST', signal
+    },
+      options);
+    }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof authLogout>>,
-    void
-  > = () => {
-    return authLogout(requestOptions)
-  }
 
-  return { mutationFn, ...mutationOptions }
-}
 
-export type AuthLogoutMutationResult = NonNullable<
-  Awaited<ReturnType<typeof authLogout>>
->
 
-export type AuthLogoutMutationError = ErrorType<MessageBody>
+export const getAuthLogoutMutationKey = () => ['authLogout'] as const;
 
-/**
+export const getAuthLogoutMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authLogout>>, TError,void, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof authLogout>>, TError,void, TContext> => {
+
+const mutationKey = getAuthLogoutMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authLogout>>, void> = () => {
+
+
+          return  authLogout(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthLogoutMutationResult = NonNullable<Awaited<ReturnType<typeof authLogout>>>
+
+    export type AuthLogoutMutationError = ErrorType<MessageBody>
+
+
+    /**
  * @summary Log out (ends this token)
  */
-export const useAuthLogout = <
-  TError = ErrorType<MessageBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof authLogout>>,
-      TError,
-      void,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof authLogout>>,
-  TError,
-  void,
-  TContext
-> => {
-  return useMutation(getAuthLogoutMutationOptions(options), queryClient)
-}
-/**
+export const useAuthLogout = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authLogout>>, TError,void, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authLogout>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getAuthLogoutMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Confirm an email address (link from the email)
  */
 export const authVerifyEmail = (
-  token: string,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    token: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<unknown>(
-    { url: `/verify-email/${token}`, method: "GET", signal },
-    options
-  )
-}
 
-export const getAuthVerifyEmailQueryKey = (token: string) => {
-  return [`/verify-email/${token}`] as const
-}
 
-export const getAuthVerifyEmailQueryOptions = <
-  TData = Awaited<ReturnType<typeof authVerifyEmail>>,
-  TError = ErrorType<void | MessageBody>,
->(
-  token: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof authVerifyEmail>>,
-        TError,
-        TData
-      >
-    >
-    request?: SecondParameter<typeof apiRequest>
-  }
+      return apiRequest<unknown>(
+      {url: `/verify-email/${token}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getAuthVerifyEmailQueryKey = (token: string,) => {
+    return [
+    `/verify-email/${token}`
+    ] as const;
+    }
+
+
+export const getAuthVerifyEmailQueryOptions = <TData = Awaited<ReturnType<typeof authVerifyEmail>>, TError = ErrorType<void | MessageBody>>(token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authVerifyEmail>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {}
 
-  const queryKey = queryOptions?.queryKey ?? getAuthVerifyEmailQueryKey(token)
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof authVerifyEmail>>> = ({
-    signal,
-  }) => authVerifyEmail(token, requestOptions, signal)
+  const queryKey =  queryOptions?.queryKey ?? getAuthVerifyEmailQueryKey(token);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: token !== null && token !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof authVerifyEmail>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof authVerifyEmail>>> = ({ signal }) => authVerifyEmail(token, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof authVerifyEmail>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type AuthVerifyEmailQueryResult = NonNullable<
-  Awaited<ReturnType<typeof authVerifyEmail>>
->
+export type AuthVerifyEmailQueryResult = NonNullable<Awaited<ReturnType<typeof authVerifyEmail>>>
 export type AuthVerifyEmailQueryError = ErrorType<void | MessageBody>
 
-export function useAuthVerifyEmail<
-  TData = Awaited<ReturnType<typeof authVerifyEmail>>,
-  TError = ErrorType<void | MessageBody>,
->(
-  token: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof authVerifyEmail>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
+
+export function useAuthVerifyEmail<TData = Awaited<ReturnType<typeof authVerifyEmail>>, TError = ErrorType<void | MessageBody>>(
+ token: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof authVerifyEmail>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof authVerifyEmail>>,
           TError,
           Awaited<ReturnType<typeof authVerifyEmail>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useAuthVerifyEmail<
-  TData = Awaited<ReturnType<typeof authVerifyEmail>>,
-  TError = ErrorType<void | MessageBody>,
->(
-  token: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof authVerifyEmail>>,
-        TError,
-        TData
-      >
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthVerifyEmail<TData = Awaited<ReturnType<typeof authVerifyEmail>>, TError = ErrorType<void | MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authVerifyEmail>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof authVerifyEmail>>,
           TError,
           Awaited<ReturnType<typeof authVerifyEmail>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useAuthVerifyEmail<
-  TData = Awaited<ReturnType<typeof authVerifyEmail>>,
-  TError = ErrorType<void | MessageBody>,
->(
-  token: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof authVerifyEmail>>,
-        TError,
-        TData
-      >
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAuthVerifyEmail<TData = Awaited<ReturnType<typeof authVerifyEmail>>, TError = ErrorType<void | MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authVerifyEmail>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Confirm an email address (link from the email)
  */
 
-export function useAuthVerifyEmail<
-  TData = Awaited<ReturnType<typeof authVerifyEmail>>,
-  TError = ErrorType<void | MessageBody>,
->(
-  token: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<
-        Awaited<ReturnType<typeof authVerifyEmail>>,
-        TError,
-        TData
-      >
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-} {
-  const queryOptions = getAuthVerifyEmailQueryOptions(token, options)
+export function useAuthVerifyEmail<TData = Awaited<ReturnType<typeof authVerifyEmail>>, TError = ErrorType<void | MessageBody>>(
+ token: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof authVerifyEmail>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
+  const queryOptions = getAuthVerifyEmailQueryOptions(token,options)
 
-  return withQueryKey(query, queryOptions.queryKey)
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+

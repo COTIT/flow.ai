@@ -5,11 +5,11 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { CurrencyCreated } from "./currencyCreated"
+import type { CurrencyCreated } from './currencyCreated';
 
 /**
  * Success body: the result under `data`.
  */
 export interface EnvelopeCurrencyCreated {
-  data: CurrencyCreated
+  data: CurrencyCreated;
 }

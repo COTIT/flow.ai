@@ -5,7 +5,10 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import { useMutation, useQuery } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -18,8 +21,8 @@ import type {
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query"
+  UseQueryResult
+} from '@tanstack/react-query';
 
 import type {
   AnswerRequest,
@@ -31,714 +34,489 @@ import type {
   PaginatedInviteResource,
   RegisterRequest,
   SendInviteRequest,
-  ValidationErrorBody,
-} from "../model"
+  ValidationErrorBody
+} from '../model';
 
-import { apiRequest } from "../../mutator"
-import type { ErrorType, BodyType } from "../../mutator"
+import { apiRequest } from '../../mutator';
+import type { ErrorType , BodyType } from '../../mutator';
 
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1]
 
-const withQueryKey = <T extends object, K>(
-  query: T,
-  queryKey: K
-): T & { queryKey: K } => {
-  const result = { queryKey } as T & { queryKey: K }
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
   for (const key of Object.keys(query)) {
     // The explicit queryKey always wins, matching the previous
     // `{ ...query, queryKey }` spread where it was set last.
-    if (key === "queryKey") continue
+    if (key === 'queryKey') continue;
     Object.defineProperty(result, key, {
       enumerable: true,
       configurable: true,
       get: () => (query as Record<string, unknown>)[key],
-    })
+    });
   }
-  return result
-}
+  return result;
+};
 
 /**
  * @summary Accept or decline an invite
  */
 export const invitesAnswer = (
-  answerRequest: BodyType<AnswerRequest>,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    answerRequest: BodyType<AnswerRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<MessageBody>(
-    {
-      url: `/invites`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: answerRequest,
-      signal,
+
+
+      return apiRequest<MessageBody>(
+      {url: `/invites`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: answerRequest, signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getInvitesAnswerMutationKey = () => ["invitesAnswer"] as const
 
-export const getInvitesAnswerMutationOptions = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof invitesAnswer>>,
-    TError,
-    InvitesAnswerMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof invitesAnswer>>,
-  TError,
-  InvitesAnswerMutationVariables,
-  TContext
-> => {
-  const mutationKey = getInvitesAnswerMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof invitesAnswer>>,
-    InvitesAnswerMutationVariables
-  > = (props) => {
-    const { data } = props ?? {}
 
-    return invitesAnswer(data, requestOptions)
-  }
+export const getInvitesAnswerMutationKey = () => ['invitesAnswer'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getInvitesAnswerMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesAnswer>>, TError,InvitesAnswerMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof invitesAnswer>>, TError,InvitesAnswerMutationVariables, TContext> => {
 
-export type InvitesAnswerMutationResult = NonNullable<
-  Awaited<ReturnType<typeof invitesAnswer>>
->
-export type InvitesAnswerMutationBody = BodyType<AnswerRequest>
-export type InvitesAnswerMutationError = ErrorType<
-  MessageBody | ValidationErrorBody
->
-export type InvitesAnswerMutationVariables = { data: BodyType<AnswerRequest> }
+const mutationKey = getInvitesAnswerMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof invitesAnswer>>, InvitesAnswerMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  invitesAnswer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvitesAnswerMutationResult = NonNullable<Awaited<ReturnType<typeof invitesAnswer>>>
+    export type InvitesAnswerMutationBody = BodyType<AnswerRequest>
+    export type InvitesAnswerMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type InvitesAnswerMutationVariables = {data: BodyType<AnswerRequest>}
+
+    /**
  * @summary Accept or decline an invite
  */
-export const useInvitesAnswer = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof invitesAnswer>>,
-      TError,
-      InvitesAnswerMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof invitesAnswer>>,
-  TError,
-  InvitesAnswerMutationVariables,
-  TContext
-> => {
-  return useMutation(getInvitesAnswerMutationOptions(options), queryClient)
-}
-/**
+export const useInvitesAnswer = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesAnswer>>, TError,InvitesAnswerMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof invitesAnswer>>,
+        TError,
+        InvitesAnswerMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvitesAnswerMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Look up an invite link
  */
 export const invitesStatus = (
-  code: string,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    code: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<EnvelopeInviteStatusResponse>(
-    { url: `/invites/get-invite-status/${code}`, method: "GET", signal },
-    options
-  )
-}
 
-export const getInvitesStatusQueryKey = (code: string) => {
-  return [`/invites/get-invite-status/${code}`] as const
-}
 
-export const getInvitesStatusQueryOptions = <
-  TData = Awaited<ReturnType<typeof invitesStatus>>,
-  TError = ErrorType<MessageBody>,
->(
-  code: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  }
+      return apiRequest<EnvelopeInviteStatusResponse>(
+      {url: `/invites/get-invite-status/${code}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvitesStatusQueryKey = (code: string,) => {
+    return [
+    `/invites/get-invite-status/${code}`
+    ] as const;
+    }
+
+
+export const getInvitesStatusQueryOptions = <TData = Awaited<ReturnType<typeof invitesStatus>>, TError = ErrorType<MessageBody>>(code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {}
 
-  const queryKey = queryOptions?.queryKey ?? getInvitesStatusQueryKey(code)
+const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof invitesStatus>>> = ({
-    signal,
-  }) => invitesStatus(code, requestOptions, signal)
+  const queryKey =  queryOptions?.queryKey ?? getInvitesStatusQueryKey(code);
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: code !== null && code !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof invitesStatus>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof invitesStatus>>> = ({ signal }) => invitesStatus(code, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: code !== null && code !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type InvitesStatusQueryResult = NonNullable<
-  Awaited<ReturnType<typeof invitesStatus>>
->
+export type InvitesStatusQueryResult = NonNullable<Awaited<ReturnType<typeof invitesStatus>>>
 export type InvitesStatusQueryError = ErrorType<MessageBody>
 
-export function useInvitesStatus<
-  TData = Awaited<ReturnType<typeof invitesStatus>>,
-  TError = ErrorType<MessageBody>,
->(
-  code: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>
-    > &
-      Pick<
+
+export function useInvitesStatus<TData = Awaited<ReturnType<typeof invitesStatus>>, TError = ErrorType<MessageBody>>(
+ code: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof invitesStatus>>,
           TError,
           Awaited<ReturnType<typeof invitesStatus>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useInvitesStatus<
-  TData = Awaited<ReturnType<typeof invitesStatus>>,
-  TError = ErrorType<MessageBody>,
->(
-  code: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvitesStatus<TData = Awaited<ReturnType<typeof invitesStatus>>, TError = ErrorType<MessageBody>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof invitesStatus>>,
           TError,
           Awaited<ReturnType<typeof invitesStatus>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useInvitesStatus<
-  TData = Awaited<ReturnType<typeof invitesStatus>>,
-  TError = ErrorType<MessageBody>,
->(
-  code: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvitesStatus<TData = Awaited<ReturnType<typeof invitesStatus>>, TError = ErrorType<MessageBody>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Look up an invite link
  */
 
-export function useInvitesStatus<
-  TData = Awaited<ReturnType<typeof invitesStatus>>,
-  TError = ErrorType<MessageBody>,
->(
-  code: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-} {
-  const queryOptions = getInvitesStatusQueryOptions(code, options)
+export function useInvitesStatus<TData = Awaited<ReturnType<typeof invitesStatus>>, TError = ErrorType<MessageBody>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesStatus>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
+  const queryOptions = getInvitesStatusQueryOptions(code,options)
 
-  return withQueryKey(query, queryOptions.queryKey)
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
 
 /**
  * @summary Create an account through an invite
  */
 export const invitesRegister = (
-  registerRequest: BodyType<RegisterRequest>,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    registerRequest: BodyType<RegisterRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<EnvelopeTokenResponse>(
-    {
-      url: `/register`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: registerRequest,
-      signal,
+
+
+      return apiRequest<EnvelopeTokenResponse>(
+      {url: `/register`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: registerRequest, signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getInvitesRegisterMutationKey = () => ["invitesRegister"] as const
 
-export const getInvitesRegisterMutationOptions = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof invitesRegister>>,
-    TError,
-    InvitesRegisterMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof invitesRegister>>,
-  TError,
-  InvitesRegisterMutationVariables,
-  TContext
-> => {
-  const mutationKey = getInvitesRegisterMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof invitesRegister>>,
-    InvitesRegisterMutationVariables
-  > = (props) => {
-    const { data } = props ?? {}
 
-    return invitesRegister(data, requestOptions)
-  }
+export const getInvitesRegisterMutationKey = () => ['invitesRegister'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getInvitesRegisterMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesRegister>>, TError,InvitesRegisterMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof invitesRegister>>, TError,InvitesRegisterMutationVariables, TContext> => {
 
-export type InvitesRegisterMutationResult = NonNullable<
-  Awaited<ReturnType<typeof invitesRegister>>
->
-export type InvitesRegisterMutationBody = BodyType<RegisterRequest>
-export type InvitesRegisterMutationError = ErrorType<
-  MessageBody | ValidationErrorBody
->
-export type InvitesRegisterMutationVariables = {
-  data: BodyType<RegisterRequest>
-}
+const mutationKey = getInvitesRegisterMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof invitesRegister>>, InvitesRegisterMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  invitesRegister(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvitesRegisterMutationResult = NonNullable<Awaited<ReturnType<typeof invitesRegister>>>
+    export type InvitesRegisterMutationBody = BodyType<RegisterRequest>
+    export type InvitesRegisterMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type InvitesRegisterMutationVariables = {data: BodyType<RegisterRequest>}
+
+    /**
  * @summary Create an account through an invite
  */
-export const useInvitesRegister = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof invitesRegister>>,
-      TError,
-      InvitesRegisterMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof invitesRegister>>,
-  TError,
-  InvitesRegisterMutationVariables,
-  TContext
-> => {
-  return useMutation(getInvitesRegisterMutationOptions(options), queryClient)
-}
-/**
+export const useInvitesRegister = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesRegister>>, TError,InvitesRegisterMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof invitesRegister>>,
+        TError,
+        InvitesRegisterMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvitesRegisterMutationOptions(options), queryClient);
+    }
+    /**
  * @summary List sent invites
  */
 export const invitesList = (
-  workspace: string,
-  params?: InvitesListParams,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    workspace: string,
+    params?: InvitesListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<PaginatedInviteResource>(
-    { url: `/workspace/${workspace}/invites`, method: "GET", params, signal },
-    options
-  )
+
+
+      return apiRequest<PaginatedInviteResource>(
+      {url: `/workspace/${workspace}/invites`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getInvitesListQueryKey = (workspace: string,
+    params?: InvitesListParams,) => {
+    return [
+    `/workspace/${workspace}/invites`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getInvitesListQueryOptions = <TData = Awaited<ReturnType<typeof invitesList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    params?: InvitesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getInvitesListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof invitesList>>> = ({ signal }) => invitesList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export const getInvitesListQueryKey = (
-  workspace: string,
-  params?: InvitesListParams
-) => {
-  return [
-    `/workspace/${workspace}/invites`,
-    ...(params ? [params] : []),
-  ] as const
-}
-
-export const getInvitesListQueryOptions = <
-  TData = Awaited<ReturnType<typeof invitesList>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  params?: InvitesListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  }
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {}
-
-  const queryKey =
-    queryOptions?.queryKey ?? getInvitesListQueryKey(workspace, params)
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof invitesList>>> = ({
-    signal,
-  }) => invitesList(workspace, params, requestOptions, signal)
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: workspace !== null && workspace !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof invitesList>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type InvitesListQueryResult = NonNullable<
-  Awaited<ReturnType<typeof invitesList>>
->
+export type InvitesListQueryResult = NonNullable<Awaited<ReturnType<typeof invitesList>>>
 export type InvitesListQueryError = ErrorType<MessageBody>
 
-export function useInvitesList<
-  TData = Awaited<ReturnType<typeof invitesList>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  params: undefined | InvitesListParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>
-    > &
-      Pick<
+
+export function useInvitesList<TData = Awaited<ReturnType<typeof invitesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params: undefined |  InvitesListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof invitesList>>,
           TError,
           Awaited<ReturnType<typeof invitesList>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useInvitesList<
-  TData = Awaited<ReturnType<typeof invitesList>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  params?: InvitesListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvitesList<TData = Awaited<ReturnType<typeof invitesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: InvitesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof invitesList>>,
           TError,
           Awaited<ReturnType<typeof invitesList>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useInvitesList<
-  TData = Awaited<ReturnType<typeof invitesList>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  params?: InvitesListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useInvitesList<TData = Awaited<ReturnType<typeof invitesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: InvitesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List sent invites
  */
 
-export function useInvitesList<
-  TData = Awaited<ReturnType<typeof invitesList>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  params?: InvitesListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-} {
-  const queryOptions = getInvitesListQueryOptions(workspace, params, options)
+export function useInvitesList<TData = Awaited<ReturnType<typeof invitesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: InvitesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof invitesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
+  const queryOptions = getInvitesListQueryOptions(workspace,params,options)
 
-  return withQueryKey(query, queryOptions.queryKey)
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
 
 /**
  * @summary Invite someone by email
  */
 export const invitesSend = (
-  workspace: string,
-  sendInviteRequest: BodyType<SendInviteRequest>,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    workspace: string,
+    sendInviteRequest: BodyType<SendInviteRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<EnvelopeInviteCreated>(
-    {
-      url: `/workspace/${workspace}/invites`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: sendInviteRequest,
-      signal,
+
+
+      return apiRequest<EnvelopeInviteCreated>(
+      {url: `/workspace/${workspace}/invites`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: sendInviteRequest, signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getInvitesSendMutationKey = () => ["invitesSend"] as const
 
-export const getInvitesSendMutationOptions = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof invitesSend>>,
-    TError,
-    InvitesSendMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof invitesSend>>,
-  TError,
-  InvitesSendMutationVariables,
-  TContext
-> => {
-  const mutationKey = getInvitesSendMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof invitesSend>>,
-    InvitesSendMutationVariables
-  > = (props) => {
-    const { workspace, data } = props ?? {}
 
-    return invitesSend(workspace, data, requestOptions)
-  }
+export const getInvitesSendMutationKey = () => ['invitesSend'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getInvitesSendMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesSend>>, TError,InvitesSendMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof invitesSend>>, TError,InvitesSendMutationVariables, TContext> => {
 
-export type InvitesSendMutationResult = NonNullable<
-  Awaited<ReturnType<typeof invitesSend>>
->
-export type InvitesSendMutationBody = BodyType<SendInviteRequest>
-export type InvitesSendMutationError = ErrorType<
-  MessageBody | ValidationErrorBody
->
-export type InvitesSendMutationVariables = {
-  workspace: string
-  data: BodyType<SendInviteRequest>
-}
+const mutationKey = getInvitesSendMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof invitesSend>>, InvitesSendMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  invitesSend(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvitesSendMutationResult = NonNullable<Awaited<ReturnType<typeof invitesSend>>>
+    export type InvitesSendMutationBody = BodyType<SendInviteRequest>
+    export type InvitesSendMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type InvitesSendMutationVariables = {workspace: string;data: BodyType<SendInviteRequest>}
+
+    /**
  * @summary Invite someone by email
  */
-export const useInvitesSend = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof invitesSend>>,
-      TError,
-      InvitesSendMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof invitesSend>>,
-  TError,
-  InvitesSendMutationVariables,
-  TContext
-> => {
-  return useMutation(getInvitesSendMutationOptions(options), queryClient)
-}
-/**
+export const useInvitesSend = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesSend>>, TError,InvitesSendMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof invitesSend>>,
+        TError,
+        InvitesSendMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvitesSendMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Withdraw an invite
  */
 export const invitesDelete = (
-  workspace: string,
-  invite: string,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    workspace: string,
+    invite: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<MessageBody>(
-    {
-      url: `/workspace/${workspace}/invites/${invite}`,
-      method: "DELETE",
-      signal,
+
+
+      return apiRequest<MessageBody>(
+      {url: `/workspace/${workspace}/invites/${invite}`, method: 'DELETE', signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getInvitesDeleteMutationKey = () => ["invitesDelete"] as const
 
-export const getInvitesDeleteMutationOptions = <
-  TError = ErrorType<MessageBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof invitesDelete>>,
-    TError,
-    InvitesDeleteMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof invitesDelete>>,
-  TError,
-  InvitesDeleteMutationVariables,
-  TContext
-> => {
-  const mutationKey = getInvitesDeleteMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof invitesDelete>>,
-    InvitesDeleteMutationVariables
-  > = (props) => {
-    const { workspace, invite } = props ?? {}
 
-    return invitesDelete(workspace, invite, requestOptions)
-  }
+export const getInvitesDeleteMutationKey = () => ['invitesDelete'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getInvitesDeleteMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesDelete>>, TError,InvitesDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof invitesDelete>>, TError,InvitesDeleteMutationVariables, TContext> => {
 
-export type InvitesDeleteMutationResult = NonNullable<
-  Awaited<ReturnType<typeof invitesDelete>>
->
+const mutationKey = getInvitesDeleteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type InvitesDeleteMutationError = ErrorType<MessageBody>
-export type InvitesDeleteMutationVariables = {
-  workspace: string
-  invite: string
-}
 
-/**
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof invitesDelete>>, InvitesDeleteMutationVariables> = (props) => {
+          const {workspace,invite} = props ?? {};
+
+          return  invitesDelete(workspace,invite,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type InvitesDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof invitesDelete>>>
+
+    export type InvitesDeleteMutationError = ErrorType<MessageBody>
+    export type InvitesDeleteMutationVariables = {workspace: string;invite: string}
+
+    /**
  * @summary Withdraw an invite
  */
-export const useInvitesDelete = <
-  TError = ErrorType<MessageBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof invitesDelete>>,
-      TError,
-      InvitesDeleteMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof invitesDelete>>,
-  TError,
-  InvitesDeleteMutationVariables,
-  TContext
-> => {
-  return useMutation(getInvitesDeleteMutationOptions(options), queryClient)
-}
+export const useInvitesDelete = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof invitesDelete>>, TError,InvitesDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof invitesDelete>>,
+        TError,
+        InvitesDeleteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getInvitesDeleteMutationOptions(options), queryClient);
+    }

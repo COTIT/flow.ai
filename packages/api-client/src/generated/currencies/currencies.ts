@@ -5,7 +5,10 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import { useMutation, useQuery } from "@tanstack/react-query"
+import {
+  useMutation,
+  useQuery
+} from '@tanstack/react-query';
 import type {
   DataTag,
   DefinedInitialDataOptions,
@@ -18,8 +21,8 @@ import type {
   UseMutationOptions,
   UseMutationResult,
   UseQueryOptions,
-  UseQueryResult,
-} from "@tanstack/react-query"
+  UseQueryResult
+} from '@tanstack/react-query';
 
 import type {
   CreateCurrencyRequest,
@@ -29,656 +32,431 @@ import type {
   MessageBody,
   PaginatedCurrencyResource,
   UpdateCurrencyRequest,
-  ValidationErrorBody,
-} from "../model"
+  ValidationErrorBody
+} from '../model';
 
-import { apiRequest } from "../../mutator"
-import type { ErrorType, BodyType } from "../../mutator"
+import { apiRequest } from '../../mutator';
+import type { ErrorType , BodyType } from '../../mutator';
 
-type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1]
 
-const withQueryKey = <T extends object, K>(
-  query: T,
-  queryKey: K
-): T & { queryKey: K } => {
-  const result = { queryKey } as T & { queryKey: K }
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
   for (const key of Object.keys(query)) {
     // The explicit queryKey always wins, matching the previous
     // `{ ...query, queryKey }` spread where it was set last.
-    if (key === "queryKey") continue
+    if (key === 'queryKey') continue;
     Object.defineProperty(result, key, {
       enumerable: true,
       configurable: true,
       get: () => (query as Record<string, unknown>)[key],
-    })
+    });
   }
-  return result
-}
+  return result;
+};
 
 /**
  * @summary List currencies
  */
 export const currenciesList = (
-  workspace: string,
-  params?: CurrenciesListParams,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    workspace: string,
+    params?: CurrenciesListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<PaginatedCurrencyResource>(
-    {
-      url: `/workspace/${workspace}/currencies`,
-      method: "GET",
-      params,
-      signal,
+
+
+      return apiRequest<PaginatedCurrencyResource>(
+      {url: `/workspace/${workspace}/currencies`, method: 'GET',
+        params, signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getCurrenciesListQueryKey = (
-  workspace: string,
-  params?: CurrenciesListParams
+
+
+
+export const getCurrenciesListQueryKey = (workspace: string,
+    params?: CurrenciesListParams,) => {
+    return [
+    `/workspace/${workspace}/currencies`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getCurrenciesListQueryOptions = <TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: CurrenciesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
-  return [
-    `/workspace/${workspace}/currencies`,
-    ...(params ? [params] : []),
-  ] as const
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCurrenciesListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof currenciesList>>> = ({ signal }) => currenciesList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export const getCurrenciesListQueryOptions = <
-  TData = Awaited<ReturnType<typeof currenciesList>>,
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
->(
-  workspace: string,
-  params?: CurrenciesListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  }
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {}
+export type CurrenciesListQueryResult = NonNullable<Awaited<ReturnType<typeof currenciesList>>>
+export type CurrenciesListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
-  const queryKey =
-    queryOptions?.queryKey ?? getCurrenciesListQueryKey(workspace, params)
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof currenciesList>>> = ({
-    signal,
-  }) => currenciesList(workspace, params, requestOptions, signal)
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: workspace !== null && workspace !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof currenciesList>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type CurrenciesListQueryResult = NonNullable<
-  Awaited<ReturnType<typeof currenciesList>>
->
-export type CurrenciesListQueryError = ErrorType<
-  MessageBody | ValidationErrorBody
->
-
-export function useCurrenciesList<
-  TData = Awaited<ReturnType<typeof currenciesList>>,
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
->(
-  workspace: string,
-  params: undefined | CurrenciesListParams,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>
-    > &
-      Pick<
+export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  CurrenciesListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof currenciesList>>,
           TError,
           Awaited<ReturnType<typeof currenciesList>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useCurrenciesList<
-  TData = Awaited<ReturnType<typeof currenciesList>>,
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
->(
-  workspace: string,
-  params?: CurrenciesListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: CurrenciesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof currenciesList>>,
           TError,
           Awaited<ReturnType<typeof currenciesList>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useCurrenciesList<
-  TData = Awaited<ReturnType<typeof currenciesList>>,
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
->(
-  workspace: string,
-  params?: CurrenciesListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: CurrenciesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary List currencies
  */
 
-export function useCurrenciesList<
-  TData = Awaited<ReturnType<typeof currenciesList>>,
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
->(
-  workspace: string,
-  params?: CurrenciesListParams,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-} {
-  const queryOptions = getCurrenciesListQueryOptions(workspace, params, options)
+export function useCurrenciesList<TData = Awaited<ReturnType<typeof currenciesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: CurrenciesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
+  const queryOptions = getCurrenciesListQueryOptions(workspace,params,options)
 
-  return withQueryKey(query, queryOptions.queryKey)
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
 
 /**
  * @summary Create a currency
  */
 export const currenciesCreate = (
-  workspace: string,
-  createCurrencyRequest: BodyType<CreateCurrencyRequest>,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    workspace: string,
+    createCurrencyRequest: BodyType<CreateCurrencyRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<EnvelopeCurrencyCreated>(
-    {
-      url: `/workspace/${workspace}/currencies`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: createCurrencyRequest,
-      signal,
+
+
+      return apiRequest<EnvelopeCurrencyCreated>(
+      {url: `/workspace/${workspace}/currencies`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createCurrencyRequest, signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getCurrenciesCreateMutationKey = () =>
-  ["currenciesCreate"] as const
 
-export const getCurrenciesCreateMutationOptions = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof currenciesCreate>>,
-    TError,
-    CurrenciesCreateMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof currenciesCreate>>,
-  TError,
-  CurrenciesCreateMutationVariables,
-  TContext
-> => {
-  const mutationKey = getCurrenciesCreateMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof currenciesCreate>>,
-    CurrenciesCreateMutationVariables
-  > = (props) => {
-    const { workspace, data } = props ?? {}
 
-    return currenciesCreate(workspace, data, requestOptions)
-  }
+export const getCurrenciesCreateMutationKey = () => ['currenciesCreate'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getCurrenciesCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof currenciesCreate>>, TError,CurrenciesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof currenciesCreate>>, TError,CurrenciesCreateMutationVariables, TContext> => {
 
-export type CurrenciesCreateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof currenciesCreate>>
->
-export type CurrenciesCreateMutationBody = BodyType<CreateCurrencyRequest>
-export type CurrenciesCreateMutationError = ErrorType<
-  MessageBody | ValidationErrorBody
->
-export type CurrenciesCreateMutationVariables = {
-  workspace: string
-  data: BodyType<CreateCurrencyRequest>
-}
+const mutationKey = getCurrenciesCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof currenciesCreate>>, CurrenciesCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  currenciesCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CurrenciesCreateMutationResult = NonNullable<Awaited<ReturnType<typeof currenciesCreate>>>
+    export type CurrenciesCreateMutationBody = BodyType<CreateCurrencyRequest>
+    export type CurrenciesCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type CurrenciesCreateMutationVariables = {workspace: string;data: BodyType<CreateCurrencyRequest>}
+
+    /**
  * @summary Create a currency
  */
-export const useCurrenciesCreate = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof currenciesCreate>>,
-      TError,
-      CurrenciesCreateMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof currenciesCreate>>,
-  TError,
-  CurrenciesCreateMutationVariables,
-  TContext
-> => {
-  return useMutation(getCurrenciesCreateMutationOptions(options), queryClient)
-}
-/**
+export const useCurrenciesCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof currenciesCreate>>, TError,CurrenciesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof currenciesCreate>>,
+        TError,
+        CurrenciesCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCurrenciesCreateMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Delete a currency
  */
 export const currenciesDelete = (
-  workspace: string,
-  currency: string,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    workspace: string,
+    currency: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<MessageBody>(
-    {
-      url: `/workspace/${workspace}/currencies/${currency}`,
-      method: "DELETE",
-      signal,
+
+
+      return apiRequest<MessageBody>(
+      {url: `/workspace/${workspace}/currencies/${currency}`, method: 'DELETE', signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getCurrenciesDeleteMutationKey = () =>
-  ["currenciesDelete"] as const
 
-export const getCurrenciesDeleteMutationOptions = <
-  TError = ErrorType<MessageBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof currenciesDelete>>,
-    TError,
-    CurrenciesDeleteMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof currenciesDelete>>,
-  TError,
-  CurrenciesDeleteMutationVariables,
-  TContext
-> => {
-  const mutationKey = getCurrenciesDeleteMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof currenciesDelete>>,
-    CurrenciesDeleteMutationVariables
-  > = (props) => {
-    const { workspace, currency } = props ?? {}
 
-    return currenciesDelete(workspace, currency, requestOptions)
-  }
+export const getCurrenciesDeleteMutationKey = () => ['currenciesDelete'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getCurrenciesDeleteMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof currenciesDelete>>, TError,CurrenciesDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof currenciesDelete>>, TError,CurrenciesDeleteMutationVariables, TContext> => {
 
-export type CurrenciesDeleteMutationResult = NonNullable<
-  Awaited<ReturnType<typeof currenciesDelete>>
->
+const mutationKey = getCurrenciesDeleteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-export type CurrenciesDeleteMutationError = ErrorType<MessageBody>
-export type CurrenciesDeleteMutationVariables = {
-  workspace: string
-  currency: string
-}
 
-/**
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof currenciesDelete>>, CurrenciesDeleteMutationVariables> = (props) => {
+          const {workspace,currency} = props ?? {};
+
+          return  currenciesDelete(workspace,currency,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CurrenciesDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof currenciesDelete>>>
+
+    export type CurrenciesDeleteMutationError = ErrorType<MessageBody>
+    export type CurrenciesDeleteMutationVariables = {workspace: string;currency: string}
+
+    /**
  * @summary Delete a currency
  */
-export const useCurrenciesDelete = <
-  TError = ErrorType<MessageBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof currenciesDelete>>,
-      TError,
-      CurrenciesDeleteMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof currenciesDelete>>,
-  TError,
-  CurrenciesDeleteMutationVariables,
-  TContext
-> => {
-  return useMutation(getCurrenciesDeleteMutationOptions(options), queryClient)
-}
-/**
+export const useCurrenciesDelete = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof currenciesDelete>>, TError,CurrenciesDeleteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof currenciesDelete>>,
+        TError,
+        CurrenciesDeleteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCurrenciesDeleteMutationOptions(options), queryClient);
+    }
+    /**
  * @summary Get a currency
  */
 export const currenciesGet = (
-  workspace: string,
-  currency: string,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    workspace: string,
+    currency: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<EnvelopeCurrencyResource>(
-    {
-      url: `/workspace/${workspace}/currencies/${currency}`,
-      method: "GET",
-      signal,
+
+
+      return apiRequest<EnvelopeCurrencyResource>(
+      {url: `/workspace/${workspace}/currencies/${currency}`, method: 'GET', signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getCurrenciesGetQueryKey = (
-  workspace: string,
-  currency: string
+
+
+
+export const getCurrenciesGetQueryKey = (workspace: string,
+    currency: string,) => {
+    return [
+    `/workspace/${workspace}/currencies/${currency}`
+    ] as const;
+    }
+
+
+export const getCurrenciesGetQueryOptions = <TData = Awaited<ReturnType<typeof currenciesGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    currency: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
-  return [`/workspace/${workspace}/currencies/${currency}`] as const
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCurrenciesGetQueryKey(workspace,currency);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof currenciesGet>>> = ({ signal }) => currenciesGet(workspace,currency, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && currency !== null && currency !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export const getCurrenciesGetQueryOptions = <
-  TData = Awaited<ReturnType<typeof currenciesGet>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  currency: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  }
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {}
-
-  const queryKey =
-    queryOptions?.queryKey ?? getCurrenciesGetQueryKey(workspace, currency)
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof currenciesGet>>> = ({
-    signal,
-  }) => currenciesGet(workspace, currency, requestOptions, signal)
-
-  return {
-    queryKey,
-    queryFn,
-    enabled:
-      workspace !== null &&
-      workspace !== undefined &&
-      currency !== null &&
-      currency !== undefined,
-    ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof currenciesGet>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type CurrenciesGetQueryResult = NonNullable<
-  Awaited<ReturnType<typeof currenciesGet>>
->
+export type CurrenciesGetQueryResult = NonNullable<Awaited<ReturnType<typeof currenciesGet>>>
 export type CurrenciesGetQueryError = ErrorType<MessageBody>
 
-export function useCurrenciesGet<
-  TData = Awaited<ReturnType<typeof currenciesGet>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  currency: string,
-  options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>
-    > &
-      Pick<
+
+export function useCurrenciesGet<TData = Awaited<ReturnType<typeof currenciesGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    currency: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof currenciesGet>>,
           TError,
           Awaited<ReturnType<typeof currenciesGet>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): DefinedUseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useCurrenciesGet<
-  TData = Awaited<ReturnType<typeof currenciesGet>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  currency: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>
-    > &
-      Pick<
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCurrenciesGet<TData = Awaited<ReturnType<typeof currenciesGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    currency: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof currenciesGet>>,
           TError,
           Awaited<ReturnType<typeof currenciesGet>>
-        >,
-        "initialData"
-      >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
-export function useCurrenciesGet<
-  TData = Awaited<ReturnType<typeof currenciesGet>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  currency: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-}
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCurrenciesGet<TData = Awaited<ReturnType<typeof currenciesGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    currency: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
  * @summary Get a currency
  */
 
-export function useCurrenciesGet<
-  TData = Awaited<ReturnType<typeof currenciesGet>>,
-  TError = ErrorType<MessageBody>,
->(
-  workspace: string,
-  currency: string,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseQueryResult<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData, TError>
-} {
-  const queryOptions = getCurrenciesGetQueryOptions(
-    workspace,
-    currency,
-    options
-  )
+export function useCurrenciesGet<TData = Awaited<ReturnType<typeof currenciesGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    currency: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof currenciesGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData, TError> }
+  const queryOptions = getCurrenciesGetQueryOptions(workspace,currency,options)
 
-  return withQueryKey(query, queryOptions.queryKey)
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
 
 /**
  * @summary Update a currency (send only changed fields)
  */
 export const currenciesUpdate = (
-  workspace: string,
-  currency: string,
-  updateCurrencyRequest: BodyType<UpdateCurrencyRequest>,
-  options?: SecondParameter<typeof apiRequest>,
-  signal?: AbortSignal
+    workspace: string,
+    currency: string,
+    updateCurrencyRequest: BodyType<UpdateCurrencyRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
-  return apiRequest<MessageBody>(
-    {
-      url: `/workspace/${workspace}/currencies/${currency}`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: updateCurrencyRequest,
-      signal,
+
+
+      return apiRequest<MessageBody>(
+      {url: `/workspace/${workspace}/currencies/${currency}`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: updateCurrencyRequest, signal
     },
-    options
-  )
-}
+      options);
+    }
 
-export const getCurrenciesUpdateMutationKey = () =>
-  ["currenciesUpdate"] as const
 
-export const getCurrenciesUpdateMutationOptions = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof currenciesUpdate>>,
-    TError,
-    CurrenciesUpdateMutationVariables,
-    TContext
-  >
-  request?: SecondParameter<typeof apiRequest>
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof currenciesUpdate>>,
-  TError,
-  CurrenciesUpdateMutationVariables,
-  TContext
-> => {
-  const mutationKey = getCurrenciesUpdateMutationKey()
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation &&
-      "mutationKey" in options.mutation &&
-      options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined }
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof currenciesUpdate>>,
-    CurrenciesUpdateMutationVariables
-  > = (props) => {
-    const { workspace, currency, data } = props ?? {}
 
-    return currenciesUpdate(workspace, currency, data, requestOptions)
-  }
+export const getCurrenciesUpdateMutationKey = () => ['currenciesUpdate'] as const;
 
-  return { mutationFn, ...mutationOptions }
-}
+export const getCurrenciesUpdateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof currenciesUpdate>>, TError,CurrenciesUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof currenciesUpdate>>, TError,CurrenciesUpdateMutationVariables, TContext> => {
 
-export type CurrenciesUpdateMutationResult = NonNullable<
-  Awaited<ReturnType<typeof currenciesUpdate>>
->
-export type CurrenciesUpdateMutationBody = BodyType<UpdateCurrencyRequest>
-export type CurrenciesUpdateMutationError = ErrorType<
-  MessageBody | ValidationErrorBody
->
-export type CurrenciesUpdateMutationVariables = {
-  workspace: string
-  currency: string
-  data: BodyType<UpdateCurrencyRequest>
-}
+const mutationKey = getCurrenciesUpdateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
 
-/**
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof currenciesUpdate>>, CurrenciesUpdateMutationVariables> = (props) => {
+          const {workspace,currency,data} = props ?? {};
+
+          return  currenciesUpdate(workspace,currency,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CurrenciesUpdateMutationResult = NonNullable<Awaited<ReturnType<typeof currenciesUpdate>>>
+    export type CurrenciesUpdateMutationBody = BodyType<UpdateCurrencyRequest>
+    export type CurrenciesUpdateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type CurrenciesUpdateMutationVariables = {workspace: string;currency: string;data: BodyType<UpdateCurrencyRequest>}
+
+    /**
  * @summary Update a currency (send only changed fields)
  */
-export const useCurrenciesUpdate = <
-  TError = ErrorType<MessageBody | ValidationErrorBody>,
-  TContext = unknown,
->(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof currenciesUpdate>>,
-      TError,
-      CurrenciesUpdateMutationVariables,
-      TContext
-    >
-    request?: SecondParameter<typeof apiRequest>
-  },
-  queryClient?: QueryClient
-): UseMutationResult<
-  Awaited<ReturnType<typeof currenciesUpdate>>,
-  TError,
-  CurrenciesUpdateMutationVariables,
-  TContext
-> => {
-  return useMutation(getCurrenciesUpdateMutationOptions(options), queryClient)
-}
+export const useCurrenciesUpdate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof currenciesUpdate>>, TError,CurrenciesUpdateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof currenciesUpdate>>,
+        TError,
+        CurrenciesUpdateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCurrenciesUpdateMutationOptions(options), queryClient);
+    }
