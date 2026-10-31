@@ -15,13 +15,17 @@ use crate::{
     modules::{
         files::{repo as files, service as files_service},
         lots::{
-            dto::{LotPatch, NewLotInput, STATUSES},
+            dto::{LotPatch, LotStockLevel, NewLotInput, STATUSES, StockMutation},
             passport::{FileUse, Passport},
             public::{Link, PublicLot},
             repo::{self, EventRow, ListFilter, LotRow, NewEvent, PassportRow},
         },
         products::repo as products,
-        stock::service::tracks_stock,
+        stock::{
+            repo::{self as stock, Cause, Floor, Mutated, Slot},
+            service::tracks_stock,
+        },
+        warehouses::repo as warehouses,
         webhooks::events::{self, LOT_CREATED, PASSPORT_PUBLISHED},
     },
 };
@@ -201,6 +205,13 @@ pub async fn update(
         after.origin = o;
     }
     check_dates(after.produced_on, after.best_before, after.expires_on)?;
+    // The code is printed on labels: once stock exists under it, it stays.
+    if before.code != after.code && repo::has_stock(&mut *tx, access.workspace_id, id).await? {
+        return Err(AppError::field(
+            "code",
+            "The code can't change once the lot holds stock.",
+        ));
+    }
     let changed: Vec<&str> = [
         ("code", before.code != after.code),
         ("produced_on", before.produced_on != after.produced_on),
@@ -420,6 +431,67 @@ pub async fn public(
         }
     }
     Ok(PublicLot::new(row, passport, &links))
+}
+
+/// POST /lots/{lot}/stock-mutations: stock in or out of the lot at a warehouse (its
+/// warehouse-level lot row). Out may not take more than the row has free (level − reserved).
+pub async fn stock_mutation(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: &str,
+    m: StockMutation,
+) -> Result<LotStockLevel, AppError> {
+    let lot = get(state, access.workspace_id, id).await?;
+    if !warehouses::exists(&state.db, access.workspace_id, m.warehouse_id).await? {
+        return Err(AppError::field(
+            "warehouse_id",
+            "The selected warehouse id is invalid.",
+        ));
+    }
+    let slot = Slot {
+        product_id: lot.product_id,
+        warehouse_id: m.warehouse_id,
+        bin: None,
+        lot_id: Some(lot.id),
+    };
+    let cause = Cause {
+        reason: m.reason.as_deref(),
+        is_correction: m.is_correction,
+        user_id: Some(access.user_id),
+        ..Cause::default()
+    };
+    let mut tx = state.db.begin().await?;
+    match stock::mutate(
+        &mut tx,
+        access.workspace_id,
+        slot,
+        m.quantity,
+        Floor::Available,
+        &cause,
+    )
+    .await?
+    {
+        Mutated::Short { level, reserved } => Err(AppError::field(
+            "quantity",
+            format!(
+                "Insufficient stock in this lot. Available: {}, Reserved: {}, Requested: {}",
+                level.normalize(),
+                reserved.normalize(),
+                (-m.quantity).normalize()
+            ),
+        )),
+        Mutated::OutOfRange => Err(AppError::field(
+            "quantity",
+            "The stock level would be out of range.",
+        )),
+        Mutated::Done { after, .. } => {
+            tx.commit().await?;
+            Ok(LotStockLevel {
+                warehouse_id: m.warehouse_id,
+                stock_lvl: format!("{after:.2}"),
+            })
+        }
+    }
 }
 
 #[cfg(test)]

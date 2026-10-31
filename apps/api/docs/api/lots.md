@@ -44,6 +44,21 @@ A PATCH that changes nothing writes nothing. Each row has `user_id` (null once t
 
 `lot.created` (on POST, same transaction): `{lot_id, product_id, code, public_code}`.
 
+## Stock per lot
+
+Stock rows carry an optional `lot_id`. Null is the product's no-lot stock, which keeps the old one row per product, warehouse and bin. Each lot gets its own warehouse-level row next to it. Every ledger line (`stock_movements`) carries the row's `lot_id`, and so does `stock.changed`.
+
+`POST /lots/{lot}/stock-mutations` (`product.update`) with body `{warehouse_id, quantity, reason?, is_correction?}`:
+
+- `quantity`: non-zero, rounded to 2 decimals. Positive puts stock in, negative takes it out.
+- Out may not take more than the row has free (level − reserved). Otherwise `422` on `quantity`: "Insufficient stock in this lot. Available: …, Reserved: …, Requested: …".
+- An unknown or foreign warehouse gives `422` on `warehouse_id`.
+- Reply: `200 {data: {warehouse_id, stock_lvl}}`.
+
+Once a lot holds any stock row, its `code` can't change (`422` on `code`); the code is printed on labels.
+
+The product read (`stocks[]`), `GET /products/stocks` and `stock-with-bins` show lot rows as rows of their own, with `lot: {id, code, expires_on}`. No-lot rows have `lot: null`.
+
 ## Passport
 
 One per lot: a **draft** the office edits and a **published** copy the public page shows. Routes (same access rules as above):

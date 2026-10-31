@@ -1214,6 +1214,12 @@ fn every_lots_operation_is_documented() {
             "lots_passport_unpublish",
             "200",
         ),
+        (
+            "/lots/{lot}/stock-mutations",
+            "post",
+            "lots_stock_mutate",
+            "200",
+        ),
     ]);
 }
 

@@ -21,7 +21,7 @@ use crate::{
             repo::ProductRow,
         },
         special_offers::{self, dto::OfferResource, repo::OfferRow},
-        stock::repo::StockLine,
+        stock::{self, repo::StockLine},
         vat_groups::{dto::VatGroupResource, repo::VatGroupRow},
         warehouses::repo::StockRef,
     },
@@ -253,6 +253,7 @@ fn stock_row(l: &StockLine) -> Value {
             "id": id, "shelf_code": l.shelf_code, "shelf_name": l.shelf_name,
         })),
         "bin": l.bin_id.map(|id| json!({ "id": id, "bin_code": l.bin_code, "bin_name": l.bin_name })),
+        "lot": stock::resource::lot(l.lot_id, l.lot_code.as_deref(), l.lot_expires_on),
         "updated_at": l.updated_at,
         "meta": l.meta,
     })
@@ -272,6 +273,7 @@ fn fallback_row(w: &StockRef) -> Value {
         },
         "shelf": null,
         "bin": null,
+        "lot": null,
         "product": null,
         "updated_at": null,
         "meta": null,
@@ -527,6 +529,9 @@ struct ProductStockDoc {
     /// `id`, `bin_code`, `bin_name`.
     #[schema(value_type = Option<Object>, required = true)]
     bin: Option<Value>,
+    /// `id`, `code`, `expires_on`; null for no-lot stock.
+    #[schema(value_type = Option<Object>, required = true)]
+    lot: Option<Value>,
     /// Zero rows only; always null.
     #[schema(value_type = Option<Object>)]
     product: Option<Value>,

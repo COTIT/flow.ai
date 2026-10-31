@@ -347,6 +347,7 @@ async fn move_stock(
             product_id: l.product_id,
             warehouse_id,
             bin: None,
+            lot_id: None,
         });
     }
     stock::lock_all(conn, workspace_id, &slots).await?;

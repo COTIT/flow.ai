@@ -1,6 +1,7 @@
 //! Stock JSON in Laravel's resource shapes (ListProductStockWithBins, ListProductConfiguredBins,
 //! StockMovementResource). Quantities print as MySQL's `decimal(19,2)` strings.
 
+use chrono::NaiveDate;
 use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -53,7 +54,16 @@ pub fn with_bins(r: &BinsRow) -> Value {
             })),
         })),
         "bin": r.b_id.map(|id| json!({ "id": id, "bin_code": r.b_code, "bin_name": r.b_name })),
+        "lot": lot(r.lot_id, r.lot_code.as_deref(), r.lot_expires_on),
     })
+}
+
+/// A stock row's lot (`{id, code, expires_on}`), null for the product's no-lot stock.
+pub fn lot(id: Option<Uuid>, code: Option<&str>, expires_on: Option<NaiveDate>) -> Value {
+    id.map_or(
+        Value::Null,
+        |id| json!({ "id": id, "code": code, "expires_on": expires_on }),
+    )
 }
 
 /// `configured-bins`: bins grouped by warehouse in first-seen order. genesy has no int ids,
@@ -176,6 +186,9 @@ pub struct StockDoc {
     maximum_stock_level: i32,
     #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    /// `id`, `code`, `expires_on`; null for no-lot stock.
+    #[schema(value_type = Option<Object>, required = true)]
+    lot: Option<Value>,
     #[schema(inline)]
     relationships: StockRelationsDoc,
 }
@@ -210,6 +223,9 @@ pub struct WithBinsDoc {
     /// `id`, `bin_code`, `bin_name`.
     #[schema(value_type = Option<Object>, required = true)]
     bin: Option<Value>,
+    /// `id`, `code`, `expires_on`; null for no-lot stock.
+    #[schema(value_type = Option<Object>, required = true)]
+    lot: Option<Value>,
 }
 
 /// One warehouse group of [`configured`].

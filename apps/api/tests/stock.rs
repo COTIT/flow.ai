@@ -892,7 +892,8 @@ async fn stock_with_bins_and_configured_bins(pool: PgPool) {
         rows[0],
         json!({ "id": rows[0]["id"], "stock_lvl": "4.00", "reserved": "0.00",
                 "minimal_stock_level": 0, "maximum_stock_level": 0,
-                "warehouse": { "id": w.main, "name": "Main" }, "shelf": null, "bin": null })
+                "warehouse": { "id": w.main, "name": "Main" }, "shelf": null, "bin": null,
+                "lot": null })
     );
     assert_eq!(rows[1]["shelf"]["id"], shelf.as_str());
     assert_eq!(rows[1]["shelf"]["row"]["row_code"], "H-ROW-A");

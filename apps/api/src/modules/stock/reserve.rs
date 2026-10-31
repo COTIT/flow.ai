@@ -66,6 +66,7 @@ fn slot(warehouse_id: Uuid, product_id: Uuid) -> Slot {
         product_id,
         warehouse_id,
         bin: None,
+        lot_id: None,
     }
 }
 
@@ -286,7 +287,7 @@ async fn lock_row(
 ) -> Result<StockRow, sqlx::Error> {
     sqlx::query_as!(
         StockRow,
-        "SELECT id, product_id, warehouse_id, shelf_id, bin_id, stock_lvl, reserved,
+        "SELECT id, product_id, warehouse_id, shelf_id, bin_id, lot_id, stock_lvl, reserved,
                 minimal_stock_level, maximum_stock_level
          FROM stocks WHERE workspace_id = $1 AND id = $2
          FOR NO KEY UPDATE",
@@ -328,6 +329,7 @@ async fn shift(
         "stock_id": row.id,
         "product_id": row.product_id,
         "warehouse_id": row.warehouse_id,
+        "lot_id": row.lot_id,
         "reason": reason,
         "quantity_change": "0.00",
         "quantity_after": format!("{:.2}", row.stock_lvl),
