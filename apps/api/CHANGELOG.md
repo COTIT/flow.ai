@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Phase 4b step 6, farmers credited at sale (migration `farm_sale_attributions`; contracts `docs/api/farm-passbook.md`, `webhooks.md`):
-  - **At sale:** order completion (`orders::service::complete`) calls `farm_supply::sale::on_sale` in its transaction. Each supply lot among the units taken is traced to its batch and owes `price × kg in the units sold`, rounded half up once and split by kg (largest remainder). It writes a `sale` attribution in the farm workspace, one passbook credit per farmer and `sale.attributed`, once per order and lot.
+  - **At sale:** order completion (`orders::service::complete`) and the till sale (`till_sales::service`, after `take`) call `farm_supply::sale::on_sale` in its transaction. Each supply lot among the units taken is traced to its batch and owes `price × kg in the units sold`, rounded half up once and split by kg (largest remainder). It writes a `sale` attribution in the farm workspace, one passbook credit per farmer and `sale.attributed`, once per order and lot.
   - **Returns:** `on_return` spreads the cumulative returned units over the order's lots and writes only the change, as `return` attributions and `sale_reversal` lines. A full return nets every farmer to 0.
   - **Event:** `sale.attributed` is on `EVENTS`. The payload is thin (totals and a farmer count, no person ids), since outbox payloads stay under 16 KiB.
   - **Stores:** attributions are append-only. New index `stock_movements_related_idx` finds an order's movements in one probe.

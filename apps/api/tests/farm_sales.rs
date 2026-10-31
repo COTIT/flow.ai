@@ -27,6 +27,9 @@ struct Sold {
     /// Persons, in the order Neema (250 kg), Baraka (120.50 kg), Upendo (30 kg).
     persons: [String; 3],
     tzs: String,
+    /// The shop's jar product and the warehouse holding the jars.
+    product: String,
+    warehouse: String,
 }
 
 async fn ws_call(
@@ -81,7 +84,7 @@ async fn sold(pool: PgPool, two_workspaces: bool) -> Sold {
         &f,
         &f.ws,
         "/warehouses",
-        json!({ "name": "Iringa", "default_warehouse": true }),
+        json!({ "name": "Iringa", "default_warehouse": true, "is_store": true }),
         &f.owner,
         "warehouse_id",
     )
@@ -102,7 +105,7 @@ async fn sold(pool: PgPool, two_workspaces: bool) -> Sold {
     assert_eq!(status, StatusCode::CREATED, "{res}");
     let jars = res["data"]["id"].as_str().unwrap().to_owned();
 
-    let (shop_ws, shop, product) = if two_workspaces {
+    let (shop_ws, shop, product, warehouse) = if two_workspaces {
         let (a, a_ws) = signup(&f.app, "owner@afm.test", "afm").await;
         let link = created(
             &f,
@@ -136,7 +139,7 @@ async fn sold(pool: PgPool, two_workspaces: bool) -> Sold {
             &f,
             &a_ws,
             "/warehouses",
-            json!({ "name": "US hub", "default_warehouse": true }),
+            json!({ "name": "US hub", "default_warehouse": true, "is_store": true }),
             &a,
             "warehouse_id",
         )
@@ -160,9 +163,9 @@ async fn sold(pool: PgPool, two_workspaces: bool) -> Sold {
         )
         .await;
         assert_eq!(status, StatusCode::CREATED, "{res}");
-        (a_ws, a, a_jar)
+        (a_ws, a, a_jar, hub)
     } else {
-        (f.ws.clone(), f.owner.clone(), jar_product)
+        (f.ws.clone(), f.owner.clone(), jar_product, store)
     };
 
     // Both workspaces listen for sale.attributed; only the farm's may get it.
@@ -204,7 +207,44 @@ async fn sold(pool: PgPool, two_workspaces: bool) -> Sold {
         order,
         persons: [c.neema.person, baraka, upendo],
         tzs,
+        product,
+        warehouse,
     }
+}
+
+/// A till signed in on a register of the jars' warehouse; its token.
+async fn till(s: &Sold) -> String {
+    let (status, reg) = ws_call(
+        &s.f,
+        &s.shop_ws,
+        Method::POST,
+        "/till/registers",
+        Some(json!({ "name": "Till", "warehouse_id": s.warehouse })),
+        &s.shop,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{reg}");
+    let key = reg["data"]["key"].as_str().unwrap().to_owned();
+    let (_, user) = ws_call(
+        &s.f,
+        &s.shop_ws,
+        Method::POST,
+        "/till/users",
+        Some(json!({ "name": "Clerk", "pin": "4821" })),
+        &s.shop,
+    )
+    .await;
+    let (status, res) = ws_call(
+        &s.f,
+        &s.shop_ws,
+        Method::POST,
+        "/till/login",
+        Some(json!({ "till_user_id": user["data"]["id"], "pin": "4821" })),
+        &key,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    res["data"]["token"].as_str().unwrap().to_owned()
 }
 
 async fn act(f: &Farm, ws: &str, token: &str, order: &str, action: &str, body: Option<Value>) {
@@ -270,6 +310,8 @@ async fn balances(s: &Sold) -> [i64; 3] {
 const SALE: [i64; 3] = [1_123_596, 541_573, 134_831];
 // 1 jar = 600,000: 374,531.83 / 180,524.34 / 44,943.82 -> leftovers to Neema and Upendo.
 const ONE_BACK: [i64; 3] = [374_532, 180_524, 44_944];
+// A till sale of 2 jars = 1,200,000: 749,063.67 / 361,048.69 / 89,887.64 -> Baraka and Neema.
+const TILL: [i64; 3] = [749_064, 361_049, 89_887];
 
 async fn done_when(pool: PgPool, two_workspaces: bool) {
     let s = sold(pool, two_workspaces).await;
@@ -300,6 +342,28 @@ async fn done_when(pool: PgPool, two_workspaces: bool) {
         "a full return nets every farmer to 0"
     );
 
+    // The till sells 5 jars: the 3 returned ones went back to the no-lot row, which goes
+    // first, so only 2 come from the lot and are credited. An offline replay credits nothing.
+    // shortcut: returned jars lose their lot (restock goes to the no-lot row, Phase 3 D3), so
+    // their resale credits no farmer; fix by restocking returns into the lots they left.
+    let t = till(&s).await;
+    let body = json!({ "client_ref": client_ref(), "payment": { "method": "card" },
+                       "lines": [{ "product_id": s.product, "quantity": "5", "unit_price": 2400 }] });
+    for expected in [StatusCode::CREATED, StatusCode::OK] {
+        let (status, res) = ws_call(
+            &s.f,
+            &s.shop_ws,
+            Method::POST,
+            "/till/sales",
+            Some(body.clone()),
+            &t,
+        )
+        .await;
+        assert_eq!(status, expected, "{res}");
+    }
+    assert_eq!(balances(&s).await, TILL);
+    assert_eq!(TILL.iter().sum::<i64>(), 1_200_000);
+
     let kinds: Vec<(String, String)> = sqlx::query_as(
         "SELECT e.kind, coalesce(a.kind, '-') FROM farm_passbook_entries e
          LEFT JOIN farm_sale_attributions a ON a.id = e.attribution_id
@@ -315,7 +379,9 @@ async fn done_when(pool: PgPool, two_workspaces: bool) {
             ("sale_credit".to_owned(), "sale".to_owned()),
             ("sale_reversal".to_owned(), "return".to_owned()),
             ("sale_reversal".to_owned(), "return".to_owned()),
-        ]
+            ("sale_credit".to_owned(), "sale".to_owned()),
+        ],
+        "web sale, two returns, till sale"
     );
 }
 

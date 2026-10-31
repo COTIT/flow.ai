@@ -83,7 +83,10 @@ pub async fn dispatch(
 ) -> Result<(StatusCode, Data<SupplyTransferResource>), AppError> {
     let t = service::dispatch(&state, &access, &id, d).await?;
     let ws = access.workspace_id;
-    Ok((StatusCode::CREATED, Data(SupplyTransferResource::new(t, ws))))
+    Ok((
+        StatusCode::CREATED,
+        Data(SupplyTransferResource::new(t, ws)),
+    ))
 }
 
 /// GET /supply-transfers -> `{data:[...], meta}`.
@@ -140,5 +143,8 @@ pub async fn receive(
 ) -> Result<(StatusCode, Data<SupplyTransferResource>), AppError> {
     let t = service::receive(&state, &access, &id, r).await?;
     let ws = access.workspace_id;
-    Ok((StatusCode::CREATED, Data(SupplyTransferResource::new(t, ws))))
+    Ok((
+        StatusCode::CREATED,
+        Data(SupplyTransferResource::new(t, ws)),
+    ))
 }

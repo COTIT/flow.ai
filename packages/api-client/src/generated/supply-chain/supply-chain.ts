@@ -27,10 +27,10 @@ import type {
 import type {
   DispatchRequest,
   EnvelopePackedLotResource,
-  EnvelopeTransferResource,
+  EnvelopeSupplyTransferResource,
   MessageBody,
   PackingRequest,
-  PaginatedTransferResource,
+  PaginatedSupplyTransferResource,
   ReceiveRequest,
   SupplyChainListParams,
   UnprocessableBody,
@@ -142,7 +142,7 @@ export const supplyChainDispatch = (
 ) => {
 
 
-      return apiRequest<EnvelopeTransferResource>(
+      return apiRequest<EnvelopeSupplyTransferResource>(
       {url: `/workspace/${workspace}/lots/${lot}/transfers`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: dispatchRequest, signal
@@ -211,7 +211,7 @@ export const supplyChainList = (
 ) => {
 
 
-      return apiRequest<PaginatedTransferResource>(
+      return apiRequest<PaginatedSupplyTransferResource>(
       {url: `/workspace/${workspace}/supply-transfers`, method: 'GET',
         params, signal
     },
@@ -313,7 +313,7 @@ export const supplyChainReceive = (
 ) => {
 
 
-      return apiRequest<EnvelopeTransferResource>(
+      return apiRequest<EnvelopeSupplyTransferResource>(
       {url: `/workspace/${workspace}/supply-transfers/${transfer}/receive`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: receiveRequest, signal

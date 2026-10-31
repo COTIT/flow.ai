@@ -5,13 +5,11 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { Meta } from './meta';
-import type { TransferResource } from './transferResource';
+import type { SupplyTransferResource } from './supplyTransferResource';
 
 /**
- * One page of results plus paging details.
+ * Success body: the result under `data`.
  */
-export interface PaginatedTransferResource {
-  data: TransferResource[];
-  meta: Meta;
+export interface EnvelopeSupplyTransferResource {
+  data: SupplyTransferResource;
 }
