@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Phase 4 farmer logins (G11, contract `docs/api/farm-logins.md`, migration `farm_logins`):
+  - `users.email` nullable, `users.phone` (unique, E.164) and `users.must_change_password`; an account has an email or a phone. The down migration refuses while phone-only accounts exist.
+  - Officers issue/reset a farmer login from a person (`POST /farm/persons/{person}/login`, temporary password shown once, reset ends every session); history at `/login-history`; `farm_login_issues` append-only.
+  - `POST /v1/farm/login` (public): phone + password, same 401 for unknown phone and wrong password, 10 failures per phone per 15 minutes then 429 (reuses `login_failures`). `POST /v1/farm/password`: farmer rule (8–128, no run/repeat/obvious/phone digits), refuses the temporary password, clears the flag.
+  - `AuthUser` now answers 403 to phone-only accounts (`/me`, `/me/workspaces`, invite accept, verification resend). `AnyUser` / `AuthUser::any` serve logout, workspace routes (still 404 for non-members) and farm routes.
+  - Spec: `UserResource.email`, `UserEmailResource.email` and `InviteResource.invited_by` are nullable; 403 documented on the routes above.
 - Phase 4 farm records (RUAHA identity + production, contract `docs/api/farm-records.md`, migration `farm_records`):
   - Tables `farm_crops`, `farm_persons` (with optional account link), `farm_households` + members, `farms` + managers, `farm_plots`, `farm_crop_cycles`, `farm_harvest_reports` (one current row per cycle and kind), `farm_registration_receipts`. Provenance block on every observed row; `(workspace_id, village_id)` composite keys down every chain; soft delete filtered on every read.
   - `POST /farm/registrations`: one transaction, idempotent by `client_ref`, Tanzanian phone normalised (`farm_records::phone::normalize_phone`), farm GPS required, one cycle per crop with its crop's measure. Joining a household that has a head no longer drops the member (RUAHA silently skipped it).

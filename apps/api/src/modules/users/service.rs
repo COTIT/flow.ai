@@ -44,10 +44,11 @@ pub async fn me(state: &AppState, user_id: Uuid) -> Result<Me, AppError> {
     let workspaces = workspaces::active_for_user(&state.db, user_id).await?;
     let teams = teams::for_member(&state.db, user_id).await?;
     // Unverified accounts may be squatting someone else's address: show them no invites.
-    let pending_invites = if profile.email_verified {
-        invites::pending_for_email(&state.db, &profile.email).await?
-    } else {
-        Vec::new()
+    let pending_invites = match profile.email.as_deref() {
+        Some(email) if profile.email_verified => {
+            invites::pending_for_email(&state.db, email).await?
+        }
+        _ => Vec::new(),
     };
     Ok(Me {
         profile,

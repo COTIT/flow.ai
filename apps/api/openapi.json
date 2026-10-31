@@ -872,6 +872,26 @@
         ],
         "type": "object"
       },
+      "ChangePasswordRequest": {
+        "description": "POST /v1/farm/password.",
+        "properties": {
+          "current_password": {
+            "description": "The password signed in with (the temporary one at first sign-in).",
+            "format": "password",
+            "type": "string"
+          },
+          "password": {
+            "description": "8 to 128 characters. Not the temporary password, not a straight run or one repeated\ncharacter, not an obvious word, not the phone number.",
+            "format": "password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "password"
+        ],
+        "type": "object"
+      },
       "Conditions": {
         "description": "When a template or profile is picked.",
         "properties": {
@@ -3515,6 +3535,18 @@
         ],
         "type": "object"
       },
+      "Envelope_FarmSession": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FarmSession"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_FileCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -3665,6 +3697,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/InvoiceResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_IssuedLogin": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/IssuedLogin"
           }
         },
         "required": [
@@ -4276,6 +4320,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_LoginIssue": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/LoginIssue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_ProductVariantResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4458,6 +4517,25 @@
         },
         "type": "object"
       },
+      "FarmLoginRequest": {
+        "description": "POST /v1/farm/login.",
+        "properties": {
+          "password": {
+            "format": "password",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Any spelling of the registered phone.",
+            "example": "0712 345 678",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "password"
+        ],
+        "type": "object"
+      },
       "FarmManager": {
         "description": "One person managing a farm.",
         "properties": {
@@ -4472,6 +4550,31 @@
         "required": [
           "person_id",
           "is_primary"
+        ],
+        "type": "object"
+      },
+      "FarmMembershipRef": {
+        "description": "One farm role of the signed-in account.",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "role",
+          "village_id"
         ],
         "type": "object"
       },
@@ -4538,6 +4641,35 @@
           "provenance",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "FarmSession": {
+        "description": "Send `access_token` as `Authorization: Bearer <token>`. While `must_change_password` is true, send the farmer to choose a password first.",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "memberships": {
+            "description": "Where this account has farm roles.",
+            "items": {
+              "$ref": "#/components/schemas/FarmMembershipRef"
+            },
+            "type": "array"
+          },
+          "must_change_password": {
+            "type": "boolean"
+          },
+          "token_type": {
+            "example": "Bearer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "must_change_password",
+          "memberships"
         ],
         "type": "object"
       },
@@ -5180,7 +5312,10 @@
           },
           "invited_by": {
             "description": "Email of whoever sent the invite.",
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "last_updated_at": {
             "format": "date-time",
@@ -5249,7 +5384,10 @@
       "Inviter": {
         "properties": {
           "email": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "type": "string"
@@ -6220,6 +6358,47 @@
         ],
         "type": "object"
       },
+      "IssuedLogin": {
+        "description": "Read the phone and temporary password to the farmer now: the password is never shown again. They must choose their own at first sign-in.",
+        "properties": {
+          "kind": {
+            "description": "`initial` (new login) or `reset` (new password; every session of the farmer ended).",
+            "type": "string"
+          },
+          "phone": {
+            "description": "The login name: the person's phone, normalised.",
+            "example": "+255712345678",
+            "type": "string"
+          },
+          "temp_password": {
+            "example": "k7m2q9xd",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "temp_password",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "IssuerRef": {
+        "description": "Who issued a login.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "ItemLine": {
         "description": "One item line. Numbers may also be sent as decimal strings; unknown keys are ignored.",
         "properties": {
@@ -6624,6 +6803,33 @@
         ],
         "type": "object"
       },
+      "LoginIssue": {
+        "description": "One issue in a person's login history.",
+        "properties": {
+          "issued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issued_by": {
+            "$ref": "#/components/schemas/IssuerRef"
+          },
+          "kind": {
+            "description": "`initial` or `reset`.",
+            "type": "string"
+          },
+          "must_change_password": {
+            "description": "The account still has to replace its temporary password.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issued_at",
+          "kind",
+          "issued_by",
+          "must_change_password"
+        ],
+        "type": "object"
+      },
       "LoginRequest": {
         "description": "Login with email and password.",
         "properties": {
@@ -6866,7 +7072,10 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "format": "uuid",
@@ -14890,7 +15099,10 @@
             ]
           },
           "email": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "format": "uuid",
@@ -14980,7 +15192,10 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "first_name": {
             "type": "string"
@@ -17059,6 +17274,16 @@
             },
             "description": "Missing, invalid or expired token"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "A phone-only (farmer) account: it has no email profile"
+          },
           "429": {
             "content": {
               "application/json": {
@@ -17117,6 +17342,250 @@
         ]
       }
     },
+    "/farm/login": {
+      "post": {
+        "description": "Unknown phone and wrong password get the same 401. Ten failures in 15 minutes lock the phone (429) until an officer issues a new password.",
+        "operationId": "farm_logins_login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FarmLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_FarmSession"
+                }
+              }
+            },
+            "description": "Signed in"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Wrong phone or password"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Phone or password missing"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Farmer sign-in by phone",
+        "tags": [
+          "farm_logins"
+        ]
+      }
+    },
+    "/farm/password": {
+      "post": {
+        "description": "Phone accounts only. Clears the must-change flag; the temporary password is refused as the new one.",
+        "operationId": "farm_logins_change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Changed"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "An email account"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Current password wrong, or the new one is refused"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Farmer chooses a password",
+        "tags": [
+          "farm_logins"
+        ]
+      }
+    },
     "/invites": {
       "post": {
         "operationId": "invites_answer",
@@ -17159,7 +17628,7 @@
                 }
               }
             },
-            "description": "Invite is for another email"
+            "description": "Invite is for another email, or a phone-only (farmer) account"
           },
           "404": {
             "content": {
@@ -17668,6 +18137,16 @@
             },
             "description": "Missing, invalid or expired token"
           },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "A phone-only (farmer) account: it has no email profile"
+          },
           "429": {
             "content": {
               "application/json": {
@@ -17749,6 +18228,16 @@
               }
             },
             "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "A phone-only (farmer) account: it has no email profile"
           },
           "429": {
             "content": {
@@ -32798,6 +33287,266 @@
         "summary": "Correct a person",
         "tags": [
           "farm_records"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/persons/{person}/login": {
+      "post": {
+        "description": "Field staff of the person's village. The first call creates the login (phone + temporary password, farmer role in the village); later calls reset the password and end every session of the farmer.",
+        "operationId": "farm_logins_issue",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Person id",
+            "in": "path",
+            "name": "person",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_IssuedLogin"
+                }
+              }
+            },
+            "description": "Issued; the password is shown only here"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not field staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown person, or outside the caller's villages"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No phone, the phone already signs someone else in, or a staff account"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Issue or reset a farmer login",
+        "tags": [
+          "farm_logins"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/persons/{person}/login-history": {
+      "get": {
+        "description": "Field staff of the person's village. Newest first, at most 100.",
+        "operationId": "farm_logins_history",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Person id",
+            "in": "path",
+            "name": "person",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_LoginIssue"
+                }
+              }
+            },
+            "description": "Every issue and reset"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not field staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown person, or outside the caller's villages"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A person's login history",
+        "tags": [
+          "farm_logins"
         ]
       }
     },

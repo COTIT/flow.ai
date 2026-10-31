@@ -107,7 +107,7 @@ impl FromRequestParts<AppState> for FarmAccess {
     type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
-        let user = AuthUser::from_request_parts(parts, state).await?;
+        let user = AuthUser::any(parts, state).await?;
         let params = RawPathParams::from_request_parts(parts, state)
             .await
             .map_err(|_| AppError::NotFound)?;
@@ -126,6 +126,7 @@ impl FromRequestParts<AppState> for FarmAccess {
                 return Err(AppError::NotFound);
             }
         }
+        // shortcut: 3 queries per request (access, roles, person), fold into one when profiling shows it.
         let person_id = farm::person_of(&state.db, workspace_id, user.user_id).await?;
         let workspace_admin = member.is_some_and(|a| {
             crate::modules::permissions::model::Granted::new(a.owner, a.permissions).is_admin()

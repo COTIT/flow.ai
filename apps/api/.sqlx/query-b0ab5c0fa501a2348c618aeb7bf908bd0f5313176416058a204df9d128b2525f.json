@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT temp_password_hash FROM farm_login_issues WHERE user_id = $1\n         ORDER BY issued_at DESC, id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "temp_password_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_login_issues",
+            "name": "temp_password_hash"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b0ab5c0fa501a2348c618aeb7bf908bd0f5313176416058a204df9d128b2525f"
+}

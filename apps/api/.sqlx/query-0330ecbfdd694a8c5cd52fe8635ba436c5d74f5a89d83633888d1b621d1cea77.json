@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t.id, t.user_id FROM access_tokens t\n         JOIN users u ON u.id = t.user_id AND u.deleted_at IS NULL\n         WHERE t.token_hash = $1 AND t.expires_at > now()",
+  "query": "SELECT t.id, t.user_id, u.email IS NULL AS \"phone_only!\" FROM access_tokens t\n           JOIN users u ON u.id = t.user_id AND u.deleted_at IS NULL\n           WHERE t.token_hash = $1 AND t.expires_at > now()",
   "describe": {
     "columns": [
       {
@@ -24,6 +24,12 @@
             "name": "user_id"
           }
         }
+      },
+      {
+        "ordinal": 2,
+        "name": "phone_only!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -33,8 +39,9 @@
     },
     "nullable": [
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "2b4fc258c7f2a594be964d091f3b869e676adab4f6274a519fdcf2de4a80df64"
+  "hash": "0330ecbfdd694a8c5cd52fe8635ba436c5d74f5a89d83633888d1b621d1cea77"
 }

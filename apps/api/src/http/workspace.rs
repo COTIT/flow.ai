@@ -52,7 +52,8 @@ impl FromRequestParts<AppState> for WorkspaceAccess {
     type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
-        let user = AuthUser::from_request_parts(parts, state).await?;
+        // Phone-only accounts pass here and fail the membership check: 404, not 403.
+        let user = AuthUser::any(parts, state).await?;
         let params = RawPathParams::from_request_parts(parts, state)
             .await
             .map_err(|_| AppError::NotFound)?;

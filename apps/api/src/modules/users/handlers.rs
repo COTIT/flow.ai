@@ -93,6 +93,7 @@ pub async fn member(
     operation_id = "users_me", summary = "Get the logged-in user",
     responses(
         (status = 200, body = Envelope<MeResponse>, description = "The user, with permissions per workspace and pending invites"),
+        (status = 403, body = MessageBody, description = "A phone-only (farmer) account: it has no email profile"),
     ),
     security(("bearer" = []))
 )]
@@ -109,6 +110,7 @@ pub async fn me(
     operation_id = "users_workspaces", summary = "List the logged-in user's workspaces",
     responses(
         (status = 200, body = Envelope<Vec<WorkspaceResource>>, description = "Workspaces where the user is an active member"),
+        (status = 403, body = MessageBody, description = "A phone-only (farmer) account: it has no email profile"),
     ),
     security(("bearer" = []))
 )]

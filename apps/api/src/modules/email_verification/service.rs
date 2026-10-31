@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
+    http::workspace::NOT_ALLOWED,
     mail::Outgoing,
     modules::{
         auth::{repo as access_tokens, token},
@@ -85,7 +86,12 @@ pub async fn resend(state: &AppState, user_id: Uuid) -> Result<(), AppError> {
 
     let (plain, hash) = token::generate()?;
     repo::insert(&mut *tx, user_id, &hash, expiry()).await?;
-    let mail = verification_mail(&state.api_public_url, &contact.email, plain.expose());
+    // Phone-only accounts have no address to verify (AuthUser refuses them before this).
+    let email = contact
+        .email
+        .as_deref()
+        .ok_or(AppError::Forbidden(NOT_ALLOWED))?;
+    let mail = verification_mail(&state.api_public_url, email, plain.expose());
     // The send runs inside the transaction (a failed send rolls the token back). Cap it well
     // under the connection's 60s idle-in-transaction limit, so a slow SMTP server can't get
     // the session killed after the mail went out.

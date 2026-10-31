@@ -1267,3 +1267,39 @@ fn every_farm_records_operation_is_documented() {
         .collect();
     assert_documented(&ops);
 }
+
+#[test]
+fn every_farm_logins_operation_is_documented() {
+    assert_documented(&[
+        (
+            "/farm/persons/{person}/login",
+            "post",
+            "farm_logins_issue",
+            "201",
+        ),
+        (
+            "/farm/persons/{person}/login-history",
+            "get",
+            "farm_logins_history",
+            "200",
+        ),
+    ]);
+    assert_ops(&[
+        ("/farm/login", "post", "farm_logins_login", "200"),
+        (
+            "/farm/password",
+            "post",
+            "farm_logins_change_password",
+            "204",
+        ),
+    ]);
+    let s = spec();
+    assert!(
+        s["paths"]["/farm/login"]["post"].get("security").is_none(),
+        "sign-in needs no token"
+    );
+    assert_eq!(
+        s["components"]["schemas"]["UserResource"]["properties"]["email"]["type"],
+        json!(["string", "null"])
+    );
+}

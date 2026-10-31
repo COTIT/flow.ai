@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT li.issued_at, li.kind, li.issued_by,\n                  concat_ws(' ', iu.first_name, iu.last_name) AS \"issued_by_name!\",\n                  u.must_change_password\n           FROM farm_persons p\n           JOIN farm_login_issues li ON li.person_id = p.id AND li.workspace_id = p.workspace_id\n           JOIN users u ON u.id = li.user_id\n           JOIN users iu ON iu.id = li.issued_by\n           WHERE p.workspace_id = $1 AND p.id = $2 AND p.deleted_at IS NULL\n             AND ($3 OR p.village_id = ANY($4))\n           ORDER BY li.issued_at DESC, li.id DESC\n           LIMIT 100",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "issued_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_login_issues",
+            "name": "issued_at"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_login_issues",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "issued_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_login_issues",
+            "name": "issued_by"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "issued_by_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "must_change_password",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "must_change_password"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "e319a89eb28dab2bbed927d1fd68186a22299f1ff3da8848fa535d21872532b7"
+}

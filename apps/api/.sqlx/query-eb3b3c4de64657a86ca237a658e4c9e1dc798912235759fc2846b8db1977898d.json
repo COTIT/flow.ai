@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (u.email IS NOT NULL OR EXISTS (\n                    SELECT 1 FROM farm_memberships m\n                    WHERE m.user_id = u.id AND m.revoked_at IS NULL AND m.role <> 'farmer')) AS \"staff!\"\n           FROM users u WHERE u.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "staff!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "eb3b3c4de64657a86ca237a658e4c9e1dc798912235759fc2846b8db1977898d"
+}
