@@ -88,9 +88,9 @@ pub async fn create(
     get, path = "/workspace/{workspace}/farm/surveys/eligibility", tag = "farm_surveys",
     operation_id = "farm_surveys_eligibility", summary = "Surveys my household may answer",
     description = "Every live or closed survey the caller sees, with `eligible` and, when not, the reason as written.",
-    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
-        (status = 200, body = Envelope<Vec<Eligibility>>, description = "One row per survey"),
+        (status = 200, body = Paginated<Eligibility>, description = "One row per live or closed survey, newest first"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role and is not a member"),
     ),
     security(("bearer" = []))
@@ -98,8 +98,11 @@ pub async fn create(
 pub async fn eligibility(
     State(state): State<AppState>,
     access: FarmAccess,
-) -> Result<Data<Vec<Eligibility>>, AppError> {
-    Ok(Data(service::eligibility(&state, &access).await?))
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<Eligibility>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (rows, total) = service::eligibility(&state, &access, page.size, page.offset()).await?;
+    Ok(Json(Paginated::new(rows, total, page)))
 }
 
 #[utoipa::path(
@@ -313,9 +316,9 @@ pub async fn results(
 #[utoipa::path(
     get, path = "/workspace/{workspace}/farm/surveys/{survey}/vouchers", tag = "farm_surveys",
     operation_id = "farm_surveys_vouchers", summary = "A survey's vouchers (no codes)",
-    params(("workspace" = Uuid, Path, description = "Workspace id"), ("survey" = Uuid, Path, description = "Survey id")),
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("survey" = Uuid, Path, description = "Survey id"), ListQuery),
     responses(
-        (status = 200, body = Envelope<Vec<SurveyVoucher>>, description = "Newest answer first, at most 1000"),
+        (status = 200, body = Paginated<SurveyVoucher>, description = "One page, newest answer first"),
         (status = 403, body = MessageBody, description = "Caller is not ops or admin"),
         (status = 404, body = MessageBody, description = "Unknown survey"),
     ),
@@ -325,7 +328,13 @@ pub async fn vouchers(
     State(state): State<AppState>,
     access: FarmAccess,
     Path((_, id)): Path<(String, String)>,
-) -> Result<Data<Vec<SurveyVoucher>>, AppError> {
-    let rows = service::vouchers(&state, &access, &id).await?;
-    Ok(Data(rows.into_iter().map(Into::into).collect()))
+    Query(q): Query<ListQuery>,
+) -> Result<Json<Paginated<SurveyVoucher>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (rows, total) = service::vouchers(&state, &access, &id, page.size, page.offset()).await?;
+    Ok(Json(Paginated::new(
+        rows.into_iter().map(Into::into).collect(),
+        total,
+        page,
+    )))
 }

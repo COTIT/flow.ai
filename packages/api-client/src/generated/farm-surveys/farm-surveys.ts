@@ -29,11 +29,13 @@ import type {
   EnvelopeSubmitted,
   EnvelopeSurveyResource,
   EnvelopeSurveyResults,
-  EnvelopeVecEligibility,
-  EnvelopeVecSurveyVoucher,
+  FarmSurveysEligibilityParams,
   FarmSurveysListParams,
+  FarmSurveysVouchersParams,
   MessageBody,
+  PaginatedEligibility,
   PaginatedSurveyResource,
+  PaginatedSurveyVoucher,
   QuestionRequest,
   ResponseRequest,
   SurveyRequest,
@@ -239,12 +241,14 @@ export const useFarmSurveysCreate = <TError = ErrorType<MessageBody | Unprocessa
  */
 export const farmSurveysEligibility = (
     workspace: string,
+    params?: FarmSurveysEligibilityParams,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
 
 
-      return apiRequest<EnvelopeVecEligibility>(
-      {url: `/workspace/${workspace}/farm/surveys/eligibility`, method: 'GET', signal
+      return apiRequest<PaginatedEligibility>(
+      {url: `/workspace/${workspace}/farm/surveys/eligibility`, method: 'GET',
+        params, signal
     },
       options);
     }
@@ -252,23 +256,25 @@ export const farmSurveysEligibility = (
 
 
 
-export const getFarmSurveysEligibilityQueryKey = (workspace: string,) => {
+export const getFarmSurveysEligibilityQueryKey = (workspace: string,
+    params?: FarmSurveysEligibilityParams,) => {
     return [
-    `/workspace/${workspace}/farm/surveys/eligibility`
+    `/workspace/${workspace}/farm/surveys/eligibility`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getFarmSurveysEligibilityQueryOptions = <TData = Awaited<ReturnType<typeof farmSurveysEligibility>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+export const getFarmSurveysEligibilityQueryOptions = <TData = Awaited<ReturnType<typeof farmSurveysEligibility>>, TError = ErrorType<MessageBody>>(workspace: string,
+    params?: FarmSurveysEligibilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getFarmSurveysEligibilityQueryKey(workspace);
+  const queryKey =  queryOptions?.queryKey ?? getFarmSurveysEligibilityQueryKey(workspace,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSurveysEligibility>>> = ({ signal }) => farmSurveysEligibility(workspace, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSurveysEligibility>>> = ({ signal }) => farmSurveysEligibility(workspace,params, requestOptions, signal);
 
 
 
@@ -282,7 +288,8 @@ export type FarmSurveysEligibilityQueryError = ErrorType<MessageBody>
 
 
 export function useFarmSurveysEligibility<TData = Awaited<ReturnType<typeof farmSurveysEligibility>>, TError = ErrorType<MessageBody>>(
- workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>> & Pick<
+ workspace: string,
+    params: undefined |  FarmSurveysEligibilityParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof farmSurveysEligibility>>,
           TError,
@@ -292,7 +299,8 @@ export function useFarmSurveysEligibility<TData = Awaited<ReturnType<typeof farm
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFarmSurveysEligibility<TData = Awaited<ReturnType<typeof farmSurveysEligibility>>, TError = ErrorType<MessageBody>>(
- workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>> & Pick<
+ workspace: string,
+    params?: FarmSurveysEligibilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof farmSurveysEligibility>>,
           TError,
@@ -302,7 +310,8 @@ export function useFarmSurveysEligibility<TData = Awaited<ReturnType<typeof farm
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFarmSurveysEligibility<TData = Awaited<ReturnType<typeof farmSurveysEligibility>>, TError = ErrorType<MessageBody>>(
- workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ workspace: string,
+    params?: FarmSurveysEligibilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -310,11 +319,12 @@ export function useFarmSurveysEligibility<TData = Awaited<ReturnType<typeof farm
  */
 
 export function useFarmSurveysEligibility<TData = Awaited<ReturnType<typeof farmSurveysEligibility>>, TError = ErrorType<MessageBody>>(
- workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ workspace: string,
+    params?: FarmSurveysEligibilityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysEligibility>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getFarmSurveysEligibilityQueryOptions(workspace,options)
+  const queryOptions = getFarmSurveysEligibilityQueryOptions(workspace,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1008,12 +1018,14 @@ export function useFarmSurveysResults<TData = Awaited<ReturnType<typeof farmSurv
 export const farmSurveysVouchers = (
     workspace: string,
     survey: string,
+    params?: FarmSurveysVouchersParams,
  options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
 ) => {
 
 
-      return apiRequest<EnvelopeVecSurveyVoucher>(
-      {url: `/workspace/${workspace}/farm/surveys/${survey}/vouchers`, method: 'GET', signal
+      return apiRequest<PaginatedSurveyVoucher>(
+      {url: `/workspace/${workspace}/farm/surveys/${survey}/vouchers`, method: 'GET',
+        params, signal
     },
       options);
     }
@@ -1022,24 +1034,26 @@ export const farmSurveysVouchers = (
 
 
 export const getFarmSurveysVouchersQueryKey = (workspace: string,
-    survey: string,) => {
+    survey: string,
+    params?: FarmSurveysVouchersParams,) => {
     return [
-    `/workspace/${workspace}/farm/surveys/${survey}/vouchers`
+    `/workspace/${workspace}/farm/surveys/${survey}/vouchers`, ...(params ? [params] : [])
     ] as const;
     }
 
 
 export const getFarmSurveysVouchersQueryOptions = <TData = Awaited<ReturnType<typeof farmSurveysVouchers>>, TError = ErrorType<MessageBody>>(workspace: string,
-    survey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    survey: string,
+    params?: FarmSurveysVouchersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getFarmSurveysVouchersQueryKey(workspace,survey);
+  const queryKey =  queryOptions?.queryKey ?? getFarmSurveysVouchersQueryKey(workspace,survey,params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSurveysVouchers>>> = ({ signal }) => farmSurveysVouchers(workspace,survey, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSurveysVouchers>>> = ({ signal }) => farmSurveysVouchers(workspace,survey,params, requestOptions, signal);
 
 
 
@@ -1054,7 +1068,8 @@ export type FarmSurveysVouchersQueryError = ErrorType<MessageBody>
 
 export function useFarmSurveysVouchers<TData = Awaited<ReturnType<typeof farmSurveysVouchers>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    survey: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>> & Pick<
+    survey: string,
+    params: undefined |  FarmSurveysVouchersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof farmSurveysVouchers>>,
           TError,
@@ -1065,7 +1080,8 @@ export function useFarmSurveysVouchers<TData = Awaited<ReturnType<typeof farmSur
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFarmSurveysVouchers<TData = Awaited<ReturnType<typeof farmSurveysVouchers>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    survey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>> & Pick<
+    survey: string,
+    params?: FarmSurveysVouchersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof farmSurveysVouchers>>,
           TError,
@@ -1076,7 +1092,8 @@ export function useFarmSurveysVouchers<TData = Awaited<ReturnType<typeof farmSur
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useFarmSurveysVouchers<TData = Awaited<ReturnType<typeof farmSurveysVouchers>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    survey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    survey: string,
+    params?: FarmSurveysVouchersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -1085,11 +1102,12 @@ export function useFarmSurveysVouchers<TData = Awaited<ReturnType<typeof farmSur
 
 export function useFarmSurveysVouchers<TData = Awaited<ReturnType<typeof farmSurveysVouchers>>, TError = ErrorType<MessageBody>>(
  workspace: string,
-    survey: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+    survey: string,
+    params?: FarmSurveysVouchersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSurveysVouchers>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getFarmSurveysVouchersQueryOptions(workspace,survey,options)
+  const queryOptions = getFarmSurveysVouchersQueryOptions(workspace,survey,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -140,7 +140,7 @@ pub async fn timeline(
     operation_id = "farm_vouchers_redemptions", summary = "Redemption log for cash reconciliation",
     params(("workspace" = Uuid, Path, description = "Workspace id"), DaysQuery),
     responses(
-        (status = 200, body = Envelope<Vec<Redemption>>, description = "Newest first, at most 5000"),
+        (status = 200, body = Paginated<Redemption>, description = "One page, newest first"),
         (status = 403, body = MessageBody, description = "Caller is not ops or admin"),
         (status = 422, body = ValidationErrorBody, description = "Missing or invalid dates"),
     ),
@@ -150,9 +150,15 @@ pub async fn redemptions(
     State(state): State<AppState>,
     access: FarmAccess,
     Query(q): Query<DaysQuery>,
-) -> Result<Data<Vec<Redemption>>, AppError> {
-    let rows = service::log(&state, &access, q.from, q.to).await?;
-    Ok(Data(rows.into_iter().map(Into::into).collect()))
+) -> Result<Json<Paginated<Redemption>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let (rows, total) =
+        service::log(&state, &access, q.from, q.to, page.size, page.offset()).await?;
+    Ok(Json(Paginated::new(
+        rows.into_iter().map(Into::into).collect(),
+        total,
+        page,
+    )))
 }
 
 #[utoipa::path(

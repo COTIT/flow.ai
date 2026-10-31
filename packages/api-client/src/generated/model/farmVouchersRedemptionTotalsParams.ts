@@ -9,4 +9,12 @@
 export type FarmVouchersRedemptionTotalsParams = {
 from: string;
 to: string;
+/**
+ * The log only: 1-based page; junk falls back to 1.
+ */
+page?: number;
+/**
+ * The log only: default 50, max 100.
+ */
+page_size?: number;
 };

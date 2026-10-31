@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT v.id AS voucher_id, v.redeemed_at AS \"redeemed_at!\", v.redeemed_by AS \"redeemed_by!\",\n                  concat_ws(' ', u.first_name, u.last_name) AS \"redeemed_by_name!\", vi.name AS village_name,\n                  h.label AS household_label, s.title_en AS survey_title_en, s.title_sw AS survey_title_sw,\n                  v.amount_minor, v.currency_id, c.asset_type AS currency, c.decimals,\n                  v.id_type_seen AS \"id_type_seen!\", v.audit_required\n           FROM farm_vouchers v\n           JOIN users u ON u.id = v.redeemed_by\n           JOIN farm_villages vi ON vi.id = v.village_id\n           JOIN farm_households h ON h.id = v.household_id\n           JOIN farm_surveys s ON s.id = v.survey_id\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.status = 'redeemed'\n             AND (v.redeemed_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date BETWEEN $2 AND $3\n           ORDER BY v.redeemed_at DESC\n           LIMIT 5000",
+  "query": "SELECT v.id AS voucher_id, v.redeemed_at AS \"redeemed_at!\", v.redeemed_by AS \"redeemed_by!\",\n                  concat_ws(' ', u.first_name, u.last_name) AS \"redeemed_by_name!\", vi.name AS village_name,\n                  h.label AS household_label, s.title_en AS survey_title_en, s.title_sw AS survey_title_sw,\n                  v.amount_minor, v.currency_id, c.asset_type AS currency, c.decimals,\n                  v.id_type_seen AS \"id_type_seen!\", v.audit_required\n           FROM farm_vouchers v\n           JOIN users u ON u.id = v.redeemed_by\n           JOIN farm_villages vi ON vi.id = v.village_id\n           JOIN farm_households h ON h.id = v.household_id\n           JOIN farm_surveys s ON s.id = v.survey_id\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.status = 'redeemed'\n             AND (v.redeemed_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date BETWEEN $2 AND $3\n           ORDER BY v.redeemed_at DESC, v.id DESC\n           LIMIT $4 OFFSET $5",
   "describe": {
     "columns": [
       {
@@ -157,7 +157,9 @@
       "Left": [
         "Uuid",
         "Date",
-        "Date"
+        "Date",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -177,5 +179,5 @@
       false
     ]
   },
-  "hash": "57d533bc7722b0b654e53b8a419fcdb90d8ebb42b126f81ec29697fe64f526a9"
+  "hash": "db274ea9f67fdd344c4c044fc18f76d6ee3fca6ad11146d62ca8b61c4e09c551"
 }

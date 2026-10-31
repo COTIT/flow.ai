@@ -309,12 +309,14 @@ pub async fn log(
     access: &FarmAccess,
     from: Option<String>,
     to: Option<String>,
-) -> Result<Vec<LogRow>, AppError> {
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<LogRow>, i64), AppError> {
     if !access.manages() {
         return Err(AppError::Forbidden(NOT_ALLOWED));
     }
     let (from, to) = days(from, to)?;
-    Ok(repo::log(&state.db, access.workspace_id, from, to).await?)
+    Ok(repo::log(&state.db, access.workspace_id, from, to, limit, offset).await?)
 }
 
 /// Redemptions per officer per day: ops and admin.

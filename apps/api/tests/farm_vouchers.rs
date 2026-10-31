@@ -456,6 +456,10 @@ async fn the_trail_is_append_only_and_filtered_by_who_asks(pool: PgPool) {
         redeemed["actor_name"], "Ada Lovelace",
         "the farmer sees who redeemed her voucher"
     );
+    assert_eq!(
+        redeemed["actor_role"], "field_officer",
+        "the redemption names the officer's role"
+    );
 
     let staff = timeline(&f, &voucher, &s.juma).await;
     assert!(

@@ -5,11 +5,13 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { Meta } from './meta';
 import type { Redemption } from './redemption';
 
 /**
- * Success body: the result under `data`.
+ * One page of results plus paging details.
  */
-export interface EnvelopeVecRedemption {
+export interface PaginatedRedemption {
   data: Redemption[];
+  meta: Meta;
 }

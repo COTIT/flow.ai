@@ -27,7 +27,6 @@ import type {
 import type {
   EnvelopeLookupResult,
   EnvelopeRedeemed,
-  EnvelopeVecRedemption,
   EnvelopeVecRedemptionTotal,
   EnvelopeVecTrailEntry,
   FarmVouchersMineParams,
@@ -36,6 +35,7 @@ import type {
   LookupRequest,
   MessageBody,
   PaginatedMyVoucher,
+  PaginatedRedemption,
   RedeemRequest,
   UnprocessableBody,
   ValidationErrorBody,
@@ -75,7 +75,7 @@ export const farmVouchersRedemptions = (
 ) => {
 
 
-      return apiRequest<EnvelopeVecRedemption>(
+      return apiRequest<PaginatedRedemption>(
       {url: `/workspace/${workspace}/farm/redemptions`, method: 'GET',
         params, signal
     },

@@ -360,9 +360,12 @@ fn household_facts(rows: &[repo::HouseholdRow], survey: Uuid) -> Vec<HouseholdFa
 pub async fn eligibility(
     state: &AppState,
     access: &FarmAccess,
-) -> Result<Vec<Eligibility>, AppError> {
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<Eligibility>, i64), AppError> {
     let villages = access.member_villages();
-    let (surveys, _) = repo::surveys(&state.db, &scope(access, &villages), None, 100, 0).await?;
+    let (surveys, total) =
+        repo::surveys(&state.db, &scope(access, &villages), None, limit, offset).await?;
     let must_change = repo::must_change_password(&state.db, access.user_id).await?;
     let households = match access.person_id {
         Some(p) => repo::households_of(&state.db, p).await?,
@@ -371,7 +374,7 @@ pub async fn eligibility(
     let house_ids: Vec<Uuid> = households.iter().map(|h| h.id).collect();
     let answered = repo::answered_by(&state.db, &house_ids).await?;
     let now = Utc::now();
-    Ok(surveys
+    let rows = surveys
         .iter()
         .filter(|s| s.status != "draft")
         .map(|s| {
@@ -391,7 +394,9 @@ pub async fn eligibility(
                 voucher_id: done.and_then(|a| a.voucher_id),
             }
         })
-        .collect())
+        .collect();
+    // A manager's page also counts drafts, which get no eligibility row.
+    Ok((rows, total))
 }
 
 /// Check and clean one answer; None = left blank.
@@ -652,10 +657,12 @@ pub async fn vouchers(
     state: &AppState,
     access: &FarmAccess,
     id: &str,
-) -> Result<Vec<SurveyVoucherRow>, AppError> {
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<SurveyVoucherRow>, i64), AppError> {
     if !access.manages() {
         return Err(AppError::Forbidden(NOT_ALLOWED));
     }
     let s = get(state, access, path_id(id)?).await?;
-    Ok(repo::survey_vouchers(&state.db, access.workspace_id, s.id).await?)
+    Ok(repo::survey_vouchers(&state.db, access.workspace_id, s.id, limit, offset).await?)
 }

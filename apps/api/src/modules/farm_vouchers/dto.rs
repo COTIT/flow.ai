@@ -230,6 +230,12 @@ pub struct DaysQuery {
     pub from: Option<String>,
     #[param(value_type = NaiveDate)]
     pub to: Option<String>,
+    /// The log only: 1-based page; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
+    pub page: Option<String>,
+    /// The log only: default 50, max 100.
+    #[param(value_type = Option<i64>)]
+    pub page_size: Option<String>,
 }
 
 /// One redemption, for cash reconciliation.

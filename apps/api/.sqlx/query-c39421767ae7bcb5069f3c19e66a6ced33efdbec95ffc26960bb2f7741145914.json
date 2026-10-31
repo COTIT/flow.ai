@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT v.id, h.label AS household_label, concat_ws(' ', p.given_name, p.family_name) AS \"respondent_name!\",\n                  r.submitted_at, v.status, (v.status = 'issued' AND v.expires_at <= now()) AS \"expired!\",\n                  v.amount_minor, c.asset_type AS currency, c.decimals, v.currency_id, v.audit_required,\n                  v.issued_at, v.expires_at, v.redeemed_at,\n                  (SELECT concat_ws(' ', u.first_name, u.last_name) FROM users u WHERE u.id = v.redeemed_by) AS redeemed_by_name,\n                  v.id_type_seen, v.void_reason\n           FROM farm_vouchers v\n           JOIN farm_survey_responses r ON r.id = v.response_id\n           JOIN farm_households h ON h.id = v.household_id\n           JOIN farm_persons p ON p.id = r.person_id\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.survey_id = $2\n           ORDER BY r.submitted_at DESC\n           LIMIT 1000",
+  "query": "SELECT v.id, h.label AS household_label, concat_ws(' ', p.given_name, p.family_name) AS \"respondent_name!\",\n                  r.submitted_at, v.status, (v.status = 'issued' AND v.expires_at <= now()) AS \"expired!\",\n                  v.amount_minor, c.asset_type AS currency, c.decimals, v.currency_id, v.audit_required,\n                  v.issued_at, v.expires_at, v.redeemed_at,\n                  (SELECT concat_ws(' ', u.first_name, u.last_name) FROM users u WHERE u.id = v.redeemed_by) AS redeemed_by_name,\n                  v.id_type_seen, v.void_reason\n           FROM farm_vouchers v\n           JOIN farm_survey_responses r ON r.id = v.response_id\n           JOIN farm_households h ON h.id = v.household_id\n           JOIN farm_persons p ON p.id = r.person_id\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.survey_id = $2\n           ORDER BY r.submitted_at DESC, v.id DESC\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -179,7 +179,9 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Uuid",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -202,5 +204,5 @@
       true
     ]
   },
-  "hash": "4a06647c8b1ebc8d3f42371e48671162e8e545cdc3bdb810dab1a1bc3a1ee301"
+  "hash": "c39421767ae7bcb5069f3c19e66a6ced33efdbec95ffc26960bb2f7741145914"
 }

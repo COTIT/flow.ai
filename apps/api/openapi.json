@@ -4497,21 +4497,6 @@
         ],
         "type": "object"
       },
-      "Envelope_Vec_Eligibility": {
-        "description": "Success body: the result under `data`.",
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Eligibility"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "type": "object"
-      },
       "Envelope_Vec_LoginIssue": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4542,21 +4527,6 @@
         ],
         "type": "object"
       },
-      "Envelope_Vec_Redemption": {
-        "description": "Success body: the result under `data`.",
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Redemption"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "type": "object"
-      },
       "Envelope_Vec_RedemptionTotal": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4578,21 +4548,6 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/StockWithBins"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "type": "object"
-      },
-      "Envelope_Vec_SurveyVoucher": {
-        "description": "Success body: the result under `data`.",
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/SurveyVoucher"
             },
             "type": "array"
           }
@@ -8205,6 +8160,25 @@
         ],
         "type": "object"
       },
+      "Paginated_Eligibility": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Eligibility"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_EmailLog": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -8585,6 +8559,25 @@
         ],
         "type": "object"
       },
+      "Paginated_Redemption": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Redemption"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_RelationIndexResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -8801,6 +8794,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/SurveyResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_SurveyVoucher": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SurveyVoucher"
             },
             "type": "array"
           },
@@ -36138,6 +36150,26 @@
               "format": "date",
               "type": "string"
             }
+          },
+          {
+            "description": "The log only: 1-based page; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The log only: default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -36145,11 +36177,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_Vec_Redemption"
+                  "$ref": "#/components/schemas/Paginated_Redemption"
                 }
               }
             },
-            "description": "Newest first, at most 5000"
+            "description": "One page, newest first"
           },
           "401": {
             "content": {
@@ -36269,6 +36301,26 @@
             "schema": {
               "format": "date",
               "type": "string"
+            }
+          },
+          {
+            "description": "The log only: 1-based page; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "The log only: default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
             }
           }
         ],
@@ -36838,6 +36890,26 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -36845,11 +36917,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_Vec_Eligibility"
+                  "$ref": "#/components/schemas/Paginated_Eligibility"
                 }
               }
             },
-            "description": "One row per survey"
+            "description": "One row per live or closed survey, newest first"
           },
           "401": {
             "content": {
@@ -38252,6 +38324,26 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -38259,11 +38351,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_Vec_SurveyVoucher"
+                  "$ref": "#/components/schemas/Paginated_SurveyVoucher"
                 }
               }
             },
-            "description": "Newest answer first, at most 1000"
+            "description": "One page, newest answer first"
           },
           "401": {
             "content": {

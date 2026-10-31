@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Phase 4 demo seed and RUAHA mapping (G15):
+  - `genesy-360-api seed-farm-demo` (CLI only, `docs/api/farm-demo.md`): builds the RUAHA demo story in workspace `ruaha-demo` through the API's own routes in-process; runs once, refuses a non-demo workspace of that name. `main.rs` now binds the listener after building state, so the command never takes the port.
+  - `tower` 0.5.3 (`util`) moved from dev-dependencies to dependencies (no new crate: already in the lockfile) for the seed's in-process `oneshot`. Demo passwords are random per run, printed once to stdout, never logged.
+  - Survey vouchers, the redemption log and survey eligibility are now paginated (`page`, `page_size`, `meta.total`) instead of capped at 1000/5000/100 rows.
+  - `docs/ruaha-rls-mapping.md`: all 280 RUAHA assertions mapped to a genesy test or "N/A because ..." (194 ported, 86 N/A); `tests/farm_mapping.rs` fails if a row is missing or names a test that doesn't exist.
 - Phase 4 surveys and vouchers (G14, contract `docs/api/farm-surveys.md`, migration `farm_surveys`):
   - Tables `farm_surveys` (reward in minor units + workspace currency), `farm_survey_questions`, `farm_survey_responses` (one per household, `client_ref` unique), `farm_survey_answers`, `farm_vouchers`, `farm_voucher_events` (append-only), `farm_voucher_lookups` (per-user lookup limit). Triggers freeze a live survey and its questions and allow only draft -> live -> closed.
   - Admin authoring, publish checks and close; eligibility list and submit share one pure rule (`farm_surveys::eligibility::block_reason`); one transaction issues response, answers, voucher and its `issued` event; results and per-survey voucher list for staff (no codes).

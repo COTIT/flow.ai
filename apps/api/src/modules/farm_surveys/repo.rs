@@ -598,12 +598,15 @@ pub struct SurveyVoucherRow {
     pub void_reason: Option<String>,
 }
 
+/// One page of a survey's vouchers, newest answer first, and the count.
 pub async fn survey_vouchers(
-    db: impl PgExecutor<'_>,
+    db: impl PgExecutor<'_> + Copy,
     ws: Uuid,
     survey: Uuid,
-) -> Result<Vec<SurveyVoucherRow>, sqlx::Error> {
-    sqlx::query_as!(
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<SurveyVoucherRow>, i64), sqlx::Error> {
+    let rows = sqlx::query_as!(
         SurveyVoucherRow,
         r#"SELECT v.id, h.label AS household_label, concat_ws(' ', p.given_name, p.family_name) AS "respondent_name!",
                   r.submitted_at, v.status, (v.status = 'issued' AND v.expires_at <= now()) AS "expired!",
@@ -617,11 +620,21 @@ pub async fn survey_vouchers(
            JOIN farm_persons p ON p.id = r.person_id
            JOIN currencies c ON c.id = v.currency_id
            WHERE v.workspace_id = $1 AND v.survey_id = $2
-           ORDER BY r.submitted_at DESC
-           LIMIT 1000"#,
+           ORDER BY r.submitted_at DESC, v.id DESC
+           LIMIT $3 OFFSET $4"#,
+        ws,
+        survey,
+        limit,
+        offset
+    )
+    .fetch_all(db)
+    .await?;
+    let total = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM farm_vouchers WHERE workspace_id = $1 AND survey_id = $2"#,
         ws,
         survey
     )
-    .fetch_all(db)
-    .await
+    .fetch_one(db)
+    .await?;
+    Ok((rows, total))
 }

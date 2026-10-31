@@ -5,11 +5,14 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { SurveyVoucher } from './surveyVoucher';
 
+export type FarmSurveysEligibilityParams = {
 /**
- * Success body: the result under `data`.
+ * 1-based; junk falls back to 1.
  */
-export interface EnvelopeVecSurveyVoucher {
-  data: SurveyVoucher[];
-}
+page?: number;
+/**
+ * Default 50, max 100.
+ */
+page_size?: number;
+};

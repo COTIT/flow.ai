@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT li.issued_at, li.kind, li.issued_by,\n                  concat_ws(' ', iu.first_name, iu.last_name) AS \"issued_by_name!\",\n                  u.must_change_password\n           FROM farm_persons p\n           JOIN farm_login_issues li ON li.person_id = p.id AND li.workspace_id = p.workspace_id\n           JOIN users u ON u.id = li.user_id\n           JOIN users iu ON iu.id = li.issued_by\n           WHERE p.workspace_id = $1 AND p.id = $2 AND p.deleted_at IS NULL\n             AND ($3 OR p.village_id = ANY($4))\n           ORDER BY li.issued_at DESC, li.id DESC\n           LIMIT 100",
+  "query": "SELECT li.issued_at, li.kind, li.issued_by,\n                  concat_ws(' ', iu.first_name, iu.last_name) AS \"issued_by_name!\",\n                  u.must_change_password\n           FROM farm_persons p\n           JOIN farm_login_issues li ON li.person_id = p.id AND li.workspace_id = p.workspace_id\n           JOIN users u ON u.id = li.user_id\n           JOIN users iu ON iu.id = li.issued_by\n           WHERE p.workspace_id = $1 AND p.id = $2 AND p.deleted_at IS NULL\n             AND ($3 OR p.village_id = ANY($4))\n           ORDER BY li.issued_at DESC, li.id DESC\n           -- shortcut: newest 100 issues per person; page it if a person ever has more\n           LIMIT 100",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       false
     ]
   },
-  "hash": "e319a89eb28dab2bbed927d1fd68186a22299f1ff3da8848fa535d21872532b7"
+  "hash": "d9dd905adae062128b6c079650034713b7aef09775d87350be3a14904e1a50e7"
 }

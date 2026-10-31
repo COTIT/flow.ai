@@ -87,11 +87,6 @@ async fn main() {
     if credentials.is_none() {
         tracing::warn!("CREDENTIALS_KEY not set: integration credentials can't be stored");
     }
-    let listener = tokio::net::TcpListener::bind(config.bind_addr)
-        .await
-        .expect("bind listener");
-    tracing::info!(addr = %config.bind_addr, "listening");
-
     let state = AppState {
         db,
         health_db,
@@ -135,6 +130,41 @@ async fn main() {
         files,
         pdf,
     };
+    // `genesy-360-api seed-farm-demo`: the RUAHA demo workspace, then exit. CLI only: no route
+    // ever seeds. Runs before the listener binds, so it can run beside a live server.
+    if std::env::args().nth(1).as_deref() == Some("seed-farm-demo") {
+        use genesy_360_api::farm_demo::{self, STAFF, WORKSPACE};
+        match farm_demo::run(state).await {
+            Ok(r) if r.created => {
+                // Printed once, to stdout only: the passwords exist nowhere else.
+                let staff = r.staff_password.unwrap_or_default();
+                let farmer = r.farmer_password.unwrap_or_default();
+                println!("seeded workspace {WORKSPACE} ({})", r.workspace_id);
+                println!("staff, password {staff}:");
+                println!("  amina.admin@ruaha-demo.test  admin");
+                for (email, _, _, role, village) in STAFF {
+                    println!("  {email}  {role} {}", village.unwrap_or(""));
+                }
+                println!(
+                    "farmers (POST /v1/farm/login), password {farmer}: 0712000001, 0712000003, 0712000004"
+                );
+            }
+            Ok(r) => println!(
+                "{WORKSPACE} already seeded ({}): nothing to do",
+                r.workspace_id
+            ),
+            Err(err) => {
+                eprintln!("seed-farm-demo: {err}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+    let listener = tokio::net::TcpListener::bind(config.bind_addr)
+        .await
+        .expect("bind listener");
+    tracing::info!(addr = %config.bind_addr, "listening");
+
     // The job rail starts last: a boot step that panics above must not leave claimed jobs
     // behind in a process that dies.
     let (stop_jobs, jobs_stopped) = tokio::sync::watch::channel(false);

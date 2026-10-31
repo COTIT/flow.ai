@@ -311,14 +311,16 @@ pub struct LogRow {
     pub audit_required: bool,
 }
 
-/// Redemptions on Tanzanian calendar days `from..=to`, newest first.
+/// One page of redemptions on Tanzanian calendar days `from..=to`, newest first, and the count.
 pub async fn log(
-    db: impl PgExecutor<'_>,
+    db: impl PgExecutor<'_> + Copy,
     ws: Uuid,
     from: NaiveDate,
     to: NaiveDate,
-) -> Result<Vec<LogRow>, sqlx::Error> {
-    sqlx::query_as!(
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<LogRow>, i64), sqlx::Error> {
+    let rows = sqlx::query_as!(
         LogRow,
         r#"SELECT v.id AS voucher_id, v.redeemed_at AS "redeemed_at!", v.redeemed_by AS "redeemed_by!",
                   concat_ws(' ', u.first_name, u.last_name) AS "redeemed_by_name!", vi.name AS village_name,
@@ -333,14 +335,27 @@ pub async fn log(
            JOIN currencies c ON c.id = v.currency_id
            WHERE v.workspace_id = $1 AND v.status = 'redeemed'
              AND (v.redeemed_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date BETWEEN $2 AND $3
-           ORDER BY v.redeemed_at DESC
-           LIMIT 5000"#,
+           ORDER BY v.redeemed_at DESC, v.id DESC
+           LIMIT $4 OFFSET $5"#,
+        ws,
+        from,
+        to,
+        limit,
+        offset
+    )
+    .fetch_all(db)
+    .await?;
+    let total = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM farm_vouchers v
+           WHERE v.workspace_id = $1 AND v.status = 'redeemed'
+             AND (v.redeemed_at AT TIME ZONE 'Africa/Dar_es_Salaam')::date BETWEEN $2 AND $3"#,
         ws,
         from,
         to
     )
-    .fetch_all(db)
-    .await
+    .fetch_one(db)
+    .await?;
+    Ok((rows, total))
 }
 
 /// Redemptions per officer per Tanzanian day and currency: count and bigint sum.

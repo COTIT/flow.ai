@@ -173,6 +173,7 @@ pub async fn history(
            WHERE p.workspace_id = $1 AND p.id = $2 AND p.deleted_at IS NULL
              AND ($3 OR p.village_id = ANY($4))
            ORDER BY li.issued_at DESC, li.id DESC
+           -- shortcut: newest 100 issues per person; page it if a person ever has more
            LIMIT 100"#,
         ws,
         person,
