@@ -10,4 +10,9 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::list, handlers::create))
         .routes(routes!(handlers::get, handlers::update))
         .routes(routes!(handlers::events))
+        .routes(routes!(handlers::passport_get, handlers::passport_save))
+        .routes(routes!(
+            handlers::passport_publish,
+            handlers::passport_unpublish
+        ))
 }

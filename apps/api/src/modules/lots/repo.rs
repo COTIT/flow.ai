@@ -249,3 +249,89 @@ pub async fn events(
         .collect();
     Ok((events, total))
 }
+
+/// A lot's passport columns.
+pub struct PassportRow {
+    pub draft: Value,
+    pub published: Option<Value>,
+    pub version: i32,
+    pub published_at: Option<DateTime<Utc>>,
+}
+
+/// The passport columns of one lot of the workspace.
+pub async fn passport(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<PassportRow>, sqlx::Error> {
+    sqlx::query_as!(
+        PassportRow,
+        "SELECT passport_draft AS draft, passport AS published, passport_version AS version,
+                published_at
+         FROM lots WHERE id = $1 AND workspace_id = $2",
+        id,
+        workspace_id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// Replace the draft; None when the lot is not this workspace's.
+pub async fn set_draft(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+    draft: &Value,
+) -> Result<Option<PassportRow>, sqlx::Error> {
+    sqlx::query_as!(
+        PassportRow,
+        "UPDATE lots SET passport_draft = $3, updated_at = now()
+         WHERE id = $1 AND workspace_id = $2
+         RETURNING passport_draft AS draft, passport AS published,
+                   passport_version AS version, published_at",
+        id,
+        workspace_id,
+        draft,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// The draft becomes the published copy with the next version (lot locked by the caller).
+pub async fn publish(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<PassportRow, sqlx::Error> {
+    sqlx::query_as!(
+        PassportRow,
+        "UPDATE lots SET passport = passport_draft, passport_version = passport_version + 1,
+                         published_at = now(), updated_at = now()
+         WHERE id = $1 AND workspace_id = $2
+         RETURNING passport_draft AS draft, passport AS published,
+                   passport_version AS version, published_at",
+        id,
+        workspace_id,
+    )
+    .fetch_one(conn)
+    .await
+}
+
+/// Drop the published copy; the draft and version stay (lot locked by the caller).
+pub async fn unpublish(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<PassportRow, sqlx::Error> {
+    sqlx::query_as!(
+        PassportRow,
+        "UPDATE lots SET passport = NULL, published_at = NULL, updated_at = now()
+         WHERE id = $1 AND workspace_id = $2
+         RETURNING passport_draft AS draft, passport AS published,
+                   passport_version AS version, published_at",
+        id,
+        workspace_id,
+    )
+    .fetch_one(conn)
+    .await
+}

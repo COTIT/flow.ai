@@ -19,8 +19,9 @@ use crate::{
         lots::{
             dto::{
                 CreateLotRequest, ListQuery, LotEventResource, LotResource, PageQuery,
-                UpdateLotRequest,
+                PassportResource, UpdateLotRequest,
             },
+            passport::Passport,
             service,
         },
         products::handlers::ProductUpdate,
@@ -165,4 +166,104 @@ pub async fn events(
         service::events(&state, access.workspace_id, &id, page.size, page.offset()).await?;
     let data = rows.into_iter().map(Into::into).collect();
     Ok(Json(Paginated::new(data, total, page)))
+}
+
+/// GET /lots/{lot}/passport.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/lots/{lot}/passport", tag = "lots",
+    operation_id = "lots_passport_get", summary = "Get a lot's passport",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<PassportResource>, description = "Draft and published copy"),
+        (status = 403, body = MessageBody, description = "Inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn passport_get(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, id)): LotPath,
+) -> Result<Data<PassportResource>, AppError> {
+    let row = service::passport(&state, access.workspace_id, &id).await?;
+    Ok(Data(PassportResource::try_from(row)?))
+}
+
+/// PUT /lots/{lot}/passport -> draft replaced.
+#[utoipa::path(
+    put, path = "/workspace/{workspace}/lots/{lot}/passport", tag = "lots",
+    operation_id = "lots_passport_save", summary = "Replace a lot's passport draft",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    request_body = Passport,
+    responses(
+        (status = 200, body = Envelope<PassportResource>, description = "Draft saved; the published copy is unchanged"),
+        (status = 403, body = MessageBody, description = "Inactive membership, missing `product.update`, or files referenced without `file.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown keys, limits, or files that are not this workspace's images/PDFs"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn passport_save(
+    State(state): State<AppState>,
+    access: Can<ProductUpdate>,
+    Path((_, id)): LotPath,
+    ValidatedJson(draft): ValidatedJson<Passport>,
+) -> Result<Data<PassportResource>, AppError> {
+    let row = service::save_draft(&state, &access, &id, draft).await?;
+    Ok(Data(PassportResource::try_from(row)?))
+}
+
+/// POST /lots/{lot}/passport/publish -> next published version.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/lots/{lot}/passport/publish", tag = "lots",
+    operation_id = "lots_passport_publish", summary = "Publish a lot's passport draft",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<PassportResource>, description = "Published; `version` went up by one"),
+        (status = 403, body = MessageBody, description = "Inactive membership, missing `product.update`, or files referenced without `file.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "No title, or a file is no longer valid"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn passport_publish(
+    State(state): State<AppState>,
+    access: Can<ProductUpdate>,
+    Path((_, id)): LotPath,
+) -> Result<Data<PassportResource>, AppError> {
+    let row = service::publish(&state, &access, &id).await?;
+    Ok(Data(PassportResource::try_from(row)?))
+}
+
+/// DELETE /lots/{lot}/passport/publish -> published copy hidden.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/lots/{lot}/passport/publish", tag = "lots",
+    operation_id = "lots_passport_unpublish", summary = "Unpublish a lot's passport",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<PassportResource>, description = "Hidden (a no-op when not published); draft and version stay"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn passport_unpublish(
+    State(state): State<AppState>,
+    access: Can<ProductUpdate>,
+    Path((_, id)): LotPath,
+) -> Result<Data<PassportResource>, AppError> {
+    let row = service::unpublish(&state, &access, &id).await?;
+    Ok(Data(PassportResource::try_from(row)?))
 }

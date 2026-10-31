@@ -11,20 +11,24 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
-    http::workspace::WorkspaceAccess,
+    http::workspace::{NOT_ALLOWED, WorkspaceAccess},
     modules::{
+        files::repo as files,
         lots::{
             dto::{LotPatch, NewLotInput, STATUSES},
-            repo::{self, EventRow, ListFilter, LotRow, NewEvent},
+            passport::{FileUse, Passport},
+            repo::{self, EventRow, ListFilter, LotRow, NewEvent, PassportRow},
         },
         products::repo as products,
         stock::service::tracks_stock,
-        webhooks::events::{self, LOT_CREATED},
+        webhooks::events::{self, LOT_CREATED, PASSPORT_PUBLISHED},
     },
 };
 
 const NO_PRODUCT: &str = "The selected product id is invalid.";
 const TAKEN: &str = "The code has already been taken.";
+/// Files read permission (the files module's `file.get`).
+const FILE_GET: &str = "file.get";
 /// Crockford base32: no I, L, O, U.
 const CROCKFORD: &[u8; 32] = b"0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 /// Fresh public codes tried before giving up (a collision is ~1 in 10^15 per lot).
@@ -249,6 +253,149 @@ pub async fn events(
 ) -> Result<(Vec<EventRow>, i64), AppError> {
     let lot = get(state, workspace_id, id).await?;
     Ok(repo::events(&state.db, workspace_id, lot.id, limit, offset).await?)
+}
+
+/// Every referenced file must be a stored file of this workspace that suits its use
+/// (422 on the field path otherwise), and the caller must be allowed to read files (403):
+/// `product.update` alone must not publish files it can't see. One query.
+async fn check_files(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    p: &Passport,
+) -> Result<(), AppError> {
+    let refs = p.files();
+    if refs.is_empty() {
+        return Ok(());
+    }
+    if !access.allows(FILE_GET) {
+        return Err(AppError::Forbidden(NOT_ALLOWED));
+    }
+    let workspace_id = access.workspace_id;
+    let ids: Vec<Uuid> = refs.iter().map(|(_, id, _)| *id).collect();
+    let found = files::find_many(&state.db, workspace_id, &ids).await?;
+    let mut errors = BTreeMap::new();
+    for (field, id, used) in refs {
+        let ok = found
+            .iter()
+            .any(|f| f.id == id && used.allows(&f.content_type));
+        if !ok {
+            let msg = match used {
+                FileUse::Image => "The file must be an image uploaded to this workspace.",
+                FileUse::Document => "The file must be an image or PDF uploaded to this workspace.",
+            };
+            errors.insert(field, vec![msg.to_owned()]);
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(AppError::Validation(errors))
+    }
+}
+
+/// GET /lots/{lot}/passport.
+pub async fn passport(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+) -> Result<PassportRow, AppError> {
+    repo::passport(&state.db, workspace_id, parse(id)?)
+        .await?
+        .ok_or(AppError::NotFound)
+}
+
+/// PUT /lots/{lot}/passport: replace the draft; the published copy is untouched.
+pub async fn save_draft(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: &str,
+    draft: Passport,
+) -> Result<PassportRow, AppError> {
+    let workspace_id = access.workspace_id;
+    let id = parse(id)?;
+    if repo::find(&state.db, workspace_id, id).await?.is_none() {
+        return Err(AppError::NotFound);
+    }
+    check_files(state, access, &draft).await?;
+    let value = serde_json::to_value(&draft).map_err(|e| AppError::Internal(e.to_string()))?;
+    repo::set_draft(&state.db, workspace_id, id, &value)
+        .await?
+        .ok_or(AppError::NotFound)
+}
+
+/// POST /lots/{lot}/passport/publish: the draft (with a title, files still valid) becomes the
+/// next published version; trail row and `passport.published` in the same transaction.
+pub async fn publish(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: &str,
+) -> Result<PassportRow, AppError> {
+    let id = parse(id)?;
+    let mut tx = state.db.begin().await?;
+    let lot = repo::locked(&mut tx, access.workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let current = repo::passport(&mut *tx, access.workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let draft = Passport::from_stored(current.draft)?;
+    if draft.title.is_none() {
+        return Err(AppError::field(
+            "title",
+            "The passport needs a title before it can be published.",
+        ));
+    }
+    check_files(state, access, &draft).await?;
+    let saved = repo::publish(&mut tx, access.workspace_id, id).await?;
+    let event = NewEvent {
+        lot_id: id,
+        kind: "passport_published",
+        from_status: None,
+        to_status: None,
+        user_id: access.user_id,
+        meta: Some(json!({ "version": saved.version })),
+    };
+    repo::add_event(&mut tx, access.workspace_id, &event).await?;
+    let payload = json!({
+        "lot_id": id,
+        "product_id": lot.product_id,
+        "public_code": lot.public_code,
+        "version": saved.version,
+    });
+    events::emit(&mut tx, access.workspace_id, PASSPORT_PUBLISHED, payload).await?;
+    tx.commit().await?;
+    Ok(saved)
+}
+
+/// DELETE /lots/{lot}/passport/publish: hide the published copy (no-op when hidden).
+pub async fn unpublish(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: &str,
+) -> Result<PassportRow, AppError> {
+    let id = parse(id)?;
+    let mut tx = state.db.begin().await?;
+    repo::locked(&mut tx, access.workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let current = repo::passport(&mut *tx, access.workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if current.published.is_none() {
+        return Ok(current);
+    }
+    let saved = repo::unpublish(&mut tx, access.workspace_id, id).await?;
+    let event = NewEvent {
+        lot_id: id,
+        kind: "passport_unpublished",
+        from_status: None,
+        to_status: None,
+        user_id: access.user_id,
+        meta: Some(json!({ "version": saved.version })),
+    };
+    repo::add_event(&mut tx, access.workspace_id, &event).await?;
+    tx.commit().await?;
+    Ok(saved)
 }
 
 #[cfg(test)]

@@ -620,6 +620,106 @@
         ],
         "type": "object"
       },
+      "Block": {
+        "description": "One story block, by `kind`.",
+        "oneOf": [
+          {
+            "properties": {
+              "body": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "text"
+                ],
+                "type": "string"
+              },
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "body",
+              "kind"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "caption": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "file_id": {
+                "description": "An `image/*` file of this workspace.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "image"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "file_id",
+              "kind"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/components/schemas/Fact"
+                },
+                "type": "array"
+              },
+              "kind": {
+                "enum": [
+                  "facts"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "items",
+              "kind"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "by": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "quote"
+                ],
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "text",
+              "kind"
+            ],
+            "type": "object"
+          }
+        ]
+      },
       "BrandCreated": {
         "description": "Create response.",
         "properties": {
@@ -852,6 +952,49 @@
           "created_at",
           "updated_at",
           "relationships"
+        ],
+        "type": "object"
+      },
+      "Certificate": {
+        "additionalProperties": false,
+        "description": "A certificate, optionally with its document.",
+        "properties": {
+          "file_id": {
+            "description": "An `image/*` or `application/pdf` file of this workspace.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issuer": {
+            "maxLength": 120,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "number": {
+            "maxLength": 64,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "valid_until": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -3358,6 +3501,18 @@
         ],
         "type": "object"
       },
+      "Envelope_PassportResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PassportResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_PaymentCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -3932,6 +4087,25 @@
         },
         "required": [
           "data"
+        ],
+        "type": "object"
+      },
+      "Fact": {
+        "additionalProperties": false,
+        "description": "A label/value pair in a facts block.",
+        "properties": {
+          "label": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
         ],
         "type": "object"
       },
@@ -5917,6 +6091,36 @@
         ],
         "type": "object"
       },
+      "MapPoint": {
+        "additionalProperties": false,
+        "description": "A map pin, rounded to 2 decimals (about 1 km) when saved: never an exact farm point.",
+        "properties": {
+          "label": {
+            "maxLength": 120,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lat": {
+            "format": "double",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "lng": {
+            "format": "double",
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lng"
+        ],
+        "type": "object"
+      },
       "MarginComponents": {
         "description": "Margin per source.",
         "properties": {
@@ -6085,6 +6289,37 @@
         "required": [
           "date",
           "payment_method"
+        ],
+        "type": "object"
+      },
+      "Material": {
+        "additionalProperties": false,
+        "description": "One ingredient or material.",
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "origin": {
+            "maxLength": 120,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "share_bp": {
+            "description": "Share in basis points (10000 = 100%).",
+            "format": "int32",
+            "maximum": 10000,
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -6469,6 +6704,35 @@
         },
         "required": [
           "graph"
+        ],
+        "type": "object"
+      },
+      "Origin": {
+        "additionalProperties": false,
+        "description": "Where the lot comes from.",
+        "properties": {
+          "country": {
+            "description": "ISO 3166-1 alpha-2, stored upper case.",
+            "example": "TZ",
+            "type": "string"
+          },
+          "place": {
+            "maxLength": 120,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "region": {
+            "maxLength": 120,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "country"
         ],
         "type": "object"
       },
@@ -7228,6 +7492,123 @@
         "required": [
           "data",
           "meta"
+        ],
+        "type": "object"
+      },
+      "Passport": {
+        "additionalProperties": false,
+        "description": "Passport of one lot. Unknown keys are refused.",
+        "properties": {
+          "banner_file_id": {
+            "default": null,
+            "description": "An `image/*` file of this workspace.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "certificates": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Certificate"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "intro": {
+            "default": null,
+            "maxLength": 2000,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "map": {
+            "default": null,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MapPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "materials": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Material"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "origin": {
+            "default": null,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Origin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "story": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Block"
+            },
+            "maxItems": 30,
+            "type": "array"
+          },
+          "title": {
+            "default": null,
+            "description": "Required to publish.",
+            "maxLength": 120,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "PassportResource": {
+        "description": "Draft and published copy of a lot's passport.",
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/Passport"
+          },
+          "published": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Passport",
+                "description": "What the public page shows; null when not published."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "description": "Published versions so far; unpublishing keeps it.",
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "draft",
+          "published",
+          "version",
+          "published_at"
         ],
         "type": "object"
       },
@@ -32610,6 +32991,548 @@
           }
         ],
         "summary": "List a lot's trail",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
+    "/workspace/{workspace}/lots/{lot}/passport": {
+      "get": {
+        "operationId": "lots_passport_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PassportResource"
+                }
+              }
+            },
+            "description": "Draft and published copy"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a lot's passport",
+        "tags": [
+          "lots"
+        ]
+      },
+      "put": {
+        "operationId": "lots_passport_save",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Passport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PassportResource"
+                }
+              }
+            },
+            "description": "Draft saved; the published copy is unchanged"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, missing `product.update`, or files referenced without `file.get`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown keys, limits, or files that are not this workspace's images/PDFs"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a lot's passport draft",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
+    "/workspace/{workspace}/lots/{lot}/passport/publish": {
+      "delete": {
+        "operationId": "lots_passport_unpublish",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PassportResource"
+                }
+              }
+            },
+            "description": "Hidden (a no-op when not published); draft and version stay"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `product.update`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unpublish a lot's passport",
+        "tags": [
+          "lots"
+        ]
+      },
+      "post": {
+        "operationId": "lots_passport_publish",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PassportResource"
+                }
+              }
+            },
+            "description": "Published; `version` went up by one"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, missing `product.update`, or files referenced without `file.get`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "No title, or a file is no longer valid"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a lot's passport draft",
         "tags": [
           "lots"
         ]

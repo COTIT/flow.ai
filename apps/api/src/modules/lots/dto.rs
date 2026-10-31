@@ -7,8 +7,12 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
+    error::AppError,
     http::json::{Rules, Validate, filled, present},
-    modules::lots::repo::{EventRow, LotRow},
+    modules::lots::{
+        passport::Passport,
+        repo::{EventRow, LotRow, PassportRow},
+    },
 };
 
 const CODE_MAX: usize = 64;
@@ -257,6 +261,33 @@ impl Validate for UpdateLotRequest {
             best_before: self.best_before.map(|v| date(r, "best_before", v)),
             expires_on: self.expires_on.map(|v| date(r, "expires_on", v)),
             origin: r.patch_opt_text("origin", self.origin, ORIGIN_MAX),
+        })
+    }
+}
+
+/// A lot's passport: the draft being edited and the copy the public sees.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "Draft and published copy of a lot's passport.")]
+pub struct PassportResource {
+    draft: Passport,
+    /// What the public page shows; null when not published.
+    #[schema(required = true)]
+    published: Option<Passport>,
+    /// Published versions so far; unpublishing keeps it.
+    version: i32,
+    #[schema(required = true)]
+    published_at: Option<DateTime<Utc>>,
+}
+
+impl TryFrom<PassportRow> for PassportResource {
+    type Error = AppError;
+
+    fn try_from(r: PassportRow) -> Result<Self, AppError> {
+        Ok(Self {
+            draft: Passport::from_stored(r.draft)?,
+            published: r.published.map(Passport::from_stored).transpose()?,
+            version: r.version,
+            published_at: r.published_at,
         })
     }
 }

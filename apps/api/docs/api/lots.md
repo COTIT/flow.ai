@@ -43,3 +43,31 @@ A PATCH that changes nothing writes nothing. Each row has `user_id` (null once t
 ## Events
 
 `lot.created` (on POST, same transaction): `{lot_id, product_id, code, public_code}`.
+
+## Passport
+
+One per lot: a **draft** the office edits and a **published** copy the public page shows. Routes (same access rules as above):
+
+| Method | Path | Success |
+|---|---|---|
+| GET | `/lots/{lot}/passport` | `200 {data: {draft, published, version, published_at}}` |
+| PUT | `/lots/{lot}/passport` | body = the whole draft; `200`. The published copy is untouched. |
+| POST | `/lots/{lot}/passport/publish` | the draft becomes the published copy, `version` + 1; `200` |
+| DELETE | `/lots/{lot}/passport/publish` | the published copy is hidden (draft and version stay); a no-op when hidden; `200` |
+
+**Shape** (every key optional; unknown keys at any level are a `422` on `body`, so no phone, exact location or other farmer data can be stored):
+
+| Key | Rules |
+|---|---|
+| `title` | ≤ 120; required to publish |
+| `intro` | ≤ 2000 |
+| `banner_file_id` | an `image/*` file of this workspace |
+| `origin` | `{country (ISO 3166 alpha-2, stored upper case), region ≤ 120, place ≤ 120}` |
+| `map` | `{lat −90..90, lng −180..180, label ≤ 120}`; lat/lng are **rounded to 2 decimals (~1 km) when saved** |
+| `materials` | ≤ 30 × `{name ≤ 120, origin ≤ 120, share_bp 0..10000}` (basis points) |
+| `certificates` | ≤ 20 × `{name ≤ 120, issuer ≤ 120, number ≤ 64, valid_until (date), file_id}`; the file may be an image or a PDF |
+| `story` | ≤ 30 blocks by `kind`: `text {title ≤ 120, body ≤ 5000}`, `image {file_id, caption ≤ 300}`, `facts {items: ≤ 20 × {label ≤ 60, value ≤ 120}}`, `quote {text ≤ 1000, by ≤ 120}` |
+
+**Files.** Every `file_id` must be a stored file of this workspace of the right type, else `422` on its path (`banner_file_id`, `story.3.file_id`, `certificates.0.file_id`). Checked on save and again on publish (a file deleted in between fails the publish). Saving or publishing a passport that references any file also needs `file.get` (`403` otherwise), so `product.update` alone can't expose files its holder can't read. Files have no public flag; publishing is the choice to show them, and the public page only ever gets short-lived signed links.
+
+**Publish** runs in one transaction: the lot row locked, the draft checked (title, files), the copy and version written, a `passport_published` trail row (`meta.version`) and the `passport.published` event (`{lot_id, product_id, public_code, version}`). Unpublish writes a `passport_unpublished` row and sends no event.

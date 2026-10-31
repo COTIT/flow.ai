@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE lots SET passport_draft = $3, updated_at = now()\n         WHERE id = $1 AND workspace_id = $2\n         RETURNING passport_draft AS draft, passport AS published,\n                   passport_version AS version, published_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "draft",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "passport_draft"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "published",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "passport"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "passport_version"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "published_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "published_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "cd2f66a9003a4b41cf84c1c54819f1d6d4b42462ea6fc4d494ed7b8561217f1b"
+}

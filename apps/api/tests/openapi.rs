@@ -1181,5 +1181,19 @@ fn every_lots_operation_is_documented() {
         ("/lots/{lot}", "get", "lots_get", "200"),
         ("/lots/{lot}", "patch", "lots_update", "200"),
         ("/lots/{lot}/events", "get", "lots_events", "200"),
+        ("/lots/{lot}/passport", "get", "lots_passport_get", "200"),
+        ("/lots/{lot}/passport", "put", "lots_passport_save", "200"),
+        (
+            "/lots/{lot}/passport/publish",
+            "post",
+            "lots_passport_publish",
+            "200",
+        ),
+        (
+            "/lots/{lot}/passport/publish",
+            "delete",
+            "lots_passport_unpublish",
+            "200",
+        ),
     ]);
 }
