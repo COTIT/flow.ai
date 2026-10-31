@@ -204,41 +204,49 @@ pub async fn intent(
         Some(p) => p.id,
         None => {
             sqlx::query_scalar!(
-            "INSERT INTO order_payments (workspace_id, order_id, kind, provider, amount, currency)
-                 VALUES ($1, $2, 'payment', $3, $4, $5) RETURNING id",
-            ws,
-            o.id,
-            provider.name(),
-            o.total,
-            o.currency,
-        )
+                "INSERT INTO order_payments (workspace_id, order_id, kind, provider, amount,
+                                             currency, redirect_url, webhook_url)
+                 VALUES ($1, $2, 'payment', $3, $4, $5, $6, $7) RETURNING id",
+                ws,
+                o.id,
+                provider.name(),
+                o.total,
+                o.currency,
+                input.redirect_url,
+                webhook_url(state, provider, ws),
+            )
             .fetch_one(&mut *tx)
             .await?
         }
     };
     tx.commit().await?;
+    let webhook = webhook_url(state, provider, ws);
     let created =
-        create_at_provider(state, provider, ws, &o, payment_id, &input.redirect_url).await;
+        create_at_provider(provider, ws, &o, payment_id, &input.redirect_url, &webhook).await;
     let mut conn = state.db.acquire().await?;
     record_create(&mut conn, ws, payment_id, created).await?;
     intent_of(&mut conn, payment_id).await
 }
 
+/// Where the provider posts status changes of this workspace's payments.
+fn webhook_url(state: &AppState, provider: &payments::Provider, workspace_id: Uuid) -> String {
+    format!(
+        "{}/v1/payments/webhooks/{}/{workspace_id}",
+        state.api_public_url,
+        provider.name()
+    )
+}
+
 /// One create call for a `creating` row; the row id is the idempotency key.
 pub async fn create_at_provider(
-    state: &AppState,
     provider: &payments::Provider,
     workspace_id: Uuid,
     o: &OrderRow,
     payment_id: Uuid,
     redirect_url: &str,
+    webhook: &str,
 ) -> Result<payments::Intent, payments::Error> {
     let key = payment_id.to_string();
-    let webhook = format!(
-        "{}/v1/payments/webhooks/{}/{workspace_id}",
-        state.api_public_url,
-        provider.name()
-    );
     let description = format!("Order {}", o.number);
     provider
         .create(&NewIntent {
@@ -248,7 +256,7 @@ pub async fn create_at_provider(
             decimals: u32::try_from(o.decimals).unwrap_or(2),
             description: &description,
             redirect_url,
-            webhook_url: &webhook,
+            webhook_url: webhook,
             metadata: json!({ "workspace_id": workspace_id, "order_id": o.id, "payment_id": payment_id }),
             idempotency_key: &key,
         })

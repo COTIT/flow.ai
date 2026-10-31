@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.provider_id, c.decimals AS \"decimals!\"\n           FROM order_payments p\n           JOIN orders o ON o.workspace_id = p.workspace_id AND o.id = p.order_id\n           JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE p.workspace_id = $1 AND p.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "provider_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "order_payments",
+            "name": "provider_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "decimals!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "32148694639ccf30d35f7d402de3c0240c9ca126b4dbc9981451741ef035c498"
+}

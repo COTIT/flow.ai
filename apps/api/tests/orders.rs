@@ -314,11 +314,18 @@ async fn a_paid_order_needs_a_refund_before_cancel(pool: PgPool) {
     let w = world(pool).await;
     let id = draft(&w, json!([line(&w.honey, "1")])).await;
     act(&w, &id, "confirm").await;
-    sqlx::query("UPDATE orders SET paid_at = now() WHERE id = $1::uuid")
-        .bind(&id)
-        .execute(&w.api.pool)
-        .await
-        .unwrap();
+    // Paid online (the payment suites drive this through the provider).
+    sqlx::query(
+        "WITH o AS (UPDATE orders SET paid_at = now() WHERE id = $1::uuid
+                    RETURNING workspace_id, id, total)
+         INSERT INTO order_payments (workspace_id, order_id, kind, provider, provider_id, amount,
+                                     currency, status)
+         SELECT workspace_id, id, 'payment', 'fake', 'fk_1', total, 'EUR', 'paid' FROM o",
+    )
+    .bind(&id)
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
     let (s, res) = act(&w, &id, "cancel").await;
     assert_eq!(
         (s, &res["message"]),

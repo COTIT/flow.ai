@@ -40,6 +40,14 @@ pub const WEBHOOK_SWEEP: &str = "webhook_sweep";
 /// `orders::checkout::expire`).
 pub const ORDER_EXPIRE: &str = "order_expire";
 
+/// Re-fetches payments named by provider webhooks and applies what the provider says
+/// (`orders::payments::drain`).
+pub const PAYMENT_INBOX: &str = "payment_inbox";
+
+/// Retries payment and refund creates a dead request left behind (same idempotency key) and
+/// re-fetches payments left open (every minute, `orders::payments::sweep`).
+pub const PAYMENT_SWEEP: &str = "payment_sweep";
+
 /// Every kind this build can run; the claim never takes another.
 pub const KINDS: &[&str] = &[
     CLOSE_STUCK_SENDS,
@@ -50,13 +58,15 @@ pub const KINDS: &[&str] = &[
     WEBHOOK_DELIVER,
     WEBHOOK_SWEEP,
     ORDER_EXPIRE,
+    PAYMENT_INBOX,
+    PAYMENT_SWEEP,
 ];
 
 /// One sweep chunk outside the rail (tests, load tests): see `stock::repo::seed_chunk`.
 pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
-pub static SCHEDULES: [Schedule; 5] = [
+pub static SCHEDULES: [Schedule; 6] = [
     Schedule {
         name: CLOSE_STUCK_SENDS,
         kind: CLOSE_STUCK_SENDS,
@@ -80,6 +90,11 @@ pub static SCHEDULES: [Schedule; 5] = [
     Schedule {
         name: ORDER_EXPIRE,
         kind: ORDER_EXPIRE,
+        every: Every::Minutes(1),
+    },
+    Schedule {
+        name: PAYMENT_SWEEP,
+        kind: PAYMENT_SWEEP,
         every: Every::Minutes(1),
     },
 ];
@@ -130,6 +145,8 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
         WEBHOOK_DELIVER => return deliver::deliver(ctx, &job).await,
         WEBHOOK_SWEEP => return deliver::sweep(&ctx.db).await,
         ORDER_EXPIRE => return orders::checkout::expire(&ctx.db).await,
+        PAYMENT_INBOX => return orders::payments::drain(ctx, &job).await,
+        PAYMENT_SWEEP => return orders::payments::sweep(ctx).await,
         // The claim only takes `KINDS`, so this means a kind was listed without an arm.
         other => {
             return Err(AppError::Internal(format!(

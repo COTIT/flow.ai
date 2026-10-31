@@ -411,7 +411,8 @@ pub async fn set_status(
         "UPDATE orders SET status = $3, updated_at = now(),
              expires_at = CASE WHEN $3 = 'awaiting_payment' THEN expires_at END,
              completed_at = CASE WHEN $3 = 'completed' THEN now() ELSE completed_at END,
-             cancelled_at = CASE WHEN $3 = 'cancelled' THEN now() ELSE cancelled_at END
+             cancelled_at = CASE WHEN $3 = 'cancelled' THEN now()
+                                 WHEN $3 = 'open' THEN NULL ELSE cancelled_at END
          WHERE workspace_id = $1 AND id = $2",
         workspace_id,
         id,

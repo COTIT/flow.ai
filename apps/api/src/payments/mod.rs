@@ -134,6 +134,14 @@ impl Provider {
         }
     }
 
+    /// The payment or refund id a status-changed webhook names; None when the body isn't one.
+    /// Only the id is read: the status is always re-fetched.
+    pub fn webhook_id(&self, body: &[u8]) -> Option<String> {
+        match self {
+            Self::Fake(_) => fake::webhook_id(body),
+        }
+    }
+
     /// A refund's current state.
     pub async fn fetch_refund(
         &self,

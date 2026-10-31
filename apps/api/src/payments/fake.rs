@@ -136,6 +136,13 @@ impl Fake {
         }
     }
 
+    /// Test script: the provider now reports `id`'s amount as `amount` (a mismatch).
+    pub fn set_amount(&self, id: &str, amount: i64) {
+        if let Some((_, i)) = self.state().intents.get_mut(id) {
+            i.amount = amount;
+        }
+    }
+
     /// Test script: the next call (any kind) fails with `error`.
     pub fn fail_next(&self, error: Error) {
         self.state().fail_next = Some(error);
@@ -159,6 +166,14 @@ impl Fake {
     }
 }
 
+/// The fake's webhook body: `id=<fk_… or fr_…>` (form encoded, as most providers send).
+pub(super) fn webhook_id(body: &[u8]) -> Option<String> {
+    let id = std::str::from_utf8(body).ok()?.trim().strip_prefix("id=")?;
+    let ok =
+        (1..=64).contains(&id.len()) && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_');
+    ok.then(|| id.to_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -176,6 +191,14 @@ mod tests {
             webhook_url: "https://api.example.com/v1/payments/webhooks/fake/x",
             metadata: json!({ "order_id": "o" }),
             idempotency_key: key,
+        }
+    }
+
+    #[test]
+    fn webhook_bodies_name_one_plain_id() {
+        assert_eq!(webhook_id(b"id=fk_12"), Some("fk_12".into()));
+        for bad in [&b"fk_12"[..], b"id=", b"id=fk 1", b"id=fk_1&x=2", b"\xff"] {
+            assert_eq!(webhook_id(bad), None, "{bad:?}");
         }
     }
 

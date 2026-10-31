@@ -18,9 +18,9 @@ use crate::{
     modules::orders::{
         dto::{
             CreateOrderRequest, LinesQuantityRequest, ListQuery, OrderCreated, OrderResource,
-            STATUSES, UpdateOrderRequest,
+            RefundCreated, RefundRequest, STATUSES, UpdateOrderRequest,
         },
-        service,
+        payments, service,
     },
 };
 
@@ -296,4 +296,36 @@ pub async fn invoice(
     KeyOnly(key): KeyOnly,
 ) -> Result<Answer, AppError> {
     service::invoice(&state, access.workspace_id, access.user_id, &id, key).await
+}
+
+/// POST /orders/{order}/refunds -> 201 `{data:{refund_id, amount, status}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/orders/{order}/refunds", tag = "orders",
+    operation_id = "orders_refund", summary = "Refund part of an online payment",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Order id"), ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day.")),
+    request_body = RefundRequest,
+    responses(
+        (status = 201, body = Envelope<RefundCreated>, description = "Refund queued at the provider; its status follows by webhook"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `order.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or order, or caller not a member"),
+        (status = 409, body = MessageBody, description = "Nothing has been paid on this order"),
+        (status = 422, body = UnprocessableBody, description = "Amount missing, below 1 or above what is left to refund, or invalid Idempotency-Key"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn refund(
+    State(state): State<AppState>,
+    access: Can<OrderDelete>,
+    Path((_, id)): OrderPath,
+    Keyed { input, key }: Keyed<RefundRequest>,
+) -> Result<Answer, AppError> {
+    payments::refund(
+        &state,
+        access.workspace_id,
+        access.user_id,
+        &id,
+        input.amount,
+        key,
+    )
+    .await
 }

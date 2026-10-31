@@ -567,6 +567,47 @@ pub struct PaymentIntentResource {
     pub checkout_url: Option<String>,
 }
 
+/// POST /orders/{order}/refunds.
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Refund part of what was paid online.")]
+pub struct RefundRequest {
+    /// Minor units, at least 1 and at most paid − refunds not failed.
+    #[schema(value_type = i64, example = 500)]
+    amount: Option<Value>,
+}
+
+/// Validated refund amount (minor units).
+pub struct RefundInput {
+    pub amount: i64,
+}
+
+impl Validate for RefundRequest {
+    type Valid = RefundInput;
+
+    fn validate(self, r: &mut Rules) -> Option<RefundInput> {
+        let amount = match self.amount {
+            Some(v) => r.integer("amount", &v, 1, i64::MAX),
+            None => {
+                r.missing("amount");
+                None
+            }
+        };
+        Some(RefundInput {
+            amount: amount.unwrap_or(0),
+        })
+    }
+}
+
+/// Refund reply.
+#[derive(Serialize, ToSchema)]
+pub struct RefundCreated {
+    pub refund_id: Uuid,
+    pub amount: i64,
+    /// `creating` until the provider confirms; its status follows by webhook.
+    #[schema(example = "creating")]
+    pub status: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

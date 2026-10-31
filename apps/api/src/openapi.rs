@@ -76,6 +76,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
         .merge(email_verification::routes::public())
         .merge(invoices::routes::public())
         .merge(lots::routes::public())
+        .merge(orders::routes::public())
 }
 
 /// Documented routes that need a token. Modules move here from `build_app`'s plain list

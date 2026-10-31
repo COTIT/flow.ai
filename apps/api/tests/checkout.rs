@@ -493,3 +493,38 @@ async fn an_unpaid_order_expires_and_gives_its_stock_back(pool: PgPool) {
     let (s, _) = pay(&w, &id, "https://shop.example.com/thanks").await;
     assert_eq!(s, StatusCode::CONFLICT, "an expired order takes no payment");
 }
+
+#[sqlx::test]
+async fn the_hold_cap_counts_per_workspace(pool: PgPool) {
+    let w = world_with(pool, |s| s.checkout_hold_max = 1).await;
+    ordered(&w, "1").await;
+    let (s, _) = checkout(&w, "1").await;
+    assert_eq!(s, StatusCode::TOO_MANY_REQUESTS, "acme is at its cap");
+    let bob = w.api.as_new_owner("bob@example.com", "bobs").await;
+    let main = bob
+        .with_base("/warehouses")
+        .create(
+            json!({ "name": "Main", "default_warehouse": true }),
+            "warehouse_id",
+        )
+        .await;
+    let jam = bob
+        .with_base("/products")
+        .create(json!({ "name": "Jam", "price": "4" }), "product_id")
+        .await;
+    stock(&bob, &jam, &main, 3).await;
+    let bobs_key = key_for(&bob, &["checkout:write"]).await;
+    let (s, res) = shop(
+        &w,
+        Method::POST,
+        "/orders",
+        Some(order_body(&jam, "1")),
+        &bobs_key,
+    )
+    .await;
+    assert_eq!(
+        s,
+        StatusCode::CREATED,
+        "bobs is not held back by acme's cap: {res}"
+    );
+}

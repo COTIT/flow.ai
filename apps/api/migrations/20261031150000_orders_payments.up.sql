@@ -143,6 +143,9 @@ CREATE TABLE order_payments (
     status       text        NOT NULL DEFAULT 'creating' CHECK (status IN ('creating', 'open',
                              'paid', 'refunded', 'failed', 'expired', 'canceled')),
     checkout_url text        CHECK (char_length(checkout_url) <= 2048),
+    -- Where the customer returns; kept so the sweep can retry a create with the same key.
+    redirect_url text        CHECK (char_length(redirect_url) <= 2048),
+    webhook_url  text        CHECK (char_length(webhook_url) <= 2048),
     attempts     smallint    NOT NULL DEFAULT 0 CHECK (attempts >= 0),
     last_error   text        CHECK (char_length(last_error) <= 255),
     created_by   uuid        REFERENCES users (id) ON DELETE SET NULL,

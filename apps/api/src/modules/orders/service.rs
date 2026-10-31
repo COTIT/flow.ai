@@ -15,7 +15,7 @@ use crate::{
     error::AppError,
     idempotency::{self, Actor, Answer, Key},
     modules::{
-        currencies,
+        currencies, invoice_payments,
         invoices::{
             self,
             dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
@@ -749,7 +749,7 @@ pub async fn cancel_locked(
     if !matches!(o.status.as_str(), "draft" | "awaiting_payment" | "open") {
         return Err(conflict(NOT_CANCELLABLE));
     }
-    if o.paid_at.is_some() {
+    if o.paid_at.is_some() && super::payments::net_paid(conn, workspace_id, o.id).await?.0 > 0 {
         return Err(conflict(REFUND_REQUIRED));
     }
     if o.status != "draft" {
@@ -861,6 +861,38 @@ pub async fn returns(
     .await
 }
 
+/// Book what the customer paid online (paid − refunded) on the order's new invoice, so its
+/// balance is right. A draft keeps its status until it is sent.
+async fn book_paid(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    o: &OrderRow,
+    invoice_id: Uuid,
+) -> Result<(), AppError> {
+    let (net, paid) = super::payments::net_paid(conn, workspace_id, o.id).await?;
+    let Some((provider, provider_id)) = paid.filter(|_| net > 0) else {
+        return Ok(());
+    };
+    let description = format!("Paid online for order {}", o.number);
+    let row = invoice_payments::repo::NewPayment {
+        id: Uuid::now_v7(),
+        invoice_id,
+        user_id,
+        date: o.paid_at.unwrap_or_else(chrono::Utc::now).date_naive(),
+        amount: net,
+        description: Some(&description),
+        payment_method: "provider",
+        provider: Some(&provider),
+        provider_id: provider_id.as_deref(),
+        meta: None,
+        settle_twin_id: None,
+    };
+    invoice_payments::repo::insert(conn, workspace_id, &[row]).await?;
+    invoice_payments::repo::set_balance(conn, workspace_id, invoice_id, net, None).await?;
+    Ok(())
+}
+
 /// Make a draft invoice of the order's lines (once). The invoice moves no stock: the order
 /// already did.
 pub async fn invoice(
@@ -929,6 +961,7 @@ pub async fn invoice(
             let invoice_id =
                 invoices::service::create_in(conn, workspace_id, user_id, input).await?;
             repo::set_invoice(conn, workspace_id, o.id, invoice_id).await?;
+            book_paid(conn, workspace_id, user_id, &o, invoice_id).await?;
             Ok(())
         },
     )
