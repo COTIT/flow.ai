@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl"
 
 import { useLogout, useSession } from "@genesy/api-client/auth"
 import { useUsersWorkspaces } from "@genesy/api-client/endpoints/users"
-import { useProductsList } from "@genesy/api-client/pending"
+import { useProductsList } from "@genesy/api-client/endpoints/products"
 import { sessionStore } from "@genesy/api-client/session"
 import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { Button } from "@genesy/ui/components/button"
@@ -27,7 +27,9 @@ export default function ProductsPage() {
   const workspaceId = useSession((s) => s.workspaceId)
   const logout = useLogout()
   const workspaces = useUsersWorkspaces({ query: { enabled: Boolean(token) } })
-  const products = useProductsList(token ? workspaceId : null)
+  const products = useProductsList(workspaceId ?? "", undefined, {
+    query: { enabled: Boolean(token && workspaceId) },
+  })
 
   React.useEffect(() => {
     if (hydrated && !token) router.replace("/login")
