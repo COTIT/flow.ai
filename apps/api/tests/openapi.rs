@@ -648,3 +648,79 @@ fn group_d_operations_are_documented() {
         "public hash link must not need a token"
     );
 }
+
+/// Every `.rs` file under `dir`.
+fn rust_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            rust_files(&path, out);
+        } else if path.extension().is_some_and(|e| e == "rs") {
+            out.push(path);
+        }
+    }
+}
+
+/// Component name of each `ToSchema` type in `src` (its `#[schema(as = ..)]`, else the type
+/// name), with where it is defined.
+fn schema_names() -> Vec<(String, String)> {
+    let mut files = Vec::new();
+    rust_files(
+        std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src")),
+        &mut files,
+    );
+    let mut names = Vec::new();
+    for file in files {
+        let text = std::fs::read_to_string(&file).unwrap();
+        let (mut derived, mut renamed) = (false, None::<String>);
+        for (n, line) in text.lines().enumerate() {
+            let line = line.trim();
+            let at = || format!("{}:{}", file.display(), n + 1);
+            if line.starts_with("#[derive(") && line.contains("ToSchema") {
+                derived = true;
+            } else if let Some(rest) = line.strip_prefix("#[schema(as = ") {
+                renamed = rest.split(')').next().map(str::to_owned);
+            } else if let Some(rest) = ["impl utoipa::ToSchema for ", "impl ToSchema for "]
+                .iter()
+                .find_map(|p| line.strip_prefix(p))
+            {
+                names.push((rest.split(' ').next().unwrap().to_owned(), at()));
+            } else if let Some(rest) = ["pub struct ", "struct ", "pub enum ", "enum "]
+                .iter()
+                .find_map(|p| line.strip_prefix(p))
+            {
+                if derived {
+                    let ty = rest
+                        .split(|c: char| !c.is_alphanumeric() && c != '_')
+                        .next();
+                    names.push((renamed.take().unwrap_or(ty.unwrap().to_owned()), at()));
+                }
+                (derived, renamed) = (false, None);
+            }
+        }
+    }
+    names
+}
+
+/// utoipa keys components by name and silently keeps one of two same-named `ToSchema` types
+/// (pdf and email `TemplateCreated` once did): every name must be unique.
+#[test]
+fn schema_component_names_are_unique() {
+    let names = schema_names();
+    assert!(
+        names.iter().any(|(n, _)| n == "UnprocessableBody"),
+        "scan missed manual impls"
+    );
+    assert!(
+        names.iter().any(|(n, _)| n == "PdfTemplateBody"),
+        "scan missed `as =`"
+    );
+    let mut seen = std::collections::HashMap::new();
+    for (name, at) in &names {
+        if let Some(first) = seen.insert(name.clone(), at.clone()) {
+            panic!(
+                "ToSchema name `{name}` defined twice: {first} and {at}; add #[schema(as = ..)]"
+            );
+        }
+    }
+}

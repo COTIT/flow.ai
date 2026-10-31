@@ -412,6 +412,32 @@ impl<'de> Visitor<'de> for ItemsVisitor {
 mod tests {
     use super::*;
 
+    /// Request bodies built from `Scalar`/`Capped`/`Items` keep "absent = default" on every
+    /// field (`#[serde(default)]` per field, for utoipa); a field without it makes `{}` fail.
+    #[test]
+    fn lenient_request_bodies_take_an_empty_object() {
+        use crate::modules::{
+            email_profiles, email_templates, files, invoice_payments, invoices, messages,
+            pdf_templates,
+        };
+        fn empty<T: serde::de::DeserializeOwned>(name: &str) {
+            if let Err(e) = serde_json::from_str::<T>("{}") {
+                panic!("{name}: {e}");
+            }
+        }
+        empty::<files::dto::UploadRequest>("UploadRequest");
+        empty::<invoice_payments::dto::CreatePaymentRequest>("CreatePaymentRequest");
+        empty::<invoice_payments::dto::MarkCreditedRequest>("MarkCreditedRequest");
+        empty::<invoices::dto::InvoiceBody>("InvoiceBody");
+        empty::<invoices::dto::CreditInvoiceRequest>("CreditInvoiceRequest");
+        empty::<messages::dto::SendMessageRequest>("SendMessageRequest");
+        empty::<messages::dto::GraphBody>("GraphBody");
+        empty::<messages::dto::Office365Request>("Office365Request");
+        empty::<email_profiles::dto::ProfileBody>("email ProfileBody");
+        empty::<email_templates::dto::TemplateBody>("email TemplateBody");
+        empty::<pdf_templates::dto::TemplateBody>("pdf TemplateBody");
+    }
+
     #[derive(Deserialize)]
     struct Probe {
         #[serde(default)]
