@@ -12,8 +12,8 @@ use crate::{
     http::{farm::FarmAccess, workspace::NOT_ALLOWED},
     modules::farm_records::{
         dto::{
-            CycleFields, CycleFix, NewFarm, NewHousehold, NewRegistration, NewRevision, PersonFix,
-            PlaceFix, RegistrationResult,
+            CycleFields, CycleFix, Holdings, NewFarm, NewHousehold, NewRegistration, NewRevision,
+            PersonFix, PlaceFix, RegistrationResult,
         },
         repo::{self, CycleCols, Fix, HarvestRow, Pick, Seen, Stamp},
     },
@@ -253,6 +253,7 @@ pub async fn register(
                 "expected",
                 h.quantity_kg,
                 h.reported_for,
+                None,
             )
             .await?;
             harvest_ids.push(id);
@@ -454,13 +455,16 @@ pub async fn correct_cycle(
 
 // ---- harvests ----
 
-/// Replace the current figure of this kind; the old one stays, no longer current.
+const REF_REUSED: &str = "This client_ref was used for a different harvest figure.";
+
+/// Replace the current figure of this kind; the old one stays, no longer current. With a
+/// `client_ref`, a repeat of the same request returns the figure it wrote (false = replayed).
 pub async fn revise_harvest(
     state: &AppState,
     access: &FarmAccess,
     cycle: &str,
     rev: NewRevision,
-) -> Result<HarvestRow, AppError> {
+) -> Result<(HarvestRow, bool), AppError> {
     require_staff(access)?;
     let cycle = path_id(cycle)?;
     let scope = access.staff_scope();
@@ -470,6 +474,24 @@ pub async fn revise_harvest(
     let village = repo::lock_cycle(&mut *tx, ws, scope.all, &scope.villages, cycle)
         .await?
         .ok_or(AppError::NotFound)?;
+    if let Some(r) = rev.client_ref
+        && let Some(done) = repo::harvest_by_ref(&mut *tx, ws, r).await?
+    {
+        let same = done.crop_cycle_id == cycle
+            && done.kind == rev.kind
+            && done.quantity_kg == rev.quantity_kg
+            && done.source == rev.source
+            && done.confidence == rev.confidence
+            && done.reported_for == rev.reported_for;
+        if !same {
+            return Err(AppError::Conflict(REF_REUSED));
+        }
+        drop(tx);
+        return Ok((
+            one(repo::harvests(&state.db, ws, None, Some(done.id), false, 1, 0).await?)?,
+            false,
+        ));
+    }
     repo::retire_current(&mut *tx, cycle, &rev.kind).await?;
     let stamp = Stamp {
         ws,
@@ -485,10 +507,21 @@ pub async fn revise_harvest(
         &rev.kind,
         rev.quantity_kg,
         rev.reported_for,
+        rev.client_ref,
     )
-    .await?;
+    .await
+    // The same ref racing on another cycle: refused like any reuse.
+    .map_err(
+        |e| match e.as_database_error().and_then(|d| d.constraint()) {
+            Some("farm_harvest_reports_client_ref_key") => AppError::Conflict(REF_REUSED),
+            _ => AppError::Database(e),
+        },
+    )?;
     tx.commit().await?;
-    one(repo::harvests(&state.db, ws, None, Some(id), false, 1, 0).await?)
+    Ok((
+        one(repo::harvests(&state.db, ws, None, Some(id), false, 1, 0).await?)?,
+        true,
+    ))
 }
 
 /// Harvest reports of a cycle the caller sees, else 404.
@@ -531,4 +564,56 @@ pub async fn harvest(
     )
     .await?)?;
     Ok(row)
+}
+
+// ---- holdings ----
+
+/// A person's households (members named), and the farms they manage or their household owns,
+/// each with plots, crop cycles (with crop) and harvest figures: one read for a person page.
+/// Every level keeps the caller's scope, so phone and GPS stay with village staff.
+pub async fn holdings(
+    state: &AppState,
+    access: &FarmAccess,
+    person: &str,
+) -> Result<Holdings, AppError> {
+    let person = path_id(person)?;
+    let db = &state.db;
+    let ws = access.workspace_id;
+    let scope = access.staff_scope();
+    let seen = seen(access, &scope.villages);
+    one(repo::persons(db, &seen, &Pick::one(person)).await?)?;
+    // shortcut: 1000 rows per level, page the holdings if one person ever owns more
+    let all = |ids: Vec<Uuid>| Pick {
+        ids: Some(ids),
+        limit: 1000,
+        ..Pick::default()
+    };
+    let (households, _) = repo::households(
+        db,
+        &seen,
+        &all(repo::household_ids_of(db, ws, person).await?),
+    )
+    .await?;
+    let house_ids: Vec<Uuid> = households.iter().map(|h| h.id).collect();
+    let members = repo::named_members(db, &house_ids).await?;
+    let (farms, _) = repo::farms(db, &seen, &all(repo::farm_ids_of(db, ws, person).await?)).await?;
+    let farm_ids: Vec<Uuid> = farms.iter().map(|f| f.id).collect();
+    let plot_pick = Pick {
+        parents: Some(farm_ids),
+        limit: 1000,
+        ..Pick::default()
+    };
+    let (plots, _) = repo::plots(db, &seen, &plot_pick).await?;
+    let cycle_pick = Pick {
+        parents: Some(plots.iter().map(|p| p.id).collect()),
+        limit: 1000,
+        ..Pick::default()
+    };
+    let (cycles, _) = repo::cycles(db, &seen, &cycle_pick).await?;
+    let cycle_ids: Vec<Uuid> = cycles.iter().map(|c| c.id).collect();
+    let harvests = repo::harvests_of_cycles(db, ws, &cycle_ids).await?;
+    let (crops, _) = crate::modules::farm_crops::repo::list(db, ws, 1000, 0).await?;
+    Ok(Holdings::assemble(
+        households, members, farms, plots, cycles, harvests, crops,
+    ))
 }

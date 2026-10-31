@@ -74,7 +74,10 @@ pub async fn products(
                   CASE WHEN pg.has_stock THEN (
                       SELECT coalesce(sum(s.stock_lvl - s.reserved), 0.00::numeric(19, 2))::text
                       FROM stocks s
+                      LEFT JOIN lots l ON l.id = s.lot_id
                       WHERE s.workspace_id = $1 AND s.product_id = pg.id AND s.deleted_at IS NULL
+                        AND (s.lot_id IS NULL OR (l.status = 'released'
+                             AND (l.expires_on IS NULL OR l.expires_on >= current_date)))
                   ) END AS available_stock,
                   (SELECT coalesce(json_agg(json_build_object(
                               'id', v.id, 'sku', v.sku, 'barcode', v.barcode, 'ean13', v.ean13,

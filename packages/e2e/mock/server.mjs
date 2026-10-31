@@ -128,12 +128,19 @@ const lot = (code, status, farmers) => ({
 const lots = {
   [LOT.released]: () => lot(LOT.released, "released", []),
   [LOT.recalled]: () =>
+    // Farmer groups per village; the API sends null instead of a count below 3.
     lot(LOT.recalled, "recalled", [
       {
-        first_name: "Asha",
         village: "Ilundo",
-        photo: link("asha"),
-        harvest_dates: ["2026-07-10"],
+        farmers: 12,
+        harvest_start: "2026-07-01",
+        harvest_end: "2026-07-20",
+      },
+      {
+        village: "Mtera",
+        farmers: null,
+        harvest_start: "2026-08-02",
+        harvest_end: "2026-08-09",
       },
     ]),
 }

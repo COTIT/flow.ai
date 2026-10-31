@@ -17,7 +17,10 @@ use crate::{
             service::{MAX_LOGIN_FAILURES, issue_token},
         },
         farm_logins::{
-            dto::{FarmLogin, FarmSession, IssuedLogin, IssuerRef, LoginIssue, PasswordChange},
+            dto::{
+                FarmLogin, FarmMe, FarmSession, IssuedLogin, IssuerRef, LoginIssue, MeUser,
+                PasswordChange,
+            },
             repo, rules,
         },
         farm_memberships::repo as memberships,
@@ -214,4 +217,29 @@ pub async fn change_password(
     let hash = password::hash(input.new).await?;
     repo::set_password(&state.db, account.id, &hash).await?;
     Ok(())
+}
+
+/// The account behind any token, phone or email, with its farm roles.
+pub async fn me(state: &AppState, user: AuthUser) -> Result<FarmMe, AppError> {
+    let row = repo::me(&state.db, user.user_id)
+        .await?
+        .ok_or(AppError::Unauthorized)?;
+    Ok(FarmMe {
+        must_change_password: row.must_change_password,
+        memberships: repo::memberships(&state.db, row.id).await?,
+        locale: Some(row.locale),
+        user: MeUser {
+            id: row.id,
+            name: format!("{} {}", row.first_name, row.last_name)
+                .trim()
+                .to_owned(),
+            email: row.email,
+            phone: row.phone,
+        },
+    })
+}
+
+/// Save the account's language.
+pub async fn set_locale(state: &AppState, user: AuthUser, locale: String) -> Result<(), AppError> {
+    Ok(repo::set_locale(&state.db, user.user_id, &locale).await?)
 }

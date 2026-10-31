@@ -42,7 +42,6 @@ describe("earliestLinkExpiry", () => {
         { kind: "quote" as const, text: "hi", by: null },
       ],
     },
-    farmers: [{ photo: link("2026-10-31T10:09:00Z") }, { photo: null }],
   }
 
   it("finds the first signed link to expire", () => {
@@ -55,7 +54,6 @@ describe("earliestLinkExpiry", () => {
     expect(
       earliestLinkExpiry({
         passport: { banner: null, certificates: [], story: [] },
-        farmers: [],
       })
     ).toBeNull()
   })

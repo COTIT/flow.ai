@@ -5,7 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { PublicFarmer } from './publicFarmer';
+import type { PublicFarmerGroup } from './publicFarmerGroup';
 import type { PublicPassport } from './publicPassport';
 import type { PublicProduct } from './publicProduct';
 
@@ -18,8 +18,8 @@ export interface PublicLot {
   code: string;
   /** @nullable */
   expires_on: string | null;
-  /** Consented farmer fields only; empty until farmer consent exists. */
-  farmers: PublicFarmer[];
+  /** Who grew it, per village (supply lots); empty otherwise. */
+  farmers: PublicFarmerGroup[];
   /** @nullable */
   origin: string | null;
   passport: PublicPassport;

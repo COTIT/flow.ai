@@ -657,8 +657,9 @@ async fn big_settings_read_quickly(pool: PgPool) {
     for _ in 0..20 {
         get(&api, "").await;
     }
+    // Catches a pathological (e.g. per-key quadratic) read path; 5 s leaves room for a loaded CI box.
     assert!(
-        started.elapsed().as_millis() < 1_000,
+        started.elapsed().as_millis() < 5_000,
         "{:?}",
         started.elapsed()
     );

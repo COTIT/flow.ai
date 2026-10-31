@@ -17,7 +17,10 @@ use crate::{
         response::{Data, Envelope, MessageBody},
     },
     modules::farm_logins::{
-        dto::{ChangePasswordRequest, FarmLoginRequest, FarmSession, IssuedLogin, LoginIssue},
+        dto::{
+            ChangePasswordRequest, FarmLoginRequest, FarmMe, FarmSession, IssuedLogin, LoginIssue,
+            MePatch,
+        },
         service,
     },
 };
@@ -116,5 +119,42 @@ pub async fn change_password(
     ValidatedJson(input): ValidatedJson<ChangePasswordRequest>,
 ) -> Result<StatusCode, AppError> {
     service::change_password(&state, user, input).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// GET /v1/farm/me.
+#[utoipa::path(
+    get, path = "/farm/me", tag = "farm_logins",
+    operation_id = "farm_logins_me", summary = "The signed-in account and its farm roles",
+    description = "For phone (farmer) and email (staff) accounts alike: name, contact, language, \
+        whether a temporary password must be replaced, and every live farm role with its workspace, \
+        village and person.",
+    responses((status = 200, body = Envelope<FarmMe>, description = "The account")),
+    security(("bearer" = []))
+)]
+pub async fn me(
+    State(state): State<AppState>,
+    AnyUser(user): AnyUser,
+) -> Result<Data<FarmMe>, AppError> {
+    Ok(Data(service::me(&state, user).await?))
+}
+
+/// PATCH /v1/farm/me.
+#[utoipa::path(
+    patch, path = "/farm/me", tag = "farm_logins",
+    operation_id = "farm_logins_update_me", summary = "Save my language",
+    request_body = MePatch,
+    responses(
+        (status = 204, description = "Saved"),
+        (status = 422, body = ValidationErrorBody, description = "Not sw, en or nl, or another field"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn update_me(
+    State(state): State<AppState>,
+    AnyUser(user): AnyUser,
+    ValidatedJson(locale): ValidatedJson<MePatch>,
+) -> Result<StatusCode, AppError> {
+    service::set_locale(&state, user, locale).await?;
     Ok(StatusCode::NO_CONTENT)
 }

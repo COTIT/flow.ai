@@ -1,6 +1,7 @@
 //! Lot request/response bodies.
 
 use chrono::{DateTime, NaiveDate, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::{IntoParams, ToSchema};
@@ -9,14 +10,19 @@ use uuid::Uuid;
 use crate::{
     error::AppError,
     http::json::{Rules, Validate, filled, present},
-    modules::lots::{
-        passport::Passport,
-        repo::{EventRow, LotRow, PassportRow},
+    modules::{
+        lots::{
+            passport::Passport,
+            repo::{EventRow, LotRow, PassportRow},
+        },
+        stock::repo::LEVEL_MAX,
     },
+    money::round,
 };
 
 const CODE_MAX: usize = 64;
 const ORIGIN_MAX: usize = 255;
+const REASON_MAX: usize = 255;
 const BAD_CODE: &str = "The code may only contain letters, digits and . _ / -";
 /// Lot statuses; only `released` lots are sellable.
 pub const STATUSES: [&str; 3] = ["quarantine", "released", "recalled"];
@@ -193,7 +199,8 @@ pub struct LotPatch {
     pub origin: Option<Option<String>>,
 }
 
-fn code(r: &mut Rules, v: Option<String>) -> String {
+/// Batch code rule (letters, digits, . _ / -; 1-64 chars). Shared with supply batches.
+pub(crate) fn code(r: &mut Rules, v: Option<String>) -> String {
     let v = r.text("code", v, CODE_MAX);
     let ok = v
         .chars()
@@ -290,4 +297,65 @@ impl TryFrom<PassportRow> for PassportResource {
             published_at: r.published_at,
         })
     }
+}
+
+/// POST /lots/{lot}/stock-mutations.
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Stock in (positive) or out (negative) of this lot at a warehouse.")]
+pub struct StockMutationRequest {
+    #[schema(value_type = Uuid)]
+    warehouse_id: Option<String>,
+    /// Non-zero, 2 decimals; out may not take more than the lot has free (level − reserved).
+    #[schema(value_type = String, example = "12.5")]
+    quantity: Option<Value>,
+    #[schema(max_length = 255)]
+    reason: Option<String>,
+    #[schema(value_type = Option<bool>)]
+    is_correction: Option<Value>,
+}
+
+/// Validated stock mutation.
+pub struct StockMutation {
+    pub warehouse_id: Uuid,
+    pub quantity: Decimal,
+    pub reason: Option<String>,
+    pub is_correction: bool,
+}
+
+impl Validate for StockMutationRequest {
+    type Valid = StockMutation;
+
+    fn validate(self, r: &mut Rules) -> Option<StockMutation> {
+        // Malformed = unknown (nil matches no row): the service gives the one message.
+        let warehouse_id = r
+            .required("warehouse_id", self.warehouse_id)
+            .map(|w| Uuid::parse_str(&w).unwrap_or(Uuid::nil()))
+            .unwrap_or_default();
+        let quantity = r
+            .required_value("quantity", self.quantity)
+            .and_then(|v| r.decimal("quantity", &v, -LEVEL_MAX, LEVEL_MAX))
+            .map(|q| round(q, 2));
+        if let Some(q) = quantity {
+            r.check("quantity", !q.is_zero(), "The quantity must not be zero.");
+        }
+        let quantity = quantity.unwrap_or_default();
+        Some(StockMutation {
+            warehouse_id,
+            quantity,
+            reason: r.opt_text("reason", self.reason, REASON_MAX),
+            is_correction: self
+                .is_correction
+                .and_then(|v| r.boolean("is_correction", &v))
+                .unwrap_or(false),
+        })
+    }
+}
+
+/// The lot's level at the warehouse after a stock mutation.
+#[derive(Serialize, ToSchema)]
+pub struct LotStockLevel {
+    pub warehouse_id: Uuid,
+    /// 2 decimals.
+    #[schema(example = "12.50")]
+    pub stock_lvl: String,
 }

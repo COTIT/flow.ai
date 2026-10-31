@@ -48,10 +48,19 @@ pub struct LoginIssue {
 /// One farm role of the signed-in account.
 #[derive(Serialize, ToSchema)]
 pub struct FarmMembershipRef {
+    /// The membership id.
+    id: Uuid,
     workspace_id: Uuid,
+    workspace_name: String,
+    /// `farmer`, `field_officer`, `ops` or `admin`.
     role: String,
     #[schema(required = true)]
     village_id: Option<Uuid>,
+    #[schema(required = true)]
+    village_name: Option<String>,
+    /// The registered person this account is in that workspace, if any.
+    #[schema(required = true)]
+    person_id: Option<Uuid>,
 }
 
 /// A farmer session.
@@ -141,5 +150,48 @@ impl Validate for ChangePasswordRequest {
             current: current?,
             new: new?,
         })
+    }
+}
+
+/// The signed-in account as the farm apps need it.
+#[derive(Serialize, ToSchema)]
+pub struct MeUser {
+    pub id: Uuid,
+    /// Full name.
+    pub name: String,
+    #[schema(required = true)]
+    pub email: Option<String>,
+    #[schema(required = true)]
+    pub phone: Option<String>,
+}
+
+/// GET /v1/farm/me: the account, its language and every farm role, for phone and email accounts.
+#[derive(Serialize, ToSchema)]
+pub struct FarmMe {
+    pub user: MeUser,
+    /// Interface language: `sw`, `en` or `nl`.
+    #[schema(required = true)]
+    pub locale: Option<String>,
+    /// The account still has to replace a temporary password.
+    pub must_change_password: bool,
+    #[schema(value_type = Vec<FarmMembershipRef>)]
+    pub memberships: Value,
+}
+
+/// PATCH /v1/farm/me.
+#[derive(Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MePatch {
+    /// `sw`, `en` or `nl`.
+    #[schema(value_type = String, example = "sw")]
+    locale: Option<String>,
+}
+
+impl Validate for MePatch {
+    type Valid = String;
+
+    fn validate(self, r: &mut Rules) -> Option<String> {
+        r.required("locale", self.locale.clone())
+            .and_then(|_| r.one_of("locale", self.locale, &["sw", "en", "nl"], None))
     }
 }

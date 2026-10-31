@@ -26,10 +26,12 @@ import type {
 
 import type {
   ChangePasswordRequest,
+  EnvelopeFarmMe,
   EnvelopeFarmSession,
   EnvelopeIssuedLogin,
   EnvelopeVecLoginIssue,
   FarmLoginRequest,
+  MePatch,
   MessageBody,
   ValidationErrorBody
 } from '../model';
@@ -124,6 +126,166 @@ export const useFarmLoginsLogin = <TError = ErrorType<MessageBody | ValidationEr
         TContext
       > => {
       return useMutation(getFarmLoginsLoginMutationOptions(options), queryClient);
+    }
+    /**
+ * For phone (farmer) and email (staff) accounts alike: name, contact, language, whether a temporary password must be replaced, and every live farm role with its workspace, village and person.
+ * @summary The signed-in account and its farm roles
+ */
+export const farmLoginsMe = (
+
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeFarmMe>(
+      {url: `/farm/me`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmLoginsMeQueryKey = () => {
+    return [
+    `/farm/me`
+    ] as const;
+    }
+
+
+export const getFarmLoginsMeQueryOptions = <TData = Awaited<ReturnType<typeof farmLoginsMe>>, TError = ErrorType<MessageBody>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmLoginsMe>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmLoginsMeQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmLoginsMe>>> = ({ signal }) => farmLoginsMe(requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmLoginsMe>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmLoginsMeQueryResult = NonNullable<Awaited<ReturnType<typeof farmLoginsMe>>>
+export type FarmLoginsMeQueryError = ErrorType<MessageBody>
+
+
+export function useFarmLoginsMe<TData = Awaited<ReturnType<typeof farmLoginsMe>>, TError = ErrorType<MessageBody>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmLoginsMe>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmLoginsMe>>,
+          TError,
+          Awaited<ReturnType<typeof farmLoginsMe>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmLoginsMe<TData = Awaited<ReturnType<typeof farmLoginsMe>>, TError = ErrorType<MessageBody>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmLoginsMe>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmLoginsMe>>,
+          TError,
+          Awaited<ReturnType<typeof farmLoginsMe>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmLoginsMe<TData = Awaited<ReturnType<typeof farmLoginsMe>>, TError = ErrorType<MessageBody>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmLoginsMe>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The signed-in account and its farm roles
+ */
+
+export function useFarmLoginsMe<TData = Awaited<ReturnType<typeof farmLoginsMe>>, TError = ErrorType<MessageBody>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmLoginsMe>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmLoginsMeQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Save my language
+ */
+export const farmLoginsUpdateMe = (
+    mePatch: BodyType<MePatch>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<void>(
+      {url: `/farm/me`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: mePatch, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmLoginsUpdateMeMutationKey = () => ['farmLoginsUpdateMe'] as const;
+
+export const getFarmLoginsUpdateMeMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmLoginsUpdateMe>>, TError,FarmLoginsUpdateMeMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof farmLoginsUpdateMe>>, TError,FarmLoginsUpdateMeMutationVariables, TContext> => {
+
+const mutationKey = getFarmLoginsUpdateMeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof farmLoginsUpdateMe>>, FarmLoginsUpdateMeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  farmLoginsUpdateMe(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FarmLoginsUpdateMeMutationResult = NonNullable<Awaited<ReturnType<typeof farmLoginsUpdateMe>>>
+    export type FarmLoginsUpdateMeMutationBody = BodyType<MePatch>
+    export type FarmLoginsUpdateMeMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmLoginsUpdateMeMutationVariables = {data: BodyType<MePatch>}
+
+    /**
+ * @summary Save my language
+ */
+export const useFarmLoginsUpdateMe = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmLoginsUpdateMe>>, TError,FarmLoginsUpdateMeMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof farmLoginsUpdateMe>>,
+        TError,
+        FarmLoginsUpdateMeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFarmLoginsUpdateMeMutationOptions(options), queryClient);
     }
     /**
  * Phone accounts only. Clears the must-change flag; the temporary password is refused as the new one.

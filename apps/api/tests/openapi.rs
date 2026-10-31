@@ -1214,6 +1214,12 @@ fn every_lots_operation_is_documented() {
             "lots_passport_unpublish",
             "200",
         ),
+        (
+            "/lots/{lot}/stock-mutations",
+            "post",
+            "lots_stock_mutate",
+            "200",
+        ),
     ]);
 }
 
@@ -1414,6 +1420,45 @@ fn every_farm_records_operation_is_documented() {
 }
 
 #[test]
+fn every_farm_supply_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/supply-batches", "get", "farm_supply_list", "200"),
+        ("/farm/supply-batches", "post", "farm_supply_create", "201"),
+        (
+            "/farm/supply-batches/{batch}",
+            "get",
+            "farm_supply_get",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
+fn every_farm_passbook_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/passbook/mine", "get", "farm_passbook_mine", "200"),
+        (
+            "/farm/persons/{person}/passbook",
+            "get",
+            "farm_passbook_person",
+            "200",
+        ),
+        (
+            "/farm/persons/{person}/passport-consent",
+            "post",
+            "farm_passbook_give_consent",
+            "200",
+        ),
+        (
+            "/farm/persons/{person}/passport-consent",
+            "delete",
+            "farm_passbook_withdraw_consent",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
 fn every_farm_logins_operation_is_documented() {
     assert_documented(&[
         (
@@ -1592,4 +1637,32 @@ fn every_farm_surveys_and_vouchers_operation_is_documented() {
         assert!(props.is_object(), "{name}");
         assert!(props.get("code").is_none(), "{name} exposes the code");
     }
+}
+
+#[test]
+fn every_farm_port_support_operation_is_documented() {
+    assert_documented(&[(
+        "/farm/persons/{person}/holdings",
+        "get",
+        "farm_records_persons_holdings",
+        "200",
+    )]);
+    assert_ops(&[
+        ("/farm/me", "get", "farm_logins_me", "200"),
+        ("/farm/me", "patch", "farm_logins_update_me", "204"),
+    ]);
+    let s = spec();
+    let list = &s["paths"]["/workspace/{workspace}/farm/plots"]["get"]["parameters"];
+    for name in ["verification", "farm_id", "village_id"] {
+        assert!(
+            list.as_array().unwrap().iter().any(|p| p["name"] == name),
+            "plots list: {name}"
+        );
+    }
+    let revise = &s["paths"]["/workspace/{workspace}/farm/crop-cycles/{cycle}/harvest-reports"]["post"]
+        ["responses"];
+    assert!(
+        revise["200"].is_object() && revise["409"].is_object(),
+        "replay and conflict documented"
+    );
 }

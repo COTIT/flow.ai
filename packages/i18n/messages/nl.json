@@ -40,7 +40,9 @@
     "validUntil": "Geldig tot {date}",
     "certFile": "Bekijk certificaat",
     "farmers": "Maak kennis met de boeren",
-    "harvested": "Geoogst op {dates}",
-    "published": "Paspoortversie {version}, gepubliceerd op {date}"
+    "harvested": "Geoogst {start} – {end}",
+    "published": "Paspoortversie {version}, gepubliceerd op {date}",
+    "harvestedOn": "Geoogst op {date}",
+    "farmerCount": "{count} boeren"
   }
 }

@@ -14,7 +14,7 @@ import { cn } from "@genesy/ui/lib/utils"
 type Props = {
   /** The published passport, as the public and storefront lot replies carry it. */
   passport: PublicPassport
-  /** The batch around it: code, status, dates, product, consented farmers. */
+  /** The batch around it: code, status, dates, product, farmer groups per village. */
   lot: Omit<PublicLot, "passport" | "code">
   locale: string
   /** Translator for the `batch` messages. Method syntax so next-intl's typed `t` fits. */
@@ -178,24 +178,31 @@ export function PassportView({ passport, lot, locale, t }: Props) {
 
       {lot.farmers.length ? (
         <Section title={t("farmers")}>
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {lot.farmers.map((f, i) => (
-              <li key={i} className="flex flex-col gap-2">
-                {f.photo ? (
-                  <img
-                    src={f.photo.url}
-                    alt={f.first_name}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    className="aspect-square w-full rounded-lg bg-muted object-cover"
-                  />
+          {/* Groups per village only: the API never sends names, photos, kg or prices. */}
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {lot.farmers.map((g) => (
+              <li
+                key={g.village}
+                className="flex flex-col gap-1 rounded-lg border p-4"
+              >
+                <p className="font-medium">{g.village}</p>
+                {/* null below 3 farmers, for privacy: then no count at all. */}
+                {g.farmers !== null ? (
+                  <p className="text-sm">
+                    {t("farmerCount", { count: g.farmers })}
+                  </p>
                 ) : null}
-                <p className="font-medium">{f.first_name}</p>
-                <p className="text-sm text-muted-foreground">{f.village}</p>
-                {f.harvest_dates.length ? (
+                {g.harvest_start && g.harvest_end ? (
                   <p className="text-sm text-muted-foreground">
                     {t("harvested", {
-                      dates: f.harvest_dates.map(day).join(", "),
+                      start: day(g.harvest_start),
+                      end: day(g.harvest_end),
+                    })}
+                  </p>
+                ) : g.harvest_start || g.harvest_end ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("harvestedOn", {
+                      date: day((g.harvest_start ?? g.harvest_end)!),
                     })}
                   </p>
                 ) : null}

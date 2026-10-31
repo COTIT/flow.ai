@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, HashMap};
 
 use chrono::NaiveDate;
 use serde_json::json;
+use sqlx::PgConnection;
 use uuid::Uuid;
 
 use crate::{
@@ -13,15 +14,20 @@ use crate::{
     error::AppError,
     http::workspace::{NOT_ALLOWED, WorkspaceAccess},
     modules::{
+        farm_supply,
         files::{repo as files, service as files_service},
         lots::{
-            dto::{LotPatch, NewLotInput, STATUSES},
+            dto::{LotPatch, LotStockLevel, NewLotInput, STATUSES, StockMutation},
             passport::{FileUse, Passport},
-            public::{Link, PublicLot},
+            public::{Link, PublicFarmerGroup, PublicLot},
             repo::{self, EventRow, ListFilter, LotRow, NewEvent, PassportRow},
         },
         products::repo as products,
-        stock::service::tracks_stock,
+        stock::{
+            repo::{self as stock, Cause, Floor, Mutated, Slot},
+            service::tracks_stock,
+        },
+        warehouses::repo as warehouses,
         webhooks::events::{self, LOT_CREATED, PASSPORT_PUBLISHED},
     },
 };
@@ -86,7 +92,7 @@ pub async fn create(
     }
     check_dates(input.produced_on, input.best_before, input.expires_on)?;
     let mut tx = state.db.begin().await?;
-    let mut lot = LotRow {
+    let lot = LotRow {
         id: Uuid::nil(),
         product_id: input.product_id,
         code: input.code,
@@ -99,10 +105,24 @@ pub async fn create(
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
+    let lot = insert_lot(&mut tx, access.workspace_id, access.user_id, lot, None).await?;
+    tx.commit().await?;
+    Ok(lot)
+}
+
+/// Insert `lot` (its id and public code are made here), its `created` event (with `meta`) and
+/// `lot.created`, in the caller's transaction. The caller has checked product and dates.
+pub async fn insert_lot(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    mut lot: LotRow,
+    meta: Option<serde_json::Value>,
+) -> Result<LotRow, AppError> {
     let mut inserted = None;
     for _ in 0..PUBLIC_CODE_TRIES {
         lot.public_code = public_code()?;
-        inserted = repo::insert(&mut tx, access.workspace_id, &lot, access.user_id)
+        inserted = repo::insert(conn, workspace_id, &lot, user_id)
             .await
             .map_err(|e| AppError::unique(e, "lots_code_unique", "code", TAKEN))?;
         if inserted.is_some() {
@@ -115,18 +135,17 @@ pub async fn create(
         kind: "created",
         from_status: None,
         to_status: Some(&lot.status),
-        user_id: access.user_id,
-        meta: None,
+        user_id,
+        meta,
     };
-    repo::add_event(&mut tx, access.workspace_id, &event).await?;
+    repo::add_event(conn, workspace_id, &event).await?;
     let payload = json!({
         "lot_id": lot.id,
         "product_id": lot.product_id,
         "code": lot.code,
         "public_code": lot.public_code,
     });
-    events::emit(&mut tx, access.workspace_id, LOT_CREATED, payload).await?;
-    tx.commit().await?;
+    events::emit(conn, workspace_id, LOT_CREATED, payload).await?;
     Ok(lot)
 }
 
@@ -201,6 +220,13 @@ pub async fn update(
         after.origin = o;
     }
     check_dates(after.produced_on, after.best_before, after.expires_on)?;
+    // The code is printed on labels: once stock exists under it, it stays.
+    if before.code != after.code && repo::has_stock(&mut *tx, access.workspace_id, id).await? {
+        return Err(AppError::field(
+            "code",
+            "The code can't change once the lot holds stock.",
+        ));
+    }
     let changed: Vec<&str> = [
         ("code", before.code != after.code),
         ("produced_on", before.produced_on != after.produced_on),
@@ -419,7 +445,73 @@ pub async fn public(
             links.insert(f.id, Link::new(url, expires_at));
         }
     }
-    Ok(PublicLot::new(row, passport, &links))
+    let farmers = farm_supply::repo::public_groups(&state.db, row.workspace_id, row.id)
+        .await?
+        .into_iter()
+        .map(|g| PublicFarmerGroup::new(g.village, g.farmers, g.harvest_start, g.harvest_end))
+        .collect();
+    Ok(PublicLot::new(row, passport, &links, farmers))
+}
+
+/// POST /lots/{lot}/stock-mutations: stock in or out of the lot at a warehouse (its
+/// warehouse-level lot row). Out may not take more than the row has free (level − reserved).
+pub async fn stock_mutation(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    id: &str,
+    m: StockMutation,
+) -> Result<LotStockLevel, AppError> {
+    let lot = get(state, access.workspace_id, id).await?;
+    if !warehouses::exists(&state.db, access.workspace_id, m.warehouse_id).await? {
+        return Err(AppError::field(
+            "warehouse_id",
+            "The selected warehouse id is invalid.",
+        ));
+    }
+    let slot = Slot {
+        product_id: lot.product_id,
+        warehouse_id: m.warehouse_id,
+        bin: None,
+        lot_id: Some(lot.id),
+    };
+    let cause = Cause {
+        reason: m.reason.as_deref(),
+        is_correction: m.is_correction,
+        user_id: Some(access.user_id),
+        ..Cause::default()
+    };
+    let mut tx = state.db.begin().await?;
+    match stock::mutate(
+        &mut tx,
+        access.workspace_id,
+        slot,
+        m.quantity,
+        Floor::Available,
+        &cause,
+    )
+    .await?
+    {
+        Mutated::Short { level, reserved } => Err(AppError::field(
+            "quantity",
+            format!(
+                "Insufficient stock in this lot. Available: {}, Reserved: {}, Requested: {}",
+                level.normalize(),
+                reserved.normalize(),
+                (-m.quantity).normalize()
+            ),
+        )),
+        Mutated::OutOfRange => Err(AppError::field(
+            "quantity",
+            "The stock level would be out of range.",
+        )),
+        Mutated::Done { after, .. } => {
+            tx.commit().await?;
+            Ok(LotStockLevel {
+                warehouse_id: m.warehouse_id,
+                stock_lvl: format!("{after:.2}"),
+            })
+        }
+    }
 }
 
 #[cfg(test)]
