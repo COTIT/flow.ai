@@ -26,6 +26,9 @@ pub const FILE_SWEEP: &str = "file_sweep";
 /// Zero stock rows for every product in a new main or store warehouse (`stock::sweep`).
 pub const STOCK_SEED: &str = "stock_seed";
 
+/// Turns a workspace's pending webhook events into deliveries (`webhooks::deliver`).
+pub const WEBHOOK_FANOUT: &str = "webhook_fanout";
+
 /// Every kind this build can run; the claim never takes another.
 pub const KINDS: &[&str] = &[CLOSE_STUCK_SENDS, PRUNE, FILE_SWEEP, STOCK_SEED];
 

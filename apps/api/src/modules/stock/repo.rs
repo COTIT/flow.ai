@@ -7,7 +7,7 @@ use serde_json::Value;
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use crate::money::round;
+use crate::{modules::webhooks, money::round};
 
 /// Where a stock row sits: product + warehouse, plus a bin (with its shelf) or none for the
 /// warehouse-level row.
@@ -491,8 +491,20 @@ pub async fn record(
         m.cause.meta,
     )
     .execute(&mut *conn)
-    .await
-    .map(|_| ())
+    .await?;
+    // Requirements-only movements leave the level alone: no event.
+    if m.before == m.after {
+        return Ok(());
+    }
+    let payload = serde_json::json!({
+        "stock_id": row.id,
+        "product_id": row.product_id,
+        "warehouse_id": row.warehouse_id,
+        "reason": m.kind,
+        "quantity_change": format!("{:.2}", m.after - m.before),
+        "quantity_after": format!("{:.2}", m.after),
+    });
+    webhooks::events::emit(conn, workspace_id, webhooks::events::STOCK_CHANGED, payload).await
 }
 
 /// The live warehouses of the workspace among `ids`.
