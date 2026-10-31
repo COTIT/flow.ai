@@ -1,14 +1,17 @@
-//! Variant bodies: Laravel Create/UpdateProductVariantRequest and GenerateProductVariantsRequest
-//! (vimdesk-web EditVariantModal.vue, variant-setup ReviewStep.vue).
-
-use rust_decimal::Decimal;
-use serde::Deserialize;
-use serde_json::{Map, Value};
+//! Variant bodies.
+// Laravel Create/UpdateProductVariantRequest and GenerateProductVariantsRequest
+// (vimdesk-web EditVariantModal.vue, variant-setup ReviewStep.vue).
 
 use crate::{
     http::json::{Rules, Validate, filled, human},
     money,
 };
+use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
+use serde::Deserialize;
+use serde_json::{Map, Value};
+use utoipa::ToSchema;
+use uuid::Uuid;
 
 /// Combinations one generate call may create.
 const MAX_COMBINATIONS: usize = 500;
@@ -275,7 +278,8 @@ impl Validate for GenerateBody {
     }
 }
 
-/// Laravel ProductVariantResource. `product` is the parent in list shape.
+/// Variant JSON. `product` is the parent in list shape.
+// Laravel ProductVariantResource.
 pub fn render(
     v: &crate::modules::product_variants::repo::VariantRow,
     product: &Value,
@@ -324,4 +328,146 @@ pub fn render(
             "images": [],
         },
     })
+}
+
+/// OpenAPI shape of [`render`]. Docs only: `render` builds a `json!` literal.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    as = ProductVariantResource,
+    description = "A product variant. Decimal columns are strings (`\"12.5000\"`)."
+)]
+pub struct VariantDoc {
+    id: Uuid,
+    product_id: Uuid,
+    is_default: bool,
+    #[schema(required = true)]
+    sku: Option<String>,
+    #[schema(required = true)]
+    barcode: Option<String>,
+    #[schema(required = true)]
+    ean13: Option<String>,
+    price: String,
+    #[schema(required = true)]
+    original_price: Option<String>,
+    #[schema(required = true)]
+    wholesale_price: Option<String>,
+    #[schema(required = true)]
+    original_wholesale_price: Option<String>,
+    gross_price: String,
+    #[schema(required = true)]
+    supplier_wholesale_price: Option<String>,
+    #[schema(required = true)]
+    impact_on_price: Option<String>,
+    #[schema(required = true)]
+    impact_on_wholesale_price: Option<String>,
+    #[schema(required = true)]
+    weight: Option<String>,
+    #[schema(required = true)]
+    reference_vendor: Option<String>,
+    #[schema(required = true)]
+    reference_vendor2: Option<String>,
+    #[schema(required = true)]
+    reference_vendor3: Option<String>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    #[schema(inline)]
+    relationships: VariantRelationsDoc,
+}
+
+#[allow(dead_code)]
+#[derive(ToSchema)]
+struct VariantRelationsDoc {
+    /// The parent product, list shape.
+    #[schema(value_type = crate::modules::products::resource::ProductDoc)]
+    product: Value,
+    option_values: Vec<OptionValueDoc>,
+    /// Always empty.
+    images: Vec<Value>,
+}
+
+/// One option value of a variant, with its type.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(as = ProductOptionValue)]
+struct OptionValueDoc {
+    id: Uuid,
+    workspace_id: Uuid,
+    option_type_id: Uuid,
+    value: String,
+    display_value: String,
+    #[schema(required = true)]
+    sort_order: Option<i32>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    /// `option_type`: `id`, `name`, `display_name`.
+    #[schema(value_type = Object)]
+    relationships: Value,
+}
+
+/// OpenAPI shape of [`VariantBody`]. Docs only: the body is read key by key.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    as = ProductVariantRequest,
+    description = "Variant fields; `price` or `impact_on_price` is required. Update keeps keys \
+        left out, null clears them. Decimals as strings (`\"12.50\"`); JSON numbers also work."
+)]
+pub struct VariantRequestDoc {
+    sku: Option<String>,
+    barcode: Option<String>,
+    ean13: Option<String>,
+    price: Option<String>,
+    impact_on_price: Option<String>,
+    original_price: Option<String>,
+    wholesale_price: Option<String>,
+    original_wholesale_price: Option<String>,
+    gross_price: Option<String>,
+    supplier_wholesale_price: Option<String>,
+    impact_on_wholesale_price: Option<String>,
+    weight: Option<String>,
+    reference_vendor: Option<String>,
+    reference_vendor2: Option<String>,
+    reference_vendor3: Option<String>,
+    is_default: Option<bool>,
+    #[schema(value_type = Option<Object>)]
+    meta: Option<Value>,
+}
+
+/// OpenAPI shape of [`GenerateBody`]. Docs only: the body is read key by key.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    as = GenerateVariantsRequest,
+    description = "Create variants from option types: every given combination, at most 500."
+)]
+pub struct GenerateDoc {
+    /// 1 to 20 types: `{name, sort_order?, values: [{value, sort_order?}]}` (1 to 100 values).
+    #[schema(value_type = Vec<Object>)]
+    option_types: Value,
+    /// `{option_value_ids: [...], sku?, price?, stock?}`.
+    #[schema(value_type = Vec<Object>)]
+    combinations: Value,
+    /// Pattern for generated SKUs.
+    sku_pattern: Option<String>,
+    /// Decimal.
+    default_price: Option<String>,
+    /// Decimal.
+    default_stock: Option<String>,
+}
+
+/// Create response.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct VariantCreated {
+    variant_id: Uuid,
+}
+
+/// List response: every variant, not paged.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct VariantList {
+    data: Vec<VariantDoc>,
 }

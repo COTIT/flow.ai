@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- OpenAPI group C documented: `product_brands`, `product_categories`, `products`, `product_variants`, `discount_groups`, `discounts`, `price_corrections`, `special_offers`, `warehouses`, `warehouse_locations`, `warehouse_sections`, `warehouse_rows`, `warehouse_shelves`, `warehouse_bins`, `stock`, `storage_locations` moved from `build_app`'s plain list into `openapi::private()`; routers built from each handler's `#[utoipa::path]` (operationIds `<module>_<action>`). Paths, statuses and bodies are unchanged.
+  - Replies built as `json!` literals (products, variants, stock, storage locations, discount-group relations) get hand-written doc-only schemas (`ProductResource`, `ProductVariantResource`, `StockResource`, `StockMovement`, ...); request bodies read key by key get `ProductRequest`, `ProductVariantRequest`, `MutateStockRequest`, ... The contract check validates every real reply in the module suites against them.
+  - Special offers: the global `/erp/special-offers` routes get thin delegating handlers (`*_all` operationIds), since one handler fn carries one documented path. Same code runs.
+  - `http::list::Meta` is now `pub` so the discount-group list (`?limit=` drops `meta`) can name it.
+  - Tests: `every_<module>_operation_is_documented` for all 16 modules (shared `assert_documented` / `assert_crud` helpers).
+  - Gaps the contract check found and now documented: 422 on deleting the default variant, 422 (message only) on deleting a product used on invoice items.
 - Pulled the later genesy-360-api work into `apps/api` (old repo `416abee49`): F6 invoice send/numbering/credit notes, F7 invoice payments, B7-1 job rail + idempotency keys, B8-1/B8-2 deal pipelines and deals, `ctutils` 0.4.4 (RUSTSEC-2026-0385). The invoices public hash link joins the public router undocumented; the test `send()` keeps the contract check and delegates to upstream's `send_raw`.
 - OpenAPI step 2 (TypeScript client):
   - `openapi::spec()` now returns JSON and swaps inline copies of named schemas for `$ref`s (utoipa pastes generic args inline; orval then emitted duplicate anonymous types).

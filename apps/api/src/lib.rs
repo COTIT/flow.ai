@@ -39,13 +39,10 @@ pub use http::{
     slots::{Slots, WorkspaceSlots},
 };
 use modules::{
-    contacts, custom_statuses, custom_types, deal_pipelines, deals, discount_groups, discounts,
-    email_profiles, email_templates, files, hourly_rates, invoice_payments, invoices, messages,
-    pdf_templates, permissions, price_corrections, pricing, product_brands, product_categories,
-    product_variants, products, relations, sales_groups, search, settings, shipment_methods,
-    special_offers, stock, storage_locations, teams, users, vat_groups, warehouse_bins,
-    warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves, warehouses,
-    workspaces,
+    contacts, custom_statuses, custom_types, deal_pipelines, deals, email_profiles,
+    email_templates, files, hourly_rates, invoice_payments, invoices, messages, pdf_templates,
+    permissions, pricing, relations, sales_groups, search, settings, shipment_methods, teams,
+    users, vat_groups, workspaces,
 };
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
@@ -122,23 +119,7 @@ pub fn build_app(state: AppState) -> Router {
         .merge(search::routes::private())
         .merge(relations::routes::private())
         .merge(contacts::routes::private())
-        .merge(warehouses::routes::private())
-        .merge(warehouse_locations::routes::private())
-        .merge(warehouse_sections::routes::private())
-        .merge(warehouse_rows::routes::private())
-        .merge(warehouse_shelves::routes::private())
-        .merge(warehouse_bins::routes::private())
-        .merge(product_brands::routes::private())
-        .merge(product_categories::routes::private())
-        .merge(products::routes::private())
-        .merge(product_variants::routes::private())
-        .merge(stock::routes::private())
-        .merge(storage_locations::routes::private())
         .merge(settings::routes::private())
-        .merge(discount_groups::routes::private())
-        .merge(discounts::routes::private())
-        .merge(price_corrections::routes::private())
-        .merge(special_offers::routes::private())
         .merge(pdf_templates::routes::private())
         .merge(email_templates::routes::private())
         .merge(email_profiles::routes::private())

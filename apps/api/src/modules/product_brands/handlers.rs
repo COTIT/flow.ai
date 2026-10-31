@@ -1,5 +1,5 @@
-//! HTTP edge for /v1/workspace/{workspace}/erp/product-brands: `productbrand.*` permission
-//! (Laravel checked `.view` for one row; genesy uses the catalog's `get`).
+//! HTTP edge for /v1/workspace/{workspace}/erp/product-brands: `productbrand.*` permission.
+// Laravel checked `.view` for one row; genesy uses the catalog's `get`.
 
 use axum::{
     Json,
@@ -9,15 +9,18 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::product_brands::{
-        dto::{BrandCreated, BrandResource, CreateBrandRequest, ListQuery, UpdateBrandRequest},
+        dto::{
+            BrandBody, BrandCreated, BrandResource, CreateBrandRequest, ListQuery,
+            UpdateBrandRequest,
+        },
         service,
     },
 };
@@ -33,6 +36,18 @@ permissions! {
 type BrandPath = Path<(String, String)>;
 
 /// GET /product-brands -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/erp/product-brands", tag = "product_brands",
+    operation_id = "product_brands_list", summary = "List brands",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<BrandResource>, description = "One page of brands"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productbrand.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<BrandList>,
@@ -53,6 +68,17 @@ pub async fn list(
 }
 
 /// GET /product-brands/{brand}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/erp/product-brands/{brand}", tag = "product_brands",
+    operation_id = "product_brands_get", summary = "Get a brand",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("brand" = Uuid, Path, description = "Brand id")),
+    responses(
+        (status = 200, body = Envelope<BrandResource>, description = "The brand"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productbrand.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or brand, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<BrandGet>,
@@ -64,6 +90,19 @@ pub async fn get(
 }
 
 /// POST /product-brands -> 201 `{data:{product_brand_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/erp/product-brands", tag = "product_brands",
+    operation_id = "product_brands_create", summary = "Create a brand",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = BrandBody,
+    responses(
+        (status = 201, body = Envelope<BrandCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productbrand.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<BrandCreate>,
@@ -74,6 +113,19 @@ pub async fn create(
 }
 
 /// POST /product-brands/{brand} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/erp/product-brands/{brand}", tag = "product_brands",
+    operation_id = "product_brands_update", summary = "Update a brand (send only changed fields)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("brand" = Uuid, Path, description = "Brand id")),
+    request_body = BrandBody,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productbrand.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or brand, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<BrandUpdate>,
@@ -85,6 +137,17 @@ pub async fn update(
 }
 
 /// DELETE /product-brands/{brand} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/erp/product-brands/{brand}", tag = "product_brands",
+    operation_id = "product_brands_delete", summary = "Delete a brand",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("brand" = Uuid, Path, description = "Brand id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `productbrand.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or brand, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<BrandDelete>,

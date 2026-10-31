@@ -8,17 +8,17 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::price_corrections::{
         dto::{
-            CorrectionCreated, CorrectionResource, CreateCorrectionRequest, ListQuery,
-            UpdateCorrectionRequest,
+            CorrectionCreated, CorrectionRequest, CorrectionResource, CreateCorrectionRequest,
+            ListQuery, UpdateCorrectionRequest,
         },
         service,
     },
@@ -35,6 +35,17 @@ permissions! {
 type CorrectionPath = Path<(String, String)>;
 
 /// GET /price-corrections.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/price-corrections", tag = "price_corrections",
+    operation_id = "price_corrections_list", summary = "List price corrections",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<CorrectionResource>, description = "One page of price corrections"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `pricecorrection.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<CorrectionList>,
@@ -48,6 +59,17 @@ pub async fn list(
 }
 
 /// GET /price-corrections/{id}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/price-corrections/{correction}", tag = "price_corrections",
+    operation_id = "price_corrections_get", summary = "Get a price correction",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("correction" = Uuid, Path, description = "Price correction id")),
+    responses(
+        (status = 200, body = Envelope<CorrectionResource>, description = "The price correction"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `pricecorrection.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or price correction, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<CorrectionView>,
@@ -59,6 +81,19 @@ pub async fn get(
 }
 
 /// POST /price-corrections -> 201 `{data:{price_correction_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/price-corrections", tag = "price_corrections",
+    operation_id = "price_corrections_create", summary = "Create a price correction",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CorrectionRequest,
+    responses(
+        (status = 201, body = Envelope<CorrectionCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `pricecorrection.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<CorrectionCreate>,
@@ -74,6 +109,19 @@ pub async fn create(
 }
 
 /// POST /price-corrections/{id}.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/price-corrections/{correction}", tag = "price_corrections",
+    operation_id = "price_corrections_update", summary = "Update a price correction (send only changed fields)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("correction" = Uuid, Path, description = "Price correction id")),
+    request_body = CorrectionRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `pricecorrection.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or price correction, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<CorrectionUpdate>,
@@ -85,6 +133,17 @@ pub async fn update(
 }
 
 /// DELETE /price-corrections/{id}.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/products/price-corrections/{correction}", tag = "price_corrections",
+    operation_id = "price_corrections_delete", summary = "Delete a price correction",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("correction" = Uuid, Path, description = "Price correction id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `pricecorrection.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or price correction, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<CorrectionDelete>,

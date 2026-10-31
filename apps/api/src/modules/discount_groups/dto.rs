@@ -1,9 +1,11 @@
-//! Discount group request/response bodies (Laravel Store/UpdateDiscountGroupRequest,
-//! Attach/DetachDiscountGroupToRelationRequest, DiscountGroupResource).
+//! Discount group request/response bodies.
+// Laravel Store/UpdateDiscountGroupRequest, Attach/DetachDiscountGroupToRelationRequest,
+// DiscountGroupResource.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -13,16 +15,20 @@ use crate::{
 
 const MAX: usize = 150;
 
-/// Laravel DiscountGroupResource; `supplier` is the supplier's RelationIndexResource.
-#[derive(Serialize)]
+// Laravel DiscountGroupResource; `supplier` is the supplier's RelationIndexResource.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A supplier discount group.")]
 pub struct GroupResource {
     id: Uuid,
     name: String,
     active: bool,
     internal: bool,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    /// `supplier_relation`: the supplier (relation index shape), or null when it is gone.
+    #[schema(value_type = Object)]
     relationships: Value,
 }
 
@@ -43,29 +49,46 @@ impl GroupResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct GroupCreated {
     pub discount_group_id: Uuid,
 }
 
-/// GET list query (Laravel ListDiscountGroupRequest). Unknown params ignored.
-#[derive(Deserialize)]
+/// GET list query. Unknown params ignored.
+// Laravel ListDiscountGroupRequest.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on the name.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// 1 to 100: a plain list of that many, without `meta`. 0 or blank = paged.
+    #[param(value_type = Option<i64>, minimum = 0, maximum = 100)]
     pub limit: Option<String>,
+    #[param(value_type = Option<bool>)]
     pub active: Option<String>,
+    #[param(value_type = Option<bool>)]
     pub internal: Option<String>,
 }
 
 /// POST /discount-groups.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = CreateDiscountGroupRequest)]
 pub struct CreateGroupRequest {
+    #[schema(value_type = String, max_length = 150)]
     name: Option<String>,
+    #[schema(value_type = bool)]
     active: Option<Value>,
+    #[schema(value_type = Option<bool>)]
     internal: Option<Value>,
+    #[schema(value_type = Uuid)]
     supplier_relation_id: Option<Value>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -101,12 +124,17 @@ impl Validate for CreateGroupRequest {
     }
 }
 
-/// POST /discount-groups/{id}: name, active, meta (Laravel UpdateDiscountGroupRequest).
-#[derive(Deserialize)]
+/// POST /discount-groups/{id}: name, active, meta.
+// Laravel UpdateDiscountGroupRequest.
+#[derive(Deserialize, ToSchema)]
+#[schema(as = UpdateDiscountGroupRequest)]
 pub struct UpdateGroupRequest {
+    #[schema(value_type = Option<String>)]
     name: Option<String>,
+    #[schema(value_type = Option<bool>)]
     active: Option<Value>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 
@@ -130,8 +158,10 @@ impl Validate for UpdateGroupRequest {
 }
 
 /// POST /{id}/attach-to-relations and /detach-from-relations.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = DiscountGroupRelationsRequest)]
 pub struct RelationIdsRequest {
+    #[schema(value_type = Vec<Uuid>)]
     relation_ids: Option<Value>,
 }
 
@@ -171,4 +201,14 @@ fn uuid(r: &mut Rules, field: &str, v: &Value) -> Option<Uuid> {
         r.add(field, format!("The {h} must be a valid UUID."));
     }
     id
+}
+
+/// List response: a page, or with `?limit=` a plain list without `meta`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(as = DiscountGroupList)]
+pub struct GroupListBody {
+    data: Vec<GroupResource>,
+    /// Left out with `?limit=`.
+    meta: Option<crate::http::list::Meta>,
 }

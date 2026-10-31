@@ -1,9 +1,11 @@
-//! Section bodies: Laravel SectionResource and Store/Update/ListSectionRequest
-//! (vimdesk-web sectionPayloadTransformer.ts).
+//! Section bodies.
+// Laravel SectionResource and Store/Update/ListSectionRequest
+// (vimdesk-web sectionPayloadTransformer.ts).
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -21,35 +23,51 @@ const BAD_PRIORITY: &str = "Priority level must be one of: low, standard, high, 
 /// Laravel's custom `section_code.unique` text.
 pub const CODE_TAKEN: &str = "The section code must be unique within this warehouse.";
 
-/// Laravel SectionResource.
-#[derive(Serialize)]
+// Laravel SectionResource.
+#[derive(Serialize, ToSchema)]
+#[schema(
+    description = "A section of a warehouse: the top level of the section/row/shelf/bin grid."
+)]
 pub struct SectionResource {
     id: Uuid,
     section_id: Uuid,
     warehouse_id: Uuid,
     section_name: String,
     section_code: String,
+    #[schema(required = true)]
     category: Option<String>,
+    #[schema(required = true)]
     description: Option<String>,
+    #[schema(required = true)]
     rows: Option<i32>,
+    #[schema(required = true)]
     shelves_per_row: Option<i32>,
+    #[schema(required = true)]
     bins_per_shelf: Option<i32>,
+    #[schema(required = true)]
     total_bins: Option<i32>,
+    #[schema(inline)]
     layout: Layout,
+    #[schema(required = true)]
     zone: Option<String>,
     temperature_control: String,
     restricted_access: bool,
     priority_level: String,
+    #[schema(required = true)]
     assigned_manager: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    #[schema(inline)]
     relationships: Relationships,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct Layout {
+    #[schema(required = true)]
     rows: Option<i32>,
+    #[schema(required = true)]
     shelves_per_row: Option<i32>,
+    #[schema(required = true)]
     bins_per_shelf: Option<i32>,
     total_rows: i64,
     total_shelves: i64,
@@ -59,15 +77,17 @@ struct Layout {
 }
 
 /// `{id, name}` of a parent warehouse, as the hierarchy resources embed it.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "Parent warehouse id and name.")]
 pub struct WarehouseRef {
     pub id: Uuid,
     pub name: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct Relationships {
     warehouse: WarehouseRef,
+    #[schema(required = true)]
     assigned_manager: Option<Uuid>,
 }
 
@@ -123,20 +143,27 @@ impl From<SectionRow> for SectionResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SectionCreated {
     pub section_id: Uuid,
 }
 
-/// GET list query (Laravel ListSectionRequest). Unknown params ignored.
-#[derive(Deserialize)]
+/// GET list query. Unknown params ignored.
+// Laravel ListSectionRequest.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 15, max 100.
+    #[param(value_type = Option<i64>)]
     pub per_page: Option<String>,
     pub category: Option<String>,
     pub zone: Option<String>,
     pub priority_level: Option<String>,
+    #[param(value_type = Option<bool>)]
     pub restricted_access: Option<String>,
+    /// Search on name and code.
     pub search: Option<String>,
 }
 
@@ -179,31 +206,45 @@ pub struct SectionInput {
 }
 
 /// POST body for create and update (`warehouse_id`/`workspace_id` keys are ignored).
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = WarehouseSectionRequest)]
 pub struct SectionBody {
+    #[schema(value_type = String)]
     section_name: Option<String>,
+    #[schema(value_type = String)]
     section_code: Option<String>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     category: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     description: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     rows: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     shelves_per_row: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     bins_per_shelf: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     total_bins: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     zone: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     temperature_control: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     restricted_access: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     assigned_manager: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     priority_level: Option<Option<String>>,
 }
 

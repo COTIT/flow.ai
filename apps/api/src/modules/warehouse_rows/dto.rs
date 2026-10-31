@@ -1,10 +1,12 @@
-//! Row bodies: Laravel WarehouseSectionRowResource and Store/UpdateWarehouseSectionRowRequest
-//! (vimdesk-web rowPayloadTransformer.ts).
+//! Row bodies.
+// Laravel WarehouseSectionRowResource and Store/UpdateWarehouseSectionRowRequest
+// (vimdesk-web rowPayloadTransformer.ts).
 
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -21,8 +23,9 @@ use crate::{
 /// Laravel validation.unique on `row_code`.
 pub const CODE_TAKEN: &str = "The row code has already been taken.";
 
-/// Laravel WarehouseSectionRowResource.
-#[derive(Serialize)]
+// Laravel WarehouseSectionRowResource.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A row inside a warehouse section.")]
 pub struct RowResource {
     id: Uuid,
     workspace_id: Uuid,
@@ -33,24 +36,39 @@ pub struct RowResource {
     length_meters: f64,
     width_meters: f64,
     height_meters: f64,
+    #[schema(value_type = Object)]
+    /// `orientation`, `row_type`.
     basic_information: Value,
+    /// `length_meters`, `width_meters`, `height_meters`, `calculated_volume_cubic_meters`.
+    #[schema(value_type = Object)]
     physical_dimensions: Value,
+    /// `number_of_shelves`, `shelf_spacing_cm`.
+    #[schema(value_type = Object)]
     shelf_configuration: Value,
     bins_per_shelf: i32,
     total_bins: i64,
-    /// Occupied bins of the row, %, as a PHP float (0 without bins).
+    /// Occupied bins of the row, in % (0 without bins).
+    #[schema(value_type = f64)]
     utilization: serde_json::Value,
+    #[schema(value_type = Object)]
+    /// `starting_position` (`x`, `y`), `access_side`, `aisle_width_cm`, `equipment_access`.
     location_access: Value,
+    /// `priority_level`, `temperature_zone`, `notes`, `enable_automatic_bin_labeling`,
+    /// `generate_qr_codes_for_shelves`.
+    #[schema(value_type = Object)]
     additional_settings: Value,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    #[schema(inline)]
     relationships: Relationships,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct Relationships {
     warehouse: WarehouseRef,
-    /// Laravel printed a column rows don't have.
+    /// Always null.
+    // Laravel printed a column rows don't have.
+    #[schema(required = true)]
     assigned_manager: Option<Uuid>,
 }
 
@@ -109,8 +127,8 @@ impl RowResource {
     }
 }
 
-/// Create response: Laravel sent the same id under both keys.
-#[derive(Serialize)]
+/// Create response: the same id under both keys.
+#[derive(Serialize, ToSchema)]
 pub struct RowCreated {
     pub row_id: Uuid,
     pub warehouse_section_row_id: Uuid,
@@ -142,47 +160,68 @@ pub struct Fields {
 }
 
 /// POST body for create and update (path ids in the body are ignored).
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = WarehouseRowRequest, description = "Create needs `row_code`, `row_name` and the three sizes; update keeps fields left out.")]
 pub struct RowBody {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     row_code: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     row_name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     orientation: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     row_type: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<f64>)]
     length_meters: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<f64>)]
     width_meters: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<f64>)]
     height_meters: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<f64>)]
     calculated_volume_cubic_meters: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     number_of_shelves: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     shelf_spacing_cm: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<f64>)]
     position_x: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<f64>)]
     position_y: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     access_side: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     aisle_width_cm: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     equipment_access: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     priority_level: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     temperature_zone: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     notes: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     enable_automatic_bin_labeling: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     generate_qr_codes_for_shelves: Option<Option<Value>>,
 }
 

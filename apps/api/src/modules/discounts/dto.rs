@@ -1,9 +1,11 @@
-//! Discount request/response bodies (Laravel Store/UpdateDiscountRequest, DiscountResource).
+//! Discount request/response bodies.
+// Laravel Store/UpdateDiscountRequest, DiscountResource.
 
 use chrono::{DateTime, Datelike, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -16,19 +18,27 @@ const NAME_MAX: usize = 150;
 const CODE_MAX: usize = 255;
 const DESCRIPTION_MAX: usize = 10_000;
 
-/// Laravel DiscountResource.
-#[derive(Serialize)]
+// Laravel DiscountResource.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A supplier discount inside a discount group.")]
 pub struct DiscountResource {
     id: Uuid,
     name: String,
     active: bool,
     discount_product_code: String,
+    /// 2 decimals.
     percentage: String,
+    #[schema(required = true)]
     valid_from: Option<String>,
+    #[schema(required = true)]
     valid_to: Option<String>,
+    #[schema(value_type = Option<Object>, required = true)]
     monthly: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
     yearly: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
     seasonal: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
@@ -60,38 +70,57 @@ fn laravel_date(d: NaiveDate) -> String {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DiscountCreated {
     pub discount_id: Uuid,
 }
 
 /// GET list query.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Only discounts of this group.
+    #[param(value_type = Option<Uuid>)]
     pub discount_group_id: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
 /// POST /discounts and POST /discounts/{id} (all optional on update).
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Create needs `discount_group_id`, `name`, `active`, `discount_product_code` and `percentage`; update keeps fields left out. `percentage` is a decimal 0 to 100 (string or number)."
+)]
 pub struct DiscountRequest {
+    #[schema(value_type = Option<Uuid>)]
     discount_group_id: Option<Value>,
     name: Option<String>,
+    #[schema(value_type = Option<bool>)]
     active: Option<Value>,
     discount_product_code: Option<String>,
+    #[schema(value_type = Option<String>)]
     percentage: Option<Value>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<chrono::NaiveDate>)]
     valid_from: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<chrono::NaiveDate>)]
     valid_to: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     monthly: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     yearly: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     seasonal: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

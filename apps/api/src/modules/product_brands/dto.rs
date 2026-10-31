@@ -1,8 +1,10 @@
-//! Brand bodies: Laravel ProductBrandResource and Store/UpdateProductBrandRequest.
+//! Brand bodies.
+// Laravel ProductBrandResource and Store/UpdateProductBrandRequest.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -10,15 +12,20 @@ use crate::{
     modules::product_brands::repo::BrandRow,
 };
 
-/// Laravel ProductBrandResource.
-#[derive(Serialize)]
+// Laravel ProductBrandResource.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A product brand.")]
 pub struct BrandResource {
     id: Uuid,
     product_brand_id: Uuid,
     name: String,
+    #[schema(required = true)]
     description: Option<String>,
+    #[schema(required = true)]
     logo: Option<String>,
+    #[schema(required = true)]
     website: Option<String>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -41,16 +48,22 @@ impl From<BrandRow> for BrandResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BrandCreated {
     pub product_brand_id: Uuid,
 }
 
 /// GET list query. Unknown params ignored.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on the name.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
 }
 
@@ -64,17 +77,23 @@ pub struct BrandInput {
 }
 
 /// POST body for create and update.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = ProductBrandRequest, description = "Create needs `name`; update keeps fields left out, null clears them.")]
 pub struct BrandBody {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = String, max_length = 255)]
     name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     description: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     logo: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     website: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

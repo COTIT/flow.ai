@@ -3,6 +3,7 @@
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde::Deserialize;
 use serde_json::{Map, Value};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -344,10 +345,16 @@ impl Validate for MoveBody {
     }
 }
 
-/// DELETE /products/{id}/stocks?warehouse_id=&bin_id= (Laravel sends DELETE data as a query).
-#[derive(Deserialize)]
+/// DELETE /products/{id}/stocks?warehouse_id=&bin_id=.
+// Laravel sends DELETE data as a query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct DeleteQuery {
+    /// Warehouse of the stock row.
+    #[param(required = true, value_type = Uuid)]
     pub warehouse_id: Option<String>,
+    /// Bin of the stock row; leave out for the warehouse-level row.
+    #[param(value_type = Option<Uuid>)]
     pub bin_id: Option<String>,
 }
 
@@ -377,14 +384,25 @@ impl DeleteQuery {
     }
 }
 
-/// GET stock-movements query (Laravel ListProductStockMovementsRequest). Ids filter
-/// independently; `per_page` defaults to 15.
-#[derive(Deserialize)]
+/// GET stock-movements query. Ids filter independently; `per_page` defaults to 15.
+// Laravel ListProductStockMovementsRequest.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct MovementQuery {
+    /// Only this warehouse; a malformed id matches nothing.
+    #[param(value_type = Option<Uuid>)]
     pub warehouse_id: Option<String>,
+    /// Only this shelf.
+    #[param(value_type = Option<Uuid>)]
     pub shelf_id: Option<String>,
+    /// Only this bin.
+    #[param(value_type = Option<Uuid>)]
     pub bin_id: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 15, max 100.
+    #[param(value_type = Option<i64>)]
     pub per_page: Option<String>,
 }
 
@@ -421,9 +439,89 @@ impl MovementQuery {
 }
 
 /// GET /products/stocks[/negative] query.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Negative list only: search on product codes and warehouse name.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+}
+
+// OpenAPI shapes of the key-by-key bodies above. Docs only.
+
+/// Body of `POST /products/{id}/stocks`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    as = MutateStockRequest,
+    description = "Add to or take from one stock row. Decimals as strings (`\"2.5\"`); JSON \
+        numbers also work."
+)]
+pub struct MutateDoc {
+    warehouse_id: Uuid,
+    bin_id: Option<Uuid>,
+    /// Signed change.
+    mutation_value: String,
+    is_correction: Option<bool>,
+    #[schema(max_length = 255)]
+    reason: Option<String>,
+    #[schema(value_type = Option<Object>)]
+    meta: Option<Value>,
+}
+
+/// One entry of `warehouses` in set-stock-levels / set-stock-requirements.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(as = StockLevelEntry)]
+struct EntryDoc {
+    warehouse_id: Uuid,
+    bin_id: Option<Uuid>,
+    /// Set-stock-levels only (required there): decimal >= 0.
+    stock_lvl: Option<String>,
+    /// Set-stock-levels only (required there).
+    reason: Option<String>,
+    /// Required on set-stock-requirements.
+    minimal_stock_level: Option<i32>,
+    /// Required on set-stock-requirements; not below the minimum.
+    maximum_stock_level: Option<i32>,
+}
+
+/// Body of `POST /products/{id}/set-stock-levels`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(as = SetStockLevelsRequest)]
+pub struct SetLevelsDoc {
+    /// At least 1 entry.
+    warehouses: Vec<EntryDoc>,
+}
+
+/// Body of `POST /products/{id}/set-stock-requirements`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(as = SetStockRequirementsRequest)]
+pub struct SetRequirementsDoc {
+    /// At least 1 entry.
+    warehouses: Vec<EntryDoc>,
+    /// New default warehouse of the product.
+    default_warehouse_id: Option<Uuid>,
+}
+
+/// Body of `POST /products/{id}/move-stock-between-bins`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(as = MoveStockRequest)]
+pub struct MoveDoc {
+    warehouse_id: Uuid,
+    /// Leave out for the warehouse-level row.
+    bin_id_from: Option<Uuid>,
+    /// Leave out for the warehouse-level row.
+    bin_id_to: Option<Uuid>,
+    /// Decimal > 0.
+    quantity: String,
+    reason: String,
 }

@@ -12,16 +12,16 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, flag},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, Permission, permissions},
     },
     modules::warehouses::{
         dto::{
-            BAD_PARENT, CreateWarehouseRequest, ListQuery, UpdateWarehouseRequest,
+            BAD_PARENT, CreateWarehouseRequest, ListQuery, UpdateWarehouseRequest, WarehouseBody,
             WarehouseCreated, WarehouseResource,
         },
         repo::ListFilter,
@@ -43,6 +43,18 @@ permissions! {
 type WarehousePath = Path<(String, String)>;
 
 /// GET /warehouses -> `{data:[...], meta}`. Roots only unless `parent_id` or `roots_only=0`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/warehouses", tag = "warehouses",
+    operation_id = "warehouses_list", summary = "List warehouses",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<WarehouseResource>, description = "One page of warehouses"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed `parent_id`"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<WarehouseList>,
@@ -78,6 +90,17 @@ fn list_parent(raw: Option<&str>) -> Result<Option<Uuid>, AppError> {
 }
 
 /// GET /warehouses/{warehouse}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/warehouses/{warehouse}", tag = "warehouses",
+    operation_id = "warehouses_get", summary = "Get a warehouse",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id")),
+    responses(
+        (status = 200, body = Envelope<WarehouseResource>, description = "The warehouse"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<WarehouseGet>,
@@ -91,6 +114,19 @@ pub async fn get(
 }
 
 /// POST /warehouses -> 201 `{data:{warehouse_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/warehouses", tag = "warehouses",
+    operation_id = "warehouses_create", summary = "Create a warehouse",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = WarehouseBody,
+    responses(
+        (status = 201, body = Envelope<WarehouseCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership, missing `warehouse.create`, or `default_warehouse` without `warehouse.set_default`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<WarehouseCreate>,
@@ -102,6 +138,19 @@ pub async fn create(
 }
 
 /// POST /warehouses/{warehouse} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/warehouses/{warehouse}", tag = "warehouses",
+    operation_id = "warehouses_update", summary = "Update a warehouse",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id")),
+    request_body = WarehouseBody,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership, missing `warehouse.update`, or `default_warehouse` without `warehouse.set_default`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<WarehouseUpdate>,
@@ -114,6 +163,17 @@ pub async fn update(
 }
 
 /// POST /warehouses/{warehouse}/default -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/warehouses/{warehouse}/default", tag = "warehouses",
+    operation_id = "warehouses_set_default", summary = "Make a warehouse the default",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.set_default`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn set_default(
     State(state): State<AppState>,
     access: Can<WarehouseSetDefault>,
@@ -124,6 +184,17 @@ pub async fn set_default(
 }
 
 /// DELETE /warehouses/{warehouse} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/warehouses/{warehouse}", tag = "warehouses",
+    operation_id = "warehouses_delete", summary = "Delete a warehouse",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<WarehouseDelete>,

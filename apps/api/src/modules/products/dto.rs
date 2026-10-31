@@ -1,9 +1,11 @@
-//! Product request bodies: Laravel Store/UpdateProductRequest and SearchProductRequest
-//! (vimdesk-web product.store.ts, ProductPrices.vue). The resource lives in `resource.rs`.
+//! Product request bodies. The resource lives in `resource.rs`.
+// Laravel Store/UpdateProductRequest and SearchProductRequest
+// (vimdesk-web product.store.ts, ProductPrices.vue).
 
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde::Deserialize;
 use serde_json::{Map, Value};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -411,8 +413,11 @@ fn set_children(r: &mut Rules, v: &Value) -> Option<Vec<(Uuid, Decimal)>> {
 }
 
 /// POST /products/search.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = ProductSearchRequest)]
 pub struct SearchBody {
+    /// Barcode, EAN or product id; a literal `Shift` (some scanners type it) is dropped.
+    #[schema(value_type = String, max_length = 155)]
     query: Option<String>,
 }
 
@@ -426,27 +431,50 @@ impl Validate for SearchBody {
     }
 }
 
-/// GET list query (Laravel ListProductRequest plus the RN/web params Laravel ignored).
-#[derive(Deserialize)]
+/// GET list query. Unknown params ignored.
+// Laravel ListProductRequest plus the RN/web params Laravel ignored.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on name, number, references and codes.
     pub q: Option<String>,
+    /// Same as `q` (used when `q` is absent).
     pub search: Option<String>,
+    /// Default `active`.
     pub status: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Page size (default 50, max 100); `limit` and `per_page` win over it.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// Page size; `limit` wins over it.
+    #[param(value_type = Option<i64>)]
     pub per_page: Option<String>,
+    /// Page size.
+    #[param(value_type = Option<i64>)]
     pub limit: Option<String>,
+    /// Only products of this supplier relation.
+    #[param(value_type = Option<Uuid>)]
     pub supplier_id: Option<String>,
+    /// Same as `supplier_id`.
+    #[param(value_type = Option<Uuid>)]
     pub supplier_relation_id: Option<String>,
+    /// Exact EAN-13.
     pub ean13: Option<String>,
+    /// Comma-separated product ids to leave out, at most 100.
     pub exclude_ids: Option<String>,
-    /// Shapes only the `pos_*` fields (Laravel didn't filter on it).
+    /// Warehouse for the `pos_*` fields; does not filter.
+    #[param(value_type = Option<Uuid>)]
     pub warehouse_id: Option<String>,
 }
 
 /// GET one query: `warehouse_id` shapes the `pos_*` fields.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct GetQuery {
+    /// Warehouse for the `pos_*` fields.
+    #[param(value_type = Option<Uuid>)]
     pub warehouse_id: Option<String>,
 }
 
@@ -458,8 +486,125 @@ pub fn pos_warehouse(v: Option<&str>) -> Option<Uuid> {
 }
 
 /// GET price-history query.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct HistoryQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 25, max 100.
+    #[param(value_type = Option<i64>)]
     pub per_page: Option<String>,
+}
+
+/// OpenAPI shape of [`ProductBody`]. Docs only: the body is read key by key.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+#[schema(
+    as = ProductRequest,
+    description = "Create needs `name` and `price` (and `multi_set_product_ids` for bundles); \
+        update keeps keys left out, null clears them. Decimals as strings (`\"12.50\"`); \
+        JSON numbers also work."
+)]
+pub struct ProductRequestDoc {
+    /// max 255; required on create
+    name: Option<String>,
+    /// max 255
+    brand: Option<String>,
+    /// Default `physical`.
+    #[schema(rename = "type")]
+    kind: Option<String>,
+    /// Default `active`.
+    status: Option<String>,
+    has_stock: Option<bool>,
+    is_serialized: Option<bool>,
+    /// `receipt`, `sale` or `manual`
+    warranty_default_mode: Option<String>,
+    warranty_duration_value: Option<i32>,
+    /// `day(s)`, `month(s)` or `year(s)`
+    warranty_duration_unit: Option<String>,
+    reference: Option<String>,
+    reference_vendor: Option<String>,
+    reference_vendor2: Option<String>,
+    reference_vendor3: Option<String>,
+    ean13: Option<String>,
+    hs_code: Option<String>,
+    barcode: Option<String>,
+    barcode_vendor: Option<String>,
+    supplier_discount_code: Option<String>,
+    short_description: Option<String>,
+    description: Option<String>,
+    stock_level_supplier: Option<i32>,
+    supplier_relation_id: Option<Uuid>,
+    currency_id: Option<Uuid>,
+    vat_group_id: Option<Uuid>,
+    sales_group_id: Option<Uuid>,
+    default_warehouse_id: Option<Uuid>,
+    /// Net consumer price; required on create.
+    price: Option<String>,
+    gross_price: Option<String>,
+    wholesale_price: Option<String>,
+    supplier_wholesale_price: Option<String>,
+    impact_on_price: Option<String>,
+    impact_on_wholesale_price: Option<String>,
+    order_unit: Option<String>,
+    sale_unit: Option<String>,
+    weight: Option<String>,
+    unit: Option<String>,
+    /// `length`, `width`, `height` (numbers >= 0).
+    #[schema(value_type = Option<Object>)]
+    dimensions: Option<Value>,
+    country_of_origin: Option<String>,
+    url_vendor: Option<String>,
+    url_vendor_override: Option<String>,
+    exclude_price_corrections: Option<bool>,
+    import_id: Option<String>,
+    import_source: Option<String>,
+    export_enabled: Option<bool>,
+    export_price_sync: Option<bool>,
+    export_product_data: Option<bool>,
+    #[schema(value_type = Option<Object>)]
+    export_data: Option<Value>,
+    #[schema(value_type = Option<Object>)]
+    meta: Option<Value>,
+    /// Bundle parts `[{id, quantity}]`, at most 100; required for bundle types.
+    #[schema(value_type = Option<Vec<Object>>)]
+    multi_set_product_ids: Option<Value>,
+    /// Custom fields are not supported: an item naming a `section_id` is rejected.
+    #[schema(value_type = Option<Vec<Object>>)]
+    custom_sections: Option<Value>,
+    /// Same rule as `custom_sections`.
+    #[schema(value_type = Option<Vec<Object>>)]
+    custom_section_forms: Option<Value>,
+}
+
+/// Create and duplicate response.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct ProductCreated {
+    product_id: Uuid,
+}
+
+/// Sales figures; all zero or null until invoices exist.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct SaleStatics {
+    units_sold: i64,
+    revenue: f64,
+    #[schema(required = true)]
+    avg_monthly_sales: Option<f64>,
+    #[schema(required = true)]
+    last_sale: Option<String>,
+    customer_orders: i64,
+    #[schema(required = true)]
+    last_order: Option<String>,
+    #[schema(required = true)]
+    months_active: Option<i64>,
+}
+
+/// Linked products; always empty for now.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct LinkedProducts {
+    products: Vec<Uuid>,
 }

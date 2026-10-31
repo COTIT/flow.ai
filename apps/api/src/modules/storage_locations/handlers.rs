@@ -1,6 +1,7 @@
-//! HTTP edge for /v1/workspace/{workspace}/erp/storage-locations. Laravel had no catalog
-//! permissions here (owner/admin only, reads unchecked); mapped to `warehouse.get` /
-//! `warehouse.update` (user decision, batch 6).
+//! HTTP edge for /v1/workspace/{workspace}/erp/storage-locations. Reads take `warehouse.get`,
+//! writes `warehouse.update`.
+// Laravel had no catalog permissions here (owner/admin only, reads unchecked); user decision,
+// batch 6.
 
 use axum::{
     Json,
@@ -11,13 +12,16 @@ use serde_json::{Value, json};
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
-    modules::storage_locations::{dto::PlaceBody, service},
+    modules::storage_locations::{
+        dto::{PlaceBody, PlaceCreated, PlaceList, PlaceRequestDoc},
+        service,
+    },
 };
 
 permissions! {
@@ -26,6 +30,19 @@ permissions! {
 }
 
 /// POST / -> 201 `{data:{storage_location_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/erp/storage-locations", tag = "storage_locations",
+    operation_id = "storage_locations_create", summary = "Attach a storage location to a record",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = PlaceRequestDoc,
+    responses(
+        (status = 201, body = Envelope<PlaceCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, parent, label or bin, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<PlaceWrite>,
@@ -39,6 +56,17 @@ pub async fn create(
 }
 
 /// GET /{parent_domain}/{parent_id} -> `{data:[...]}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/erp/storage-locations/{domain}/{parent}", tag = "storage_locations",
+    operation_id = "storage_locations_list", summary = "List a record's storage locations",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("domain" = String, Path, description = "Parent domain, e.g. `product`"), ("parent" = Uuid, Path, description = "Parent record id")),
+    responses(
+        (status = 200, body = PlaceList, description = "Every storage location; not paged"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, domain or parent, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<PlaceRead>,
@@ -49,6 +77,17 @@ pub async fn list(
 }
 
 /// DELETE /{id} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/erp/storage-locations/{id}", tag = "storage_locations",
+    operation_id = "storage_locations_delete", summary = "Delete a storage location",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("id" = Uuid, Path, description = "Storage location id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or storage location, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<PlaceWrite>,

@@ -13,7 +13,12 @@ use crate::{
     AppState,
     error::ValidationErrorBody,
     http::response::MessageBody,
-    modules::{auth, currencies, email_verification, invites, users::dto::UserEmailResource},
+    modules::{
+        auth, currencies, discount_groups, discounts, email_verification, invites,
+        price_corrections, product_brands, product_categories, product_variants, products,
+        special_offers, stock, storage_locations, users::dto::UserEmailResource, warehouse_bins,
+        warehouse_locations, warehouse_rows, warehouse_sections, warehouse_shelves, warehouses,
+    },
 };
 
 #[derive(OpenApi)]
@@ -61,6 +66,22 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(invites::routes::private())
         .merge(email_verification::routes::private())
         .merge(currencies::routes::private())
+        .merge(storage_locations::routes::private())
+        .merge(stock::routes::private())
+        .merge(special_offers::routes::private())
+        .merge(price_corrections::routes::private())
+        .merge(discounts::routes::private())
+        .merge(discount_groups::routes::private())
+        .merge(product_variants::routes::private())
+        .merge(products::routes::private())
+        .merge(product_categories::routes::private())
+        .merge(product_brands::routes::private())
+        .merge(warehouse_bins::routes::private())
+        .merge(warehouse_shelves::routes::private())
+        .merge(warehouse_rows::routes::private())
+        .merge(warehouse_sections::routes::private())
+        .merge(warehouse_locations::routes::private())
+        .merge(warehouses::routes::private())
 }
 
 /// Full spec, built from [`public`] and [`private`], as JSON.

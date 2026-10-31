@@ -1,6 +1,6 @@
-//! Warehouse request/response bodies. Keys follow Laravel WarehouseResource,
-//! WarehouseCompactedResource and Store/Update/ListWarehouseRequest
-//! (vimdesk-web warehousePayloadTransformer.js).
+//! Warehouse request/response bodies.
+// Keys follow Laravel WarehouseResource, WarehouseCompactedResource and
+// Store/Update/ListWarehouseRequest (vimdesk-web warehousePayloadTransformer.js).
 
 use std::collections::HashMap;
 
@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::modules::stock::resource::utilization;
@@ -35,68 +36,102 @@ const TYPES: [&str; 6] = [
 /// Laravel `rules.ValidateId` for domain `warehouse`.
 pub const BAD_PARENT: &str = "The parent id is an invalid id for the warehouse domain.";
 
-/// Laravel WarehouseResource.
-#[derive(Serialize)]
+// Laravel WarehouseResource.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A warehouse, with its child warehouses and responsible people.")]
 pub struct WarehouseResource {
     id: Uuid,
     name: String,
+    #[schema(required = true)]
     description: Option<String>,
     slug: String,
+    #[schema(required = true)]
     alias: Option<String>,
+    #[schema(required = true)]
     location: Option<LocationView>,
-    /// Key omitted without a location (Laravel `$this->when`).
+    /// One-line address; left out when there is no location.
+    // Laravel `$this->when`.
     #[serde(skip_serializing_if = "Option::is_none")]
     formatted_location: Option<String>,
     default_warehouse: bool,
     stock_count_enabled: bool,
+    #[schema(required = true)]
     is_store: Option<bool>,
     pickup_enabled: bool,
     auto_generate_transfer_list: bool,
     total_sum_enabled: bool,
+    #[schema(required = true)]
     manager_id: Option<Uuid>,
+    #[schema(required = true)]
     manager_assistant_id: Option<Uuid>,
+    #[schema(required = true)]
     status: Option<String>,
     #[serde(rename = "type")]
+    #[schema(required = true)]
     kind: Option<String>,
+    /// `total_area` and `storage_height`.
+    #[schema(value_type = Option<Object>, required = true)]
     dimensions: Option<Value>,
+    #[schema(required = true)]
     loading_docks: Option<i32>,
+    #[schema(required = true)]
     sections: Option<i32>,
+    #[schema(required = true)]
     rows_per_sections: Option<i32>,
+    #[schema(required = true)]
     shelves_per_row: Option<i32>,
+    #[schema(required = true)]
     bins_per_shelf: Option<i32>,
-    /// Occupied bins of the grid, %, as a PHP float; null without a grid.
+    /// Occupied bins of the grid, in %; null without a grid.
+    #[schema(value_type = Option<f64>, required = true)]
     utilization: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
     management_contact: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
     operating_hours: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
     additional_settings: Option<Value>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(inline)]
     relationships: Relationships,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct Relationships {
-    /// Custom fields aren't ported.
+    /// Always empty.
+    // Custom fields aren't ported.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
     custom_sections: [(); 0],
     children: Vec<WarehouseCompacted>,
+    #[schema(required = true)]
     user: Option<UserEmailResource>,
+    #[schema(required = true)]
     manager: Option<UserEmailResource>,
+    #[schema(required = true)]
     manager_assistant: Option<UserEmailResource>,
 }
 
-/// Laravel WarehouseCompactedResource (children of a warehouse).
-#[derive(Serialize, Clone)]
+// Laravel WarehouseCompactedResource (children of a warehouse).
+#[derive(Serialize, Clone, ToSchema)]
+#[schema(description = "Short form of a warehouse.")]
 pub struct WarehouseCompacted {
     id: Uuid,
     name: String,
     slug: String,
+    #[schema(required = true)]
     alias: Option<String>,
+    #[schema(required = true)]
     is_store: Option<bool>,
     pickup_enabled: bool,
+    #[schema(required = true)]
     parent_name: Option<String>,
+    #[schema(required = true)]
     status: Option<String>,
     #[serde(rename = "type")]
+    #[schema(required = true)]
     kind: Option<String>,
 }
 
@@ -116,20 +151,31 @@ impl From<&CompactRow> for WarehouseCompacted {
     }
 }
 
-/// Laravel Address::toSingleArray: zipcode uppercased, `""` when missing.
-#[derive(Serialize)]
+// Laravel Address::toSingleArray: zipcode uppercased, `""` when missing.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "Warehouse address. `zipcode` is upper case, `\"\"` when missing.")]
 struct LocationView {
+    #[schema(required = true)]
     address: Option<String>,
+    #[schema(required = true)]
     house_number: Option<String>,
+    #[schema(required = true)]
     house_number_addition: Option<String>,
+    #[schema(required = true)]
     address2: Option<String>,
     zipcode: String,
+    #[schema(required = true)]
     city: Option<String>,
+    #[schema(required = true)]
     country: Option<String>,
+    #[schema(required = true)]
     state: Option<String>,
     #[serde(rename = "type")]
+    #[schema(required = true)]
     kind: Option<String>,
+    #[schema(required = true)]
     attn: Option<String>,
+    #[schema(required = true)]
     phone_number: Option<String>,
 }
 
@@ -247,18 +293,30 @@ impl WarehouseResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct WarehouseCreated {
     pub warehouse_id: Uuid,
 }
 
-/// GET list query (Laravel ListWarehouseRequest). Unknown params ignored.
-#[derive(Deserialize)]
+/// GET list query. Unknown params ignored.
+// Laravel ListWarehouseRequest.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// Only children of this warehouse.
+    #[param(value_type = Option<Uuid>)]
     pub parent_id: Option<String>,
+    /// `1` = only warehouses with pickup enabled.
+    #[param(value_type = Option<bool>)]
     pub pickup_enabled: Option<String>,
+    /// Default on: only top-level warehouses. `0` lists every level.
+    #[param(value_type = Option<bool>)]
     pub roots_only: Option<String>,
 }
 
@@ -321,60 +379,94 @@ pub struct WarehousePatch {
 }
 
 /// Both request bodies. Every key optional so the validators decide what is required.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    as = WarehouseRequest,
+    description = "Create or update a warehouse. Update keeps fields left out; null clears them."
+)]
 pub struct WarehouseBody {
+    #[schema(value_type = String, max_length = 150)]
     name: Option<String>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     parent_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 55)]
     alias: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     description: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     default_warehouse: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     stock_count_enabled: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     is_store: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     pickup_enabled: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     auto_generate_transfer_list: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     total_sum_enabled: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     user_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     manager_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     manager_assistant_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     location: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, example = "active")]
     status: Option<Option<String>>,
     #[serde(default, rename = "type", deserialize_with = "present")]
+    #[schema(value_type = Option<String>, example = "storage")]
     kind: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     dimensions: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     loading_docks: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     sections: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     rows_per_sections: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     shelves_per_row: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     bins_per_shelf: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     management_contact: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     operating_hours: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     additional_settings: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
+    /// Custom fields are not supported: an item naming a `section_id` is rejected.
+    #[schema(value_type = Option<Vec<Object>>)]
     custom_sections: Option<Value>,
+    /// Same rule as `custom_sections`.
+    #[schema(value_type = Option<Vec<Object>>)]
     custom_section_forms: Option<Value>,
 }
 

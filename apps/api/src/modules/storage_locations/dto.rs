@@ -1,7 +1,9 @@
-//! Storage location body (Laravel StoreStorageLocationRequest) and resource.
+//! Storage location body and resource.
+// Laravel StoreStorageLocationRequest.
 
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -104,8 +106,9 @@ impl Validate for PlaceBody {
     }
 }
 
-/// Laravel StorageLocationResource: the warehouse location (WarehouseLocationResource with a
-/// compact warehouse), or `{"warehouse":{"name":"N/A"}}` when it is gone.
+/// Storage location JSON: the warehouse location (with a compact warehouse), or
+/// `{"warehouse":{"name":"N/A"}}` when it is gone.
+// Laravel StorageLocationResource / WarehouseLocationResource.
 pub fn render(p: &PlaceRow) -> Value {
     let location = match p.l_id {
         Some(id) => json!({
@@ -128,4 +131,60 @@ pub fn render(p: &PlaceRow) -> Value {
         "description": p.description,
         "meta": p.meta,
     })
+}
+
+/// OpenAPI shape of [`render`]. Docs only.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    as = StorageLocationResource,
+    description = "Where a product (or other record) is kept: a warehouse scan label."
+)]
+pub struct PlaceDoc {
+    id: Uuid,
+    /// The scan label with its compact `warehouse`, or `{"warehouse":{"name":"N/A"}}` when
+    /// the label is gone.
+    #[schema(value_type = Object)]
+    warehouse_location: Value,
+    #[schema(required = true)]
+    description: Option<String>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+}
+
+/// OpenAPI shape of [`PlaceBody`]. Docs only: the body is read key by key.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    as = StorageLocationRequest,
+    description = "Attach a scan label (or a bin, which gets a label) to a record. Send \
+        `warehouse_location_id` or `bin_id`."
+)]
+pub struct PlaceRequestDoc {
+    /// `product`; `order`, `transfer_list`, `work_order` and `warehouse` answer 404 for now.
+    parent_domain: String,
+    /// Id of the parent record.
+    parent_id: String,
+    warehouse_location_id: Option<Uuid>,
+    bin_id: Option<Uuid>,
+    #[schema(max_length = 1500)]
+    description: Option<String>,
+    /// Replace the parent's existing storage locations.
+    replace: Option<bool>,
+    #[schema(value_type = Option<Object>)]
+    meta: Option<Value>,
+}
+
+/// Create response.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PlaceCreated {
+    storage_location_id: Uuid,
+}
+
+/// List response: every storage location of the parent, not paged.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PlaceList {
+    data: Vec<PlaceDoc>,
 }

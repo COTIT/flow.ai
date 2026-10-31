@@ -45,7 +45,7 @@ pub struct Paginated<T> {
 
 #[derive(Serialize, Debug, PartialEq, ToSchema)]
 #[schema(description = "Paging details. `total` counts matches across all pages.")]
-struct Meta {
+pub struct Meta {
     current_page: i64,
     /// 1-based index of first row on this page; null when the page is empty.
     #[schema(required = true)]

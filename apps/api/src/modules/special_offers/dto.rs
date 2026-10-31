@@ -1,10 +1,12 @@
-//! Special offer request/response bodies (Laravel Store/UpdateSpecialOfferRequest field rules,
-//! SpecialOfferResource). Cross-field rules run in the service on the merged row.
+//! Special offer request/response bodies. Cross-field rules run in the service on the merged
+//! row.
+// Laravel Store/UpdateSpecialOfferRequest field rules, SpecialOfferResource.
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -29,36 +31,52 @@ pub const RULES: [&str; 8] = [
 /// Laravel DiscountType.
 pub const DISCOUNT_TYPES: [&str; 4] = ["bundle_price", "fixed", "free", "percentage"];
 
-/// Laravel SpecialOfferResource.
-#[derive(Serialize)]
+// Laravel SpecialOfferResource.
+#[derive(Serialize, ToSchema)]
+#[schema(as = SpecialOfferResource, description = "A special offer on one product, or a rule over brands, suppliers or categories. Decimals are strings (4 places, trimmed).")]
 pub struct OfferResource {
     id: Uuid,
+    #[schema(required = true)]
     from_date: Option<NaiveDate>,
+    #[schema(required = true)]
     to_date: Option<NaiveDate>,
-    /// Laravel left the tinyint uncast: 0/1.
+    // Laravel left the tinyint uncast: 0/1.
     always_active: i32,
     value: String,
     #[serde(rename = "type")]
     kind: String,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
     discount_rule_type: String,
+    #[schema(required = true)]
     condition_quantity: Option<i32>,
+    #[schema(required = true)]
     discount_quantity: Option<i32>,
+    #[schema(required = true)]
     condition_brand: Option<String>,
+    #[schema(required = true)]
     condition_supplier_relation_id: Option<Uuid>,
+    #[schema(required = true)]
     condition_category_id: Option<Uuid>,
+    #[schema(required = true)]
     target_brand: Option<String>,
+    #[schema(required = true)]
     target_supplier_relation_id: Option<Uuid>,
+    #[schema(required = true)]
     target_category_id: Option<Uuid>,
+    #[schema(required = true)]
     target_product_id: Option<Uuid>,
+    #[schema(required = true)]
     product_id: Option<Uuid>,
     discount_value: String,
     discount_type: String,
     priority: i32,
     apply_to_cheapest: bool,
-    /// Laravel's relationships were never loaded: an empty array.
+    /// Always empty.
+    // Laravel's relationships were never loaded: an empty array.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
     relationships: Value,
 }
 
@@ -99,64 +117,91 @@ impl From<&OfferRow> for OfferResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct OfferCreated {
     pub special_offer_id: Uuid,
 }
 
 /// GET list query.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
     /// A rule type, or `legacy` for offers without one.
     pub discount_rule_type: Option<String>,
 }
 
 /// POST body for create and update. Every key: absent = keep, null/blank = clear.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = SpecialOfferRequest, description = "Offer fields. Keys left out keep their value; null or blank clears. Decimals as strings (`\"12.50\"`); JSON numbers also work.")]
 pub struct OfferRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     product_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<chrono::NaiveDate>)]
     from_date: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<chrono::NaiveDate>)]
     to_date: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     always_active: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     value: Option<Option<Value>>,
     #[serde(default, rename = "type", deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     kind: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     discount_rule_type: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     condition_quantity: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     discount_quantity: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     condition_brand: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     condition_supplier_relation_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     condition_category_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     target_brand: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     target_supplier_relation_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     target_category_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     target_product_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     discount_value: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     discount_type: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     priority: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<bool>)]
     apply_to_cheapest: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

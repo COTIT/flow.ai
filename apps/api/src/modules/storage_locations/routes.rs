@@ -1,20 +1,15 @@
-//! Storage location routes, mounted under /v1 (paths match vimdesk-api).
+//! Storage location routes, mounted under /v1. Paths live in each handler's
+//! `#[utoipa::path]`.
+// Paths match vimdesk-api.
 
-use axum::{
-    Router,
-    routing::{delete, get, post},
-};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::storage_locations::handlers};
 
 /// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    let base = "/workspace/{workspace}/erp/storage-locations";
-    Router::new()
-        .route(base, post(handlers::create))
-        .route(&format!("{base}/{{id}}"), delete(handlers::delete))
-        .route(
-            &format!("{base}/{{domain}}/{{parent}}"),
-            get(handlers::list),
-        )
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(handlers::create))
+        .routes(routes!(handlers::delete))
+        .routes(routes!(handlers::list))
 }

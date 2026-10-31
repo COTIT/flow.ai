@@ -1,6 +1,6 @@
-//! HTTP edge for /v1/workspace/{workspace}/erp/warehouses/{warehouse}/locations.
-//! Laravel had no catalog names here, so reads take `warehouse.get` and writes
-//! `warehouse.update` (user decision, docs/api/warehouses.md).
+//! HTTP edge for /v1/workspace/{workspace}/erp/warehouses/{warehouse}/locations. Reads take
+//! `warehouse.get`, writes `warehouse.update`.
+// Laravel had no catalog names here (user decision, docs/api/warehouses.md).
 
 use std::borrow::Cow;
 
@@ -13,11 +13,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated, search},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::{
@@ -43,6 +43,18 @@ type WarehousePath = Path<(String, String)>;
 type LocationPath = Path<(String, String, String)>;
 
 /// GET /locations -> `{data:[...], meta}`; `q` matches the label, `limit` sets the page size.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/erp/warehouses/{warehouse}/locations", tag = "warehouse_locations",
+    operation_id = "warehouse_locations_list", summary = "List a warehouse's scan labels",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<LocationResource>, description = "One page of locations"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<LocationRead>,
@@ -76,6 +88,17 @@ pub async fn list(
 }
 
 /// GET /locations/{location}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/erp/warehouses/{warehouse}/locations/{location}", tag = "warehouse_locations",
+    operation_id = "warehouse_locations_get", summary = "Get a scan label",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("location" = Uuid, Path, description = "Location id")),
+    responses(
+        (status = 200, body = Envelope<LocationResource>, description = "The location"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse or location, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<LocationRead>,
@@ -88,6 +111,19 @@ pub async fn get(
 }
 
 /// POST /locations -> 201 `{data:{warehouse_location_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/erp/warehouses/{warehouse}/locations", tag = "warehouse_locations",
+    operation_id = "warehouse_locations_create", summary = "Create a scan label",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id")),
+    request_body = LocationBody,
+    responses(
+        (status = 201, body = Envelope<LocationCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<LocationWrite>,
@@ -106,6 +142,19 @@ pub async fn create(
 }
 
 /// POST /locations/{location} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/erp/warehouses/{warehouse}/locations/{location}", tag = "warehouse_locations",
+    operation_id = "warehouse_locations_update", summary = "Update a scan label",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("location" = Uuid, Path, description = "Location id")),
+    request_body = LocationBody,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse or location, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<LocationWrite>,
@@ -118,6 +167,17 @@ pub async fn update(
 }
 
 /// DELETE /locations/{location} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/erp/warehouses/{warehouse}/locations/{location}", tag = "warehouse_locations",
+    operation_id = "warehouse_locations_delete", summary = "Delete a scan label",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("location" = Uuid, Path, description = "Location id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse or location, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<LocationWrite>,
@@ -128,7 +188,20 @@ pub async fn delete(
     Ok(Message("ok"))
 }
 
-/// DELETE /locations?locations=a,b -> `{"message":"ok"}` (vimdesk-web sends ids as a query).
+/// DELETE /locations?locations=a,b -> `{"message":"ok"}`.
+// vimdesk-web sends ids as a query.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/erp/warehouses/{warehouse}/locations", tag = "warehouse_locations",
+    operation_id = "warehouse_locations_delete_many", summary = "Delete several scan labels",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), DeleteQuery),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Missing, malformed or too many ids"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete_many(
     State(state): State<AppState>,
     access: Can<LocationWrite>,

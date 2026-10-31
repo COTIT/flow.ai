@@ -1,30 +1,34 @@
-//! Warehouse location bodies: Laravel WarehouseLocationResource and
-//! Store/Update/DeleteWarehouseLocationsRequest (vimdesk-web warehouse-locations-table.vue).
+//! Warehouse location bodies.
+// Laravel WarehouseLocationResource and Store/Update/DeleteWarehouseLocationsRequest
+// (vimdesk-web warehouse-locations-table.vue).
 
 use std::borrow::Cow;
-
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use uuid::Uuid;
 
 use crate::{
     error::AppError,
     http::json::{Rules, Validate, present},
     modules::{warehouse_locations::repo::LocationRow, warehouses::dto::WarehouseCompacted},
 };
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
+use uuid::Uuid;
 
 const LOCATION_MAX: usize = 500;
 /// Bulk delete cap; Laravel had none.
 const DELETE_MAX: usize = 100;
 
-/// Laravel WarehouseLocationResource. A page of one warehouse borrows its compact warehouse
-/// instead of copying it per row.
-#[derive(Serialize)]
+// Laravel WarehouseLocationResource. A page of one warehouse borrows its compact warehouse
+// instead of copying it per row.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A free-text scan label inside a warehouse.")]
 pub struct LocationResource<'a> {
     id: Uuid,
     location: String,
+    #[schema(value_type = WarehouseCompacted)]
     warehouse: Cow<'a, WarehouseCompacted>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
@@ -45,22 +49,31 @@ impl<'a> LocationResource<'a> {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct LocationCreated {
     pub warehouse_location_id: Uuid,
 }
 
-/// GET list query. `limit` is Laravel's page size (default 50); unknown params ignored.
-#[derive(Deserialize)]
+/// GET list query. Unknown params ignored.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search on the label.
     pub q: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Page size: default 50, max 5000.
+    #[param(value_type = Option<i64>)]
     pub limit: Option<String>,
 }
 
-/// DELETE bulk query: `locations=uuid1,uuid2`.
-#[derive(Deserialize)]
+/// DELETE bulk query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct DeleteQuery {
+    /// Comma-separated location ids, at most 100.
+    #[param(required = true)]
     pub locations: Option<String>,
 }
 
@@ -92,10 +105,13 @@ impl DeleteQuery {
 }
 
 /// POST body (create and update): `location` required, `meta` optional.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = WarehouseLocationRequest)]
 pub struct LocationBody {
+    #[schema(value_type = String, max_length = 500)]
     location: Option<String>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

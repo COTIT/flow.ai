@@ -1,5 +1,6 @@
 //! HTTP edge for .../sections/{section}/rows/{row}/shelves. Reads take `warehouse.get`,
-//! writes `warehouse.update` (Laravel's shelf update even checked `warehouse.update`).
+//! writes `warehouse.update`.
+// Laravel's shelf update even checked `warehouse.update`.
 
 use axum::{
     Json,
@@ -9,15 +10,15 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::warehouse_shelves::{
-        dto::{CreateShelfRequest, ShelfCreated, ShelfResource, UpdateShelfRequest},
+        dto::{CreateShelfRequest, ShelfBody, ShelfCreated, ShelfResource, UpdateShelfRequest},
         service,
     },
 };
@@ -31,13 +32,29 @@ type RowPath = Path<(String, String, String, String)>;
 type ShelfPath = Path<(String, String, String, String, String)>;
 
 /// Paging params; unknown ones ignored.
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     page_size: Option<String>,
 }
 
 /// GET /shelves -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/warehouses/{warehouse}/sections/{section}/rows/{row}/shelves", tag = "warehouse_shelves",
+    operation_id = "warehouse_shelves_list", summary = "List shelfs",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("section" = Uuid, Path, description = "Section id"), ("row" = Uuid, Path, description = "Row id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<ShelfResource>, description = "One page of shelfs"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse, section or row, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<HierarchyRead>,
@@ -59,6 +76,17 @@ pub async fn list(
 }
 
 /// GET /shelves/{shelf}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/warehouses/{warehouse}/sections/{section}/rows/{row}/shelves/{shelf}", tag = "warehouse_shelves",
+    operation_id = "warehouse_shelves_get", summary = "Get a shelf",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("section" = Uuid, Path, description = "Section id"), ("row" = Uuid, Path, description = "Row id"), ("shelf" = Uuid, Path, description = "Shelf id")),
+    responses(
+        (status = 200, body = Envelope<ShelfResource>, description = "The shelf"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse, section, row or shelf, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<HierarchyRead>,
@@ -69,6 +97,19 @@ pub async fn get(
 }
 
 /// POST /shelves -> 201 `{data:{shelf_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/warehouses/{warehouse}/sections/{section}/rows/{row}/shelves", tag = "warehouse_shelves",
+    operation_id = "warehouse_shelves_create", summary = "Create a shelf",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("section" = Uuid, Path, description = "Section id"), ("row" = Uuid, Path, description = "Row id")),
+    request_body = ShelfBody,
+    responses(
+        (status = 201, body = Envelope<ShelfCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse, section or row, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<HierarchyWrite>,
@@ -81,6 +122,19 @@ pub async fn create(
 }
 
 /// POST /shelves/{shelf} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/warehouses/{warehouse}/sections/{section}/rows/{row}/shelves/{shelf}", tag = "warehouse_shelves",
+    operation_id = "warehouse_shelves_update", summary = "Update a shelf",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("section" = Uuid, Path, description = "Section id"), ("row" = Uuid, Path, description = "Row id"), ("shelf" = Uuid, Path, description = "Shelf id")),
+    request_body = ShelfBody,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse, section, row or shelf, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<HierarchyWrite>,
@@ -93,6 +147,17 @@ pub async fn update(
 }
 
 /// DELETE /shelves/{shelf} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/warehouses/{warehouse}/sections/{section}/rows/{row}/shelves/{shelf}", tag = "warehouse_shelves",
+    operation_id = "warehouse_shelves_delete", summary = "Delete a shelf",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("section" = Uuid, Path, description = "Section id"), ("row" = Uuid, Path, description = "Row id"), ("shelf" = Uuid, Path, description = "Shelf id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse, section, row or shelf, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<HierarchyWrite>,

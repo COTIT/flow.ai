@@ -1,18 +1,14 @@
-//! Category routes, mounted under /v1 (paths match vimdesk-api).
+//! Product category routes, mounted under /v1. Paths live in each handler's
+//! `#[utoipa::path]`.
+// Paths match vimdesk-api; update is POST.
 
-use axum::{Router, routing::get};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::product_categories::handlers};
 
 /// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    let base = "/workspace/{workspace}/erp/product-categories";
-    Router::new()
-        .route(base, get(handlers::list).post(handlers::create))
-        .route(
-            &format!("{base}/{{category}}"),
-            get(handlers::get)
-                .post(handlers::update)
-                .delete(handlers::delete),
-        )
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(handlers::list, handlers::create))
+        .routes(routes!(handlers::get, handlers::update, handlers::delete))
 }

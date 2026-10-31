@@ -1,6 +1,6 @@
-//! HTTP edge for /v1/workspace/{workspace}/warehouses/{warehouse}/sections. Laravel had no
-//! catalog names for the hierarchy, so reads take `warehouse.get` and writes
-//! `warehouse.update` (user decision, docs/api/warehouses.md).
+//! HTTP edge for /v1/workspace/{workspace}/warehouses/{warehouse}/sections. Reads take
+//! `warehouse.get`, writes `warehouse.update`.
+// Laravel had no catalog names for the hierarchy (user decision, docs/api/warehouses.md).
 
 use axum::{
     Json,
@@ -10,11 +10,11 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::{Rules, ValidatedJson},
         list::{Paginated, contains_pattern, flag},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::warehouse_sections::{
@@ -33,6 +33,18 @@ type WarehousePath = Path<(String, String)>;
 type SectionPath = Path<(String, String, String)>;
 
 /// GET /sections -> `{data:[...], meta}`, sorted by name.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/warehouses/{warehouse}/sections", tag = "warehouse_sections",
+    operation_id = "warehouse_sections_list", summary = "List sections of a warehouse",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<SectionResource>, description = "One page of sections, by name"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<HierarchyRead>,
@@ -63,6 +75,17 @@ pub async fn list(
 }
 
 /// GET /sections/{section}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/warehouses/{warehouse}/sections/{section}", tag = "warehouse_sections",
+    operation_id = "warehouse_sections_get", summary = "Get a section",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("section" = Uuid, Path, description = "Section id")),
+    responses(
+        (status = 200, body = Envelope<SectionResource>, description = "The section"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse or section, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<HierarchyRead>,
@@ -76,6 +99,19 @@ pub async fn get(
 }
 
 /// POST /sections -> 201 `{data:{section_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/warehouses/{warehouse}/sections", tag = "warehouse_sections",
+    operation_id = "warehouse_sections_create", summary = "Create a section (and its row/shelf/bin grid)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id")),
+    request_body = SectionBody,
+    responses(
+        (status = 201, body = Envelope<SectionCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<HierarchyWrite>,
@@ -88,6 +124,19 @@ pub async fn create(
 }
 
 /// POST /sections/{section} -> `{"message":"ok"}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/warehouses/{warehouse}/sections/{section}", tag = "warehouse_sections",
+    operation_id = "warehouse_sections_update", summary = "Update a section",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("section" = Uuid, Path, description = "Section id")),
+    request_body = SectionBody,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse or section, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<HierarchyWrite>,
@@ -100,6 +149,17 @@ pub async fn update(
 }
 
 /// DELETE /sections/{section} -> `{"message":"ok"}`.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/warehouses/{warehouse}/sections/{section}", tag = "warehouse_sections",
+    operation_id = "warehouse_sections_delete", summary = "Delete a section",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("warehouse" = Uuid, Path, description = "Warehouse id"), ("section" = Uuid, Path, description = "Section id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, warehouse or section, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<HierarchyWrite>,

@@ -1,9 +1,11 @@
-//! Shelf bodies: Laravel WarehouseSectionRowShelfResource and
-//! Store/UpdateWarehouseSectionRowShelfRequest (vimdesk-web shelfPayloadTransformer.ts).
+//! Shelf bodies.
+// Laravel WarehouseSectionRowShelfResource and Store/UpdateWarehouseSectionRowShelfRequest
+// (vimdesk-web shelfPayloadTransformer.ts).
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
@@ -15,9 +17,10 @@ use crate::{
 pub const CODE_TAKEN: &str = "The shelf code has already been taken.";
 pub const SIDES: [&str; 2] = ["left", "right"];
 
-/// Laravel WarehouseSectionRowShelfResource. Laravel printed its parent ids as internal
+// Laravel WarehouseSectionRowShelfResource. Laravel printed its parent ids as internal
 /// integers; genesy prints the uuids.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A shelf inside a warehouse row.")]
 pub struct ShelfResource {
     id: Uuid,
     shelf_id: Uuid,
@@ -26,12 +29,18 @@ pub struct ShelfResource {
     section_id: Uuid,
     row_id: Uuid,
     shelf_code: String,
+    #[schema(required = true)]
     shelf_name: Option<String>,
     shelf_level: i32,
+    #[schema(required = true)]
     side: Option<String>,
+    #[schema(required = true)]
     bins_per_shelf: Option<i32>,
+    #[schema(required = true)]
     total_storage_bins: Option<i32>,
+    #[schema(required = true)]
     max_weight_kg: Option<i32>,
+    #[schema(required = true)]
     notes: Option<String>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
@@ -61,7 +70,7 @@ impl From<ShelfRow> for ShelfResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ShelfCreated {
     pub shelf_id: Uuid,
 }
@@ -80,23 +89,32 @@ pub struct Fields {
 }
 
 /// POST body for create and update (path ids in the body are ignored).
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = WarehouseShelfRequest, description = "Create needs `shelf_code` and `shelf_level`; update keeps fields left out.")]
 pub struct ShelfBody {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     shelf_code: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     shelf_level: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     shelf_name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     side: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     bins_per_shelf: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     total_storage_bins: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<i32>)]
     max_weight_kg: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     notes: Option<Option<String>>,
 }
 

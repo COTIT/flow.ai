@@ -8,16 +8,16 @@ use axum::{
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::discounts::{
         dto::{
-            CreateDiscountRequest, DiscountCreated, DiscountResource, ListQuery,
+            CreateDiscountRequest, DiscountCreated, DiscountRequest, DiscountResource, ListQuery,
             UpdateDiscountRequest,
         },
         service,
@@ -35,6 +35,18 @@ permissions! {
 type DiscountPath = Path<(String, String)>;
 
 /// GET /discounts (`?discount_group_id=`).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/discounts", tag = "discounts",
+    operation_id = "discounts_list", summary = "List discounts",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<DiscountResource>, description = "One page of discounts"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discount.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed `discount_group_id`"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<DiscountList>,
@@ -54,6 +66,17 @@ pub async fn list(
 }
 
 /// GET /discounts/{id}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/products/discounts/{discount}", tag = "discounts",
+    operation_id = "discounts_get", summary = "Get a discount",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("discount" = Uuid, Path, description = "Discount id")),
+    responses(
+        (status = 200, body = Envelope<DiscountResource>, description = "The discount"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discount.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<DiscountView>,
@@ -65,6 +88,19 @@ pub async fn get(
 }
 
 /// POST /discounts -> 201 `{data:{discount_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/discounts", tag = "discounts",
+    operation_id = "discounts_create", summary = "Create a discount",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = DiscountRequest,
+    responses(
+        (status = 201, body = Envelope<DiscountCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discount.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<DiscountCreate>,
@@ -75,6 +111,19 @@ pub async fn create(
 }
 
 /// POST /discounts/{id}.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/products/discounts/{discount}", tag = "discounts",
+    operation_id = "discounts_update", summary = "Update a discount (send only changed fields)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("discount" = Uuid, Path, description = "Discount id")),
+    request_body = DiscountRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discount.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<DiscountUpdate>,
@@ -86,6 +135,17 @@ pub async fn update(
 }
 
 /// DELETE /discounts/{id}.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/products/discounts/{discount}", tag = "discounts",
+    operation_id = "discounts_delete", summary = "Delete a discount",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("discount" = Uuid, Path, description = "Discount id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `discount.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or discount, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<DiscountDelete>,
