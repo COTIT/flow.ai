@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_surveys SET status = 'closed', closed_at = clock_timestamp(), updated_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "123aff826061cc922389fb68938a99e74eabfb6b9457ab53537f993007467f79"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH pruned AS (\n               DELETE FROM farm_voucher_lookups WHERE actor_id = $1 AND looked_up_at < now() - interval '1 hour'\n           ), added AS (\n               INSERT INTO farm_voucher_lookups (actor_id) VALUES ($1)\n           )\n           SELECT count(*) + 1 AS \"n!\" FROM farm_voucher_lookups\n           WHERE actor_id = $1 AND looked_up_at > now() - interval '1 minute'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "95efe42eb8903259c2bba9166397a476230b73e7216f1830d9aa2245c58a0663"
+}

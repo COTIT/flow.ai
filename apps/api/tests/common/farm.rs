@@ -321,3 +321,179 @@ impl Farm {
         res
     }
 }
+
+/// A cast ready for surveys: households verified by ops (a second pair of eyes), Neema and
+/// Asha signed in with their own passwords, a TZS currency, a third Ilundo officer (Juma).
+pub struct Surveyed {
+    pub c: Cast,
+    pub tzs: String,
+    pub neema: String,
+    pub asha: String,
+    pub juma: String,
+}
+
+impl Farm {
+    /// TZS (2 decimals) in this workspace; its id.
+    pub async fn tzs(&self) -> String {
+        sqlx::query_scalar(
+            "INSERT INTO currencies (workspace_id, name, asset_type, decimals, active)
+             VALUES ($1::uuid, 'Tanzanian shilling', 'TZS', 2, true) RETURNING id::text",
+        )
+        .bind(&self.ws)
+        .fetch_one(&self.pool)
+        .await
+        .unwrap()
+    }
+
+    /// Issue a login for `person`, sign in, choose a password: the farmer's token.
+    pub async fn signed_in_farmer(&self, person: &str, phone: &str) -> String {
+        let (status, issued) = self
+            .call(
+                Method::POST,
+                &format!("/persons/{person}/login"),
+                None,
+                &self.officer_ilu,
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{issued}");
+        let temp = issued["data"]["temp_password"].as_str().unwrap().to_owned();
+        let token = self.farm_sign_in(phone, &temp).await;
+        let (status, res) = super::send(
+            &self.app,
+            Method::POST,
+            "/v1/farm/password",
+            Some(json!({ "current_password": temp, "password": "maji safi kila siku" })),
+            Some(&token),
+        )
+        .await;
+        assert_eq!(status, StatusCode::NO_CONTENT, "{res}");
+        token
+    }
+
+    /// POST /v1/farm/login; the token.
+    pub async fn farm_sign_in(&self, phone: &str, password: &str) -> String {
+        let (status, res) = super::send(
+            &self.app,
+            Method::POST,
+            "/v1/farm/login",
+            Some(json!({ "phone": phone, "password": password })),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{res}");
+        res["data"]["access_token"].as_str().unwrap().to_owned()
+    }
+
+    /// `token` verifies a record; asserts 200.
+    pub async fn verify(&self, kind: &str, id: &str, token: &str) {
+        let (status, res) = self
+            .call(
+                Method::POST,
+                &format!("/{kind}/{id}/verification"),
+                None,
+                token,
+            )
+            .await;
+        assert_eq!(status, StatusCode::OK, "{res}");
+    }
+
+    pub async fn surveyed(&self) -> Surveyed {
+        let c = self.cast().await;
+        for h in [&c.neema.household, &c.asha.household] {
+            self.verify("households", h, &self.ops).await;
+        }
+        let neema = self.signed_in_farmer(&c.neema.person, "0712000001").await;
+        let asha = self.signed_in_farmer(&c.asha.person, "0712000003").await;
+        let juma = self
+            .staff("juma@ruaha.test", "field_officer", Some(&self.ilundo))
+            .await;
+        let tzs = self.tzs().await;
+        Surveyed {
+            c,
+            tzs,
+            neema,
+            asha,
+            juma,
+        }
+    }
+
+    /// Admin authors a survey with one required single-choice and one optional number
+    /// question, `reward` minor units, `audit_percent` held for audit; published unless
+    /// `draft`. Returns (survey id, [question ids]).
+    pub async fn survey(
+        &self,
+        tzs: &str,
+        reward: i64,
+        audit_percent: i64,
+        draft: bool,
+    ) -> (String, Vec<String>) {
+        let (status, s) = self
+            .call(
+                Method::POST,
+                "/surveys",
+                Some(json!({ "title_en": "Maize storage", "title_sw": "Hifadhi ya mahindi",
+                             "reward_minor": reward, "currency_id": tzs, "audit_percent": audit_percent })),
+                &self.owner,
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{s}");
+        let id = s["data"]["id"].as_str().unwrap().to_owned();
+        let mut questions = Vec::new();
+        for q in [
+            json!({ "position": 1, "kind": "single_choice", "prompt_en": "Where do you store maize?", "required": true,
+                    "options": [{ "value": "home", "label_en": "At home" }, { "value": "store", "label_en": "In a store" }] }),
+            json!({ "position": 2, "kind": "number", "prompt_en": "How many bags?", "required": false }),
+        ] {
+            let (status, res) = self
+                .call(
+                    Method::POST,
+                    &format!("/surveys/{id}/questions"),
+                    Some(q),
+                    &self.owner,
+                )
+                .await;
+            assert_eq!(status, StatusCode::CREATED, "{res}");
+            questions.push(res["data"]["id"].as_str().unwrap().to_owned());
+        }
+        if !draft {
+            let (status, res) = self
+                .call(
+                    Method::POST,
+                    &format!("/surveys/{id}/publish"),
+                    None,
+                    &self.owner,
+                )
+                .await;
+            assert_eq!(status, StatusCode::OK, "{res}");
+        }
+        (id, questions)
+    }
+
+    /// `token` answers survey `id`: (status, body).
+    pub async fn answer(
+        &self,
+        id: &str,
+        answers: Value,
+        client_ref: &str,
+        token: &str,
+    ) -> (StatusCode, Value) {
+        self.call(
+            Method::POST,
+            &format!("/surveys/{id}/responses"),
+            Some(json!({ "answers": answers, "client_ref": client_ref })),
+            token,
+        )
+        .await
+    }
+}
+
+impl Farm {
+    /// Id of the account signing in with this phone.
+    pub async fn user_id_by_phone(&self, phone: &str) -> String {
+        sqlx::query_scalar("SELECT id::text FROM users WHERE phone = $1")
+            .bind(phone)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap()
+    }
+}

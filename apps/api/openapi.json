@@ -1280,6 +1280,24 @@
         ],
         "type": "object"
       },
+      "CountMinor": {
+        "description": "A count and its money.",
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "minor": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count",
+          "minor"
+        ],
+        "type": "object"
+      },
       "CreateAppKeyRequest": {
         "description": "New app key for one app of this workspace.",
         "properties": {
@@ -2988,6 +3006,47 @@
         ],
         "type": "object"
       },
+      "Eligibility": {
+        "description": "One live or closed survey and whether the caller's household may answer it.",
+        "properties": {
+          "eligible": {
+            "type": "boolean"
+          },
+          "reason": {
+            "description": "Why not, shown as written; null when eligible or already answered.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "response_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "survey_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "voucher_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "survey_id",
+          "eligible",
+          "reason",
+          "response_id",
+          "voucher_id"
+        ],
+        "type": "object"
+      },
       "EmailLog": {
         "description": "One sent message.",
         "properties": {
@@ -3752,6 +3811,18 @@
         ],
         "type": "object"
       },
+      "Envelope_LookupResult": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LookupResult"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_MarginResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4038,6 +4109,30 @@
         ],
         "type": "object"
       },
+      "Envelope_QuestionCreated": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/QuestionCreated"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Redeemed": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Redeemed"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_RegistrationResult": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4242,11 +4337,47 @@
         ],
         "type": "object"
       },
+      "Envelope_Submitted": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Submitted"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_SummaryResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SummaryResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_SurveyResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SurveyResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_SurveyResults": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SurveyResults"
           }
         },
         "required": [
@@ -4366,6 +4497,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_Eligibility": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Eligibility"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_LoginIssue": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4396,12 +4542,72 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_Redemption": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/Redemption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Vec_RedemptionTotal": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/RedemptionTotal"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_StockWithBins": {
         "description": "Success body: the result under `data`.",
         "properties": {
           "data": {
             "items": {
               "$ref": "#/components/schemas/StockWithBins"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Vec_SurveyVoucher": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SurveyVoucher"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Vec_TrailEntry": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TrailEntry"
             },
             "type": "array"
           }
@@ -6896,6 +7102,131 @@
         ],
         "type": "object"
       },
+      "LookupRequest": {
+        "description": "POST /farm/vouchers/lookup.",
+        "properties": {
+          "code": {
+            "description": "As typed or scanned; case, spaces and dashes don't matter.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "LookupResult": {
+        "description": "What a scan shows the officer. Unknown codes, and codes of other villages, are `found: false`.",
+        "properties": {
+          "amount": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Money"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "blocked_reason": {
+            "description": "Why this caller may not redeem it now, as written.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "can_redeem": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "expired": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "found": {
+            "type": "boolean"
+          },
+          "head_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "household_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issued_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "needs_ops": {
+            "description": "Held for an audit: ops or admin must redeem it in person.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "redeemed_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "respondent_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "survey_title_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "survey_title_sw": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "voucher_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "found"
+        ],
+        "type": "object"
+      },
       "MarginComponents": {
         "description": "Margin per source.",
         "properties": {
@@ -7317,6 +7648,35 @@
         ],
         "type": "object"
       },
+      "Money": {
+        "description": "An amount in minor units of a workspace currency (TZS 10,000.00 = 1000000 at 2 decimals).",
+        "properties": {
+          "currency": {
+            "description": "ISO 4217 code.",
+            "example": "TZS",
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "minor": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "minor",
+          "currency",
+          "decimals",
+          "currency_id"
+        ],
+        "type": "object"
+      },
       "MoveDealRequest": {
         "description": "POST /deals/{id}/update-status: the kanban drag. `position` is the 0-based index in the\ntarget column.",
         "properties": {
@@ -7423,6 +7783,108 @@
         "required": [
           "warehouse_id",
           "mutation_value"
+        ],
+        "type": "object"
+      },
+      "MyVoucher": {
+        "description": "One of the household's vouchers, code included. The audit flag is never shown here.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "code": {
+            "description": "Show this at the office (typed or as a QR code).",
+            "example": "K7M2Q9XD4P",
+            "type": "string"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "redeemed_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "`issued`, `redeemed` or `void`.",
+            "type": "string"
+          },
+          "survey_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "survey_title_en": {
+            "type": "string"
+          },
+          "survey_title_sw": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "survey_id",
+          "survey_title_en",
+          "survey_title_sw",
+          "code",
+          "amount",
+          "status",
+          "expired",
+          "issued_at",
+          "expires_at",
+          "redeemed_at"
+        ],
+        "type": "object"
+      },
+      "NumberSummary": {
+        "description": "Number answers of one question.",
+        "properties": {
+          "answers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "average": {
+            "example": "6.00",
+            "type": "string"
+          },
+          "maximum": {
+            "type": "string"
+          },
+          "minimum": {
+            "type": "string"
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "question_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question_id",
+          "position",
+          "answers",
+          "average",
+          "minimum",
+          "maximum"
         ],
         "type": "object"
       },
@@ -7952,6 +8414,25 @@
         ],
         "type": "object"
       },
+      "Paginated_MyVoucher": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/MyVoucher"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_PdfTemplateResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -8301,6 +8782,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/StorefrontProduct"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_SurveyResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SurveyResource"
             },
             "type": "array"
           },
@@ -11341,6 +11841,301 @@
         ],
         "type": "object"
       },
+      "PublisherRef": {
+        "description": "Who published a survey.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "QuestionCreated": {
+        "description": "Created question id.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "QuestionOption": {
+        "description": "One option of a choice question.",
+        "properties": {
+          "label_en": {
+            "type": "string"
+          },
+          "label_sw": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label_en",
+          "label_sw"
+        ],
+        "type": "object"
+      },
+      "QuestionRequest": {
+        "description": "A question. Editable only while the survey is a draft.",
+        "properties": {
+          "kind": {
+            "description": "`single_choice`, `multi_choice`, `number`, `text` or `yes_no`.",
+            "type": "string"
+          },
+          "options": {
+            "description": "Choice kinds: `[{value, label_en, label_sw}]`, at least two before publishing.",
+            "items": {
+              "type": "object"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "position": {
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "prompt_en": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "prompt_sw": {
+            "maxLength": 500,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "required": {
+            "description": "Default true.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "position",
+          "kind",
+          "prompt_en"
+        ],
+        "type": "object"
+      },
+      "QuestionResource": {
+        "description": "One question.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`single_choice`, `multi_choice`, `number`, `text` or `yes_no`.",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionOption"
+            },
+            "type": "array"
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "prompt_en": {
+            "type": "string"
+          },
+          "prompt_sw": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "kind",
+          "prompt_en",
+          "prompt_sw",
+          "required",
+          "options"
+        ],
+        "type": "object"
+      },
+      "RedeemRequest": {
+        "description": "POST /farm/vouchers/redeem.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id_type": {
+            "description": "The ID document checked: `nida`, `voter`, `driving_licence` or `village_letter`. Never its number.",
+            "type": "string"
+          },
+          "name_confirmed": {
+            "description": "The name on the ID matches the household.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "id_type"
+        ],
+        "type": "object"
+      },
+      "Redeemed": {
+        "description": "A redemption.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "redeemed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "redeemed_by": {
+            "$ref": "#/components/schemas/StaffRef"
+          },
+          "replayed": {
+            "description": "True when this officer had already redeemed it (a retry): no second payout.",
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "voucher_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voucher_id",
+          "status",
+          "redeemed_at",
+          "redeemed_by",
+          "amount",
+          "replayed"
+        ],
+        "type": "object"
+      },
+      "Redemption": {
+        "description": "One redemption, for cash reconciliation.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "audit_required": {
+            "type": "boolean"
+          },
+          "household_label": {
+            "type": "string"
+          },
+          "id_type_seen": {
+            "type": "string"
+          },
+          "redeemed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "redeemed_by": {
+            "$ref": "#/components/schemas/StaffRef"
+          },
+          "survey_title_en": {
+            "type": "string"
+          },
+          "survey_title_sw": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "village_name": {
+            "type": "string"
+          },
+          "voucher_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voucher_id",
+          "redeemed_at",
+          "redeemed_by",
+          "village_name",
+          "household_label",
+          "survey_title_en",
+          "survey_title_sw",
+          "amount",
+          "id_type_seen",
+          "audit_required"
+        ],
+        "type": "object"
+      },
+      "RedemptionTotal": {
+        "description": "Redemptions per officer per day and currency.",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "day": {
+            "format": "date",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "minor": {
+            "description": "Sum in minor units of `currency`.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "redeemed_by": {
+            "$ref": "#/components/schemas/StaffRef"
+          },
+          "vouchers": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "redeemed_by",
+          "vouchers",
+          "minor",
+          "currency",
+          "decimals"
+        ],
+        "type": "object"
+      },
       "RegisterRequest": {
         "allOf": [
           {
@@ -12282,6 +13077,23 @@
           "credit_invoice_payment_term",
           "collective_invoice_payment_term",
           "estimate_validity_period"
+        ],
+        "type": "object"
+      },
+      "ResponseRequest": {
+        "description": "The household's answers, keyed by question id. Make `client_ref` once per answer form and send it again on a retry.",
+        "properties": {
+          "answers": {
+            "type": "object"
+          },
+          "client_ref": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "answers",
+          "client_ref"
         ],
         "type": "object"
       },
@@ -13579,6 +14391,23 @@
         ],
         "type": "object"
       },
+      "StaffRef": {
+        "description": "An account named on a voucher.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "StatusCreated": {
         "description": "Status create response.",
         "properties": {
@@ -14203,6 +15032,42 @@
         ],
         "type": "object"
       },
+      "Submitted": {
+        "description": "The household's voucher. Show `code` at the office to be paid.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "code": {
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "replayed": {
+            "description": "True when this repeats an earlier submit with the same `client_ref`.",
+            "type": "boolean"
+          },
+          "response_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "voucher_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "response_id",
+          "voucher_id",
+          "code",
+          "amount",
+          "expires_at",
+          "replayed"
+        ],
+        "type": "object"
+      },
       "SummaryResource": {
         "description": "Document totals. Amounts are JSON numbers (whole amounts print without decimals).",
         "properties": {
@@ -14288,6 +15153,367 @@
           "total_excl_hours",
           "total_excl_hours_users",
           "discounts"
+        ],
+        "type": "object"
+      },
+      "SurveyRequest": {
+        "description": "Survey fields. Editable only while the survey is a draft.",
+        "properties": {
+          "audit_percent": {
+            "description": "0–100, default 15: share of vouchers held for an ops audit at redemption.",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "closes_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "description_en": {
+            "maxLength": 2000,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description_sw": {
+            "maxLength": 2000,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "max_households": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reward_minor": {
+            "description": "The incentive in minor units of `currency_id`.",
+            "example": 1000000,
+            "format": "int64",
+            "type": "integer"
+          },
+          "title_en": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "title_sw": {
+            "maxLength": 200,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "village_id": {
+            "description": "Null = every village.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "SurveyResource": {
+        "description": "A survey. A household answers it once and receives a voucher for `reward`.",
+        "properties": {
+          "audit_percent": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "closed_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closes_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description_sw": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "max_households": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublisherRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionResource"
+            },
+            "type": "array"
+          },
+          "responses": {
+            "description": "Households that answered.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "reward": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "status": {
+            "description": "`draft`, `live` or `closed`.",
+            "type": "string"
+          },
+          "title_en": {
+            "type": "string"
+          },
+          "title_sw": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "village_id": {
+            "description": "Null = every village.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "village_id",
+          "title_en",
+          "title_sw",
+          "description_en",
+          "description_sw",
+          "reward",
+          "max_households",
+          "audit_percent",
+          "closes_at",
+          "status",
+          "published_at",
+          "published_by",
+          "closed_at",
+          "responses",
+          "questions",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "SurveyResults": {
+        "description": "A survey's answers and vouchers, staff only. Money in minor units of the survey's currency.",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "expired_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issued": {
+            "$ref": "#/components/schemas/CountMinor"
+          },
+          "numbers": {
+            "items": {
+              "$ref": "#/components/schemas/NumberSummary"
+            },
+            "type": "array"
+          },
+          "outstanding": {
+            "$ref": "#/components/schemas/CountMinor",
+            "description": "Issued, not expired, not redeemed."
+          },
+          "redeemed": {
+            "$ref": "#/components/schemas/CountMinor"
+          },
+          "responses": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tally": {
+            "items": {
+              "$ref": "#/components/schemas/TallyRow"
+            },
+            "type": "array"
+          },
+          "void_count": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "responses",
+          "currency",
+          "issued",
+          "redeemed",
+          "outstanding",
+          "expired_count",
+          "void_count",
+          "tally",
+          "numbers"
+        ],
+        "type": "object"
+      },
+      "SurveyVoucher": {
+        "description": "A survey's voucher for ops. Never the code.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "audit_required": {
+            "type": "boolean"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "household_label": {
+            "type": "string"
+          },
+          "id_type_seen": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "redeemed_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "redeemed_by_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "respondent_name": {
+            "type": "string"
+          },
+          "status": {
+            "description": "`issued`, `redeemed` or `void`.",
+            "type": "string"
+          },
+          "submitted_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "void_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "voucher_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "voucher_id",
+          "household_label",
+          "respondent_name",
+          "submitted_at",
+          "status",
+          "expired",
+          "amount",
+          "audit_required",
+          "issued_at",
+          "expires_at",
+          "redeemed_at",
+          "redeemed_by_name",
+          "id_type_seen",
+          "void_reason"
+        ],
+        "type": "object"
+      },
+      "TallyRow": {
+        "description": "One option's answer count.",
+        "properties": {
+          "answers": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "option_value": {
+            "type": "string"
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "question_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question_id",
+          "position",
+          "option_value",
+          "answers"
         ],
         "type": "object"
       },
@@ -14426,6 +15652,36 @@
           "access_token",
           "token_type",
           "workspace_ids"
+        ],
+        "type": "object"
+      },
+      "TrailEntry": {
+        "description": "One step of a voucher's trail.",
+        "properties": {
+          "actor_name": {
+            "type": "string"
+          },
+          "actor_role": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "object"
+          },
+          "kind": {
+            "description": "household_registered, household_verified, login_initial, login_reset, survey_published,\nanswered, issued, scanned, refused, redeemed or voided.",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "occurred_at",
+          "kind",
+          "actor_name",
+          "actor_role",
+          "detail"
         ],
         "type": "object"
       },
@@ -15657,6 +16913,19 @@
           "primary_language",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "VoidRequest": {
+        "description": "POST /farm/vouchers/{voucher}/void.",
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
         ],
         "type": "object"
       },
@@ -34838,6 +36107,270 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/redemptions": {
+      "get": {
+        "operationId": "farm_vouchers_redemptions",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_Redemption"
+                }
+              }
+            },
+            "description": "Newest first, at most 5000"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Missing or invalid dates"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Redemption log for cash reconciliation",
+        "tags": [
+          "farm_vouchers"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/redemptions/totals": {
+      "get": {
+        "operationId": "farm_vouchers_redemption_totals",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_RedemptionTotal"
+                }
+              }
+            },
+            "description": "Newest day first; sums in minor units"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Missing or invalid dates"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Redemptions per officer per day",
+        "tags": [
+          "farm_vouchers"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/registrations": {
       "post": {
         "description": "Field staff of the village. Person, household (new or joined), farm (new or joined), plot and one crop cycle per crop, in one transaction: all or nothing. A retry with the same `client_ref` returns the first result and writes nothing.",
@@ -35010,6 +36543,1813 @@
         "summary": "Register a farmer",
         "tags": [
           "farm_records"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys": {
+      "get": {
+        "description": "ops and admin see every survey; others see live and closed surveys for every village or one of theirs.",
+        "operationId": "farm_surveys_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_SurveyResource"
+                }
+              }
+            },
+            "description": "One page, newest first"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List surveys",
+        "tags": [
+          "farm_surveys"
+        ]
+      },
+      "post": {
+        "description": "Farm admin only. `title_en`, `reward_minor` and `currency_id` are required.",
+        "operationId": "farm_surveys_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResource"
+                }
+              }
+            },
+            "description": "Drafted"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not a farm admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown currency or village"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Author a survey (draft)",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/eligibility": {
+      "get": {
+        "description": "Every live or closed survey the caller sees, with `eligible` and, when not, the reason as written.",
+        "operationId": "farm_surveys_eligibility",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_Eligibility"
+                }
+              }
+            },
+            "description": "One row per survey"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Surveys my household may answer",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/{survey}": {
+      "get": {
+        "operationId": "farm_surveys_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResource"
+                }
+              }
+            },
+            "description": "The survey"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey, a draft, or not for the caller's villages"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a survey with its questions",
+        "tags": [
+          "farm_surveys"
+        ]
+      },
+      "patch": {
+        "operationId": "farm_surveys_update",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SurveyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResource"
+                }
+              }
+            },
+            "description": "Changed"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not a farm admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, or the survey is no longer a draft"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a draft survey",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/{survey}/close": {
+      "post": {
+        "operationId": "farm_surveys_close",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResource"
+                }
+              }
+            },
+            "description": "Closed; it never reopens"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not a farm admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not live"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Close a live survey",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/{survey}/publish": {
+      "post": {
+        "description": "Farm admin. Needs a question, two options per choice question, a value and an English label per option, and a future closing date. Frozen from now on.",
+        "operationId": "farm_surveys_publish",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResource"
+                }
+              }
+            },
+            "description": "Live"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not a farm admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not a draft, or not ready to publish"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Publish a draft (draft -> live)",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/{survey}/questions": {
+      "post": {
+        "operationId": "farm_surveys_add_question",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuestionCreated"
+                }
+              }
+            },
+            "description": "Added"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not a farm admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, or the survey is no longer a draft"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a question to a draft",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/{survey}/questions/{question}": {
+      "delete": {
+        "operationId": "farm_surveys_remove_question",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Question id",
+            "in": "path",
+            "name": "question",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not a farm admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey or question"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The survey is no longer a draft"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a question from a draft",
+        "tags": [
+          "farm_surveys"
+        ]
+      },
+      "put": {
+        "operationId": "farm_surveys_replace_question",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Question id",
+            "in": "path",
+            "name": "question",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Replaced"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not a farm admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey or question"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, or the survey is no longer a draft"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a question of a draft",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/{survey}/responses": {
+      "post": {
+        "description": "The household's answers in one go. Issues the household's voucher. A retry with the same `client_ref` returns the same voucher.",
+        "operationId": "farm_surveys_answer",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Submitted"
+                }
+              }
+            },
+            "description": "Replayed"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Submitted"
+                }
+              }
+            },
+            "description": "Answered; voucher issued"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Not eligible (the reason as written), or an answer refused"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Answer a survey (once per household)",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/{survey}/results": {
+      "get": {
+        "operationId": "farm_surveys_results",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResults"
+                }
+              }
+            },
+            "description": "Counts and money in minor units"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Survey answers and voucher totals",
+        "tags": [
+          "farm_surveys"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/surveys/{survey}/vouchers": {
+      "get": {
+        "operationId": "farm_surveys_vouchers",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Survey id",
+            "in": "path",
+            "name": "survey",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_SurveyVoucher"
+                }
+              }
+            },
+            "description": "Newest answer first, at most 1000"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown survey"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A survey's vouchers (no codes)",
+        "tags": [
+          "farm_surveys"
         ]
       }
     },
@@ -35471,6 +38811,712 @@
         "summary": "Change a village",
         "tags": [
           "farm_villages"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/vouchers/lookup": {
+      "post": {
+        "description": "Field staff. Every scan is logged; a code of another village answers `found: false` and is logged as refused. At most 30 lookups a minute per account.",
+        "operationId": "farm_vouchers_lookup",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LookupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_LookupResult"
+                }
+              }
+            },
+            "description": "What the code is, and whether the caller may redeem it"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not field staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "No code"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Scan a voucher code",
+        "tags": [
+          "farm_vouchers"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/vouchers/mine": {
+      "get": {
+        "operationId": "farm_vouchers_mine",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_MyVoucher"
+                }
+              }
+            },
+            "description": "Newest first"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "My household's vouchers, with codes",
+        "tags": [
+          "farm_vouchers"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/vouchers/redeem": {
+      "post": {
+        "description": "Field staff of the voucher's village who neither registered nor verified the household and are not in it; a held voucher needs ops or admin. Record the ID document type checked. Repeating is safe.",
+        "operationId": "farm_vouchers_redeem",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Redeemed"
+                }
+              }
+            },
+            "description": "Redeemed (or the caller's earlier redemption)"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not field staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No such voucher in the caller's villages"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Refused: the reason as written"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Redeem a voucher face to face",
+        "tags": [
+          "farm_vouchers"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/vouchers/{voucher}/timeline": {
+      "get": {
+        "description": "Filtered by who asks: the household sees issued, answered, redeemed and voided; field staff of the village also see registration, verification, publication and scans; ops and admin see everything, refused scans and login history included.",
+        "operationId": "farm_vouchers_timeline",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Voucher id",
+            "in": "path",
+            "name": "voucher",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_TrailEntry"
+                }
+              }
+            },
+            "description": "Oldest first"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown voucher, or not the caller's to see"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A voucher's trail",
+        "tags": [
+          "farm_vouchers"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/vouchers/{voucher}/void": {
+      "post": {
+        "operationId": "farm_vouchers_void",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Voucher id",
+            "in": "path",
+            "name": "voucher",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Voided"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No such voucher in the caller's villages"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Already redeemed or void, or no reason"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Void an unredeemed voucher",
+        "tags": [
+          "farm_vouchers"
         ]
       }
     },

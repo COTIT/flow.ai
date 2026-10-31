@@ -317,3 +317,122 @@ async fn only_staff_of_the_village_see_or_file_documents(pool: PgPool) {
     let (status, _) = common::send(&f.app, Method::GET, &f.url(&list), None, None).await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
 }
+
+#[sqlx::test]
+async fn a_client_id_of_another_plot_or_workspace_never_returns_that_document(pool: PgPool) {
+    let (f, c, _) = setup(pool).await;
+    let id = "019a0000-0000-7000-8000-0000000000d9";
+    let filed = |plot: String, token: String| {
+        let f = &f;
+        async move {
+            upload(
+                f,
+                &plot,
+                &token,
+                &[("id", None, id.as_bytes()), ("file", Some("deed.pdf"), PDF)],
+            )
+            .await
+        }
+    };
+    // Same id, another plot of this workspace.
+    let (status, _) = filed(c.asha.plot.clone(), f.officer_ilu.clone()).await;
+    assert_eq!(status, StatusCode::CREATED);
+    let (other_plot, body_a) = filed(c.neema.plot.clone(), f.officer_ilu.clone()).await;
+
+    // Same id in another workspace: its owner files a document there first.
+    let (owner2, ws2) = common::signup(&f.app, "other@else.test", "elsewhere").await;
+    let owner2_id = f.user_id("other@else.test").await;
+    let url2 = |tail: &str| format!("/v1/workspace/{ws2}/farm{tail}");
+    let call2 = |method: Method, tail: String, body: Value| {
+        let (app, uri, token) = (f.app.clone(), url2(&tail), owner2.clone());
+        async move { common::send(&app, method, &uri, Some(body), Some(&token)).await }
+    };
+    call2(
+        Method::POST,
+        "/memberships".into(),
+        json!({ "user_id": owner2_id, "role": "admin" }),
+    )
+    .await;
+    let (_, v) = call2(
+        Method::POST,
+        "/villages".into(),
+        json!({ "code": "X", "name": "X" }),
+    )
+    .await;
+    let (_, crop) = call2(
+        Method::POST,
+        "/crops".into(),
+        json!({ "code": "M", "name_en": "M", "name_sw": "M" }),
+    )
+    .await;
+    let (status, reg) = call2(
+        Method::POST,
+        "/registrations".into(),
+        json!({ "client_ref": common::farm::client_ref(), "village_id": v["data"]["id"],
+                "person": { "given_name": "A", "family_name": "B", "phone": "0755000000" },
+                "farm": { "label": "F", "latitude": "-7", "longitude": "35" },
+                "plot": { "label": "P" },
+                "cycles": [{ "crop_id": crop["data"]["id"], "area_ha": "1" }] }),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{reg}");
+    let plot2 = reg["data"]["plot_id"].as_str().unwrap().to_owned();
+    let mut f2 = Farm {
+        ws: ws2.clone(),
+        ..clone_farm(&f)
+    };
+    f2.officer_ilu = owner2.clone();
+    let (status, _) = upload(
+        &f2,
+        &plot2,
+        &owner2,
+        &[
+            ("id", None, b"019a0000-0000-7000-8000-0000000000da"),
+            ("file", Some("deed.pdf"), PDF),
+        ],
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+    let (status, _) = upload(
+        &f2,
+        &plot2,
+        &owner2,
+        &[("id", None, id.as_bytes()), ("file", Some("deed.pdf"), PDF)],
+    )
+    .await;
+    assert_eq!(status, StatusCode::CONFLICT, "taken in workspace 1");
+    let (_, body_b) = upload(
+        &f,
+        &c.rehema.plot,
+        &f.officer_ilu,
+        &[
+            ("id", None, b"019a0000-0000-7000-8000-0000000000da"),
+            ("file", Some("deed.pdf"), PDF),
+        ],
+    )
+    .await;
+
+    assert_eq!(other_plot, StatusCode::CONFLICT);
+    assert_eq!(
+        body_a, body_b,
+        "same answer whichever plot or workspace holds the id"
+    );
+    assert!(
+        !body_a.to_string().contains("deed.pdf"),
+        "the other document is never returned: {body_a}"
+    );
+}
+
+fn clone_farm(f: &Farm) -> Farm {
+    Farm {
+        app: f.app.clone(),
+        pool: f.pool.clone(),
+        ws: f.ws.clone(),
+        owner: f.owner.clone(),
+        ops: f.ops.clone(),
+        officer_ilu: f.officer_ilu.clone(),
+        officer_mga: f.officer_mga.clone(),
+        ilundo: f.ilundo.clone(),
+        mgama: f.mgama.clone(),
+    }
+}

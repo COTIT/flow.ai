@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_vouchers (workspace_id, village_id, response_id, survey_id, household_id, code,\n                                    amount_minor, currency_id, audit_required, expires_at)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now() + interval '30 days')\n         ON CONFLICT (workspace_id, code) DO NOTHING\n         RETURNING id, expires_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int8",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "34865978c58f496c62b074197119537c80f0d42faf3d1dbb6d90e347771a5119"
+}

@@ -88,6 +88,19 @@ impl FarmAccess {
         }
     }
 
+    /// Villages of the caller's farmer and field-officer roles (ops/admin: see `manages`).
+    pub fn member_villages(&self) -> Vec<Uuid> {
+        self.roles.iter().filter_map(|r| r.village_id).collect()
+    }
+
+    /// The most senior live role, as the voucher trail names the actor.
+    pub fn role_label(&self) -> &'static str {
+        [ADMIN, OPS, FIELD_OFFICER, FARMER]
+            .into_iter()
+            .find(|r| self.has(&[r]))
+            .unwrap_or("unknown")
+    }
+
     /// True when the caller is staff in `village`.
     pub fn staff_in(&self, village: Uuid) -> bool {
         let s = self.staff_scope();

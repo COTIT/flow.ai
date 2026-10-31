@@ -1335,3 +1335,116 @@ fn every_farm_documents_operation_is_documented() {
         );
     }
 }
+
+#[test]
+fn every_farm_surveys_and_vouchers_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/surveys", "get", "farm_surveys_list", "200"),
+        ("/farm/surveys", "post", "farm_surveys_create", "201"),
+        (
+            "/farm/surveys/eligibility",
+            "get",
+            "farm_surveys_eligibility",
+            "200",
+        ),
+        ("/farm/surveys/{survey}", "get", "farm_surveys_get", "200"),
+        (
+            "/farm/surveys/{survey}",
+            "patch",
+            "farm_surveys_update",
+            "200",
+        ),
+        (
+            "/farm/surveys/{survey}/questions",
+            "post",
+            "farm_surveys_add_question",
+            "201",
+        ),
+        (
+            "/farm/surveys/{survey}/questions/{question}",
+            "put",
+            "farm_surveys_replace_question",
+            "204",
+        ),
+        (
+            "/farm/surveys/{survey}/questions/{question}",
+            "delete",
+            "farm_surveys_remove_question",
+            "204",
+        ),
+        (
+            "/farm/surveys/{survey}/publish",
+            "post",
+            "farm_surveys_publish",
+            "200",
+        ),
+        (
+            "/farm/surveys/{survey}/close",
+            "post",
+            "farm_surveys_close",
+            "200",
+        ),
+        (
+            "/farm/surveys/{survey}/responses",
+            "post",
+            "farm_surveys_answer",
+            "201",
+        ),
+        (
+            "/farm/surveys/{survey}/results",
+            "get",
+            "farm_surveys_results",
+            "200",
+        ),
+        (
+            "/farm/surveys/{survey}/vouchers",
+            "get",
+            "farm_surveys_vouchers",
+            "200",
+        ),
+        ("/farm/vouchers/mine", "get", "farm_vouchers_mine", "200"),
+        (
+            "/farm/vouchers/lookup",
+            "post",
+            "farm_vouchers_lookup",
+            "200",
+        ),
+        (
+            "/farm/vouchers/redeem",
+            "post",
+            "farm_vouchers_redeem",
+            "200",
+        ),
+        (
+            "/farm/vouchers/{voucher}/void",
+            "post",
+            "farm_vouchers_void",
+            "204",
+        ),
+        (
+            "/farm/vouchers/{voucher}/timeline",
+            "get",
+            "farm_vouchers_timeline",
+            "200",
+        ),
+        (
+            "/farm/redemptions",
+            "get",
+            "farm_vouchers_redemptions",
+            "200",
+        ),
+        (
+            "/farm/redemptions/totals",
+            "get",
+            "farm_vouchers_redemption_totals",
+            "200",
+        ),
+    ]);
+    // Staff-facing voucher shapes never carry the code.
+    let s = spec();
+    for name in ["SurveyVoucher", "LookupResult", "Redemption"] {
+        let props = &s["components"]["schemas"][name]["properties"];
+        assert!(props.is_object(), "{name}");
+        assert!(props.get("code").is_none(), "{name} exposes the code");
+    }
+}

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Phase 4 surveys and vouchers (G14, contract `docs/api/farm-surveys.md`, migration `farm_surveys`):
+  - Tables `farm_surveys` (reward in minor units + workspace currency), `farm_survey_questions`, `farm_survey_responses` (one per household, `client_ref` unique), `farm_survey_answers`, `farm_vouchers`, `farm_voucher_events` (append-only), `farm_voucher_lookups` (per-user lookup limit). Triggers freeze a live survey and its questions and allow only draft -> live -> closed.
+  - Admin authoring, publish checks and close; eligibility list and submit share one pure rule (`farm_surveys::eligibility::block_reason`); one transaction issues response, answers, voucher and its `issued` event; results and per-survey voucher list for staff (no codes).
+  - Vouchers: household's own list with codes; staff lookup (every scan logged, `refused` outside the village, 30 per minute per account); redeem with RUAHA's three-staff rule, audit hold and ID type, row-locked so parallel redeems pay once; ops void with reason; trail filtered by who asks; redemption log and per-officer daily totals summed as bigint.
+  - `FarmAccess::member_villages` and `role_label`.
 - Phase 4 plot title documents (contract `docs/api/farm-documents.md`, migration `farm_plot_documents`): `/farm/plots/{plot}/documents` list, multipart upload (JPEG/PNG/WebP/HEIC/PDF sniffed from the bytes, 10 MB, client `id` makes retries safe, a fresh object per attempt) and get with a 10-minute presigned link. Staff of the plot's village only; farmers get 404. Own append-only table (trigger), key tied to the plot folder by CHECK and re-checked in Rust; never visible to the workspace file list or file delete. `files::service::{display_name, inline}` are now `pub(crate)` for reuse.
 - Phase 4 farmer logins (G11, contract `docs/api/farm-logins.md`, migration `farm_logins`):
   - `users.email` nullable, `users.phone` (unique, E.164) and `users.must_change_password`; an account has an email or a phone. The down migration refuses while phone-only accounts exist.

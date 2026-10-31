@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_survey_questions SET deleted_at = now(), updated_at = now()\n         WHERE survey_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3a73d1cfe530b82872f3c7eeb09cee5a42e134ac4407ce00cced3a09be6d3c11"
+}
