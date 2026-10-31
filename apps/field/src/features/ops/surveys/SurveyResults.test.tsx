@@ -1,9 +1,9 @@
 import { render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-const useSurveyTally = vi.fn()
+const useSurveyResults = vi.fn()
 vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
-  useSurveyTally: (id: string) => useSurveyTally(id),
+  useSurveyResults: (id: string) => useSurveyResults(id),
 }))
 
 const { SurveyResults } = await import('@/features/ops/surveys/SurveyResults')
@@ -12,13 +12,9 @@ await import('@/i18n')
 const SURVEY = '30000000-0000-4000-8000-000000000001'
 
 const q = (over: Record<string, unknown>) => ({
-  survey_id: SURVEY,
   prompt_sw: null,
   required: true,
   options: [],
-  deleted_at: null,
-  created_at: '2026-09-28T08:00:00Z',
-  updated_at: '2026-09-28T08:00:00Z',
   ...over,
 })
 
@@ -38,47 +34,33 @@ const questions = [
   q({ id: 'q4', position: 4, kind: 'text', prompt_en: 'Anything else?' }),
 ]
 
-const summary = {
-  survey_id: SURVEY,
-  project_id: 'p1',
+/** GET .../results: every count and sum is the API's. */
+const results = {
+  currency: 'TZS',
   responses: 3,
-  issued_count: 3,
-  issued_amount: 15000,
-  redeemed_count: 1,
-  redeemed_amount: 5000,
-  outstanding_count: 1,
-  outstanding_amount: 5000,
+  issued: { count: 3, minor: 1500000 },
+  redeemed: { count: 1, minor: 500000 },
+  outstanding: { count: 1, minor: 500000 },
   expired_count: 0,
   void_count: 1,
-}
-
-const tally = {
-  choices: [
-    { question_id: 'q1', option_value: 'maize', answer_count: 2 },
-    { question_id: 'q1', option_value: 'sorghum', answer_count: 1 },
-    { question_id: 'q2', option_value: 'true', answer_count: 2 },
-    { question_id: 'q2', option_value: 'false', answer_count: 1 },
+  tally: [
+    { question_id: 'q1', position: 1, option_value: 'maize', answers: 2 },
+    { question_id: 'q1', position: 1, option_value: 'sorghum', answers: 1 },
+    { question_id: 'q2', position: 2, option_value: 'true', answers: 2 },
+    { question_id: 'q2', position: 2, option_value: 'false', answers: 1 },
   ],
-  numbers: [{ question_id: 'q3', answer_count: 3, average: 2.33, minimum: 1, maximum: 4 }],
+  numbers: [{ question_id: 'q3', position: 3, answers: 3, average: '2.33', minimum: '1', maximum: '4' }],
 }
 
-const renderResults = (over: { summary?: unknown } = {}) =>
-  render(
-    <SurveyResults
-      surveyId={SURVEY}
-      currency="TZS"
-      questions={questions as never}
-      summary={('summary' in over ? over.summary : summary) as never}
-    />,
-  )
+const renderResults = () => render(<SurveyResults surveyId={SURVEY} decimals={2} questions={questions as never} />)
 
 beforeEach(() => {
-  useSurveyTally.mockReset()
-  useSurveyTally.mockReturnValue({ isLoading: false, error: null, data: tally, refetch: vi.fn() })
+  useSurveyResults.mockReset()
+  useSurveyResults.mockReturnValue({ isLoading: false, error: null, data: results, refetch: vi.fn() })
 })
 
 describe('the summary figures', () => {
-  test('are the view figures, each with its cash where it has one', () => {
+  test("are the API's figures, each with its cash where it has one", () => {
     renderResults()
 
     expect(screen.getByTestId('summary-responses')).toHaveTextContent('3')
@@ -97,8 +79,9 @@ describe('the summary figures', () => {
     }
   })
 
-  test('no summary row is absent figures, not zeros', () => {
-    renderResults({ summary: null })
+  test('while loading, figures are absent, not zeros', () => {
+    useSurveyResults.mockReturnValue({ isLoading: true, error: null, data: undefined })
+    renderResults()
     expect(screen.getByTestId('summary-responses')).toHaveTextContent('—')
     expect(screen.getByTestId('summary-issued')).toHaveTextContent('—')
   })
@@ -115,7 +98,7 @@ describe('the answer tally', () => {
 
   test('asks for this survey', () => {
     renderResults()
-    expect(useSurveyTally).toHaveBeenCalledWith(SURVEY)
+    expect(useSurveyResults).toHaveBeenCalledWith(SURVEY)
   })
 
   test('choice counts carry the option labels from the question', () => {
@@ -146,7 +129,7 @@ describe('the answer tally', () => {
     expect(rows[1]).toHaveTextContent('1')
   })
 
-  test('a number question shows the view average, lowest and highest', () => {
+  test('a number question shows the API average, lowest and highest', () => {
     renderResults()
     const number = within(screen.getAllByTestId('tally-question')[2])
     expect(number.getByTestId('tally-average')).toHaveTextContent('Average 2.33')
@@ -162,15 +145,15 @@ describe('the answer tally', () => {
     expect(text.queryByTestId('tally-option')).not.toBeInTheDocument()
   })
 
-  test('a failed tally read is an error, the summary still shows', () => {
-    useSurveyTally.mockReturnValue({ isLoading: false, error: new Error('tally failed'), data: undefined, refetch: vi.fn() })
+  test('a failed read is an error, and no figure is invented', () => {
+    useSurveyResults.mockReturnValue({ isLoading: false, error: new Error('results failed'), data: undefined, refetch: vi.fn() })
     renderResults()
-    expect(screen.getByTestId('error-state')).toHaveTextContent('tally failed')
-    expect(screen.getByTestId('summary-responses')).toHaveTextContent('3')
+    expect(screen.getByTestId('error-state')).toHaveTextContent('results failed')
+    expect(screen.getByTestId('summary-responses')).toHaveTextContent('—')
   })
 
   test('loading is a loading state', () => {
-    useSurveyTally.mockReturnValue({ isLoading: true, error: null, data: undefined })
+    useSurveyResults.mockReturnValue({ isLoading: true, error: null, data: undefined })
     renderResults()
     expect(screen.getByTestId('tally-loading')).toBeInTheDocument()
   })

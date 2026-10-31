@@ -9,8 +9,11 @@ const voidState = { isPending: false, isError: false, error: null as Error | nul
 
 vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
   useSurveyVouchers: (id: string) => useSurveyVouchers(id),
-  useVoucherTimeline: (id: string | null) => useVoucherTimeline(id),
   useVoidVoucher: () => ({ mutateAsync: voidMutateAsync, reset: vi.fn(), ...voidState }),
+}))
+// The voucher trail read that step 3 put on the API.
+vi.mock('@/features/officer/useVoucherRedeem', () => ({
+  useVoucherTimeline: (id: string | null) => useVoucherTimeline(id),
 }))
 
 const { SurveyVouchers } = await import('@/features/ops/surveys/SurveyVouchers')
@@ -25,8 +28,7 @@ const voucher = (over: Record<string, unknown> = {}) => ({
   submitted_at: '2026-09-20T07:30:00Z',
   status: 'issued',
   expired: false,
-  amount: 5000,
-  currency: 'TZS',
+  amount: { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' },
   audit_required: false,
   issued_at: '2026-09-20T07:30:00Z',
   expires_at: '2026-10-20T07:30:00Z',
@@ -68,7 +70,7 @@ beforeEach(() => {
 const rows = () => screen.getAllByTestId('voucher-row')
 
 describe('the voucher table', () => {
-  test('reads app_survey_vouchers for this survey', () => {
+  test('reads the vouchers of this survey', () => {
     render(<SurveyVouchers surveyId={SURVEY} />)
     expect(useSurveyVouchers).toHaveBeenCalledWith(SURVEY)
   })
@@ -93,7 +95,7 @@ describe('the voucher table', () => {
     expect(within(second).getByTestId('voucher-held')).toHaveTextContent('Held')
   })
 
-  // `expired` is derived by the RPC from expires_at; the stored status stays
+  // `expired` is the API's flag; the stored status stays
   // 'issued'. The pill says expired.
   test('an expired voucher reads as expired', () => {
     useSurveyVouchers.mockReturnValue({ isLoading: false, error: null, data: [voucher({ expired: true })] })
@@ -170,6 +172,7 @@ describe('cancelling a voucher', () => {
 
     await userEvent.click(screen.getByTestId('confirm-dialog-confirm'))
 
+    expect(voidMutateAsync).toHaveBeenCalledTimes(1)
     expect(voidMutateAsync).toHaveBeenCalledWith({
       voucherId: '40000000-0000-4000-8000-000000000001',
       reason: 'Household answered twice',
@@ -187,7 +190,7 @@ describe('cancelling a voucher', () => {
     expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
   })
 
-  // "give a reason for voiding this voucher" is the RPC's rule and sentence.
+  // "a reason is required" is the API's rule and sentence.
   test('a blank reason is sent, not pre-checked', async () => {
     render(<SurveyVouchers surveyId={SURVEY} />)
     await userEvent.click(rows()[0])
@@ -197,7 +200,7 @@ describe('cancelling a voucher', () => {
     expect(voidMutateAsync).toHaveBeenCalledWith({ voucherId: expect.any(String), reason: '' })
   })
 
-  test('the refusal is shown as the database wrote it', async () => {
+  test('the refusal is shown as the API wrote it', async () => {
     voidState.isError = true
     voidState.error = new Error('give a reason for voiding this voucher')
     render(<SurveyVouchers surveyId={SURVEY} />)

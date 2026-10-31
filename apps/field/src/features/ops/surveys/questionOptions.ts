@@ -1,6 +1,5 @@
-import type { Database } from '@/lib/db.types'
-
-export type QuestionKind = Database['public']['Enums']['survey_question_kind']
+/** The API's question kinds (`QuestionResource.kind`). */
+export type QuestionKind = 'single_choice' | 'multi_choice' | 'number' | 'text' | 'yes_no'
 
 export const QUESTION_KINDS: QuestionKind[] = ['single_choice', 'multi_choice', 'yes_no', 'number', 'text']
 
@@ -11,17 +10,14 @@ export interface EditableOption {
   label_sw: string
 }
 
-/**
- * One option as `survey_question.options` stores it. A type alias rather than
- * an interface so an array of them is assignable to the generated `Json`.
- */
+/** One option as the API stores it (`QuestionRequest.options`). */
 export type StoredOption = {
   value: string
   label_en: string
   label_sw?: string
 }
 
-export function isChoiceKind(kind: QuestionKind): boolean {
+export function isChoiceKind(kind: string): boolean {
   return kind === 'single_choice' || kind === 'multi_choice'
 }
 
@@ -68,7 +64,7 @@ export function slugValue(label: string, taken: readonly string[]): string {
  * The options array to send.
  *
  * Only choice kinds carry options. Nothing is dropped or refused here: a
- * blank option is sent as it stands, and survey_guard's "every option needs a
+ * blank option is sent as it stands, and the API's "every option needs a
  * value and an English label" answers it at publish.
  */
 export function optionsForSave(kind: QuestionKind, options: EditableOption[]): StoredOption[] {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { authoringProjectId, canAuthorSurveys } from '@/features/ops/surveys/permissions'
+import { canAuthorSurveys } from '@/features/ops/surveys/permissions'
 
 const membership = (over: Record<string, unknown> = {}) => ({
   id: 'm1',
@@ -40,22 +40,5 @@ describe('canAuthorSurveys', () => {
 
   test('field officer and farmer never author', () => {
     expect(canAuthorSurveys([membership({ role: 'field_officer' }), membership({ role: 'farmer' })])).toBe(false)
-  })
-})
-
-describe('authoringProjectId', () => {
-  test('is the active admin membership project', () => {
-    expect(
-      authoringProjectId([
-        membership({ role: 'ops', project_id: 'ops-project' }),
-        membership({ project_id: 'admin-project' }),
-      ]),
-    ).toBe('admin-project')
-  })
-
-  test('is undefined without an active admin membership', () => {
-    expect(authoringProjectId([membership({ role: 'ops' })])).toBeUndefined()
-    expect(authoringProjectId([membership({ revoked_at: '2026-09-01T00:00:00Z' })])).toBeUndefined()
-    expect(authoringProjectId(undefined)).toBeUndefined()
   })
 })

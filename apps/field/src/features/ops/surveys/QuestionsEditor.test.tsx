@@ -22,7 +22,6 @@ const SURVEY = '30000000-0000-4000-8000-000000000001'
 
 const question = (over: Record<string, unknown> = {}) => ({
   id: 'q1',
-  survey_id: SURVEY,
   position: 1,
   kind: 'single_choice' as const,
   prompt_en: 'What is your main crop?',
@@ -30,11 +29,8 @@ const question = (over: Record<string, unknown> = {}) => ({
   required: true,
   options: [
     { value: 'maize', label_en: 'Maize', label_sw: 'Mahindi' },
-    { value: 'beans', label_en: 'Beans' },
+    { value: 'beans', label_en: 'Beans', label_sw: null },
   ],
-  deleted_at: null,
-  created_at: '2026-09-28T08:00:00Z',
-  updated_at: '2026-09-28T08:00:00Z',
   ...over,
 })
 
@@ -225,8 +221,8 @@ describe('ordering and removing', () => {
     await userEvent.click(within(first).getByTestId('question-move-down'))
 
     expect(swapMutate).toHaveBeenCalledWith({
-      first: { id: 'q1', position: 1 },
-      second: { id: 'q2', position: 2 },
+      first: expect.objectContaining({ id: 'q1', position: 1 }),
+      second: expect.objectContaining({ id: 'q2', position: 2 }),
     })
   })
 
@@ -237,8 +233,8 @@ describe('ordering and removing', () => {
     await userEvent.click(within(second).getByTestId('question-move-up'))
 
     expect(swapMutate).toHaveBeenCalledWith({
-      first: { id: 'q2', position: 2 },
-      second: { id: 'q1', position: 1 },
+      first: expect.objectContaining({ id: 'q2', position: 2 }),
+      second: expect.objectContaining({ id: 'q1', position: 1 }),
     })
   })
 

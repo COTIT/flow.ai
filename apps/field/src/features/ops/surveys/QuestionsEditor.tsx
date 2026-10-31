@@ -28,7 +28,7 @@ import { localisedField } from '@/lib/names'
  *
  * Every rule about what a publishable question looks like — at least one
  * question, two options per choice question, a value and an English label per
- * option — is survey_guard's, checked when the survey goes live. The editor
+ * option — is the API's, checked when the survey goes live. The editor
  * sends what was typed; the guard's sentence is the feedback.
  */
 export function QuestionsEditor({ surveyId, questions }: { surveyId: string; questions: SurveyQuestion[] }) {
@@ -70,18 +70,8 @@ export function QuestionsEditor({ surveyId, questions }: { surveyId: string; que
               position={question.position}
               canMoveUp={index > 0 && !swap.isPending}
               canMoveDown={index < questions.length - 1 && !swap.isPending}
-              onMoveUp={() =>
-                swap.mutate({
-                  first: { id: question.id, position: question.position },
-                  second: { id: questions[index - 1].id, position: questions[index - 1].position },
-                })
-              }
-              onMoveDown={() =>
-                swap.mutate({
-                  first: { id: question.id, position: question.position },
-                  second: { id: questions[index + 1].id, position: questions[index + 1].position },
-                })
-              }
+              onMoveUp={() => swap.mutate({ first: question, second: questions[index - 1] })}
+              onMoveDown={() => swap.mutate({ first: question, second: questions[index + 1] })}
               onRemove={() => remove.mutate(question.id)}
               removing={remove.isPending}
             />
@@ -136,7 +126,7 @@ function stateOf(question: SurveyQuestion): CardState {
   return {
     prompt_en: question.prompt_en,
     prompt_sw: question.prompt_sw ?? '',
-    kind: question.kind,
+    kind: question.kind as QuestionKind,
     required: question.required,
     options: parseOptions(question.options),
   }

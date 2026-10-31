@@ -3,7 +3,10 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { createColumnHelper } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import { formatMoney } from '@genesy/ui/lib/money'
+
 import { useSession } from '@/app/session'
+import { useWorkspaceId } from '@/app/workspace'
 import { DataTable } from '@/components/DataTable'
 import { ErrorState } from '@/components/ErrorState'
 import { FormDraftStatus } from '@/components/FormDraftStatus'
@@ -14,26 +17,25 @@ import { StatusPill } from '@/components/StatusPill'
 import { TableSurface } from '@/components/TableSurface'
 import { Button } from '@/components/ui/button'
 import { Field, Panel, SectionTitle } from '@/features/ops/surveys/Field'
-import { countAndAmount, UNKNOWN } from '@/features/ops/surveys/figures'
-import { authoringProjectId, canAuthorSurveys } from '@/features/ops/surveys/permissions'
+import { amountToMinor } from '@/features/ops/surveys/figures'
+import { canAuthorSurveys } from '@/features/ops/surveys/permissions'
 import {
   useCreateSurvey,
+  useCurrencies,
   useSurveyAdminList,
   type SurveyListRow,
 } from '@/features/ops/surveys/useSurveyAdmin'
 import { finishDraftWhenSaved } from '@/lib/drafts'
-import { formatMoney } from '@/lib/format'
 import { localisedField } from '@/lib/names'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
 type ListRow = SurveyListRow & { title: string }
 
 /**
- * Ops/admin — every survey, with the figures v_survey_summary holds for it.
+ * Ops/admin — every survey, with the response count the API holds for it.
  *
  * Only an admin authors. The "New survey" control renders for an active admin
- * membership; survey_guard and the insert policy are what actually refuse
- * anyone else.
+ * membership; the API's 403 is what actually refuses anyone else.
  */
 export function SurveyAdminListScreen() {
   const { t, i18n } = useTranslation()
@@ -63,39 +65,24 @@ export function SurveyAdminListScreen() {
         header: t('surveyAdmin.columns.status'),
         cell: (c) => <StatusPill kind="survey" status={c.getValue()} />,
       }),
-      col.accessor('reward_amount', {
+      col.accessor((row) => row.reward.minor, {
+        id: 'reward',
         header: t('surveyAdmin.columns.reward'),
         meta: { numeric: true },
-        cell: (c) => formatMoney(c.getValue(), c.row.original.currency),
+        cell: (c) => {
+          const { minor, decimals, currency } = c.row.original.reward
+          return formatMoney(minor, decimals, currency, i18n.language)
+        },
       }),
-      col.accessor((row) => row.summary?.responses ?? null, {
-        id: 'responses',
+      col.accessor('responses', {
         header: t('surveyAdmin.columns.responses'),
         meta: { numeric: true },
-        cell: (c) => <span data-testid="survey-responses">{c.getValue() ?? UNKNOWN}</span>,
+        cell: (c) => <span data-testid="survey-responses">{c.getValue()}</span>,
       }),
-      col.accessor((row) => row.summary?.redeemed_amount ?? null, {
-        id: 'redeemed',
-        header: t('surveyAdmin.columns.redeemed'),
-        meta: { numeric: true },
-        cell: (c) => (
-          <span data-testid="survey-redeemed">
-            {countAndAmount(c.row.original.summary?.redeemed_count, c.getValue(), c.row.original.currency)}
-          </span>
-        ),
-      }),
-      col.accessor((row) => row.summary?.outstanding_amount ?? null, {
-        id: 'outstanding',
-        header: t('surveyAdmin.columns.outstanding'),
-        meta: { numeric: true },
-        cell: (c) => (
-          <span data-testid="survey-outstanding">
-            {countAndAmount(c.row.original.summary?.outstanding_count, c.getValue(), c.row.original.currency)}
-          </span>
-        ),
-      }),
+      // shortcut: redeemed / outstanding per survey are hidden — GET .../surveys has no voucher
+      // sums (the old summary view); they show on the survey's results. Add when the list sends them.
     ]
-  }, [t])
+  }, [t, i18n.language])
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
 
@@ -131,9 +118,8 @@ export function SurveyAdminListScreen() {
 
       {admin && createOpen && (
         <NewSurveyPanel
-          projectId={authoringProjectId(session?.memberships)}
           onClose={() => setCreateOpen(false)}
-          onCreated={(surveyId) => void navigate({ to: '/ops/surveys/$surveyId', params: { surveyId } })}
+          onCreated={(surveyId: string) => void navigate({ to: '/ops/surveys/$surveyId', params: { surveyId } })}
         />
       )}
 
@@ -150,7 +136,7 @@ export function SurveyAdminListScreen() {
             // that somebody has answered, not whichever one happens to be first.
             rowAttrs={(row) => ({
               'data-status': row.status,
-              'data-answered': String((row.summary?.responses ?? 0) > 0),
+              'data-answered': String(row.responses > 0),
             })}
             onRowClick={(row) =>
               void navigate({ to: '/ops/surveys/$surveyId', params: { surveyId: row.id } })
@@ -163,43 +149,45 @@ export function SurveyAdminListScreen() {
   )
 }
 
-const NEW_SURVEY_DEFAULTS: { title_en: string; reward_amount: string } = { title_en: '', reward_amount: '' }
+const NEW_SURVEY_DEFAULTS: { title_en: string; reward_amount: string; currency_id: string } = {
+  title_en: '',
+  reward_amount: '',
+  currency_id: '',
+}
 
 /**
- * Two fields, then the draft opens for everything else. Nothing is
- * pre-checked: the title and incentive checks are the database's, and its
- * message is what the admin reads.
+ * Three fields, then the draft opens for everything else. Nothing is
+ * pre-checked: the title and incentive checks are the API's, and its message
+ * is what the admin reads. The typed amount becomes integer minor units of the
+ * chosen currency by string maths (amountToMinor), never a float.
  */
-function NewSurveyPanel({
-  projectId,
-  onClose,
-  onCreated,
-}: {
-  projectId: string | undefined
-  onClose: () => void
-  onCreated: (surveyId: string) => void
-}) {
+function NewSurveyPanel({ onClose, onCreated }: { onClose: () => void; onCreated: (surveyId: string) => void }) {
   const { t } = useTranslation()
   const create = useCreateSurvey()
-  const draft = usePersistentForm('survey-create', projectId ?? 'project', NEW_SURVEY_DEFAULTS)
+  const currencies = useCurrencies()
+  const draft = usePersistentForm('survey-create', useWorkspaceId() ?? 'workspace', NEW_SURVEY_DEFAULTS)
   const [title, setTitle] = draft.field('title_en')
   const [reward, setReward] = draft.field('reward_amount')
+  const [currencyId, setCurrencyId] = draft.field('currency_id')
+  const list = currencies.data ?? []
+  const currency =
+    list.find((c) => c.id === currencyId) ?? list.find((c) => c.default_currency) ?? list[0]
   // isPending is only true on the NEXT render; a ref latches in the same tick.
   const inFlight = useRef(false)
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
-    if (inFlight.current || create.isPending || !draft.ready || !projectId) return
+    if (inFlight.current || create.isPending || !draft.ready || !currency) return
     inFlight.current = true
-    const id = draft.clientRef
+    // shortcut: no client id is sent — the API's create takes none (see useCreateSurvey).
     const save = create
       .mutateAsync({
-        id,
-        project_id: projectId,
         title_en: title.trim(),
-        reward_amount: reward.trim() === '' ? null : Number(reward),
+        // Null (blank or not an amount) goes as null: the API says what is wrong.
+        reward_minor: amountToMinor(reward, currency.decimals),
+        currency_id: currency.id,
       })
-      .then(() => onCreated(id))
+      .then((created) => onCreated(created.id))
     void finishDraftWhenSaved(save, draft.finish).finally(() => {
       inFlight.current = false
     })
@@ -230,23 +218,38 @@ function NewSurveyPanel({
             <input
               id="survey-new-reward"
               data-testid="survey-new-reward"
-              type="number"
               inputMode="decimal"
-              min={0}
               value={reward}
               onChange={(e) => setReward(e.target.value)}
               className="w-full"
               style={CONTROL}
             />
           </Field>
+          <Field label={t('surveyAdmin.fields.currency')} htmlFor="survey-new-currency">
+            <select
+              id="survey-new-currency"
+              data-testid="survey-new-currency"
+              value={currency?.id ?? ''}
+              onChange={(e) => setCurrencyId(e.target.value)}
+              className="w-full"
+              style={CONTROL}
+            >
+              {list.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.asset_type.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
 
+        {currencies.error && <ErrorState error={currencies.error} />}
         {create.isError && <ErrorState error={create.error} />}
 
         <Button
           type="submit"
           data-testid="survey-new-submit"
-          disabled={!draft.ready || create.isPending}
+          disabled={!draft.ready || !currency || create.isPending}
           className="w-fit"
         >
           {create.isPending ? t('surveyAdmin.saving') : t('surveyAdmin.save')}

@@ -11,6 +11,13 @@ vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
   useSurveyAdminList: () => useSurveyAdminList(),
   // No `mutate`: its per-call callbacks are skipped after unmount.
   useCreateSurvey: () => ({ mutateAsync, reset: vi.fn(), ...createState }),
+  useCurrencies: () => ({
+    data: [
+      { id: 'c-usd', asset_type: 'usd', decimals: 2, default_currency: false, active: true },
+      { id: 'c-tzs', asset_type: 'tzs', decimals: 2, default_currency: true, active: true },
+    ],
+    error: null,
+  }),
 }))
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => navigate,
@@ -45,29 +52,15 @@ const asAdmin = () => {
 
 const survey = (over: Record<string, unknown> = {}) => ({
   id: '30000000-0000-4000-8000-000000000001',
-  project_id: PROJECT,
   village_id: null,
   title_en: 'Harvest intentions',
   title_sw: 'Nia ya mavuno',
-  reward_amount: 5000,
-  currency: 'TZS',
+  reward: { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' },
   status: 'live',
+  responses: 3,
   closes_at: null,
   published_at: '2026-09-20T08:00:00Z',
   created_at: '2026-09-19T08:00:00Z',
-  summary: {
-    survey_id: '30000000-0000-4000-8000-000000000001',
-    project_id: PROJECT,
-    responses: 3,
-    issued_count: 3,
-    issued_amount: 15000,
-    redeemed_count: 1,
-    redeemed_amount: 5000,
-    outstanding_count: 2,
-    outstanding_amount: 10000,
-    expired_count: 0,
-    void_count: 0,
-  },
   ...over,
 })
 
@@ -114,25 +107,21 @@ describe('SurveyAdminListScreen states', () => {
 })
 
 describe('the survey table', () => {
-  test('shows the title, status, incentive and the database figures', () => {
+  test("shows the title, status, incentive and the API's response count", () => {
     render(<SurveyAdminListScreen />)
 
     const row = screen.getByTestId('survey-row')
     expect(row).toHaveTextContent('Harvest intentions')
     expect(within(row).getByTestId('status-pill')).toHaveAttribute('data-status', 'live')
-    expect(row).toHaveTextContent('TZS 5,000.00')
+    expect(row.textContent).toMatch(/TZS\s5,000\.00/)
     expect(within(row).getByTestId('survey-responses')).toHaveTextContent('3')
-    expect(within(row).getByTestId('survey-redeemed')).toHaveTextContent('1 · TZS 5,000.00')
-    expect(within(row).getByTestId('survey-outstanding')).toHaveTextContent('2 · TZS 10,000.00')
   })
 
-  // A missing summary row is shown as absent, never as an invented zero.
-  test('a survey without a summary row shows no figures rather than zeros', () => {
-    useSurveyAdminList.mockReturnValue({ isLoading: false, error: null, data: [survey({ summary: null })] })
+  // shortcut in the screen: the list has no per-survey voucher sums yet.
+  test('no redeemed or outstanding figures are invented for the list', () => {
     render(<SurveyAdminListScreen />)
-
-    expect(screen.getByTestId('survey-responses')).toHaveTextContent('—')
-    expect(screen.getByTestId('survey-redeemed')).toHaveTextContent('—')
+    expect(screen.queryByTestId('survey-redeemed')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('survey-outstanding')).not.toBeInTheDocument()
   })
 
   test('the title is chosen by language at render', async () => {
@@ -170,8 +159,8 @@ describe('the survey table', () => {
       error: null,
       data: [
         survey(),
-        survey({ id: 'a', status: 'live', summary: { ...survey().summary, responses: 0 } }),
-        survey({ id: 'b', status: 'draft', summary: null }),
+        survey({ id: 'a', status: 'live', responses: 0 }),
+        survey({ id: 'b', status: 'draft', responses: 0 }),
       ],
     })
     render(<SurveyAdminListScreen />)
@@ -203,29 +192,36 @@ describe('authoring controls', () => {
     expect(screen.queryByTestId('survey-create-panel')).not.toBeInTheDocument()
   })
 
-  test('a new survey is a draft in the admin project, opened once saved', async () => {
+  test('a new survey is one POST in the default currency, its reward in integer minor units', async () => {
     asAdmin()
     render(<SurveyAdminListScreen />)
     await userEvent.click(screen.getByTestId('survey-create-open'))
 
+    expect(screen.getByTestId('survey-new-currency')).toHaveValue('c-tzs')
     await userEvent.type(screen.getByTestId('survey-new-title'), '  Water use  ')
-    await userEvent.type(screen.getByTestId('survey-new-reward'), '5000')
+    await userEvent.type(screen.getByTestId('survey-new-reward'), '5,000')
     await userEvent.click(screen.getByTestId('survey-new-submit'))
 
     expect(mutateAsync).toHaveBeenCalledTimes(1)
-    const input = mutateAsync.mock.calls[0][0]
-    expect(input).toEqual({
-      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      project_id: PROJECT,
-      title_en: 'Water use',
-      reward_amount: 5000,
-    })
+    expect(mutateAsync.mock.calls[0][0]).toEqual({ title_en: 'Water use', reward_minor: 500000, currency_id: 'c-tzs' })
     await waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith({ to: '/ops/surveys/$surveyId', params: { surveyId: input.id } }),
+      expect(navigate).toHaveBeenCalledWith({ to: '/ops/surveys/$surveyId', params: { surveyId: 'new-id' } }),
     )
   })
 
-  // reward_amount is not null and > 0 in the database, which says so itself.
+  test('another currency can be chosen', async () => {
+    asAdmin()
+    render(<SurveyAdminListScreen />)
+    await userEvent.click(screen.getByTestId('survey-create-open'))
+    await userEvent.selectOptions(screen.getByTestId('survey-new-currency'), 'c-usd')
+    await userEvent.type(screen.getByTestId('survey-new-title'), 'Water use')
+    await userEvent.type(screen.getByTestId('survey-new-reward'), '12.5')
+    await userEvent.click(screen.getByTestId('survey-new-submit'))
+
+    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ reward_minor: 1250, currency_id: 'c-usd' })
+  })
+
+  // reward_minor is required and > 0 at the API, which says so itself.
   test('a blank incentive is sent as null, not pre-checked', async () => {
     asAdmin()
     render(<SurveyAdminListScreen />)
@@ -235,7 +231,7 @@ describe('authoring controls', () => {
     fireEvent.submit(screen.getByTestId('survey-new-submit').closest('form')!)
 
     expect(mutateAsync).toHaveBeenCalledTimes(1)
-    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ reward_amount: null })
+    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ reward_minor: null })
   })
 
   test('a second submit in the same tick does not write twice', async () => {
@@ -251,7 +247,7 @@ describe('authoring controls', () => {
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
   })
 
-  test('the database refusal is shown', async () => {
+  test('the API refusal is shown', async () => {
     asAdmin()
     createState.isError = true
     createState.error = new Error('only an admin may author surveys')

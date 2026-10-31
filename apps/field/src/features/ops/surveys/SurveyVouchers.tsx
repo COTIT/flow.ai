@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
+import { formatMoney } from '@genesy/ui/lib/money'
 
 import { AuditTimeline } from '@/components/AuditTimeline'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -13,23 +14,19 @@ import { TableSurface } from '@/components/TableSurface'
 import { Button } from '@/components/ui/button'
 import { Field, Panel, SectionTitle } from '@/features/ops/surveys/Field'
 import { UNKNOWN } from '@/features/ops/surveys/figures'
-import {
-  useSurveyVouchers,
-  useVoidVoucher,
-  useVoucherTimeline,
-  type SurveyVoucher,
-} from '@/features/ops/surveys/useSurveyAdmin'
-import { formatMoney, formatTimestamp } from '@/lib/format'
+import { useVoucherTimeline } from '@/features/officer/useVoucherRedeem'
+import { useSurveyVouchers, useVoidVoucher, type SurveyVoucher } from '@/features/ops/surveys/useSurveyAdmin'
+import { formatTimestamp } from '@/lib/format'
 
 /**
- * Every voucher issued for one survey, from app_survey_vouchers (ops/admin).
+ * Every voucher issued for one survey (ops/admin; the API sends no codes).
  *
- * Choosing one shows its whole trail — app_voucher_timeline gives ops the
- * full record, audit hold and refused scans included — and, while it is still
- * issued, the one action ops have on it: cancelling it, with a reason.
+ * Choosing one shows its whole trail — the API gives ops the full record,
+ * audit hold and refused scans included — and, while it is still issued, the
+ * one action ops have on it: voiding it, with a reason, behind a confirm dialog.
  */
 export function SurveyVouchers({ surveyId }: { surveyId: string }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const vouchers = useSurveyVouchers(surveyId)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // Read from the fresh list, so a cancelled voucher's panel follows the refetch.
@@ -49,10 +46,14 @@ export function SurveyVouchers({ surveyId }: { surveyId: string }) {
         header: t('surveyAdmin.voucherColumns.status'),
         cell: (c) => <StatusPill kind="voucher" status={c.row.original.expired ? 'expired' : c.getValue()} />,
       }),
-      col.accessor('amount', {
+      col.accessor((row) => row.amount.minor, {
+        id: 'amount',
         header: t('surveyAdmin.voucherColumns.amount'),
         meta: { numeric: true },
-        cell: (c) => formatMoney(c.getValue(), c.row.original.currency),
+        cell: (c) => {
+          const { minor, decimals, currency } = c.row.original.amount
+          return formatMoney(minor, decimals, currency, i18n.language)
+        },
       }),
       col.accessor('redeemed_by_name', {
         header: t('surveyAdmin.voucherColumns.redeemedBy'),
@@ -63,7 +64,7 @@ export function SurveyVouchers({ surveyId }: { surveyId: string }) {
         cell: (c) => (c.getValue() ? <HeldMark /> : null),
       }),
     ]
-  }, [t])
+  }, [t, i18n.language])
 
   return (
     <section className="flex flex-col gap-3" data-testid="survey-vouchers">
@@ -146,7 +147,7 @@ function VoucherPanel({
         )}
       </div>
 
-      {/* Only an issued voucher can be voided; the RPC holds that rule too. An
+      {/* Only an issued voucher can be voided; the API holds that rule too. An
           expired one is still `issued` — it was never collected. */}
       {voucher.status === 'issued' && <VoidVoucher key={voucher.voucher_id} surveyId={surveyId} voucherId={voucher.voucher_id} />}
     </Panel>

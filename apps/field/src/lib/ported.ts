@@ -13,6 +13,8 @@ export const PORTED: readonly string[] = [
   '/farm/my-farm',
   '/farm/surveys',
   '/farm/surveys/*',
+  '/ops/surveys',
+  '/ops/surveys/*',
 ]
 
 export function isPorted(pathname: string, ported: readonly string[] = PORTED): boolean {

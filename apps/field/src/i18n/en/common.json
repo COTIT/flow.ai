@@ -1352,7 +1352,8 @@
       "title_sw": "Title (Swahili)",
       "description_en": "Description (English)",
       "description_sw": "Description (Swahili)",
-      "reward_amount": "Incentive per household (TZS)",
+      "reward_amount": "Incentive per household",
+      "currency": "Currency",
       "max_households": "Most households (optional)",
       "audit_rate": "Vouchers held for audit (%)",
       "closes_at": "Closes on (optional)"

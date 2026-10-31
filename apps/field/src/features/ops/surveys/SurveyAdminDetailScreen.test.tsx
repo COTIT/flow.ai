@@ -14,20 +14,18 @@ vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
   useSaveQuestion: () => ({ ...idle, mutateAsync: vi.fn() }),
   useRemoveQuestion: () => ({ ...idle, mutate: vi.fn() }),
   useSwapQuestions: () => ({ ...idle, mutate: vi.fn() }),
-  useSurveyTally: () => ({ isLoading: false, error: null, data: { choices: [], numbers: [] } }),
+  useSurveyResults: () => ({ isLoading: true, error: null, data: undefined }),
   useSurveyVouchers: () => ({ isLoading: false, error: null, data: [] }),
-  useVoucherTimeline: () => ({ isLoading: false, error: null, data: undefined }),
   useVoidVoucher: () => ({ ...idle, mutateAsync: vi.fn() }),
+}))
+vi.mock('@/features/officer/useVoucherRedeem', () => ({
+  useVoucherTimeline: () => ({ isLoading: false, error: null, data: undefined }),
 }))
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useParams: () => ({ surveyId: '30000000-0000-4000-8000-000000000001' }) }),
   Link: ({ children, to, ...props }: { children: React.ReactNode; to?: string } & Record<string, unknown>) => (
     <a href={to ?? '#'} {...props}>{children}</a>
   ),
-}))
-const names: Record<string, string> = { u1: 'Amina Admin', u2: 'Juma Admin' }
-vi.mock('@/lib/actorNames', () => ({
-  useActorName: (id: string | null | undefined) => (id ? names[id] : undefined),
 }))
 
 const PROJECT = '20000000-0000-4000-8000-000000000001'
@@ -52,49 +50,44 @@ const as = (role: 'admin' | 'ops') => {
 
 const survey = (over: Record<string, unknown> = {}) => ({
   id: '30000000-0000-4000-8000-000000000001',
-  project_id: PROJECT,
   village_id: null,
   title_en: 'Harvest intentions',
   title_sw: 'Nia ya mavuno',
   description_en: null,
   description_sw: null,
-  reward_amount: 5000,
-  currency: 'TZS',
+  reward: { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' },
   max_households: null,
-  audit_rate: 0.15,
+  audit_percent: 15,
+  responses: 0,
+  questions: [],
   closes_at: null,
   status: 'draft',
   published_at: null,
   published_by: null,
   closed_at: null,
-  created_by: 'u1',
   created_at: '2026-09-19T08:00:00Z',
   updated_at: '2026-09-19T08:00:00Z',
   ...over,
 })
 
 const live = () =>
-  survey({ status: 'live', published_at: '2026-09-20T08:00:00Z', published_by: 'u2', closes_at: '2026-10-31T20:59:59+00:00' })
+  survey({ status: 'live', published_at: '2026-09-20T08:00:00Z', published_by: { id: 'u2', name: 'Juma Admin' }, closes_at: '2026-10-31T20:59:59+00:00' })
 
 const question = {
   id: 'q1',
-  survey_id: '30000000-0000-4000-8000-000000000001',
   position: 1,
   kind: 'yes_no',
   prompt_en: 'Do you irrigate?',
   prompt_sw: null,
   required: true,
   options: [],
-  deleted_at: null,
-  created_at: '2026-09-19T08:00:00Z',
-  updated_at: '2026-09-19T08:00:00Z',
 }
 
 const detail = (s = survey()) => ({
   isLoading: false,
   error: null,
   refetch: vi.fn(),
-  data: { survey: s, questions: [question], summary: null },
+  data: { survey: s, questions: [question] },
 })
 
 beforeEach(() => {
@@ -144,9 +137,10 @@ describe('the header', () => {
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Harvest intentions')
     expect(screen.getByTestId('page-header')).toContainElement(screen.getAllByTestId('status-pill')[0])
-    expect(screen.getByTestId('survey-fact-reward')).toHaveTextContent('TZS 5,000.00')
+    expect(screen.getByTestId('survey-fact-reward').textContent).toMatch(/TZS\s5,000\.00/)
     expect(screen.getByTestId('survey-fact-audit')).toHaveTextContent('15.0%')
-    expect(screen.getByTestId('survey-created-by')).toHaveTextContent('Created by Amina Admin')
+    // shortcut in the screen: the API's survey has no created_by yet.
+    expect(screen.queryByTestId('survey-created-by')).not.toBeInTheDocument()
   })
 
   test('a published survey says who published it and when', () => {
@@ -196,6 +190,7 @@ describe('a draft', () => {
     expect(statusMutateAsync).not.toHaveBeenCalled()
 
     await userEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+    expect(statusMutateAsync).toHaveBeenCalledTimes(1)
     expect(statusMutateAsync).toHaveBeenCalledWith('live')
     await waitFor(() => expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument())
   })
@@ -207,11 +202,12 @@ describe('a draft', () => {
     await userEvent.click(screen.getByTestId('survey-publish'))
     await userEvent.click(screen.getByTestId('confirm-dialog-cancel'))
 
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
     expect(statusMutateAsync).not.toHaveBeenCalled()
   })
 
-  // Every precondition of going live is survey_guard's.
-  test('the guard refusal is shown as written', () => {
+  // Every precondition of going live is the API's.
+  test('the API refusal is shown as written', () => {
     as('admin')
     statusState.isError = true
     statusState.error = new Error('a survey needs at least one question before it goes live')
@@ -242,8 +238,12 @@ describe('a live survey', () => {
 
     await userEvent.click(screen.getByTestId('survey-close'))
     expect(screen.getByTestId('confirm-dialog')).toHaveTextContent('Close this survey?')
-    await userEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+    await userEvent.click(screen.getByTestId('confirm-dialog-cancel'))
+    expect(statusMutateAsync).not.toHaveBeenCalled()
 
+    await userEvent.click(screen.getByTestId('survey-close'))
+    await userEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+    expect(statusMutateAsync).toHaveBeenCalledTimes(1)
     expect(statusMutateAsync).toHaveBeenCalledWith('closed')
   })
 
@@ -257,7 +257,7 @@ describe('a live survey', () => {
 
   test('a closed survey offers no status change', () => {
     as('admin')
-    useSurveyAdminDetail.mockReturnValue(detail(survey({ status: 'closed', published_by: 'u2', published_at: '2026-09-20T08:00:00Z' })))
+    useSurveyAdminDetail.mockReturnValue(detail(survey({ status: 'closed', published_by: { id: 'u2', name: 'Juma Admin' }, published_at: '2026-09-20T08:00:00Z' })))
     render(<SurveyAdminDetailScreen />)
 
     expect(screen.queryByTestId('survey-close')).not.toBeInTheDocument()

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { formatMoney } from '@genesy/ui/lib/money'
 
 import { useSession } from '@/app/session'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -23,8 +24,7 @@ import {
   useUpdateSurvey,
   type Survey,
 } from '@/features/ops/surveys/useSurveyAdmin'
-import { useActorName } from '@/lib/actorNames'
-import { formatMoney, formatPercent, formatPlainDate, formatTimestamp } from '@/lib/format'
+import { formatPercent, formatPlainDate, formatTimestamp } from '@/lib/format'
 import { localisedField } from '@/lib/names'
 
 const route = getRouteApi('/_ops/ops/surveys/$surveyId')
@@ -39,8 +39,8 @@ type StatusChange = 'live' | 'closed'
  *   live or closed    results and vouchers; an admin may close a live one
  *
  * The status machine (draft -> live -> closed) and every precondition of
- * going live belong to survey_guard. This screen offers the one legal next
- * step to an admin, and shows the guard's sentence if it refuses.
+ * going live belong to the API. This screen offers the one legal next step to
+ * an admin, behind a confirm dialog, and shows the API's sentence if it refuses.
  */
 export function SurveyAdminDetailScreen() {
   const { surveyId } = route.useParams()
@@ -57,7 +57,7 @@ export function SurveyAdminDetailScreen() {
   // Zero rows is an answer: this survey is not visible to this user.
   if (!query.data) return <EmptyState title={t('empty.noAccessToThis')} detail={t('empty.noAccessDetail')} />
 
-  const { survey, questions, summary } = query.data
+  const { survey, questions } = query.data
   const title = localisedField(survey, 'title', i18n.resolvedLanguage)
   const draft = survey.status === 'draft'
   const next: StatusChange | null = !admin ? null : draft ? 'live' : survey.status === 'live' ? 'closed' : null
@@ -129,7 +129,7 @@ export function SurveyAdminDetailScreen() {
         </>
       ) : (
         <>
-          <SurveyResults surveyId={survey.id} currency={survey.currency} questions={questions} summary={summary} />
+          <SurveyResults surveyId={survey.id} decimals={survey.reward.decimals} questions={questions} />
           <SurveyVouchers surveyId={survey.id} />
         </>
       )}
@@ -151,17 +151,16 @@ export function SurveyAdminDetailScreen() {
 
 /** What the survey is, and who made it what it is. */
 function SurveyFacts({ survey }: { survey: Survey }) {
-  const { t } = useTranslation()
-  const createdBy = useActorName(survey.created_by)
-  const publishedBy = useActorName(survey.published_by)
+  const { t, i18n } = useTranslation()
+  const { minor, decimals, currency } = survey.reward
 
   return (
     <div className="flex flex-col gap-2.5">
       <dl className="grid gap-x-5 gap-y-1.5 sm:grid-cols-2 xl:grid-cols-4">
-        <Fact label={t('surveyAdmin.columns.reward')} value={formatMoney(survey.reward_amount, survey.currency)} testId="survey-fact-reward" />
+        <Fact label={t('surveyAdmin.columns.reward')} value={formatMoney(minor, decimals, currency, i18n.language)} testId="survey-fact-reward" />
         <Fact
           label={t('surveyAdmin.auditRate')}
-          value={formatPercent(Number(survey.audit_rate) * 100)}
+          value={formatPercent(survey.audit_percent)}
           testId="survey-fact-audit"
         />
         {survey.closes_at && (
@@ -176,12 +175,12 @@ function SurveyFacts({ survey }: { survey: Survey }) {
         )}
       </dl>
       <p className="type-note flex flex-wrap gap-x-4 gap-y-1" style={{ color: 'var(--ink-2)' }}>
-        <span data-testid="survey-created-by">{t('surveyAdmin.createdBy', { name: createdBy ?? UNKNOWN })}</span>
+        {/* shortcut: "Created by" is hidden — the API's survey has no created_by; show it when it does. */}
         {survey.published_at && (
           <span data-testid="survey-published-by">
             {t('surveyAdmin.publishedBy', {
               date: formatTimestamp(survey.published_at),
-              name: publishedBy ?? UNKNOWN,
+              name: survey.published_by?.name ?? UNKNOWN,
             })}
           </span>
         )}

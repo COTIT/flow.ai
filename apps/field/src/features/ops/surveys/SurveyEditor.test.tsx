@@ -24,22 +24,21 @@ const update = {
 
 const survey = {
   id: '30000000-0000-4000-8000-000000000001',
-  project_id: 'p1',
   village_id: null,
   title_en: 'Harvest intentions',
   title_sw: null,
   description_en: null,
   description_sw: null,
-  reward_amount: 5000,
-  currency: 'TZS',
+  reward: { minor: 500000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' },
   max_households: null,
-  audit_rate: 0.15,
+  audit_percent: 15,
+  responses: 0,
+  questions: [],
   closes_at: null,
   status: 'draft' as const,
   published_at: null,
   published_by: null,
   closed_at: null,
-  created_by: 'u1',
   created_at: '2026-09-28T08:00:00Z',
   updated_at: '2026-09-28T08:00:00Z',
 }
@@ -61,8 +60,8 @@ describe('the draft editor', () => {
     renderEditor()
 
     expect(screen.getByTestId('survey-title-en')).toHaveValue('Harvest intentions')
-    expect(screen.getByTestId('survey-reward')).toHaveValue(5000)
-    // The column holds a fraction; the admin reads a percent.
+    // Integer minor units on the wire; major units in the form.
+    expect(screen.getByTestId('survey-reward')).toHaveValue('5000.00')
     expect(screen.getByTestId('survey-audit-rate')).toHaveValue(15)
     expect(screen.getByTestId('survey-title-sw')).toHaveValue('')
   })
@@ -77,13 +76,15 @@ describe('the draft editor', () => {
     expect(screen.getByText(/random share of vouchers/i)).toBeInTheDocument()
   })
 
-  test('saving sends every draft column, converted for the database', async () => {
+  test('saving sends every draft field, the reward as integer minor units', async () => {
     renderEditor()
 
     await userEvent.clear(screen.getByTestId('survey-title-en'))
     await userEvent.type(screen.getByTestId('survey-title-en'), 'Harvest 2026')
     await userEvent.clear(screen.getByTestId('survey-audit-rate'))
     await userEvent.type(screen.getByTestId('survey-audit-rate'), '20')
+    await userEvent.clear(screen.getByTestId('survey-reward'))
+    await userEvent.type(screen.getByTestId('survey-reward'), '7,500')
     fireEvent.change(screen.getByTestId('survey-closes-on'), { target: { value: '2026-10-31' } })
     await userEvent.click(screen.getByTestId('survey-save'))
 
@@ -93,16 +94,17 @@ describe('the draft editor', () => {
       title_sw: null,
       description_en: null,
       description_sw: null,
-      reward_amount: 5000,
+      reward_minor: 750000,
+      currency_id: 'c-tzs',
       max_households: null,
-      audit_rate: 0.2,
+      audit_percent: 20,
       closes_at: '2026-10-31T23:59:59+03:00',
     })
   })
 
   // "the closing date must be in the future" and every other rule is the
-  // guard's. Its sentence is what the admin reads.
-  test('the database refusal is shown as written', () => {
+  // API's. Its sentence is what the admin reads.
+  test('the API refusal is shown as written', () => {
     update.isError = true
     update.error = new Error('a live survey cannot be edited')
     renderEditor()
