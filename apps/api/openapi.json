@@ -4766,6 +4766,18 @@
         ],
         "type": "object"
       },
+      "Envelope_SaleResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SaleResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_SaleStatics": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -9999,6 +10011,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/RowResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_SaleResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SaleResource"
             },
             "type": "array"
           },
@@ -15338,6 +15369,144 @@
         ],
         "type": "object"
       },
+      "SaleRequest": {
+        "description": "A till sale. Lines carry the unit price the till charged (minor units excl VAT). Send the same body again under the same `client_ref` to replay it from an offline queue.",
+        "properties": {
+          "client_ref": {
+            "description": "The till's own id for this sale, unique per register; reuse it on every retry.",
+            "example": "0190f3c2-offline-17",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "lines": {
+            "description": "1 to 50 lines; `unit_price` is required, `discount_percentage` and `title` are not taken.",
+            "items": {
+              "$ref": "#/components/schemas/LineRequest"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "payment": {
+            "$ref": "#/components/schemas/TillPayment"
+          },
+          "sold_at": {
+            "description": "When the sale was made (RFC 3339), for an offline replay; default now. At most 7 days old.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "client_ref",
+          "payment"
+        ],
+        "type": "object"
+      },
+      "SaleResource": {
+        "description": "A till sale as booked.",
+        "properties": {
+          "card_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "change": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "client_ref": {
+            "type": "string"
+          },
+          "due": {
+            "description": "Paid: cash rounded to the currency's step, card = total.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "method": {
+            "example": "cash",
+            "type": "string"
+          },
+          "mismatched_lines": {
+            "description": "Lines charged at another unit price than the catalog's; counts even when they offset.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "number": {
+            "description": "Order number (the order series).",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "price_mismatch": {
+            "description": "total − server_total; not 0 = the till charged other prices (e.g. offline).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "register_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "rounding": {
+            "description": "due − total.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "server_total": {
+            "description": "The same lines at today's catalog prices.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "sold_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "tendered": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "till_user_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "total": {
+            "description": "What the till charged incl VAT: the order total.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "order_id",
+          "number",
+          "client_ref",
+          "register_id",
+          "till_user_id",
+          "method",
+          "total",
+          "server_total",
+          "price_mismatch",
+          "mismatched_lines",
+          "due",
+          "rounding",
+          "tendered",
+          "change",
+          "card_reference",
+          "sold_at"
+        ],
+        "type": "object"
+      },
       "SaleStatics": {
         "description": "Sales figures; all zero or null until invoices exist.",
         "properties": {
@@ -17927,6 +18096,37 @@
           }
         ],
         "description": "POST /till/login reply: the session token (8 hours, no refresh) and the session."
+      },
+      "TillPayment": {
+        "description": "The payment of a sale.",
+        "properties": {
+          "method": {
+            "description": "`cash` or `card` (an external terminal, recorded by hand).",
+            "example": "cash",
+            "type": "string"
+          },
+          "reference": {
+            "description": "Card slip or terminal reference.",
+            "maxLength": 64,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tendered": {
+            "description": "Cash handed over, minor units; required for cash.",
+            "example": 5000,
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "method"
+        ],
+        "type": "object"
       },
       "TillUserBrief": {
         "description": "A till user in the login picker or a session.",
@@ -63284,6 +63484,426 @@
           }
         ],
         "summary": "Issue a new device key",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/sales": {
+      "get": {
+        "operationId": "till_sales_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`true`: only sales with a line charged at another price than the catalog's.",
+            "in": "query",
+            "name": "mismatch",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_SaleResource"
+                }
+              }
+            },
+            "description": "One page, newest first"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or no `cashregister.list`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List till sales",
+        "tags": [
+          "till"
+        ]
+      },
+      "post": {
+        "description": "Lines carry the unit price the till charged; the order holds those amounts. Stock is taken at once from the register's store warehouse and never refused. Cash rounds to the currency's step (`cash_register.cash_rounding`) and needs an open shift. The same `client_ref` and body again answer the stored sale with 200.",
+        "operationId": "till_sales_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SaleResource"
+                }
+              }
+            },
+            "description": "Already booked under this client_ref: the stored sale"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SaleResource"
+                }
+              }
+            },
+            "description": "Booked"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live till session"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Workspace is not the session's"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "client_ref used for another sale, or a cash sale without an open shift"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown product, or too little cash tendered"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "till_session": []
+          }
+        ],
+        "summary": "Book a till sale (or replay it)",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/sales/{client_ref}": {
+      "get": {
+        "description": "For the offline queue: check whether a queued sale already landed before replaying it.",
+        "operationId": "till_sales_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The till's id of the sale",
+            "in": "path",
+            "name": "client_ref",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SaleResource"
+                }
+              }
+            },
+            "description": "Booked"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live till session"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not booked on this register"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "till_session": []
+          }
+        ],
+        "summary": "A sale of this register by client_ref",
         "tags": [
           "till"
         ]

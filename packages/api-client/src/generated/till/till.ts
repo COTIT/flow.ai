@@ -32,6 +32,7 @@ import type {
   EnvelopeKeyRotated,
   EnvelopeOptionShiftResource,
   EnvelopeRegisterKeyed,
+  EnvelopeSaleResource,
   EnvelopeSessionResource,
   EnvelopeShiftResource,
   EnvelopeTillLoginResource,
@@ -43,9 +44,12 @@ import type {
   EnvelopeVecVaultResource,
   MessageBody,
   PaginatedRegisterResource,
+  PaginatedSaleResource,
   PaginatedShiftResource,
+  SaleRequest,
   TillLoginRequest,
   TillRegistersListParams,
+  TillSalesListParams,
   TillShiftsListParams,
   TransferRequest,
   UpdateTillUserRequest,
@@ -629,6 +633,275 @@ export const useTillRegistersRotateKey = <TError = ErrorType<MessageBody>,
       return useMutation(getTillRegistersRotateKeyMutationOptions(options), queryClient);
     }
     /**
+ * @summary List till sales
+ */
+export const tillSalesList = (
+    workspace: string,
+    params?: TillSalesListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedSaleResource>(
+      {url: `/workspace/${workspace}/till/sales`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillSalesListQueryKey = (workspace: string,
+    params?: TillSalesListParams,) => {
+    return [
+    `/workspace/${workspace}/till/sales`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getTillSalesListQueryOptions = <TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    params?: TillSalesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillSalesListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillSalesList>>> = ({ signal }) => tillSalesList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillSalesListQueryResult = NonNullable<Awaited<ReturnType<typeof tillSalesList>>>
+export type TillSalesListQueryError = ErrorType<MessageBody>
+
+
+export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params: undefined |  TillSalesListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillSalesList>>,
+          TError,
+          Awaited<ReturnType<typeof tillSalesList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: TillSalesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillSalesList>>,
+          TError,
+          Awaited<ReturnType<typeof tillSalesList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: TillSalesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List till sales
+ */
+
+export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    params?: TillSalesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillSalesListQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Lines carry the unit price the till charged; the order holds those amounts. Stock is taken at once from the register's store warehouse and never refused. Cash rounds to the currency's step (`cash_register.cash_rounding`) and needs an open shift. The same `client_ref` and body again answer the stored sale with 200.
+ * @summary Book a till sale (or replay it)
+ */
+export const tillSalesCreate = (
+    workspace: string,
+    saleRequest: BodyType<SaleRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSaleResource>(
+      {url: `/workspace/${workspace}/till/sales`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: saleRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillSalesCreateMutationKey = () => ['tillSalesCreate'] as const;
+
+export const getTillSalesCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext> => {
+
+const mutationKey = getTillSalesCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillSalesCreate>>, TillSalesCreateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillSalesCreate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillSalesCreateMutationResult = NonNullable<Awaited<ReturnType<typeof tillSalesCreate>>>
+    export type TillSalesCreateMutationBody = BodyType<SaleRequest>
+    export type TillSalesCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillSalesCreateMutationVariables = {workspace: string;data: BodyType<SaleRequest>}
+
+    /**
+ * @summary Book a till sale (or replay it)
+ */
+export const useTillSalesCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesCreate>>, TError,TillSalesCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillSalesCreate>>,
+        TError,
+        TillSalesCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillSalesCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * For the offline queue: check whether a queued sale already landed before replaying it.
+ * @summary A sale of this register by client_ref
+ */
+export const tillSalesGet = (
+    workspace: string,
+    clientRef: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeSaleResource>(
+      {url: `/workspace/${workspace}/till/sales/${clientRef}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillSalesGetQueryKey = (workspace: string,
+    clientRef: string,) => {
+    return [
+    `/workspace/${workspace}/till/sales/${clientRef}`
+    ] as const;
+    }
+
+
+export const getTillSalesGetQueryOptions = <TData = Awaited<ReturnType<typeof tillSalesGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    clientRef: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillSalesGetQueryKey(workspace,clientRef);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillSalesGet>>> = ({ signal }) => tillSalesGet(workspace,clientRef, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && clientRef !== null && clientRef !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillSalesGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillSalesGetQueryResult = NonNullable<Awaited<ReturnType<typeof tillSalesGet>>>
+export type TillSalesGetQueryError = ErrorType<MessageBody>
+
+
+export function useTillSalesGet<TData = Awaited<ReturnType<typeof tillSalesGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    clientRef: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillSalesGet>>,
+          TError,
+          Awaited<ReturnType<typeof tillSalesGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillSalesGet<TData = Awaited<ReturnType<typeof tillSalesGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    clientRef: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillSalesGet>>,
+          TError,
+          Awaited<ReturnType<typeof tillSalesGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillSalesGet<TData = Awaited<ReturnType<typeof tillSalesGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    clientRef: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary A sale of this register by client_ref
+ */
+
+export function useTillSalesGet<TData = Awaited<ReturnType<typeof tillSalesGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    clientRef: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillSalesGetQueryOptions(workspace,clientRef,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary The register's open shift
  */
 export const tillShiftCurrent = (

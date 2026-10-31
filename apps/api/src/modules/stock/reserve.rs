@@ -223,8 +223,6 @@ pub async fn restock(
 }
 
 /// Result of [`take`].
-// shortcut: the till sale (step 4) is the first caller; drop the allow then.
-#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
 pub enum Taken {
     Done,
@@ -239,7 +237,6 @@ pub enum Taken {
 /// or nothing. `Floor::None` never refuses (a store warehouse may go below zero).
 // shortcut: warehouse-level row only; Phase 3 step 6 replaces this with the lot-aware pick
 // behind the same signature.
-#[allow(dead_code)]
 pub async fn take(
     conn: &mut PgConnection,
     workspace_id: Uuid,

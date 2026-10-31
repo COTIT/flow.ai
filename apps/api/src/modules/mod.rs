@@ -49,6 +49,7 @@ pub mod storage_locations;
 pub mod storefront;
 pub mod teams;
 pub mod till;
+pub mod till_sales;
 pub mod users;
 pub mod vat_groups;
 pub mod warehouse_bins;

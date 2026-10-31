@@ -203,11 +203,10 @@ pub async fn list_shifts(
 
 /// Cash due for `total` (minor units) in steps of `step` minor units, half up: 1.02 → 1.00,
 /// 1.03 → 1.05 at step 5. Step 1 = no rounding.
-// shortcut: the till sale (step 4) is the first caller; drop the allow then.
-#[allow(dead_code)]
 pub fn round_cash(total: i64, step: i64) -> i64 {
-    let step = step.max(1);
-    (total * 2 + step) / (2 * step) * step
+    // i128: `total * 2` can't overflow; the result is never above `total + step`.
+    let (total, step) = (i128::from(total), i128::from(step.max(1)));
+    i64::try_from((total * 2 + step) / (2 * step) * step).unwrap_or(i64::MAX)
 }
 
 #[cfg(test)]

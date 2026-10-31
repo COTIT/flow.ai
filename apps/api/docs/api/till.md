@@ -126,3 +126,61 @@ Shift:
 - `GET /till/shifts` (`cashregister.list`) `?page=&page_size=` → shifts of every register, newest first.
 
 Vaults fill only from drawer drops for now. Bank deposits and withdrawals come later.
+
+## Sales (till token; office list)
+
+A till sale is an **order** with `source: "till"`, created `completed`, in the register's currency, from the register's store warehouse. The office sees it in `/orders` like any other order (returns work as for any completed order).
+
+### `POST /till/sales`
+
+```json
+{ "client_ref": "0190f3c2-offline-17",
+  "sold_at": "2026-11-01T09:12:00Z",
+  "lines": [ { "product_id": "…", "quantity": "2", "unit_price": 1250 },
+             { "product_id": "…", "product_variant_id": "…", "quantity": "1", "unit_price": 300 } ],
+  "payment": { "method": "cash", "tendered": 5000 } }
+```
+
+| Field | Rule |
+|---|---|
+| `client_ref` | required, 1–64. The till's own id of the sale; unique per register. Reuse it on every retry. |
+| `sold_at` | optional RFC 3339, default now. Within the last 7 days (5 minutes of clock skew allowed). A replay may spell the same instant differently (`Z` or `+00:00`). |
+| `lines` | 1–50; `product_id`, optional `product_variant_id`, `quantity` (> 0, 2 decimals), **`unit_price` required**: what the till charged, minor units excl VAT (the storefront's `price_net`). `discount_percentage` and `title` are refused. |
+| `payment` | `{method: "cash", tendered}` (minor units) or `{method: "card", reference?}` (≤ 64). |
+
+What happens, in one transaction:
+
+1. **Replay check.** The register's `client_ref` is locked. If a sale exists under it:
+   - with the same body → **200** with the stored sale, nothing written;
+   - with another body → **409** `This client_ref was used for another sale on this register.`
+   Parallel copies of one sale wait on that lock: exactly one writes, the others answer 200.
+2. **Prices.** The lines are priced through the pricing engine at the till's `unit_price` (VAT from the catalog's rate). Those amounts become the order lines and `total`. The same lines at today's catalog prices give `server_total`. `price_mismatch = total − server_total` and `mismatched_lines` (lines whose unit price differs from the catalog's, counted even when they offset each other) are stored, never refused: an offline sale rung up before a price change lands as charged and is flagged. A total above 1 000 000 000 000 minor units is refused (422 on `lines`).
+3. **Payment.**
+   - Cash: `due` = `total` rounded half up to the currency's step in settings `cash_register.cash_rounding` (EUR `5` → 0.05; no entry → no rounding). `rounding = due − total`. `tendered < due` → 422 on `payment.tendered`. Needs an open shift on the register (409). `change = tendered − due`. The drawer gets one `sale` ledger row of `due`.
+   - Card: an external terminal recorded by hand. `due = total`, no rounding, no change, no drawer row. Real terminals (PAY.nl) are deferred, see `docs/deferred-providers.md`.
+4. **Stock** is taken at once from the register's warehouse (`stock::reserve::take`, `Floor::None`): a sale is never refused for stock, and a store may go below zero, which the office sees on the product's stock. The web shop's `available_stock` drops by the same amount.
+5. **Event** `order.created` (status `completed`, source `till`) and `stock.changed` per product.
+
+201 (or 200 on a replay):
+
+```json
+{ "data": { "order_id": "…", "number": "1042", "client_ref": "0190f3c2-offline-17",
+            "register_id": "…", "till_user_id": "…", "method": "cash",
+            "total": 3088, "server_total": 3088, "price_mismatch": 0, "mismatched_lines": 0,
+            "due": 3090, "rounding": 2, "tendered": 5000, "change": 1910,
+            "card_reference": null, "sold_at": "…" } }
+```
+
+The drawer's expected cash uses `due`, the amount actually taken, so it balances even when `price_mismatch` is not 0.
+
+### `GET /till/sales/{client_ref}`
+
+The sale of **this register** under that ref, else 404. Use it before replaying a queued sale whose answer got lost.
+
+### `GET /till/sales` (`cashregister.list`)
+
+`?mismatch=true` (only sales with `mismatched_lines > 0`), `?page=&page_size=`. Newest first.
+
+Known limits, accepted:
+- `order.created` carries no mismatch; the office finds price differences through `GET /till/sales?mismatch=true`.
+- An offline cash sale goes into the shift that is open when it is replayed, whatever its `sold_at`: that drawer holds the cash. Replay the queue before closing the shift.

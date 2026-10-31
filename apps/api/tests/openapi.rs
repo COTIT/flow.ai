@@ -1248,6 +1248,7 @@ fn every_till_operation_is_documented() {
         ("/till/vaults", "get", "till_vaults_list", "200"),
         ("/till/vaults", "post", "till_vaults_create", "201"),
         ("/till/shifts", "get", "till_shifts_list", "200"),
+        ("/till/sales", "get", "till_sales_list", "200"),
     ]);
     // Device routes take the register's key, till routes the session token.
     let s = spec();
@@ -1262,6 +1263,20 @@ fn every_till_operation_is_documented() {
         ("/till/login", "post", "till_login", "200", "app_key"),
         ("/till/logout", "post", "till_logout", "204", "till_session"),
         ("/till/me", "get", "till_me", "200", "till_session"),
+        (
+            "/till/sales",
+            "post",
+            "till_sales_create",
+            "201",
+            "till_session",
+        ),
+        (
+            "/till/sales/{client_ref}",
+            "get",
+            "till_sales_get",
+            "200",
+            "till_session",
+        ),
         (
             "/till/shift",
             "get",
