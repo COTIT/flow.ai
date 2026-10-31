@@ -1,4 +1,5 @@
-//! HTTP edge for /v1/workspace/{workspace}/lots: members read, `product.update` writes.
+//! HTTP edge for /v1/workspace/{workspace}/lots (members read, `product.update` writes) and
+//! the lot's public page at /v1/public/lots/{code} and /v1/storefront/lots/{code}.
 
 use axum::{
     Json,
@@ -10,18 +11,21 @@ use crate::{
     AppState,
     error::{AppError, ValidationErrorBody},
     http::{
+        app_key::AppKey,
         json::ValidatedJson,
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
         workspace::{Can, WorkspaceAccess},
     },
     modules::{
+        app_keys::secret::CATALOG_READ,
         lots::{
             dto::{
                 CreateLotRequest, ListQuery, LotEventResource, LotResource, PageQuery,
                 PassportResource, UpdateLotRequest,
             },
             passport::Passport,
+            public::PublicLot,
             service,
         },
         products::handlers::ProductUpdate,
@@ -266,4 +270,46 @@ pub async fn passport_unpublish(
 ) -> Result<Data<PassportResource>, AppError> {
     let row = service::unpublish(&state, &access, &id).await?;
     Ok(Data(PassportResource::try_from(row)?))
+}
+
+/// GET /public/lots/{code}: the page a scanned jar opens. No auth; behind the IP limit.
+#[utoipa::path(
+    get, path = "/public/lots/{code}", tag = "lots",
+    operation_id = "lots_public_get", summary = "Public page of a lot",
+    params(("code" = String, Path, description = "The lot's public code (from the QR link)")),
+    responses(
+        (status = 200, body = Envelope<PublicLot>, description = "Batch, product and published passport"),
+        (status = 404, body = MessageBody, description = "No published lot with this code"),
+    ),
+)]
+pub async fn public_get(
+    State(state): State<AppState>,
+    Path(code): Path<String>,
+) -> Result<Data<PublicLot>, AppError> {
+    Ok(Data(service::public(&state, &code, None).await?))
+}
+
+/// GET /storefront/lots/{code}: the same page for an app of the lot's workspace (the shop
+/// server, which would share one IP bucket on the public route).
+#[utoipa::path(
+    get, path = "/storefront/lots/{code}", tag = "storefront",
+    operation_id = "storefront_lots_get", summary = "Public page of a lot",
+    params(("code" = String, Path, description = "The lot's public code (from the QR link)")),
+    responses(
+        (status = 200, body = Envelope<PublicLot>, description = "Batch, product and published passport"),
+        (status = 401, body = MessageBody, description = "Missing, unknown or revoked app key"),
+        (status = 403, body = MessageBody, description = "Key lacks `catalog:read`"),
+        (status = 404, body = MessageBody, description = "No published lot with this code in the key's workspace"),
+    ),
+    security(("app_key" = []))
+)]
+pub async fn storefront_get(
+    State(state): State<AppState>,
+    key: AppKey,
+    Path(code): Path<String>,
+) -> Result<Data<PublicLot>, AppError> {
+    key.require(CATALOG_READ)?;
+    Ok(Data(
+        service::public(&state, &code, Some(key.workspace_id)).await?,
+    ))
 }

@@ -71,3 +71,30 @@ One per lot: a **draft** the office edits and a **published** copy the public pa
 **Files.** Every `file_id` must be a stored file of this workspace of the right type, else `422` on its path (`banner_file_id`, `story.3.file_id`, `certificates.0.file_id`). Checked on save and again on publish (a file deleted in between fails the publish). Saving or publishing a passport that references any file also needs `file.get` (`403` otherwise), so `product.update` alone can't expose files its holder can't read. Files have no public flag; publishing is the choice to show them, and the public page only ever gets short-lived signed links.
 
 **Publish** runs in one transaction: the lot row locked, the draft checked (title, files), the copy and version written, a `passport_published` trail row (`meta.version`) and the `passport.published` event (`{lot_id, product_id, public_code, version}`). Unpublish writes a `passport_unpublished` row and sends no event.
+
+## Public page
+
+What a scanned jar opens. The QR code holds the shop URL `/b/{public_code}`; the shop renders it from one of two mounts of the same reply:
+
+| Mount | Auth | Limit | Scope |
+|---|---|---|---|
+| `GET /v1/public/lots/{code}` | none | the public per-IP limit (shared with login) | any workspace |
+| `GET /v1/storefront/lots/{code}` | app key with `catalog:read` | per key | the key's workspace only |
+
+The shop server uses the storefront mount: all its calls come from one IP and would exhaust the public bucket.
+
+**Reply** (`200 {data}`), an allow-list. No internal ids, no workspace, no draft, no quantities:
+
+```
+{ code, public_code, status, produced_on, best_before, expires_on, origin,
+  product:  { name, brand, short_description },
+  passport: { title, intro, banner, origin, map, materials, certificates, story, version, published_at },
+  farmers:  [] }
+```
+
+- `passport` is the **published** copy. Draft edits never show until they are published again.
+- File ids become links: `banner`, each certificate's `file` and each image block's `image` are `{url, expires_at}`. The links are signed and last 10 minutes, so cache the page for less than that. A file deleted since publishing, or a server without file storage, gives `null` for that link.
+- `status` is shown as it is. A recalled lot stays visible with `"recalled"`.
+- `farmers` is always `[]` for now. The type allows only `village`, `first_name`, `photo`, `harvest_dates`, and is filled once consented farmer links exist. Phone, exact location and balances can never appear.
+
+**404.** An unknown code, a lot that was never published or is unpublished, and (on the storefront mount) another workspace's lot all get the same `404` body and headers. Each costs the same single query; there is no early return.

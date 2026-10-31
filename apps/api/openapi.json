@@ -3669,6 +3669,18 @@
         ],
         "type": "object"
       },
+      "Envelope_PublicLot": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicLot"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_RelationCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -5789,6 +5801,24 @@
           "purchase_price",
           "client_default_discount",
           "multi_set_item_id"
+        ],
+        "type": "object"
+      },
+      "Link": {
+        "description": "A signed download link.",
+        "properties": {
+          "expires_at": {
+            "description": "Fetch before this; ask the page again for a fresh link.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expires_at"
         ],
         "type": "object"
       },
@@ -9911,6 +9941,159 @@
         ],
         "type": "object"
       },
+      "PublicBlock": {
+        "description": "A story block; image blocks carry a link (null when the file is gone).",
+        "oneOf": [
+          {
+            "properties": {
+              "body": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "text"
+                ],
+                "type": "string"
+              },
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "title",
+              "body",
+              "kind"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "caption": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "image": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Link"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "image"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "image",
+              "caption",
+              "kind"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/components/schemas/Fact"
+                },
+                "type": "array"
+              },
+              "kind": {
+                "enum": [
+                  "facts"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "items",
+              "kind"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "by": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "kind": {
+                "enum": [
+                  "quote"
+                ],
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "text",
+              "by",
+              "kind"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "PublicCertificate": {
+        "description": "A certificate with its document link (null when the file is gone).",
+        "properties": {
+          "file": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issuer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "valid_until": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "issuer",
+          "number",
+          "valid_until",
+          "file"
+        ],
+        "type": "object"
+      },
       "PublicCurrency": {
         "description": "Currency on the public payment page.",
         "properties": {
@@ -9943,6 +10126,41 @@
           "symbol_prefix",
           "symbol_suffix",
           "decimals"
+        ],
+        "type": "object"
+      },
+      "PublicFarmer": {
+        "description": "The farmer fields a page may ever show (allow-list by type: no contact, no exact\nlocation, no money).",
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "harvest_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "photo": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "village": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "village",
+          "first_name",
+          "photo",
+          "harvest_dates"
         ],
         "type": "object"
       },
@@ -10128,6 +10346,186 @@
         "required": [
           "order_fields",
           "currency"
+        ],
+        "type": "object"
+      },
+      "PublicLot": {
+        "description": "Public page of one lot: batch, product, published passport.",
+        "properties": {
+          "best_before": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "expires_on": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "farmers": {
+            "description": "Consented farmer fields only; empty until farmer consent exists.",
+            "items": {
+              "$ref": "#/components/schemas/PublicFarmer"
+            },
+            "type": "array"
+          },
+          "origin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "passport": {
+            "$ref": "#/components/schemas/PublicPassport"
+          },
+          "produced_on": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "product": {
+            "$ref": "#/components/schemas/PublicProduct"
+          },
+          "public_code": {
+            "type": "string"
+          },
+          "status": {
+            "description": "`released`, `quarantine` or `recalled` (a recall is shown, not hidden).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "public_code",
+          "status",
+          "produced_on",
+          "best_before",
+          "expires_on",
+          "origin",
+          "product",
+          "passport",
+          "farmers"
+        ],
+        "type": "object"
+      },
+      "PublicPassport": {
+        "description": "The published passport with links in place of file ids.",
+        "properties": {
+          "banner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "certificates": {
+            "items": {
+              "$ref": "#/components/schemas/PublicCertificate"
+            },
+            "type": "array"
+          },
+          "intro": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "map": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MapPoint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "materials": {
+            "items": {
+              "$ref": "#/components/schemas/Material"
+            },
+            "type": "array"
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Origin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "story": {
+            "items": {
+              "$ref": "#/components/schemas/PublicBlock"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "intro",
+          "banner",
+          "origin",
+          "map",
+          "materials",
+          "certificates",
+          "story",
+          "version",
+          "published_at"
+        ],
+        "type": "object"
+      },
+      "PublicProduct": {
+        "description": "The lot's product, public fields only.",
+        "properties": {
+          "brand": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "short_description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "brand",
+          "short_description"
         ],
         "type": "object"
       },
@@ -16759,6 +17157,94 @@
         ]
       }
     },
+    "/public/lots/{code}": {
+      "get": {
+        "operationId": "lots_public_get",
+        "parameters": [
+          {
+            "description": "The lot's public code (from the QR link)",
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PublicLot"
+                }
+              }
+            },
+            "description": "Batch, product and published passport"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No published lot with this code"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Public page of a lot",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
     "/register": {
       "post": {
         "operationId": "invites_register",
@@ -16873,6 +17359,119 @@
         "summary": "Create an account through an invite",
         "tags": [
           "invites"
+        ]
+      }
+    },
+    "/storefront/lots/{code}": {
+      "get": {
+        "operationId": "storefront_lots_get",
+        "parameters": [
+          {
+            "description": "The lot's public code (from the QR link)",
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PublicLot"
+                }
+              }
+            },
+            "description": "Batch, product and published passport"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, unknown or revoked app key"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Key lacks `catalog:read`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No published lot with this code in the key's workspace"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "app_key": []
+          }
+        ],
+        "summary": "Public page of a lot",
+        "tags": [
+          "storefront"
         ]
       }
     },

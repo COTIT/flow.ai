@@ -335,3 +335,46 @@ pub async fn unpublish(
     .fetch_one(conn)
     .await
 }
+
+/// A published lot for the public page, with its product's public fields.
+pub struct PublicRow {
+    pub workspace_id: Uuid,
+    pub code: String,
+    pub public_code: String,
+    pub status: String,
+    pub produced_on: Option<NaiveDate>,
+    pub best_before: Option<NaiveDate>,
+    pub expires_on: Option<NaiveDate>,
+    pub origin: Option<String>,
+    pub passport: Value,
+    pub version: i32,
+    pub published_at: DateTime<Utc>,
+    pub product_name: String,
+    pub brand: Option<String>,
+    pub short_description: Option<String>,
+}
+
+/// The published lot with this public code (of `workspace_id` when given): one statement,
+/// so unknown, unpublished and foreign codes cost the same.
+pub async fn public(
+    db: impl PgExecutor<'_>,
+    public_code: &str,
+    workspace_id: Option<Uuid>,
+) -> Result<Option<PublicRow>, sqlx::Error> {
+    sqlx::query_as!(
+        PublicRow,
+        r#"SELECT l.workspace_id, l.code, l.public_code, l.status, l.produced_on, l.best_before,
+                  l.expires_on, l.origin, l.passport AS "passport!", l.passport_version AS version,
+                  l.published_at AS "published_at!", p.name AS product_name, p.brand,
+                  p.short_description
+           FROM lots l
+           JOIN products p ON p.workspace_id = l.workspace_id AND p.id = l.product_id
+                AND p.deleted_at IS NULL
+           WHERE l.public_code = $1 AND l.passport IS NOT NULL
+             AND ($2::uuid IS NULL OR l.workspace_id = $2)"#,
+        public_code,
+        workspace_id,
+    )
+    .fetch_optional(db)
+    .await
+}

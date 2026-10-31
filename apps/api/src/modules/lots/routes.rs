@@ -4,7 +4,8 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::lots::handlers};
 
-/// Office routes; each handler runs the workspace guard (writes: `product.update`).
+/// Office routes (workspace guard; writes need `product.update`) and the storefront mount of
+/// the public page (app key with `catalog:read`).
 pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::list, handlers::create))
@@ -15,4 +16,10 @@ pub fn private() -> OpenApiRouter<AppState> {
             handlers::passport_publish,
             handlers::passport_unpublish
         ))
+        .routes(routes!(handlers::storefront_get))
+}
+
+/// The lot's public page; `build_app` puts it behind the IP rate limit.
+pub fn public() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(handlers::public_get))
 }

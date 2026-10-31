@@ -3,6 +3,7 @@
 pub mod dto;
 pub mod handlers;
 pub mod passport;
+pub mod public;
 pub mod repo;
 pub mod routes;
 pub mod service;

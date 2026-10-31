@@ -1197,3 +1197,17 @@ fn every_lots_operation_is_documented() {
         ),
     ]);
 }
+
+/// The lot page: no auth on the public mount, an app key on the storefront mount.
+#[test]
+fn lot_page_mounts_are_documented() {
+    let s = spec();
+    let public = &s["paths"]["/public/lots/{code}"]["get"];
+    assert_eq!(public["operationId"], "lots_public_get");
+    assert!(public["responses"]["200"].is_object() && public["responses"]["404"].is_object());
+    assert!(public.get("security").is_none(), "public: {public}");
+    let shop = &s["paths"]["/storefront/lots/{code}"]["get"];
+    assert_eq!(shop["operationId"], "storefront_lots_get");
+    assert_eq!(shop["security"][0]["app_key"], json!([]));
+    assert!(shop["responses"]["404"].is_object());
+}

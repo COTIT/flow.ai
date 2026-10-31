@@ -21,6 +21,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  EnvelopePublicLot,
   EnvelopeStorefrontProduct,
   MessageBody,
   PaginatedStorefrontProduct,
@@ -49,6 +50,98 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+/**
+ * @summary Public page of a lot
+ */
+export const storefrontLotsGet = (
+    code: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePublicLot>(
+      {url: `/storefront/lots/${code}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getStorefrontLotsGetQueryKey = (code: string,) => {
+    return [
+    `/storefront/lots/${code}`
+    ] as const;
+    }
+
+
+export const getStorefrontLotsGetQueryOptions = <TData = Awaited<ReturnType<typeof storefrontLotsGet>>, TError = ErrorType<MessageBody>>(code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontLotsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStorefrontLotsGetQueryKey(code);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof storefrontLotsGet>>> = ({ signal }) => storefrontLotsGet(code, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: code !== null && code !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof storefrontLotsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StorefrontLotsGetQueryResult = NonNullable<Awaited<ReturnType<typeof storefrontLotsGet>>>
+export type StorefrontLotsGetQueryError = ErrorType<MessageBody>
+
+
+export function useStorefrontLotsGet<TData = Awaited<ReturnType<typeof storefrontLotsGet>>, TError = ErrorType<MessageBody>>(
+ code: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontLotsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontLotsGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontLotsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontLotsGet<TData = Awaited<ReturnType<typeof storefrontLotsGet>>, TError = ErrorType<MessageBody>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontLotsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof storefrontLotsGet>>,
+          TError,
+          Awaited<ReturnType<typeof storefrontLotsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStorefrontLotsGet<TData = Awaited<ReturnType<typeof storefrontLotsGet>>, TError = ErrorType<MessageBody>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontLotsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Public page of a lot
+ */
+
+export function useStorefrontLotsGet<TData = Awaited<ReturnType<typeof storefrontLotsGet>>, TError = ErrorType<MessageBody>>(
+ code: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof storefrontLotsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStorefrontLotsGetQueryOptions(code,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 /**
  * @summary List sellable products

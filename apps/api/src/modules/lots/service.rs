@@ -2,7 +2,7 @@
 //! unique per workspace (any case), the public code is made here and never changes, dates
 //! keep their order, and every change writes its trail row in the same transaction.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use chrono::NaiveDate;
 use serde_json::json;
@@ -13,10 +13,11 @@ use crate::{
     error::AppError,
     http::workspace::{NOT_ALLOWED, WorkspaceAccess},
     modules::{
-        files::repo as files,
+        files::{repo as files, service as files_service},
         lots::{
             dto::{LotPatch, NewLotInput, STATUSES},
             passport::{FileUse, Passport},
+            public::{Link, PublicLot},
             repo::{self, EventRow, ListFilter, LotRow, NewEvent, PassportRow},
         },
         products::repo as products,
@@ -396,6 +397,29 @@ pub async fn unpublish(
     repo::add_event(&mut tx, access.workspace_id, &event).await?;
     tx.commit().await?;
     Ok(saved)
+}
+
+/// The public page of a published lot (`workspace_id`: the storefront key's workspace).
+/// Unknown, unpublished and foreign codes are the same 404. Files deleted since publishing,
+/// or a server without storage, give null links, not an error.
+pub async fn public(
+    state: &AppState,
+    public_code: &str,
+    workspace_id: Option<Uuid>,
+) -> Result<PublicLot, AppError> {
+    let row = repo::public(&state.db, public_code, workspace_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let passport = Passport::from_stored(row.passport.clone())?;
+    let ids: Vec<Uuid> = passport.files().into_iter().map(|(_, id, _)| id).collect();
+    let mut links = HashMap::new();
+    if let Ok(store) = files_service::store(state) {
+        for f in files::find_many(&state.db, row.workspace_id, &ids).await? {
+            let (url, expires_at) = files_service::signed_link(store, &f)?;
+            links.insert(f.id, Link::new(url, expires_at));
+        }
+    }
+    Ok(PublicLot::new(row, passport, &links))
 }
 
 #[cfg(test)]
