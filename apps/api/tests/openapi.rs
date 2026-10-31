@@ -1201,3 +1201,69 @@ fn every_farm_tenancy_operation_is_documented() {
         ),
     ]);
 }
+
+#[test]
+fn every_farm_records_operation_is_documented() {
+    let mut ops = vec![
+        ("/farm/crops", "get", "farm_crops_list".to_owned(), "200"),
+        ("/farm/crops", "post", "farm_crops_create".to_owned(), "201"),
+        (
+            "/farm/crops/{crop}",
+            "patch",
+            "farm_crops_update".to_owned(),
+            "200",
+        ),
+        (
+            "/farm/registrations",
+            "post",
+            "farm_records_register".to_owned(),
+            "201",
+        ),
+        (
+            "/farm/crop-cycles/{cycle}/harvest-reports",
+            "get",
+            "farm_records_harvest_reports_list".to_owned(),
+            "200",
+        ),
+        (
+            "/farm/crop-cycles/{cycle}/harvest-reports",
+            "post",
+            "farm_records_harvest_reports_revise".to_owned(),
+            "201",
+        ),
+        (
+            "/farm/harvest-reports/{report}/verification",
+            "post",
+            "farm_records_harvest_reports_verify".to_owned(),
+            "200",
+        ),
+    ];
+    let kinds = [
+        ("persons", "person", "persons"),
+        ("households", "household", "households"),
+        ("farms", "farm", "farms"),
+        ("plots", "plot", "plots"),
+        ("crop-cycles", "cycle", "crop_cycles"),
+    ];
+    let paths: Vec<(String, String, String)> = kinds
+        .iter()
+        .map(|(seg, item, _)| {
+            (
+                format!("/farm/{seg}"),
+                format!("/farm/{seg}/{{{item}}}"),
+                format!("/farm/{seg}/{{{item}}}/verification"),
+            )
+        })
+        .collect();
+    for ((base, one, verify), (_, _, id)) in paths.iter().zip(kinds) {
+        ops.push((base, "get", format!("farm_records_{id}_list"), "200"));
+        ops.push((one, "get", format!("farm_records_{id}_get"), "200"));
+        ops.push((one, "put", format!("farm_records_{id}_correct"), "200"));
+        ops.push((verify, "post", format!("farm_records_{id}_verify"), "200"));
+    }
+    let ops: Vec<(&str, &str, &str, &str)> = ops
+        .iter()
+        .map(|(p, m, i, s)| (*p, *m, i.as_str(), *s))
+        .collect();
+    assert_documented(&ops);
+}

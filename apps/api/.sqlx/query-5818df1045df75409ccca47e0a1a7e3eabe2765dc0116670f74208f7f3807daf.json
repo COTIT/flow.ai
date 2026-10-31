@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT verification, captured_by FROM farms WHERE workspace_id = $1 AND id = $2\n     AND deleted_at IS NULL AND ($3 OR village_id = ANY($4)) FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "verification",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farms",
+            "name": "verification"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "captured_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farms",
+            "name": "captured_by"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "5818df1045df75409ccca47e0a1a7e3eabe2765dc0116670f74208f7f3807daf"
+}

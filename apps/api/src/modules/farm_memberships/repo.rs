@@ -36,7 +36,7 @@ pub async fn live_roles(
 ) -> Result<Vec<FarmRole>, sqlx::Error> {
     sqlx::query_as!(
         FarmRole,
-        "SELECT m.role
+        "SELECT m.role, m.village_id
          FROM farm_memberships m
          JOIN workspaces w ON w.id = m.workspace_id AND w.deleted_at IS NULL
          WHERE m.workspace_id = $1 AND m.user_id = $2 AND m.revoked_at IS NULL",
@@ -44,6 +44,22 @@ pub async fn live_roles(
         user_id,
     )
     .fetch_all(db)
+    .await
+}
+
+/// The live person this account is linked to in this workspace.
+pub async fn person_of(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    user_id: Uuid,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM farm_persons
+         WHERE workspace_id = $1 AND user_id = $2 AND deleted_at IS NULL",
+        workspace_id,
+        user_id,
+    )
+    .fetch_optional(db)
     .await
 }
 

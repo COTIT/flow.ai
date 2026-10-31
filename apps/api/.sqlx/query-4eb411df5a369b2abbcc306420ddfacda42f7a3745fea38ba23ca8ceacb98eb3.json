@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_plots (workspace_id, village_id, farm_id, label, area_ha, latitude, longitude,\n                                 source, captured_by, confidence)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_plots",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4eb411df5a369b2abbcc306420ddfacda42f7a3745fea38ba23ca8ceacb98eb3"
+}

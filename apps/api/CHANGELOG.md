@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Phase 4 farm records (RUAHA identity + production, contract `docs/api/farm-records.md`, migration `farm_records`):
+  - Tables `farm_crops`, `farm_persons` (with optional account link), `farm_households` + members, `farms` + managers, `farm_plots`, `farm_crop_cycles`, `farm_harvest_reports` (one current row per cycle and kind), `farm_registration_receipts`. Provenance block on every observed row; `(workspace_id, village_id)` composite keys down every chain; soft delete filtered on every read.
+  - `POST /farm/registrations`: one transaction, idempotent by `client_ref`, Tanzanian phone normalised (`farm_records::phone::normalize_phone`), farm GPS required, one cycle per crop with its crop's measure. Joining a household that has a head no longer drops the member (RUAHA silently skipped it).
+  - Persons, households, farms, plots, crop cycles: list/get (farmers see their own household's records, staff their villages; phone and GPS only for village staff), `PUT` corrections (allow-listed, reset verification), `POST …/verification` (one-way, four eyes on households). Harvest reports: list (`current=true`) and revise.
+  - `/farm/crops` list/create/patch (ops/admin write).
+  - `FarmAccess` now carries the caller's staff scope and linked person.
 - Phase 4 farm tenancy (RUAHA, contract `docs/api/farm-tenancy.md`, migration `farm_tenancy`):
   - `farm_villages` (scopes inside a workspace) and `farm_memberships` (role `farmer|field_officer|ops|admin`, one village for farmers and officers, revoke not delete).
   - `FarmAccess` guard (`src/http/farm.rs`): staff roles count only while the user is an active workspace member; farmers are not workspace members, so every non-farm route stays `404` for them.

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_plots SET label = $6, area_ha = $7, latitude = $8, longitude = $9,\n             source = 'field_verified', captured_at = now(), captured_by = $5,\n             verification = 'unverified', verified_by = NULL, verified_at = NULL, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL AND ($3 OR village_id = ANY($4))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "569b979e0bef7d0cf260e501da604f56062ebb7049cb137b964bd92de00f16e4"
+}

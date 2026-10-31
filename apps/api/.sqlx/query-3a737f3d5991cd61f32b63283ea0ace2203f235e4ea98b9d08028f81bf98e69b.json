@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM farm_crop_cycles t\n           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n             AND ($2 OR t.village_id = ANY($3)\n                  OR t.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL\n                                   AND pl.farm_id IN (SELECT farm_person_farms($4))))\n             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3a737f3d5991cd61f32b63283ea0ace2203f235e4ea98b9d08028f81bf98e69b"
+}

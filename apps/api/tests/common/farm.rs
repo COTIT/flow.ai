@@ -148,3 +148,176 @@ impl Farm {
         token
     }
 }
+
+/// Ids from one registration.
+pub struct Reg {
+    pub person: String,
+    pub household: String,
+    pub farm: String,
+    pub plot: String,
+    pub cycles: Vec<String>,
+    pub harvests: Vec<String>,
+}
+
+impl Reg {
+    fn from(res: &Value) -> Self {
+        let s = |k: &str| res[k].as_str().unwrap().to_owned();
+        let list = |k: &str| {
+            res[k]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| v.as_str().unwrap().to_owned())
+                .collect()
+        };
+        Self {
+            person: s("person_id"),
+            household: s("household_id"),
+            farm: s("farm_id"),
+            plot: s("plot_id"),
+            cycles: list("crop_cycle_ids"),
+            harvests: list("harvest_report_ids"),
+        }
+    }
+}
+
+/// The registered cast: Ilundo (Neema + Rehema share a household and farm, Asha on her
+/// own), Mgama (Joseph). Crops: maize by area, banana by tree count, poultry by unit count.
+pub struct Cast {
+    pub maize: String,
+    pub banana: String,
+    pub poultry: String,
+    pub neema: Reg,
+    pub rehema: Reg,
+    pub asha: Reg,
+    pub joseph: Reg,
+}
+
+/// A fresh client_ref.
+pub fn client_ref() -> String {
+    uuid::Uuid::now_v7().to_string()
+}
+
+impl Farm {
+    /// ops adds a crop; returns its id.
+    pub async fn crop(&self, code: &str, measured_by: &str) -> String {
+        let body =
+            json!({ "code": code, "name_en": code, "name_sw": code, "measured_by": measured_by });
+        let (status, res) = self
+            .call(Method::POST, "/crops", Some(body), &self.ops)
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        res["data"]["id"].as_str().unwrap().to_owned()
+    }
+
+    /// POST /registrations as `token`.
+    pub async fn register(&self, token: &str, body: Value) -> (StatusCode, Value) {
+        self.call(Method::POST, "/registrations", Some(body), token)
+            .await
+    }
+
+    async fn registered(&self, token: &str, body: Value) -> Reg {
+        let (status, res) = self.register(token, body).await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        Reg::from(&res["data"])
+    }
+
+    /// Register the cast through the API.
+    pub async fn cast(&self) -> Cast {
+        let maize = self.crop("MAIZE", "area").await;
+        let banana = self.crop("BANANA", "tree_count").await;
+        let poultry = self.crop("POULTRY", "unit_count").await;
+        let neema = self
+            .registered(
+                &self.officer_ilu,
+                json!({
+                    "client_ref": client_ref(), "village_id": self.ilundo,
+                    "person": { "given_name": "Neema", "family_name": "Mwakalinga", "phone": "0712 000 001" },
+                    "household": { "label": "Mwakalinga household" },
+                    "farm": { "label": "Mwakalinga farm", "latitude": "-7.71", "longitude": "35.71" },
+                    "plot": { "label": "Riverside", "area_ha": "1.8" },
+                    "cycles": [
+                        { "crop_id": maize, "area_ha": "1.6", "harvest_start": "2026-09-01", "harvest_end": "2026-09-30",
+                          "harvest": { "quantity_kg": "3200", "confidence": "medium", "reported_for": "2026-09-15" } },
+                        { "crop_id": banana, "tree_count": 40 }
+                    ]
+                }),
+            )
+            .await;
+        let rehema = self
+            .registered(
+                &self.officer_ilu,
+                json!({
+                    "client_ref": client_ref(), "village_id": self.ilundo,
+                    "person": { "given_name": "Rehema", "family_name": "Mwakalinga", "phone": "+255712000002" },
+                    "household": { "existing_household_id": neema.household },
+                    "farm": { "existing_farm_id": neema.farm },
+                    "plot": { "label": "Hill", "area_ha": "0.5" }
+                }),
+            )
+            .await;
+        let asha = self
+            .registered(
+                &self.officer_ilu,
+                json!({
+                    "client_ref": client_ref(), "village_id": self.ilundo,
+                    "person": { "given_name": "Asha", "family_name": "Kimaro", "phone": "255712000003" },
+                    "household": { "label": "Kimaro household" },
+                    "farm": { "label": "Kimaro farm", "latitude": "-7.72", "longitude": "35.72" },
+                    "plot": { "label": "Kimaro plot", "area_ha": "2.0" },
+                    "cycles": [{ "crop_id": poultry, "unit_count": 50 }]
+                }),
+            )
+            .await;
+        let joseph = self
+            .registered(
+                &self.officer_mga,
+                json!({
+                    "client_ref": client_ref(), "village_id": self.mgama,
+                    "person": { "given_name": "Joseph", "family_name": "Mlowe", "phone": "0713000001" },
+                    "household": { "label": "Mlowe household" },
+                    "farm": { "label": "Mlowe farm", "latitude": "-7.90", "longitude": "35.90" },
+                    "plot": { "label": "Valley", "area_ha": "1.0" },
+                    "cycles": [{ "crop_id": maize, "area_ha": "1.0",
+                                 "harvest": { "quantity_kg": "1500" } }]
+                }),
+            )
+            .await;
+        Cast {
+            maize,
+            banana,
+            poultry,
+            neema,
+            rehema,
+            asha,
+            joseph,
+        }
+    }
+
+    /// Link an account to a registered person (login issue does this in step 3).
+    pub async fn link(&self, email: &str, person: &str) {
+        sqlx::query(
+            "UPDATE farm_persons SET user_id = (SELECT id FROM users WHERE email = $1)
+             WHERE id = $2::uuid",
+        )
+        .bind(email)
+        .bind(person)
+        .execute(&self.pool)
+        .await
+        .unwrap();
+    }
+
+    /// A farmer account linked to `person` in `village`.
+    pub async fn farmer_for(&self, email: &str, village: &str, person: &str) -> String {
+        let token = self.farmer(email, village).await;
+        self.link(email, person).await;
+        token
+    }
+
+    /// GET a list under /farm and return it.
+    pub async fn list(&self, tail: &str, token: &str) -> Value {
+        let (status, res) = self.call(Method::GET, tail, None, token).await;
+        assert_eq!(status, StatusCode::OK, "{tail}: {res}");
+        res
+    }
+}
