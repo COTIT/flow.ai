@@ -214,6 +214,12 @@ const SHIPPING_OPTION: &[Field] = &[
     f("value", Rule::Ref(Table::Warehouses)),
 ];
 
+/// Cash rounding of one currency at the till: `step` minor units (EUR 5 = 0.05).
+const CASH_ROUNDING: &[Field] = &[
+    req("currency", Rule::Text(3)),
+    req("step", Rule::Int(1, 10_000)),
+];
+
 const CASH_REGISTER: &[Field] = &[
     f("prefix", Rule::Text(10)),
     f("suffix", Rule::Text(10)),
@@ -238,6 +244,7 @@ const CASH_REGISTER: &[Field] = &[
     ),
     f("default_relation_type_id", Rule::Ref(Table::RelationTypes)),
     f("shipping_options", Rule::List(SHIPPING_OPTION, 50)),
+    f("cash_rounding", Rule::List(CASH_ROUNDING, 50)),
 ];
 
 const LEDGER: &[Field] = &[f("name", Rule::Text(LONG)), req("no", Rule::Number)];
@@ -498,7 +505,8 @@ pub fn defaults(section: &str) -> Option<Value> {
                                    "default_mutate_from_warehouse_id": null,
                                    "default_relation_type_id": null, "accepted_cash": null,
                                    "shipping_options": null, "cash_drawer_link_mode": null,
-                                   "receipt_line_length": 34, "allow_individual_lines": true }),
+                                   "receipt_line_length": 34, "allow_individual_lines": true,
+                                   "cash_rounding": [] }),
         "incoming_invoice" => json!({ "ledger_number": null, "required_approvals": 1,
                                       "ignore_due_date_on_import": false, "ledgers": [],
                                       "price_tolerance_percent": 0.0,

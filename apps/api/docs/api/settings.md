@@ -73,6 +73,7 @@ A partial object keyed by section: `{"invoice": {...}, "smtp": {...}}`. Answers 
 | `cash_register.cash_drawer_link_mode` | `strict` or `flexible` |
 | `cash_register.accepted_cash` | at most 50 numbers, stored as sent |
 | `cash_register.shipping_options` | at most 50; `type` (`delivery`, `pickup`) and `name` (≤ 40) required, `value` a warehouse |
+| `cash_register.cash_rounding` | at most 50; `currency` (≤ 3 chars, the currency code) and `step` (1–10000 minor units) required. Till cash payments round half up to the step (EUR `5` = 0.05); a currency without an entry is not rounded. Default `[]`. |
 | `incoming_invoice.ledgers` | at most 500; `no` is a required number |
 | `integrations.payment.payment_providers.pay.terminals` | at most 100 of `{id, name, simulation}` (Laravel stored the array unvalidated; other keys are dropped) |
 | `…picqer.base_url`, `…prestashop.shop_url`, `…hostbill.endpoint` | http(s) URL without credentials in it (Laravel: any string) |

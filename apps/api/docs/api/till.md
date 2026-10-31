@@ -110,7 +110,7 @@ Every movement is a row in `cash_ledger`, which refuses updates, deletes and tru
   - The source must hold the amount (422 on `count`, `The drawer holds only N (minor units).`). A count totalling 0 is refused.
   - Both sides are booked in one transaction under the register's and the vault's row locks, so parallel drops never overdraw.
 
-Each register has its own drawer: one open shift per register, and a session only ever sees its own register's shift.
+Each register has its own drawer: one open shift per register, and a session only ever sees its own register's shift. Any till user logged in on the register may close its shift, not only the one who opened it; `opened_by` and `closed_by` show who did each.
 
 Shift:
 

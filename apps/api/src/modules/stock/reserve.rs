@@ -222,6 +222,52 @@ pub async fn restock(
     Ok(())
 }
 
+/// Result of [`take`].
+// shortcut: the till sale (step 4) is the first caller; drop the allow then.
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq)]
+pub enum Taken {
+    Done,
+    /// `wants[index]` asked more than `available` under the floor; nothing written.
+    Short {
+        index: usize,
+        available: Decimal,
+    },
+}
+
+/// Lower stock now, without a hold (a till sale): ledger `decrease` related to `cause`, all
+/// or nothing. `Floor::None` never refuses (a store warehouse may go below zero).
+// shortcut: warehouse-level row only; Phase 3 step 6 replaces this with the lot-aware pick
+// behind the same signature.
+#[allow(dead_code)]
+pub async fn take(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    warehouse_id: Uuid,
+    wants: &[Want],
+    floor: Floor,
+    cause: &Cause<'_>,
+) -> Result<Taken, Error> {
+    let mut picked = Vec::new();
+    for (index, w) in totals(wants) {
+        let rows = pick(conn, workspace_id, warehouse_id, w.product_id).await?;
+        let available: Decimal = match floor {
+            Floor::None => w.quantity,
+            Floor::Zero => rows.iter().map(|r| r.stock_lvl).sum(),
+            Floor::Available => rows.iter().map(|r| r.stock_lvl - r.reserved).sum(),
+        };
+        if available < w.quantity {
+            return Ok(Taken::Short { index, available });
+        }
+        picked.push(w);
+    }
+    for w in picked {
+        let s = slot(warehouse_id, w.product_id);
+        repo::mutate(conn, workspace_id, s, -w.quantity, Floor::None, cause).await?;
+    }
+    Ok(Taken::Done)
+}
+
 /// Shrink `related`'s reservation rows of `want.product_id` at the warehouse by
 /// `want.quantity`, oldest first; the locked stock rows and how much came off each. Errs when
 /// they hold less.
@@ -417,6 +463,91 @@ mod tests {
             related: Some(("order", Uuid::from_u128(id))),
             ..Cause::default()
         }
+    }
+
+    #[sqlx::test]
+    async fn take_lowers_the_level_without_a_hold_and_floor_none_goes_negative(pool: PgPool) {
+        let (ws, a, b, wh) = fixture(&pool, 5).await;
+        let sale = Cause {
+            related: Some(("till_sale", Uuid::from_u128(7))),
+            ..Cause::default()
+        };
+        let mut tx = pool.begin().await.unwrap();
+        let r = take(
+            &mut tx,
+            ws,
+            wh,
+            &[want(b, 1), want(a, 2), want(a, 1)],
+            Floor::None,
+            &sale,
+        )
+        .await
+        .unwrap();
+        assert_eq!(r, Taken::Done);
+        let r = take(&mut tx, ws, wh, &[want(a, 4)], Floor::None, &sale)
+            .await
+            .unwrap();
+        assert_eq!(r, Taken::Done, "a store may go below zero");
+        tx.commit().await.unwrap();
+        assert_eq!(levels(&pool, a).await, ("-2.00".into(), "0.00".into()));
+        assert_eq!(levels(&pool, b).await, ("4.00".into(), "0.00".into()));
+        let ledger: (i64, String) = sqlx::query_as(
+            "SELECT count(*), sum(quantity_change)::text FROM stock_movements
+             WHERE related_domain = 'till_sale' AND movement_type = 'decrease'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(ledger, (3, "-8.00".into()));
+        let holds: i64 = sqlx::query_scalar("SELECT count(*) FROM stock_reservations")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(holds, 0);
+    }
+
+    #[sqlx::test]
+    async fn take_under_a_floor_is_all_or_nothing(pool: PgPool) {
+        let (ws, a, b, wh) = fixture(&pool, 5).await;
+        let mut tx = pool.begin().await.unwrap();
+        reserve(&mut tx, ws, wh, &[want(a, 2)], &order(1))
+            .await
+            .unwrap();
+        let bare = Cause::default();
+        let r = take(
+            &mut tx,
+            ws,
+            wh,
+            &[want(b, 1), want(a, 4)],
+            Floor::Available,
+            &bare,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            r,
+            Taken::Short {
+                index: 1,
+                available: Decimal::from(3)
+            }
+        );
+        let r = take(&mut tx, ws, wh, &[want(a, 6)], Floor::Zero, &bare)
+            .await
+            .unwrap();
+        assert_eq!(
+            r,
+            Taken::Short {
+                index: 0,
+                available: Decimal::from(5)
+            }
+        );
+        tx.commit().await.unwrap();
+        assert_eq!(levels(&pool, a).await, ("5.00".into(), "2.00".into()));
+        assert_eq!(
+            levels(&pool, b).await,
+            ("5.00".into(), "0.00".into()),
+            "nothing written"
+        );
     }
 
     #[test]
