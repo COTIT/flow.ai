@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Phase 4b step 7, returns go back into their lots:
+  - **Stock:** `reserve::restock_lots` (new; the unused warehouse-level `restock` is gone) puts an order return's units back on the rows the order took them from, per lot (no-lot units to the no-lot row), through `farm_supply::sale::restock_plan`. A recalled, quarantined or expired lot takes its units back and picking keeps them off sale.
+  - **One spread:** stock and farmer debits both use `farm_supply::sale::fill`, which fills takes in take order and never moves units backwards, so the two always match. A returned jar that sells again credits its farmers again.
+  - **Invoices:** credit notes stay on the no-lot row (invoices are not attributed).
 - Phase 4b step 6, farmers credited at sale (migration `farm_sale_attributions`; contracts `docs/api/farm-passbook.md`, `webhooks.md`):
   - **At sale:** order completion (`orders::service::complete`) and the till sale (`till_sales::service`, after `take`) call `farm_supply::sale::on_sale` in its transaction. Each supply lot among the units taken is traced to its batch and owes `price × kg in the units sold`, rounded half up once and split by kg (largest remainder). It writes a `sale` attribution in the farm workspace, one passbook credit per farmer and `sale.attributed`, once per order and lot.
   - **Returns:** `on_return` spreads the cumulative returned units over the order's lots and writes only the change, as `return` attributions and `sale_reversal` lines. A full return nets every farmer to 0.

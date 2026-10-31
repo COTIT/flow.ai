@@ -2,10 +2,11 @@
 //! each supply lot among them owes `price_per_kg × kg in those jars`, rounded once, split over
 //! the batch's farmers by kg (largest remainder): one `sale` attribution, one passbook credit
 //! per farmer and `sale.attributed`, all in the farm workspace, inside the sale's transaction.
-//! Returns are cumulative: the returned jars are spread over the order's lots, each lot's debit
-//! is the same credit function on its returned jars, and only the change since the last return
-//! is written. A full return nets every farmer to exactly 0; a partial one may move a single
-//! minor unit between farmers (largest remainder), which the next return evens out.
+//! Returns are cumulative: the returned jars fill the order's takes in take order ([`fill`], the
+//! same spread that puts the stock back into those lots), each lot's debit is the same credit
+//! function on its returned jars, and only the change since the last return is written. A full
+//! return nets every farmer to exactly 0; a partial one may move a single minor unit between
+//! farmers (largest remainder), which the next return evens out.
 
 use std::collections::BTreeMap;
 
@@ -22,6 +23,7 @@ use crate::{
             repo::{self, NewAttribution, TakeRow, WeightRow},
             service::lineage,
         },
+        stock::reserve::Back,
         webhooks::events::{self, SALE_ATTRIBUTED},
     },
 };
@@ -140,22 +142,12 @@ pub async fn on_return(
     let takes = repo::order_takes(&mut *conn, sold_ws, order_id).await?;
     for (product, back) in returned {
         let buckets: Vec<&TakeRow> = takes.iter().filter(|t| t.product_id == *product).collect();
-        let weights = buckets
-            .iter()
-            .enumerate()
-            .map(|(i, t)| hundredths(t.qty).map(|q| (i, q)))
-            .collect::<Option<Vec<_>>>()
-            .ok_or_else(overflow)?;
-        let back = hundredths(*back)
-            .and_then(|b| i64::try_from(b).ok())
-            .ok_or_else(overflow)?;
-        let spread = split(back, &weights);
-        for (t, part) in buckets.iter().zip(spread) {
+        let qty: Vec<Decimal> = buckets.iter().map(|t| t.qty).collect();
+        for (t, target_jars) in buckets.iter().zip(fill(&qty, *back)) {
             let Some(lot) = t.lot_id else { continue };
             let Some(sale) = repo::sale_of(&mut *conn, sold_ws, order_id, lot).await? else {
                 continue;
             };
-            let target_jars = Decimal::new(part, 2);
             let (done_jars, done) =
                 repo::returned_so_far(&mut *conn, sold_ws, order_id, lot).await?;
             let jars = target_jars - done_jars;
@@ -204,4 +196,91 @@ pub async fn on_return(
         }
     }
     Ok(())
+}
+
+/// Spread `returned` units over takes of `qty` each, in take order, each up to what it took.
+/// Monotone: more returned never gives a take less, so the change per take is never negative.
+pub fn fill(qty: &[Decimal], returned: Decimal) -> Vec<Decimal> {
+    let mut left = returned;
+    qty.iter()
+        .map(|q| {
+            let part = left.min(*q).max(Decimal::ZERO);
+            left -= part;
+            part
+        })
+        .collect()
+}
+
+/// The rows an order return puts back on stock now: per take (lot, or no-lot), what the
+/// returned units after this return fill minus what they filled before it.
+pub async fn restock_plan(
+    conn: &mut PgConnection,
+    sold_ws: Uuid,
+    order_id: Uuid,
+    before: &BTreeMap<Uuid, Decimal>,
+    after: &BTreeMap<Uuid, Decimal>,
+) -> Result<Vec<Back>, AppError> {
+    let takes = repo::order_takes(&mut *conn, sold_ws, order_id).await?;
+    let mut out = Vec::new();
+    for (product, now) in after {
+        let was = before.get(product).copied().unwrap_or_default();
+        let buckets: Vec<&TakeRow> = takes.iter().filter(|t| t.product_id == *product).collect();
+        let qty: Vec<Decimal> = buckets.iter().map(|t| t.qty).collect();
+        let (a, b) = (fill(&qty, *now), fill(&qty, was));
+        let mut placed = Decimal::ZERO;
+        for ((t, a), b) in buckets.iter().zip(a).zip(b) {
+            if a > b {
+                placed += a - b;
+                out.push(Back {
+                    product_id: *product,
+                    lot_id: t.lot_id,
+                    quantity: a - b,
+                });
+            }
+        }
+        // Units the order never took (an untracked surplus) go back on the no-lot row.
+        if *now - was > placed {
+            out.push(Back {
+                product_id: *product,
+                lot_id: None,
+                quantity: *now - was - placed,
+            });
+        }
+    }
+    Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    fn d(s: &str) -> Decimal {
+        Decimal::from_str(s).unwrap()
+    }
+
+    #[test]
+    fn fill_goes_in_take_order_up_to_each_take() {
+        let qty = [d("2"), d("3"), d("1")];
+        assert_eq!(fill(&qty, d("0")), [d("0"), d("0"), d("0")]);
+        assert_eq!(fill(&qty, d("1.5")), [d("1.5"), d("0"), d("0")]);
+        assert_eq!(fill(&qty, d("4")), [d("2"), d("2"), d("0")]);
+        assert_eq!(fill(&qty, d("6")), [d("2"), d("3"), d("1")]);
+        assert_eq!(
+            fill(&qty, d("9")),
+            [d("2"), d("3"), d("1")],
+            "never more than taken"
+        );
+    }
+
+    #[test]
+    fn fill_is_monotone_so_deltas_are_never_negative() {
+        let qty = [d("0.5"), d("2"), d("1.25")];
+        let mut prev = fill(&qty, Decimal::ZERO);
+        for step in 1..=400 {
+            let now = fill(&qty, Decimal::new(step, 2));
+            assert!(now.iter().zip(&prev).all(|(a, b)| a >= b), "{step}");
+            prev = now;
+        }
+    }
 }

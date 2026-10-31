@@ -1,5 +1,5 @@
-//! Order stock seam: reserve, release, commit (take) and restock what an order holds. Holds
-//! live in `stock_reservations`, one row per stock row picked; `stocks.reserved` is their sum
+//! Order stock seam: reserve, release, commit (take) and restock (into the lots taken from)
+//! what an order holds. Holds live in `stock_reservations`, one row per stock row picked; `stocks.reserved` is their sum
 //! and only this file writes either. Every call locks its stock rows in product order, so
 //! callers holding their order row lock never deadlock each other. Lots (phase 3) replace
 //! `pick` only: callers name products and quantities.
@@ -384,23 +384,34 @@ pub async fn take(
     Ok(Taken::Done)
 }
 
-/// Put returned stock back on the warehouse-level row (ledger `increase`).
-pub async fn restock(
+/// Returned units of a product to put back on one row: its lot, or the no-lot row (None).
+#[derive(Clone, Copy, Debug)]
+pub struct Back {
+    pub product_id: Uuid,
+    pub lot_id: Option<Uuid>,
+    pub quantity: Decimal,
+}
+
+/// Put returned stock back on the warehouse-level rows it was taken from, lot by lot (ledger
+/// `increase`). A recalled, quarantined or expired lot takes its units back too; picking
+/// keeps them off sale.
+pub async fn restock_lots(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     warehouse_id: Uuid,
-    wants: &[Want],
+    backs: &[Back],
     cause: &Cause<'_>,
 ) -> Result<(), Error> {
-    let wants = totals(wants);
-    let slots: Vec<Slot> = wants
+    let slots: Vec<Slot> = backs
         .iter()
-        .map(|(_, w)| slot(warehouse_id, w.product_id))
+        .map(|b| Slot {
+            lot_id: b.lot_id,
+            ..slot(warehouse_id, b.product_id)
+        })
         .collect();
     repo::lock_all(conn, workspace_id, &slots).await?;
-    for (_, w) in wants {
-        let s = slot(warehouse_id, w.product_id);
-        repo::mutate(conn, workspace_id, s, w.quantity, Floor::None, cause).await?;
+    for (s, b) in slots.into_iter().zip(backs) {
+        repo::mutate(conn, workspace_id, s, b.quantity, Floor::None, cause).await?;
     }
     Ok(())
 }
@@ -729,7 +740,12 @@ mod tests {
         assert_eq!(levels(&pool, b).await, ("5.00".into(), "0.00".into()));
 
         let mut tx = pool.begin().await.unwrap();
-        restock(&mut tx, ws, wh, &[want(a, 1)], &o).await.unwrap();
+        let back = Back {
+            product_id: a,
+            lot_id: None,
+            quantity: Decimal::ONE,
+        };
+        restock_lots(&mut tx, ws, wh, &[back], &o).await.unwrap();
         tx.commit().await.unwrap();
         assert_eq!(levels(&pool, a).await, ("4.00".into(), "0.00".into()));
         let related: i64 = sqlx::query_scalar(

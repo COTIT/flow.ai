@@ -26,10 +26,9 @@ Line: `{id, kind, amount, balance_after, attribution_id, payout_id, created_at}`
   - `sale.attributed`
 
   A lot is credited once per order. The sale amount (in the shop's currency) is not used: farmers are owed the agreed price per kg, in the batch currency, so no exchange rate is needed.
-- **Returns:** after the order's returned quantities change, the returned units of each product are spread over the lots the order took, by units taken (largest remainder). For each credited lot, the target debit is the same credit function applied to its returned units, split by kg. Only the change since the last return is written: a `return` row and `sale_reversal` lines.
+- **Returns:** after the order's returned quantities change, the returned units of each product fill the takes of the order in take order, each up to what it took. A restocked return puts the units back into those same lot rows (or the no-lot row for units taken from it), so a resold jar credits its farmers again. A recalled, quarantined or expired lot takes its units back and picking keeps them off sale. For each credited lot, the target debit is the same credit function applied to its returned units, split by kg. Only the change since the last return is written: a `return` row and `sale_reversal` lines.
   - A full return brings every farmer back to exactly 0.
   - A partial return may move one minor unit between farmers (the largest-remainder rule re-splits a new total); the next return evens it out. Lines are signed, so the money stays exact.
-- **Known gap:** returned jars go back on stock without their lot (Phase 3: restock to the no-lot row), and no-lot stock sells first. So when they sell again, no farmer is credited, although the return debited them. The fix is to restock returns into the lots they left.
 - **Append-only:** attributions and passbook lines are never changed; a trigger refuses `UPDATE`, `DELETE` and `TRUNCATE`.
 
 ## Credit math (`farm_supply::credit`)

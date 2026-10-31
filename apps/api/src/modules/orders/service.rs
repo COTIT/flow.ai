@@ -808,6 +808,14 @@ pub async fn returns(
             if !matches!(o.status.as_str(), "completed" | "partially_returned") {
                 return Err(conflict(NOT_RETURNABLE));
             }
+            let returned = |lines: &[LineRow]| {
+                let mut m = std::collections::BTreeMap::new();
+                for l in lines.iter().filter(|l| l.tracked && !l.returned.is_zero()) {
+                    *m.entry(l.product_id).or_insert(Decimal::ZERO) += l.returned;
+                }
+                m
+            };
+            let before = returned(&lines);
             let mut back = Vec::new();
             for (n, (line_id, q)) in input.lines.iter().enumerate() {
                 let Some(l) = lines.iter_mut().find(|l| l.id == *line_id) else {
@@ -835,11 +843,16 @@ pub async fn returns(
             }
             if input.restock && !back.is_empty() {
                 let reason = format!("return order {}", o.number);
-                reserve::restock(
+                // Back into the lots they left (the farmers' debits use the same spread).
+                let after = returned(&lines);
+                let plan =
+                    farm_supply::sale::restock_plan(conn, workspace_id, o.id, &before, &after)
+                        .await?;
+                reserve::restock_lots(
                     conn,
                     workspace_id,
                     o.warehouse_id,
-                    &back,
+                    &plan,
                     &cause(&o, &reason),
                 )
                 .await?;
@@ -849,11 +862,8 @@ pub async fn returns(
                 .map(|l| (l.id, l.picked, l.deducted, l.returned))
                 .collect();
             repo::set_line_quantities(conn, workspace_id, &rows).await?;
-            let mut returned = std::collections::BTreeMap::new();
-            for l in lines.iter().filter(|l| l.tracked && !l.returned.is_zero()) {
-                *returned.entry(l.product_id).or_insert(Decimal::ZERO) += l.returned;
-            }
-            farm_supply::sale::on_return(conn, workspace_id, o.id, &o.number, &returned).await?;
+            farm_supply::sale::on_return(conn, workspace_id, o.id, &o.number, &returned(&lines))
+                .await?;
             let all = lines.iter().all(|l| l.returned == l.quantity);
             let status = if all {
                 "returned"

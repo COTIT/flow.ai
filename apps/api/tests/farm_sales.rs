@@ -310,8 +310,8 @@ async fn balances(s: &Sold) -> [i64; 3] {
 const SALE: [i64; 3] = [1_123_596, 541_573, 134_831];
 // 1 jar = 600,000: 374,531.83 / 180,524.34 / 44,943.82 -> leftovers to Neema and Upendo.
 const ONE_BACK: [i64; 3] = [374_532, 180_524, 44_944];
-// A till sale of 2 jars = 1,200,000: 749,063.67 / 361,048.69 / 89,887.64 -> Baraka and Neema.
-const TILL: [i64; 3] = [749_064, 361_049, 89_887];
+// A till sale of 5 jars = 3,000,000: 1,872,659.18 / 902,621.72 / 224,719.10 -> Baraka.
+const TILL: [i64; 3] = [1_872_659, 902_622, 224_719];
 
 async fn done_when(pool: PgPool, two_workspaces: bool) {
     let s = sold(pool, two_workspaces).await;
@@ -342,10 +342,8 @@ async fn done_when(pool: PgPool, two_workspaces: bool) {
         "a full return nets every farmer to 0"
     );
 
-    // The till sells 5 jars: the 3 returned ones went back to the no-lot row, which goes
-    // first, so only 2 come from the lot and are credited. An offline replay credits nothing.
-    // shortcut: returned jars lose their lot (restock goes to the no-lot row, Phase 3 D3), so
-    // their resale credits no farmer; fix by restocking returns into the lots they left.
+    // The till sells 5 jars, the 3 returned ones among them (back in their lot): all 5 are
+    // credited. An offline replay credits nothing more.
     let t = till(&s).await;
     let body = json!({ "client_ref": client_ref(), "payment": { "method": "card" },
                        "lines": [{ "product_id": s.product, "quantity": "5", "unit_price": 2400 }] });
@@ -362,7 +360,7 @@ async fn done_when(pool: PgPool, two_workspaces: bool) {
         assert_eq!(status, expected, "{res}");
     }
     assert_eq!(balances(&s).await, TILL);
-    assert_eq!(TILL.iter().sum::<i64>(), 1_200_000);
+    assert_eq!(TILL.iter().sum::<i64>(), 3_000_000);
 
     let kinds: Vec<(String, String)> = sqlx::query_as(
         "SELECT e.kind, coalesce(a.kind, '-') FROM farm_passbook_entries e
@@ -489,4 +487,49 @@ async fn attributions_are_append_only_and_a_sale_is_credited_once(pool: PgPool) 
     .await;
     assert_eq!(status, StatusCode::CONFLICT, "completed once");
     assert_eq!(balances(&s).await, SALE, "credited once");
+}
+
+#[sqlx::test]
+async fn returned_jars_go_back_into_their_lot_and_sell_with_credit_again(pool: PgPool) {
+    let s = sold(pool, false).await;
+    give_back(&s, "3").await;
+    assert_eq!(balances(&s).await, [0, 0, 0]);
+    let level: String = sqlx::query_scalar(
+        "SELECT coalesce(sum(s.stock_lvl), 0)::numeric(19,2)::text FROM stocks s
+         JOIN lots l ON l.id = s.lot_id WHERE l.code = 'ILU-J-1' AND s.deleted_at IS NULL",
+    )
+    .fetch_one(&s.f.pool)
+    .await
+    .unwrap();
+    assert_eq!(level, "10.00", "the 3 returned jars are back in their lot");
+
+    let again = created(
+        &s.f,
+        &s.shop_ws,
+        "/orders",
+        json!({ "lines": [{ "product_id": s.product, "quantity": "3" }] }),
+        &s.shop,
+        "order_id",
+    )
+    .await;
+    act(&s.f, &s.shop_ws, &s.shop, &again, "confirm", None).await;
+    let lines = order_lines(&s.f, &s.shop_ws, &s.shop, &again).await;
+    act(
+        &s.f,
+        &s.shop_ws,
+        &s.shop,
+        &again,
+        "pick",
+        Some(json!({ "lines": [{ "line_id": lines[0], "quantity": "3" }] })),
+    )
+    .await;
+    act(&s.f, &s.shop_ws, &s.shop, &again, "complete", None).await;
+
+    assert_eq!(balances(&s).await, SALE, "the same credit as one sale of 3");
+    let kinds: Vec<String> =
+        sqlx::query_scalar("SELECT kind FROM farm_sale_attributions ORDER BY created_at, id")
+            .fetch_all(&s.f.pool)
+            .await
+            .unwrap();
+    assert_eq!(kinds, ["sale", "return", "sale"]);
 }
