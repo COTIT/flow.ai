@@ -4,17 +4,19 @@ import { useTranslation } from 'react-i18next'
 import { farmCropsList } from '@genesy/api-client/endpoints/farm-crops'
 import {
   farmRecordsCropCyclesGet,
+  farmRecordsFarmsGet,
   farmRecordsHarvestReportsList,
   farmRecordsPlotsGet,
+  farmRecordsPlotsList,
 } from '@genesy/api-client/endpoints/farm-records'
 import type { Provenance as ApiProvenance } from '@genesy/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
+import { allPages } from '@/features/farmer/pages'
 import { apiStatus } from '@/lib/apiError'
 import { queryKeys } from '@/lib/queryKeys'
 import { isUuid } from '@/lib/ids'
 import { localisedName, type LocalisedNames } from '@/lib/names'
-import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/db.types'
 
 type Enums = Database['public']['Enums']
@@ -68,40 +70,44 @@ export interface CycleRow extends Provenance {
   harvests: CycleHarvest[]
 }
 
-const PROVENANCE = 'source, verification, confidence, captured_at'
+/** Decimal text from the API as a number, for display only (GPS, hectares). */
+const shown = (value: string | null) => (value === null ? null : Number(value))
 
 /**
- * Farm detail — spec 5.5, with section-level officer corrections.
- *
- * Edits are handled by the shared officer edit RPC; this module stays focused
- * on the provenance graph read used by the detail screen.
- *
- * The plot embed names its foreign key. village_id is denormalised down
- * farm → plot and held true by a composite FK, so the pair has two
- * relationships and PostgREST refuses to choose between them.
+ * Farm detail — spec 5.5, with section-level officer corrections:
+ * `GET …/farms/{farm}` and `GET …/plots?farm_id=` (every page).
  */
 export async function fetchFarmDetail(farmId: string): Promise<FarmDetail | null> {
   // QA #3: a malformed route param must reach the same "not found" state as a
   // well-formed id matching nothing, rather than a uuid parse failure.
   if (!isUuid(farmId)) return null
 
-  const { data, error } = await supabase
-    .from('farm')
-    .select(
-      `id, label, village_id, latitude, longitude, ${PROVENANCE},
-       plot!plot_farm_id_fkey ( id, label, area_ha, latitude, longitude, ${PROVENANCE} )`,
-    )
-    .eq('id', farmId)
-    .is('deleted_at', null)
-    .maybeSingle()
+  const workspace = workspaceId()
+  let farm
+  try {
+    farm = (await farmRecordsFarmsGet(workspace, farmId)).data
+  } catch (error) {
+    // Another village's farm and a missing one are the same answer: not found.
+    if (apiStatus(error) === 404) return null
+    throw error
+  }
+  const plots = await allPages((params) => farmRecordsPlotsList(workspace, { farm_id: farmId, ...params }))
 
-  if (error) throw new Error(error.message)
-  if (!data) return null
-
-  const raw = data as unknown as Record<string, unknown>
   return {
-    ...(raw as unknown as FarmDetail),
-    plots: (raw.plot ?? []) as FarmDetail['plots'],
+    id: farm.id,
+    label: farm.label,
+    village_id: farm.village_id,
+    latitude: shown(farm.latitude),
+    longitude: shown(farm.longitude),
+    ...provenanceOf(farm.provenance),
+    plots: plots.map((plot) => ({
+      id: plot.id,
+      label: plot.label,
+      area_ha: shown(plot.area_ha),
+      latitude: shown(plot.latitude),
+      longitude: shown(plot.longitude),
+      ...provenanceOf(plot.provenance),
+    })),
   }
 }
 
@@ -180,7 +186,7 @@ export async function fetchCycleDetail(cycleId: string): Promise<CycleRow | null
   }
 }
 
-function provenanceOf(p: ApiProvenance): Provenance {
+export function provenanceOf(p: ApiProvenance): Provenance {
   return {
     source: p.source as Provenance['source'],
     verification: p.verification as Provenance['verification'],

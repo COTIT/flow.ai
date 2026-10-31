@@ -1,103 +1,64 @@
 import { useQuery } from '@tanstack/react-query'
+import {
+  farmRecordsCropCyclesList,
+  farmRecordsFarmsList,
+  farmRecordsHouseholdsList,
+  farmRecordsPersonsList,
+  farmRecordsPlotsList,
+} from '@genesy/api-client/endpoints/farm-records'
 
 import { useScopeNames } from '@/app/scope'
 import { useSession } from '@/app/session'
 import { writableVillageIds } from '@/app/membership'
-import { OUTSTANDING } from '@/features/officer/useVerifyQueue'
+import { workspaceId } from '@/app/workspace'
+import { OUTSTANDING_FILTER } from '@/features/officer/useVerifyQueue'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
 
 export interface OfficerVillage {
   villageId: string
   villageName: string
   persons: number
   farms: number
-  requests: number
+  /** shortcut: equipment requests are not on the API yet, so the count is absent and hidden; fill it when PUE requests move. */
+  requests?: number
   unverified: number
 }
 
 /**
- * The five tables `app_verify` accepts (business-rules §5). The officer home's
- * "records still needing verification" figure spans all of them, and counts
- * the same statuses (OUTSTANDING) the verify queue lists — a count that
- * disagreed with the queue it links to would change the number under the user
- * as they clicked it.
+ * The kinds the verify queue lists. The home's outstanding figure is a link TO that queue, so it
+ * counts the same kinds and states (OUTSTANDING_FILTER); a count that disagreed would change the
+ * number under the user as they clicked it.
  */
-const VERIFIABLE = ['person', 'farm', 'plot', 'crop_cycle', 'harvest_report'] as const
-type VerifiableTable = (typeof VERIFIABLE)[number]
+const QUEUE_LISTS = [
+  farmRecordsPersonsList,
+  farmRecordsHouseholdsList,
+  farmRecordsFarmsList,
+  farmRecordsPlotsList,
+  farmRecordsCropCyclesList,
+]
+
+type CountList = (workspace: string, params: { village_id: string; page_size: number; verification?: string }) => Promise<{ meta: { total: number } }>
+
+/** The API's total for one village (one row asked for); never counted from fetched rows. A failed count rejects: it is not zero. */
+const count = (read: CountList, villageId: string, verification?: string) =>
+  read(workspaceId(), { village_id: villageId, page_size: 1, ...(verification ? { verification } : {}) }).then((r) => r.meta.total)
 
 /**
- * Counts are asked of the database, never derived from fetched rows.
- *
- * `head: true` sends no rows back at all — business-rules §11 forbids the
- * client computing village aggregates, and counting a page of results would be
- * both that and wrong the moment a result set is truncated.
- */
-async function countVerifiable(
-  table: VerifiableTable,
-  villageId: string,
-  outstandingOnly: boolean,
-): Promise<number> {
-  const base = supabase
-    .from(table)
-    .select('*', { count: 'exact', head: true })
-    .eq('village_id', villageId)
-    .is('deleted_at', null)
-
-  // OUTSTANDING is imported from the queue rather than restated, because this
-  // figure is a link TO that queue. Counting only 'unverified' here while the
-  // queue listed 'unverified' and 'pending' meant the home promised 10 records
-  // and the queue then showed 14 — the number changed under the user as they
-  // clicked it.
-  const { count, error } = await (outstandingOnly
-    ? base.in('verification', OUTSTANDING)
-    : base)
-
-  // A failed count is not zero. Reporting "0 records need verifying" because a
-  // query broke would tell an officer their work is done when it is not.
-  if (error) throw new Error(error.message)
-  return count ?? 0
-}
-
-async function countRequests(villageId: string): Promise<number> {
-  const { count, error } = await supabase
-    .from('pue_request')
-    .select('*', { count: 'exact', head: true })
-    .eq('village_id', villageId)
-    .is('deleted_at', null)
-
-  if (error) throw new Error(error.message)
-  return count ?? 0
-}
-
-/**
- * Per-village figures for the officer's home — spec 5.1.
- *
- * RLS scopes every count to what this officer may see, so the village ids only
- * decide which buckets to ask for, never what is permitted.
+ * Per-village figures for the officer's home — spec 5.1. The API scopes every count to what this
+ * officer may see, so the village ids only decide which buckets to ask for.
  */
 export async function fetchOfficerHome(
   villageIds: string[],
 ): Promise<Array<Omit<OfficerVillage, 'villageName'>>> {
   return Promise.all(
     villageIds.map(async (villageId) => {
-      const [persons, farms, requests, ...outstandingPerTable] = await Promise.all([
-        countVerifiable('person', villageId, false),
-        countVerifiable('farm', villageId, false),
-        countRequests(villageId),
-        ...VERIFIABLE.map((t) => countVerifiable(t, villageId, true)),
+      const [persons, farms, ...outstanding] = await Promise.all([
+        count(farmRecordsPersonsList, villageId),
+        count(farmRecordsFarmsList, villageId),
+        ...QUEUE_LISTS.map((read) => count(read, villageId, OUTSTANDING_FILTER)),
       ])
-
-      return {
-        villageId,
-        persons,
-        farms,
-        requests,
-        // A total of exact counts the database returned, not a re-derivation
-        // of a view figure. `v_village_data_quality` reports verified shares
-        // per table but has no cross-table outstanding total.
-        unverified: outstandingPerTable.reduce((sum, n) => sum + n, 0),
-      }
+      // A total of exact counts the API returned.
+      return { villageId, persons, farms, unverified: outstanding.reduce((sum, n) => sum + n, 0) }
     }),
   )
 }

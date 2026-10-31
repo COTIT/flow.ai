@@ -4,7 +4,7 @@ import { authLogout } from '@genesy/api-client/endpoints/auth'
 
 import type { ActiveMembership } from '@/app/membership'
 import '@/lib/api'
-import { getFarmMe, type FarmMe } from '@/lib/farmMe'
+import { getFarmMe, type FarmMe, type FarmRole } from '@/lib/farmMe'
 import { apiStatus } from '@/lib/apiError'
 import { queryKeys } from '@/lib/queryKeys'
 
@@ -50,7 +50,7 @@ export async function fetchSession(): Promise<AppSession | null> {
     },
     memberships: me.memberships.map((m) => ({
       id: m.id,
-      role: m.role,
+      role: m.role as FarmRole,
       project_id: m.workspace_id,
       village_id: m.village_id,
       revoked_at: null,

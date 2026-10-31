@@ -1,12 +1,14 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const usePlotDocuments = vi.fn()
+const openPlotDocument = vi.fn()
 const mutate = vi.fn()
 const uploadState = { isPending: false, data: undefined as unknown, error: null as Error | null, isError: false }
 vi.mock('@/lib/plotDocuments', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/plotDocuments')>()),
   usePlotDocuments: (id: string) => usePlotDocuments(id),
+  openPlotDocument: (...args: unknown[]) => openPlotDocument(...args),
   useUploadPlotDocuments: () => ({ mutate, ...uploadState }),
 }))
 
@@ -22,13 +24,12 @@ const doc = (over: Record<string, unknown> = {}) => ({
   mime_type: 'image/jpeg',
   size_bytes: 2048,
   uploaded_at: '2026-10-05T10:00:00Z',
-  storage_path: `${VILLAGE}/${PLOT}/f1-title.jpg`,
-  url: 'https://signed.example/title.jpg',
   ...over,
 })
 
 beforeEach(() => {
   usePlotDocuments.mockReset()
+  openPlotDocument.mockReset()
   mutate.mockReset()
   uploadState.isPending = false
   uploadState.data = undefined
@@ -41,15 +42,50 @@ beforeEach(() => {
  * plot's fields against them. Staff only — RLS decides that, not this.
  */
 describe('PlotDocuments', () => {
-  test('lists each document as a link the verifier can open', () => {
+  // The tab opens on the tap (so no popup blocker stops it) and goes to the API's short-lived link.
+  test('lists each document, and opening one loads its download link in a new tab', async () => {
+    const tab = { opener: {} as unknown, location: { href: '' }, close: vi.fn() }
+    const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window)
+    openPlotDocument.mockResolvedValue('https://files.example/title.jpg?sig=1')
     usePlotDocuments.mockReturnValue({ isLoading: false, error: null, data: [doc(), doc({ id: 'd2', file_name: 'map.pdf', mime_type: 'application/pdf' })] })
     render(<PlotDocuments plotId={PLOT} villageId={VILLAGE} />)
 
     const links = screen.getAllByTestId('plot-document')
     expect(links).toHaveLength(2)
-    expect(links[0]).toHaveAttribute('href', 'https://signed.example/title.jpg')
-    expect(links[0]).toHaveAttribute('target', '_blank')
     expect(screen.getByTestId(`plot-documents-${PLOT}`)).toHaveTextContent('Title documents (2)')
+    fireEvent.click(links[0])
+    expect(open).toHaveBeenCalledWith('', '_blank')
+    await waitFor(() => expect(tab.location.href).toBe('https://files.example/title.jpg?sig=1'))
+    expect(openPlotDocument).toHaveBeenCalledWith(PLOT, 'd1')
+    expect(tab.opener).toBeNull()
+    open.mockRestore()
+  })
+
+  test('a link the API refuses closes the tab and says why', async () => {
+    const tab = { opener: null, location: { href: '' }, close: vi.fn() }
+    const open = vi.spyOn(window, 'open').mockReturnValue(tab as unknown as Window)
+    openPlotDocument.mockRejectedValue({ response: { status: 503, data: { message: 'storage is unavailable' } } })
+    usePlotDocuments.mockReturnValue({ isLoading: false, error: null, data: [doc()] })
+    render(<PlotDocuments plotId={PLOT} villageId={VILLAGE} />)
+
+    fireEvent.click(screen.getByTestId('plot-document'))
+    expect(await screen.findByTestId('plot-document-open-error')).toHaveTextContent('storage is unavailable')
+    expect(tab.close).toHaveBeenCalled()
+    open.mockRestore()
+  })
+
+  test('with popups blocked the link opens in this tab', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    const assign = vi.fn()
+    vi.stubGlobal('location', { ...window.location, assign })
+    openPlotDocument.mockResolvedValue('https://files.example/title.jpg?sig=1')
+    usePlotDocuments.mockReturnValue({ isLoading: false, error: null, data: [doc()] })
+    render(<PlotDocuments plotId={PLOT} villageId={VILLAGE} />)
+
+    fireEvent.click(screen.getByTestId('plot-document'))
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('https://files.example/title.jpg?sig=1'))
+    vi.unstubAllGlobals()
+    open.mockRestore()
   })
 
   // Zero rows is an answer, not an error.

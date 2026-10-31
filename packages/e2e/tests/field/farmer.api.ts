@@ -27,26 +27,39 @@ const provenance = {
 }
 const stamps = { created_at: "2026-09-01T08:00:00Z", updated_at: "2026-09-01T08:00:00Z", village_id: "v1" }
 
-/** The farmer's own records, as the API's farm-record lists return them for person p1. */
+/** The farmer's own records, as the person holdings read returns them for p1. */
 export const records: Record<string, MockReply> = {
-  "GET /workspace/w1/farm/households": page([
-    { id: "h1", label: "Mwakalinga household", members: [{ person_id: "p1", is_head: true }], provenance, ...stamps },
-  ]),
-  "GET /workspace/w1/farm/farms": page([
-    { id: "f1", label: "Riverside farm", household_id: "h1", managers: [{ person_id: "p1", is_primary: true }], latitude: null, longitude: null, provenance, ...stamps },
-  ]),
-  "GET /workspace/w1/farm/plots": page([
-    { id: "pl1", farm_id: "f1", label: "Riverside", area_ha: "1.8000", latitude: null, longitude: null, provenance, ...stamps },
-  ]),
-  "GET /workspace/w1/farm/crop-cycles": page([
-    { id: "c1", plot_id: "pl1", crop_id: "cr-mz", status: "growing", season_label: null, planted_on: null, area_ha: "1.6000", tree_count: null, unit_count: null, harvest_start: "2026-09-01", harvest_end: "2026-09-30", provenance, ...stamps },
-  ]),
-  "GET /workspace/w1/farm/crops": page([
-    { id: "cr-mz", code: "MZ", name_en: "Maize", name_sw: "Mahindi", measured_by: "area", is_active: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" },
-  ]),
-  "GET /workspace/w1/farm/crop-cycles/c1/harvest-reports": page([
-    { id: "hr1", crop_cycle_id: "c1", kind: "expected", is_current: true, quantity_kg: "4100.00", reported_for: null, provenance, ...stamps },
-  ]),
+  "GET /workspace/w1/farm/persons/p1/holdings": {
+    body: {
+      data: {
+        households: [
+          {
+            id: "h1", label: "Mwakalinga household", members: [{ person_id: "p1", is_head: true }], provenance, ...stamps,
+            people: [{ person_id: "p1", given_name: "Neema", family_name: "Mwakalinga", is_head: true }],
+          },
+        ],
+        farms: [
+          {
+            id: "f1", label: "Riverside farm", household_id: "h1", managers: [{ person_id: "p1", is_primary: true }], latitude: null, longitude: null, provenance, ...stamps,
+            plots: [
+              {
+                id: "pl1", farm_id: "f1", label: "Riverside", area_ha: "1.8000", latitude: null, longitude: null, provenance, ...stamps,
+                cycles: [
+                  {
+                    id: "c1", plot_id: "pl1", crop_id: "cr-mz", status: "growing", season_label: null, planted_on: null, area_ha: "1.6000", tree_count: null, unit_count: null, harvest_start: "2026-09-01", harvest_end: "2026-09-30", provenance, ...stamps,
+                    crop: { id: "cr-mz", code: "MZ", name_en: "Maize", name_sw: "Mahindi" },
+                    harvests: [
+                      { id: "hr1", crop_cycle_id: "c1", kind: "expected", is_current: true, quantity_kg: "4100.00", reported_for: null, provenance, ...stamps },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  },
 }
 
 const survey = (id: string, title_en: string, questions: unknown[]) => ({

@@ -2,141 +2,123 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-const responses = new Map<string, { data: unknown; error: { message: string } | null }>()
-const rpc = vi.fn()
-const from = vi.fn((table: string) => {
-  const response = () => responses.get(table) ?? { data: [], error: null }
-  const chain: Record<string, unknown> = {}
-  for (const method of ['select', 'eq', 'is', 'in', 'or']) chain[method] = vi.fn(() => chain)
-  chain.maybeSingle = vi.fn(() => Promise.resolve(response()))
-  chain.then = (resolve: (value: unknown) => unknown, reject?: (reason: unknown) => unknown) =>
-    Promise.resolve(response()).then(resolve, reject)
-  return chain
-})
-
-vi.mock('@/lib/supabase', () => ({ supabase: { from, rpc } }))
+const api = { person: vi.fn(), holdings: vi.fn(), verifyPlot: vi.fn(), verifyFarm: vi.fn(), verifyPerson: vi.fn() }
+vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
+  farmRecordsPersonsGet: (...args: unknown[]) => api.person(...args),
+  farmRecordsPersonsHoldings: (...args: unknown[]) => api.holdings(...args),
+  farmRecordsPersonsVerify: (...args: unknown[]) => api.verifyPerson(...args),
+  farmRecordsHouseholdsVerify: vi.fn(),
+  farmRecordsFarmsVerify: (...args: unknown[]) => api.verifyFarm(...args),
+  farmRecordsPlotsVerify: (...args: unknown[]) => api.verifyPlot(...args),
+  farmRecordsCropCyclesVerify: vi.fn(),
+  farmRecordsHarvestReportsVerify: vi.fn(),
+}))
+vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const { fetchPersonDetail, usePersonDetail, useVerify } = await import('@/features/officer/usePersonDetail')
 const { default: i18n } = await import('@/i18n')
 
 const id = '11111111-1111-4111-8111-111111111111'
+const provenance = {
+  source: 'field_verified', captured_at: '2026-09-01T00:00:00Z', captured_by: { id: 'officer-1', name: 'Officer' },
+  verification: 'unverified', verified_by: null, verified_at: null, confidence: 'high', evidence_ref: null,
+}
+const flat = {
+  source: 'field_verified', captured_at: '2026-09-01T00:00:00Z', captured_by: 'officer-1',
+  verification: 'unverified', verified_by: null, verified_at: null, confidence: 'high',
+}
+const person = { id, given_name: 'Neema', family_name: 'Mwakalinga', phone: '+255712345678', village_id: 'v1', provenance }
+const cycle = (crop: unknown) => ({
+  id: 'c1', crop_id: 'crop', plot_id: 'p1', village_id: 'v1', season_label: 'Masika', status: 'growing',
+  area_ha: '1.6000', tree_count: null, unit_count: null, planted_on: null, harvest_start: '2026-09-01', harvest_end: null,
+  provenance, crop, harvests: [{
+    id: 'hr1', kind: 'expected', quantity_kg: '4100.00', is_current: true, reported_for: null,
+    provenance: { ...provenance, verified_by: { id: 'officer-2', name: 'Second' }, verified_at: '2026-09-02T00:00:00Z', captured_by: null },
+  }],
+})
+const holdings = (crop: unknown = { id: 'crop', code: 'maize', name_en: 'Maize', name_sw: 'Mahindi' }) => ({ data: {
+  households: [{ id: 'h1', label: 'Mwakalinga household', members: [], provenance, people: [
+    { person_id: id, given_name: 'Neema', family_name: 'Mwakalinga', is_head: true },
+    { person_id: 'p2', given_name: 'Juma', family_name: 'Mwakalinga', is_head: false },
+  ] }],
+  farms: [{ id: 'f1', label: 'Riverside farm', latitude: '-7.710000', longitude: null, provenance, plots: [
+    { id: 'p1', label: 'Riverside', area_ha: '1.8000', latitude: null, longitude: null, provenance, cycles: [cycle(crop)] },
+  ] }],
+} })
+const notFound = { response: { status: 404, data: { message: 'The requested resource could not be found.' } } }
 
 beforeEach(() => {
-  responses.clear()
-  from.mockClear()
-  rpc.mockReset()
+  for (const fn of Object.values(api)) fn.mockReset()
   void i18n.changeLanguage('en')
-  responses.set('household_member', { data: [], error: null })
-  responses.set('farm_manager', { data: [], error: null })
-  responses.set('household', { data: [], error: null })
-  responses.set('farm', { data: [], error: null })
+  api.person.mockResolvedValue({ data: person })
+  api.holdings.mockResolvedValue(holdings())
 })
 
 describe('fetchPersonDetail', () => {
   test('returns null for malformed or invisible IDs', async () => {
     expect(await fetchPersonDetail('bad')).toBeNull()
-    responses.set('person', { data: null, error: null })
+    expect(api.person).not.toHaveBeenCalled()
+    api.person.mockRejectedValue(notFound)
     expect(await fetchPersonDetail(id)).toBeNull()
   })
 
-  test('surfaces every graph read error', async () => {
-    responses.set('person', { data: null, error: { message: 'person failed' } })
-    await expect(fetchPersonDetail(id)).rejects.toThrow('person failed')
-
-    responses.set('person', { data: { id, village_id: 'v1' }, error: null })
-    responses.set('household_member', { data: [], error: { message: 'membership failed' } })
-    await expect(fetchPersonDetail(id)).rejects.toThrow('membership failed')
-
-    responses.set('household_member', { data: [], error: null })
-    responses.set('farm_manager', { data: [], error: { message: 'manager failed' } })
-    await expect(fetchPersonDetail(id)).rejects.toThrow('manager failed')
-
-    responses.set('farm_manager', { data: [], error: null })
-    responses.set('household_member', { data: [{ household_id: 'h1' }], error: null })
-    responses.set('household', { data: [], error: { message: 'household failed' } })
-    await expect(fetchPersonDetail(id)).rejects.toThrow('household failed')
-
-    responses.set('household', { data: [], error: null })
-    responses.set('farm', { data: [], error: { message: 'farm failed' } })
-    await expect(fetchPersonDetail(id)).rejects.toThrow('farm failed')
+  test('surfaces any other read error as it came', async () => {
+    const failed = { response: { status: 500, data: { message: 'person failed' } } }
+    api.person.mockRejectedValue(failed)
+    await expect(fetchPersonDetail(id)).rejects.toBe(failed)
+    api.person.mockResolvedValue({ data: person })
+    api.holdings.mockRejectedValue(failed)
+    await expect(fetchPersonDetail(id)).rejects.toBe(failed)
   })
 
-  test('treats missing top-level and nested relationship arrays as empty', async () => {
-    responses.set('person', { data: { id, village_id: 'v1', given_name: 'Neema', family_name: 'A' }, error: null })
-    responses.set('household_member', { data: undefined, error: null })
-    responses.set('farm_manager', { data: undefined, error: null })
-    responses.set('farm', { data: undefined, error: null })
-    const empty = await fetchPersonDetail(id)
-    expect(empty?.households).toEqual([])
-    expect(empty?.farms).toEqual([])
-
-    responses.set('household_member', { data: [{ household_id: 'missing-household' }], error: null })
-    responses.set('household', { data: undefined, error: null })
-    responses.set('farm_manager', { data: [], error: null })
-    const missingHouseholds = await fetchPersonDetail(id)
-    expect(missingHouseholds?.households).toEqual([])
-
-    responses.set('household_member', { data: [{ household_id: 'h1' }], error: null })
-    responses.set('farm_manager', { data: [{ farm_id: 'f1' }], error: null })
-    responses.set('household', { data: [{ id: 'h1' }], error: null })
-    responses.set('farm', { data: [{ id: 'f0' }, { id: 'f1', plot: [{ id: 'p0' }, { id: 'p1', crop_cycle: [{ id: 'c1' }] }] }], error: null })
-    const nested = await fetchPersonDetail(id)
-    expect(nested?.households[0].members).toEqual([])
-    expect(nested?.farms[0].plots).toEqual([])
-    expect(nested?.farms[1].plots[0].cycles).toEqual([])
-    expect(nested?.farms[1].plots[1].cycles[0].harvests).toEqual([])
-  })
-
-  test('maps memberships, null people, farms, plots, cycles, and harvests', async () => {
-    responses.set('person', {
-      data: { id, village_id: 'v1', given_name: 'Neema', family_name: 'A' }, error: null,
-    })
-    responses.set('household_member', { data: [{ household_id: 'h1' }], error: null })
-    responses.set('farm_manager', { data: [{ farm_id: 'f1' }], error: null })
-    responses.set('household', {
-      data: [{ id: 'h1', household_member: [{ person: null }, { person: { id, given_name: 'Neema', family_name: 'A' } }] }], error: null,
-    })
-    responses.set('farm', {
-      data: [{
-        id: 'f1',
-        plot: [{
-          id: 'p1',
-          crop_cycle: [{ id: 'c1', crop: { name_en: 'Maize', name_sw: 'Mahindi' }, harvest_report: [{ id: 'h1' }] }],
-        }],
-      }],
-      error: null,
-    })
+  // One person read plus one holdings read; household people come with their names.
+  test('maps the person and their holdings', async () => {
     const detail = await fetchPersonDetail(id)
-    expect(detail?.households[0].members).toEqual([{ id, given_name: 'Neema', family_name: 'A' }])
-    expect(detail?.farms[0].plots[0].cycles[0].harvests).toEqual([{ id: 'h1' }])
+    expect(api.holdings).toHaveBeenCalledWith('w1', id)
+    expect(detail?.person).toEqual({ id, given_name: 'Neema', family_name: 'Mwakalinga', phone: '+255712345678', village_id: 'v1', ...flat })
+    expect(detail?.households).toEqual([{ id: 'h1', label: 'Mwakalinga household', ...flat, members: [
+      { id, given_name: 'Neema', family_name: 'Mwakalinga' },
+      { id: 'p2', given_name: 'Juma', family_name: 'Mwakalinga' },
+    ] }])
+    const farm = detail!.farms[0]
+    expect(farm).toMatchObject({ id: 'f1', label: 'Riverside farm', latitude: -7.71, longitude: null, ...flat })
+    expect(farm.plots[0]).toMatchObject({ id: 'p1', label: 'Riverside', area_ha: 1.8, latitude: null, longitude: null })
+    expect(farm.plots[0].cycles[0]).toMatchObject({
+      id: 'c1', crop_id: 'crop', season_label: 'Masika', status: 'growing', area_ha: 1.6, harvest_start: '2026-09-01',
+      crop: { name_en: 'Maize', name_sw: 'Mahindi' },
+    })
+    expect(farm.plots[0].cycles[0].harvests).toEqual([{
+      id: 'hr1', kind: 'expected', quantity_kg: 4100, is_current: true, reported_for: null,
+      ...flat, captured_by: null, verified_by: 'officer-2', verified_at: '2026-09-02T00:00:00Z',
+    }])
   })
 
-  test('hook maps translated, missing, and fallback crop names and retains a null result', async () => {
-    responses.set('person', { data: { id, village_id: 'v1', given_name: 'Neema', family_name: 'A' }, error: null })
-    responses.set('farm', { data: [{ id: 'f1', plot: [{ id: 'p1', crop_cycle: [
-      { crop_id: 'crop', crop: { name_en: 'Maize', name_sw: 'Mahindi' }, harvest_report: [] },
-      { crop_id: 'fallback', crop: null, harvest_report: [] },
-    ] }] }], error: null })
+  test('hook maps translated and fallback crop names and retains a null result', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const { result, rerender } = renderHook(({ personId }) => usePersonDetail(personId), {
       initialProps: { personId: id },
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
     })
     await waitFor(() => expect(result.current.data?.farms[0].plots[0].cycles[0].crop_name).toBe('Maize'))
-    expect(result.current.data?.farms[0].plots[0].cycles[1].crop_name).toBe('fallback')
 
     await i18n.changeLanguage('sw')
     rerender({ personId: id })
     await waitFor(() => expect(result.current.data?.farms[0].plots[0].cycles[0].crop_name).toBe('Mahindi'))
 
-    responses.set('person', { data: null, error: null })
+    api.holdings.mockResolvedValue(holdings(null))
+    client.clear()
+    rerender({ personId: '22222222-2222-4222-8222-222222222222' })
+    await waitFor(() => expect(result.current.data?.farms[0].plots[0].cycles[0].crop_name).toBe('crop'))
+
+    api.person.mockRejectedValue(notFound)
     client.clear()
     rerender({ personId: '33333333-3333-4333-8333-333333333333' })
     await waitFor(() => expect(result.current.data).toBeNull())
   })
 
-  test('verification mutation stamps through RPC and invalidates all related keys', async () => {
-    rpc.mockResolvedValue({ data: null, error: null })
+  test('verification posts to the record kind and invalidates all related keys', async () => {
+    api.verifyPlot.mockResolvedValue({ data: {} })
+    api.verifyFarm.mockResolvedValue({ data: {} })
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
     client.invalidateQueries = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() => useVerify(id, 'v1'), {
@@ -144,22 +126,24 @@ describe('fetchPersonDetail', () => {
     })
 
     await result.current.mutateAsync({ table: 'plot', id: 'plot-1' })
-    expect(rpc).toHaveBeenCalledWith('app_verify', { p_table: 'plot', p_id: 'plot-1' })
+    expect(api.verifyPlot).toHaveBeenCalledWith('w1', 'plot-1')
     expect(client.invalidateQueries).toHaveBeenCalledTimes(6)
 
     const noVillage = renderHook(() => useVerify(id, undefined), {
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
     })
     await noVillage.result.current.mutateAsync({ table: 'farm', id: 'farm-1' })
+    expect(api.verifyFarm).toHaveBeenCalledWith('w1', 'farm-1')
     expect(client.invalidateQueries).toHaveBeenCalledTimes(7)
   })
 
-  test('verification mutation keeps the exact server error', async () => {
-    rpc.mockResolvedValue({ error: { message: 'stale verification state' } })
+  test('verification keeps the API refusal as it came', async () => {
+    const refused = { response: { status: 422, data: { message: 'record is not awaiting verification' } } }
+    api.verifyPerson.mockRejectedValue(refused)
     const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
     const { result } = renderHook(() => useVerify(id, 'v1'), {
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
     })
-    await expect(result.current.mutateAsync({ table: 'person', id })).rejects.toThrow('stale verification state')
+    await expect(result.current.mutateAsync({ table: 'person', id })).rejects.toBe(refused)
   })
 })

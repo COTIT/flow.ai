@@ -152,7 +152,7 @@ export function OfficerHomeScreen() {
               <div className="flex gap-2.5">
                 <Figure label={t('officerHome.people')} value={v.persons} />
                 <Figure label={t('officerHome.farms')} value={v.farms} />
-                {resourcesEnabled && (
+                {resourcesEnabled && v.requests !== undefined && (
                   <Figure label={t('officerHome.requests')} value={v.requests} />
                 )}
               </div>
