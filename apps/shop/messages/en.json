@@ -32,5 +32,78 @@
     "notFoundTitle": "Page not found",
     "notFoundBody": "This page doesn't exist or is no longer for sale.",
     "home": "Go to the shop"
+  },
+  "cart": {
+    "title": "Your cart",
+    "link": "{count, plural, =0 {Cart, empty} one {Cart, # item} other {Cart, # items}}",
+    "option": "Size or option",
+    "quantity": "Quantity",
+    "add": "Add to cart",
+    "added": "Added to your cart.",
+    "view": "View cart",
+    "empty": "Your cart is empty.",
+    "continue": "Continue shopping",
+    "each": "{price} each",
+    "less": "One less {name}",
+    "more": "One more {name}",
+    "remove": "Remove {name}",
+    "totalAtCheckout": "Total calculated at checkout: prices, VAT and stock are confirmed when you place the order.",
+    "checkout": "Go to checkout"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "empty": "Your cart is empty.",
+    "shop": "Go to the shop",
+    "summary": "Your order",
+    "totalNext": "The total, with VAT, is shown on the next page before you pay.",
+    "place": "Place order",
+    "required": "Please fill this in.",
+    "field": {
+      "email": "Email",
+      "name": "Full name",
+      "phone": "Phone (optional)",
+      "line1": "Address",
+      "line2": "Address line 2 (optional)",
+      "postal_code": "Postal code",
+      "city": "City",
+      "country": "Country"
+    },
+    "problem": {
+      "invalid_input": "Something in the form isn't right. Please check it and try again.",
+      "busy": "The shop is very busy right now. Please try again in a few minutes.",
+      "unavailable": "We can't place orders right now. Please try again in a minute."
+    }
+  },
+  "order": {
+    "title": "Your order",
+    "heading": "Order {number}",
+    "awaiting": "Waiting for payment.",
+    "heldUntil": "Your items are reserved until <time></time>.",
+    "paid": "Thank you! Your payment is in and your order is confirmed.",
+    "cancelled": "This order expired before it was paid, so the items went back on the shelf.",
+    "again": "Back to your cart",
+    "status": "Status: {status}",
+    "subtotal": "Subtotal",
+    "vat": "VAT",
+    "total": "Total",
+    "pay": "Pay now",
+    "problem": {
+      "no_provider": {
+        "title": "Online payment isn't available yet",
+        "body": "Your order is saved, but this shop can't take card payments online yet. Please contact us to pay."
+      },
+      "provider_down": {
+        "title": "The payment service isn't answering",
+        "body": "Nothing was charged. Please try again in a moment."
+      },
+      "not_payable": {
+        "title": "This order can't be paid any more",
+        "body": "It may have expired or already been paid. Refresh the page to see its status."
+      },
+      "unavailable": {
+        "title": "Payment couldn't start",
+        "body": "Nothing was charged. Please try again in a minute."
+      }
+    }
   }
 }

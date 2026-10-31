@@ -5,8 +5,9 @@ import { ArrowLeftIcon } from "lucide-react"
 
 import { formatMoney } from "@genesy/ui/lib/money"
 
+import { AddToCart } from "@/components/add-to-cart"
 import { ProductImage } from "@/components/product-image"
-import { StockBadge } from "@/components/stock-badge"
+import { isSoldOut, StockBadge } from "@/components/stock-badge"
 import { getProduct } from "@/lib/storefront"
 
 type Props = { params: Promise<{ id: string }> }
@@ -96,6 +97,11 @@ export default async function ProductPage({ params }: Props) {
               </ul>
             </section>
           ) : null}
+
+          <AddToCart
+            product={product}
+            soldOut={isSoldOut(product.available_stock)}
+          />
 
           <div className="gold-rule" />
           <p className="whitespace-pre-line">

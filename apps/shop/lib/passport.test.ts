@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { earliestLinkExpiry, isProductId, isPublicCode } from "./passport"
+import { earliestLinkExpiry, isUuid, isPublicCode } from "./passport"
 
 describe("isPublicCode", () => {
   it("accepts 10 Crockford base32 characters", () => {
@@ -19,11 +19,11 @@ describe("isPublicCode", () => {
   )
 })
 
-describe("isProductId", () => {
+describe("isUuid", () => {
   it("accepts a UUID and nothing else", () => {
-    expect(isProductId("11111111-1111-4111-8111-111111111111")).toBe(true)
-    expect(isProductId("../lots/7K3M9QX2WD")).toBe(false)
-    expect(isProductId("boom")).toBe(false)
+    expect(isUuid("11111111-1111-4111-8111-111111111111")).toBe(true)
+    expect(isUuid("../lots/7K3M9QX2WD")).toBe(false)
+    expect(isUuid("boom")).toBe(false)
   })
 })
 
