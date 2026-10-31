@@ -1,6 +1,36 @@
 {
   "app": {
     "title": "Genesy Shop",
-    "tagline": "Duka la mtandaoni, kurasa za bidhaa na kurasa za QR za mafungu."
+    "tagline": "Asali na nta kutoka kwa wafugaji nyuki wa Ilundo, Tanzania, inayofuatiliwa chupa kwa chupa."
+  },
+  "nav": {
+    "shop": "Duka",
+    "home": "Ukurasa wa mwanzo wa Genesy Shop"
+  },
+  "footer": {
+    "note": "Kila chupa ina msimbo. Uchanganue uone asali yako inatoka wapi."
+  },
+  "catalog": {
+    "title": "Duka",
+    "empty": "Hakuna bidhaa zinazouzwa kwa sasa.",
+    "previous": "Iliyotangulia",
+    "next": "Inayofuata",
+    "page": "Ukurasa {page} kati ya {last}"
+  },
+  "product": {
+    "inStock": "Ipo stoo",
+    "soldOut": "Imeisha",
+    "variants": "Ukubwa na chaguo",
+    "back": "Rudi dukani",
+    "noDescription": "Maelezo zaidi yanakuja hivi karibuni.",
+    "imageSoon": "Picha inakuja hivi karibuni"
+  },
+  "errors": {
+    "unavailableTitle": "Duka limepumzika kidogo",
+    "unavailableBody": "Hatuwezi kufikia orodha ya bidhaa kwa sasa. Tafadhali jaribu tena baada ya dakika moja.",
+    "retry": "Jaribu tena",
+    "notFoundTitle": "Ukurasa haujapatikana",
+    "notFoundBody": "Ukurasa huu haupo au bidhaa hii haiuzwi tena.",
+    "home": "Nenda dukani"
   }
 }

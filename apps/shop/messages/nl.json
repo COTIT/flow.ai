@@ -1,6 +1,36 @@
 {
   "app": {
     "title": "Genesy Shop",
-    "tagline": "Openbare webshop, productpagina's en QR-batchpagina's."
+    "tagline": "Honing en bijenwas van de imkers van Ilundo in Tanzania, per pot traceerbaar."
+  },
+  "nav": {
+    "shop": "Winkel",
+    "home": "Genesy Shop startpagina"
+  },
+  "footer": {
+    "note": "Elke pot heeft een code. Scan hem en zie waar je honing vandaan komt."
+  },
+  "catalog": {
+    "title": "Winkel",
+    "empty": "Er zijn nu geen producten te koop.",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "page": "Pagina {page} van {last}"
+  },
+  "product": {
+    "inStock": "Op voorraad",
+    "soldOut": "Uitverkocht",
+    "variants": "Maten en opties",
+    "back": "Terug naar de winkel",
+    "noDescription": "Binnenkort meer over dit product.",
+    "imageSoon": "Foto volgt"
+  },
+  "errors": {
+    "unavailableTitle": "De winkel neemt even pauze",
+    "unavailableBody": "We kunnen de catalogus nu niet bereiken. Probeer het over een minuut opnieuw.",
+    "retry": "Opnieuw proberen",
+    "notFoundTitle": "Pagina niet gevonden",
+    "notFoundBody": "Deze pagina bestaat niet of is niet meer te koop.",
+    "home": "Naar de winkel"
   }
 }
