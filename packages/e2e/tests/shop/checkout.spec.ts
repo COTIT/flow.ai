@@ -51,6 +51,9 @@ test("buy honey: cart, checkout, the server's totals, pay, thank you", async ({
   await fillCustomer(page)
   await expectNoHorizontalScroll(page)
   await page.getByRole("button", { name: "Place order" }).click()
+  // Server action -> order POST -> redirect -> no-store order render: wait on the navigation
+  // itself (test-length budget), not on a 5 s expect, so a busy machine doesn't flake it.
+  await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/)
 
   await expect(
     page.getByRole("heading", { level: 1, name: /^Order WEB-\d+$/ })
@@ -60,11 +63,12 @@ test("buy honey: cart, checkout, the server's totals, pay, thank you", async ({
   await expectNoHorizontalScroll(page)
 
   await page.getByRole("button", { name: "Pay now" }).click()
+  // Two redirects (provider stand-in, then back) plus a fresh render before this shows.
   await expect(
     page
       .getByRole("status")
       .filter({ hasText: "Thank you! Your payment is in" })
-  ).toBeVisible()
+  ).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole("link", { name: "Cart, empty" })).toBeVisible()
 })
 
