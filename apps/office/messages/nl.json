@@ -16,7 +16,9 @@
   "nav": {
     "label": "Hoofdmenu",
     "products": "Producten",
-    "lots": "Batches"
+    "lots": "Batches",
+    "appKeys": "App-sleutels",
+    "webhooks": "Webhooks"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -54,5 +56,41 @@
     "recallTitle": "Deze batch terugroepen?",
     "recallText": "Batch {code} wordt als teruggeroepen getoond op de publieke pagina en via de QR-link van elke pot.",
     "recallConfirm": "Batch terugroepen"
+  },
+  "secret": {
+    "once": "Kopieer dit geheim nu. Het wordt maar één keer getoond.",
+    "label": "Geheim",
+    "copy": "Kopiëren",
+    "copied": "Gekopieerd"
+  },
+  "appKeys": {
+    "title": "App-sleutels",
+    "new": "Nieuwe app-sleutel",
+    "empty": "Nog geen app-sleutels.",
+    "name": "Naam",
+    "kind": "Soort",
+    "scopes": "Rechten",
+    "prefix": "Sleutel begint met",
+    "lastUsed": "Laatst gebruikt",
+    "actions": "Acties",
+    "revoked": "Ingetrokken",
+    "revoke": "Intrekken",
+    "revokeTitle": "{name} intrekken?",
+    "revokeText": "Apps met deze sleutel stoppen meteen. Dit kan niet ongedaan worden gemaakt."
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "new": "Nieuw endpoint",
+    "edit": "Bewerken",
+    "empty": "Nog geen webhook-endpoints.",
+    "url": "URL",
+    "events": "Gebeurtenissen",
+    "description": "Omschrijving",
+    "state": "Status",
+    "active": "Actief",
+    "inactive": "Gepauzeerd",
+    "delete": "Verwijderen",
+    "deleteTitle": "Dit endpoint verwijderen?",
+    "deleteText": "{url} krijgt geen gebeurtenissen meer. Dit kan niet ongedaan worden gemaakt."
   }
 }

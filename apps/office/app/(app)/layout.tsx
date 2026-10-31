@@ -17,6 +17,8 @@ import { cn } from "@genesy/ui/lib/utils"
 const nav = [
   { href: "/products", label: "nav.products" },
   { href: "/lots", label: "nav.lots" },
+  { href: "/settings/app-keys", label: "nav.appKeys" },
+  { href: "/settings/webhooks", label: "nav.webhooks" },
 ] as const
 
 /** Signed-in frame for every back-office screen: guard, header and menu. */

@@ -16,7 +16,9 @@
   "nav": {
     "label": "Menyu kuu",
     "products": "Bidhaa",
-    "lots": "Mafungu"
+    "lots": "Mafungu",
+    "appKeys": "Funguo za programu",
+    "webhooks": "Webhooks"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -54,5 +56,41 @@
     "recallTitle": "Rudisha fungu hili?",
     "recallText": "Fungu {code} litaonyeshwa kuwa limerudishwa kwenye ukurasa wake wa umma na kwenye kiungo cha QR cha kila chupa.",
     "recallConfirm": "Rudisha fungu"
+  },
+  "secret": {
+    "once": "Nakili siri hii sasa. Inaonyeshwa mara moja tu.",
+    "label": "Siri",
+    "copy": "Nakili",
+    "copied": "Imenakiliwa"
+  },
+  "appKeys": {
+    "title": "Funguo za programu",
+    "new": "Ufunguo mpya",
+    "empty": "Bado hakuna funguo.",
+    "name": "Jina",
+    "kind": "Aina",
+    "scopes": "Ruhusa",
+    "prefix": "Ufunguo unaanza na",
+    "lastUsed": "Ulitumika mwisho",
+    "actions": "Vitendo",
+    "revoked": "Umefutwa",
+    "revoke": "Futa ufunguo",
+    "revokeTitle": "Futa {name}?",
+    "revokeText": "Programu zinazotumia ufunguo huu zitaacha kufanya kazi mara moja. Hili haliwezi kutenduliwa."
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "new": "Endpoint mpya",
+    "edit": "Hariri",
+    "empty": "Bado hakuna endpoints.",
+    "url": "URL",
+    "events": "Matukio",
+    "description": "Maelezo",
+    "state": "Hali",
+    "active": "Inafanya kazi",
+    "inactive": "Imesimamishwa",
+    "delete": "Futa",
+    "deleteTitle": "Futa endpoint hii?",
+    "deleteText": "{url} haitapokea matukio tena. Hili haliwezi kutenduliwa."
   }
 }

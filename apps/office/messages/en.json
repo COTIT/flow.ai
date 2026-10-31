@@ -16,7 +16,9 @@
   "nav": {
     "label": "Main menu",
     "products": "Products",
-    "lots": "Batches"
+    "lots": "Batches",
+    "appKeys": "App keys",
+    "webhooks": "Webhooks"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -54,5 +56,41 @@
     "recallTitle": "Recall this batch?",
     "recallText": "Batch {code} will show as recalled on its public page and on every jar's QR link.",
     "recallConfirm": "Recall batch"
+  },
+  "secret": {
+    "once": "Copy this secret now. It is shown only once.",
+    "label": "Secret",
+    "copy": "Copy",
+    "copied": "Copied"
+  },
+  "appKeys": {
+    "title": "App keys",
+    "new": "New app key",
+    "empty": "No app keys yet.",
+    "name": "Name",
+    "kind": "Kind",
+    "scopes": "Scopes",
+    "prefix": "Key starts with",
+    "lastUsed": "Last used",
+    "actions": "Actions",
+    "revoked": "Revoked",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke {name}?",
+    "revokeText": "Apps using this key stop working at once. This cannot be undone."
+  },
+  "webhooks": {
+    "title": "Webhooks",
+    "new": "New endpoint",
+    "edit": "Edit",
+    "empty": "No webhook endpoints yet.",
+    "url": "URL",
+    "events": "Events",
+    "description": "Description",
+    "state": "State",
+    "active": "Active",
+    "inactive": "Paused",
+    "delete": "Delete",
+    "deleteTitle": "Delete this endpoint?",
+    "deleteText": "{url} will get no more events. This cannot be undone."
   }
 }
