@@ -1,0 +1,534 @@
+//! Office orders: drafts priced from the catalog in minor units, the status machine and the
+//! stock each status holds or takes.
+
+mod common;
+
+use std::sync::Arc;
+
+use axum::http::{Method, StatusCode};
+use common::{Api, invoicing::stock, member_with, send_raw};
+use serde_json::{Value, json};
+use sqlx::PgPool;
+
+struct W {
+    api: Api,
+    main: String,
+    honey: String,
+    wax: String,
+}
+
+/// Acme: a main warehouse, honey (€12.50 excl, 9 % VAT, 10 in stock) and wax (€3 excl, 21 %,
+/// 10 in stock).
+async fn world(pool: PgPool) -> W {
+    let api = Api::new(pool, "/orders").await;
+    let vat = |rate: &'static str| {
+        let api = api.with_base("/settings/vat-groups");
+        async move {
+            api.create(
+                json!({ "name": rate, "vat_amount": rate, "country": "NL" }),
+                "vat_group_id",
+            )
+            .await
+        }
+    };
+    let (low, high) = (vat("9").await, vat("21").await);
+    let main = api
+        .with_base("/warehouses")
+        .create(
+            json!({ "name": "Main", "default_warehouse": true }),
+            "warehouse_id",
+        )
+        .await;
+    let products = api.with_base("/products");
+    let honey = products
+        .create(
+            json!({ "name": "Honey", "price": "12.50", "vat_group_id": low }),
+            "product_id",
+        )
+        .await;
+    let wax = products
+        .create(
+            json!({ "name": "Wax", "price": "3", "vat_group_id": high }),
+            "product_id",
+        )
+        .await;
+    stock(&api, &honey, &main, 10).await;
+    stock(&api, &wax, &main, 10).await;
+    W {
+        api,
+        main,
+        honey,
+        wax,
+    }
+}
+
+async fn call(w: &W, method: Method, path: &str, body: Option<Value>) -> (StatusCode, Value) {
+    w.api.call(method, path, body, &w.api.owner).await
+}
+
+fn line(product: &str, q: &str) -> Value {
+    json!({ "product_id": product, "quantity": q })
+}
+
+async fn draft(w: &W, lines: Value) -> String {
+    let (s, res) = call(w, Method::POST, "", Some(json!({ "lines": lines }))).await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    res["data"]["order_id"].as_str().unwrap().to_owned()
+}
+
+async fn act(w: &W, id: &str, action: &str) -> (StatusCode, Value) {
+    call(w, Method::POST, &format!("/{id}/{action}"), None).await
+}
+
+/// (level, reserved) of a product at the main warehouse.
+async fn level(w: &W, product: &str) -> (String, String) {
+    sqlx::query_as(
+        "SELECT stock_lvl::text, reserved::text FROM stocks
+         WHERE product_id = $1::uuid AND warehouse_id = $2::uuid AND bin_id IS NULL",
+    )
+    .bind(product)
+    .bind(&w.main)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap()
+}
+
+/// Σ reservation rows of an order.
+async fn held(w: &W, order: &str) -> String {
+    sqlx::query_scalar(
+        "SELECT coalesce(sum(quantity), 0)::numeric(19,2)::text FROM stock_reservations
+         WHERE related_domain = 'order' AND related_id = $1::uuid",
+    )
+    .bind(order)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap()
+}
+
+async fn pick_all(w: &W, id: &str) {
+    let (_, o) = call(w, Method::GET, &format!("/{id}"), None).await;
+    let lines: Vec<Value> = o["data"]["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| json!({ "line_id": l["id"], "quantity": l["quantity"] }))
+        .collect();
+    let (s, res) = call(
+        w,
+        Method::POST,
+        &format!("/{id}/pick"),
+        Some(json!({ "lines": lines })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+}
+
+#[sqlx::test]
+async fn a_draft_is_priced_in_minor_units_with_vat_per_rate(pool: PgPool) {
+    let w = world(pool).await;
+    let id = draft(&w, json!([line(&w.honey, "2"), line(&w.wax, "1.5")])).await;
+    let (s, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert_eq!(s, StatusCode::OK);
+    let o = &o["data"];
+    assert_eq!(o["number"], "ORD-0001");
+    assert_eq!(o["status"], "draft");
+    assert_eq!(o["source"], "office");
+    assert_eq!(o["warehouse_id"], w.main.as_str());
+    // 2 × 12.50 = 25.00 at 9 %; 1.5 × 3 = 4.50 at 21 %.
+    assert_eq!(
+        (&o["subtotal"], &o["vat"], &o["total"]),
+        (&json!(2950), &json!(320), &json!(3270))
+    );
+    assert_eq!(
+        o["summary"]["vats"],
+        json!([{ "rate": "9", "base": 2500, "vat": 225 }, { "rate": "21", "base": 450, "vat": 95 }])
+    );
+    let l = &o["lines"][0];
+    assert_eq!(
+        (&l["unit_price"], &l["line_excl"], &l["line_vat"]),
+        (&json!(1250), &json!(2500), &json!(225))
+    );
+    assert_eq!(
+        (&l["title"], &l["quantity"], &l["tracked"]),
+        (&json!("Honey"), &json!("2.00"), &json!(true))
+    );
+    let second = draft(&w, json!([line(&w.honey, "1")])).await;
+    let (_, o) = call(&w, Method::GET, &format!("/{second}"), None).await;
+    assert_eq!(o["data"]["number"], "ORD-0002");
+    assert_eq!(
+        level(&w, &w.honey).await,
+        ("10.00".into(), "0.00".into()),
+        "a draft holds nothing"
+    );
+}
+
+#[sqlx::test]
+async fn office_may_set_price_discount_and_title(pool: PgPool) {
+    let w = world(pool).await;
+    let body = json!([{ "product_id": w.honey, "quantity": 1, "unit_price": 1000,
+                        "discount_percentage": "10", "title": "Honey (gift)" }]);
+    let id = draft(&w, body).await;
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    let l = &o["data"]["lines"][0];
+    assert_eq!(
+        (&l["unit_price"], &l["line_excl"], &l["title"]),
+        (&json!(1000), &json!(900), &json!("Honey (gift)"))
+    );
+    assert_eq!(o["data"]["total"], 981);
+}
+
+#[sqlx::test]
+async fn bad_lines_are_refused(pool: PgPool) {
+    let w = world(pool).await;
+    let other = w.api.as_new_owner("bob@example.com", "bobs").await;
+    let theirs = other
+        .with_base("/products")
+        .create(json!({ "name": "Theirs", "price": 1 }), "product_id")
+        .await;
+    for (lines, key) in [
+        (json!([]), "lines"),
+        (json!([line(&w.honey, "0")]), "lines.0.quantity"),
+        (json!([line(&w.honey, "1.001")]), "lines.0.quantity"),
+        (json!([line(&w.honey, "100001")]), "lines.0.quantity"),
+        (json!([line(&theirs, "1")]), "lines.0.product_id"),
+        (json!([line("nope", "1")]), "lines.0.product_id"),
+        (
+            json!([{ "product_id": w.honey, "product_variant_id": theirs, "quantity": 1 }]),
+            "lines.0.product_variant_id",
+        ),
+        (Value::Array(vec![line(&w.honey, "1"); 51]), "lines"),
+    ] {
+        let (s, res) = call(&w, Method::POST, "", Some(json!({ "lines": lines }))).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{key}: {res}");
+        assert!(res["errors"][key].is_array(), "{key}: {res}");
+    }
+}
+
+#[sqlx::test]
+async fn confirm_holds_complete_takes_cancel_gives_back(pool: PgPool) {
+    let w = world(pool).await;
+    let a = draft(&w, json!([line(&w.honey, "3"), line(&w.wax, "1")])).await;
+    let (s, o) = act(&w, &a, "confirm").await;
+    assert_eq!((s, &o["data"]["status"]), (StatusCode::OK, &json!("open")));
+    assert_eq!(level(&w, &w.honey).await, ("10.00".into(), "3.00".into()));
+    assert_eq!(held(&w, &a).await, "4.00");
+
+    let (s, res) = act(&w, &a, "complete").await;
+    assert_eq!(
+        (s, &res["message"]),
+        (
+            StatusCode::CONFLICT,
+            &json!("Pick every stock line in full before completing.")
+        )
+    );
+    pick_all(&w, &a).await;
+    let (s, o) = act(&w, &a, "complete").await;
+    assert_eq!(
+        (s, &o["data"]["status"]),
+        (StatusCode::OK, &json!("completed"))
+    );
+    assert_eq!(o["data"]["lines"][0]["deducted"], "3.00");
+    assert_eq!(level(&w, &w.honey).await, ("7.00".into(), "0.00".into()));
+    assert_eq!(held(&w, &a).await, "0.00");
+    let ledger: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM stock_movements WHERE related_domain = 'order' AND related_id = $1::uuid",
+    )
+    .bind(&a)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(ledger, 2);
+
+    let b = draft(&w, json!([line(&w.honey, "2")])).await;
+    act(&w, &b, "confirm").await;
+    assert_eq!(level(&w, &w.honey).await, ("7.00".into(), "2.00".into()));
+    let (s, o) = act(&w, &b, "cancel").await;
+    assert_eq!(
+        (s, &o["data"]["status"]),
+        (StatusCode::OK, &json!("cancelled"))
+    );
+    assert!(o["data"]["cancelled_at"].is_string());
+    assert_eq!(level(&w, &w.honey).await, ("7.00".into(), "0.00".into()));
+    assert_eq!(held(&w, &b).await, "0.00");
+}
+
+#[sqlx::test]
+async fn confirm_refuses_more_than_available_and_holds_nothing(pool: PgPool) {
+    let w = world(pool).await;
+    let a = draft(&w, json!([line(&w.wax, "1"), line(&w.honey, "8")])).await;
+    act(&w, &a, "confirm").await;
+    let b = draft(&w, json!([line(&w.wax, "1"), line(&w.honey, "3")])).await;
+    let (s, res) = act(&w, &b, "confirm").await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["lines.1.quantity"][0],
+        "Not enough stock: 2 available."
+    );
+    assert_eq!(held(&w, &b).await, "0.00");
+    assert_eq!(level(&w, &w.wax).await, ("10.00".into(), "1.00".into()));
+    let (_, o) = call(&w, Method::GET, &format!("/{b}"), None).await;
+    assert_eq!(o["data"]["status"], "draft");
+}
+
+#[sqlx::test]
+async fn the_status_machine_refuses_wrong_moves(pool: PgPool) {
+    let w = world(pool).await;
+    let id = draft(&w, json!([line(&w.honey, "1")])).await;
+    for action in ["complete", "pick"] {
+        let body = (action == "pick").then(|| json!({ "lines": [] }));
+        let (s, _) = call(&w, Method::POST, &format!("/{id}/{action}"), body).await;
+        assert!(
+            s == StatusCode::CONFLICT || s == StatusCode::UNPROCESSABLE_ENTITY,
+            "{action}: {s}"
+        );
+    }
+    act(&w, &id, "confirm").await;
+    let (s, _) = act(&w, &id, "confirm").await;
+    assert_eq!(s, StatusCode::CONFLICT);
+    let patch = json!({ "lines": [line(&w.honey, "2")] });
+    let (s, _) = call(&w, Method::PATCH, &format!("/{id}"), Some(patch)).await;
+    assert_eq!(s, StatusCode::CONFLICT);
+    let (s, _) = call(&w, Method::DELETE, &format!("/{id}"), None).await;
+    assert_eq!(s, StatusCode::CONFLICT);
+    let (s, o) = call(
+        &w,
+        Method::PATCH,
+        &format!("/{id}"),
+        Some(json!({ "reference": "PO-7" })),
+    )
+    .await;
+    assert_eq!(
+        (s, &o["data"]["reference"]),
+        (StatusCode::OK, &json!("PO-7"))
+    );
+    pick_all(&w, &id).await;
+    act(&w, &id, "complete").await;
+    for action in ["cancel", "confirm", "complete"] {
+        let (s, _) = act(&w, &id, action).await;
+        assert_eq!(s, StatusCode::CONFLICT, "{action}");
+    }
+}
+
+#[sqlx::test]
+async fn a_paid_order_needs_a_refund_before_cancel(pool: PgPool) {
+    let w = world(pool).await;
+    let id = draft(&w, json!([line(&w.honey, "1")])).await;
+    act(&w, &id, "confirm").await;
+    sqlx::query("UPDATE orders SET paid_at = now() WHERE id = $1::uuid")
+        .bind(&id)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    let (s, res) = act(&w, &id, "cancel").await;
+    assert_eq!(
+        (s, &res["message"]),
+        (StatusCode::CONFLICT, &json!("refund_required"))
+    );
+    assert_eq!(held(&w, &id).await, "1.00");
+}
+
+#[sqlx::test]
+async fn drafts_change_and_delete(pool: PgPool) {
+    let w = world(pool).await;
+    let id = draft(&w, json!([line(&w.honey, "1")])).await;
+    let patch = json!({ "lines": [line(&w.wax, "2")], "note": "back door" });
+    let (s, o) = call(&w, Method::PATCH, &format!("/{id}"), Some(patch)).await;
+    assert_eq!(s, StatusCode::OK, "{o}");
+    assert_eq!(
+        (&o["data"]["total"], &o["data"]["note"]),
+        (&json!(726), &json!("back door"))
+    );
+    assert_eq!(o["data"]["lines"].as_array().unwrap().len(), 1);
+    let (s, _) = call(&w, Method::DELETE, &format!("/{id}"), None).await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, _) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test]
+async fn list_pages_and_filters(pool: PgPool) {
+    let w = world(pool).await;
+    let a = draft(&w, json!([line(&w.honey, "1")])).await;
+    draft(&w, json!([line(&w.honey, "1")])).await;
+    act(&w, &a, "confirm").await;
+    let (s, res) = call(&w, Method::GET, "?status=open", None).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(res["data"].as_array().unwrap().len(), 1);
+    assert_eq!(res["data"][0]["id"], a.as_str());
+    assert_eq!(res["meta"]["total"], 1);
+    let (s, _) = call(&w, Method::GET, "?status=nope", None).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test]
+async fn idempotency_key_creates_once(pool: PgPool) {
+    let w = world(pool).await;
+    let uri = format!("/v1/workspace/{}/orders", w.api.ws);
+    let body = json!({ "lines": [line(&w.honey, "1")] });
+    let first = send_raw(
+        &w.api.app,
+        Method::POST,
+        &uri,
+        Some(body.clone()),
+        Some(&w.api.owner),
+        &[("idempotency-key", "k1")],
+    )
+    .await;
+    let again = send_raw(
+        &w.api.app,
+        Method::POST,
+        &uri,
+        Some(body),
+        Some(&w.api.owner),
+        &[("idempotency-key", "k1")],
+    )
+    .await;
+    assert_eq!(first.0, StatusCode::CREATED);
+    assert_eq!(first, again);
+    let other = json!({ "lines": [line(&w.honey, "2")] });
+    let (s, _) = send_raw(
+        &w.api.app,
+        Method::POST,
+        &uri,
+        Some(other),
+        Some(&w.api.owner),
+        &[("idempotency-key", "k1")],
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM orders")
+        .fetch_one(&w.api.pool)
+        .await
+        .unwrap();
+    assert_eq!(n, 1);
+}
+
+#[sqlx::test]
+async fn order_created_is_sent_without_customer_details(pool: PgPool) {
+    let w = world(pool).await;
+    let (s, res) = w
+        .api
+        .with_base("/webhook-endpoints")
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "url": "https://hooks.example.com/x", "events": ["order.created"] })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let id = draft(&w, json!([line(&w.honey, "1")])).await;
+    let payload: Value =
+        sqlx::query_scalar("SELECT payload FROM webhook_events WHERE type = 'order.created'")
+            .fetch_one(&w.api.pool)
+            .await
+            .unwrap();
+    let mut keys: Vec<&str> = payload
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        [
+            "currency", "number", "order_id", "source", "status", "subtotal", "total", "vat"
+        ]
+    );
+    assert_eq!(payload["order_id"], id.as_str());
+}
+
+#[sqlx::test]
+async fn other_workspaces_and_missing_permissions_are_refused(pool: PgPool) {
+    let w = world(pool).await;
+    let id = draft(&w, json!([line(&w.honey, "1")])).await;
+    let bob = w.api.as_new_owner("bob@example.com", "bobs").await;
+    // Bob's own workspace: Ada's order isn't there.
+    let (s, _) = bob
+        .call(Method::GET, &format!("/{id}"), None, &bob.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    for action in ["confirm", "cancel", "complete"] {
+        let (s, _) = bob
+            .call(Method::POST, &format!("/{id}/{action}"), None, &bob.owner)
+            .await;
+        assert_eq!(s, StatusCode::NOT_FOUND, "{action}");
+    }
+    let (s, _) = bob
+        .call(Method::DELETE, &format!("/{id}"), None, &bob.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    // Ada's workspace with Bob's token: not a member.
+    let (s, _) = w
+        .api
+        .call(Method::GET, &format!("/{id}"), None, &bob.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let viewer = member_with(
+        &w.api.app,
+        &w.api.pool,
+        &w.api.ws,
+        "vi@example.com",
+        &["order.view"],
+    )
+    .await;
+    let (s, _) = w
+        .api
+        .call(Method::GET, &format!("/{id}"), None, &viewer)
+        .await;
+    assert_eq!(s, StatusCode::OK);
+    let (s, _) = w
+        .api
+        .call(Method::POST, &format!("/{id}/confirm"), None, &viewer)
+        .await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+    assert_eq!(level(&w, &w.honey).await, ("10.00".into(), "0.00".into()));
+}
+
+/// 50 orders of honey + wax and 50 of wax + honey confirmed at once, then cancelled at once:
+/// no deadlock, each order holds exactly its lines, all holds drop to zero.
+#[sqlx::test]
+async fn opposite_line_orders_confirm_and_cancel_in_parallel(pool: PgPool) {
+    let w = world(pool).await;
+    stock(&w.api, &w.honey, &w.main, 990).await;
+    stock(&w.api, &w.wax, &w.main, 990).await;
+    let mut ids = Vec::new();
+    for i in 0..100 {
+        let lines = if i % 2 == 0 {
+            json!([line(&w.honey, "1"), line(&w.wax, "2")])
+        } else {
+            json!([line(&w.wax, "2"), line(&w.honey, "1")])
+        };
+        ids.push(draft(&w, lines).await);
+    }
+    let w = Arc::new(w);
+    for action in ["confirm", "cancel"] {
+        let tasks: Vec<_> = ids
+            .iter()
+            .map(|id| {
+                let (w, id) = (w.clone(), id.clone());
+                tokio::spawn(async move { act(&w, &id, action).await })
+            })
+            .collect();
+        for t in tasks {
+            let (s, res) = t.await.unwrap();
+            assert_eq!(s, StatusCode::OK, "{action}: {res}");
+        }
+        if action == "confirm" {
+            assert_eq!(
+                level(&w, &w.honey).await,
+                ("1000.00".into(), "100.00".into())
+            );
+            for id in &ids {
+                assert_eq!(held(&w, id).await, "3.00");
+            }
+        }
+    }
+    assert_eq!(level(&w, &w.wax).await, ("1000.00".into(), "0.00".into()));
+    let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM stock_reservations")
+        .fetch_one(&w.api.pool)
+        .await
+        .unwrap();
+    assert_eq!(rows, 0);
+}

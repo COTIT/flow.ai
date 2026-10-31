@@ -3,8 +3,6 @@
 //! and only this file writes either. Every call locks its stock rows in product order, so
 //! callers holding their order row lock never deadlock each other. Lots (phase 3) replace
 //! `pick` only: callers name products and quantities.
-// shortcut: order flows call these from phase 2a step 2; drop the allow then.
-#![allow(dead_code)]
 
 use rust_decimal::Decimal;
 use sqlx::PgConnection;
@@ -204,6 +202,8 @@ pub async fn commit(
 }
 
 /// Put returned stock back on the warehouse-level row (ledger `increase`).
+// shortcut: returns call this from phase 2a step 3; drop the allow then.
+#[allow(dead_code)]
 pub async fn restock(
     conn: &mut PgConnection,
     workspace_id: Uuid,

@@ -1172,3 +1172,19 @@ fn assert_ops(ops: &[Op]) {
         assert!(has_ws, "{method} {path}: no workspace param");
     }
 }
+
+#[test]
+fn every_orders_operation_is_documented() {
+    let o = "/orders/{order}";
+    assert_documented(&[
+        ("/orders", "get", "orders_list", "200"),
+        ("/orders", "post", "orders_create", "201"),
+        (o, "get", "orders_get", "200"),
+        (o, "patch", "orders_update", "200"),
+        (o, "delete", "orders_delete", "200"),
+        ("/orders/{order}/confirm", "post", "orders_confirm", "200"),
+        ("/orders/{order}/pick", "post", "orders_pick", "200"),
+        ("/orders/{order}/complete", "post", "orders_complete", "200"),
+        ("/orders/{order}/cancel", "post", "orders_cancel", "200"),
+    ]);
+}

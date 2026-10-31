@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Phase 2a step 2, office orders (contract `docs/api/orders.md`): `/workspace/{workspace}/orders` list/create/get/patch/delete plus `confirm`, `pick`, `complete`, `cancel` (`order.*` permissions, optional Idempotency-Key on every write). Lines priced from the catalog through the pricing engine in integer minor units; numbering series `order`; statuses draft → open → completed, cancel gives holds back, wrong moves 409, a paid order 409 `refund_required`. `order.created` joins the webhook events (no customer details). `idempotency::replay` takes an `Actor` (member or app key); an answer replays only for its actor.
 - Phase 2a "open the web shop", step 1:
   - **Migration `orders_payments`:** `orders`, `order_lines` (money in bigint minor units), `stock_reservations` (holds per stock row), `order_payments` (provider payments and refunds, one live intent per order, one auto refund per payment), `payment_webhook_inbox`; `document_counters` gains the `order` series; `idempotency_keys.app_key_id` (one actor per key).
   - **`stock::reserve`:** `reserve`/`release`/`commit`/`restock` with `Want { product_id, quantity }`. Reserve is all or nothing from the warehouse-level row (no overselling), writes one `stock_reservations` row per stock row and raises `stocks.reserved`; release and commit consume that record's rows oldest first and refuse more than held. Every call needs `cause.related`. Holds emit `stock.changed` (reason `reserved`/`released`). Slots lock in product order: 100 opposite-order orders at once never deadlock.
