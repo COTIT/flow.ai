@@ -17,7 +17,7 @@ export default function LoginPage() {
   const token = useSession((s) => s.token)
 
   React.useEffect(() => {
-    if (token) router.replace("/")
+    if (token) router.replace("/products")
   }, [token, router])
 
   const status = login.error?.response?.status

@@ -10,8 +10,19 @@
  * One farm role of the signed-in account.
  */
 export interface FarmMembershipRef {
+  /** The membership id. */
+  id: string;
+  /**
+     * The registered person this account is in that workspace, if any.
+     * @nullable
+     */
+  person_id: string | null;
+  /** `farmer`, `field_officer`, `ops` or `admin`. */
   role: string;
   /** @nullable */
   village_id: string | null;
+  /** @nullable */
+  village_name: string | null;
   workspace_id: string;
+  workspace_name: string;
 }

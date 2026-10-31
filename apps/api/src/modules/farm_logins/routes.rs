@@ -15,4 +15,5 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::issue))
         .routes(routes!(handlers::history))
         .routes(routes!(handlers::change_password))
+        .routes(routes!(handlers::me, handlers::update_me))
 }

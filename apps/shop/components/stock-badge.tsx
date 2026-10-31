@@ -1,5 +1,9 @@
 import { cn } from "@genesy/ui/lib/utils"
 
+/** Display only, from the API's (up to a minute old) number; checkout's reply decides. */
+export const isSoldOut = (stock: string | null) =>
+  stock !== null && Number(stock) <= 0
+
 /** Availability from the API's `available_stock` string; nothing when not stock-tracked. */
 export function StockBadge({
   stock,
@@ -11,7 +15,7 @@ export function StockBadge({
   className?: string
 }) {
   if (stock === null) return null
-  const soldOut = Number(stock) <= 0
+  const soldOut = isSoldOut(stock)
   return (
     <span
       className={cn(

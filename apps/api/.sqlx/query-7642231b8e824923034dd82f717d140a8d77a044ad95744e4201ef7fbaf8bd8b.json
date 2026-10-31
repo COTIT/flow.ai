@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT hm.household_id FROM farm_household_members hm\n         JOIN farm_households h ON h.id = hm.household_id AND h.deleted_at IS NULL\n         WHERE hm.workspace_id = $1 AND hm.person_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "household_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_household_members",
+            "name": "household_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7642231b8e824923034dd82f717d140a8d77a044ad95744e4201ef7fbaf8bd8b"
+}

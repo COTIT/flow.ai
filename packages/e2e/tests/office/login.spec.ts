@@ -24,11 +24,11 @@ test("logging in opens the product list", async ({ page }) => {
   await page.getByLabel("Password").fill("e2e-password-only")
   await page.getByRole("button", { name: "Log in" }).click()
 
-  await expect(page).toHaveURL("/")
+  await expect(page).toHaveURL("/products")
   await expect(
     page.getByRole("cell", { name: "Ilundo Wild Forest Honey" })
   ).toBeVisible()
-  await expect(page.getByText("2 products")).toBeVisible()
+  await expect(page.getByText("1–2 of 2")).toBeVisible()
 })
 
 test.describe("wrong password", () => {
