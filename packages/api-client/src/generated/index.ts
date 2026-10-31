@@ -47,6 +47,7 @@ export * from './special-offers/special-offers';
 export * from './stock/stock';
 export * from './storage-locations/storage-locations';
 export * from './storefront/storefront';
+export * from './supply-links/supply-links';
 export * from './teams/teams';
 export * from './users/users';
 export * from './vat-groups/vat-groups';

@@ -1391,6 +1391,26 @@ fn every_farm_payouts_operation_is_documented() {
 }
 
 #[test]
+fn every_supply_links_operation_is_documented() {
+    assert_documented(&[
+        ("/supply-links", "get", "supply_links_list", "200"),
+        ("/supply-links", "post", "supply_links_grant", "201"),
+        (
+            "/supply-links/{link}/accept",
+            "post",
+            "supply_links_accept",
+            "200",
+        ),
+        (
+            "/supply-links/{link}",
+            "delete",
+            "supply_links_revoke",
+            "204",
+        ),
+    ]);
+}
+
+#[test]
 fn every_farm_logins_operation_is_documented() {
     assert_documented(&[
         (

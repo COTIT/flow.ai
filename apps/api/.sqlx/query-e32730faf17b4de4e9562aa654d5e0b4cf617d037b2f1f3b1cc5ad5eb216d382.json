@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE supply_links SET revoked_by = $3, revoked_at = now()\n         WHERE id = $1 AND (from_workspace_id = $2 OR to_workspace_id = $2)\n           AND revoked_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e32730faf17b4de4e9562aa654d5e0b4cf617d037b2f1f3b1cc5ad5eb216d382"
+}

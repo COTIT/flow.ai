@@ -21,7 +21,7 @@ use crate::{
         invites, invoice_payments, invoices, lots, messages, orders, pdf_templates, permissions,
         price_corrections, pricing, product_brands, product_categories, product_variants, products,
         relations, sales_groups, search, settings, shipment_methods, special_offers, stock,
-        storage_locations, storefront, teams,
+        storage_locations, storefront, supply_links, teams,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -141,6 +141,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(farm_supply::routes::private())
         .merge(farm_passbook::routes::private())
         .merge(farm_payouts::routes::private())
+        .merge(supply_links::routes::private())
         .merge(orders::routes::private())
         .merge(orders::routes::storefront())
 }

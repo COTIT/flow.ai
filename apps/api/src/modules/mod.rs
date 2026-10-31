@@ -49,6 +49,7 @@ pub mod special_offers;
 pub mod stock;
 pub mod storage_locations;
 pub mod storefront;
+pub mod supply_links;
 pub mod teams;
 pub mod users;
 pub mod vat_groups;

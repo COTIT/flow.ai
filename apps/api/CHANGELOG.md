@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Phase 4b step 4, supply links (contract `docs/api/supply-links.md`, migration `supply_links`): `/workspace/{workspace}/supply-links` grant, list, accept and revoke, for workspace admins.
+  - A farm workspace grants a shop workspace a link with an allow-list of public farmer fields (`farmer_count`, `harvest_window`, `village`); `farmer_names` and `farmer_photos` are refused until the data-protection gate opens.
+  - Only the receiver accepts, and either side revokes for good. One open link per pair.
+  - A link opens none of the farm workspace's records to the shop.
 - Phase 4b step 3, payout desk and cash reconciliation (contract `docs/api/farm-payouts.md`, migration `farm_payouts`):
   - **Payouts:** `POST /farm/payouts`. Staff of the farmer's village pay from the passbook balance; the farmer's row is locked first, so payouts never overdraw or come out of a negative balance.
     - Voucher four-eyes rules apply through a shared `farm_vouchers::rules::household_conflict` (vouchers keep their wording).

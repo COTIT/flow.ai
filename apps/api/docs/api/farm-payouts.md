@@ -26,7 +26,7 @@ Refusals:
   - `you registered this household, so another staff member must pay this farmer`
   - `you verified this household, so another staff member must pay this farmer`
   - `you cannot pay your own household`
-- Above the workspace setting `farm.payout_officer_limit` (minor units, default 10,000,000 = TZS 100,000.00), only ops or admin pay. Others get `403 this payout is above the officer limit: ops or admin must pay it`. Exactly at the limit is allowed.
+- Above the workspace setting `farm.payout_officer_limit` (minor units, default 10,000,000 = TZS 100,000.00), only ops or admin pay. The limit applies **per payout**, not to an officer's daily total. Others get `403 this payout is above the officer limit: ops or admin must pay it`. Exactly at the limit is allowed.
 - `422` on `amount`: `The amount must not be greater than the balance of {balance}.` A negative balance (a return after a payout) blocks every payout.
 
 The farmer's row is locked before the balance is read, so parallel payouts never overdraw. One transaction writes the payout, a passbook line `payout` of `−amount` and a cash ledger `payout` row for the payer. The same `client_ref` and body by the same member return the stored payout with `200`; anything else under it gets `409`.
