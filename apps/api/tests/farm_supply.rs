@@ -631,3 +631,127 @@ async fn money_and_kg_totals_stay_in_range(pool: PgPool) {
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert_eq!(errors(&res), ["currency_id"]);
 }
+
+/// Publish the lot's passport (owner holds product.update); its public reply.
+async fn public_page(w: &World, lot: &str, public_code: &str) -> Value {
+    let base = format!("/v1/workspace/{}/lots/{lot}/passport", w.f.ws);
+    let (status, res) = send(
+        &w.f.app,
+        Method::PUT,
+        &base,
+        Some(json!({ "title": "Ilundo maize" })),
+        Some(&w.f.owner),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let (status, res) = send(
+        &w.f.app,
+        Method::POST,
+        &format!("{base}/publish"),
+        None,
+        Some(&w.f.owner),
+    )
+    .await;
+    assert!(status.is_success(), "{res}");
+    let (status, res) = send(
+        &w.f.app,
+        Method::GET,
+        &format!("/v1/public/lots/{public_code}"),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    res
+}
+
+#[sqlx::test]
+async fn the_public_page_shows_village_count_and_harvest_window_never_names(pool: PgPool) {
+    let w = world(pool).await;
+    let (status, res) =
+        w.f.register(
+            &w.f.officer_ilu,
+            json!({
+                "client_ref": client_ref(), "village_id": w.f.ilundo,
+                "person": { "given_name": "Upendo", "family_name": "Mwita", "phone": "0712000010" },
+                "household": { "label": "Mwita household" },
+                "farm": { "label": "Mwita farm", "latitude": "-7.74", "longitude": "35.74" },
+                "plot": { "label": "Mwita plot", "area_ha": "1.0" },
+                "cycles": [{ "crop_id": w.c.maize, "area_ha": "1.0",
+                             "harvest_start": "2026-08-20", "harvest_end": "2026-10-05" }]
+            }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let upendo_cycle = res["data"]["crop_cycle_ids"][0]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let n = actual(&w.f, &w.c.neema.cycles[0], "100").await;
+    let b = actual(&w.f, &w.baraka.cycles[0], "100").await;
+    let u = actual(&w.f, &upendo_cycle, "100").await;
+    sqlx::query("UPDATE farm_persons SET passport_profile_consent = true, passport_profile_consent_at = now()")
+        .execute(&w.f.pool)
+        .await
+        .unwrap();
+
+    let (_, three) = post(
+        &w,
+        &batch(
+            &w,
+            "ILU-PUB-3",
+            json!([{ "harvest_report_id": n, "kg": "10" }, { "harvest_report_id": b, "kg": "10" },
+                   { "harvest_report_id": u, "kg": "10" }]),
+        ),
+        &w.f.ops,
+    )
+    .await;
+    let lot = &three["data"]["lot"];
+    let page = public_page(
+        &w,
+        lot["id"].as_str().unwrap(),
+        lot["public_code"].as_str().unwrap(),
+    )
+    .await;
+    // Neema's cycle runs 2026-09-01..30, Baraka's has no window, Upendo's 2026-08-20..10-05.
+    assert_eq!(
+        page["data"]["farmers"],
+        json!([{ "village": "Ilundo", "farmers": 3,
+                 "harvest_start": "2026-08-20", "harvest_end": "2026-10-05" }])
+    );
+    let text = page.to_string();
+    for private in [
+        "Neema",
+        "Mwakalinga",
+        "Upendo",
+        "0712",
+        "person",
+        "kg",
+        "price",
+    ] {
+        assert!(!text.contains(private), "{private} leaked: {text}");
+    }
+
+    let (_, two) = post(
+        &w,
+        &batch(
+            &w,
+            "ILU-PUB-2",
+            json!([{ "harvest_report_id": n, "kg": "10" }, { "harvest_report_id": b, "kg": "10" }]),
+        ),
+        &w.f.ops,
+    )
+    .await;
+    let lot = &two["data"]["lot"];
+    let page = public_page(
+        &w,
+        lot["id"].as_str().unwrap(),
+        lot["public_code"].as_str().unwrap(),
+    )
+    .await;
+    assert_eq!(
+        page["data"]["farmers"][0]["farmers"],
+        json!(null),
+        "fewer than 3 farmers: no count"
+    );
+}

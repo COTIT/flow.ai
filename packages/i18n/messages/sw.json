@@ -40,7 +40,9 @@
     "validUntil": "Halali hadi {date}",
     "certFile": "Tazama cheti",
     "farmers": "Wafahamu wakulima",
-    "harvested": "Walivuna {dates}",
-    "published": "Toleo la pasipoti {version}, lilichapishwa {date}"
+    "harvested": "Walivuna {start} – {end}",
+    "published": "Toleo la pasipoti {version}, lilichapishwa {date}",
+    "harvestedOn": "Walivuna {date}",
+    "farmerCount": "Wakulima {count}"
   }
 }

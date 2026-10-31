@@ -14,11 +14,12 @@ use crate::{
     error::AppError,
     http::workspace::{NOT_ALLOWED, WorkspaceAccess},
     modules::{
+        farm_supply,
         files::{repo as files, service as files_service},
         lots::{
             dto::{LotPatch, NewLotInput, STATUSES},
             passport::{FileUse, Passport},
-            public::{Link, PublicLot},
+            public::{Link, PublicFarmerGroup, PublicLot},
             repo::{self, EventRow, ListFilter, LotRow, NewEvent, PassportRow},
         },
         products::repo as products,
@@ -433,7 +434,12 @@ pub async fn public(
             links.insert(f.id, Link::new(url, expires_at));
         }
     }
-    Ok(PublicLot::new(row, passport, &links))
+    let farmers = farm_supply::repo::public_groups(&state.db, row.workspace_id, row.id)
+        .await?
+        .into_iter()
+        .map(|g| PublicFarmerGroup::new(g.village, g.farmers, g.harvest_start, g.harvest_end))
+        .collect();
+    Ok(PublicLot::new(row, passport, &links, farmers))
 }
 
 #[cfg(test)]

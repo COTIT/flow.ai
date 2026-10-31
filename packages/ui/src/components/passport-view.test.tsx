@@ -84,22 +84,43 @@ describe("PassportView", () => {
     expect(render(lot())).not.toContain("Meet the farmers")
   })
 
-  it("shows each consented farmer", () => {
+  it("shows each village's farmer group: count and harvest window, no names or images", () => {
     const html = render(
       lot({
         farmers: [
           {
-            first_name: "Asha",
             village: "Ilundo",
-            photo: link("asha"),
-            harvest_dates: ["2026-07-10"],
+            farmers: 12,
+            harvest_start: "2026-07-01",
+            harvest_end: "2026-07-20",
           },
         ],
       })
     )
     expect(html).toContain("Meet the farmers")
-    expect(html).toContain("Asha")
-    expect(html).toContain("July 10, 2026")
+    expect(html).toContain("Ilundo")
+    expect(html).toContain("12 farmers")
+    expect(html).toContain("Harvested July 1, 2026 – July 20, 2026")
+    // Only the banner, the story image and the certificate link remain as files.
+    expect(html.match(/<img/g)).toHaveLength(2)
+  })
+
+  it("shows no count when the API withholds it (fewer than 3 farmers)", () => {
+    const html = render(
+      lot({
+        farmers: [
+          {
+            village: "Mtera",
+            farmers: null,
+            harvest_start: "2026-08-02",
+            harvest_end: null,
+          },
+        ],
+      })
+    )
+    expect(html).toContain("Mtera")
+    expect(html).not.toMatch(/\d+ farmers|null/)
+    expect(html).toContain("Harvested August 2, 2026")
   })
 
   it("announces a recall to screen readers, at the top", () => {
