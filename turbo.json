@@ -31,6 +31,11 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
+    "e2e": {
+      "dependsOn": ["@genesy/shop#build", "@genesy/office#build"],
+      "passThroughEnv": ["CI", "HOME", "PLAYWRIGHT_BROWSERS_PATH"],
+      "cache": false
+    },
     "openapi": {
       "outputs": ["openapi.json"]
     },
