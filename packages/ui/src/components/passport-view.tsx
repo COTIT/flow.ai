@@ -1,22 +1,32 @@
-/* eslint-disable @next/next/no-img-element -- signed file links change on every fetch;
-   next/image would cache each one under its own URL. Plain <img> + CSP img-src instead. */
+// Plain <img>, not next/image: signed file links change on every fetch, and next/image
+// would cache each one under its own URL. The app's CSP img-src allows the file host.
 import { AlertTriangleIcon, ExternalLinkIcon, FileTextIcon } from "lucide-react"
 
-import type { MapPoint, PublicBlock, PublicLot } from "@genesy/api-client/model"
+import type {
+  MapPoint,
+  PublicBlock,
+  PublicLot,
+  PublicPassport,
+} from "@genesy/api-client/model"
+import { formatDay, formatShare } from "@genesy/ui/lib/format"
 import { cn } from "@genesy/ui/lib/utils"
 
-import { formatDay, formatShare } from "@/lib/passport"
-
 type Props = {
-  lot: PublicLot
+  /** The published passport, as the public and storefront lot replies carry it. */
+  passport: PublicPassport
+  /** The batch around it: code, status, dates, product, consented farmers. */
+  lot: Omit<PublicLot, "passport" | "code">
   locale: string
   /** Translator for the `batch` messages. Method syntax so next-intl's typed `t` fits. */
   t(key: string, values?: Record<string, string | number>): string
 }
 
-/** The public batch passport a jar's QR code opens. Every section hides when empty. */
-export function Passport({ lot, locale, t }: Props) {
-  const { passport } = lot
+/**
+ * A batch passport as the public sees it (shop `/b/{code}`, office preview). Display only:
+ * data fetching and link freshness stay with the app. Every section hides when empty.
+ * `t` reads the shared `batch` messages from @genesy/i18n.
+ */
+export function PassportView({ passport, lot, locale, t }: Props) {
   const day = (d: string) => formatDay(d, locale)
   const country = passport.origin
     ? new Intl.DisplayNames(locale, { type: "region" }).of(

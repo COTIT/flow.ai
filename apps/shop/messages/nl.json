@@ -32,27 +32,5 @@
     "notFoundTitle": "Pagina niet gevonden",
     "notFoundBody": "Deze pagina bestaat niet of is niet meer te koop.",
     "home": "Naar de winkel"
-  },
-  "batch": {
-    "code": "Batch {code}",
-    "recalled": "Deze batch is teruggeroepen. Eet hem niet en neem contact met ons op voor terugbetaling of vervanging.",
-    "quarantine": "Deze batch is tijdelijk geblokkeerd terwijl hij wordt gecontroleerd.",
-    "produced": "Geoogst",
-    "bestBefore": "Ten minste houdbaar tot",
-    "expires": "Te gebruiken tot",
-    "origin": "Herkomst",
-    "story": "Het verhaal",
-    "where": "Waar het vandaan komt",
-    "mapNote": "Getoond als een gebied van ongeveer 1 km, niet als exacte plek, voor de privacy van de imkers.",
-    "mapLink": "Bekijk het gebied op OpenStreetMap",
-    "materials": "Wat zit erin",
-    "certificates": "Certificaten",
-    "issuer": "Uitgegeven door {issuer}",
-    "number": "Nr. {number}",
-    "validUntil": "Geldig tot {date}",
-    "certFile": "Bekijk certificaat",
-    "farmers": "Maak kennis met de boeren",
-    "harvested": "Geoogst op {dates}",
-    "published": "Paspoortversie {version}, gepubliceerd op {date}"
   }
 }

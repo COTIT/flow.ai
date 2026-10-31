@@ -25,6 +25,7 @@
     "next": "^16"
   },
   "devDependencies": {
+    "@genesy/api-client": "workspace:*",
     "@genesy/eslint-config": "workspace:*",
     "@genesy/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4",

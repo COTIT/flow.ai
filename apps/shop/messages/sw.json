@@ -32,27 +32,5 @@
     "notFoundTitle": "Ukurasa haujapatikana",
     "notFoundBody": "Ukurasa huu haupo au bidhaa hii haiuzwi tena.",
     "home": "Nenda dukani"
-  },
-  "batch": {
-    "code": "Fungu {code}",
-    "recalled": "Fungu hili limerudishwa. Tafadhali usile, na wasiliana nasi kwa kurejeshewa pesa au kubadilishiwa.",
-    "quarantine": "Fungu hili limesimamishwa kwa muda likikaguliwa.",
-    "produced": "Lilivunwa",
-    "bestBefore": "Bora kabla ya",
-    "expires": "Tumia kabla ya",
-    "origin": "Asili",
-    "story": "Hadithi",
-    "where": "Linakotoka",
-    "mapNote": "Linaonyeshwa kama eneo la takriban km 1, si mahali halisi, kulinda faragha ya wafugaji nyuki.",
-    "mapLink": "Tazama eneo kwenye OpenStreetMap",
-    "materials": "Kilichomo ndani",
-    "certificates": "Vyeti",
-    "issuer": "Kimetolewa na {issuer}",
-    "number": "Na. {number}",
-    "validUntil": "Halali hadi {date}",
-    "certFile": "Tazama cheti",
-    "farmers": "Wafahamu wakulima",
-    "harvested": "Walivuna {dates}",
-    "published": "Toleo la pasipoti {version}, lilichapishwa {date}"
   }
 }
