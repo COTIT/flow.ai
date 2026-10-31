@@ -14,7 +14,7 @@ Payloads are thin: re-read through `/storefront` for the details. Planned, not s
 ## Delivery
 
 1. **Outbox.** The change's own transaction writes a `webhook_events` row when an active endpoint of the workspace subscribes to that type, plus one `webhook_fanout` job per transaction. A rollback sends nothing.
-2. **Fan-out.** The job writes one `webhook_deliveries` row per event and subscribed active endpoint (never twice) and queues a `webhook_deliver` job for each.
+2. **Fan-out.** The job writes one `webhook_deliveries` row per event and subscribed active endpoint (never twice) and queues a `webhook_deliver` job for each. A `webhook_sweep` scheduled every minute re-queues a fan-out for any workspace whose events are still undispatched after 5 minutes (up to 100 workspaces a tick), so a lost fan-out job never strands an event.
 3. **Send.** `POST <url>` with the JSON body below, a 10 s timeout, through the outbound guard: private, loopback, link-local and metadata addresses are refused on every attempt (names are re-resolved), and redirects are never followed.
 
 ```json
@@ -31,7 +31,7 @@ Headers (the [Standard Webhooks](https://www.standardwebhooks.com) format, so st
 
 Verify with a constant-time compare and reject old timestamps (5 minutes is usual).
 
-**Outcomes.** `2xx` delivered. Any other status (a `3xx` included), a network error, or a failure before sending (no server key) is retried by the job rail: 12 attempts, 10 s doubling to 1 h, about 3.5 h in all. After the last one the delivery is `failed`, the dead letter, kept in `webhook_deliveries`. An inward IP target, or a secret that can't be opened, fails at once. Outbound requests never use an HTTP proxy (it would resolve names past the guard). An inactive or deleted endpoint gets nothing. Order between events is not guaranteed: use `quantity_after`/re-read, not arrival order.
+**Outcomes.** `2xx` delivered. Any other status (a `3xx` included), a network error, or a failure before sending (no server key) is retried by the job rail: 12 attempts, 10 s doubling to 1 h, about 3.5 h in all. After the last one the delivery is `failed`, the dead letter, kept in `webhook_deliveries`. An inward IP target, or a secret that can't be opened, fails at once. Outbound requests never use an HTTP proxy (it would resolve names past the guard). An inactive or deleted endpoint gets nothing. **Delivery is at least once:** a worker that dies after the POST but before recording it sends again, with the same `webhook-id`. Deduplicate on that header. Order between events is not guaranteed: use `quantity_after` or a re-read, not arrival order.
 
 **Retention.** The hourly prune deletes deliveries untouched for 30 days (finished ones, and any a crashed job left pending), then dispatched events with no delivery left.
 

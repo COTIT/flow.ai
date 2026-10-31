@@ -168,3 +168,63 @@ async fn a_keyed_client_reads_stock_and_hears_signed_stock_changes(pool: PgPool)
         "7.00"
     );
 }
+
+/// A fan-out job that is lost (attempts used up, deleted) leaves its events pending; the
+/// scheduled sweep queues a new fan-out, and running it twice still delivers once.
+#[sqlx::test]
+async fn the_sweep_delivers_events_whose_fanout_was_lost(pool: PgPool) {
+    let api = Api::new(pool.clone(), "/products").await;
+    let product = api
+        .create(json!({ "name": "Honey", "price": 10 }), "product_id")
+        .await;
+    let wh = api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Main" }), "warehouse_id")
+        .await;
+    let (status, _) = api
+        .with_base("/webhook-endpoints")
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "url": "https://shop.example.com/hook", "events": ["stock.changed"] })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED);
+    let seen: Seen = Arc::default();
+    sqlx::query("UPDATE webhook_endpoints SET url = $1")
+        .bind(receiver(seen.clone()).await)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let body = json!({ "warehouse_id": wh, "mutation_value": 3 });
+    let stocks = format!("/{product}/stocks");
+    assert_eq!(
+        api.call(Method::POST, &stocks, Some(body), &api.owner)
+            .await
+            .0,
+        StatusCode::OK
+    );
+    sqlx::query("DELETE FROM jobs WHERE kind = 'webhook_fanout'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    run_jobs(&pool).await;
+    assert!(seen.lock().unwrap().is_empty(), "nothing without a fan-out");
+    // Old enough for the sweep, which leaves fresh events to their own fan-out.
+    sqlx::query("UPDATE webhook_events SET created_at = now() - interval '10 minutes'")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    for _ in 0..2 {
+        sqlx::query("INSERT INTO jobs (kind) VALUES ($1)")
+            .bind(kinds::WEBHOOK_SWEEP)
+            .execute(&pool)
+            .await
+            .unwrap();
+        run_jobs(&pool).await;
+    }
+
+    assert_eq!(seen.lock().unwrap().len(), 1, "delivered exactly once");
+}

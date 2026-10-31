@@ -14,11 +14,14 @@ use uuid::Uuid;
 use crate::{
     error::AppError,
     jobs::{
-        kinds::{Ctx, WEBHOOK_DELIVER},
+        kinds::{Ctx, WEBHOOK_DELIVER, WEBHOOK_FANOUT},
         repo::{self as jobs, Claimed, NewJob},
         runner::Step,
     },
-    modules::webhooks::service::{SECRET_PREFIX, seal_path},
+    modules::webhooks::{
+        repo,
+        service::{SECRET_PREFIX, seal_path},
+    },
 };
 
 /// Pending events one fan-out chunk takes.
@@ -42,35 +45,8 @@ fn workspace(job: &Claimed) -> Result<Uuid, AppError> {
 pub async fn fanout(db: &PgPool, job: &Claimed) -> Result<Step, AppError> {
     let ws = workspace(job)?;
     let mut tx = db.begin().await?;
-    let out = sqlx::query!(
-        r#"WITH ev AS (
-               SELECT id, type FROM webhook_events
-               WHERE workspace_id = $1 AND dispatched_at IS NULL
-               ORDER BY id
-               LIMIT $2
-               FOR UPDATE SKIP LOCKED
-           ), ins AS (
-               INSERT INTO webhook_deliveries (workspace_id, event_id, endpoint_id)
-               SELECT $1, ev.id, ep.id
-               FROM ev
-               JOIN webhook_endpoints ep
-                 ON ep.workspace_id = $1 AND ep.active AND ev.type = ANY (ep.events)
-               ORDER BY ev.id, ep.id
-               ON CONFLICT (event_id, endpoint_id) DO NOTHING
-               RETURNING id
-           ), done AS (
-               UPDATE webhook_events SET dispatched_at = now()
-               WHERE workspace_id = $1 AND id IN (SELECT id FROM ev)
-               RETURNING 1
-           )
-           SELECT (SELECT count(*) FROM done) AS "events!",
-                  coalesce((SELECT array_agg(id ORDER BY id) FROM ins), '{}') AS "deliveries!""#,
-        ws,
-        FANOUT_CHUNK,
-    )
-    .fetch_one(&mut *tx)
-    .await?;
-    for id in out.deliveries {
+    let (events, deliveries) = repo::fan_out(&mut tx, ws, FANOUT_CHUNK).await?;
+    for id in deliveries {
         let job = NewJob {
             workspace_id: Some(ws),
             payload: json!({ "delivery_id": id }),
@@ -81,7 +57,7 @@ pub async fn fanout(db: &PgPool, job: &Claimed) -> Result<Step, AppError> {
         jobs::enqueue(&mut tx, &job).await?;
     }
     tx.commit().await?;
-    Ok(if out.events == FANOUT_CHUNK {
+    Ok(if events == FANOUT_CHUNK {
         Step::More
     } else {
         Step::Done
@@ -152,19 +128,7 @@ pub async fn deliver(ctx: &Ctx, job: &Claimed) -> Result<Step, AppError> {
 
 /// Load, sign and send one delivery. None: nothing to send.
 async fn attempt(ctx: &Ctx, ws: Uuid, id: Uuid) -> Result<Option<Outcome>, AppError> {
-    let Some(d) = sqlx::query!(
-        r#"SELECT d.status, d.endpoint_id, e.id AS event_id, e.type AS kind, e.payload,
-                  e.created_at, ep.url, ep.active, ep.secret_sealed
-           FROM webhook_deliveries d
-           JOIN webhook_events e ON e.workspace_id = d.workspace_id AND e.id = d.event_id
-           JOIN webhook_endpoints ep ON ep.workspace_id = d.workspace_id AND ep.id = d.endpoint_id
-           WHERE d.workspace_id = $1 AND d.id = $2"#,
-        ws,
-        id,
-    )
-    .fetch_optional(&ctx.db)
-    .await?
-    else {
+    let Some(d) = repo::to_send(&ctx.db, ws, id).await? else {
         return Ok(None);
     };
     if d.status != "pending" {
@@ -225,20 +189,31 @@ async fn record(
 ) -> Result<(), sqlx::Error> {
     let error: Option<String> =
         error.map(|e| e.chars().filter(|c| *c != '\0').take(ERROR_CHARS).collect());
-    sqlx::query!(
-        "UPDATE webhook_deliveries SET
-             attempts = attempts + 1, status = $3, last_status = $4, last_error = $5,
-             delivered_at = CASE WHEN $3 = 'delivered' THEN now() END, updated_at = now()
-         WHERE workspace_id = $1 AND id = $2",
-        workspace_id,
-        id,
-        status,
-        http_status.and_then(|s| i16::try_from(s).ok()),
-        error,
-    )
-    .execute(db)
-    .await
-    .map(|_| ())
+    let http_status = http_status.and_then(|s| i16::try_from(s).ok());
+    repo::record_attempt(db, workspace_id, id, status, http_status, error.as_deref()).await
+}
+
+/// Events still pending this long lost their fan-out (it ran out of attempts or was lost).
+const STALE_MINUTES: i32 = 5;
+/// Workspaces one sweep re-queues.
+const SWEEP_WORKSPACES: i64 = 100;
+
+/// Scheduled sweep: queue a fan-out for each workspace whose events stayed pending. One live
+/// sweep fan-out per workspace (dedupe key), and fan-out never delivers twice, so running
+/// it again is harmless.
+pub async fn sweep(db: &PgPool) -> Result<Step, AppError> {
+    let mut tx = db.begin().await?;
+    for ws in repo::stale_pending_workspaces(&mut *tx, STALE_MINUTES, SWEEP_WORKSPACES).await? {
+        let job = NewJob {
+            workspace_id: Some(ws),
+            dedupe_key: Some("webhook_fanout:sweep".into()),
+            concurrency_key: Some(format!("webhook_fanout:{ws}")),
+            ..NewJob::new(WEBHOOK_FANOUT)
+        };
+        jobs::enqueue(&mut tx, &job).await?;
+    }
+    tx.commit().await?;
+    Ok(Step::Done)
 }
 
 #[cfg(test)]

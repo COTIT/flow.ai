@@ -5,9 +5,12 @@ use serde_json::Value;
 use sqlx::PgConnection;
 use uuid::Uuid;
 
-use crate::jobs::{
-    kinds::WEBHOOK_FANOUT,
-    repo::{self as jobs, NewJob},
+use crate::{
+    jobs::{
+        kinds::WEBHOOK_FANOUT,
+        repo::{self as jobs, NewJob},
+    },
+    modules::webhooks::repo,
 };
 
 /// Stock level of a product changed somewhere (`stock::repo::record`; a stock row is only
@@ -28,18 +31,7 @@ pub async fn emit(
     kind: &'static str,
     payload: Value,
 ) -> Result<(), sqlx::Error> {
-    let xid = sqlx::query_scalar!(
-        r#"INSERT INTO webhook_events (workspace_id, type, payload)
-           SELECT $1, $2, $3
-           WHERE EXISTS (SELECT 1 FROM webhook_endpoints
-                         WHERE workspace_id = $1 AND active AND $2 = ANY (events))
-           RETURNING pg_current_xact_id()::text AS "xid!""#,
-        workspace_id,
-        kind,
-        payload,
-    )
-    .fetch_optional(&mut *conn)
-    .await?;
+    let xid = repo::insert_event_if_subscribed(conn, workspace_id, kind, payload).await?;
     let Some(xid) = xid else {
         return Ok(());
     };

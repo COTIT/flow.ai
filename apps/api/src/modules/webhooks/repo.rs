@@ -1,7 +1,9 @@
-//! webhook_endpoints SQL. Every query filters `workspace_id`.
+//! Webhook SQL: endpoints, the event outbox, fan-out, deliveries and their prune. Every
+//! workspace query filters `workspace_id`.
 
 use chrono::{DateTime, Utc};
-use sqlx::PgExecutor;
+use serde_json::Value;
+use sqlx::{PgConnection, PgExecutor, PgPool};
 use uuid::Uuid;
 
 /// An endpoint, without its sealed secret.
@@ -203,4 +205,142 @@ pub async fn prune_events(db: &sqlx::PgPool) -> Result<u64, sqlx::Error> {
             return Ok(total);
         }
     }
+}
+
+/// Outbox write: the event row, only when an active endpoint of the workspace subscribes to
+/// `kind`. Returns the transaction id when written (one fan-out per transaction).
+pub async fn insert_event_if_subscribed(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    kind: &str,
+    payload: Value,
+) -> Result<Option<String>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"INSERT INTO webhook_events (workspace_id, type, payload)
+           SELECT $1, $2, $3
+           WHERE EXISTS (SELECT 1 FROM webhook_endpoints
+                         WHERE workspace_id = $1 AND active AND $2 = ANY (events))
+           RETURNING pg_current_xact_id()::text AS "xid!""#,
+        workspace_id,
+        kind,
+        payload,
+    )
+    .fetch_optional(conn)
+    .await
+}
+
+/// One fan-out chunk: lock the workspace's oldest `limit` pending events, write a delivery
+/// per subscribed active endpoint (never twice) and mark the events dispatched. Returns how
+/// many events it took and the new delivery ids.
+pub async fn fan_out(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    limit: i64,
+) -> Result<(i64, Vec<Uuid>), sqlx::Error> {
+    let out = sqlx::query!(
+        r#"WITH ev AS (
+               SELECT id, type FROM webhook_events
+               WHERE workspace_id = $1 AND dispatched_at IS NULL
+               ORDER BY id
+               LIMIT $2
+               FOR UPDATE SKIP LOCKED
+           ), ins AS (
+               INSERT INTO webhook_deliveries (workspace_id, event_id, endpoint_id)
+               SELECT $1, ev.id, ep.id
+               FROM ev
+               JOIN webhook_endpoints ep
+                 ON ep.workspace_id = $1 AND ep.active AND ev.type = ANY (ep.events)
+               ORDER BY ev.id, ep.id
+               ON CONFLICT (event_id, endpoint_id) DO NOTHING
+               RETURNING id
+           ), done AS (
+               UPDATE webhook_events SET dispatched_at = now()
+               WHERE workspace_id = $1 AND id IN (SELECT id FROM ev)
+               RETURNING 1
+           )
+           SELECT (SELECT count(*) FROM done) AS "events!",
+                  coalesce((SELECT array_agg(id ORDER BY id) FROM ins), '{}') AS "deliveries!""#,
+        workspace_id,
+        limit,
+    )
+    .fetch_one(conn)
+    .await?;
+    Ok((out.events, out.deliveries))
+}
+
+/// Workspaces holding events still undispatched after `minutes` (their fan-out was lost),
+/// at most `limit`. Reads the pending partial index only.
+pub async fn stale_pending_workspaces(
+    db: impl PgExecutor<'_>,
+    minutes: i32,
+    limit: i64,
+) -> Result<Vec<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT DISTINCT workspace_id FROM webhook_events
+         WHERE dispatched_at IS NULL AND created_at < now() - make_interval(mins => $1)
+         LIMIT $2",
+        minutes,
+        limit,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// What one delivery attempt needs: the event, its endpoint and the sealed secret.
+pub struct ToSend {
+    pub status: String,
+    pub endpoint_id: Uuid,
+    pub event_id: Uuid,
+    pub kind: String,
+    pub payload: Value,
+    pub created_at: DateTime<Utc>,
+    pub url: String,
+    pub active: bool,
+    pub secret_sealed: Vec<u8>,
+}
+
+/// The delivery `id` of this workspace with its event and endpoint, else None.
+pub async fn to_send(
+    db: &PgPool,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<ToSend>, sqlx::Error> {
+    sqlx::query_as!(
+        ToSend,
+        r#"SELECT d.status, d.endpoint_id, e.id AS event_id, e.type AS kind, e.payload,
+                  e.created_at, ep.url, ep.active, ep.secret_sealed
+           FROM webhook_deliveries d
+           JOIN webhook_events e ON e.workspace_id = d.workspace_id AND e.id = d.event_id
+           JOIN webhook_endpoints ep ON ep.workspace_id = d.workspace_id AND ep.id = d.endpoint_id
+           WHERE d.workspace_id = $1 AND d.id = $2"#,
+        workspace_id,
+        id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// Count one attempt and its result (`status`: pending, delivered or failed).
+pub async fn record_attempt(
+    db: &PgPool,
+    workspace_id: Uuid,
+    id: Uuid,
+    status: &str,
+    http_status: Option<i16>,
+    error: Option<&str>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE webhook_deliveries SET
+             attempts = attempts + 1, status = $3, last_status = $4, last_error = $5,
+             delivered_at = CASE WHEN $3 = 'delivered' THEN now() END, updated_at = now()
+         WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
+        status,
+        http_status,
+        error,
+    )
+    .execute(db)
+    .await
+    .map(|_| ())
 }

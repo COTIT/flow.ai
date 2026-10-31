@@ -33,6 +33,9 @@ pub const WEBHOOK_FANOUT: &str = "webhook_fanout";
 /// POSTs one signed webhook delivery (`webhooks::deliver`).
 pub const WEBHOOK_DELIVER: &str = "webhook_deliver";
 
+/// Re-queues fan-outs for events left pending (every minute, `webhooks::deliver::sweep`).
+pub const WEBHOOK_SWEEP: &str = "webhook_sweep";
+
 /// Every kind this build can run; the claim never takes another.
 pub const KINDS: &[&str] = &[
     CLOSE_STUCK_SENDS,
@@ -41,13 +44,14 @@ pub const KINDS: &[&str] = &[
     STOCK_SEED,
     WEBHOOK_FANOUT,
     WEBHOOK_DELIVER,
+    WEBHOOK_SWEEP,
 ];
 
 /// One sweep chunk outside the rail (tests, load tests): see `stock::repo::seed_chunk`.
 pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
-pub static SCHEDULES: [Schedule; 3] = [
+pub static SCHEDULES: [Schedule; 4] = [
     Schedule {
         name: CLOSE_STUCK_SENDS,
         kind: CLOSE_STUCK_SENDS,
@@ -62,6 +66,11 @@ pub static SCHEDULES: [Schedule; 3] = [
         name: FILE_SWEEP,
         kind: FILE_SWEEP,
         every: Every::Minutes(60),
+    },
+    Schedule {
+        name: WEBHOOK_SWEEP,
+        kind: WEBHOOK_SWEEP,
+        every: Every::Minutes(1),
     },
 ];
 
@@ -107,6 +116,7 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
         STOCK_SEED => return sweep::run(&ctx.db, &job).await,
         WEBHOOK_FANOUT => return deliver::fanout(&ctx.db, &job).await,
         WEBHOOK_DELIVER => return deliver::deliver(ctx, &job).await,
+        WEBHOOK_SWEEP => return deliver::sweep(&ctx.db).await,
         // The claim only takes `KINDS`, so this means a kind was listed without an arm.
         other => {
             return Err(AppError::Internal(format!(
