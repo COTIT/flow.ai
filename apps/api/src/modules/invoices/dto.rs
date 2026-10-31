@@ -6,12 +6,18 @@ use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, Validate, human},
     modules::{
-        pricing::body::{Capped, Items, MAX_ITEMS, RawItem, Row, Scalar},
+        currencies::dto::CurrencyResource,
+        files::dto::FileResource,
+        pricing::{
+            body::{Capped, Items, MAX_ITEMS, RawItem, Row, Scalar},
+            dto::{ItemLine, MarginResource, SummaryResource},
+        },
         relations::address::{self, Address},
     },
     money::MAX,
@@ -27,30 +33,453 @@ pub type Patch<T> = Option<Option<T>>;
 const PAYMENT_METHODS: &[&str] = &["bank_transfer", "mollie"];
 
 /// Body of `POST /invoices` and `POST /invoices/{id}`; unknown keys are skipped.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(
+    description = "Invoice header plus item lines. Create ignores `due_date` and `customer_ref`; update ignores `currency_id`, `payment_method` and `is_credit`, keeps fields left out, and changes only the lines sent (a line with `id` updates it, `deleted: true` removes it, no `id` adds one)."
+)]
 pub struct InvoiceBody {
+    #[schema(value_type = Uuid, required = true)]
+    #[serde(default)]
     relation_id: Scalar,
+    /// Create only; the workspace default when left out.
+    #[schema(value_type = Option<Uuid>)]
+    #[serde(default)]
     currency_id: Scalar,
+    #[schema(value_type = Option<Uuid>)]
+    #[serde(default)]
     addressed_contact_id: Scalar,
+    #[schema(value_type = Option<String>, max_length = 255)]
+    #[serde(default)]
     reference: Scalar,
+    #[schema(value_type = Option<String>, max_length = 1000)]
+    #[serde(default)]
     note: Scalar,
+    /// Create only: `bank_transfer` or `mollie`.
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     payment_method: Scalar,
+    /// Create only.
+    #[schema(value_type = Option<bool>)]
+    #[serde(default)]
     is_credit: Scalar,
+    /// Update only: `YYYY-MM-DD` or a datetime.
+    #[schema(value_type = Option<String>)]
+    #[serde(default)]
     due_date: Scalar,
+    /// Address object; create takes the relation's when left out.
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     billing_address: Capped,
+    /// Update only: `ordered_by`, `po_number`, `reference`.
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     customer_ref: Capped,
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     meta: Capped,
+    /// Up to 1000 lines.
+    #[schema(value_type = Vec<ItemLine>, max_items = 1000)]
+    #[serde(default)]
     items: Items,
 }
 
 /// `POST /invoices`.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateInvoiceRequest(InvoiceBody);
 
 /// `POST /invoices/{id}`.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateInvoiceRequest(InvoiceBody);
+
+/// `balance.paid`: integer 0 without paid payments, else the paid sum as decimal text.
+fn paid_schema() -> utoipa::openapi::Schema {
+    use utoipa::openapi::schema::{ObjectBuilder, OneOfBuilder, Type};
+    OneOfBuilder::new()
+        .item(
+            ObjectBuilder::new()
+                .schema_type(Type::Integer)
+                .enum_values(Some([0])),
+        )
+        .item(ObjectBuilder::new().schema_type(Type::String))
+        .description(Some(
+            "0 (integer) when nothing is paid, else the paid sum as decimal text with 8 places",
+        ))
+        .into()
+}
+
+// Doc-only: invoice resources are built with `json!` in `resource.rs`; these structs only
+// describe them. The contract check validates real replies against them.
+/// Paid, open and total amounts of an invoice.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceBalance {
+    /// Total minus paid (negative when overpaid); JSON number.
+    open: f64,
+    #[schema(schema_with = paid_schema)]
+    paid: Value,
+    /// Total including VAT; JSON number.
+    total: f64,
+}
+
+/// Paid and open amounts of an invoice in a list.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceListBalance {
+    #[schema(schema_with = paid_schema)]
+    paid: Value,
+    /// Total minus paid; JSON number.
+    open: f64,
+}
+
+/// A payment on an invoice.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoicePayment {
+    id: Uuid,
+    #[schema(required = true)]
+    description: Option<String>,
+    /// The payment day at midnight UTC.
+    #[schema(value_type = String, format = DateTime)]
+    date: String,
+    /// Decimal text with 8 places.
+    amount: String,
+    /// Always null.
+    #[schema(value_type = Option<String>, required = true)]
+    paid_amount: Option<String>,
+    /// 1 or 0.
+    is_paid: i32,
+    #[schema(required = true)]
+    provider: Option<String>,
+    #[schema(required = true)]
+    provider_id: Option<String>,
+    #[schema(required = true)]
+    status: Option<String>,
+    payment_method: String,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+}
+
+/// One invoice line. Amounts are decimal text.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceItem {
+    id: Uuid,
+    title: String,
+    #[schema(required = true)]
+    description: Option<String>,
+    quantity: String,
+    price: String,
+    price_incl: String,
+    price_incl_vat: String,
+    total_each_price_incl: String,
+    marge: String,
+    /// Null without a purchase price.
+    #[schema(required = true)]
+    marge_percentage: Option<String>,
+    marge_total: String,
+    vat: String,
+    credited_amount: String,
+    /// Always false.
+    from_multi_set: bool,
+    /// Always false.
+    is_parent_multi_set_product: bool,
+    amount_left_to_credit: String,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
+    returnable_serial_numbers: Vec<Value>,
+    subtotal: String,
+    total: String,
+    total_incl: String,
+    vat_amount: String,
+    discount_fixed: String,
+    discount_percentage: String,
+    discount_amount: String,
+    discount_amount_incl: String,
+    purchase_price: String,
+    purchase_price_total: String,
+    purchase_price_incl: String,
+    /// The product's available stock (0 without a product).
+    available_stock: Value,
+    /// Always false.
+    accepted: bool,
+    picked: String,
+    qty_shipped: String,
+    qty_cancelled: String,
+    /// Always false.
+    billed: bool,
+    mutated_from_stock: String,
+    backorder: String,
+    position: i32,
+    /// Always false.
+    able_to_pick: bool,
+    /// Always null.
+    #[schema(value_type = Option<Uuid>, required = true)]
+    stock_id: Option<Uuid>,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
+    serial_numbers: Vec<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    #[schema(required = true)]
+    product_variant_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+    relationships: InvoiceItemLinks,
+}
+
+/// Line `relationships`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceItemLinks {
+    /// Product fields the line shows (`id`, `name`, `product_nr`, prices, stock); only on product lines.
+    #[schema(value_type = Option<Object>)]
+    product: Option<Value>,
+    /// Compact warehouse; null when unset.
+    #[schema(value_type = Option<Object>, required = true)]
+    mutate_from_warehouse: Option<Value>,
+}
+
+/// An invoice in detail.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceResource {
+    id: Uuid,
+    /// Formatted number; null until sent, `N/A` when cancelled.
+    #[schema(required = true)]
+    invoice_nr: Option<String>,
+    status: String,
+    #[schema(required = true)]
+    reference: Option<String>,
+    /// Token of the public payment page; null until sent.
+    #[schema(required = true)]
+    payment_hash: Option<String>,
+    payment_method: String,
+    balance: InvoiceBalance,
+    #[schema(required = true)]
+    note: Option<String>,
+    #[schema(required = true)]
+    send_date: Option<DateTime<Utc>>,
+    #[schema(required = true)]
+    due_date: Option<DateTime<Utc>>,
+    items: Vec<InvoiceItem>,
+    summary: SummaryResource,
+    is_credit: bool,
+    #[schema(required = true)]
+    previous_invoice_id: Option<Uuid>,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
+    mollie_refunds: Vec<Value>,
+    /// Contact snapshot.
+    #[schema(value_type = Option<Object>, required = true)]
+    addressed_contact: Option<Value>,
+    /// Address snapshot.
+    #[schema(value_type = Option<Object>, required = true)]
+    billing_address: Option<Value>,
+    marge_calculation_summary: MarginResource,
+    /// Always null.
+    #[schema(value_type = Option<String>, required = true)]
+    import_id: Option<String>,
+    /// Always null.
+    #[schema(value_type = Option<String>, required = true)]
+    import_source: Option<String>,
+    /// `ordered_by`, `po_number`, `reference`.
+    #[schema(value_type = Object)]
+    customer_ref: Value,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    relationships: InvoiceLinks,
+}
+
+/// Invoice `relationships`; the always-null and always-empty ones are kept for old clients.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceLinks {
+    /// The sent PDF; null until sent or when the file is gone.
+    #[schema(required = true)]
+    pdf_file: Option<FileResource>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    estimate: Option<Value>,
+    /// The relation (customer) list resource.
+    #[schema(value_type = Option<Object>, required = true)]
+    relation: Option<Value>,
+    #[schema(required = true)]
+    currency: Option<CurrencyResource>,
+    payments: Vec<InvoicePayment>,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
+    custom_sections: Vec<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    parent_invoice: Option<Value>,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
+    child_invoices: Vec<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    order: Option<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    work_order: Option<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    collective_invoice: Option<Value>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    cash_register: Option<Value>,
+}
+
+/// An invoice in a list.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceIndexResource {
+    id: Uuid,
+    /// Formatted number; null until sent, `N/A` when cancelled.
+    #[schema(required = true)]
+    invoice_nr: Option<String>,
+    status: String,
+    balance: InvoiceListBalance,
+    #[schema(required = true)]
+    reference: Option<String>,
+    /// Always null in lists.
+    #[schema(value_type = Option<String>, required = true)]
+    payment_hash: Option<String>,
+    payment_method: String,
+    #[schema(required = true)]
+    note: Option<String>,
+    /// Always false.
+    has_activities: bool,
+    /// Always false.
+    has_note_activity: bool,
+    /// `meta.on_account` as stored, else null.
+    #[schema(required = true)]
+    is_on_account: Option<Value>,
+    #[schema(required = true)]
+    send_date: Option<DateTime<Utc>>,
+    #[schema(required = true)]
+    due_date: Option<DateTime<Utc>>,
+    is_credit: bool,
+    /// Total with two decimals, e.g. `"121.00"`.
+    total_amount: String,
+    summary: SummaryResource,
+    created_at: DateTime<Utc>,
+    last_updated_at: DateTime<Utc>,
+    /// Always false.
+    has_collective_invoice: bool,
+    /// Always null.
+    #[schema(value_type = Option<String>, required = true)]
+    import_id: Option<String>,
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    relationships: InvoiceIndexLinks,
+}
+
+/// List row `relationships`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceIndexLinks {
+    /// The relation (customer) list resource.
+    #[schema(value_type = Option<Object>, required = true)]
+    relation: Option<Value>,
+    #[schema(required = true)]
+    currency: Option<CurrencyResource>,
+}
+
+/// `GET /invoices`: a page with `meta`, or with `limit` up to that many rows and no `meta`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceListPage {
+    data: Vec<InvoiceIndexResource>,
+    /// Left out when `limit` is sent.
+    #[schema(schema_with = page_meta)]
+    meta: Option<Value>,
+}
+
+/// The paging details schema `Paginated` registers.
+fn page_meta() -> utoipa::openapi::RefOr<utoipa::openapi::Schema> {
+    utoipa::openapi::Ref::from_schema_name("Meta").into()
+}
+
+/// One line on the public payment page (no costs or stock).
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PublicInvoiceItem {
+    id: Uuid,
+    title: String,
+    #[schema(required = true)]
+    description: Option<String>,
+    quantity: String,
+    price: String,
+    price_incl: String,
+    price_incl_vat: String,
+    vat: String,
+    subtotal: String,
+    total: String,
+    total_incl: String,
+    discount_fixed: String,
+    discount_percentage: String,
+    /// Same as `discount_percentage`.
+    discount: String,
+    discount_amount: String,
+    discount_amount_incl: String,
+    credited_amount: String,
+    amount_left_to_credit: String,
+}
+
+/// Currency on the public payment page.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PublicCurrency {
+    name: String,
+    asset_type: String,
+    #[schema(required = true)]
+    symbol_prefix: Option<String>,
+    #[schema(required = true)]
+    symbol_suffix: Option<String>,
+    decimals: i16,
+}
+
+/// Public payment page `relationships`.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PublicInvoiceLinks {
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    order_fields: Option<Value>,
+    #[schema(required = true)]
+    currency: Option<PublicCurrency>,
+}
+
+/// An invoice as its public payment page shows it.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct PublicInvoice {
+    /// Formatted number; null until sent.
+    #[schema(required = true)]
+    invoice_nr: Option<String>,
+    is_credit: bool,
+    status: String,
+    #[schema(required = true)]
+    reference: Option<String>,
+    /// Open is never below 0 and is 0 once paid, cancelled or credited.
+    balance: InvoiceBalance,
+    /// The token in the link.
+    payment_hash: String,
+    payment_method: String,
+    /// The workspace's company profile (no credit limit).
+    #[schema(value_type = Object)]
+    company_details: Value,
+    #[schema(required = true)]
+    due_date: Option<DateTime<Utc>>,
+    items: Vec<PublicInvoiceItem>,
+    summary: SummaryResource,
+    relationships: PublicInvoiceLinks,
+}
 
 /// Validated header fields plus item rows. Create ignores `due_date`/`customer_ref`; update
 /// ignores `currency_id`, `payment_method` and `is_credit` (Laravel's rule sets).
@@ -111,23 +540,40 @@ pub struct ItemFields {
 }
 
 /// `{data:{invoice_id}}` of create and duplicate.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct InvoiceCreated {
     pub invoice_id: Uuid,
 }
 
-/// List query (Laravel ListInvoiceRequest + pagination).
-#[derive(Deserialize, Default)]
+// List query (Laravel ListInvoiceRequest + pagination).
+/// List query.
+#[derive(Deserialize, Default, IntoParams)]
 #[serde(default)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// Only invoices of this relation.
+    #[param(value_type = Option<Uuid>)]
     pub relation_id: Option<String>,
+    /// Search text.
     pub q: Option<String>,
+    /// 1 to 100: return that many rows without `meta` instead of a page.
+    #[param(value_type = Option<i64>)]
     pub limit: Option<String>,
+    /// Only this status.
     pub status: Option<String>,
+    /// Comma-separated statuses (`draft`, `pending`, `paid`, ...).
     pub in_status: Option<String>,
+    /// `1`/`0`: only credit notes, or only invoices.
+    #[param(value_type = Option<bool>)]
     pub is_credit: Option<String>,
+    /// `1`: only invoices put on account.
+    #[param(value_type = Option<bool>)]
     pub on_account: Option<String>,
 }
 
@@ -451,12 +897,33 @@ fn item_ref(r: &mut Rules, field: &str, v: &Scalar) -> RefId {
     }
 }
 
-/// POST /invoices/{id}/credit (Laravel CreditInvoiceRequest); unknown keys are skipped.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+// POST /invoices/{id}/credit (Laravel CreditInvoiceRequest); unknown keys are skipped.
+/// POST /invoices/{id}/credit.
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(description = "Credit the whole invoice (`credit_all`) or the listed lines.")]
 pub struct CreditInvoiceRequest {
+    #[schema(value_type = Option<bool>)]
+    #[serde(default)]
     credit_all: Scalar,
+    /// Required unless `credit_all` is true; up to 1000 lines.
+    #[schema(value_type = Option<Vec<CreditLineBody>>)]
+    #[serde(default)]
     items: Capped,
+}
+
+// Doc-only: one `items` entry the credit validation reads key by key.
+/// One line to credit.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct CreditLineBody {
+    /// A line of the invoice.
+    id: Uuid,
+    /// Quantity to credit; decimal.
+    credit_amount: Option<f64>,
+    /// Quantity returned to stock; decimal.
+    return_amount: Option<f64>,
+    /// Accepted and ignored.
+    disable_discount: Option<bool>,
 }
 
 /// One selected line of a credit. `disable_discount` is accepted and ignored, as Laravel's

@@ -10,18 +10,21 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, UnprocessableBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     mail::{Delivered, Failure, Mail, Sender, Via, graph},
     modules::{
         email_profiles,
         messages::{
-            dto::{Office365Request, SendMessageRequest},
+            dto::{
+                EmailLog, Office365Failure, Office365Reply, Office365Request, ProfileTestResult,
+                SendMessageRequest,
+            },
             service::{self, Outgoing},
         },
     },
@@ -35,15 +38,33 @@ permissions! {
 }
 
 /// Paging query.
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize, Default, utoipa::IntoParams)]
 #[serde(default)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     page_size: Option<String>,
 }
 
 /// POST /send-message -> `{message:"ok"}` (also when the allow-list blocked it, as Laravel).
 /// Without `to`, the addressed contact gets it (Laravel failed on a missing `to`).
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/send-message", tag = "messages",
+    operation_id = "messages_send", summary = "Send an email (or log a manual send)",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = SendMessageRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Sent, logged or blocked by the allow-list (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `workspace.send-message`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, unknown contact, attachment or profile, or no usable mail server"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn send_message(
     State(state): State<AppState>,
     access: Can<SendMessage>,
@@ -77,6 +98,17 @@ pub async fn send_message(
 
 /// GET /settings/email-logs: the workspace's sends, newest first (`setting.get`, the
 /// catalog's name; Laravel checked `setting.view`, which no team could grant).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/settings/email-logs", tag = "messages",
+    operation_id = "messages_logs", summary = "List sent emails, newest first",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<EmailLog>, description = "One page of sends"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `setting.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn logs(
     State(state): State<AppState>,
     access: Can<SettingGet>,
@@ -90,6 +122,18 @@ pub async fn logs(
 
 /// GET /email-profiles/{id}/test-connection: a test mail to the caller through the profile
 /// (`emailprofile.update`; Laravel checked `ftpserver.view`).
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/email-profiles/{profile}/test-connection", tag = "messages",
+    operation_id = "messages_profile_test", summary = "Send a test email to the caller through a profile",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("profile" = Uuid, Path, description = "Email profile id")),
+    responses(
+        (status = 200, body = Envelope<ProfileTestResult>, description = "The test email went out"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailprofile.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or profile, or caller not a member"),
+        (status = 422, body = UnprocessableBody, description = "The profile has no usable mail server, or the server refused the mail"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn profile_test(
     State(state): State<AppState>,
     access: Can<ProfileUpdate>,
@@ -145,6 +189,19 @@ async fn account(
 }
 
 /// POST /settings/office365/test-connection: a token, then the mailbox's inbox.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/settings/office365/test-connection", tag = "messages",
+    operation_id = "messages_office365_connection", summary = "Test Microsoft Graph credentials and mailbox access",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = Office365Request,
+    responses(
+        (status = 200, body = Office365Reply, description = "Token and mailbox check worked (`data.ok` true)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `setting.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = inline(Office365Failure), description = "Invalid input, stored secret to re-enter, or the test failed"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn office365_connection(
     State(state): State<AppState>,
     access: Can<SettingUpdate>,
@@ -185,6 +242,19 @@ pub async fn office365_connection(
 
 /// POST /settings/office365/test-send: Laravel's test mail from `from` (else the mailbox) to
 /// `to`, through the allow-list like every mail.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/settings/office365/test-send", tag = "messages",
+    operation_id = "messages_office365_send", summary = "Send a test email through Microsoft Graph",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = Office365Request,
+    responses(
+        (status = 200, body = Office365Reply, description = "Test email worked (`data.ok` true)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `setting.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = inline(Office365Failure), description = "Invalid input, stored secret to re-enter, or the test failed"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn office365_send(
     State(state): State<AppState>,
     access: Can<SettingUpdate>,

@@ -22,6 +22,26 @@ pub struct ValidationErrorBody {
     errors: BTreeMap<String, Vec<String>>,
 }
 
+/// 422 schema for routes that can also refuse with `AppError::Unprocessable` (`{message}`
+/// only): field errors or a rule's message. Docs only; use as `body = UnprocessableBody`.
+pub struct UnprocessableBody;
+
+impl utoipa::PartialSchema for UnprocessableBody {
+    fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+        use utoipa::openapi::{Ref, schema::AnyOfBuilder};
+        // anyOf, not oneOf: a validation body also matches MessageBody.
+        AnyOfBuilder::new()
+            .item(Ref::from_schema_name("ValidationErrorBody"))
+            .item(Ref::from_schema_name("MessageBody"))
+            .description(Some(
+                "Invalid input (`errors` lists fields), or a business rule refused the request (`message` only)",
+            ))
+            .into()
+    }
+}
+
+impl utoipa::ToSchema for UnprocessableBody {}
+
 /// Every failure a handler can return. Bodies follow vimdesk-api `app/Exceptions/Handler.php`.
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {

@@ -85,6 +85,7 @@ pub struct WarehouseRef {
 }
 
 #[derive(Serialize, ToSchema)]
+#[schema(as = WarehouseSectionRelationships)]
 struct Relationships {
     warehouse: WarehouseRef,
     #[schema(required = true)]

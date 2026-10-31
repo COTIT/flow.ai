@@ -64,6 +64,7 @@ pub struct RowResource {
 }
 
 #[derive(Serialize, ToSchema)]
+#[schema(as = WarehouseRowRelationships)]
 struct Relationships {
     warehouse: WarehouseRef,
     /// Always null.

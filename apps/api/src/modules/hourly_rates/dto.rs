@@ -47,6 +47,7 @@ pub struct HourlyRateResource {
 }
 
 #[derive(Serialize, ToSchema)]
+#[schema(as = HourlyRateRelationships)]
 struct Relationships {
     /// Null when the VAT group was deleted.
     #[schema(required = true)]

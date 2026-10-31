@@ -1,27 +1,15 @@
-//! Deal pipeline routes, mounted under /v1 (`deal-pipelines`, as in vimdesk-api).
+//! Deal pipeline routes, mounted under /v1 (`deal-pipelines`, as in vimdesk-api). Paths live in
+//! each handler's `#[utoipa::path]`, so router and OpenAPI spec share one source.
 
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::deal_pipelines::handlers};
 
-/// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    let base = "/workspace/{workspace}/deal-pipelines";
-    Router::new()
-        .route(base, get(handlers::list).post(handlers::create))
-        .route(
-            &format!("{base}/{{pipeline}}"),
-            get(handlers::get).post(handlers::update),
-        )
-        .route(
-            &format!("{base}/{{pipeline}}/status"),
-            post(handlers::create_status),
-        )
-        .route(
-            &format!("{base}/{{pipeline}}/status/{{status}}"),
-            post(handlers::update_status).delete(handlers::delete_status),
-        )
+/// Routes for this module; each handler checks its `dealpipeline*` permission.
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(handlers::list, handlers::create))
+        .routes(routes!(handlers::get, handlers::update))
+        .routes(routes!(handlers::create_status))
+        .routes(routes!(handlers::update_status, handlers::delete_status))
 }

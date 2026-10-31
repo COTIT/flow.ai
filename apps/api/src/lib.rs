@@ -38,10 +38,6 @@ pub use http::{
     rate_limit::RateLimit,
     slots::{Slots, WorkspaceSlots},
 };
-use modules::{
-    deal_pipelines, deals, email_profiles, email_templates, files, invoice_payments, invoices,
-    messages, pdf_templates, pricing, settings,
-};
 
 /// Largest JSON body is a relation with its addresses (capped at 50); 64 KiB covers it
 /// and keeps junk bodies (axum default 2 MB) off the parser.
@@ -92,29 +88,12 @@ pub async fn warm_up() {
 /// Full router. One entry point so tests run same middleware stack as prod.
 /// Serve with `into_make_service_with_connect_info::<SocketAddr>()`: the rate limit keys on peer IP.
 pub fn build_app(state: AppState) -> Router {
-    // shortcut: invoices' public hash view stays undocumented until invoices get annotations.
-    let public = http::rate_limit::apply(
-        Router::new()
-            .merge(openapi::public().split_for_parts().0)
-            .merge(invoices::routes::public()),
-        state.rate_limit,
-    );
+    let public = http::rate_limit::apply(openapi::public().split_for_parts().0, state.rate_limit);
     let public = http::timeout::body_deadline(public, state.body_deadline);
-    let private = Router::new()
-        .merge(openapi::private().split_for_parts().0)
-        .merge(deal_pipelines::routes::private())
-        .merge(deals::routes::private())
-        .merge(settings::routes::private())
-        .merge(pdf_templates::routes::private())
-        .merge(email_templates::routes::private())
-        .merge(email_profiles::routes::private())
-        .merge(messages::routes::private())
-        .merge(invoice_payments::routes::private());
+    let private = Router::new().merge(openapi::private().split_for_parts().0);
     // Item totals, invoices and file uploads take large bodies: twice the deadline of the
     // 64 KiB routes.
-    let documents = pricing::routes::private()
-        .merge(invoices::routes::private())
-        .merge(files::routes::private());
+    let documents = openapi::documents().split_for_parts().0;
     let private = http::timeout::body_deadline(private, state.body_deadline).merge(
         http::timeout::body_deadline(documents, state.body_deadline * 2),
     );

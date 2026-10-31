@@ -620,6 +620,7 @@ struct UnpaidInvoices {
 }
 
 #[derive(Serialize, ToSchema)]
+#[schema(as = RelationRelationships)]
 struct Relationships {
     #[schema(required = true)]
     relation_type: Option<CustomTypeResource>,

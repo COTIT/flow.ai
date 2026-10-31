@@ -1,33 +1,16 @@
-//! Deal routes, mounted under /v1 (`deals`, plus one board column under `deal-pipelines`).
+//! Deal routes, mounted under /v1 (`deals`, plus one board column under `deal-pipelines`). Paths
+//! live in each handler's `#[utoipa::path]`, so router and OpenAPI spec share one source.
 
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::deals::handlers};
 
-/// Routes for this module; each handler runs the workspace guard.
-pub fn private() -> Router<AppState> {
-    let base = "/workspace/{workspace}/deals";
-    Router::new()
-        .route(base, get(handlers::list).post(handlers::create))
-        .route(
-            &format!("{base}/{{deal}}"),
-            get(handlers::get)
-                .post(handlers::update)
-                .delete(handlers::delete),
-        )
-        .route(
-            &format!("{base}/{{deal}}/update-status"),
-            post(handlers::move_to),
-        )
-        .route(
-            &format!("{base}/{{deal}}/add-relation"),
-            post(handlers::add_relation),
-        )
-        .route(
-            "/workspace/{workspace}/deal-pipelines/{pipeline}/status/{status}/deals",
-            get(handlers::column),
-        )
+/// Routes for this module; each handler checks its `deal.*` permission.
+pub fn private() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(handlers::list, handlers::create))
+        .routes(routes!(handlers::get, handlers::update, handlers::delete))
+        .routes(routes!(handlers::move_to))
+        .routes(routes!(handlers::add_relation))
+        .routes(routes!(handlers::column))
 }

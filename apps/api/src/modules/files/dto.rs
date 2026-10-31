@@ -11,26 +11,67 @@ use base64::Engine;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
     error::AppError,
     http::json::{Rules, Validate, human},
-    modules::pricing::body::{Capped, Scalar},
+    modules::{
+        pricing::body::{Capped, Scalar},
+        users::dto::UserEmailResource,
+    },
 };
 
 /// Largest file: 10 MB (Laravel's limit was nginx's 32 MB; uploads are buffered in memory).
 pub const MAX_BYTES: usize = 10 * 1024 * 1024;
 
 /// `POST /files` as JSON.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(description = "Upload as JSON: the file base64-encoded. At most 10 MB once decoded.")]
 pub struct UploadRequest {
+    /// The file, base64-encoded.
+    #[schema(value_type = String, content_encoding = "base64", required = true)]
+    #[serde(default)]
     upload: Scalar,
+    #[schema(value_type = String, max_length = 255, required = true)]
+    #[serde(default)]
     document_name: Scalar,
+    #[schema(value_type = Option<String>, max_length = 255)]
+    #[serde(default)]
     description: Scalar,
+    /// Required; files are always stored private.
+    #[schema(value_type = bool, required = true)]
+    #[serde(default)]
     public: Scalar,
+    #[schema(value_type = Option<Object>)]
+    #[serde(default)]
     meta: Capped,
+}
+
+// Doc-only: the multipart form `from_multipart` reads part by part.
+/// `POST /files` as a multipart form.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+#[schema(
+    description = "Upload as a multipart form: one file part `upload` (at most 10 MB) plus these text parts; any other part is refused."
+)]
+pub struct UploadForm {
+    #[schema(value_type = String, format = Binary)]
+    upload: Vec<u8>,
+    /// Defaults to the file's name.
+    #[schema(max_length = 255)]
+    document_name: Option<String>,
+    #[schema(max_length = 255)]
+    description: Option<String>,
+    /// Required; files are always stored private.
+    public: bool,
+    /// Checked, not stored.
+    #[schema(rename = "associated_with[parent_domain]")]
+    parent_domain: Option<String>,
+    /// Checked, not stored.
+    #[schema(rename = "associated_with[parent_id]")]
+    parent_id: Option<Uuid>,
 }
 
 /// A validated upload.
@@ -42,7 +83,7 @@ pub struct Upload {
 }
 
 /// `{data:{file_id}}`.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct FileCreated {
     pub file_id: Uuid,
 }
@@ -271,24 +312,35 @@ pub fn common_fields(
     Some((description, meta))
 }
 
-/// Laravel FileResource.
-#[derive(Serialize)]
+// Laravel FileResource.
+/// A stored file.
+#[derive(Serialize, ToSchema)]
+#[schema(
+    description = "A stored file. `file_path` is a signed download URL valid for a few minutes."
+)]
 pub struct FileResource {
     pub id: Uuid,
     /// A signed URL valid for a few minutes.
     pub file_path: String,
+    /// Bytes.
     pub size: i64,
+    #[schema(required = true)]
     pub extension: Option<String>,
     pub document_name: String,
     pub created_at: DateTime<Utc>,
     pub last_updated_at: DateTime<Utc>,
+    /// Always empty.
+    #[schema(value_type = Vec<Object>, max_items = 0)]
     pub association_data: [(); 0],
+    #[schema(value_type = Option<Object>, required = true)]
     pub meta: Option<Value>,
     pub relationships: FileRelationships,
 }
 
 /// FileResource `relationships`.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct FileRelationships {
+    /// Null when the uploader left the workspace.
+    #[schema(value_type = Option<UserEmailResource>, required = true)]
     pub uploaded_by: Option<Value>,
 }

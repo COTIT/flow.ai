@@ -17,8 +17,21 @@ use crate::{
 };
 
 /// Raw body; only the writable sections are read.
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
+#[schema(
+    value_type = Object,
+    description = "Sections to save, keyed by section name. Each sent section is validated and replaces the stored one; unknown sections and keys are dropped. Send a credential's mask back to keep it."
+)]
 pub struct UpdateSettingsRequest(Map<String, Value>);
+
+// Doc-only: `GET /settings` answers `{data: …}` with a JSON value of any type.
+/// Settings read reply.
+#[allow(dead_code)]
+#[derive(utoipa::ToSchema)]
+pub struct SettingsData {
+    /// Every section as an object, or with `?type=` that one section or dotted path (any JSON value; null when unset). Credentials print masked.
+    data: Value,
+}
 
 /// Validated sections to store, plus the uuids the service must find in this workspace.
 pub struct SettingsUpdate {

@@ -6,6 +6,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -13,7 +14,9 @@ use crate::{
         json::{Rules, Validate, filled, human, present},
         list::Page,
     },
-    modules::deals::repo::DealRow,
+    modules::{
+        currencies::dto::CurrencyResource, deals::repo::DealRow, users::dto::UserEmailResource,
+    },
 };
 
 const TITLE_MAX: usize = 255;
@@ -40,37 +43,60 @@ pub const AGENT_MISSING: &str = "This sales agent id is not a valid user_id";
 /// Laravel `after:yesterday`.
 pub const CLOSE_DATE_PAST: &str = "The expected close date must be a date after yesterday.";
 
-/// Laravel DealResource (`full`) or DealIndexResource (board columns): same keys, the index
-/// form leaves out the pipeline, its column and the custom sections.
-#[derive(Serialize)]
+// Laravel DealResource (`full`) or DealIndexResource (board columns): same keys, the index
+// form leaves out the pipeline, its column and the custom sections.
+/// A deal.
+#[derive(Serialize, ToSchema)]
+#[schema(
+    description = "A deal. Board columns (and lists) leave out `deal_pipeline`, `deal_pipeline_status` and `custom_sections` under `relationships`."
+)]
 pub struct DealResource {
     id: Uuid,
     title: String,
+    #[schema(required = true)]
     description: Option<String>,
     date: NaiveDate,
-    /// Raw `decimal(…,8)` text, as Laravel left the column uncast.
+    // Raw `decimal(…,8)` text, as Laravel left the column uncast.
+    /// Decimal text with 8 places, e.g. `"1250.50000000"`.
+    #[schema(example = "1250.50000000")]
     deal_value: String,
+    /// `high`, `medium` or `low`.
     deal_priority: String,
+    #[schema(required = true)]
     expected_close_date: Option<NaiveDate>,
     position: i64,
-    /// Not ported (archiving was 403 for everyone in Laravel); always false.
+    // Not ported (archiving was 403 for everyone in Laravel); always false.
+    /// Always false (archiving is not supported).
     archived: bool,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     relationships: Relationships,
 }
 
-#[derive(Serialize)]
+/// Deal `relationships`; null when the linked row is missing.
+#[derive(Serialize, ToSchema)]
+#[schema(as = DealRelationships)]
 struct Relationships {
+    #[schema(value_type = Option<UserEmailResource>, required = true)]
     sales_agent: Value,
+    /// The relation (customer) list resource.
+    #[schema(value_type = Option<Object>, required = true)]
     relation: Value,
+    #[schema(value_type = Option<CurrencyResource>, required = true)]
     currency: Value,
+    /// Single deal only.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<crate::modules::deal_pipelines::dto::PipelineResource>)]
     deal_pipeline: Option<Value>,
+    /// Single deal only.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<crate::modules::deal_pipelines::dto::StatusResource>)]
     deal_pipeline_status: Option<Value>,
+    /// Single deal only; always empty.
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(value_type = Option<Vec<Object>>, max_items = 0)]
     custom_sections: Option<[(); 0]>,
 }
 
@@ -116,20 +142,33 @@ impl DealResource {
 }
 
 /// Create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DealCreated {
     pub deal_id: Uuid,
 }
 
-/// GET /deals query. `pipeline_id` and `status` are the list view's board filters (Laravel
-/// ignored them); unknown params ignored.
-#[derive(Deserialize)]
+// GET /deals query. `pipeline_id` and `status` are the list view's board filters (Laravel
+// ignored them); unknown params ignored.
+/// GET /deals query; unknown params ignored.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Search text.
     pub q: Option<String>,
+    /// Only deals of this relation.
+    #[param(value_type = Option<Uuid>)]
     pub relation_id: Option<String>,
+    /// Only deals on this pipeline.
+    #[param(value_type = Option<Uuid>)]
     pub pipeline_id: Option<String>,
+    /// Only deals in this column (status id).
+    #[param(value_type = Option<Uuid>)]
     pub status: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     page_size: Option<String>,
 }
 
@@ -157,9 +196,13 @@ impl ListQuery {
     }
 }
 
-/// Board column query: Laravel `paginate(999)`, so only `page` moves.
-#[derive(Deserialize)]
+// Board column query: Laravel `paginate(999)`, so only `page` moves.
+/// Board column query: pages of 999.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ColumnQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     page: Option<String>,
 }
 
@@ -174,20 +217,41 @@ impl ColumnQuery {
 }
 
 /// POST /deals.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "New deal. Without `currency_id` the workspace default currency is used.")]
 pub struct CreateDealRequest {
+    #[schema(value_type = Uuid)]
     deal_pipeline_id: Option<Value>,
+    /// A column of `deal_pipeline_id`.
+    #[schema(value_type = Uuid)]
     deal_pipeline_status_id: Option<Value>,
+    #[schema(value_type = Option<Uuid>)]
     relation_id: Option<Value>,
+    #[schema(value_type = Option<Uuid>)]
     currency_id: Option<Value>,
+    /// A member of the workspace.
+    #[schema(value_type = Uuid)]
     sales_agent_id: Option<Value>,
+    #[schema(value_type = String, max_length = 255)]
     title: Option<String>,
+    #[schema(value_type = String, max_length = 50000)]
     description: Option<String>,
+    /// `YYYY-MM-DD`; defaults to today.
+    #[schema(value_type = Option<NaiveDate>)]
     date: Option<Value>,
+    /// Decimal; defaults to 0.
+    #[schema(value_type = Option<String>, example = "1250.50")]
     deal_value: Option<Value>,
+    /// `high`, `medium` or `low`.
+    #[schema(value_type = String)]
     deal_priority: Option<String>,
+    /// `YYYY-MM-DD`, today or later.
+    #[schema(value_type = NaiveDate)]
     expected_close_date: Option<Value>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
+    /// Accepted and ignored.
+    #[schema(value_type = Option<Vec<Object>>)]
     custom_sections: Option<Value>,
 }
 
@@ -256,28 +320,43 @@ impl Validate for CreateDealRequest {
 
 /// POST /deals/{id}: a patch. The edit modal also sends the user's own id as `id` (ignored)
 /// and the unchanged board and column.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Changes to a deal. Leave a field out to keep it.")]
 pub struct UpdateDealRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 255)]
     title: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 50000)]
     description: Option<Option<String>>,
+    /// Decimal.
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, example = "1250.50")]
     deal_value: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<NaiveDate>)]
     date: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     sales_agent_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     deal_pipeline_id: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Uuid>)]
     deal_pipeline_status_id: Option<Option<Value>>,
+    /// `high`, `medium` or `low`.
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
     deal_priority: Option<Option<String>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<NaiveDate>)]
     expected_close_date: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
+    /// Accepted and ignored.
+    #[schema(value_type = Option<Vec<Object>>)]
     custom_sections: Option<Value>,
 }
 
@@ -345,10 +424,15 @@ impl Validate for UpdateDealRequest {
 
 /// POST /deals/{id}/update-status: the kanban drag. `position` is the 0-based index in the
 /// target column.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct MoveDealRequest {
+    #[schema(value_type = Uuid)]
     deal_pipeline_id: Option<Value>,
+    /// Target column.
+    #[schema(value_type = Uuid)]
     deal_pipeline_status_id: Option<Value>,
+    /// 0-based index in the target column.
+    #[schema(value_type = i64, minimum = 0, maximum = 10000)]
     position: Option<Value>,
 }
 
@@ -381,8 +465,9 @@ impl Validate for MoveDealRequest {
 }
 
 /// POST /deals/{id}/add-relation.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AddRelationRequest {
+    #[schema(value_type = Uuid)]
     relation_id: Option<Value>,
 }
 

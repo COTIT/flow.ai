@@ -6,6 +6,10 @@ use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
+use utoipa::{
+    IntoParams, ToSchema,
+    openapi::{ObjectBuilder, OneOfBuilder, RefOr, Schema, schema::ArrayBuilder},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -36,24 +40,59 @@ pub const FLAG_TAKEN: &str =
 /// Laravel rules.properties_not_valid_both_true.
 const BOTH_FLAGS: &str = "Properties field is not valid, can not have is_won and is_lost field both checked at the same time";
 
-/// Laravel DealPipelineResource. `summary` counts won/lost deals (zero until deals exist).
-#[derive(Serialize)]
+// Laravel DealPipelineResource. `summary` counts won/lost deals (zero until deals exist).
+/// A deal pipeline (board) with its columns in position order.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "A deal pipeline (board) with its columns in position order.")]
 pub struct PipelineResource {
     id: Uuid,
     name: String,
     #[serde(rename = "type")]
+    #[schema(required = true)]
     kind: Option<String>,
+    /// `a-z`, `z-a` or `pos`.
     sorting: String,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    #[schema(schema_with = summary_schema)]
     summary: Value,
     relationships: PipelineRelationships,
 }
 
-#[derive(Serialize)]
+/// Pipeline `relationships`.
+#[derive(Serialize, ToSchema)]
 struct PipelineRelationships {
     statuses: Vec<StatusResource>,
+}
+
+/// Wire shape of `summary`: per side a deal count and the value sum per currency code.
+fn summary_schema() -> Schema {
+    let values = OneOfBuilder::new()
+        .item(ArrayBuilder::new().max_items(Some(0)))
+        .item(ObjectBuilder::new().additional_properties(Some(
+            ObjectBuilder::new().schema_type(utoipa::openapi::schema::Type::Number),
+        )))
+        .description(Some(
+            "Sum of deal values per currency code (number); `[]` when there are none",
+        ));
+    let side = ObjectBuilder::new()
+        .property(
+            "total_amount",
+            ObjectBuilder::new().schema_type(utoipa::openapi::schema::Type::Integer),
+        )
+        .property("total_values", values)
+        .required("total_amount")
+        .required("total_values");
+    let side: RefOr<Schema> = side.into();
+    ObjectBuilder::new()
+        .property("won", side.clone())
+        .property("lost", side)
+        .required("won")
+        .required("lost")
+        .description(Some("Won and lost deal totals"))
+        .into()
 }
 
 impl PipelineResource {
@@ -105,22 +144,29 @@ fn summary(totals: &[&SummaryRow]) -> Value {
     json!({ "won": side(true), "lost": side(false) })
 }
 
-/// Laravel DealPipelineStatusResource: `rules` and `properties` as their value objects printed
-/// them; the custom status is null once it is deleted.
-#[derive(Serialize)]
+// Laravel DealPipelineStatusResource: `rules` and `properties` as their value objects printed
+// them; the custom status is null once it is deleted.
+/// One pipeline column.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "One pipeline column (lane).")]
 pub struct StatusResource {
     id: Uuid,
+    /// 0-based column position.
     position: i32,
     rules: LaneRules,
     properties: LaneProps,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
+    #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
     relationships: StatusRelationships,
 }
 
-#[derive(Serialize)]
+/// Column `relationships`.
+#[derive(Serialize, ToSchema)]
 struct StatusRelationships {
+    /// The custom status (`CustomStatusResource`); null once it is deleted.
+    #[schema(value_type = Option<Object>, required = true)]
     custom_status: Option<CustomStatusResource>,
 }
 
@@ -149,27 +195,29 @@ impl From<StatusRow> for StatusResource {
 }
 
 /// Pipeline create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PipelineCreated {
     pub deal_pipeline_id: Uuid,
 }
 
 /// Status create response.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct StatusCreated {
     pub deal_pipeline_status_id: Uuid,
 }
 
-/// Laravel StatusRules: lane limits, stored and shown, enforced nowhere (as in Laravel).
-#[derive(Serialize, Clone, Copy)]
+// Laravel StatusRules: lane limits, stored and shown, enforced nowhere (as in Laravel).
+/// Lane limits, stored and shown; not enforced.
+#[derive(Serialize, Clone, Copy, ToSchema)]
 pub struct LaneRules {
     pub max_items_per_lane: i32,
     pub max_days_in_lane: i32,
     pub auto_archive_in_days: i32,
 }
 
-/// Laravel StatusProperties: lane colour, probability text and the won/lost flags.
-#[derive(Serialize, Clone)]
+// Laravel StatusProperties: lane colour, probability text and the won/lost flags.
+/// Lane colour, probability text and the won/lost flags.
+#[derive(Serialize, Clone, ToSchema)]
 pub struct LaneProps {
     pub lane_color: String,
     pub deal_probability: String,
@@ -177,13 +225,19 @@ pub struct LaneProps {
     pub is_lost: bool,
 }
 
-/// POST /deal-pipelines. Laravel's store rules had no `type`, so it was dropped; genesy keeps it.
-#[derive(Deserialize)]
+// POST /deal-pipelines. Laravel's store rules had no `type`, so it was dropped; genesy keeps it.
+/// POST /deal-pipelines.
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "New pipeline.")]
 pub struct CreatePipelineRequest {
+    #[schema(value_type = String, max_length = 255)]
     name: Option<String>,
     #[serde(rename = "type")]
+    #[schema(max_length = 255)]
     kind: Option<String>,
+    /// `a-z` (default), `z-a` or `pos`.
     sorting: Option<String>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -210,21 +264,31 @@ impl Validate for CreatePipelineRequest {
 }
 
 /// POST /deal-pipelines/{id}: a patch.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "Changes to a pipeline. Leave a field out to keep it.")]
 pub struct UpdatePipelineRequest {
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>, max_length = 255)]
     name: Option<Option<String>>,
     #[serde(default, deserialize_with = "present", rename = "type")]
+    #[schema(value_type = Option<String>, max_length = 255)]
     kind: Option<Option<String>>,
+    /// `a-z`, `z-a` or `pos`; blank keeps the stored one.
     sorting: Option<String>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 
 /// GET list paging params; unknown ones ignored.
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     page_size: Option<String>,
 }
 
@@ -257,15 +321,23 @@ impl Validate for UpdatePipelineRequest {
     }
 }
 
-/// POST /deal-pipelines/{id}/status. `deal_pipeline_id` is required as in Laravel, but the
-/// path names the board.
-#[derive(Deserialize)]
+// POST /deal-pipelines/{id}/status. `deal_pipeline_id` is required as in Laravel, but the
+// path names the board.
+/// POST /deal-pipelines/{id}/status.
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "New column. `deal_pipeline_id` is required but the path picks the board.")]
 pub struct CreateStatusRequest {
+    #[schema(value_type = Uuid)]
     deal_pipeline_id: Option<Value>,
+    #[schema(value_type = Uuid)]
     custom_status_id: Option<Value>,
+    #[schema(value_type = i32, minimum = 0, maximum = 10000)]
     position: Option<Value>,
+    #[schema(value_type = LaneRules)]
     rules: Option<Value>,
+    #[schema(value_type = LaneProps)]
     properties: Option<Value>,
+    #[schema(value_type = Option<Object>)]
     meta: Option<Value>,
 }
 
@@ -315,15 +387,23 @@ impl Validate for CreateStatusRequest {
 /// POST /deal-pipelines/{p}/status/{s}. The edit modal posts the whole board column back
 /// (`id`, `title`, `tasks`, `custom_status_id`…): unknown keys are ignored and the custom
 /// status never changes. The reorder call sends `position` alone.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Changes to a column. Leave a field out to keep it; `deal_pipeline_id` is required. The custom status never changes."
+)]
 pub struct UpdateStatusRequest {
+    #[schema(value_type = Uuid)]
     deal_pipeline_id: Option<Value>,
+    #[schema(value_type = Option<i32>, minimum = 0, maximum = 10000)]
     position: Option<Value>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<LaneRules>)]
     rules: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<LaneProps>)]
     properties: Option<Option<Value>>,
     #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<Object>)]
     meta: Option<Option<Value>>,
 }
 

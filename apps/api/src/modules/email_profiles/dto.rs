@@ -1,8 +1,10 @@
 //! Email profile bodies (Laravel Store/UpdateEmailProfileRequest: the same rules) and the
 //! list query.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
@@ -19,22 +21,128 @@ use crate::{
 /// they stay as stored.
 pub const BOUND: &[&str] = &["host", "port", "username", "encryption"];
 
-/// Body of create and update; unknown keys (`meta`, which Laravel couldn't store) are skipped.
-#[derive(Deserialize, Default)]
-#[serde(default)]
+// Body of create and update; unknown keys (`meta`, which Laravel couldn't store) are skipped.
+/// Body of create and update; unknown keys are skipped.
+#[derive(Deserialize, Default, ToSchema)]
+#[schema(description = "An email profile (create and full update take the same body).")]
 pub struct ProfileBody {
+    #[schema(value_type = String, max_length = 80, required = true)]
+    #[serde(default)]
     name: Scalar,
+    #[schema(value_type = String, max_length = 80, required = true)]
+    #[serde(default)]
     sender_name: Scalar,
+    #[schema(value_type = String, format = Email, max_length = 255, required = true)]
+    #[serde(default)]
     email: Scalar,
+    #[schema(value_type = bool, required = true)]
+    #[serde(default)]
     default: Scalar,
+    /// Signature HTML; left out keeps it, null clears it.
+    #[schema(value_type = Option<String>, max_length = 25000)]
+    #[serde(default)]
     html: Scalar,
+    /// Own SMTP server; left out keeps it, null clears it.
+    #[schema(value_type = Option<SmtpBody>)]
+    #[serde(default)]
     smtp: Capped,
+    /// When this profile is picked; left out keeps them, null clears them.
+    #[schema(value_type = Option<Conditions>)]
+    #[serde(default)]
     conditions: Capped,
 }
 
 /// `POST /email-profiles` and `POST /email-profiles/{id}`.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ProfileRequest(ProfileBody);
+
+// Doc-only: the `smtp` object `smtp()` reads key by key.
+/// A profile's SMTP server as sent.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct SmtpBody {
+    /// Host name or public IP.
+    host: Option<String>,
+    #[schema(max_length = 255)]
+    username: Option<String>,
+    /// Send the mask back to keep the stored password; null or blank clears it.
+    #[schema(max_length = 255)]
+    password: Option<String>,
+    #[schema(minimum = 1, maximum = 65535)]
+    port: Option<u16>,
+    /// `ssl` or `tls`.
+    encryption: Option<String>,
+    bcc_all_emails: Option<bool>,
+}
+
+// Doc-only: `smtp` as `service::get` prints it with `json!`.
+/// A profile's SMTP server as shown; the password is masked.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct SmtpView {
+    #[schema(required = true)]
+    host: Option<String>,
+    #[schema(required = true)]
+    username: Option<String>,
+    /// The mask when a password is stored, else null.
+    #[schema(required = true)]
+    password: Option<String>,
+    #[schema(required = true)]
+    port: Option<i64>,
+    #[schema(required = true)]
+    encryption: Option<String>,
+    /// Always null.
+    #[schema(value_type = Option<String>, required = true)]
+    from_name: Option<String>,
+    /// Always null.
+    #[schema(value_type = Option<String>, required = true)]
+    from_address: Option<String>,
+    #[schema(required = true)]
+    bcc_all_emails: Option<bool>,
+}
+
+// Doc-only: one list row as `service::summary` prints it with `json!`.
+/// An email profile in a list.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct ProfileSummary {
+    id: Uuid,
+    name: String,
+    sender_name: String,
+    email: String,
+    #[schema(rename = "default")]
+    is_default: bool,
+    #[schema(required = true)]
+    html: Option<String>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    updated_at: DateTime<Utc>,
+    created_at: DateTime<Utc>,
+}
+
+// Doc-only: one profile as `service::get` prints it with `json!`.
+/// An email profile.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct ProfileResource {
+    id: Uuid,
+    name: String,
+    sender_name: String,
+    email: String,
+    #[schema(required = true)]
+    html: Option<String>,
+    #[schema(rename = "default")]
+    is_default: bool,
+    smtp: SmtpView,
+    #[schema(required = true)]
+    conditions: Option<Conditions>,
+    /// Always null.
+    #[schema(value_type = Option<Object>, required = true)]
+    meta: Option<Value>,
+    updated_at: DateTime<Utc>,
+    created_at: DateTime<Utc>,
+}
 
 /// The profile's own SMTP server: settings without the password, and what to do with it.
 pub struct SmtpInput {
@@ -56,19 +164,27 @@ pub struct ProfileInput {
 }
 
 /// `{data:{email_profile_id}}`.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ProfileCreated {
     pub email_profile_id: Uuid,
 }
 
 /// List query (Laravel ListEmailProfileRequest).
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, IntoParams)]
 #[serde(default)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+    /// Only profiles for `business` or `personal` relations.
     pub relation_type: Option<String>,
+    /// Only profiles for this language.
     pub language: Option<String>,
+    /// Only profiles for this relation custom type.
     pub relation_custom_type_id: Option<String>,
 }
 

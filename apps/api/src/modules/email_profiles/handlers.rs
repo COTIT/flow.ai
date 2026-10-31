@@ -9,15 +9,15 @@ use serde_json::Value;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::email_profiles::{
-        dto::{ListQuery, ProfileCreated, ProfileRequest},
+        dto::{ListQuery, ProfileCreated, ProfileRequest, ProfileResource, ProfileSummary},
         repo::ListFilter,
         service,
     },
@@ -33,6 +33,17 @@ permissions! {
 }
 
 /// GET /email-profiles.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/email-profiles", tag = "email_profiles",
+    operation_id = "email_profiles_list", summary = "List email profiles",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<ProfileSummary>, description = "One page of profiles"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailprofile.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<ProfileList>,
@@ -67,6 +78,17 @@ pub async fn list(
 }
 
 /// GET /email-profiles/{id}: the SMTP password is printed as the mask.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/email-profiles/{profile}", tag = "email_profiles",
+    operation_id = "email_profiles_get", summary = "Get an email profile (password masked)",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("profile" = Uuid, Path, description = "Email profile id")),
+    responses(
+        (status = 200, body = Envelope<ProfileResource>, description = "The profile"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailprofile.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or profile, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<ProfileView>,
@@ -76,6 +98,19 @@ pub async fn get(
 }
 
 /// POST /email-profiles -> 201 `{data:{email_profile_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/email-profiles", tag = "email_profiles",
+    operation_id = "email_profiles_create", summary = "Create an email profile",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = ProfileRequest,
+    responses(
+        (status = 201, body = Envelope<ProfileCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailprofile.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or the mask sent without a stored password"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<ProfileCreate>,
@@ -90,6 +125,19 @@ pub async fn create(
 }
 
 /// POST /email-profiles/{id}.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/email-profiles/{profile}", tag = "email_profiles",
+    operation_id = "email_profiles_update", summary = "Update an email profile",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("profile" = Uuid, Path, description = "Email profile id")),
+    request_body = ProfileRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailprofile.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or profile, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or the mask sent without a stored password"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<ProfileUpdate>,
@@ -101,6 +149,17 @@ pub async fn update(
 }
 
 /// DELETE /email-profiles/{id}.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/email-profiles/{profile}", tag = "email_profiles",
+    operation_id = "email_profiles_delete", summary = "Delete an email profile",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("profile" = Uuid, Path, description = "Email profile id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailprofile.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or profile, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<ProfileDelete>,

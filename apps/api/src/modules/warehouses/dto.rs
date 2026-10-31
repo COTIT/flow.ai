@@ -100,6 +100,7 @@ pub struct WarehouseResource {
 }
 
 #[derive(Serialize, ToSchema)]
+#[schema(as = WarehouseRelationships)]
 struct Relationships {
     /// Always empty.
     // Custom fields aren't ported.

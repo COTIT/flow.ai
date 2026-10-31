@@ -9,15 +9,15 @@ use tokio::sync::Semaphore;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, UnprocessableBody},
     http::{
         json::ValidatedJson,
         list::{Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
     modules::files::{
-        dto::{self, FileCreated, FileResource, UploadRequest},
+        dto::{self, FileCreated, FileResource, UploadForm, UploadRequest},
         service::{self, NewFile},
     },
 };
@@ -33,14 +33,30 @@ permissions! {
 static UPLOADS: Semaphore = Semaphore::const_new(4);
 
 /// Paging query.
-#[derive(serde::Deserialize, Default)]
+#[derive(serde::Deserialize, Default, utoipa::IntoParams)]
 #[serde(default)]
+#[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
     page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
     page_size: Option<String>,
 }
 
 /// GET /files.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/files", tag = "files",
+    operation_id = "files_list", summary = "List files",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<FileResource>, description = "One page of files"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `file.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<FileList>,
@@ -53,6 +69,17 @@ pub async fn list(
 }
 
 /// GET /files/{id}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/files/{file}", tag = "files",
+    operation_id = "files_get", summary = "Get a file and a fresh download URL",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("file" = Uuid, Path, description = "File id")),
+    responses(
+        (status = 200, body = Envelope<FileResource>, description = "The file"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `file.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or file, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<FileGet>,
@@ -64,6 +91,19 @@ pub async fn get(
 /// POST /files -> 201 `{data:{file_id}}`, from a multipart form (vimdesk-web) or base64 JSON
 /// (Laravel's other form). The permission check runs first, then the workspace's heavy slot
 /// and a server-wide upload slot (10 s wait each, else 503); only then is the body read.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/files", tag = "files",
+    operation_id = "files_create", summary = "Upload a file (multipart form or base64 JSON)",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body(content((UploadForm = "multipart/form-data"), (UploadRequest = "application/json"))),
+    responses(
+        (status = 201, body = Envelope<FileCreated>, description = "Stored; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `file.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = UnprocessableBody, description = "Invalid form or fields, file type not allowed, or file over 10 MB"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<FileCreate>,
@@ -105,6 +145,17 @@ pub async fn create(
 }
 
 /// DELETE /files/{id}.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/files/{file}", tag = "files",
+    operation_id = "files_delete", summary = "Delete a file",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("file" = Uuid, Path, description = "File id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `file.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or file, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<FileDelete>,

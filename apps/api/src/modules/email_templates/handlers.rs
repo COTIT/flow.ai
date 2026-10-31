@@ -10,17 +10,18 @@ use serde_json::Value;
 
 use crate::{
     AppState,
-    error::AppError,
+    error::{AppError, ValidationErrorBody},
     http::{
         json::{Rules, ValidatedJson},
         list::{self, Page, Paginated},
-        response::{Data, Message},
+        response::{Data, Envelope, Message, MessageBody},
         workspace::{Can, WorkspaceAccess, permissions},
     },
     modules::{
         email_templates::{
             dto::{
-                CreateTemplateRequest, DOMAINS, ListQuery, TemplateCreated, UpdateTemplateRequest,
+                CreateTemplateRequest, DOMAINS, EmailTemplateResource, ListQuery, TemplateCreated,
+                TemplateVariables, UpdateTemplateRequest,
             },
             repo::ListFilter,
             service,
@@ -39,6 +40,18 @@ permissions! {
 }
 
 /// GET /email-templates.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/email-templates", tag = "email_templates",
+    operation_id = "email_templates_list", summary = "List email templates",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<EmailTemplateResource>, description = "One page of templates"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailtemplate.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown domain or search text too long"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn list(
     State(state): State<AppState>,
     access: Can<TemplateList>,
@@ -89,6 +102,17 @@ pub async fn list(
 /// GET /email-templates/variables/{domain}: Laravel's variable lists (the PDF templates'
 /// generated ones, served as written), `[]` for a domain without any. Laravel checked no
 /// permission here, only membership.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/email-templates/variables/{domain}", tag = "email_templates",
+    operation_id = "email_templates_variables", summary = "Template variables of a domain",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("domain" = String, Path, description = "Template domain, e.g. `invoice`")),
+    responses(
+        (status = 200, body = Envelope<TemplateVariables>, description = "The variables; `[]` for an unknown domain"),
+        (status = 403, body = MessageBody, description = "Membership is inactive"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn variables(
     _access: WorkspaceAccess,
     Path((_, domain)): Path<(String, String)>,
@@ -101,6 +125,17 @@ pub async fn variables(
 }
 
 /// GET /email-templates/{id}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/email-templates/{template}", tag = "email_templates",
+    operation_id = "email_templates_get", summary = "Get an email template",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("template" = Uuid, Path, description = "Email template id")),
+    responses(
+        (status = 200, body = Envelope<EmailTemplateResource>, description = "The template"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailtemplate.get`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or template, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn get(
     State(state): State<AppState>,
     access: Can<TemplateView>,
@@ -110,6 +145,19 @@ pub async fn get(
 }
 
 /// POST /email-templates -> 201 `{data:{email_template_id}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/email-templates", tag = "email_templates",
+    operation_id = "email_templates_create", summary = "Create an email template",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CreateTemplateRequest,
+    responses(
+        (status = 201, body = Envelope<TemplateCreated>, description = "Created; returns the new id"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailtemplate.create`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input or unknown relation custom type"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn create(
     State(state): State<AppState>,
     access: Can<TemplateCreate>,
@@ -123,6 +171,19 @@ pub async fn create(
 }
 
 /// POST /email-templates/{id}.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/email-templates/{template}", tag = "email_templates",
+    operation_id = "email_templates_update", summary = "Update an email template",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("template" = Uuid, Path, description = "Email template id")),
+    request_body = UpdateTemplateRequest,
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailtemplate.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or template, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input or unknown relation custom type"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn update(
     State(state): State<AppState>,
     access: Can<TemplateUpdate>,
@@ -134,6 +195,17 @@ pub async fn update(
 }
 
 /// DELETE /email-templates/{id}.
+#[utoipa::path(
+    delete, path = "/workspace/{workspace}/email-templates/{template}", tag = "email_templates",
+    operation_id = "email_templates_delete", summary = "Delete an email template",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("template" = Uuid, Path, description = "Email template id")),
+    responses(
+        (status = 200, body = MessageBody, description = "Done (`ok`)"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `emailtemplate.delete`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or template, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
 pub async fn delete(
     State(state): State<AppState>,
     access: Can<TemplateDelete>,

@@ -893,3 +893,282 @@ fn every_storage_locations_operation_is_documented() {
         ),
     ]);
 }
+
+#[test]
+fn group_e_operations_are_documented() {
+    const PIPES: &str = "/workspace/{workspace}/deal-pipelines";
+    const PIPE: &str = "/workspace/{workspace}/deal-pipelines/{pipeline}";
+    const STATUSES: &str = "/workspace/{workspace}/deal-pipelines/{pipeline}/status";
+    const STATUS: &str = "/workspace/{workspace}/deal-pipelines/{pipeline}/status/{status}";
+    const DEALS: &str = "/workspace/{workspace}/deals";
+    const DEAL: &str = "/workspace/{workspace}/deals/{deal}";
+    assert_ops(&[
+        (PIPES, "get", "deal_pipelines_list", "200"),
+        (PIPES, "post", "deal_pipelines_create", "201"),
+        (PIPE, "get", "deal_pipelines_get", "200"),
+        (PIPE, "post", "deal_pipelines_update", "200"),
+        (STATUSES, "post", "deal_pipelines_create_status", "201"),
+        (STATUS, "post", "deal_pipelines_update_status", "200"),
+        (STATUS, "delete", "deal_pipelines_delete_status", "200"),
+        (DEALS, "get", "deals_list", "200"),
+        (DEALS, "post", "deals_create", "201"),
+        (DEAL, "get", "deals_get", "200"),
+        (DEAL, "post", "deals_update", "200"),
+        (DEAL, "delete", "deals_delete", "200"),
+        (
+            "/workspace/{workspace}/deals/{deal}/update-status",
+            "post",
+            "deals_move",
+            "200",
+        ),
+        (
+            "/workspace/{workspace}/deals/{deal}/add-relation",
+            "post",
+            "deals_add_relation",
+            "200",
+        ),
+        (
+            "/workspace/{workspace}/deal-pipelines/{pipeline}/status/{status}/deals",
+            "get",
+            "deals_column",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
+fn group_d_operations_are_documented() {
+    const W: &str = "/workspace/{workspace}";
+    let p = |rest: &str| -> &'static str { format!("{W}{rest}").leak() };
+    let inv = |rest: &str| p(&format!("/invoices/{{invoice}}{rest}"));
+    let pdf = |rest: &str| p(&format!("/settings/pdf-templates{rest}"));
+    let mail = |rest: &str| p(&format!("/email-templates{rest}"));
+    let prof = |rest: &str| p(&format!("/email-profiles{rest}"));
+    assert_ops(&[
+        (
+            p("/calculate-items"),
+            "post",
+            "pricing_calculate_items",
+            "200",
+        ),
+        (
+            p("/calculate-marge"),
+            "post",
+            "pricing_calculate_marge",
+            "200",
+        ),
+        (p("/invoices"), "get", "invoices_list", "200"),
+        (p("/invoices"), "post", "invoices_create", "201"),
+        (inv(""), "get", "invoices_get", "200"),
+        (inv(""), "post", "invoices_update", "200"),
+        (inv(""), "delete", "invoices_delete", "200"),
+        (inv("/duplicate"), "post", "invoices_duplicate", "201"),
+        (inv("/preview"), "get", "invoices_preview", "200"),
+        (inv("/send"), "post", "invoices_send", "200"),
+        (inv("/resend"), "post", "invoices_resend", "200"),
+        (inv("/credit"), "post", "invoices_credit", "201"),
+        (
+            p("/invoices/send-tasks/active"),
+            "get",
+            "invoices_send_tasks",
+            "200",
+        ),
+        (
+            "/invoices/fetch-from-hashed/{token}",
+            "get",
+            "invoices_public",
+            "200",
+        ),
+        (inv("/payments"), "post", "invoice_payments_create", "201"),
+        (
+            inv("/payments/{payment}"),
+            "delete",
+            "invoice_payments_void",
+            "200",
+        ),
+        (
+            inv("/mark-as-credited"),
+            "post",
+            "invoice_payments_mark_as_credited",
+            "200",
+        ),
+        (p("/files"), "get", "files_list", "200"),
+        (p("/files"), "post", "files_create", "201"),
+        (p("/files/{file}"), "get", "files_get", "200"),
+        (p("/files/{file}"), "delete", "files_delete", "200"),
+        (pdf(""), "get", "pdf_templates_list", "200"),
+        (pdf(""), "post", "pdf_templates_create", "200"),
+        (
+            pdf("/available-fields/{domain}"),
+            "get",
+            "pdf_templates_available_fields",
+            "200",
+        ),
+        (pdf("/{template}"), "get", "pdf_templates_get", "200"),
+        (pdf("/{template}"), "post", "pdf_templates_update", "200"),
+        (pdf("/{template}"), "delete", "pdf_templates_delete", "200"),
+        (
+            pdf("/{template}/preview"),
+            "get",
+            "pdf_templates_preview",
+            "200",
+        ),
+        (mail(""), "get", "email_templates_list", "200"),
+        (mail(""), "post", "email_templates_create", "201"),
+        (
+            mail("/variables/{domain}"),
+            "get",
+            "email_templates_variables",
+            "200",
+        ),
+        (mail("/{template}"), "get", "email_templates_get", "200"),
+        (mail("/{template}"), "post", "email_templates_update", "200"),
+        (
+            mail("/{template}"),
+            "delete",
+            "email_templates_delete",
+            "200",
+        ),
+        (prof(""), "get", "email_profiles_list", "200"),
+        (prof(""), "post", "email_profiles_create", "201"),
+        (prof("/{profile}"), "get", "email_profiles_get", "200"),
+        (prof("/{profile}"), "post", "email_profiles_update", "200"),
+        (prof("/{profile}"), "delete", "email_profiles_delete", "200"),
+        (p("/send-message"), "post", "messages_send", "200"),
+        (p("/settings/email-logs"), "get", "messages_logs", "200"),
+        (
+            p("/settings/office365/test-connection"),
+            "post",
+            "messages_office365_connection",
+            "200",
+        ),
+        (
+            p("/settings/office365/test-send"),
+            "post",
+            "messages_office365_send",
+            "200",
+        ),
+        (
+            prof("/{profile}/test-connection"),
+            "get",
+            "messages_profile_test",
+            "200",
+        ),
+        (p("/settings"), "get", "settings_get", "200"),
+        (p("/settings"), "post", "settings_update", "200"),
+    ]);
+    let public = &spec()["paths"]["/invoices/fetch-from-hashed/{token}"]["get"];
+    assert!(
+        public["security"].is_null(),
+        "public hash link must not need a token"
+    );
+}
+
+/// Every `.rs` file under `dir`.
+fn rust_files(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            rust_files(&path, out);
+        } else if path.extension().is_some_and(|e| e == "rs") {
+            out.push(path);
+        }
+    }
+}
+
+/// Component name of each `ToSchema` type in `src` (its `#[schema(as = ..)]`, else the type
+/// name), with where it is defined.
+fn schema_names() -> Vec<(String, String)> {
+    let mut files = Vec::new();
+    rust_files(
+        std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src")),
+        &mut files,
+    );
+    let mut names = Vec::new();
+    for file in files {
+        let text = std::fs::read_to_string(&file).unwrap();
+        let (mut derived, mut renamed) = (false, None::<String>);
+        for (n, line) in text.lines().enumerate() {
+            let line = line.trim();
+            let at = || format!("{}:{}", file.display(), n + 1);
+            if line.starts_with("#[derive(") && line.contains("ToSchema") {
+                derived = true;
+            } else if let Some(rest) = line.strip_prefix("#[schema(as = ") {
+                renamed = rest.split(')').next().map(str::to_owned);
+            } else if let Some(rest) = ["impl utoipa::ToSchema for ", "impl ToSchema for "]
+                .iter()
+                .find_map(|p| line.strip_prefix(p))
+            {
+                names.push((rest.split(' ').next().unwrap().to_owned(), at()));
+            } else if let Some(rest) = ["pub struct ", "struct ", "pub enum ", "enum "]
+                .iter()
+                .find_map(|p| line.strip_prefix(p))
+            {
+                if derived {
+                    let ty = rest
+                        .split(|c: char| !c.is_alphanumeric() && c != '_')
+                        .next();
+                    names.push((renamed.take().unwrap_or(ty.unwrap().to_owned()), at()));
+                }
+                (derived, renamed) = (false, None);
+            }
+        }
+    }
+    names
+}
+
+/// utoipa keys components by name and silently keeps one of two same-named `ToSchema` types
+/// (pdf and email `TemplateCreated` once did): every name must be unique.
+#[test]
+fn schema_component_names_are_unique() {
+    let names = schema_names();
+    assert!(
+        names.iter().any(|(n, _)| n == "UnprocessableBody"),
+        "scan missed manual impls"
+    );
+    assert!(
+        names.iter().any(|(n, _)| n == "PdfTemplateBody"),
+        "scan missed `as =`"
+    );
+    let mut seen = std::collections::HashMap::new();
+    for (name, at) in &names {
+        if let Some(first) = seen.insert(name.clone(), at.clone()) {
+            panic!(
+                "ToSchema name `{name}` defined twice: {first} and {at}; add #[schema(as = ..)]"
+            );
+        }
+    }
+}
+
+/// One documented operation: (full path, method, operationId, success status).
+type Op = (&'static str, &'static str, &'static str, &'static str);
+
+/// Like `assert_documented` but with full paths; private ones (`workspace` in the path) also
+/// need the bearer scheme, a 401 and the `workspace` path param.
+fn assert_ops(ops: &[Op]) {
+    let s = spec();
+    for &(path, method, id, ok) in ops {
+        let op = &s["paths"][path][method];
+        assert!(op.is_object(), "{method} {path} missing");
+        assert_eq!(op["operationId"], id, "{method} {path}");
+        assert!(op["responses"][ok].is_object(), "{method} {path}: no {ok}");
+        if !path.starts_with("/workspace/{workspace}") {
+            continue;
+        }
+        assert!(
+            op["responses"]["401"].is_object(),
+            "{method} {path}: no 401"
+        );
+        assert_eq!(
+            op["security"][0]["bearer"],
+            json!([]),
+            "{method} {path}: no bearer"
+        );
+        let has_ws = op["parameters"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .any(|p| p["name"] == "workspace" && p["in"] == "path");
+        assert!(has_ws, "{method} {path}: no workspace param");
+    }
+}
