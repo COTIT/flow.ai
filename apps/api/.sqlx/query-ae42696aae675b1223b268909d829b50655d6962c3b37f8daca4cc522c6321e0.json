@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.provider, p.amount, p.currency,\n                  (SELECT coalesce(sum(r.amount), 0)::int8 FROM order_payments r\n                   WHERE r.workspace_id = p.workspace_id AND r.parent_id = p.id\n                     AND r.kind = 'refund' AND r.status NOT IN ('failed', 'canceled')) AS \"out!\"\n           FROM order_payments p\n           WHERE p.workspace_id = $1 AND p.order_id = $2 AND p.kind = 'payment'\n             AND p.status = 'paid'\n           ORDER BY p.created_at LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_payments",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "provider",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "order_payments",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "order_payments",
+            "name": "amount"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "order_payments",
+            "name": "currency"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "out!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "ae42696aae675b1223b268909d829b50655d6962c3b37f8daca4cc522c6321e0"
+}

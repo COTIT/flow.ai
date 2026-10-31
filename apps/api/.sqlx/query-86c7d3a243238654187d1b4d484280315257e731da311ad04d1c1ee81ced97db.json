@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_surveys SET village_id = $3, title_en = $4, title_sw = $5, description_en = $6,\n             description_sw = $7, reward_minor = $8, currency_id = $9, max_households = $10,\n             audit_percent = $11, closes_at = $12, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Uuid",
+        "Int4",
+        "Int2",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "86c7d3a243238654187d1b4d484280315257e731da311ad04d1c1ee81ced97db"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM orders\n           WHERE workspace_id = $1 AND status = 'awaiting_payment'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4575a36abf21fde605d98ee9a76fd0297dbcfb52993e486174d4c2deb6423504"
+}

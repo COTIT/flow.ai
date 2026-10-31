@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM farm_surveys s\n           WHERE s.workspace_id = $1 AND ($4::uuid IS NULL OR s.id = $4)\n             AND ($2 OR (s.status <> 'draft' AND (s.village_id IS NULL OR s.village_id = ANY($3))))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "24b4efdacadba827a1cb4569fd972164024187eb61ebf442c845f9a43f87d50d"
+}

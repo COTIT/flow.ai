@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM farm_managers m WHERE m.farm_id = f.id AND m.is_primary) AS \"primary!\"\n           FROM farms f\n           WHERE f.workspace_id = $1 AND f.village_id = $2 AND f.id = $3 AND f.deleted_at IS NULL\n           FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "primary!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d42b188d50681e98b484a6d39a6004ff673c7453560406ceb3e99689917fae12"
+}

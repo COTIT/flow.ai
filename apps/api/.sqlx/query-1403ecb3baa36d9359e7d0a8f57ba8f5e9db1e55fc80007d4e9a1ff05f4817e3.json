@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO order_lines (workspace_id, order_id, position, product_id,\n                                  product_variant_id, title, quantity, unit_price, vat_rate,\n                                  discount_percentage, line_excl, line_vat, tracked)\n         SELECT $1, $2, * FROM UNNEST($3::int[], $4::uuid[], $5::uuid[], $6::text[],\n                                      $7::numeric[], $8::bigint[], $9::numeric[], $10::numeric[],\n                                      $11::bigint[], $12::bigint[], $13::bool[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4Array",
+        "UuidArray",
+        "UuidArray",
+        "TextArray",
+        "NumericArray",
+        "Int8Array",
+        "NumericArray",
+        "NumericArray",
+        "Int8Array",
+        "Int8Array",
+        "BoolArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1403ecb3baa36d9359e7d0a8f57ba8f5e9db1e55fc80007d4e9a1ff05f4817e3"
+}

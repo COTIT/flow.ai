@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT created_by, result FROM farm_registration_receipts\n         WHERE workspace_id = $1 AND client_ref = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_registration_receipts",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "result",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "farm_registration_receipts",
+            "name": "result"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "433bffdd14ef7eefcc09aaae2f813168cfe783893272deb198fb751caddc3913"
+}

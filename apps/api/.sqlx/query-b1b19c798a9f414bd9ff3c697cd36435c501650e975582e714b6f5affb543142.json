@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE order_payments SET attempts = attempts + 1, last_error = $3,\n                        status = CASE WHEN $4 THEN 'failed' ELSE status END, updated_at = now()\n                 WHERE workspace_id = $1 AND id = $2 AND status = 'creating'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b1b19c798a9f414bd9ff3c697cd36435c501650e975582e714b6f5affb543142"
+}

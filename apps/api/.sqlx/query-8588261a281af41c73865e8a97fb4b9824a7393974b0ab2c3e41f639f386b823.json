@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_vouchers SET status = 'redeemed', redeemed_by = $2, redeemed_at = now(),\n             id_type_seen = $3, updated_at = now()\n         WHERE id = $1 RETURNING redeemed_at AS \"redeemed_at!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "redeemed_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "redeemed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "8588261a281af41c73865e8a97fb4b9824a7393974b0ab2c3e41f639f386b823"
+}

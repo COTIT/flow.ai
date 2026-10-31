@@ -22,7 +22,8 @@ export interface MemberResource {
      */
   color: string | null;
   created_at: string;
-  email: string;
+  /** @nullable */
+  email: string | null;
   id: string;
   initials: string;
   name: string;

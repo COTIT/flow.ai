@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO idempotency_keys (workspace_id, key, user_id, app_key_id, request_hash,\n                                             status, response)\n               VALUES ($1, $2, $3, $5, $4, 0, '')\n               ON CONFLICT (workspace_id, key) DO NOTHING\n               RETURNING true AS \"fresh!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "fresh!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Bytea",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "56fed90dcbf0f46f34a5ef7135f99138ef72ed06e1926e7ecb7099cae027120f"
+}

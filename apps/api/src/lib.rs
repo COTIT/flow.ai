@@ -7,6 +7,7 @@ pub mod config;
 mod crypto;
 pub mod db;
 mod error;
+pub mod farm_demo;
 mod health;
 pub mod healthcheck;
 mod http;
@@ -18,6 +19,7 @@ mod money;
 mod numbering;
 pub mod openapi;
 pub mod outbound;
+pub mod payments;
 pub mod pdf;
 mod php;
 pub mod storage;
@@ -76,6 +78,10 @@ pub struct AppState {
     pub files: Option<storage::Store>,
     /// HTML to PDF (Gotenberg); None answers PDF routes with 503.
     pub pdf: Option<pdf::Renderer>,
+    /// Web payments (`PAYMENTS_PROVIDER`); None answers payment intents with 503.
+    pub payments: Option<payments::Provider>,
+    /// Most web orders one workspace may have awaiting payment (`CHECKOUT_HOLD_MAX`).
+    pub checkout_hold_max: i64,
 }
 
 /// One-off boot work before serving (precomputes the login timing-equalizer hash).

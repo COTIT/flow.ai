@@ -13,7 +13,7 @@ use crate::{
         runner::{Handler, Step},
         scheduler::{Every, Schedule},
     },
-    modules::{messages::repo as messages, stock::sweep, webhooks::deliver},
+    modules::{messages::repo as messages, orders, stock::sweep, webhooks::deliver},
     outbound::Outbound,
     storage::Store,
 };
@@ -36,6 +36,18 @@ pub const WEBHOOK_DELIVER: &str = "webhook_deliver";
 /// Re-queues fan-outs for events left pending (every minute, `webhooks::deliver::sweep`).
 pub const WEBHOOK_SWEEP: &str = "webhook_sweep";
 
+/// Cancels web orders whose payment window passed and gives their stock back (every minute,
+/// `orders::checkout::expire`).
+pub const ORDER_EXPIRE: &str = "order_expire";
+
+/// Re-fetches payments named by provider webhooks and applies what the provider says
+/// (`orders::payments::drain`).
+pub const PAYMENT_INBOX: &str = "payment_inbox";
+
+/// Retries payment and refund creates a dead request left behind (same idempotency key) and
+/// re-fetches payments left open (every minute, `orders::payments::sweep`).
+pub const PAYMENT_SWEEP: &str = "payment_sweep";
+
 /// Every kind this build can run; the claim never takes another.
 pub const KINDS: &[&str] = &[
     CLOSE_STUCK_SENDS,
@@ -45,13 +57,16 @@ pub const KINDS: &[&str] = &[
     WEBHOOK_FANOUT,
     WEBHOOK_DELIVER,
     WEBHOOK_SWEEP,
+    ORDER_EXPIRE,
+    PAYMENT_INBOX,
+    PAYMENT_SWEEP,
 ];
 
 /// One sweep chunk outside the rail (tests, load tests): see `stock::repo::seed_chunk`.
 pub use crate::modules::stock::repo::seed_chunk;
 
 /// Recurring jobs.
-pub static SCHEDULES: [Schedule; 4] = [
+pub static SCHEDULES: [Schedule; 6] = [
     Schedule {
         name: CLOSE_STUCK_SENDS,
         kind: CLOSE_STUCK_SENDS,
@@ -72,6 +87,16 @@ pub static SCHEDULES: [Schedule; 4] = [
         kind: WEBHOOK_SWEEP,
         every: Every::Minutes(1),
     },
+    Schedule {
+        name: ORDER_EXPIRE,
+        kind: ORDER_EXPIRE,
+        every: Every::Minutes(1),
+    },
+    Schedule {
+        name: PAYMENT_SWEEP,
+        kind: PAYMENT_SWEEP,
+        every: Every::Minutes(1),
+    },
 ];
 
 /// What handlers reach: the job pool and, when configured, the file bucket.
@@ -85,6 +110,8 @@ pub struct Ctx {
     pub http: Outbound,
     /// Opens webhook secrets; None fails deliveries until configured.
     pub credentials: Option<std::sync::Arc<crate::CredentialKey>>,
+    /// Web payments (re-fetches, retried creates, refunds); None leaves them waiting.
+    pub payments: Option<crate::payments::Provider>,
 }
 
 /// The runner's handler over `dispatch`.
@@ -117,6 +144,9 @@ pub async fn dispatch(ctx: &Ctx, job: Claimed) -> Result<Step, AppError> {
         WEBHOOK_FANOUT => return deliver::fanout(&ctx.db, &job).await,
         WEBHOOK_DELIVER => return deliver::deliver(ctx, &job).await,
         WEBHOOK_SWEEP => return deliver::sweep(&ctx.db).await,
+        ORDER_EXPIRE => return orders::checkout::expire(&ctx.db).await,
+        PAYMENT_INBOX => return orders::payments::drain(ctx, &job).await,
+        PAYMENT_SWEEP => return orders::payments::sweep(ctx).await,
         // The claim only takes `KINDS`, so this means a kind was listed without an arm.
         other => {
             return Err(AppError::Internal(format!(
@@ -156,6 +186,7 @@ mod tests {
             files: None,
             http: Outbound::new(&[]).unwrap(),
             credentials: None,
+            payments: None,
         }
     }
 

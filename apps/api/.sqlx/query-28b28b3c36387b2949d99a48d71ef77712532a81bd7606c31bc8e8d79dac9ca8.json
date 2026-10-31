@@ -1,0 +1,95 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT h.id, h.village_id, h.verification, h.captured_by, h.verified_by, h.created_at,\n                  ARRAY(SELECT r.survey_id FROM farm_survey_responses r\n                        WHERE r.household_id = h.id AND r.deleted_at IS NULL) AS \"answered!\"\n           FROM farm_household_members m\n           JOIN farm_households h ON h.id = m.household_id AND h.deleted_at IS NULL\n           WHERE m.person_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "verification",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "verification"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "captured_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "captured_by"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "verified_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "verified_by"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_households",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "answered!",
+        "type_info": "UuidArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "28b28b3c36387b2949d99a48d71ef77712532a81bd7606c31bc8e8d79dac9ca8"
+}

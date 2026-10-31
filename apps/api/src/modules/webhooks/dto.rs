@@ -25,7 +25,7 @@ pub struct WebhookEndpointResource {
     id: Uuid,
     #[schema(example = "https://shop.example.com/hooks")]
     url: String,
-    /// Subscribed events: `product.changed`, `stock.changed`.
+    /// Subscribed events: `order.created`, `product.changed`, `stock.changed`.
     events: Vec<String>,
     #[schema(required = true)]
     description: Option<String>,

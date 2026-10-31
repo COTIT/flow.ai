@@ -1,0 +1,14 @@
+DROP FUNCTION farm_provenance(text, timestamptz, uuid, text, uuid, timestamptz, text, text);
+DROP FUNCTION farm_person_farms(uuid);
+DROP FUNCTION farm_person_persons(uuid);
+DROP FUNCTION farm_person_households(uuid);
+DROP TABLE farm_registration_receipts;
+DROP TABLE farm_harvest_reports;
+DROP TABLE farm_crop_cycles;
+DROP TABLE farm_plots;
+DROP TABLE farm_managers;
+DROP TABLE farms;
+DROP TABLE farm_household_members;
+DROP TABLE farm_households;
+DROP TABLE farm_persons;
+DROP TABLE farm_crops;

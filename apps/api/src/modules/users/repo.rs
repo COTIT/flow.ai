@@ -63,7 +63,7 @@ pub async fn exists_by_email(db: impl PgExecutor<'_>, email: &str) -> Result<boo
 
 /// Email + verification state of a live user.
 pub struct Contact {
-    pub email: String,
+    pub email: Option<String>,
     pub email_verified: bool,
 }
 
@@ -116,7 +116,7 @@ pub async fn lock_contact(
 /// Fields /v1/me shows about a live user.
 pub struct Profile {
     pub id: Uuid,
-    pub email: String,
+    pub email: Option<String>,
     pub first_name: String,
     pub middle_name: Option<String>,
     pub last_name: String,
@@ -143,7 +143,7 @@ pub async fn find_profile(
 /// Live user with their membership in one workspace.
 pub struct Member {
     pub id: Uuid,
-    pub email: String,
+    pub email: Option<String>,
     pub first_name: String,
     pub middle_name: Option<String>,
     pub last_name: String,
@@ -270,7 +270,7 @@ pub struct UserRef {
     pub first_name: String,
     pub middle_name: Option<String>,
     pub last_name: String,
-    pub email: String,
+    pub email: Option<String>,
 }
 
 /// Live users among `ids` with a membership (active or not) in `workspace_id`. One query
@@ -353,7 +353,7 @@ mod tests {
     async fn find_contact_live_users_only(pool: PgPool) {
         let id = insert(&pool, &ada()).await.unwrap();
         let contact = find_contact(&pool, id).await.unwrap().unwrap();
-        assert_eq!(contact.email, "Ada@Example.com");
+        assert_eq!(contact.email.as_deref(), Some("Ada@Example.com"));
         assert!(!contact.email_verified);
 
         sqlx::query("UPDATE users SET deleted_at = now() WHERE id = $1")

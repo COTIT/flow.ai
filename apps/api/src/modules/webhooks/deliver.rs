@@ -273,6 +273,7 @@ mod tests {
             files: None,
             http: Outbound::new(&trusted).unwrap(),
             credentials: Some(key()),
+            payments: None,
         }
     }
 

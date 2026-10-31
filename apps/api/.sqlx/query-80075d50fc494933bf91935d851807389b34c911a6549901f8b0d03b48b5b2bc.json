@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE order_payments SET provider_id = $3, checkout_url = $4, status = 'open',\n                        attempts = attempts + 1, last_error = NULL, updated_at = now()\n                 WHERE workspace_id = $1 AND id = $2 AND status = 'creating'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "80075d50fc494933bf91935d851807389b34c911a6549901f8b0d03b48b5b2bc"
+}

@@ -51,10 +51,10 @@ importers:
         version: 1.65.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: 16.4.3
-        version: 16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-intl:
         specifier: 4.14.9
-        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -115,10 +115,10 @@ importers:
         version: 1.65.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: 16.4.3
-        version: 16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-intl:
         specifier: 4.14.9
-        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -179,10 +179,10 @@ importers:
         version: 1.65.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: 16.4.3
-        version: 16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-intl:
         specifier: 4.14.9
-        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -246,10 +246,10 @@ importers:
         version: 1.65.0(@types/react@19.3.0)(react@19.3.1)
       next:
         specifier: 16.4.3
-        version: 16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-intl:
         specifier: 4.14.9
-        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -325,6 +325,27 @@ importers:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@20.19.43)(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/e2e:
+    devDependencies:
+      '@genesy/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@genesy/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@playwright/test':
+        specifier: 1.64.1
+        version: 1.64.1
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      eslint:
+        specifier: ^10
+        version: 10.13.0(jiti@2.7.0)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   packages/eslint-config:
     devDependencies:
       '@babel/core':
@@ -365,7 +386,7 @@ importers:
     dependencies:
       next-intl:
         specifier: 4.14.9
-        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
+        version: 4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@genesy/eslint-config':
         specifier: workspace:*
@@ -384,7 +405,7 @@ importers:
         version: 10.13.0(jiti@2.7.0)
       next:
         specifier: 16.4.3
-        version: 16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -411,7 +432,7 @@ importers:
         version: 10.13.0(jiti@2.7.0)
       next:
         specifier: 16.4.3
-        version: 16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -486,7 +507,7 @@ importers:
         version: 10.13.0(jiti@2.7.0)
       next:
         specifier: 16.4.3
-        version: 16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        version: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       tailwindcss:
         specifier: ^4
         version: 4.3.3
@@ -1506,6 +1527,11 @@ packages:
   '@parcel/watcher@2.6.0':
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
+
+  '@playwright/test@1.64.1':
+    resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   '@rolldown/binding-android-arm-eabi@1.2.16':
     resolution: {integrity: sha512-ia3DwAs0OsMGS7+IConptSiyk9pEXkOx/AbJ2n/lAGxH3QkWQus1t8d7gnAT38FCU2sQu8lUbeR6AiZFv4JxaA==}
@@ -3069,6 +3095,16 @@ packages:
     resolution: {integrity: sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA==}
     engines: {node: '>=8'}
 
+  playwright-core@1.64.1:
+    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.64.1:
+    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   po-parser@2.2.0:
     resolution: {integrity: sha512-NdTrKgh0oO7+y+RFX8KKhOB438x/j94UGXEFzl/7pHH0JjWSn42iJ9tgmPksIO6n1JKDHmNDcejPJfKspljB9g==}
 
@@ -4584,6 +4620,10 @@ snapshots:
       '@parcel/watcher-win32-arm64': 2.6.0
       '@parcel/watcher-win32-x64': 2.6.0
 
+  '@playwright/test@1.64.1':
+    dependencies:
+      playwright: 1.64.1
+
   '@rolldown/binding-android-arm-eabi@1.2.16':
     optional: true
 
@@ -4923,7 +4963,7 @@ snapshots:
 
   '@types/validate-npm-package-name@4.0.2': {}
 
-  '@vitest/mocker@5.0.5(vite@8.3.5(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))':
+  '@vitest/mocker@5.0.5(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.5
@@ -5792,7 +5832,7 @@ snapshots:
 
   next-intl-swc-plugin-extractor@4.14.9: {}
 
-  next-intl@4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1):
+  next-intl@4.14.9(@swc/helpers@0.5.23)(@types/react@19.3.0)(next@16.4.3(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react@19.3.1):
     dependencies:
       '@eloqnt/config': 0.1.1
       '@eloqnt/format-json': 0.1.0
@@ -5802,7 +5842,7 @@ snapshots:
       '@swc/core': 1.16.21(@swc/helpers@0.5.23)
       icu-minify: 4.14.9
       negotiator: 1.1.0
-      next: 16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      next: 16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       next-intl-swc-plugin-extractor: 4.14.9
       react: 19.3.1
       use-intl: 4.14.9(@types/react@19.3.0)(react@19.3.1)
@@ -5816,7 +5856,7 @@ snapshots:
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  next@16.4.3(@babel/core@7.29.7)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  next@16.4.3(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@20.19.43)(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       '@next/env': 16.4.3
       '@swc/helpers': 0.5.23
@@ -5835,6 +5875,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.4.3
       '@next/swc-win32-arm64-msvc': 16.4.3
       '@next/swc-win32-x64-msvc': 16.4.3
+      '@playwright/test': 1.64.1
       sharp: 0.35.5(@types/node@20.19.43)
     transitivePeerDependencies:
       - '@babel/core'
@@ -5987,6 +6028,12 @@ snapshots:
   pkg-up@3.1.0:
     dependencies:
       find-up: 3.0.0
+
+  playwright-core@1.64.1: {}
+
+  playwright@1.64.1:
+    dependencies:
+      playwright-core: 1.64.1
 
   po-parser@2.2.0: {}
 
@@ -6351,7 +6398,7 @@ snapshots:
   vitest@5.0.5(@types/node@20.19.43)(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.5(vite@8.3.5(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+      '@vitest/mocker': 5.0.5(vite@8.3.5(@types/node@20.19.43)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0

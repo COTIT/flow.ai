@@ -1,0 +1,135 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.id, d.village_id, d.plot_id, d.storage_key, d.file_name, d.content_type,\n                  d.size_bytes, d.uploaded_by,\n                  concat_ws(' ', u.first_name, u.last_name) AS \"uploaded_by_name!\", d.uploaded_at\n           FROM farm_plot_documents d JOIN users u ON u.id = d.uploaded_by\n           WHERE d.workspace_id = $1 AND d.plot_id = $2 AND ($3::uuid IS NULL OR d.id = $3)\n           ORDER BY d.uploaded_at, d.id LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "plot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "plot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "storage_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "storage_key"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "file_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "file_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "content_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "content_type"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "size_bytes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "size_bytes"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "uploaded_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "uploaded_by"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "uploaded_by_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "uploaded_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_plot_documents",
+            "name": "uploaded_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "c69b938cf2a25b2cc90b69e2618022b207c76fb08c07a757323be4cb2c9508de"
+}

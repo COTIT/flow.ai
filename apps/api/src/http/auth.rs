@@ -1,4 +1,7 @@
 //! AuthUser extractor: `Authorization: Bearer <token>` -> live access_tokens row, else 401.
+//! Phone-only accounts (farmers) get 403 from it: the account routes it guards (profile,
+//! invites, email verification) need an email. Farm routes, workspace routes and logout take
+//! [`AnyUser`] / [`AuthUser::any`] instead.
 
 use axum::{
     extract::FromRequestParts,
@@ -9,6 +12,7 @@ use uuid::Uuid;
 use crate::{
     AppState,
     error::AppError,
+    http::workspace::NOT_ALLOWED,
     modules::auth::{repo as tokens, token},
 };
 
@@ -20,18 +24,46 @@ pub struct AuthUser {
     pub token_id: Uuid,
 }
 
-impl FromRequestParts<AppState> for AuthUser {
-    type Rejection = AppError;
+impl AuthUser {
+    /// Any signed-in account, phone-only included.
+    pub async fn any(parts: &Parts, state: &AppState) -> Result<Self, AppError> {
+        Ok(Self::lookup(parts, state).await?.0)
+    }
 
-    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
+    async fn lookup(parts: &Parts, state: &AppState) -> Result<(Self, bool), AppError> {
         let plain = bearer(&parts.headers).ok_or(AppError::Unauthorized)?;
         let row = tokens::find_active_by_hash(&state.db, &token::hash(plain))
             .await?
             .ok_or(AppError::Unauthorized)?;
-        Ok(Self {
+        let user = Self {
             user_id: row.user_id,
             token_id: row.id,
-        })
+        };
+        Ok((user, row.phone_only))
+    }
+}
+
+impl FromRequestParts<AppState> for AuthUser {
+    type Rejection = AppError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
+        let (user, phone_only) = Self::lookup(parts, state).await?;
+        if phone_only {
+            return Err(AppError::Forbidden(NOT_ALLOWED));
+        }
+        Ok(user)
+    }
+}
+
+/// Any signed-in account, phone-only (farmer) accounts included.
+#[derive(Debug, Clone, Copy)]
+pub struct AnyUser(pub AuthUser);
+
+impl FromRequestParts<AppState> for AnyUser {
+    type Rejection = AppError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
+        Ok(Self(AuthUser::any(parts, state).await?))
     }
 }
 

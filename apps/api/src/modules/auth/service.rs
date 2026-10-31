@@ -31,7 +31,8 @@ const ADMIN_TEAM: &str = "Admin Team";
 const ADMIN_TEAM_DESCRIPTION: &str = "This team consist of admins of the workspace";
 const NO_WORKSPACE: &str = "No workspace found associated with your account";
 /// Failed logins per email per 15 minutes before further attempts get 429.
-const MAX_LOGIN_FAILURES: i64 = 10;
+/// Failed logins per account in 15 minutes before 429 (email and farmer phone logins).
+pub const MAX_LOGIN_FAILURES: i64 = 10;
 const WORKSPACE_NAME_TAKEN: &str = "The workspace name has already been taken.";
 
 /// Fresh login: plaintext token (shown once) + workspaces it can open.

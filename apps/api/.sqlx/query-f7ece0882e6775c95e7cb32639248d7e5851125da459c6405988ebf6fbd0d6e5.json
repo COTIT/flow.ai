@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payment_webhook_inbox SET attempts = attempts + 1 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f7ece0882e6775c95e7cb32639248d7e5851125da459c6405988ebf6fbd0d6e5"
+}

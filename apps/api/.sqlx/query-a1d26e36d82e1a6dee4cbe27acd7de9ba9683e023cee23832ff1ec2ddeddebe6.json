@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(jsonb_agg(t ORDER BY t.position, t.option_value), '[]') AS \"t!\" FROM (\n               SELECT q.id AS question_id, q.position, x.option_value, count(*) AS answers\n               FROM farm_survey_questions q\n               JOIN farm_survey_answers a ON a.question_id = q.id\n               CROSS JOIN LATERAL (\n                   SELECT e #>> '{}' AS option_value\n                   FROM jsonb_array_elements(CASE WHEN jsonb_typeof(a.value) = 'array' THEN a.value ELSE '[]' END) e\n                   UNION ALL\n                   SELECT a.value #>> '{}' WHERE jsonb_typeof(a.value) IN ('string', 'boolean')\n               ) x\n               WHERE q.survey_id = $1 AND q.kind IN ('single_choice', 'multi_choice', 'yes_no')\n               GROUP BY q.id, q.position, x.option_value) t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "t!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a1d26e36d82e1a6dee4cbe27acd7de9ba9683e023cee23832ff1ec2ddeddebe6"
+}

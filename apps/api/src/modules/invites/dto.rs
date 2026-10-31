@@ -160,7 +160,8 @@ pub struct InviteResource {
     invite_status: String,
     // Inviter email (Laravel sent the email string).
     /// Email of whoever sent the invite.
-    invited_by: String,
+    #[schema(required = true)]
+    invited_by: Option<String>,
     expired_at: DateTime<Utc>,
     #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,

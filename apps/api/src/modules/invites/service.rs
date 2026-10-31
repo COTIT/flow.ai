@@ -186,7 +186,11 @@ pub async fn answer(state: &AppState, user_id: Uuid, input: Answer) -> Result<()
     let contact = users::find_contact(&state.db, user_id)
         .await?
         .ok_or(AppError::Unauthorized)?;
-    if !same_email(&invite.email, &contact.email) {
+    if !contact
+        .email
+        .as_deref()
+        .is_some_and(|e| same_email(&invite.email, e))
+    {
         return Err(AppError::NotFound);
     }
     // The id is no secret: only an account proven to own the inbox may use it, so a squatter

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_registration_receipts (workspace_id, client_ref, created_by, result)\n         VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "abd0ccd2b3a5a096c0b826e037f9ee003b4c3c362b8cbecf37b36b79059d0d94"
+}

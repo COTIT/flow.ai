@@ -1,0 +1,120 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_villages SET\n             code = coalesce($3, code),\n             name = coalesce($4, name),\n             latitude = CASE WHEN $5 THEN $6 ELSE latitude END,\n             longitude = CASE WHEN $7 THEN $8 ELSE longitude END,\n             primary_language = coalesce($9, primary_language),\n             updated_at = now()\n         WHERE workspace_id = $1 AND id = $2\n         RETURNING id, code, name, latitude, longitude, primary_language, created_at, updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "latitude",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "latitude"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "longitude",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "longitude"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "primary_language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "primary_language"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "Numeric",
+        "Bool",
+        "Numeric",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "34315ed7d1dfc5fda33c53e50537416723771b07c3b3139c3087542fd437b2cd"
+}

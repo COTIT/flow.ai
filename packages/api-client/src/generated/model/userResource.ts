@@ -21,7 +21,8 @@ export interface UserResource {
      */
   color: string | null;
   created_at: string;
-  email: string;
+  /** @nullable */
+  email: string | null;
   first_name: string;
   /** Always `false` for now. */
   has_pin_code: boolean;

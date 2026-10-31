@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM farm_vouchers\n           WHERE workspace_id = $1 AND household_id IN (SELECT farm_person_households($2))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "76e8e84df3722cb921946bf3f7023c3b4d9c6baddf9d6255f234dd433d20acaf"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payment_webhook_inbox SET status = $2, reason = $3, processed_at = now()\n             WHERE id = $1 AND status = 'pending' AND (received_at = $4 OR $2 = 'rejected')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5a21c507e4be6ed5814c231752fa6ddd6940bdcd0aec1335c0445d4030122415"
+}

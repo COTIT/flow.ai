@@ -1,0 +1,91 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.name, p.price, p.currency_id, p.has_stock,\n                  (p.status = 'active' AND NOT p.archived) AS \"sellable!\",\n                  coalesce(v.vat_amount, 0) AS \"vat!\"\n           FROM products p\n           LEFT JOIN vat_groups v ON v.workspace_id = p.workspace_id AND v.id = p.vat_group_id\n                AND v.deleted_at IS NULL\n           WHERE p.workspace_id = $1 AND p.id = ANY($2) AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "price"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "has_stock",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "has_stock"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "sellable!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "vat!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "67c3d5204c7d75bd4a1c369a173e0490dad9fd409cde8cfa4ec895dccaad168e"
+}
