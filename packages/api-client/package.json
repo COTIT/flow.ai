@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.105.0",
-    "axios": "^1.21.0"
+    "axios": "^1.21.0",
+    "zustand": "^5.0.16"
   },
   "peerDependencies": {
     "react": "^19"
@@ -33,6 +34,9 @@
     "./mutator": "./src/mutator.ts",
     "./query-provider": "./src/query-provider.tsx",
     "./model": "./src/generated/model/index.ts",
-    "./endpoints/*": "./src/generated/*/*.ts"
+    "./endpoints/*": "./src/generated/*/*.ts",
+    "./session": "./src/session.ts",
+    "./pending": "./src/pending.ts",
+    "./auth": "./src/auth.ts"
   }
 }
