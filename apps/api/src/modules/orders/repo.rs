@@ -488,3 +488,21 @@ pub async fn delete(
     .await
     .map(|_| ())
 }
+
+/// Link the order to the invoice made from it.
+pub async fn set_invoice(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    invoice_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE orders SET invoice_id = $3, updated_at = now() WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
+        invoice_id,
+    )
+    .execute(conn)
+    .await
+    .map(|_| ())
+}

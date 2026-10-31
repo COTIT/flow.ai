@@ -67,13 +67,25 @@ pub async fn create(
     input: InvoiceInput,
 ) -> Result<Uuid, AppError> {
     let mut tx = state.db.begin().await?;
+    let id = create_in(&mut tx, workspace_id, user_id, input).await?;
+    tx.commit().await?;
+    Ok(id)
+}
+
+/// [`create`] in the caller's transaction (order → invoice).
+pub async fn create_in(
+    tx: &mut PgConnection,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    input: InvoiceInput,
+) -> Result<Uuid, AppError> {
     let mut errors = Errors::default();
     let relation_id = input.relation_id.unwrap_or_default();
     // Lock order everywhere: invoice row, relation, products.
-    let addresses = relation(&mut tx, workspace_id, relation_id, &mut errors).await?;
-    let currency_id = currency(&mut tx, workspace_id, input.currency_id, &mut errors).await?;
-    let contact = contact(&mut tx, workspace_id, relation_id, &input, &mut errors).await?;
-    let refs = Refs::load(&mut tx, workspace_id, &input.items, &mut errors).await?;
+    let addresses = relation(&mut *tx, workspace_id, relation_id, &mut errors).await?;
+    let currency_id = currency(&mut *tx, workspace_id, input.currency_id, &mut errors).await?;
+    let contact = contact(&mut *tx, workspace_id, relation_id, &input, &mut errors).await?;
+    let refs = Refs::load(&mut *tx, workspace_id, &input.items, &mut errors).await?;
     errors.into_result()?;
     let billing = match &input.billing_address {
         Some(Some(a)) => Some(to_json(a)?),
@@ -81,7 +93,7 @@ pub async fn create(
         None => default_billing(addresses.as_deref())?,
     };
     let id = repo::insert(
-        &mut tx,
+        &mut *tx,
         workspace_id,
         &NewInvoice {
             relation_id,
@@ -100,7 +112,7 @@ pub async fn create(
     )
     .await?;
     write_lines(
-        &mut tx,
+        &mut *tx,
         workspace_id,
         id,
         &input.items,
@@ -108,8 +120,7 @@ pub async fn create(
         &HashMap::new(),
     )
     .await?;
-    store_totals(&mut tx, workspace_id, id, currency_id).await?;
-    tx.commit().await?;
+    store_totals(&mut *tx, workspace_id, id, currency_id).await?;
     Ok(id)
 }
 

@@ -16,6 +16,10 @@ use crate::{
     idempotency::{self, Actor, Answer, Key},
     modules::{
         currencies,
+        invoices::{
+            self,
+            dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
+        },
         orders::{
             dto::{
                 LineInput, LinesQuantity, OrderCreated, OrderInput, OrderLineResource, OrderPatch,
@@ -41,6 +45,10 @@ const NOT_DRAFT: &str = "Only a draft order can change this.";
 const NOT_OPEN: &str = "Only an open order can change this.";
 const NOT_PICKED: &str = "Pick every stock line in full before completing.";
 const NOT_CANCELLABLE: &str = "This order can no longer be cancelled.";
+const NOT_RETURNABLE: &str = "Only a completed order takes returns.";
+const NOT_INVOICEABLE: &str = "Only an open or completed order can be invoiced.";
+const INVOICED: &str = "This order already has an invoice.";
+const NO_RELATION: &str = "Set a relation on the order before invoicing it.";
 /// Cancelling a paid order needs its payment refunded first.
 pub const REFUND_REQUIRED: &str = "refund_required";
 
@@ -777,6 +785,154 @@ pub async fn delete(
     idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
     tx.commit().await?;
     Ok(answer)
+}
+
+/// Take back returned quantities of a completed order (`lines[].quantity` = returned now),
+/// optionally putting them back on stock; partially_returned until every line is back.
+pub async fn returns(
+    state: &AppState,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    id: &str,
+    input: LinesQuantity,
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
+    transition(
+        state,
+        workspace_id,
+        user_id,
+        id,
+        key,
+        async |conn, o, mut lines| {
+            if !matches!(o.status.as_str(), "completed" | "partially_returned") {
+                return Err(conflict(NOT_RETURNABLE));
+            }
+            let mut back = Vec::new();
+            for (n, (line_id, q)) in input.lines.iter().enumerate() {
+                let Some(l) = lines.iter_mut().find(|l| l.id == *line_id) else {
+                    return Err(field(
+                        format!("lines.{n}.line_id"),
+                        "The selected line is invalid.",
+                    ));
+                };
+                if q.is_zero() || l.returned + *q > l.deducted {
+                    return Err(field(
+                        format!("lines.{n}.quantity"),
+                        format!(
+                            "Return more than 0 and at most {} of this line.",
+                            (l.deducted - l.returned).normalize()
+                        ),
+                    ));
+                }
+                l.returned += *q;
+                if l.tracked {
+                    back.push(Want {
+                        product_id: l.product_id,
+                        quantity: *q,
+                    });
+                }
+            }
+            if input.restock && !back.is_empty() {
+                let reason = format!("return order {}", o.number);
+                reserve::restock(
+                    conn,
+                    workspace_id,
+                    o.warehouse_id,
+                    &back,
+                    &cause(&o, &reason),
+                )
+                .await?;
+            }
+            let rows: Vec<_> = lines
+                .iter()
+                .map(|l| (l.id, l.picked, l.deducted, l.returned))
+                .collect();
+            repo::set_line_quantities(conn, workspace_id, &rows).await?;
+            let all = lines.iter().all(|l| l.returned == l.quantity);
+            let status = if all {
+                "returned"
+            } else {
+                "partially_returned"
+            };
+            repo::set_status(conn, workspace_id, o.id, status).await?;
+            Ok(())
+        },
+    )
+    .await
+}
+
+/// Make a draft invoice of the order's lines (once). The invoice moves no stock: the order
+/// already did.
+pub async fn invoice(
+    state: &AppState,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    id: &str,
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
+    transition(
+        state,
+        workspace_id,
+        user_id,
+        id,
+        key,
+        async |conn, o, lines| {
+            if !matches!(
+                o.status.as_str(),
+                "open" | "completed" | "partially_returned" | "returned"
+            ) {
+                return Err(conflict(NOT_INVOICEABLE));
+            }
+            if o.invoice_id.is_some() {
+                return Err(conflict(INVOICED));
+            }
+            let Some(relation_id) = o.relation_id else {
+                return Err(AppError::field("relation_id", NO_RELATION));
+            };
+            let dp = u32::try_from(o.decimals).unwrap_or(2);
+            let items = lines
+                .iter()
+                .enumerate()
+                .map(|(n, l)| ItemRow {
+                    index: n,
+                    kind: RowKind::New(ItemFields {
+                        title: l.title.clone(),
+                        description: None,
+                        quantity: l.quantity,
+                        price: Some(Decimal::new(l.unit_price, dp)),
+                        vat: l.vat_rate,
+                        discount: Some(l.discount_percentage),
+                        purchase_price: None,
+                        position: i32::try_from(n + 1).ok(),
+                        product_id: Some(Some(l.product_id)),
+                        product_variant_id: Some(l.product_variant_id),
+                        mutate_from_warehouse_id: Some(None),
+                    }),
+                })
+                .collect();
+            let input = InvoiceInput {
+                relation_id: Some(relation_id),
+                currency_id: Some(Some(o.currency_id)),
+                addressed_contact_id: None,
+                reference: Some(Some(
+                    o.reference.clone().unwrap_or_else(|| o.number.clone()),
+                )),
+                note: o.note.clone().map(Some),
+                payment_method: None,
+                is_credit: false,
+                due_date: None,
+                billing_address: None,
+                customer_ref: None,
+                meta: Some(Some(json!({ "order_id": o.id, "order_number": o.number }))),
+                items,
+            };
+            let invoice_id =
+                invoices::service::create_in(conn, workspace_id, user_id, input).await?;
+            repo::set_invoice(conn, workspace_id, o.id, invoice_id).await?;
+            Ok(())
+        },
+    )
+    .await
 }
 
 #[cfg(test)]

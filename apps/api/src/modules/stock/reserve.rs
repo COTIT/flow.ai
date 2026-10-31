@@ -202,8 +202,6 @@ pub async fn commit(
 }
 
 /// Put returned stock back on the warehouse-level row (ledger `increase`).
-// shortcut: returns call this from phase 2a step 3; drop the allow then.
-#[allow(dead_code)]
 pub async fn restock(
     conn: &mut PgConnection,
     workspace_id: Uuid,

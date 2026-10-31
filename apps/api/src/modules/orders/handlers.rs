@@ -250,3 +250,50 @@ pub async fn cancel(
 ) -> Result<Answer, AppError> {
     service::cancel(&state, access.workspace_id, access.user_id, &id, key).await
 }
+
+/// POST /orders/{order}/returns: quantities returned now.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/orders/{order}/returns", tag = "orders",
+    operation_id = "orders_returns", summary = "Take back returned quantities",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Order id"), ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day.")),
+    request_body = LinesQuantityRequest,
+    responses(
+        (status = 200, body = Envelope<OrderResource>, description = "partially_returned, or returned once every line is back; stock put back unless `restock` is false"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `order.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or order, or caller not a member"),
+        (status = 409, body = MessageBody, description = "Order not completed"),
+        (status = 422, body = UnprocessableBody, description = "Unknown line, 0 or more than taken and not yet returned, or invalid Idempotency-Key"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn returns(
+    State(state): State<AppState>,
+    access: Can<OrderUpdate>,
+    Path((_, id)): OrderPath,
+    Keyed { input, key }: Keyed<LinesQuantityRequest>,
+) -> Result<Answer, AppError> {
+    service::returns(&state, access.workspace_id, access.user_id, &id, input, key).await
+}
+
+/// POST /orders/{order}/invoice: one draft invoice of the order.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/orders/{order}/invoice", tag = "orders",
+    operation_id = "orders_invoice", summary = "Make the order's invoice",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("order" = Uuid, Path, description = "Order id"), ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day.")),
+    responses(
+        (status = 200, body = Envelope<OrderResource>, description = "The order with its new draft `invoice_id`; the invoice moves no stock"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `order.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or order, or caller not a member"),
+        (status = 409, body = MessageBody, description = "Order is a draft, awaiting payment or cancelled, or already invoiced"),
+        (status = 422, body = UnprocessableBody, description = "No relation on the order, or invalid Idempotency-Key"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn invoice(
+    State(state): State<AppState>,
+    access: Can<OrderUpdate>,
+    Path((_, id)): OrderPath,
+    KeyOnly(key): KeyOnly,
+) -> Result<Answer, AppError> {
+    service::invoice(&state, access.workspace_id, access.user_id, &id, key).await
+}

@@ -532,3 +532,125 @@ async fn opposite_line_orders_confirm_and_cancel_in_parallel(pool: PgPool) {
         .unwrap();
     assert_eq!(rows, 0);
 }
+
+async fn completed(w: &W, lines: Value) -> String {
+    let id = draft(w, lines).await;
+    act(w, &id, "confirm").await;
+    pick_all(w, &id).await;
+    let (s, res) = act(w, &id, "complete").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    id
+}
+
+async fn line_ids(w: &W, id: &str) -> Vec<String> {
+    let (_, o) = call(w, Method::GET, &format!("/{id}"), None).await;
+    o["data"]["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| l["id"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[sqlx::test]
+async fn returns_restock_and_close_the_order(pool: PgPool) {
+    let w = world(pool).await;
+    let id = completed(&w, json!([line(&w.honey, "3"), line(&w.wax, "1")])).await;
+    let l = line_ids(&w, &id).await;
+    assert_eq!(level(&w, &w.honey).await, ("7.00".into(), "0.00".into()));
+    let path = format!("/{id}/returns");
+    let ret = |lines: Value, restock: bool| {
+        call(
+            &w,
+            Method::POST,
+            &path,
+            Some(json!({ "lines": lines, "restock": restock })),
+        )
+    };
+    let (s, o) = ret(json!([{ "line_id": l[0], "quantity": "2" }]), true).await;
+    assert_eq!(
+        (s, &o["data"]["status"]),
+        (StatusCode::OK, &json!("partially_returned")),
+        "{o}"
+    );
+    assert_eq!(o["data"]["lines"][0]["returned"], "2.00");
+    assert_eq!(level(&w, &w.honey).await, ("9.00".into(), "0.00".into()));
+    let (s, res) = ret(json!([{ "line_id": l[0], "quantity": "2" }]), true).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(res["errors"]["lines.0.quantity"].is_array());
+    // Damaged goods: back on the books, not on the shelf.
+    let (s, o) = ret(
+        json!([{ "line_id": l[0], "quantity": "1" }, { "line_id": l[1], "quantity": "1" }]),
+        false,
+    )
+    .await;
+    assert_eq!(
+        (s, &o["data"]["status"]),
+        (StatusCode::OK, &json!("returned"))
+    );
+    assert_eq!(level(&w, &w.honey).await, ("9.00".into(), "0.00".into()));
+    let (s, _) = ret(json!([{ "line_id": l[1], "quantity": "1" }]), true).await;
+    assert_eq!(s, StatusCode::CONFLICT);
+    let open = draft(&w, json!([line(&w.honey, "1")])).await;
+    act(&w, &open, "confirm").await;
+    let lo = line_ids(&w, &open).await;
+    let (s, _) = call(
+        &w,
+        Method::POST,
+        &format!("/{open}/returns"),
+        Some(json!({ "lines": [{ "line_id": lo[0], "quantity": "1" }] })),
+    )
+    .await;
+    assert_eq!(
+        s,
+        StatusCode::CONFLICT,
+        "only completed orders take returns"
+    );
+}
+
+#[sqlx::test]
+async fn an_order_becomes_one_draft_invoice_without_moving_stock(pool: PgPool) {
+    let w = world(pool).await;
+    let id = completed(&w, json!([line(&w.honey, "2"), line(&w.wax, "1.5")])).await;
+    let (s, res) = act(&w, &id, "invoice").await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(res["errors"]["relation_id"].is_array());
+    let rel = w
+        .api
+        .with_base("/relations")
+        .create(
+            json!({ "company_name": "Shop BV", "type": "business" }),
+            "relation_id",
+        )
+        .await;
+    call(
+        &w,
+        Method::PATCH,
+        &format!("/{id}"),
+        Some(json!({ "relation_id": rel })),
+    )
+    .await;
+    let (s, o) = act(&w, &id, "invoice").await;
+    assert_eq!(s, StatusCode::OK, "{o}");
+    let invoice = o["data"]["invoice_id"].as_str().unwrap().to_owned();
+    let (s, inv) = w
+        .api
+        .with_base("/invoices")
+        .call(Method::GET, &format!("/{invoice}"), None, &w.api.owner)
+        .await;
+    assert_eq!(s, StatusCode::OK, "{inv}");
+    assert_eq!(inv["data"]["status"], "draft");
+    let total: i64 = sqlx::query_scalar("SELECT total FROM invoices WHERE id = $1::uuid")
+        .bind(&invoice)
+        .fetch_one(&w.api.pool)
+        .await
+        .unwrap();
+    assert_eq!(json!(total), o["data"]["total"], "same engine, same total");
+    assert_eq!(inv["data"]["items"].as_array().unwrap().len(), 2);
+    let (s, _) = act(&w, &id, "invoice").await;
+    assert_eq!(s, StatusCode::CONFLICT, "once");
+    assert_eq!(level(&w, &w.honey).await, ("8.00".into(), "0.00".into()));
+    let fresh = draft(&w, json!([line(&w.honey, "1")])).await;
+    let (s, _) = act(&w, &fresh, "invoice").await;
+    assert_eq!(s, StatusCode::CONFLICT, "drafts aren't invoiced");
+}

@@ -1186,5 +1186,7 @@ fn every_orders_operation_is_documented() {
         ("/orders/{order}/pick", "post", "orders_pick", "200"),
         ("/orders/{order}/complete", "post", "orders_complete", "200"),
         ("/orders/{order}/cancel", "post", "orders_cancel", "200"),
+        ("/orders/{order}/returns", "post", "orders_returns", "200"),
+        ("/orders/{order}/invoice", "post", "orders_invoice", "200"),
     ]);
 }

@@ -256,8 +256,6 @@ pub struct LinesQuantityRequest {
 /// Validated per-line quantities.
 pub struct LinesQuantity {
     pub lines: Vec<(Uuid, Decimal)>,
-    // shortcut: returns read it from phase 2a step 3; drop the allow then.
-    #[allow(dead_code)]
     pub restock: bool,
 }
 

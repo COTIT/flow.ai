@@ -13,4 +13,6 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::pick))
         .routes(routes!(handlers::complete))
         .routes(routes!(handlers::cancel))
+        .routes(routes!(handlers::returns))
+        .routes(routes!(handlers::invoice))
 }
