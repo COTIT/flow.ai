@@ -13,7 +13,7 @@ use crate::{
     http::json::{Rules, Validate, filled, optional},
     modules::{
         farm_pue::{
-            repo::{EnergyRow, Pick, PipelineRow, RequestRow},
+            repo::{EnergyRow, Pick, PipelineRow, PreviewRow, RequestRow},
             rules::{ACTIONS, target},
         },
         farm_records::dto::{ActorRef, Provenance},
@@ -60,6 +60,13 @@ impl ListQuery {
     }
 }
 
+/// The farm a request is for.
+#[derive(Serialize, ToSchema)]
+pub struct PueFarmRef {
+    id: Uuid,
+    label: String,
+}
+
 /// The machine a request asks for.
 #[derive(Serialize, ToSchema)]
 pub struct PueEquipmentRef {
@@ -102,6 +109,8 @@ pub struct PueRequestResource {
     person: Value,
     #[schema(required = true)]
     farm_id: Option<Uuid>,
+    #[schema(required = true)]
+    farm: Option<PueFarmRef>,
     equipment: PueEquipmentRef,
     /// `rent` or `buy`.
     acquisition: String,
@@ -168,6 +177,10 @@ impl From<RequestRow> for PueRequestResource {
             village_id: r.village_id,
             person: r.person,
             farm_id: r.farm_id,
+            farm: r
+                .farm_id
+                .zip(r.farm_label)
+                .map(|(id, label)| PueFarmRef { id, label }),
             equipment: PueEquipmentRef {
                 id: r.equipment_id,
                 code: r.equipment_code,
@@ -256,45 +269,138 @@ pub struct PueRequestCreate {
     status: Option<String>,
 }
 
+/// The estimate inputs a create and a preview share.
+fn inputs(
+    r: &mut Rules,
+    equipment_id: Option<String>,
+    quantity: Option<Value>,
+    hours_per_day: Option<Value>,
+    days_per_week: Option<Value>,
+) -> Option<NewPreview> {
+    let equipment = uuid(r, "equipment_id", equipment_id.clone());
+    if optional(equipment_id).is_none() {
+        r.missing("equipment_id");
+    }
+    let quantity = filled(quantity)
+        .map(|v| r.integer("quantity", &v, 1, QUANTITY_MAX))
+        .unwrap_or(Some(1));
+    let hours_per_day = r.measure(
+        "hours_per_day",
+        hours_per_day,
+        Decimal::ZERO,
+        Decimal::from(24),
+        2,
+    );
+    let days_per_week = r.measure(
+        "days_per_week",
+        days_per_week,
+        Decimal::ZERO,
+        Decimal::from(7),
+        1,
+    );
+    Some(NewPreview {
+        equipment_id: equipment?,
+        quantity: i32::try_from(quantity?).ok()?,
+        hours_per_day,
+        days_per_week,
+    })
+}
+
 impl Validate for PueRequestCreate {
     type Valid = NewRequest;
 
     fn validate(self, r: &mut Rules) -> Option<NewRequest> {
         let id = uuid(r, "id", self.id);
-        let equipment_id = uuid(r, "equipment_id", self.equipment_id.clone());
-        if optional(self.equipment_id).is_none() {
-            r.missing("equipment_id");
-        }
         let acquisition = r.one_of("acquisition", self.acquisition, &["rent", "buy"], None);
-        let quantity = filled(self.quantity)
-            .map(|v| r.integer("quantity", &v, 1, QUANTITY_MAX))
-            .unwrap_or(Some(1));
-        let hours_per_day = r.measure(
-            "hours_per_day",
+        let i = inputs(
+            r,
+            self.equipment_id,
+            self.quantity,
             self.hours_per_day,
-            Decimal::ZERO,
-            Decimal::from(24),
-            2,
-        );
-        let days_per_week = r.measure(
-            "days_per_week",
             self.days_per_week,
-            Decimal::ZERO,
-            Decimal::from(7),
-            1,
         );
+        let person_id = uuid(r, "person_id", self.person_id);
+        let farm_id = uuid(r, "farm_id", self.farm_id);
+        let purpose = r.opt_text("purpose", self.purpose, NOTE_MAX);
+        let i = i?;
         Some(NewRequest {
             id,
-            equipment_id: equipment_id?,
-            person_id: uuid(r, "person_id", self.person_id),
-            farm_id: uuid(r, "farm_id", self.farm_id),
+            equipment_id: i.equipment_id,
+            person_id,
+            farm_id,
             acquisition: acquisition.unwrap_or_else(|| "buy".into()),
-            quantity: i32::try_from(quantity?).ok()?,
-            hours_per_day,
-            days_per_week,
-            purpose: r.opt_text("purpose", self.purpose, NOTE_MAX),
+            quantity: i.quantity,
+            hours_per_day: i.hours_per_day,
+            days_per_week: i.days_per_week,
+            purpose,
             status: optional(self.status).unwrap_or_else(|| "submitted".into()),
         })
+    }
+}
+
+/// Validated preview inputs.
+pub struct NewPreview {
+    pub equipment_id: Uuid,
+    pub quantity: i32,
+    pub hours_per_day: Option<Decimal>,
+    pub days_per_week: Option<Decimal>,
+}
+
+/// POST /farm/pue-requests/estimate.
+#[derive(Deserialize, ToSchema)]
+#[schema(description = "The estimate inputs of a request; nothing is written.")]
+pub struct PueEstimateRequest {
+    #[schema(value_type = Uuid)]
+    equipment_id: Option<String>,
+    #[schema(value_type = Option<i64>)]
+    quantity: Option<Value>,
+    #[schema(value_type = Option<String>)]
+    hours_per_day: Option<Value>,
+    #[schema(value_type = Option<String>)]
+    days_per_week: Option<Value>,
+}
+
+impl Validate for PueEstimateRequest {
+    type Valid = NewPreview;
+
+    fn validate(self, r: &mut Rules) -> Option<NewPreview> {
+        inputs(
+            r,
+            self.equipment_id,
+            self.quantity,
+            self.hours_per_day,
+            self.days_per_week,
+        )
+    }
+}
+
+/// What a request with these inputs would store as its estimate.
+#[derive(Serialize, ToSchema)]
+pub struct EnergyEstimatePreview {
+    #[schema(example = "1.500")]
+    rated_power_kw: String,
+    quantity: i32,
+    hours_per_day: String,
+    days_per_week: String,
+    est_power_kw: String,
+    est_kwh_per_day: String,
+    est_kwh_per_week: String,
+    /// `level1_rated_x_hours`.
+    method: &'static str,
+}
+
+impl From<PreviewRow> for EnergyEstimatePreview {
+    fn from(p: PreviewRow) -> Self {
+        Self {
+            rated_power_kw: fixed(p.rated_power_kw, 3),
+            quantity: p.quantity,
+            hours_per_day: fixed(p.hours_per_day, 2),
+            days_per_week: fixed(p.days_per_week, 1),
+            est_power_kw: fixed(p.est_power_kw, 3),
+            est_kwh_per_day: fixed(p.est_kwh_per_day, 3),
+            est_kwh_per_week: fixed(p.est_kwh_per_week, 3),
+            method: "level1_rated_x_hours",
+        }
     }
 }
 
@@ -325,7 +431,13 @@ impl Validate for PueTransitionRequest {
             return None;
         };
         let action = r.one_of("action", Some(action), &actions, None)?;
-        Some((target(&action)?, note))
+        let to = target(&action)?;
+        // RUAHA's app asked for a reason on every decision; the API keeps that rule.
+        if matches!(to, "approved" | "rejected") && note.is_none() {
+            r.add("note", "The note field is required to approve or reject.");
+            return None;
+        }
+        Some((to, note))
     }
 }
 

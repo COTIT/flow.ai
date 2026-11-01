@@ -8,6 +8,7 @@ use crate::{AppState, modules::farm_pue::handlers};
 pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::list, handlers::create))
+        .routes(routes!(handlers::estimate))
         .routes(routes!(handlers::get))
         .routes(routes!(handlers::transition))
         .routes(routes!(handlers::energy))

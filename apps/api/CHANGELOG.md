@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Phase 4c, PUE additions for the field port (`docs/api/farm-pue.md`; migration `farm_pue_formula`): `POST /farm/pue-requests/estimate` previews the estimate a request would get, writing nothing; the Level 1 formula is now SQL functions shared by the stored estimate's generated columns and the preview. Requests embed `farm {id, label}`. Approve and reject require a decision `note` (422 on `note`).
 - Phase 4c step 3, market (RUAHA `market.sql`, `mvp_security.sql`, `supply_attached_by.sql`, `views.sql`; contract `docs/api/farm-market.md`; migrations `farm_market`, `farm_opportunity_supply`):
   - `farm_buyers`, `farm_buyer_demands` (no `source` column, on purpose), `farm_opportunities` (demand crop by composite FK; one per demand and village), `farm_opportunity_supply` (append-only; opportunity, harvest and cycle in one village by composite FK; attacher stamped from the caller).
   - Buyers and demand (`/farm/buyers`, `/farm/buyer-demands`): ops and admin only. Opportunities (`POST /farm/buyer-demands/{demand}/opportunities`, `/farm/opportunities`, `…/status`): staff of the village read, ops and admin write; RUAHA's status machine and messages. A farmer sees an opportunity carrying their own supply, own lines only, no attacher.

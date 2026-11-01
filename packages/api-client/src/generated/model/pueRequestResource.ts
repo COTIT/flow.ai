@@ -9,6 +9,7 @@ import type { ActorRef } from './actorRef';
 import type { EnergyEstimateResource } from './energyEstimateResource';
 import type { Provenance } from './provenance';
 import type { PueEquipmentRef } from './pueEquipmentRef';
+import type { PueFarmRef } from './pueFarmRef';
 
 /**
  * A productive-use request.
@@ -26,6 +27,7 @@ export interface PueRequestResource {
   decision_note: string | null;
   equipment: PueEquipmentRef;
   estimate: EnergyEstimateResource | null;
+  farm: PueFarmRef | null;
   /** @nullable */
   farm_id: string | null;
   /**
