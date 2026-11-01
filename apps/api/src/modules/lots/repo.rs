@@ -426,3 +426,54 @@ pub async fn free_stock(
     .fetch_all(db)
     .await
 }
+
+/// A sale or return of this lot that credited or debited farmers, as the selling workspace may
+/// see it: no farm-side ids, kg, prices or amounts.
+pub struct CreditRow {
+    pub order_id: Uuid,
+    pub order_number: String,
+    pub till_ref: Option<String>,
+    pub kind: String,
+    pub jars: String,
+    pub at: DateTime<Utc>,
+}
+
+/// A page of the farmer credits written for `lot_id` sold by `workspace_id`, newest first, and
+/// the total.
+pub async fn farmer_credits(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    lot_id: Uuid,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<CreditRow>, i64), sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT a.order_id, a.order_number, t.client_ref AS "till_ref?", a.kind,
+                  a.jars::text AS "jars!", a.created_at AS at, count(*) OVER () AS "total!"
+           FROM farm_sale_attributions a
+           LEFT JOIN till_sales t ON t.workspace_id = a.sold_workspace_id
+                                 AND t.order_id = a.order_id
+           WHERE a.sold_workspace_id = $1 AND a.sold_lot_id = $2
+           ORDER BY a.created_at DESC, a.id DESC
+           LIMIT $3 OFFSET $4"#,
+        workspace_id,
+        lot_id,
+        limit,
+        offset,
+    )
+    .fetch_all(db)
+    .await?;
+    let total = rows.first().map_or(0, |r| r.total);
+    let credits = rows
+        .into_iter()
+        .map(|r| CreditRow {
+            order_id: r.order_id,
+            order_number: r.order_number,
+            till_ref: r.till_ref,
+            kind: r.kind,
+            jars: r.jars,
+            at: r.at,
+        })
+        .collect();
+    Ok((credits, total))
+}

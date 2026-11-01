@@ -21,8 +21,9 @@ use crate::{
         app_keys::secret::CATALOG_READ,
         lots::{
             dto::{
-                CreateLotRequest, ListQuery, LotEventResource, LotFreeStock, LotResource,
-                LotStockLevel, PageQuery, PassportResource, StockMutationRequest, UpdateLotRequest,
+                CreateLotRequest, FarmerCreditsPage, ListQuery, LotEventResource, LotFreeStock,
+                LotResource, LotStockLevel, PageQuery, PassportResource, StockMutationRequest,
+                UpdateLotRequest,
             },
             passport::Passport,
             public::PublicLot,
@@ -195,6 +196,40 @@ pub async fn events(
         service::events(&state, access.workspace_id, &id, page.size, page.offset()).await?;
     let data = rows.into_iter().map(Into::into).collect();
     Ok(Json(Paginated::new(data, total, page)))
+}
+
+/// GET /lots/{lot}/farmer-credits -> `{data:[...], meta, farmer_groups}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/lots/{lot}/farmer-credits", tag = "lots",
+    operation_id = "lots_farmer_credits", summary = "Sales and returns of a lot that credited its farmers",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+        PageQuery,
+    ),
+    responses(
+        (status = 200, body = FarmerCreditsPage, description = "One page, newest first; no farmer data or amounts"),
+        (status = 403, body = MessageBody, description = "Inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn farmer_credits(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, id)): LotPath,
+    Query(query): Query<PageQuery>,
+) -> Result<Json<FarmerCreditsPage>, AppError> {
+    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let (rows, total, farmer_groups) =
+        service::farmer_credits(&state, access.workspace_id, &id, page.size, page.offset()).await?;
+    let data = rows.into_iter().map(Into::into).collect();
+    let (data, meta) = Paginated::new(data, total, page).into_parts();
+    Ok(Json(FarmerCreditsPage {
+        data,
+        meta,
+        farmer_groups,
+    }))
 }
 
 /// GET /lots/{lot}/passport.

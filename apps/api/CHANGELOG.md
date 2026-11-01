@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Commerce follow-up 6, farmer credits per lot for the selling workspace (contract `docs/api/lots.md`): `GET /workspace/{workspace}/lots/{lot}/farmer-credits` lists the sales and returns that credited farmers (order id and number, till `client_ref`, kind, jars, time) and `farmer_groups` as the public page shows them. No farmer data, kg, prices or amounts; other workspaces get 404.
 - Commerce follow-up 5, product images (migration `product_images`, contracts `docs/api/products.md`, `storefront.md`): `GET|PUT /workspace/{workspace}/products/{product}/images` keeps an ordered list (≤ 20) of the workspace's stored image files per product, optionally per variant (`product.update`, plus `file.get` for files). Storefront products and variants gain `images: [{url, expires_at}]`, signed per request like lot passport links, two statements per page.
 - Commerce follow-up 8b: till catalog rows and variants gain `unit_price_gross` (one unit incl VAT, minor units) from `orders::service::unit_gross`, the order engine's one-line total, so it equals a quantity-1 quote.
 - Commerce follow-up 8, till quote (contract `docs/api/till.md`): `POST /workspace/{workspace}/till/sales/quote` prices a basket with the sale's own code (`till_sales::service::price_sale`, now shared by the sale) and writes nothing. `/till/login` and `/till/me` show the register's `currency {code, decimals}` and `accepted_cash` in minor units (default list now `settings::service::ACCEPTED_CASH`).

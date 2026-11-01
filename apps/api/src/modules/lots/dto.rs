@@ -384,3 +384,46 @@ pub struct LotStockLevel {
     #[schema(example = "12.50")]
     pub stock_lvl: String,
 }
+
+/// A sale or return of the lot that credited or debited its farmers.
+#[derive(Serialize, ToSchema)]
+pub struct FarmerCreditResource {
+    order_id: Uuid,
+    #[schema(example = "ORD-0042")]
+    order_number: String,
+    /// The till's `client_ref` when a till sold it; null for web and office orders.
+    #[schema(required = true)]
+    till_ref: Option<String>,
+    /// `sale` or `return`.
+    kind: String,
+    /// Units sold (sale), or the change in units returned (return; positive = jars came back).
+    /// Decimal string.
+    #[schema(example = "3.00")]
+    jars: String,
+    at: DateTime<Utc>,
+}
+
+impl From<crate::modules::lots::repo::CreditRow> for FarmerCreditResource {
+    fn from(r: crate::modules::lots::repo::CreditRow) -> Self {
+        Self {
+            order_id: r.order_id,
+            order_number: r.order_number,
+            till_ref: r.till_ref,
+            kind: r.kind,
+            jars: r.jars,
+            at: r.at,
+        }
+    }
+}
+
+/// GET /lots/{lot}/farmer-credits: a page of credits and the farmer groups the public page
+/// shows. No farmer names, ids, kg, prices or amounts.
+#[derive(Serialize, ToSchema)]
+pub struct FarmerCreditsPage {
+    pub data: Vec<FarmerCreditResource>,
+    pub meta: crate::http::list::Meta,
+    /// How many farmer groups (villages) the lot's public page shows, under the supply link's
+    /// allow-list; null when it shows none (no supply lineage, or `village` not shared).
+    #[schema(required = true, example = 1)]
+    pub farmer_groups: Option<i64>,
+}

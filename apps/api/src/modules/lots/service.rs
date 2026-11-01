@@ -280,6 +280,23 @@ pub async fn update(
     Ok(saved)
 }
 
+/// GET /lots/{lot}/farmer-credits: a page of the farmer credits of this workspace's lot, the
+/// total, and the number of farmer groups its public page shows (None when none).
+pub async fn farmer_credits(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<repo::CreditRow>, i64, Option<i64>), AppError> {
+    let lot = get(state, workspace_id, id).await?;
+    let (rows, total) =
+        repo::farmer_credits(&state.db, workspace_id, lot.id, limit, offset).await?;
+    let groups = farm_supply::service::public_farmers(&state.db, lot.id).await?;
+    let groups = (!groups.is_empty()).then(|| i64::try_from(groups.len()).unwrap_or(i64::MAX));
+    Ok((rows, total, groups))
+}
+
 /// GET /lots/{lot}/events: one page of the trail, newest first.
 pub async fn events(
     state: &AppState,

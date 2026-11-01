@@ -7386,6 +7386,77 @@
         ],
         "type": "object"
       },
+      "FarmerCreditResource": {
+        "description": "A sale or return of the lot that credited or debited its farmers.",
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "jars": {
+            "description": "Units sold (sale), or the change in units returned (return; positive = jars came back).\nDecimal string.",
+            "example": "3.00",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`sale` or `return`.",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "order_number": {
+            "example": "ORD-0042",
+            "type": "string"
+          },
+          "till_ref": {
+            "description": "The till's `client_ref` when a till sold it; null for web and office orders.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "order_id",
+          "order_number",
+          "till_ref",
+          "kind",
+          "jars",
+          "at"
+        ],
+        "type": "object"
+      },
+      "FarmerCreditsPage": {
+        "description": "GET /lots/{lot}/farmer-credits: a page of credits and the farmer groups the public page\nshows. No farmer names, ids, kg, prices or amounts.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/FarmerCreditResource"
+            },
+            "type": "array"
+          },
+          "farmer_groups": {
+            "description": "How many farmer groups (villages) the lot's public page shows, under the supply link's\nallow-list; null when it shows none (no supply lineage, or `village` not shared).",
+            "example": 1,
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "farmer_groups"
+        ],
+        "type": "object"
+      },
       "FileCreated": {
         "description": "`{data:{file_id}}`.",
         "properties": {
@@ -58318,6 +58389,150 @@
           }
         ],
         "summary": "List a lot's trail",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
+    "/workspace/{workspace}/lots/{lot}/farmer-credits": {
+      "get": {
+        "operationId": "lots_farmer_credits",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarmerCreditsPage"
+                }
+              }
+            },
+            "description": "One page, newest first; no farmer data or amounts"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sales and returns of a lot that credited its farmers",
         "tags": [
           "lots"
         ]
