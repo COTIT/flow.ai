@@ -22,6 +22,24 @@ export const session = {
   user: amina,
 }
 
+/** A catalog product (storefront shape), in EUR. */
+export const honey = {
+  id: "p-honey",
+  name: "Ilundo honey 500 g",
+  brand: null,
+  type: "physical",
+  short_description: null,
+  description: null,
+  ean13: "8712345678906",
+  barcode: null,
+  price_gross: 1250,
+  price_net: 1147,
+  currency: "EUR",
+  currency_decimals: 2,
+  available_stock: "7.00",
+  variants: [],
+}
+
 /** Starts the page paired (and logged in unless `loggedIn: false`), via the till's localStorage entry. */
 export async function seedTill(page: Page, { loggedIn = true } = {}) {
   const value = JSON.stringify({
@@ -34,9 +52,10 @@ export async function seedTill(page: Page, { loggedIn = true } = {}) {
   await page.addInitScript((v) => localStorage.setItem("genesy.till", v), value)
 }
 
-/** A FakeApi with the device-key login routes; specs add the rest. */
+/** A FakeApi with the device-key routes (login, catalog); specs add the rest. */
 export async function fakeTill(page: Page) {
   const api = new FakeApi()
+    .on("GET", "/storefront/products", () => paged([honey]))
     .on("GET", "/workspace/:ws/till/login/users", () => ({
       data: [amina, { id: "tu-2", name: "Baraka" }],
     }))

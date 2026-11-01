@@ -23,7 +23,27 @@
     "setupAgain": "Set up again"
   },
   "sale": {
-    "title": "Sale"
+    "title": "Sale",
+    "scan": "Scan or type a barcode",
+    "notFound": "No product with code {code}.",
+    "search": "Search products",
+    "results": "Search results",
+    "cart": "Cart",
+    "empty": "The cart is empty.",
+    "less": "One less {name}",
+    "more": "One more {name}",
+    "quantityOf": "Quantity of {name}",
+    "remove": "Remove {name}",
+    "estimate": "Estimate",
+    "estimateHint": "Catalog prices; the till's total, rounding and change come from the server when you charge.",
+    "method": "Payment method",
+    "cash": "Cash",
+    "card": "Card",
+    "tendered": "Cash received",
+    "reference": "Card slip reference",
+    "badTendered": "Enter the cash received, e.g. 20.00.",
+    "toDrawer": "Open the drawer",
+    "charge": "Charge"
   },
   "nav": {
     "label": "Till menu",
@@ -56,5 +76,16 @@
     "add": "Add row",
     "total": "Counted",
     "invalid": "Each row needs a value (e.g. 5.00) and a whole number of pieces."
+  },
+  "receipt": {
+    "title": "Receipt",
+    "total": "Total",
+    "rounding": "Cash rounding",
+    "due": "To pay",
+    "tendered": "Cash received",
+    "change": "Change",
+    "card": "Card slip",
+    "print": "Print",
+    "newSale": "New sale"
   }
 }

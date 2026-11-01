@@ -1,22 +1,13 @@
 import { expectNoHorizontalScroll } from "../../src/test"
-import { expect, paged, seedTill, test, type FakeApi, WS } from "./fake-till"
-
-const honey = {
-  id: "p-honey",
-  name: "Ilundo honey 500 g",
-  brand: null,
-  type: "physical",
-  short_description: null,
-  description: null,
-  ean13: "8712345678906",
-  barcode: null,
-  price_gross: 1250,
-  price_net: 1147,
-  currency: "EUR",
-  currency_decimals: 2,
-  available_stock: "7.00",
-  variants: [],
-}
+import {
+  expect,
+  honey,
+  paged,
+  seedTill,
+  test,
+  type FakeApi,
+  WS,
+} from "./fake-till"
 
 const openShift = {
   id: "sh-1",

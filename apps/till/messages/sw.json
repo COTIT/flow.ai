@@ -23,7 +23,27 @@
     "setupAgain": "Sanidi upya"
   },
   "sale": {
-    "title": "Mauzo"
+    "title": "Mauzo",
+    "scan": "Changanua au andika msimbopau",
+    "notFound": "Hakuna bidhaa yenye msimbo {code}.",
+    "search": "Tafuta bidhaa",
+    "results": "Matokeo ya utafutaji",
+    "cart": "Kikapu",
+    "empty": "Kikapu ni tupu.",
+    "less": "Punguza {name} moja",
+    "more": "Ongeza {name} moja",
+    "quantityOf": "Idadi ya {name}",
+    "remove": "Ondoa {name}",
+    "estimate": "Makadirio",
+    "estimateHint": "Bei za katalogi; jumla, ukokotoaji na chenji vinatoka kwa seva unapotoza.",
+    "method": "Njia ya malipo",
+    "cash": "Taslimu",
+    "card": "Kadi",
+    "tendered": "Pesa zilizopokelewa",
+    "reference": "Kumbukumbu ya risiti ya kadi",
+    "badTendered": "Weka pesa zilizopokelewa, mf. 20.00.",
+    "toDrawer": "Fungua droo",
+    "charge": "Toza"
   },
   "nav": {
     "label": "Menyu ya kituo",
@@ -56,5 +76,16 @@
     "add": "Ongeza mstari",
     "total": "Zilizohesabiwa",
     "invalid": "Kila mstari unahitaji thamani (mf. 5.00) na idadi kamili."
+  },
+  "receipt": {
+    "title": "Risiti",
+    "total": "Jumla",
+    "rounding": "Ukokotoaji wa taslimu",
+    "due": "Kulipa",
+    "tendered": "Pesa zilizopokelewa",
+    "change": "Chenji",
+    "card": "Risiti ya kadi",
+    "print": "Chapisha",
+    "newSale": "Mauzo mapya"
   }
 }

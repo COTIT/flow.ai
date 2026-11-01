@@ -23,7 +23,27 @@
     "setupAgain": "Opnieuw instellen"
   },
   "sale": {
-    "title": "Verkoop"
+    "title": "Verkoop",
+    "scan": "Scan of typ een barcode",
+    "notFound": "Geen product met code {code}.",
+    "search": "Producten zoeken",
+    "results": "Zoekresultaten",
+    "cart": "Winkelwagen",
+    "empty": "De winkelwagen is leeg.",
+    "less": "Eén {name} minder",
+    "more": "Eén {name} meer",
+    "quantityOf": "Aantal {name}",
+    "remove": "{name} verwijderen",
+    "estimate": "Schatting",
+    "estimateHint": "Catalogusprijzen; totaal, afronding en wisselgeld komen van de server bij het afrekenen.",
+    "method": "Betaalwijze",
+    "cash": "Contant",
+    "card": "Pin",
+    "tendered": "Ontvangen contant",
+    "reference": "Referentie pinbon",
+    "badTendered": "Vul het ontvangen bedrag in, bv. 20,00.",
+    "toDrawer": "Open de kassalade",
+    "charge": "Afrekenen"
   },
   "nav": {
     "label": "Kassamenu",
@@ -56,5 +76,16 @@
     "add": "Rij toevoegen",
     "total": "Geteld",
     "invalid": "Elke rij heeft een waarde (bv. 5,00) en een heel aantal nodig."
+  },
+  "receipt": {
+    "title": "Bon",
+    "total": "Totaal",
+    "rounding": "Afronding contant",
+    "due": "Te betalen",
+    "tendered": "Ontvangen contant",
+    "change": "Wisselgeld",
+    "card": "Pinbon",
+    "print": "Afdrukken",
+    "newSale": "Nieuwe verkoop"
   }
 }

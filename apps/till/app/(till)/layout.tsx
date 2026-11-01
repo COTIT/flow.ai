@@ -40,7 +40,7 @@ export default function TillLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="flex min-h-svh flex-col gap-4 p-4 md:p-6">
-      <header className="flex flex-wrap items-center gap-3">
+      <header className="flex flex-wrap items-center gap-3 print:hidden">
         <Logo />
         <p className="mr-auto text-sm text-muted-foreground">
           <span className="font-medium text-foreground">
@@ -61,7 +61,7 @@ export default function TillLayout({ children }: { children: React.ReactNode }) 
       </header>
       <nav
         aria-label={t("nav.label")}
-        className="-mx-1 flex gap-1 overflow-x-auto border-b border-border pb-2"
+        className="-mx-1 flex gap-1 overflow-x-auto border-b border-border pb-2 print:hidden"
       >
         {nav.map((item) => (
           <Link
