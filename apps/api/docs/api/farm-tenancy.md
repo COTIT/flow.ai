@@ -24,7 +24,7 @@ Every insert, update and delete on a farm table writes a row to `farm_audit_log`
 
 Any farm member. `200 {"data": [...], "meta": {...}}`, ordered by code. Each village: `id, code, name, latitude, longitude, primary_language, capacity, created_at, updated_at`. Coordinates are decimal text with 6 decimals, or `null`.
 
-`capacity` is the village's current energy capacity: `{capacity_kw, basis, simultaneity_factor, source_note, effective_from}` (`capacity_kw` text with 2 decimals, `simultaneity_factor` text with 3). It is `null` unless the caller is ops/admin or holds a role in that village.
+`capacity` is the village's current energy capacity: `{id, capacity_kw, basis, simultaneity_factor, source_note, effective_from}` (`capacity_kw` text with 2 decimals, `simultaneity_factor` text with 3). It is `null` unless the caller is ops/admin or holds a role in that village.
 
 ### `POST /v1/workspace/{workspace}/farm/villages`
 
@@ -32,7 +32,7 @@ ops or admin; others `403`.
 
 ```json
 { "id": "019a…", "code": "ILUNDO", "name": "Ilundo", "latitude": "-7.7", "longitude": "35.7", "primary_language": "sw",
-  "capacity": { "capacity_kw": "500", "basis": "planned", "simultaneity_factor": "0.6", "source_note": "DEMO", "effective_from": "2026-01-15" } }
+  "capacity": { "id": "…", "capacity_kw": "500", "basis": "planned", "simultaneity_factor": "0.6", "source_note": "DEMO", "effective_from": "2026-01-15" } }
 ```
 
 | Field | Rule |
@@ -43,12 +43,13 @@ ops or admin; others `403`.
 | `latitude` | optional decimal, −90 to 90 |
 | `longitude` | optional decimal, −180 to 180 |
 | `primary_language` | `sw` (default) or `en` |
-| `capacity` | required: the first capacity row, written in the same transaction. Missing (or no `capacity_kw`): `422` with `errors.capacity = ["a planned capacity is required"]` (RUAHA's words). Fields below; errors come back as `capacity.<field>` |
+| `capacity` | required: the first capacity row, written in the same transaction. Missing (or no `capacity_kw`): `422` with `errors.capacity = ["a planned capacity is required"]` (RUAHA's words). Fields below; errors come back as `capacity.<field>`, including a text field sent as another JSON type |
 
 Capacity fields (here and on `POST …/villages/{village}/capacity`):
 
 | Field | Rule |
 |---|---|
+| `id` | optional client UUID; on `POST …/capacity` a retry with the same id and figure returns `200` and the stored row, a different figure, another village or another workspace's id is `409 {"message": "This id is already in use."}` |
 | `capacity_kw` | required decimal, 0 or more, at most 2 decimals |
 | `basis` | `planned` (default) or `nameplate`. Never `measured`: capacity is not reported as measured |
 | `simultaneity_factor` | decimal, more than 0 and at most 1, at most 3 decimals; default 1. Peak = rated power × this factor |
@@ -65,7 +66,7 @@ Villages are never deleted.
 
 ### `POST /v1/workspace/{workspace}/farm/villages/{village}/capacity`
 
-ops or admin; others `403`. Records a new capacity (fields above) as the village's current one; the previous row stays as history (`is_current = false`). The village row is locked while this happens, so two writers never both end up current. `201 {"data": capacity}`, `404` for an unknown or foreign village, `422` on invalid input.
+ops or admin; others `403`. Records a new capacity (fields above) as the village's current one; the previous row stays as history (`is_current = false`). The village row is locked while this happens, so two writers never both end up current. `201 {"data": capacity}` (`200` on a replayed `id`), `409` on a reused `id`, `404` for an unknown or foreign village, `422` on invalid input.
 
 ## Farm roles
 

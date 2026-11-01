@@ -39,8 +39,8 @@ test("a farmer lists equipment and opens one, at indicative prices", async ({ pa
   const detail = page.getByTestId("equipment-detail")
   await expect(detail.getByRole("heading", { level: 1 })).toHaveText("Maize mill")
   await expect(detail.getByTestId("equipment-price")).toContainText("TZS 22,000,000.00")
-  // PUE requests are not on the API yet: no form to send one.
-  await expect(page.getByTestId("request-submit")).toHaveCount(0)
+  // The request form (its own spec covers sending one).
+  await expect(page.getByTestId("request-submit")).toBeVisible()
   await expectNoHorizontalScroll(page)
 })
 

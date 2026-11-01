@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.status, count(*) AS \"request_count!\", eq.currency_id, c.asset_type AS currency,\n                  c.decimals,\n                  (sum(eq.indicative_price_minor * r.quantity) FILTER (WHERE r.acquisition = 'buy'))::bigint\n                      AS indicative_value_minor,\n                  (sum(eq.indicative_rent_per_day_minor * r.quantity) FILTER (WHERE r.acquisition = 'rent'))::bigint\n                      AS indicative_rent_per_day_minor\n           FROM farm_pue_requests r\n           JOIN farm_equipment eq ON eq.id = r.equipment_id\n           JOIN currencies c ON c.id = eq.currency_id\n           WHERE r.workspace_id = $1 AND r.village_id = $2 AND r.deleted_at IS NULL\n           GROUP BY r.status, eq.currency_id, c.asset_type, c.decimals\n           ORDER BY r.status, c.asset_type",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "request_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "indicative_value_minor",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "indicative_rent_per_day_minor",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "24013ddba12cde28b46e2b2d8db70a03531ba92803d9ca1eb59a10db7383555c"
+}

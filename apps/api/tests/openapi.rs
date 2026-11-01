@@ -1386,6 +1386,43 @@ fn every_farm_catalogue_operation_is_documented() {
 }
 
 #[test]
+fn every_farm_pue_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/pue-requests", "get", "farm_pue_requests_list", "200"),
+        (
+            "/farm/pue-requests",
+            "post",
+            "farm_pue_requests_create",
+            "201",
+        ),
+        (
+            "/farm/pue-requests/{request}",
+            "get",
+            "farm_pue_requests_get",
+            "200",
+        ),
+        (
+            "/farm/pue-requests/{request}/transitions",
+            "post",
+            "farm_pue_requests_transition",
+            "200",
+        ),
+        (
+            "/farm/villages/{village}/energy",
+            "get",
+            "farm_pue_village_energy",
+            "200",
+        ),
+        (
+            "/farm/villages/{village}/pue-pipeline",
+            "get",
+            "farm_pue_village_pipeline",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
 fn every_farm_records_operation_is_documented() {
     let mut ops = vec![
         ("/farm/crops", "get", "farm_crops_list".to_owned(), "200"),

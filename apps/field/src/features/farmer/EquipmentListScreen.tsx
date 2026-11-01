@@ -10,7 +10,7 @@ import { kindOf } from '@/features/farmer/resourceKind'
 import { useEquipmentList, type EquipmentItem } from '@/features/farmer/useEquipment'
 import { useLoanProducts } from '@/features/farmer/useResources'
 import { formatKw, formatMoney, formatPrice } from '@/lib/format'
-import { PUE_PORTED } from '@/lib/ported'
+import { LOANS_PORTED } from '@/lib/ported'
 
 const route = getRouteApi('/_farmer/farm/equipment/')
 
@@ -31,19 +31,19 @@ export function EquipmentListScreen() {
   const { t } = useTranslation()
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  // shortcut: loan listings are not on the API yet, so the loan tab is hidden until PUE_PORTED.
-  const kind = PUE_PORTED ? kindOf(search) : 'equipment'
+  // shortcut: loan listings are not on the API yet, so the loan tab is hidden (LOANS_PORTED).
+  const kind = LOANS_PORTED ? kindOf(search) : 'equipment'
 
   return (
     <section className="flex flex-col gap-3.5" data-testid="equipment-list">
       <header className="flex flex-col gap-1.5">
-        <h1 className="type-screen-title">{t(PUE_PORTED ? 'resources.title' : 'equipment.title')}</h1>
+        <h1 className="type-screen-title">{t(LOANS_PORTED ? 'resources.title' : 'equipment.title')}</h1>
         <p style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-2)', textWrap: 'pretty' }}>
           {t(kind === 'loan' ? 'resources.loanNote' : 'equipment.notAQuotation')}
         </p>
       </header>
 
-      {PUE_PORTED && (
+      {LOANS_PORTED && (
         <ResourceTabs
           value={kind}
           onChange={(next) => void navigate({ search: next === 'loan' ? { kind: 'loan' } : {} })}

@@ -23,6 +23,11 @@ export interface CapacityRequest {
      */
   effective_from?: string | null;
   /**
+     * Client id: a retried save replays instead of recording the figure twice.
+     * @nullable
+     */
+  id?: string | null;
+  /**
      * 0 < f ≤ 1, at most 3 decimals; default 1.
      * @nullable
      */

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT v.id, v.code, v.name, v.latitude, v.longitude, v.primary_language,\n                  v.created_at, v.updated_at, c.capacity_kw AS \"capacity_kw?\", c.basis AS \"basis?\",\n                  c.simultaneity_factor AS \"simultaneity_factor?\", c.source_note,\n                  c.effective_from AS \"effective_from?\"\n           FROM farm_villages v\n           LEFT JOIN farm_village_capacities c ON c.village_id = v.id AND c.is_current\n           WHERE v.workspace_id = $1 AND v.id = $2",
+  "query": "SELECT v.id, v.code, v.name, v.latitude, v.longitude, v.primary_language,\n                  v.created_at, v.updated_at, c.id AS \"capacity_id?\", c.capacity_kw AS \"capacity_kw?\", c.basis AS \"basis?\",\n                  c.simultaneity_factor AS \"simultaneity_factor?\", c.source_note,\n                  c.effective_from AS \"effective_from?\"\n           FROM farm_villages v\n           LEFT JOIN farm_village_capacities c ON c.village_id = v.id AND c.is_current\n           WHERE v.workspace_id = $1\n           ORDER BY v.code, v.id LIMIT $2 OFFSET $3",
   "describe": {
     "columns": [
       {
@@ -93,6 +93,17 @@
       },
       {
         "ordinal": 8,
+        "name": "capacity_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "capacity_kw?",
         "type_info": "Numeric",
         "origin": {
@@ -103,7 +114,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "basis?",
         "type_info": "Text",
         "origin": {
@@ -114,7 +125,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "simultaneity_factor?",
         "type_info": "Numeric",
         "origin": {
@@ -125,7 +136,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "source_note",
         "type_info": "Text",
         "origin": {
@@ -136,7 +147,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "effective_from?",
         "type_info": "Date",
         "origin": {
@@ -150,7 +161,8 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -162,12 +174,13 @@
       false,
       false,
       false,
+      false,
+      false,
+      false,
+      false,
       true,
-      true,
-      true,
-      true,
-      true
+      false
     ]
   },
-  "hash": "5fccf728a7bf254df79f47fd070f1b0a7d7f3847158e2a24e2232bbee4e0348f"
+  "hash": "e1432c1bfa7768ef9da6ea66121769f91082836be3bddc587ad3247fe70e432c"
 }

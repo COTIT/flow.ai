@@ -76,17 +76,19 @@ describe('creating a village', () => {
 })
 
 describe('setting a capacity', () => {
-  test('posts a new current capacity for that village', async () => {
+  test('posts a new current capacity for that village, with the client id', async () => {
     api.farmVillagesCapacityCreate.mockResolvedValue({ data: capacity })
     const { invalidate, wrapper } = client()
     const { result } = renderHook(() => hooks.useSetVillageCapacity(), { wrapper })
 
     await result.current.mutateAsync({
       villageId: 'v1',
+      id: 'c0ffee00-0000-4000-8000-000000000001',
       capacity: { capacity_kw: '600', basis: 'nameplate', simultaneity_factor: '', source_note: 'grid survey', effective_from: '2026-11-01' },
     })
 
     expect(api.farmVillagesCapacityCreate).toHaveBeenCalledWith('w1', 'v1', {
+      id: 'c0ffee00-0000-4000-8000-000000000001',
       capacity_kw: '600', basis: 'nameplate', simultaneity_factor: null, source_note: 'grid survey', effective_from: '2026-11-01',
     })
     expect(keys(invalidate)).toEqual(expect.arrayContaining([queryKeys.villageCapacity(), ['tower']]))

@@ -241,7 +241,7 @@ function VillageCreatePanel({ onClose, village }: { onClose: () => void; village
       effective_from: effectiveFrom,
     }
     const save = village
-      ? setCapacity.mutateAsync({ villageId: village.id, capacity }).then(onClose)
+      ? setCapacity.mutateAsync({ villageId: village.id, id: draft.clientRef, capacity }).then(onClose)
       : createVillage.mutateAsync({
           id: draft.clientRef,
           project_id: projectId,

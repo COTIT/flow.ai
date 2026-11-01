@@ -7,7 +7,7 @@ const useLoanProducts = vi.fn()
 const createEquipment = vi.fn()
 const createLoan = vi.fn()
 const createCategory = vi.fn()
-const flags = { pue: false }
+const flags = { loans: false }
 const createState = { isPending: false, isError: false, error: null as Error | null }
 const search = { kind: undefined as string | undefined }
 const navigate = vi.fn()
@@ -18,7 +18,7 @@ vi.mock('@/features/farmer/useEquipment', () => ({
 vi.mock('@/features/farmer/useResources', () => ({
   useLoanProducts: () => useLoanProducts(),
 }))
-vi.mock('@/lib/ported', () => ({ get PUE_PORTED() { return flags.pue } }))
+vi.mock('@/lib/ported', () => ({ get LOANS_PORTED() { return flags.loans } }))
 vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
   useCurrencies: () => ({ data: [{ id: 'c1', decimals: 2, default_currency: true, asset_type: 'tzs', active: true }] }),
 }))
@@ -79,7 +79,7 @@ const loan = (over: Record<string, unknown> = {}) => ({
 })
 
 beforeEach(() => {
-  flags.pue = false
+  flags.loans = false
   createCategory.mockReset()
   createCategory.mockResolvedValue({ id: 'cat9' })
   useEquipmentList.mockReset()
@@ -139,7 +139,7 @@ describe('the resource catalogue', () => {
   })
 
   test('is a resource catalogue, not only equipment', () => {
-    flags.pue = true
+    flags.loans = true
     render(<CatalogueScreen />)
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/resource catalogue/i)
@@ -148,7 +148,7 @@ describe('the resource catalogue', () => {
   })
 
   test('switching kind is held in the URL', async () => {
-    flags.pue = true
+    flags.loans = true
     render(<CatalogueScreen />)
     await userEvent.click(screen.getByTestId('catalogue-tab-loan'))
 
@@ -209,7 +209,7 @@ describe('the resource catalogue', () => {
  */
 describe('loan listings', () => {
   beforeEach(() => {
-    flags.pue = true
+    flags.loans = true
     search.kind = 'loan'
   })
 
@@ -318,7 +318,7 @@ describe('adding to the catalogue', () => {
   })
 
   test('adds a loan listing with its indicative range, and nothing else', async () => {
-    flags.pue = true
+    flags.loans = true
     search.kind = 'loan'
     render(<CatalogueScreen />)
     await userEvent.click(screen.getByTestId('catalogue-create-open'))
