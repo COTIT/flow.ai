@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Commerce follow-up 7, lot lineage on `LotResource` (list, get, update): `parent_lot {id, code}`, `pack {raw_kg, units}` and `received_from {transfer_id, from_lot_code, from_lot_public_code}`, null when absent. Read from the existing packing columns and `supply_transfers` in one statement per page; no migration.
 - Commerce follow-up 6, farmer credits per lot for the selling workspace (contract `docs/api/lots.md`): `GET /workspace/{workspace}/lots/{lot}/farmer-credits` lists the sales and returns that credited farmers (order id and number, till `client_ref`, kind, jars, time) and `farmer_groups` as the public page shows them. No farmer data, kg, prices or amounts; other workspaces get 404.
 - Commerce follow-up 5, product images (migration `product_images`, contracts `docs/api/products.md`, `storefront.md`): `GET|PUT /workspace/{workspace}/products/{product}/images` keeps an ordered list (≤ 20) of the workspace's stored image files per product, optionally per variant (`product.update`, plus `file.get` for files). Storefront products and variants gain `images: [{url, expires_at}]`, signed per request like lot passport links, two statements per page.
 - Commerce follow-up 8b: till catalog rows and variants gain `unit_price_gross` (one unit incl VAT, minor units) from `orders::service::unit_gross`, the order engine's one-line total, so it equals a quantity-1 quote.

@@ -14,6 +14,9 @@ Paths sit under `/v1/workspace/{workspace}`. Members read; writes need `product.
 | `status` | string | `released` (default, sellable), `quarantine` or `recalled` |
 | `produced_on`, `best_before`, `expires_on` | date or null | `YYYY-MM-DD`; `best_before` and `expires_on` not before `produced_on` |
 | `origin` | string or null | up to 255 chars |
+| `parent_lot` | `{id, code}` or null | the lot of this workspace it was packed from (read only) |
+| `pack` | `{raw_kg, units}` or null | decimal strings: kg of the parent used and units made (read only) |
+| `received_from` | `{transfer_id, from_lot_code, from_lot_public_code}` or null | the supply transfer it was received from, with the sender's lot codes as `/supply-transfers` shows them; never the sender's ids (read only) |
 | `created_at`, `updated_at` | date-time | |
 
 ## Routes

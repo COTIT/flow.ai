@@ -477,3 +477,41 @@ pub async fn farmer_credits(
         .collect();
     Ok((credits, total))
 }
+
+/// Where a lot came from: its packing parent and pack, or the supply transfer it was received
+/// from with the sender's lot codes (the receiver sees those in `/supply-transfers` already).
+pub struct LineageRow {
+    pub lot_id: Uuid,
+    pub parent_id: Option<Uuid>,
+    pub parent_code: Option<String>,
+    pub pack_raw_kg: Option<String>,
+    pub pack_units: Option<String>,
+    pub transfer_id: Option<Uuid>,
+    pub from_lot_code: Option<String>,
+    pub from_lot_public_code: Option<String>,
+}
+
+/// [`LineageRow`] of each lot among `ids` of the workspace, in one statement.
+pub async fn lineage(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<LineageRow>, sqlx::Error> {
+    sqlx::query_as!(
+        LineageRow,
+        r#"SELECT l.id AS lot_id, p.id AS "parent_id?", p.code AS "parent_code?",
+                  l.pack_raw_kg::text AS pack_raw_kg, l.pack_units::text AS pack_units,
+                  t.id AS "transfer_id?", f.code AS "from_lot_code?",
+                  f.public_code AS "from_lot_public_code?"
+           FROM lots l
+           LEFT JOIN lots p ON p.workspace_id = l.workspace_id AND p.id = l.parent_lot_id
+           LEFT JOIN supply_transfers t ON t.to_workspace_id = l.workspace_id
+                                       AND t.to_lot_id = l.id
+           LEFT JOIN lots f ON f.workspace_id = t.from_workspace_id AND f.id = t.from_lot_id
+           WHERE l.workspace_id = $1 AND l.id = ANY($2)"#,
+        workspace_id,
+        ids,
+    )
+    .fetch_all(db)
+    .await
+}

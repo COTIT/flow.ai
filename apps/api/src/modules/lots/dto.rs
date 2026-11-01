@@ -13,7 +13,7 @@ use crate::{
     modules::{
         lots::{
             passport::Passport,
-            repo::{EventRow, LotRow, PassportRow},
+            repo::{EventRow, LineageRow, LotRow, PassportRow},
         },
         stock::repo::LEVEL_MAX,
     },
@@ -49,13 +49,72 @@ pub struct LotResource {
     expires_on: Option<NaiveDate>,
     #[schema(required = true)]
     origin: Option<String>,
+    /// The lot this one was packed from; null when not packed here.
+    #[schema(required = true)]
+    parent_lot: Option<LotRef>,
+    /// How it was packed from its parent; null when not packed.
+    #[schema(required = true)]
+    pack: Option<Pack>,
+    /// The supply transfer this lot was received from; null when not received.
+    #[schema(required = true)]
+    received_from: Option<ReceivedFrom>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
-impl From<LotRow> for LotResource {
-    fn from(l: LotRow) -> Self {
+/// Another lot of this workspace.
+#[derive(Serialize, ToSchema)]
+pub struct LotRef {
+    id: Uuid,
+    #[schema(example = "ILU-H-1")]
+    code: String,
+}
+
+/// Kg of the parent used and units made: kg per unit = raw_kg / units.
+#[derive(Serialize, ToSchema)]
+pub struct Pack {
+    /// Decimal string.
+    #[schema(example = "7.50")]
+    raw_kg: String,
+    /// Decimal string.
+    #[schema(example = "10.00")]
+    units: String,
+}
+
+/// The transfer a lot was received from, with the sender's lot codes.
+#[derive(Serialize, ToSchema)]
+pub struct ReceivedFrom {
+    transfer_id: Uuid,
+    from_lot_code: String,
+    from_lot_public_code: String,
+}
+
+impl LotResource {
+    /// `l` with where it came from (`lineage` of the same lot, if read).
+    pub fn new(l: LotRow, lineage: Option<&LineageRow>) -> Self {
+        let parent_lot = lineage.and_then(|g| {
+            Some(LotRef {
+                id: g.parent_id?,
+                code: g.parent_code.clone()?,
+            })
+        });
+        let pack = lineage.and_then(|g| {
+            Some(Pack {
+                raw_kg: g.pack_raw_kg.clone()?,
+                units: g.pack_units.clone()?,
+            })
+        });
+        let received_from = lineage.and_then(|g| {
+            Some(ReceivedFrom {
+                transfer_id: g.transfer_id?,
+                from_lot_code: g.from_lot_code.clone()?,
+                from_lot_public_code: g.from_lot_public_code.clone()?,
+            })
+        });
         Self {
+            parent_lot,
+            pack,
+            received_from,
             id: l.id,
             product_id: l.product_id,
             code: l.code,

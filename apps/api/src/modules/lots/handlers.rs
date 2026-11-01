@@ -64,7 +64,7 @@ pub async fn list(
         page.offset(),
     )
     .await?;
-    let data = rows.into_iter().map(Into::into).collect();
+    let data = service::resources(&state, access.workspace_id, rows).await?;
     Ok(Json(Paginated::new(data, total, page)))
 }
 
@@ -88,7 +88,7 @@ pub async fn create(
     ValidatedJson(input): ValidatedJson<CreateLotRequest>,
 ) -> Result<(StatusCode, Data<LotResource>), AppError> {
     let lot = service::create(&state, &access, input).await?;
-    Ok((StatusCode::CREATED, Data(lot.into())))
+    Ok((StatusCode::CREATED, Data(LotResource::new(lot, None))))
 }
 
 /// GET /lots/{lot}.
@@ -112,7 +112,12 @@ pub async fn get(
     Path((_, id)): LotPath,
 ) -> Result<Data<LotResource>, AppError> {
     Ok(Data(
-        service::get(&state, access.workspace_id, &id).await?.into(),
+        service::resource(
+            &state,
+            access.workspace_id,
+            service::get(&state, access.workspace_id, &id).await?,
+        )
+        .await?,
     ))
 }
 
@@ -165,7 +170,12 @@ pub async fn update(
     ValidatedJson(patch): ValidatedJson<UpdateLotRequest>,
 ) -> Result<Data<LotResource>, AppError> {
     Ok(Data(
-        service::update(&state, &access, &id, patch).await?.into(),
+        service::resource(
+            &state,
+            access.workspace_id,
+            service::update(&state, &access, &id, patch).await?,
+        )
+        .await?,
     ))
 }
 

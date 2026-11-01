@@ -10313,6 +10313,24 @@
         ],
         "type": "object"
       },
+      "LotRef": {
+        "description": "Another lot of this workspace.",
+        "properties": {
+          "code": {
+            "example": "ILU-H-1",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code"
+        ],
+        "type": "object"
+      },
       "LotResource": {
         "description": "A batch of one stock-tracked product.",
         "properties": {
@@ -10349,6 +10367,28 @@
               "null"
             ]
           },
+          "pack": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Pack",
+                "description": "How it was packed from its parent; null when not packed."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent_lot": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LotRef",
+                "description": "The lot this one was packed from; null when not packed here."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "produced_on": {
             "format": "date",
             "type": [
@@ -10364,6 +10404,17 @@
             "description": "Code in the QR link `/b/{public_code}`; fixed at creation.",
             "example": "7K2M9QXH4D",
             "type": "string"
+          },
+          "received_from": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReceivedFrom",
+                "description": "The supply transfer this lot was received from; null when not received."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "description": "`quarantine`, `released` (sellable) or `recalled`.",
@@ -10384,6 +10435,9 @@
           "best_before",
           "expires_on",
           "origin",
+          "parent_lot",
+          "pack",
+          "received_from",
           "created_at",
           "updated_at"
         ],
@@ -11843,6 +11897,26 @@
         },
         "required": [
           "country"
+        ],
+        "type": "object"
+      },
+      "Pack": {
+        "description": "Kg of the parent used and units made: kg per unit = raw_kg / units.",
+        "properties": {
+          "raw_kg": {
+            "description": "Decimal string.",
+            "example": "7.50",
+            "type": "string"
+          },
+          "units": {
+            "description": "Decimal string.",
+            "example": "10.00",
+            "type": "string"
+          }
+        },
+        "required": [
+          "raw_kg",
+          "units"
         ],
         "type": "object"
       },
@@ -17580,6 +17654,27 @@
           "code",
           "warehouse_id",
           "quantity"
+        ],
+        "type": "object"
+      },
+      "ReceivedFrom": {
+        "description": "The transfer a lot was received from, with the sender's lot codes.",
+        "properties": {
+          "from_lot_code": {
+            "type": "string"
+          },
+          "from_lot_public_code": {
+            "type": "string"
+          },
+          "transfer_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "transfer_id",
+          "from_lot_code",
+          "from_lot_public_code"
         ],
         "type": "object"
       },
