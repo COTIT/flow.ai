@@ -16,6 +16,7 @@ pub struct VillageRow {
     pub primary_language: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub capacity_id: Option<Uuid>,
     pub capacity_kw: Option<Decimal>,
     pub basis: Option<String>,
     pub simultaneity_factor: Option<Decimal>,
@@ -27,6 +28,7 @@ impl VillageRow {
     /// Same village with its capacity left out.
     pub fn without_capacity(self) -> Self {
         Self {
+            capacity_id: None,
             capacity_kw: None,
             basis: None,
             simultaneity_factor: None,
@@ -59,6 +61,8 @@ pub struct VillagePatch {
 
 /// A capacity figure; None = column default (planned, 1.000, today).
 pub struct NewCapacity {
+    /// Client id: a retry replays instead of recording the figure twice.
+    pub id: Option<Uuid>,
     pub capacity_kw: Decimal,
     pub basis: Option<String>,
     pub simultaneity_factor: Option<Decimal>,
@@ -68,6 +72,7 @@ pub struct NewCapacity {
 
 /// A stored capacity row.
 pub struct CapacityRow {
+    pub id: Uuid,
     pub capacity_kw: Decimal,
     pub basis: String,
     pub simultaneity_factor: Decimal,
@@ -85,7 +90,7 @@ pub async fn list(
     let rows = sqlx::query_as!(
         VillageRow,
         r#"SELECT v.id, v.code, v.name, v.latitude, v.longitude, v.primary_language,
-                  v.created_at, v.updated_at, c.capacity_kw AS "capacity_kw?", c.basis AS "basis?",
+                  v.created_at, v.updated_at, c.id AS "capacity_id?", c.capacity_kw AS "capacity_kw?", c.basis AS "basis?",
                   c.simultaneity_factor AS "simultaneity_factor?", c.source_note,
                   c.effective_from AS "effective_from?"
            FROM farm_villages v
@@ -116,7 +121,7 @@ pub async fn find(
     sqlx::query_as!(
         VillageRow,
         r#"SELECT v.id, v.code, v.name, v.latitude, v.longitude, v.primary_language,
-                  v.created_at, v.updated_at, c.capacity_kw AS "capacity_kw?", c.basis AS "basis?",
+                  v.created_at, v.updated_at, c.id AS "capacity_id?", c.capacity_kw AS "capacity_kw?", c.basis AS "basis?",
                   c.simultaneity_factor AS "simultaneity_factor?", c.source_note,
                   c.effective_from AS "effective_from?"
            FROM farm_villages v
@@ -217,11 +222,11 @@ pub async fn replace_capacity(
     .await?;
     sqlx::query_as!(
         CapacityRow,
-        "INSERT INTO farm_village_capacities (workspace_id, village_id, capacity_kw, basis,
+        "INSERT INTO farm_village_capacities (id, workspace_id, village_id, capacity_kw, basis,
              simultaneity_factor, source_note, effective_from, created_by)
-         VALUES ($1, $2, $3, coalesce($4, 'planned'), coalesce($5, 1.000), $6,
+         VALUES (coalesce($9, uuidv7()), $1, $2, $3, coalesce($4, 'planned'), coalesce($5, 1.000), $6,
                  coalesce($7, current_date), $8)
-         RETURNING capacity_kw, basis, simultaneity_factor, source_note, effective_from",
+         RETURNING id, capacity_kw, basis, simultaneity_factor, source_note, effective_from",
         workspace_id,
         village_id,
         c.capacity_kw,
@@ -230,7 +235,35 @@ pub async fn replace_capacity(
         c.source_note,
         c.effective_from,
         created_by,
+        c.id,
     )
     .fetch_one(&mut *db)
     .await
+}
+
+/// A capacity row of this workspace by id, with its village.
+pub async fn find_capacity(
+    db: &mut sqlx::PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<(Uuid, CapacityRow)>, sqlx::Error> {
+    let row = sqlx::query!(
+        "SELECT village_id, id, capacity_kw, basis, simultaneity_factor, source_note, effective_from
+         FROM farm_village_capacities WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(row.map(|r| {
+        let c = CapacityRow {
+            id: r.id,
+            capacity_kw: r.capacity_kw,
+            basis: r.basis,
+            simultaneity_factor: r.simultaneity_factor,
+            source_note: r.source_note,
+            effective_from: r.effective_from,
+        };
+        (r.village_id, c)
+    }))
 }

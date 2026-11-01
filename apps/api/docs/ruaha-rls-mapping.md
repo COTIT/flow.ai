@@ -2,7 +2,7 @@
 
 Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabase/tests/*.sql`, run by `pnpm db:rls`) and where genesy proves the same rule, or why it does not apply. `tests/farm_mapping.rs` keeps this file honest: exactly 280 rows, every named test exists, every N/A has a reason.
 
-**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **201**. N/A: **79**.
+**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **213**. N/A: **67**.
 
 **How rules map.** RUAHA enforces access with Postgres RLS and `SECURITY DEFINER` RPCs; "zero rows" means "not yours". genesy enforces it in the API: the farm guard (`src/http/farm.rs`), village-scoped SQL in each repo, and composite `(workspace_id, village_id)` foreign keys that make cross-village links impossible. A RUAHA "zero rows" is a genesy `404` (or an empty list); a RUAHA "raises" is a `403`/`422` with RUAHA's message where it has one. Several assertions share one test.
 
@@ -20,20 +20,20 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 5 | rls_test.sql #5 | Ilundo officer sees no Mgama persons | `tests/farm_records.rs::officers_read_their_village_only` |
 | 6 | rls_test.sql #6 | Mgama officer sees both Mgama persons | `tests/farm_records.rs::officers_read_their_village_only` |
 | 7 | rls_test.sql #7 | Mgama officer sees only the Mgama farm | `tests/farm_records.rs::officers_read_their_village_only` |
-| 8 | rls_test.sql #8 | farmer cannot approve their own request | N/A because PUE requests and energy estimates are out of scope (G14) |
-| 9 | rls_test.sql #9 | farmer cannot move their own request to review | N/A because PUE requests and energy estimates are out of scope (G14) |
+| 8 | rls_test.sql #8 | farmer cannot approve their own request | `tests/farm_pue.rs::a_farmer_cannot_review_or_approve_their_own_request` |
+| 9 | rls_test.sql #9 | farmer cannot move their own request to review | `tests/farm_pue.rs::a_farmer_cannot_review_or_approve_their_own_request` |
 | 10 | rls_test.sql #10 | ops cannot mint an admin membership | `tests/farm_tenancy.rs::ops_cannot_mint_admin_or_self_elevate` |
 | 11 | rls_test.sql #11 | ops cannot self-elevate | `tests/farm_tenancy.rs::ops_cannot_mint_admin_or_self_elevate` |
 | 12 | rls_test.sql #12 | ops cannot flip a farmer membership to admin | `tests/farm_tenancy.rs::ops_cannot_touch_admin_memberships` |
 | 13 | rls_test.sql #13 | farmer sees no buyer demand | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
 | 14 | rls_test.sql #14 | farmer sees no buyers | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 15 | rls_test.sql #15 | Tower energy view is empty for a farmer | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 15 | rls_test.sql #15 | Tower energy view is empty for a farmer | `tests/farm_pue.rs::village_energy_and_pipeline_are_for_staff_of_the_village` |
 | 16 | rls_test.sql #16 | Tower production view is empty for a farmer | N/A because Control Tower aggregate views are not ported in this phase; farmers get 403/404 on every staff-only read |
 | 17 | rls_test.sql #17 | farmer DOES see the opportunity her own supply is inside | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 18 | rls_test.sql #18 | nobody can hand-write an energy estimate | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 18 | rls_test.sql #18 | nobody can hand-write an energy estimate | `tests/farm_pue.rs::request_provenance_is_normalised_and_estimates_are_never_hand_written` |
 | 19 | rls_test.sql #19 | already-committed harvest cannot be promised to a second live opportunity | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 20 | rls_test.sql #20 | both villages appear in the Tower (each has a current capacity row) | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
-| 21 | rls_test.sql #21 | Ilundo approved peak = (15.0 + 2 x 1.5) x 0.600 = 10.800 kW | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 20 | rls_test.sql #20 | both villages appear in the Tower (each has a current capacity row) | `tests/farm_pue.rs::village_energy_keeps_prospective_and_approved_load_apart` |
+| 21 | rls_test.sql #21 | Ilundo approved peak = (15.0 + 2 x 1.5) x 0.600 = 10.800 kW | `tests/farm_pue.rs::village_energy_keeps_prospective_and_approved_load_apart` |
 | 22 | rls_test.sql #22 | Ilundo September maize expected = 12000 kg (superseded estimate excluded) | `tests/farm_records.rs::a_harvest_revision_keeps_one_current_row_and_the_history` |
 | 23 | rls_test.sql #23 | available = 12000 - 6400 already committed | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
 | 24 | rls_test.sql #24 | farmer cannot verify a record | `tests/farm_records.rs::verification_stamps_the_verifier_and_is_one_way` |
@@ -73,7 +73,7 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 58 | mvp_security_test.sql #19 | demand capture cannot be forged | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
 | 59 | mvp_security_test.sql #20 | cannot accept before sharing | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
 | 60 | mvp_security_test.sql #21 | terminal opportunity cannot reopen | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 61 | mvp_security_test.sql #22 | farmer request provenance is normalised, not trusted | N/A because PUE requests and energy estimates are out of scope (G14) |
+| 61 | mvp_security_test.sql #22 | farmer request provenance is normalised, not trusted | `tests/farm_pue.rs::request_provenance_is_normalised_and_estimates_are_never_hand_written` |
 | 62 | mvp_security_test.sql #23 | farmer resolves the officer on her own records | `tests/farm_records.rs::names_of_actors_resolve_only_on_visible_records` |
 | 63 | mvp_security_test.sql #24 | farmer cannot resolve unrelated account names | `tests/farm_records.rs::names_of_actors_resolve_only_on_visible_records` |
 | 64 | mvp_security_test.sql #25 | farmer opportunity write denied | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
@@ -222,7 +222,7 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 207 | grant_staff_test.sql #14 | a blank name is refused | N/A because the grant takes an existing member by id, not an email and name; the invite and sign-up flows refuse malformed emails and blank names |
 | 208 | village_create_test.sql #1 | ops creates a village in its own project | `tests/farm_tenancy.rs::ops_creates_a_village_and_a_retry_replays` |
 | 209 | village_create_test.sql #2 | the new village carries its first planned capacity row | `tests/farm_energy.rs::a_village_is_created_with_its_first_planned_capacity` |
-| 210 | village_create_test.sql #3 | a created village has energy figures from the start | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 210 | village_create_test.sql #3 | a created village has energy figures from the start | `tests/farm_pue.rs::a_new_village_has_energy_figures_from_the_start` |
 | 211 | village_create_test.sql #4 | a retried create replays instead of inserting twice | `tests/farm_tenancy.rs::ops_creates_a_village_and_a_retry_replays` |
 | 212 | village_create_test.sql #5 | a village without a planned capacity is refused | `tests/farm_energy.rs::a_village_without_a_planned_capacity_is_refused` |
 | 213 | village_create_test.sql #6 | a duplicate village code in the project is refused | `tests/farm_tenancy.rs::a_duplicate_village_code_is_refused` |
@@ -264,12 +264,12 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 249 | resource_catalogue_test.sql #7 | an officer cannot add a loan listing | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
 | 250 | resource_catalogue_test.sql #8 | a farmer cannot add equipment | `tests/farm_catalogue.rs::a_farmer_reads_equipment_but_cannot_add_it` |
 | 251 | resource_catalogue_test.sql #9 | a farmer can read the loan listings of their project | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 252 | resource_catalogue_test.sql #10 | a machine offered only for sale cannot be requested on rent | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 253 | resource_catalogue_test.sql #11 | a machine offered only on rent cannot be requested to buy | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 254 | resource_catalogue_test.sql #12 | a farmer requests a machine on rent | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 255 | resource_catalogue_test.sql #13 | a submitted request cannot switch between rent and buy | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 256 | resource_catalogue_test.sql #14 | and stays on rent | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 257 | resource_catalogue_test.sql #15 | a rent request adds its rent per day, not a price, to the pipeline | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
+| 252 | resource_catalogue_test.sql #10 | a machine offered only for sale cannot be requested on rent | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
+| 253 | resource_catalogue_test.sql #11 | a machine offered only on rent cannot be requested to buy | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
+| 254 | resource_catalogue_test.sql #12 | a farmer requests a machine on rent | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
+| 255 | resource_catalogue_test.sql #13 | a submitted request cannot switch between rent and buy | N/A because no route edits a request's content: a request keeps the machine, quantity and rent/buy it asked for, so there is no switch to refuse |
+| 256 | resource_catalogue_test.sql #14 | and stays on rent | N/A because no route edits a request's content: a request keeps the machine, quantity and rent/buy it asked for, so there is no switch to refuse |
+| 257 | resource_catalogue_test.sql #15 | a rent request adds its rent per day, not a price, to the pipeline | `tests/farm_pue.rs::the_pipeline_adds_rent_per_day_apart_from_purchase_prices` |
 | 258 | resource_catalogue_test.sql #16 | every seeded request is a purchase | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
 | 259 | supply_attached_by_test.sql #1 | before attaching, the new ops account is no name the officer may see | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
 | 260 | supply_attached_by_test.sql #2 | a supply line records who attached it, not who the client claims | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |

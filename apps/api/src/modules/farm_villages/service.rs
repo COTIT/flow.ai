@@ -16,6 +16,7 @@ use crate::{
 };
 
 const CODE_TAKEN: &str = "The code has already been taken.";
+const ID_TAKEN: &str = "This id is already in use.";
 
 fn require_manager(access: &FarmAccess) -> Result<(), AppError> {
     if access.manages() {
@@ -74,11 +75,13 @@ pub async fn create(
     let id = repo::insert(&mut *tx, ws, &new).await.map_err(|e| {
         match e.as_database_error().and_then(|d| d.constraint()) {
             // Same id in another workspace: not ours to replay.
-            Some("farm_villages_pkey") => AppError::Conflict("This id is already in use."),
+            Some("farm_villages_pkey") => AppError::Conflict(ID_TAKEN),
             _ => AppError::unique(e, "farm_villages_code_key", "code", CODE_TAKEN),
         }
     })?;
-    repo::replace_capacity(&mut tx, ws, id, access.user_id, &input.capacity).await?;
+    repo::replace_capacity(&mut tx, ws, id, access.user_id, &input.capacity)
+        .await
+        .map_err(capacity_error)?;
     let row = repo::find(&mut *tx, ws, id)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -108,13 +111,32 @@ pub async fn update(
     Ok(row)
 }
 
-/// Record a new current capacity for a village; the previous one is kept as history.
+/// A capacity insert error: an id used elsewhere is 409.
+fn capacity_error(e: sqlx::Error) -> AppError {
+    if e.as_database_error().and_then(|d| d.constraint()) == Some("farm_village_capacities_pkey") {
+        AppError::Conflict(ID_TAKEN)
+    } else {
+        AppError::Database(e)
+    }
+}
+
+/// True when a stored capacity row holds what `c` asks for (defaults filled in).
+fn same(row: &CapacityRow, c: &NewCapacity) -> bool {
+    row.capacity_kw == c.capacity_kw
+        && row.basis == c.basis.as_deref().unwrap_or("planned")
+        && row.simultaneity_factor == c.simultaneity_factor.unwrap_or(rust_decimal::Decimal::ONE)
+        && row.source_note == c.source_note
+        && c.effective_from.is_none_or(|d| d == row.effective_from)
+}
+
+/// Record a new current capacity for a village; the previous one is kept as history. A
+/// known client id replays (false) when it is this village's and the figure is the same.
 pub async fn add_capacity(
     state: &AppState,
     access: &FarmAccess,
     village: &str,
     capacity: NewCapacity,
-) -> Result<CapacityRow, AppError> {
+) -> Result<(CapacityRow, bool), AppError> {
     require_manager(access)?;
     let id = Uuid::parse_str(village).map_err(|_| AppError::NotFound)?;
     let ws = access.workspace_id;
@@ -122,7 +144,18 @@ pub async fn add_capacity(
     if !repo::lock(&mut *tx, ws, id).await? {
         return Err(AppError::NotFound);
     }
-    let row = repo::replace_capacity(&mut tx, ws, id, access.user_id, &capacity).await?;
+    if let Some(cid) = capacity.id
+        && let Some((at, row)) = repo::find_capacity(&mut tx, ws, cid).await?
+    {
+        return if at == id && same(&row, &capacity) {
+            Ok((row, false))
+        } else {
+            Err(AppError::Conflict(ID_TAKEN))
+        };
+    }
+    let row = repo::replace_capacity(&mut tx, ws, id, access.user_id, &capacity)
+        .await
+        .map_err(capacity_error)?;
     tx.commit().await?;
-    Ok(row)
+    Ok((row, true))
 }

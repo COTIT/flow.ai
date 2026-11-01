@@ -118,7 +118,9 @@ pub async fn update(
     ),
     request_body = CapacityRequest,
     responses(
+        (status = 200, body = Envelope<CapacityResource>, description = "Replayed: same id, same figure"),
         (status = 201, body = Envelope<CapacityResource>, description = "Recorded"),
+        (status = 409, body = MessageBody, description = "The id holds another figure or village, or is used elsewhere"),
         (status = 403, body = MessageBody, description = "Caller is not ops or admin"),
         (status = 404, body = MessageBody, description = "Unknown workspace or village"),
         (status = 422, body = ValidationErrorBody, description = "Invalid figure (e.g. basis `measured`)"),
@@ -131,6 +133,11 @@ pub async fn add_capacity(
     Path((_, village)): Path<(String, String)>,
     ValidatedJson(input): ValidatedJson<CapacityRequest>,
 ) -> Result<(StatusCode, Data<CapacityResource>), AppError> {
-    let row = service::add_capacity(&state, &access, &village, input).await?;
-    Ok((StatusCode::CREATED, Data(row.into())))
+    let (row, new) = service::add_capacity(&state, &access, &village, input).await?;
+    let status = if new {
+        StatusCode::CREATED
+    } else {
+        StatusCode::OK
+    };
+    Ok((status, Data(row.into())))
 }

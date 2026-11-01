@@ -15,6 +15,7 @@ export interface CapacityResource {
   /** kW as text, 2 decimals. */
   capacity_kw: string;
   effective_from: string;
+  id: string;
   /** Peak = rated power × this factor (0 < f ≤ 1), 3 decimals. */
   simultaneity_factor: string;
   /** @nullable */

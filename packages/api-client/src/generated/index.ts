@@ -17,6 +17,7 @@ export * from './farm-logins/farm-logins';
 export * from './farm-memberships/farm-memberships';
 export * from './farm-passbook/farm-passbook';
 export * from './farm-payouts/farm-payouts';
+export * from './farm-pue/farm-pue';
 export * from './farm-records/farm-records';
 export * from './farm-supply/farm-supply';
 export * from './farm-surveys/farm-surveys';

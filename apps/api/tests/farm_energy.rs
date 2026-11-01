@@ -105,6 +105,23 @@ async fn capacity_can_never_be_recorded_as_measured(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn a_wrongly_typed_capacity_field_is_named(pool: PgPool) {
+    let f = Farm::new(pool).await;
+    for field in ["basis", "source_note", "effective_from"] {
+        let mut capacity = json!({ "capacity_kw": "10" });
+        capacity[field] = json!(5);
+        let body = village_body("019a0000-0000-7000-8000-0000000000b7", capacity);
+        let (status, res) = f.call(Method::POST, "/villages", Some(body), &f.ops).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{field}: {res}");
+        assert!(
+            res["errors"][format!("capacity.{field}")].is_array(),
+            "{field}: {res}"
+        );
+        assert_eq!(res["errors"]["capacity"], Value::Null, "{field}: {res}");
+    }
+}
+
+#[sqlx::test]
 async fn capacity_figures_stay_in_bounds(pool: PgPool) {
     let f = Farm::new(pool).await;
     for (capacity, field) in [
@@ -179,6 +196,53 @@ async fn ops_records_a_new_capacity_and_the_old_one_is_kept(pool: PgPool) {
     );
     let list = f.list("/villages", &f.ops).await;
     assert_eq!(find(&list, &f.ilundo)["capacity"]["capacity_kw"], "600.00");
+}
+
+#[sqlx::test]
+async fn a_retried_capacity_save_records_one_row(pool: PgPool) {
+    let f = Farm::new(pool.clone()).await;
+    let tail = format!("/villages/{}/capacity", f.ilundo);
+    let id = "019a0000-0000-7000-8000-0000000000c1";
+    let body = json!({ "id": id, "capacity_kw": "600", "simultaneity_factor": "0.55" });
+    let (status, res) = f
+        .call(Method::POST, &tail, Some(body.clone()), &f.ops)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(res["data"]["id"], id);
+    let (status, res) = f.call(Method::POST, &tail, Some(body), &f.ops).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["id"], id);
+    assert_eq!(res["data"]["capacity_kw"], "600.00");
+    assert_eq!(
+        capacity_rows(&pool, &f.ilundo).await,
+        vec![("500.00".to_owned(), false), ("600.00".to_owned(), true)]
+    );
+    // Same id, other figure; or the same id aimed at another village.
+    let (status, res) = f
+        .call(
+            Method::POST,
+            &tail,
+            Some(json!({ "id": id, "capacity_kw": "700" })),
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT, "{res}");
+    assert_eq!(res["message"], "This id is already in use.");
+    let mgama = format!("/villages/{}/capacity", f.mgama);
+    let body = json!({ "id": id, "capacity_kw": "600", "simultaneity_factor": "0.55" });
+    let (status, _) = f
+        .call(Method::POST, &mgama, Some(body.clone()), &f.ops)
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    // Another workspace's id.
+    let other = Farm::new_named(pool.clone(), "else.test", "elsewhere").await;
+    let theirs = format!("/villages/{}/capacity", other.ilundo);
+    let (status, res) = other
+        .call(Method::POST, &theirs, Some(body), &other.ops)
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT, "{res}");
+    assert_eq!(capacity_rows(&pool, &f.mgama).await.len(), 1);
+    assert_eq!(capacity_rows(&pool, &other.ilundo).await.len(), 1);
 }
 
 #[sqlx::test]
