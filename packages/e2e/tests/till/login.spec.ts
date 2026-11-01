@@ -110,12 +110,10 @@ test.describe("revoked device key", () => {
     await seedTill(page, { loggedIn: false })
     await page.goto("/login")
     await expect(
-      page
-        .getByRole("alert")
-        .filter({
-          hasText:
-            "This device's key is no longer accepted. Set up the till again.",
-        })
+      page.getByRole("alert").filter({
+        hasText:
+          "This device's key is no longer accepted. Set up the till again.",
+      })
     ).toBeVisible()
     await page.getByRole("button", { name: "Set up again" }).click()
     await expect(page).toHaveURL("/setup")

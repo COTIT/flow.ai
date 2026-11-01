@@ -10,8 +10,6 @@ export type CartLine = {
   name: string
   /** Catalog price excl VAT, minor units: sent as `unit_price`. */
   unitNet: number
-  /** Catalog price incl VAT, minor units: display only. */
-  unitGross: number
   /** shortcut: whole pieces only; weighed goods (2-decimal quantities) need the quote API first. */
   quantity: number
 }
@@ -41,7 +39,9 @@ export const cartStore = createStore<Cart>()((set, get) => ({
       lines:
         i < 0
           ? [...lines, { ...line, quantity: 1 }]
-          : lines.map((l, j) => (j === i ? { ...l, quantity: l.quantity + 1 } : l)),
+          : lines.map((l, j) =>
+              j === i ? { ...l, quantity: l.quantity + 1 } : l
+            ),
     })
   },
   setQuantity: (index, quantity) =>
@@ -74,9 +74,10 @@ export function toSaleLines(lines: CartLine[]): LineRequest[] {
 }
 
 /**
- * The cart's amount before the API has priced it, labelled "≈" on screen.
- * shortcut: catalog gross × pieces until `POST /till/sales/quote` lands; then online shows the quote.
+ * The cart's amount excl VAT before the API has priced it, labelled "≈ excl. VAT" on screen
+ * (VAT is the API's to work out). shortcut: until `POST /till/sales/quote` lands; then online
+ * shows the quote.
  */
 export function estimate(lines: CartLine[]): number {
-  return lines.reduce((sum, l) => sum + l.unitGross * l.quantity, 0)
+  return lines.reduce((sum, l) => sum + l.unitNet * l.quantity, 0)
 }

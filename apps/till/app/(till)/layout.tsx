@@ -69,6 +69,8 @@ export default function TillLayout({ children }: { children: React.ReactNode }) 
           <Link
             key={item.href}
             href={item.href}
+            // No prefetch: a till runs on flaky networks and has two screens.
+            prefetch={false}
             aria-current={pathname.startsWith(item.href) ? "page" : undefined}
             className={cn(
               "shrink-0 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted",
