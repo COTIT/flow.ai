@@ -137,6 +137,18 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - An exact, case-insensitive match on barcode, EAN, vendor barcode or the product id. The literal `Shift` that some scanners type is stripped.
   - Several matches prefer an active product, then the **oldest**, so a later copy (a duplicate, or a planted cheaper product) never shadows the original at the till. Laravel took `first()` after hard-coding warehouses 7 and 8.
 
+## Images `/products/{product}/images`
+
+| Route | Permission | Answer |
+|---|---|---|
+| `GET /` | member | `{data: [{file_id, product_variant_id, position, link}]}` in order; `link` `{url, expires_at}` (null without file storage) |
+| `PUT /` `{images: [{file_id, product_variant_id?}]}` | `product.update`, plus `file.get` when the list isn't empty | the new list |
+
+- At most 20; each file once (`images.N.file_id`: "The file is listed twice.").
+- A file must be a stored `image/*` file of this workspace (422 `images.N.file_id`); a variant must be a live variant of this product (422 `images.N.product_variant_id`).
+- `PUT` replaces the whole list (`[]` removes all) in one transaction and touches the product's `updated_at`.
+- Another workspace's product is 404. The storefront shows these as signed links (`storefront.md`). Table `product_images` (migration `product_images`); the Laravel product resource keeps `images: []`.
+
 ## Variants `/products/{product}/variants`
 
 | Route | Permission | Answer |

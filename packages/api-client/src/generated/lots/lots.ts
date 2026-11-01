@@ -31,7 +31,9 @@ import type {
   EnvelopePassportResource,
   EnvelopePublicLot,
   EnvelopeVecLotFreeStock,
+  FarmerCreditsPage,
   LotsEventsParams,
+  LotsFarmerCreditsParams,
   LotsListParams,
   MessageBody,
   PaginatedLotEventResource,
@@ -589,6 +591,113 @@ export function useLotsEvents<TData = Awaited<ReturnType<typeof lotsEvents>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getLotsEventsQueryOptions(workspace,lot,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Sales and returns of a lot that credited its farmers
+ */
+export const lotsFarmerCredits = (
+    workspace: string,
+    lot: string,
+    params?: LotsFarmerCreditsParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<FarmerCreditsPage>(
+      {url: `/workspace/${workspace}/lots/${lot}/farmer-credits`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getLotsFarmerCreditsQueryKey = (workspace: string,
+    lot: string,
+    params?: LotsFarmerCreditsParams,) => {
+    return [
+    `/workspace/${workspace}/lots/${lot}/farmer-credits`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getLotsFarmerCreditsQueryOptions = <TData = Awaited<ReturnType<typeof lotsFarmerCredits>>, TError = ErrorType<MessageBody>>(workspace: string,
+    lot: string,
+    params?: LotsFarmerCreditsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsFarmerCredits>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLotsFarmerCreditsQueryKey(workspace,lot,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof lotsFarmerCredits>>> = ({ signal }) => lotsFarmerCredits(workspace,lot,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && lot !== null && lot !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof lotsFarmerCredits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LotsFarmerCreditsQueryResult = NonNullable<Awaited<ReturnType<typeof lotsFarmerCredits>>>
+export type LotsFarmerCreditsQueryError = ErrorType<MessageBody>
+
+
+export function useLotsFarmerCredits<TData = Awaited<ReturnType<typeof lotsFarmerCredits>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    lot: string,
+    params: undefined |  LotsFarmerCreditsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsFarmerCredits>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof lotsFarmerCredits>>,
+          TError,
+          Awaited<ReturnType<typeof lotsFarmerCredits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLotsFarmerCredits<TData = Awaited<ReturnType<typeof lotsFarmerCredits>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    lot: string,
+    params?: LotsFarmerCreditsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsFarmerCredits>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof lotsFarmerCredits>>,
+          TError,
+          Awaited<ReturnType<typeof lotsFarmerCredits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLotsFarmerCredits<TData = Awaited<ReturnType<typeof lotsFarmerCredits>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    lot: string,
+    params?: LotsFarmerCreditsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsFarmerCredits>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Sales and returns of a lot that credited its farmers
+ */
+
+export function useLotsFarmerCredits<TData = Awaited<ReturnType<typeof lotsFarmerCredits>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    lot: string,
+    params?: LotsFarmerCreditsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsFarmerCredits>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLotsFarmerCreditsQueryOptions(workspace,lot,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

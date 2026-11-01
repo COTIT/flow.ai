@@ -17,7 +17,7 @@ use crate::{
         farm_supply,
         files::{repo as files, service as files_service},
         lots::{
-            dto::{LotPatch, LotStockLevel, NewLotInput, STATUSES, StockMutation},
+            dto::{LotPatch, LotResource, LotStockLevel, NewLotInput, STATUSES, StockMutation},
             passport::{FileUse, Passport},
             public::{Link, PublicFarmerGroup, PublicLot},
             repo::{self, EventRow, ListFilter, LotRow, NewEvent, PassportRow},
@@ -278,6 +278,51 @@ pub async fn update(
     }
     tx.commit().await?;
     Ok(saved)
+}
+
+/// `rows` as resources, with where each came from (one statement for all).
+pub async fn resources(
+    state: &AppState,
+    workspace_id: Uuid,
+    rows: Vec<LotRow>,
+) -> Result<Vec<LotResource>, AppError> {
+    let ids: Vec<Uuid> = rows.iter().map(|l| l.id).collect();
+    let lineage = repo::lineage(&state.db, workspace_id, &ids).await?;
+    Ok(rows
+        .into_iter()
+        .map(|l| {
+            let g = lineage.iter().find(|g| g.lot_id == l.id);
+            LotResource::new(l, g)
+        })
+        .collect())
+}
+
+/// One lot as a resource, with where it came from.
+pub async fn resource(
+    state: &AppState,
+    workspace_id: Uuid,
+    row: LotRow,
+) -> Result<LotResource, AppError> {
+    let mut v = resources(state, workspace_id, vec![row]).await?;
+    v.pop()
+        .ok_or_else(|| AppError::Internal("lot resource vanished".into()))
+}
+
+/// GET /lots/{lot}/farmer-credits: a page of the farmer credits of this workspace's lot, the
+/// total, and the number of farmer groups its public page shows (None when none).
+pub async fn farmer_credits(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<repo::CreditRow>, i64, Option<i64>), AppError> {
+    let lot = get(state, workspace_id, id).await?;
+    let (rows, total) =
+        repo::farmer_credits(&state.db, workspace_id, lot.id, limit, offset).await?;
+    let groups = farm_supply::service::public_farmers(&state.db, lot.id).await?;
+    let groups = (!groups.is_empty()).then(|| i64::try_from(groups.len()).unwrap_or(i64::MAX));
+    Ok((rows, total, groups))
 }
 
 /// GET /lots/{lot}/events: one page of the trail, newest first.

@@ -13,7 +13,7 @@ use crate::{
     modules::{
         lots::{
             passport::Passport,
-            repo::{EventRow, LotRow, PassportRow},
+            repo::{EventRow, LineageRow, LotRow, PassportRow},
         },
         stock::repo::LEVEL_MAX,
     },
@@ -49,13 +49,72 @@ pub struct LotResource {
     expires_on: Option<NaiveDate>,
     #[schema(required = true)]
     origin: Option<String>,
+    /// The lot this one was packed from; null when not packed here.
+    #[schema(required = true)]
+    parent_lot: Option<LotRef>,
+    /// How it was packed from its parent; null when not packed.
+    #[schema(required = true)]
+    pack: Option<Pack>,
+    /// The supply transfer this lot was received from; null when not received.
+    #[schema(required = true)]
+    received_from: Option<ReceivedFrom>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
-impl From<LotRow> for LotResource {
-    fn from(l: LotRow) -> Self {
+/// Another lot of this workspace.
+#[derive(Serialize, ToSchema)]
+pub struct LotRef {
+    id: Uuid,
+    #[schema(example = "ILU-H-1")]
+    code: String,
+}
+
+/// Kg of the parent used and units made: kg per unit = raw_kg / units.
+#[derive(Serialize, ToSchema)]
+pub struct Pack {
+    /// Decimal string.
+    #[schema(example = "7.50")]
+    raw_kg: String,
+    /// Decimal string.
+    #[schema(example = "10.00")]
+    units: String,
+}
+
+/// The transfer a lot was received from, with the sender's lot codes.
+#[derive(Serialize, ToSchema)]
+pub struct ReceivedFrom {
+    transfer_id: Uuid,
+    from_lot_code: String,
+    from_lot_public_code: String,
+}
+
+impl LotResource {
+    /// `l` with where it came from (`lineage` of the same lot, if read).
+    pub fn new(l: LotRow, lineage: Option<&LineageRow>) -> Self {
+        let parent_lot = lineage.and_then(|g| {
+            Some(LotRef {
+                id: g.parent_id?,
+                code: g.parent_code.clone()?,
+            })
+        });
+        let pack = lineage.and_then(|g| {
+            Some(Pack {
+                raw_kg: g.pack_raw_kg.clone()?,
+                units: g.pack_units.clone()?,
+            })
+        });
+        let received_from = lineage.and_then(|g| {
+            Some(ReceivedFrom {
+                transfer_id: g.transfer_id?,
+                from_lot_code: g.from_lot_code.clone()?,
+                from_lot_public_code: g.from_lot_public_code.clone()?,
+            })
+        });
         Self {
+            parent_lot,
+            pack,
+            received_from,
             id: l.id,
             product_id: l.product_id,
             code: l.code,
@@ -383,4 +442,47 @@ pub struct LotStockLevel {
     /// 2 decimals.
     #[schema(example = "12.50")]
     pub stock_lvl: String,
+}
+
+/// A sale or return of the lot that credited or debited its farmers.
+#[derive(Serialize, ToSchema)]
+pub struct FarmerCreditResource {
+    order_id: Uuid,
+    #[schema(example = "ORD-0042")]
+    order_number: String,
+    /// The till's `client_ref` when a till sold it; null for web and office orders.
+    #[schema(required = true)]
+    till_ref: Option<String>,
+    /// `sale` or `return`.
+    kind: String,
+    /// Units sold (sale), or the change in units returned (return; positive = jars came back).
+    /// Decimal string.
+    #[schema(example = "3.00")]
+    jars: String,
+    at: DateTime<Utc>,
+}
+
+impl From<crate::modules::lots::repo::CreditRow> for FarmerCreditResource {
+    fn from(r: crate::modules::lots::repo::CreditRow) -> Self {
+        Self {
+            order_id: r.order_id,
+            order_number: r.order_number,
+            till_ref: r.till_ref,
+            kind: r.kind,
+            jars: r.jars,
+            at: r.at,
+        }
+    }
+}
+
+/// GET /lots/{lot}/farmer-credits: a page of credits and the farmer groups the public page
+/// shows. No farmer names, ids, kg, prices or amounts.
+#[derive(Serialize, ToSchema)]
+pub struct FarmerCreditsPage {
+    pub data: Vec<FarmerCreditResource>,
+    pub meta: crate::http::list::Meta,
+    /// How many farmer groups (villages) the lot's public page shows, under the supply link's
+    /// allow-list; null when it shows none (no supply lineage, or `village` not shared).
+    #[schema(required = true, example = 1)]
+    pub farmer_groups: Option<i64>,
 }
