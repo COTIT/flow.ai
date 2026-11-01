@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   farmRecordsCropCyclesList,
   farmRecordsFarmsList,
+  farmRecordsHarvestReportsAll,
   farmRecordsHouseholdsList,
   farmRecordsPersonsList,
   farmRecordsPlotsList,
@@ -35,6 +36,7 @@ const QUEUE_LISTS = [
   farmRecordsFarmsList,
   farmRecordsPlotsList,
   farmRecordsCropCyclesList,
+  farmRecordsHarvestReportsAll,
 ]
 
 type CountList = (workspace: string, params: { village_id: string; page_size: number; verification?: string }) => Promise<{ meta: { total: number } }>

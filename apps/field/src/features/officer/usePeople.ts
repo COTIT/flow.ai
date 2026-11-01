@@ -25,18 +25,17 @@ export interface PersonRow {
 
 /**
  * People in the officer's villages — spec 5.3. `GET …/farm/persons` (every page) answers only with
- * what this officer may see; the verification filter is the API's `?verification=`.
+ * what this officer may see; the filters are the API's `?verification=` and `?q=` (name, or phone for staff).
  */
 export async function fetchPeople(search: PeopleSearch): Promise<PersonRow[]> {
   const workspace = workspaceId()
-  const filter = search.verification ? { verification: search.verification } : {}
+  const filter = {
+    ...(search.verification ? { verification: search.verification } : {}),
+    ...(search.q ? { q: search.q } : {}),
+  }
   const people = await allPages((params) => farmRecordsPersonsList(workspace, { ...params, ...filter }))
 
-  // shortcut: the API has no name search yet, so names are matched here over the officer's own people;
-  // move to the API's `?q=` once GET /farm/persons takes one.
-  const term = search.q?.toLowerCase()
   return people
-    .filter((p) => !term || `${p.given_name} ${p.family_name}`.toLowerCase().includes(term))
     .map((p) => ({
       id: p.id,
       given_name: p.given_name,

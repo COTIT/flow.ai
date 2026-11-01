@@ -33,6 +33,7 @@ const voucher = (over: Record<string, unknown> = {}) => ({
   issued_at: '2026-09-20T08:00:00Z',
   expires_at: FUTURE,
   redeemed_at: null,
+  void_reason: null,
   ...over,
 })
 
@@ -174,14 +175,20 @@ describe('a collected voucher', () => {
 })
 
 describe('a cancelled voucher', () => {
-  // vouchers/mine has no void_reason yet, so the reason line is left out rather than shown as "—".
-  test('is marked cancelled, with no reason line and no QR code', () => {
+  test('is marked cancelled with the reason ops gave, and no QR code', () => {
+    given({ row: voucher({ status: 'void', void_reason: 'Duplicate household' }) })
+    render(<VoucherCard voucherId={VOUCHER} />)
+
+    expect(screen.getByTestId('voucher-validity')).toHaveTextContent('Cancelled: Duplicate household')
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.getByTestId('status-pill')).toHaveTextContent('Cancelled')
+  })
+
+  test('without a reason, shows no reason line rather than an empty one', () => {
     given({ row: voucher({ status: 'void' }) })
     render(<VoucherCard voucherId={VOUCHER} />)
 
     expect(screen.queryByTestId('voucher-validity')).not.toBeInTheDocument()
-    expect(screen.queryByRole('img')).not.toBeInTheDocument()
-    expect(screen.getByTestId('status-pill')).toHaveTextContent('Cancelled')
   })
 })
 

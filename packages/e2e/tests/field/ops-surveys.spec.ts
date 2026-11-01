@@ -74,6 +74,8 @@ test("the list shows every survey with its incentive and the API's response coun
   await expect(rows.first()).toContainText("Harvest intentions")
   await expect(rows.first()).toContainText("TZS 5,000.00")
   await expect(rows.first().getByTestId("survey-responses")).toHaveText("3")
+  await expect(rows.first().getByTestId("survey-redeemed")).toHaveText("1 · TZS 5,000.00")
+  await expect(rows.first().getByTestId("survey-outstanding")).toHaveText("1 · TZS 5,000.00")
   await expect(rows.nth(1)).toContainText("Water use")
   await expectNoHorizontalScroll(page)
 })
@@ -93,8 +95,42 @@ test("an admin creates a draft; the typed reward goes as integer minor units", a
   await expect(page.getByTestId("survey-editor")).toBeVisible()
   const created = writes(sent, `POST ${SURVEYS}`)
   expect(created).toHaveLength(1)
-  expect(created[0]?.body).toEqual({ title_en: "Water use", reward_minor: 500000, currency_id: "c-tzs" })
+  expect(created[0]?.body).toEqual({
+    id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    title_en: "Water use",
+    reward_minor: 500000,
+    currency_id: "c-tzs",
+  })
   await expectNoHorizontalScroll(page)
+})
+
+test.describe("a create whose reply was lost", () => {
+  test.use({ allow: { responses: [{ url: `/v1${SURVEYS}`, status: 503 }] } })
+
+  test("is retried with the same client id, and the API's stored survey opens", async ({ page }) => {
+    let calls = 0
+    const sent = await open(page, "/ops/surveys", {
+      effects: {
+        [`POST ${SURVEYS}`]: (routes) => {
+          calls += 1
+          routes[`POST ${SURVEYS}`] =
+            calls === 1 ? { status: 503, body: { message: "service unavailable" } } : { status: 200, body: { data: draftSurvey() } }
+        },
+      },
+    })
+
+    await page.getByTestId("survey-create-open").click()
+    await page.getByTestId("survey-new-title").fill("Water use")
+    await page.getByTestId("survey-new-reward").fill("5000")
+    await page.getByTestId("survey-new-submit").click()
+    await expect(page.getByTestId("survey-create-panel").getByTestId("error-state")).toBeVisible()
+    await page.getByTestId("survey-new-submit").click()
+
+    await expect(page).toHaveURL(new RegExp(`/ops/surveys/${DRAFT}$`))
+    const created = writes(sent, `POST ${SURVEYS}`)
+    expect(created).toHaveLength(2)
+    expect((created[1]?.body as { id: string }).id).toBe((created[0]?.body as { id: string }).id)
+  })
 })
 
 test("an admin adds a question to the draft", async ({ page }) => {
@@ -176,6 +212,7 @@ test("results show the counts and sums the API sent", async ({ page }) => {
   await expect(option).toContainText("In a crib")
   await expect(option).toContainText("2")
   await expect(page.getByTestId("survey-published-by")).toContainText("Amina Admin")
+  await expect(page.getByTestId("survey-created-by")).toHaveText("Created by Amina Admin")
   await expectNoHorizontalScroll(page)
 })
 

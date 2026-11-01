@@ -102,8 +102,7 @@ export function VoucherCard({ voucherId }: { voucherId: string }) {
         </dd>
       </dl>
 
-      {/* shortcut: vouchers/mine has no void_reason, so a cancelled voucher shows only its pill; show the reason once the API sends it. */}
-      {status !== 'void' && (
+      {(status !== 'void' || row.void_reason) && (
         <p data-testid="voucher-validity" className="type-body-strong" style={{ color: 'var(--ink)', textWrap: 'pretty' }}>
           {validityLine(t, row, status, redeemedByName(events))}
         </p>
@@ -145,6 +144,6 @@ function validityLine(
       // The name is the redeemed event's snapshot, never a raw user id.
       return t('voucher.redeemedBy', { date: formatTimestamp(row.redeemed_at), name: redeemer ?? '—' })
     case 'void':
-      return ''
+      return t('voucher.voided', { reason: row.void_reason })
   }
 }
