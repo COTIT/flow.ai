@@ -41,11 +41,10 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
-import { formatMoney } from "@genesy/ui/lib/money"
+import { formatMoney, toMinor } from "@genesy/ui/lib/money"
 import { Field } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
 import { useIdempotencyKey } from "@/lib/idempotency"
-import { toMinor } from "@/lib/money-input"
 
 import { customerName } from "../shared"
 
