@@ -257,21 +257,6 @@ pub async fn move_to(
     Ok(())
 }
 
-/// True when the village belongs to this workspace.
-pub async fn village_exists(
-    db: &sqlx::PgPool,
-    ws: Uuid,
-    village: Uuid,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query_scalar!(
-        r#"SELECT EXISTS (SELECT 1 FROM farm_villages WHERE workspace_id = $1 AND id = $2) AS "e!""#,
-        ws,
-        village,
-    )
-    .fetch_one(db)
-    .await
-}
-
 /// RUAHA `v_village_energy` for one village. Prospective and approved load are never summed;
 /// peak = raw × simultaneity; headroom = capacity − approved peak. Capacity fields are null
 /// for a village without a current capacity row.

@@ -16,6 +16,8 @@ export type Sellable = {
   name: string
   /** Minor units excl VAT: what the sale books as `unit_price`. */
   unitNet: number
+  /** One unit incl VAT as the API priced it: display and the offline estimate only. */
+  unitGross: number | null
   codes: string[]
 }
 
@@ -73,6 +75,7 @@ function sellables(products: TillProduct[]): Sellable[] {
           variantId: v.id,
           name: [p.name, ...v.options.map((o) => o.value)].join(" · "),
           unitNet: v.unit_price,
+          unitGross: v.unit_price_gross,
           codes: [v.ean13, v.barcode, v.sku].filter((c): c is string => !!c),
         }))
       : [
@@ -81,6 +84,7 @@ function sellables(products: TillProduct[]): Sellable[] {
             variantId: null,
             name: p.name,
             unitNet: p.unit_price,
+            unitGross: p.unit_price_gross,
             codes: [p.ean13, p.barcode].filter((c): c is string => !!c),
           },
         ]

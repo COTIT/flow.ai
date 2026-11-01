@@ -1,5 +1,13 @@
 import { expectNoHorizontalScroll } from "../../src/test"
-import { DEVICE_KEY, expect, seedTill, test, TOKEN, WS } from "./fake-till"
+import {
+  DEVICE_KEY,
+  expect,
+  seedTill,
+  session,
+  test,
+  TOKEN,
+  WS,
+} from "./fake-till"
 
 const loginUrl = `/v1/workspace/${WS}/till/login`
 const usersUrl = `/v1/workspace/${WS}/till/login/users`
@@ -117,5 +125,32 @@ test.describe("revoked device key", () => {
     ).toBeVisible()
     await page.getByRole("button", { name: "Set up again" }).click()
     await expect(page).toHaveURL("/setup")
+  })
+})
+
+test("a login stored before the register had a currency is refreshed from /till/me", async ({
+  page,
+  api,
+}) => {
+  api.on("GET", "/workspace/:ws/till/shift", () => ({ data: null }))
+  const { currency, accepted_cash, ...old } = session.register
+  void currency
+  void accepted_cash
+  await page.addInitScript(
+    (v) => localStorage.setItem("genesy.till", v),
+    JSON.stringify({
+      state: {
+        device: { workspaceId: WS, deviceKey: DEVICE_KEY },
+        session: { ...session, register: old },
+      },
+      version: 0,
+    })
+  )
+  await page.goto("/drawer")
+  await expect(page.getByLabel("Pieces of €20.00")).toBeVisible()
+  const saved = await page.evaluate(() => localStorage.getItem("genesy.till"))
+  expect(JSON.parse(saved!).state.session.register.currency).toEqual({
+    code: "EUR",
+    decimals: 2,
   })
 })

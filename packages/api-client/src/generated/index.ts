@@ -22,6 +22,7 @@ export * from './farm-pue/farm-pue';
 export * from './farm-records/farm-records';
 export * from './farm-supply/farm-supply';
 export * from './farm-surveys/farm-surveys';
+export * from './farm-tower/farm-tower';
 export * from './farm-villages/farm-villages';
 export * from './farm-vouchers/farm-vouchers';
 export * from './files/files';

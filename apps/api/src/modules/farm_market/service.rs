@@ -21,6 +21,7 @@ use crate::{
             },
         },
         farm_surveys::repo::currency_exists,
+        farm_tower::service::staff_village,
     },
 };
 
@@ -481,24 +482,6 @@ pub async fn available(
         offset,
     )
     .await?)
-}
-
-/// A village staff read: farmers 403, other villages and unknown ids 404.
-async fn staff_village(
-    state: &AppState,
-    access: &FarmAccess,
-    village: &str,
-) -> Result<Uuid, AppError> {
-    if !access.is_staff() {
-        return Err(AppError::Forbidden(NOT_ALLOWED));
-    }
-    let village = Uuid::parse_str(village).map_err(|_| AppError::NotFound)?;
-    if !access.staff_in(village)
-        || !repo::village_exists(&state.db, access.workspace_id, village).await?
-    {
-        return Err(AppError::NotFound);
-    }
-    Ok(village)
 }
 
 /// Expected, committed and available kg by crop and month for one village.

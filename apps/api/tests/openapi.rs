@@ -1952,3 +1952,21 @@ fn key_and_webhook_lists_are_enums() {
         assert_eq!(*items, to("WebhookEvent"), "{r}.events");
     }
 }
+
+#[test]
+fn every_farm_tower_operation_is_documented() {
+    assert_documented(&[
+        (
+            "/farm/villages/{village}/production",
+            "get",
+            "farm_tower_production",
+            "200",
+        ),
+        (
+            "/farm/villages/{village}/data-quality",
+            "get",
+            "farm_tower_data_quality",
+            "200",
+        ),
+    ]);
+}

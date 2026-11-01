@@ -6685,6 +6685,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_VillageProductionResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/VillageProductionResource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_VillageSupplyResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -6708,6 +6723,18 @@
               "$ref": "#/components/schemas/WorkspaceResource"
             },
             "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_VillageDataQualityResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/VillageDataQualityResource"
           }
         },
         "required": [
@@ -23885,6 +23912,50 @@
         ],
         "type": "object"
       },
+      "VillageDataQualityResource": {
+        "description": "How complete one village's records are (live rows only).",
+        "properties": {
+          "cycles": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "cycles_with_estimate": {
+            "description": "Cycles with a current expected harvest figure.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "farms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "farms_with_gps": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "persons": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "persons_verified": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "village_id",
+          "persons",
+          "persons_verified",
+          "farms",
+          "farms_with_gps",
+          "cycles",
+          "cycles_with_estimate"
+        ],
+        "type": "object"
+      },
       "VillageEnergyResource": {
         "description": "RUAHA `v_village_energy` for one village. kW figures are decimal text; capacity fields are\nnull for a village without a current capacity row.",
         "properties": {
@@ -23962,6 +24033,85 @@
           "headroom_kw",
           "approved_kwh_per_week",
           "approved_assets"
+        ],
+        "type": "object"
+      },
+      "VillageProductionResource": {
+        "description": "One crop in one harvest month of a village.",
+        "properties": {
+          "actual_kg": {
+            "description": "Current actual figures.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "crop_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "cycle_area_ha": {
+            "description": "The SUM OF CYCLE AREAS, not land area: intercropped cycles share a plot.",
+            "example": "1.6000",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cycle_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expected_kg": {
+            "description": "Current expected figures.",
+            "example": "3200.00",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plot_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "tree_count": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "unit_count": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "verified_cycles": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "window_month": {
+            "description": "First day of the harvest month; null for cycles without a harvest window.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "crop_id",
+          "window_month",
+          "cycle_count",
+          "plot_count",
+          "cycle_area_ha",
+          "tree_count",
+          "unit_count",
+          "expected_kg",
+          "actual_kg",
+          "verified_cycles"
         ],
         "type": "object"
       },
@@ -52701,6 +52851,130 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/villages/{village}/data-quality": {
+      "get": {
+        "operationId": "farm_tower_data_quality",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Village id",
+            "in": "path",
+            "name": "village",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_VillageDataQualityResource"
+                }
+              }
+            },
+            "description": "Counts"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown village, or not one of the caller's"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Village data quality",
+        "tags": [
+          "farm_tower"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/villages/{village}/demand-matches": {
       "get": {
         "operationId": "farm_market_village_matches",
@@ -52947,6 +53221,131 @@
         "summary": "Village energy",
         "tags": [
           "farm_pue"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/villages/{village}/production": {
+      "get": {
+        "description": "Staff of the village. Live crop cycles by crop and harvest month, with current expected and actual figures.",
+        "operationId": "farm_tower_production",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Village id",
+            "in": "path",
+            "name": "village",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_VillageProductionResource"
+                }
+              }
+            },
+            "description": "Rows by month"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown village, or not one of the caller's"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Village production",
+        "tags": [
+          "farm_tower"
         ]
       }
     },

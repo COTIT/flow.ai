@@ -71,9 +71,13 @@ test.describe("offline", () => {
     await ringUpCash(page)
 
     await context.setOffline(true)
+    // Offline the cart can't ask for a quote: it shows the labelled estimate (catalog gross × pieces).
+    const cart = page.getByRole("region", { name: "Cart" })
+    await expect(cart.getByText("Estimate (offline)")).toBeVisible()
+    await expect(cart.getByText("≈ €25.00")).toBeVisible()
     await page.getByRole("button", { name: "Charge" }).click()
     const saved = page.getByRole("region", { name: "Saved offline" })
-    await expect(saved.getByText("≈ €22.94")).toBeVisible()
+    await expect(saved.getByText("≈ €25.00")).toBeVisible()
     await expect(page.getByText("1 sale to sync")).toBeVisible()
     await expectNoHorizontalScroll(page)
     expect(api.callsTo("POST", `/workspace/${WS}/till/sales`)).toHaveLength(0)
@@ -149,6 +153,7 @@ async function seedQueue(page: Page) {
         variantId: null,
         name: honey.name,
         unitNet: honey.unit_price,
+        unitGross: honey.unit_price_gross,
         quantity: 1,
       },
     ],
