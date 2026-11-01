@@ -26,6 +26,7 @@ pub mod farm_pue;
 pub mod farm_records;
 pub mod farm_supply;
 pub mod farm_surveys;
+pub mod farm_tower;
 pub mod farm_villages;
 pub mod farm_vouchers;
 pub mod files;

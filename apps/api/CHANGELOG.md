@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Phase 4c step 4, Control Tower (RUAHA `views.sql`; contract `docs/api/farm-tower.md`): `GET /farm/villages/{village}/production` (live cycles by crop and harvest month: counts, cycle area as the sum of cycle areas, trees, units, current expected and actual kg) and `/data-quality` (persons, verified persons, farms, farms with GPS, cycles, cycles with an estimate). Staff of the village; farmers 403. `farm_tower::service::staff_village` is now the one per-village staff check for PUE, market and Tower reads.
 - Commerce follow-up 8b: till catalog rows and variants gain `unit_price_gross` (one unit incl VAT, minor units) from `orders::service::unit_gross`, the order engine's one-line total, so it equals a quantity-1 quote.
 - Commerce follow-up 8, till quote (contract `docs/api/till.md`): `POST /workspace/{workspace}/till/sales/quote` prices a basket with the sale's own code (`till_sales::service::price_sale`, now shared by the sale) and writes nothing. `/till/login` and `/till/me` show the register's `currency {code, decimals}` and `accepted_cash` in minor units (default list now `settings::service::ACCEPTED_CASH`).
 - Phase 4c, PUE additions for the field port (`docs/api/farm-pue.md`; migration `farm_pue_formula`): `POST /farm/pue-requests/estimate` previews the estimate a request would get, writing nothing; the Level 1 formula is now SQL functions shared by the stored estimate's generated columns and the preview. Requests embed `farm {id, label}`. Approve and reject require a decision `note` (422 on `note`).
