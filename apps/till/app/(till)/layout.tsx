@@ -11,6 +11,7 @@ import { Button } from "@genesy/ui/components/button"
 import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
+import { QueueRunner } from "@/components/queue-runner"
 import { tillStore, useTill } from "@/lib/till-store"
 
 const nav = [
@@ -49,6 +50,7 @@ export default function TillLayout({ children }: { children: React.ReactNode }) 
           {" · "}
           {session.user.name}
         </p>
+        <QueueRunner />
         <LocaleSwitcher />
         <ThemeToggle label={t("common.theme")} />
         <Button

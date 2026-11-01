@@ -14,6 +14,7 @@ import type { ShiftResource } from "@genesy/api-client/model"
 import { ApiError } from "@genesy/ui/components/api-error"
 import { Badge } from "@genesy/ui/components/badge"
 import { CountForm } from "@/components/count-form"
+import { pendingCount, useQueue } from "@/lib/sale-queue"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
 
@@ -25,6 +26,8 @@ export default function DrawerPage() {
   const workspace = useTill((s) => s.device?.workspaceId) ?? ""
   const queryClient = useQueryClient()
   const { money } = useTillMoney()
+  // A queued cash sale lands in the shift open when it replays: sync before closing.
+  const waiting = useQueue(pendingCount)
   const [closed, setClosed] = React.useState<ShiftResource | null>(null)
 
   const current = useTillShiftCurrent(workspace)
@@ -94,9 +97,14 @@ export default function DrawerPage() {
             </dd>
           </dl>
           <h2 className="font-medium">{t("closeTitle")}</h2>
+          {waiting ? (
+            <p role="alert" className="text-sm text-destructive">
+              {t("queued", { count: waiting })}
+            </p>
+          ) : null}
           <CountForm
             submitLabel={t("close")}
-            pending={close.isPending}
+            pending={close.isPending || waiting > 0}
             onSubmit={(count) =>
               close.mutate({ workspace, data: { count } })
             }

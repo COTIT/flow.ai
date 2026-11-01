@@ -6,7 +6,7 @@ import { Minus, Plus, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 import { useTillSalesCreate } from "@genesy/api-client/endpoints/till"
-import type { SaleResource } from "@genesy/api-client/model"
+import type { SaleRequest, SaleResource } from "@genesy/api-client/model"
 import { ApiError } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { Input } from "@genesy/ui/components/input"
@@ -20,6 +20,7 @@ import {
   useCart,
   type CartLine,
 } from "@/lib/cart-store"
+import { queueStore } from "@/lib/sale-queue"
 import { useTill } from "@/lib/till-store"
 import { useTillCatalog, type Sellable } from "@/lib/use-catalog"
 import { useTillMoney } from "@/lib/use-money"
@@ -43,6 +44,10 @@ export default function SalePage() {
     sale: SaleResource
     lines: CartLine[]
   } | null>(null)
+  const [saved, setSaved] = React.useState<{
+    lines: CartLine[]
+    tendered: number | null
+  } | null>(null)
 
   const sale = useTillSalesCreate({
     mutation: {
@@ -58,6 +63,46 @@ export default function SalePage() {
   const add = (item: Sellable) => {
     sale.reset()
     cartStore.getState().add(item)
+  }
+
+  /** No answer from the API (offline, or the reply got lost): keep the sale for replay. */
+  const keep = (body: SaleRequest) => {
+    sale.reset()
+    queueStore.getState().add({
+      workspace,
+      body: { ...body, sold_at: new Date().toISOString() },
+      lines,
+    })
+    setSaved({ lines, tendered: body.payment.tendered ?? null })
+    cartStore.getState().clear()
+    setTendered("")
+    setReference("")
+  }
+
+  if (saved) {
+    const total = estimate(saved.lines)
+    return (
+      <section
+        aria-label={t("savedTitle")}
+        className="flex max-w-md flex-col gap-3 rounded-lg border p-4"
+      >
+        <h1 className="text-xl font-medium">{t("savedTitle")}</h1>
+        <p className="text-sm text-muted-foreground">{t("savedHint")}</p>
+        <dl className="grid grid-cols-2 gap-1 text-sm">
+          <dt>{t("estimate")}</dt>
+          <dd className="text-right tabular-nums">≈ {money(total)}</dd>
+          {saved.tendered != null ? (
+            <>
+              <dt>{t("estimatedChange")}</dt>
+              <dd className="text-right tabular-nums">
+                ≈ {money(saved.tendered - total)}
+              </dd>
+            </>
+          ) : null}
+        </dl>
+        <Button onClick={() => setSaved(null)}>{t("newSale")}</Button>
+      </section>
+    )
   }
 
   if (done)
@@ -204,17 +249,19 @@ export default function SalePage() {
                 : null
             setBadTendered(method === "cash" && cash == null)
             if (method === "cash" && cash == null) return
-            sale.mutate({
-              workspace,
-              data: {
-                client_ref: cartStore.getState().startCharge(),
-                lines: toSaleLines(lines),
-                payment:
-                  method === "cash"
-                    ? { method: "cash", tendered: cash }
-                    : { method: "card", reference: reference.trim() || null },
-              },
-            })
+            const body: SaleRequest = {
+              client_ref: cartStore.getState().startCharge(),
+              lines: toSaleLines(lines),
+              payment:
+                method === "cash"
+                  ? { method: "cash", tendered: cash }
+                  : { method: "card", reference: reference.trim() || null },
+            }
+            if (!navigator.onLine) return keep(body)
+            sale.mutate(
+              { workspace, data: body },
+              { onError: (e) => (e.response ? undefined : keep(body)) }
+            )
           }}
         >
           <fieldset className="flex gap-2">

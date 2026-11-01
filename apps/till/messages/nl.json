@@ -43,7 +43,11 @@
     "reference": "Referentie pinbon",
     "badTendered": "Vul het ontvangen bedrag in, bv. 20,00.",
     "toDrawer": "Open de kassalade",
-    "charge": "Afrekenen"
+    "charge": "Afrekenen",
+    "savedTitle": "Offline bewaard",
+    "savedHint": "De kassa is offline. Deze verkoop blijft op dit apparaat en wordt verstuurd zodra er weer verbinding is.",
+    "estimatedChange": "Wisselgeld",
+    "newSale": "Nieuwe verkoop"
   },
   "nav": {
     "label": "Kassamenu",
@@ -65,7 +69,8 @@
     "closedTitle": "Dienst gesloten",
     "short": "Tekort",
     "over": "Overschot",
-    "balanced": "Klopt"
+    "balanced": "Klopt",
+    "queued": "Nog {count, plural, one {# offline verkoop} other {# offline verkopen}} te versturen. Verstuur ze voor het sluiten van de dienst."
   },
   "count": {
     "denomination": "Waarde van rij {n}",
@@ -87,5 +92,17 @@
     "card": "Pinbon",
     "print": "Afdrukken",
     "newSale": "Nieuwe verkoop"
+  },
+  "queue": {
+    "title": "Offline verkopen",
+    "badge": "{count, plural, =0 {Offline verkopen verstuurd} one {# verkoop te versturen} other {# verkopen te versturen}}",
+    "sync": "Nu versturen",
+    "empty": "Geen offline verkopen.",
+    "pending": "Wacht",
+    "done": "Geboekt",
+    "conflict": "Conflict",
+    "review": "Nakijken",
+    "booked": "Verkoop {number}: {due}",
+    "dismiss": "Verbergen"
   }
 }

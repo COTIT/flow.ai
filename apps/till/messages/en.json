@@ -43,7 +43,11 @@
     "reference": "Card slip reference",
     "badTendered": "Enter the cash received, e.g. 20.00.",
     "toDrawer": "Open the drawer",
-    "charge": "Charge"
+    "charge": "Charge",
+    "savedTitle": "Saved offline",
+    "savedHint": "The till is offline. This sale is kept on this device and sent once the connection is back.",
+    "estimatedChange": "Change",
+    "newSale": "New sale"
   },
   "nav": {
     "label": "Till menu",
@@ -65,7 +69,8 @@
     "closedTitle": "Shift closed",
     "short": "Short",
     "over": "Over",
-    "balanced": "Balanced"
+    "balanced": "Balanced",
+    "queued": "{count, plural, one {# offline sale} other {# offline sales}} still to sync. Sync before closing the shift."
   },
   "count": {
     "denomination": "Value of row {n}",
@@ -87,5 +92,17 @@
     "card": "Card slip",
     "print": "Print",
     "newSale": "New sale"
+  },
+  "queue": {
+    "title": "Offline sales",
+    "badge": "{count, plural, =0 {Offline sales synced} one {# sale to sync} other {# sales to sync}}",
+    "sync": "Sync now",
+    "empty": "No offline sales.",
+    "pending": "Waiting",
+    "done": "Booked",
+    "conflict": "Conflict",
+    "review": "Needs review",
+    "booked": "Sale {number}: {due}",
+    "dismiss": "Dismiss"
   }
 }
