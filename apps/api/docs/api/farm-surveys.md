@@ -10,6 +10,7 @@ Only a farm **admin** authors: `POST /surveys`, `PATCH /surveys/{survey}`, and `
 
 | Survey field | Rule |
 |---|---|
+| `id` | create only, optional client-made UUID. A retry with an id this workspace already has answers `200` with the stored survey (the body is not compared); an id used by another workspace is `409 This id is already in use.`; new is `201`. PATCH ignores it. |
 | `title_en` | required, ≤ 200 |
 | `title_sw`, `description_en`, `description_sw` | optional |
 | `reward_minor` | required integer > 0 |
@@ -26,6 +27,8 @@ Questions have `position`, `kind` (`single_choice`, `multi_choice`, `number`, `t
 - **Frozen once live.** Edits get `a live survey cannot be edited`; question changes get `questions can only change while the survey is a draft`. A database trigger enforces both, and the status machine too.
 
 **Who sees surveys:** ops and admin see all of them. Everyone else sees live and closed surveys that are for every village or for one of their own; drafts are `404` to them.
+
+Every survey carries `created_by` and `published_by` (`{id, name}` or null) and `summary`: for staff (field officers, ops, admin) the voucher sums of `/results` (`issued`, `redeemed`, `outstanding` as `{count, minor}`, `expired_count`, `void_count`), for farmers `null`.
 
 ## Answering
 

@@ -817,6 +817,7 @@ export * from './supplyTransferResource';
 export * from './surveyRequest';
 export * from './surveyResource';
 export * from './surveyResults';
+export * from './surveySummary';
 export * from './surveyVoucher';
 export * from './tallyRow';
 export * from './teamCreated';

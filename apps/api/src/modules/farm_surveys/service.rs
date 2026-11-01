@@ -39,6 +39,7 @@ fn scope<'a>(access: &FarmAccess, villages: &'a [Uuid]) -> SurveyScope<'a> {
         ws: access.workspace_id,
         all: access.manages(),
         villages,
+        staff: access.is_staff(),
     }
 }
 
@@ -90,12 +91,20 @@ async fn check_refs(
 }
 
 /// A new draft.
+/// Create a draft; a known client `id` returns the stored survey (`false` = not created).
 pub async fn create(
     state: &AppState,
     access: &FarmAccess,
     i: SurveyInput,
-) -> Result<SurveyRow, AppError> {
+) -> Result<(SurveyRow, bool), AppError> {
     require_admin(access)?;
+    if let Some(id) = i.id {
+        let villages = access.member_villages();
+        let (rows, _) = repo::surveys(&state.db, &scope(access, &villages), Some(id), 1, 0).await?;
+        if let Some(row) = rows.into_iter().next() {
+            return Ok((row, false));
+        }
+    }
     let title = i
         .title_en
         .ok_or_else(|| AppError::field("title_en", "The title en field is required."))?;
@@ -124,9 +133,17 @@ pub async fn create(
     };
     check_refs(state, access, &cols).await?;
     let mut tx = access.begin(&state.db).await?;
-    let id = repo::insert(&mut *tx, access.workspace_id, access.user_id, &cols).await?;
+    let id = repo::insert(&mut *tx, access.workspace_id, access.user_id, i.id, &cols)
+        .await
+        .map_err(
+            |e| match e.as_database_error().and_then(|d| d.constraint()) {
+                // Same id in another workspace: not ours to replay.
+                Some("farm_surveys_pkey") => AppError::Conflict("This id is already in use."),
+                _ => e.into(),
+            },
+        )?;
     tx.commit().await?;
-    get(state, access, id).await
+    Ok((get(state, access, id).await?, true))
 }
 
 /// Change a draft; a live or closed survey is frozen.

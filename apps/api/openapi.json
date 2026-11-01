@@ -15159,7 +15159,7 @@
         "type": "object"
       },
       "PublisherRef": {
-        "description": "Who published a survey.",
+        "description": "Who published (or created) a survey.",
         "properties": {
           "id": {
             "format": "uuid",
@@ -19105,6 +19105,14 @@
               "null"
             ]
           },
+          "id": {
+            "description": "Create only: a client-made id, so a retried create returns the same survey (200).\nIgnored on PATCH.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "max_households": {
             "format": "int32",
             "type": [
@@ -19165,6 +19173,17 @@
             "format": "date-time",
             "type": "string"
           },
+          "created_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublisherRef",
+                "description": "Null for a survey made without a signed-in user."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "description_en": {
             "type": [
               "string",
@@ -19223,6 +19242,17 @@
             "description": "`draft`, `live` or `closed`.",
             "type": "string"
           },
+          "summary": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SurveySummary",
+                "description": "Voucher sums, the same as `/results`. Null for farmers."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "title_en": {
             "type": "string"
           },
@@ -19262,8 +19292,10 @@
           "closed_at",
           "responses",
           "questions",
+          "created_by",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "summary"
         ],
         "type": "object"
       },
@@ -19318,6 +19350,37 @@
           "void_count",
           "tally",
           "numbers"
+        ],
+        "type": "object"
+      },
+      "SurveySummary": {
+        "description": "A survey's voucher sums (money in minor units of the reward currency).",
+        "properties": {
+          "expired_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issued": {
+            "$ref": "#/components/schemas/CountMinor"
+          },
+          "outstanding": {
+            "$ref": "#/components/schemas/CountMinor",
+            "description": "Issued, not expired, not redeemed."
+          },
+          "redeemed": {
+            "$ref": "#/components/schemas/CountMinor"
+          },
+          "void_count": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "issued",
+          "redeemed",
+          "outstanding",
+          "expired_count",
+          "void_count"
         ],
         "type": "object"
       },
@@ -43885,6 +43948,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResource"
+                }
+              }
+            },
+            "description": "Retry with a known id: the stored survey"
+          },
           "201": {
             "content": {
               "application/json": {
@@ -43934,6 +44007,16 @@
               }
             },
             "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id is used outside this workspace"
           },
           "413": {
             "content": {

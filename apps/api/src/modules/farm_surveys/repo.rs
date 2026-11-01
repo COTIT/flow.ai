@@ -24,8 +24,11 @@ pub struct SurveyRow {
     pub published_at: Option<DateTime<Utc>>,
     pub published_by: Option<Value>,
     pub closed_at: Option<DateTime<Utc>>,
+    pub created_by: Option<Value>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Voucher sums as on `/results`; None unless `SurveyScope::staff`.
+    pub summary: Option<Value>,
     /// `[{id, position, kind, prompt_en, prompt_sw, required, options}]`, live questions by position.
     pub questions: Value,
     /// Households that answered.
@@ -37,6 +40,8 @@ pub struct SurveyScope<'a> {
     pub ws: Uuid,
     pub all: bool,
     pub villages: &'a [Uuid],
+    /// Field staff and managers also get the voucher sums.
+    pub staff: bool,
 }
 
 /// Visible surveys (`id` Some = that one), newest first, and the count.
@@ -54,7 +59,27 @@ pub async fn surveys(
                   s.max_households, s.audit_percent, s.closes_at, s.status, s.published_at,
                   (SELECT jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name))
                    FROM users u WHERE u.id = s.published_by) AS published_by,
-                  s.closed_at, s.created_at, s.updated_at,
+                  s.closed_at,
+                  (SELECT jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name))
+                   FROM users u WHERE u.id = s.created_by) AS created_by,
+                  s.created_at, s.updated_at,
+                  -- Same sums as summary() below; CASE skips the subquery for farmers.
+                  CASE WHEN $7 THEN (
+                      SELECT jsonb_build_object(
+                          'issued', jsonb_build_object('count', count(v.id),
+                                                       'minor', coalesce(sum(v.amount_minor), 0)::bigint),
+                          'redeemed', jsonb_build_object(
+                              'count', count(v.id) FILTER (WHERE v.status = 'redeemed'),
+                              'minor', coalesce(sum(v.amount_minor) FILTER (WHERE v.status = 'redeemed'), 0)::bigint),
+                          'outstanding', jsonb_build_object(
+                              'count', count(v.id) FILTER (WHERE v.status = 'issued' AND v.expires_at > now()),
+                              'minor', coalesce(sum(v.amount_minor)
+                                           FILTER (WHERE v.status = 'issued' AND v.expires_at > now()), 0)::bigint),
+                          'expired_count', count(v.id) FILTER (WHERE v.status = 'issued' AND v.expires_at <= now()),
+                          'void_count', count(v.id) FILTER (WHERE v.status = 'void'))
+                      FROM farm_survey_responses r
+                      LEFT JOIN farm_vouchers v ON v.response_id = r.id
+                      WHERE r.survey_id = s.id AND r.deleted_at IS NULL) END AS summary,
                   coalesce((SELECT jsonb_agg(jsonb_build_object('id', q.id, 'position', q.position, 'kind', q.kind,
                                      'prompt_en', q.prompt_en, 'prompt_sw', q.prompt_sw, 'required', q.required,
                                      'options', q.options) ORDER BY q.position, q.id)
@@ -73,6 +98,7 @@ pub async fn surveys(
         id,
         limit,
         offset,
+        s.staff,
     )
     .fetch_all(db)
     .await?;
@@ -104,16 +130,18 @@ pub struct SurveyCols<'a> {
     pub closes_at: Option<DateTime<Utc>>,
 }
 
+/// `id` None = a new uuidv7.
 pub async fn insert(
     db: impl PgExecutor<'_>,
     ws: Uuid,
     by: Uuid,
+    id: Option<Uuid>,
     c: &SurveyCols<'_>,
 ) -> Result<Uuid, sqlx::Error> {
     sqlx::query_scalar!(
-        "INSERT INTO farm_surveys (workspace_id, village_id, title_en, title_sw, description_en, description_sw,
+        "INSERT INTO farm_surveys (id, workspace_id, village_id, title_en, title_sw, description_en, description_sw,
                                    reward_minor, currency_id, max_households, audit_percent, closes_at, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id",
+         VALUES (coalesce($13, uuidv7()), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id",
         ws,
         c.village_id,
         c.title_en,
@@ -126,6 +154,7 @@ pub async fn insert(
         c.audit_percent,
         c.closes_at,
         by,
+        id,
     )
     .fetch_one(db)
     .await
