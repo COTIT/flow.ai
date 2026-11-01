@@ -8,6 +8,7 @@ import { QueryProvider } from "@genesy/api-client/query-provider"
 import { fontSans } from "@genesy/ui/lib/fonts"
 import { cn } from "@genesy/ui/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
+import { TillProvider } from "@/components/till-provider"
 
 export const metadata: Metadata = {
   title: "Genesy Till",
@@ -30,7 +31,9 @@ export default async function RootLayout({
       <body>
         <NextIntlClientProvider>
           <ThemeProvider nonce={nonce}>
-            <QueryProvider>{children}</QueryProvider>
+            <QueryProvider>
+              <TillProvider>{children}</TillProvider>
+            </QueryProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

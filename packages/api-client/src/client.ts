@@ -23,7 +23,9 @@ export function createApiClient({
 
   api.interceptors.request.use((config) => {
     const token = getToken?.()
-    if (token) config.headers.set("Authorization", `Bearer ${token}`)
+    // A call that brings its own credential (e.g. the till's device key) keeps it.
+    if (token && !config.headers.has("Authorization"))
+      config.headers.set("Authorization", `Bearer ${token}`)
     return config
   })
 
