@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ArrowRight, CircleCheckBig, ClipboardList, Package } from 'lucide-react'
+import { ArrowRight, ClipboardList, Package } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -77,7 +77,7 @@ function Queue({
 
 /**
  * Spec 7.1 — the ops home. Queue counts: requests awaiting review, open
- * demands, unverified records.
+ * demands (both API totals).
  */
 export function OpsHomeScreen() {
   const { t } = useTranslation()
@@ -117,18 +117,8 @@ export function OpsHomeScreen() {
           detail={t('opsHome.openDemandsDetail')}
           to="/ops/demand"
         />
-        {/* Verification is the officer's job, and ops may read that queue —
-            SURFACE_ROLES.officer includes ops and admin. */}
-        <Queue
-          testId="ops-queue-verification"
-          icon={<CircleCheckBig aria-hidden size={16} strokeWidth={2.25} style={{ flex: 'none' }} />}
-          rule="var(--ink-3)"
-          action={t('opsHome.openVerifyQueue')}
-          label={t('opsHome.outstandingRecords')}
-          value={data.outstandingRecords}
-          detail={t('opsHome.outstandingRecordsDetail')}
-          to="/officer/verify"
-        />
+        {/* shortcut: "records to verify" is hidden; it would be a client sum of six lists. Restore
+            the /officer/verify queue card when the API counts outstanding records in one figure. */}
       </div>
     </section>
   )

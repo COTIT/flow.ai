@@ -37,7 +37,6 @@ beforeEach(() => {
 const queues = (over: Record<string, unknown> = {}) => ({
   awaitingReview: 2,
   openDemands: 1,
-  outstandingRecords: 14,
   ...over,
 })
 
@@ -70,7 +69,7 @@ describe('OpsHomeScreen states', () => {
     useOpsHome.mockReturnValue({
       isLoading: false,
       error: null,
-      data: queues({ awaitingReview: 0, openDemands: 0, outstandingRecords: 0 }),
+      data: queues({ awaitingReview: 0, openDemands: 0 }),
     })
     render(<OpsHomeScreen />)
 
@@ -81,13 +80,14 @@ describe('OpsHomeScreen states', () => {
 })
 
 describe('OpsHomeScreen content', () => {
-  test('shows all three queue counts', () => {
+  test('shows the queue counts the API totals', () => {
     useOpsHome.mockReturnValue({ isLoading: false, error: null, data: queues() })
     render(<OpsHomeScreen />)
 
     expect(screen.getByTestId('ops-queue-requests')).toHaveTextContent('2')
     expect(screen.getByTestId('ops-queue-demands')).toHaveTextContent('1')
-    expect(screen.getByTestId('ops-queue-verification')).toHaveTextContent('14')
+    // The outstanding count would be a client sum over six lists; hidden until the API totals it.
+    expect(screen.queryByTestId('ops-queue-verification')).not.toBeInTheDocument()
   })
 
   // A count an ops user cannot act on is a statistic. This screen exists to
@@ -101,12 +101,6 @@ describe('OpsHomeScreen content', () => {
       '/ops/requests?status=submitted',
     )
     expect(screen.getByTestId('ops-queue-demands')).toHaveAttribute('href', '/ops/demand')
-    // Verification is the officer's queue, and ops may read it —
-    // SURFACE_ROLES.officer includes ops and admin.
-    expect(screen.getByTestId('ops-queue-verification')).toHaveAttribute(
-      'href',
-      '/officer/verify',
-    )
   })
 })
 
