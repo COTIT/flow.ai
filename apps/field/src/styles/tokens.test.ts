@@ -80,7 +80,7 @@ describe('the delivered tokens reach globals.css', () => {
 describe('the utilities the tests and screens depend on', () => {
   const live = read(LIVE)
 
-  // `EnergyEstimatePanel.test.tsx` reads this class name off an element.
+  // Screen tests read this class name off an element.
   test('the tabular utility keeps its name', () => {
     expect(live).toMatch(/\.tabular\s*\{[^}]*tabular-nums/)
   })

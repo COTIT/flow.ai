@@ -18,24 +18,19 @@ import {
 } from '@/features/ops/transitions'
 import { useOpsRequest, useReviewAction, useVillageEnergy } from '@/features/ops/useOpsRequests'
 import { formatKw, formatKwh, formatTimestamp } from '@/lib/format'
-import { useActorName } from '@/lib/actorNames'
 
 const route = getRouteApi('/_ops/ops/requests/$requestId')
 
 /**
  * Spec 7.3 — the review screen.
  *
- * Offers only legal transitions and surfaces the trigger's message verbatim if
- * one is raised anyway. The status machine itself lives in pue_request_guard;
- * this decides which controls exist, and an "illegal transition" error
- * reaching a user means this screen offered something it should not have.
+ * Offers the transitions the status suggests; the API decides what is allowed
+ * and its refusal is shown as written.
  */
 export function OpsRequestReviewScreen() {
   const { requestId } = route.useParams()
   const { t } = useTranslation()
   const query = useOpsRequest(requestId)
-  // A name, never the raw id: resolved through the scoped provenance lookup.
-  const capturedBy = useActorName(query.request?.captured_by)
   const energy = useVillageEnergy(query.request?.village_id)
   const review = useReviewAction(requestId, query.request?.village_id)
 
@@ -50,7 +45,7 @@ export function OpsRequestReviewScreen() {
     )
   }
 
-  // Zero rows is an answer: RLS says this request is not visible.
+  // Not found is an answer: someone else's request, or none.
   if (!query.request) {
     return <EmptyState title={t('ops.notFoundTitle')} detail={t('ops.notFoundDetail')} />
   }
@@ -77,7 +72,7 @@ export function OpsRequestReviewScreen() {
         breadcrumbs={[{ label: t('nav.requests'), to: '/ops/requests' }, { label: request.equipment_name }]}
       />
       <header className="flex flex-col gap-2.5">
-        <ProvenanceBadge source={request.source} verification={request.verification} confidence={request.confidence} capturedAt={request.captured_at} capturedBy={capturedBy} />
+        <ProvenanceBadge source={request.source} verification={request.verification} confidence={request.confidence} capturedAt={request.captured_at} capturedBy={request.captured_by_name} />
         <dl className="grid gap-x-5 gap-y-1.5 sm:grid-cols-2">
           <Row label={t('ops.applicant')} value={request.applicant} />
           <Row label={t('ops.village')} value={request.village_name} />
@@ -140,7 +135,7 @@ export function OpsRequestReviewScreen() {
                 value={formatKw(energy.data.capacity_kw)}
                 /* Capacity is PLANNED, never measured. The basis is in the
                    cell, not in a row of its own. */
-                pill={t(`capacityBasis.${energy.data.capacity_basis}`)}
+                pill={energy.data.capacity_basis ? t(`capacityBasis.${energy.data.capacity_basis}`) : undefined}
               />
               <Cell
                 label={t('ops.headroom')}
@@ -174,7 +169,7 @@ export function OpsRequestReviewScreen() {
             <dl className="grid gap-x-5 gap-y-1.5 sm:grid-cols-2">
               <Row
                 label={t('ops.simultaneity')}
-                value={String(energy.data.simultaneity_factor)}
+                value={String(energy.data.simultaneity_factor ?? '—')}
               />
             </dl>
           </>

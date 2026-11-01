@@ -7,8 +7,6 @@ const useVillageEnergy = vi.fn()
 const mutate = vi.fn()
 const useReviewAction = vi.fn()
 
-const actorName = vi.fn((_id: string | null | undefined): string | undefined => undefined)
-vi.mock('@/lib/actorNames', () => ({ useActorName: (id: string | null | undefined) => actorName(id) }))
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useParams: () => ({ requestId: 'r1' }) }),
   Link: ({ children, to, ...props }: { children: React.ReactNode; to?: string } & Record<string, unknown>) => (
@@ -26,7 +24,7 @@ await import('@/i18n')
 
 const request = {
   source: 'farmer_reported', verification: 'unverified', confidence: null,
-  captured_at: '2026-09-09T12:00:00Z', captured_by: null,
+  captured_at: '2026-09-09T12:00:00Z', captured_by_name: 'Neema Mwakalinga',
   id: 'r1', village_id: 'v1', applicant: 'Baraka Mgeni', village_name: 'Ilundo', farm_label: 'Kipande',
   equipment_name: 'Grain dryer', purpose: 'Dry maize', status: 'under_review', submitted_at: '2026-09-09T12:00:00Z',
   decision_note: null, decided_at: null,
@@ -79,5 +77,17 @@ describe('OpsRequestReviewScreen', () => {
     await user.type(screen.getByTestId('decision-note'), 'Capacity confirmed')
     await user.click(screen.getByTestId('action-approve'))
     expect(mutate).toHaveBeenCalledWith({ action: 'approve', note: 'Capacity confirmed' })
+  })
+
+  test('names who captured the request, from the API', () => {
+    render(<OpsRequestReviewScreen />)
+    expect(screen.getAllByTestId('provenance-badge')[0].getAttribute('title')).toContain('Neema Mwakalinga')
+  })
+
+  test('a refused transition is shown as the API wrote it', () => {
+    const error = { response: { status: 403, data: { message: 'only ops or admin may review a request' } } }
+    useReviewAction.mockReturnValue({ isPending: false, isError: true, error, mutate, reset: vi.fn() })
+    render(<OpsRequestReviewScreen />)
+    expect(screen.getByTestId('review-error')).toHaveTextContent('only ops or admin may review a request')
   })
 })

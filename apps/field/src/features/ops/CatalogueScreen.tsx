@@ -21,7 +21,7 @@ import { kindOf, type ResourceKind } from '@/features/farmer/resourceKind'
 import { CatalogueCategories } from '@/features/ops/CatalogueCategories'
 import { CatalogueCreatePanel } from '@/features/ops/CatalogueCreatePanel'
 import { formatKw, formatMoney, formatPrice } from '@/lib/format'
-import { PUE_PORTED } from '@/lib/ported'
+import { LOANS_PORTED } from '@/lib/ported'
 
 /** A figure that is genuinely absent reads as absent, never as zero. */
 const DASH = '—'
@@ -44,8 +44,8 @@ export function CatalogueScreen() {
   const { t } = useTranslation()
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  // shortcut: loan listings are not on the API yet, so the loan tab is hidden until PUE_PORTED.
-  const kind = PUE_PORTED ? kindOf(search) : 'equipment'
+  // shortcut: loan listings are not on the API yet, so the loan tab is hidden (LOANS_PORTED).
+  const kind = LOANS_PORTED ? kindOf(search) : 'equipment'
   const [createOpen, setCreateOpen] = useState(false)
 
   const setKind = (next: ResourceKind) => {
@@ -57,7 +57,7 @@ export function CatalogueScreen() {
     <section className="flex flex-col gap-4">
       <PageHeader
         title={t('catalogue.title')}
-        description={<span data-testid="catalogue-note">{t(PUE_PORTED ? 'catalogue.note' : 'equipment.notAQuotation')}</span>}
+        description={<span data-testid="catalogue-note">{t(LOANS_PORTED ? 'catalogue.note' : 'equipment.notAQuotation')}</span>}
         actions={
           <Button
             type="button"
@@ -74,7 +74,7 @@ export function CatalogueScreen() {
       />
 
       {/* A literal anchor for the guided tour, which cannot point at a templated id. */}
-      {PUE_PORTED && (
+      {LOANS_PORTED && (
         <div data-testid="catalogue-kinds" className="w-fit">
           <ResourceTabs value={kind} onChange={setKind} testIdPrefix="catalogue" />
         </div>

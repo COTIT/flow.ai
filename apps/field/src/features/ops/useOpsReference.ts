@@ -189,14 +189,13 @@ export function useCreateVillage() {
 
 /**
  * Record a new current capacity for a village; the previous one stays as history on the API.
- * shortcut: the capacity create takes no client id, so a retry after a lost reply records the same
- * figure twice (harmless: the newest is current); send one when the API accepts it.
+ * `id` is the form's client ref, so a retry after a lost reply replays instead of recording twice.
  */
 export function useSetVillageCapacity() {
   const invalidate = useInvalidateVillages()
   return useMutation({
-    mutationFn: async ({ villageId, capacity }: { villageId: string; capacity: CapacityInput }) =>
-      (await farmVillagesCapacityCreate(workspaceId(), villageId, capacityBody(capacity))).data,
+    mutationFn: async ({ villageId, id, capacity }: { villageId: string; id: string; capacity: CapacityInput }) =>
+      (await farmVillagesCapacityCreate(workspaceId(), villageId, { id, ...capacityBody(capacity) })).data,
     onSuccess: invalidate,
   })
 }

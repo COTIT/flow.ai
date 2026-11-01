@@ -26,6 +26,10 @@ export const PORTED: readonly string[] = [
   '/farm/equipment',
   '/farm/equipment/*',
   '/ops/villages',
+  '/farm/requests',
+  '/farm/requests/*',
+  '/ops/requests',
+  '/ops/requests/*',
 ]
 
 export function isPorted(pathname: string, ported: readonly string[] = PORTED): boolean {
@@ -37,7 +41,7 @@ export function isPorted(pathname: string, ported: readonly string[] = PORTED): 
 export const BUG_REPORTS_PORTED = false
 
 /**
- * Loan listings, PUE requests and their energy estimate are not on the API yet (a later domain):
- * the equipment screens hide their loan tab and request form until then.
+ * shortcut: loan products are not on the API yet, so the equipment and catalogue screens hide their
+ * loan tab; set true (then delete) when `farm/loan-products` exists.
  */
-export const PUE_PORTED = false
+export const LOANS_PORTED = false

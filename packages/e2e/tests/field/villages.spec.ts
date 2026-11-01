@@ -94,6 +94,7 @@ test("ops sets a new capacity for a village", async ({ page }) => {
   await expect(page.getByTestId("village-create-panel")).toHaveCount(0)
   await expect(page.getByTestId("village-row")).toContainText(["600.000 kW"])
   expect(sent.find((s) => s.key === `POST ${VILLAGES}/v1/capacity`)!.body).toEqual({
+    id: expect.stringMatching(UUID),
     capacity_kw: "600",
     basis: "nameplate",
     simultaneity_factor: "1.000",
@@ -101,6 +102,36 @@ test("ops sets a new capacity for a village", async ({ page }) => {
     effective_from: "2026-11-01",
   })
   await expectNoHorizontalScroll(page)
+})
+
+test.describe("a capacity save that fails", () => {
+  test.use({ allow: { responses: [{ url: `/v1${VILLAGES}/v1/capacity`, status: 503 }] } })
+
+  test("is retried with the same client id, so the API replays it", async ({ page }) => {
+    const next = { ...ilundoCapacity, capacity_kw: "600.00" }
+    let calls = 0
+    const sent = await open(page, {
+      effects: {
+        [`POST ${VILLAGES}/v1/capacity`]: (routes) => {
+          calls++
+          routes[`POST ${VILLAGES}/v1/capacity`] =
+            calls === 1 ? { status: 503, body: { message: "Service unavailable." } } : { status: 201, body: { data: next } }
+          if (calls > 1) routes[`GET ${VILLAGES}`] = villageList({ ...ilundo, capacity: next })
+        },
+      },
+    })
+
+    await page.getByTestId("village-set-capacity").click()
+    await page.getByTestId("village-capacity").fill("600")
+    await page.getByTestId("village-create-submit").click()
+    await expect(page.getByTestId("village-create-error")).toBeVisible()
+    await page.getByTestId("village-create-submit").click()
+
+    await expect(page.getByTestId("village-create-panel")).toHaveCount(0)
+    const ids = sent.filter((s) => s.key === `POST ${VILLAGES}/v1/capacity`).map((s) => (s.body as { id: string }).id)
+    expect(ids).toEqual([expect.stringMatching(UUID), ids[0]])
+    await expectNoHorizontalScroll(page)
+  })
 })
 
 test.describe("a refused village", () => {
