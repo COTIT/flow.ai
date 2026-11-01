@@ -43,6 +43,19 @@ use crate::{
 )]
 struct ApiDoc;
 
+/// A string enum schema from a Rust list, so the spec never holds a second copy of it.
+pub fn string_enum<'a>(
+    values: impl IntoIterator<Item = &'a str>,
+    description: &str,
+) -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+    use utoipa::openapi::schema::{ObjectBuilder, Type};
+    ObjectBuilder::new()
+        .schema_type(Type::String)
+        .enum_values(Some(values))
+        .description(Some(description))
+        .into()
+}
+
 /// Registers the `bearer` scheme (user tokens), the `app_key` scheme (`gsk_…` app keys) and
 /// the `till_session` scheme (till tokens), all the same header, that operations list under
 /// `security`.

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Commerce follow-up 1, closed lists as spec enums: `AppKeyKind`, `AppKeyScope` (scopes a key holds, `till:login` included), `AppKeyIssuableScope` (what `/app-keys` issues) and `WebhookEvent`, built from `KINDS`, `SCOPES` and `EVENTS` by `openapi::string_enum`. Wire format, storage and 422 texts unchanged; the TS client gets unions.
 - Phase 4b step 7, returns go back into their lots:
   - **Stock:** `reserve::restock_lots` (new; the unused warehouse-level `restock` is gone) puts an order return's units back on the rows the order took them from, per lot (no-lot units to the no-lot row), through `farm_supply::sale::restock_plan`. A recalled, quarantined or expired lot takes its units back and picking keeps them off sale.
   - **One spread:** stock and farmer debits both use `farm_supply::sale::fill`, which fills takes in take order and never moves units backwards, so the two always match. A returned jar that sells again credits its farmers again.

@@ -12,7 +12,7 @@ Send `Authorization: Bearer gsk_<64 hex>`. The workspace comes from the key, nev
 - Requests count against the private rate limit in a bucket per key, and take the workspace's in-flight slots like a member.
 - `last_used_at` is stamped at most once a minute.
 
-Scopes: `catalog:read` (the storefront). Kinds: `shop`, `till`, `field`, `partner`.
+Scopes: `catalog:read` (the storefront), `checkout:write` (web orders); register keys also hold `till:login`. Kinds: `shop`, `till`, `field`, `partner`. The spec lists them as enums `AppKeyKind`, `AppKeyScope` (any held scope) and `AppKeyIssuableScope` (what this route issues).
 
 Storage: only `sha256(key)` is stored, looked up through a unique index. The plaintext is in the create response and nowhere else.
 
