@@ -24,7 +24,8 @@ fn ids(list: &Value) -> Vec<String> {
 async fn ops_creates_a_village_and_a_retry_replays(pool: PgPool) {
     let f = Farm::new(pool.clone()).await;
     let id = "019a0000-0000-7000-8000-0000000000aa";
-    let body = json!({ "id": id, "code": "IGOMAA", "name": "Igomaa", "latitude": "-7.80", "longitude": "35.60" });
+    let body = json!({ "id": id, "code": "IGOMAA", "name": "Igomaa", "latitude": "-7.80", "longitude": "35.60",
+        "capacity": { "capacity_kw": "120" } });
 
     let (status, res) = f
         .call(Method::POST, "/villages", Some(body.clone()), &f.ops)
@@ -52,7 +53,7 @@ async fn a_duplicate_village_code_is_refused(pool: PgPool) {
         .call(
             Method::POST,
             "/villages",
-            Some(json!({ "code": "ILUNDO", "name": "Again" })),
+            Some(json!({ "code": "ILUNDO", "name": "Again", "capacity": { "capacity_kw": "1" } })),
             &f.ops,
         )
         .await;
@@ -69,7 +70,7 @@ async fn officers_and_farmers_cannot_create_villages(pool: PgPool) {
             .call(
                 Method::POST,
                 "/villages",
-                Some(json!({ "code": "X", "name": "X" })),
+                Some(json!({ "code": "X", "name": "X", "capacity": { "capacity_kw": "1" } })),
                 token,
             )
             .await;
@@ -86,7 +87,7 @@ async fn ops_cannot_create_a_village_in_another_workspace(pool: PgPool) {
         &f.app,
         Method::POST,
         &uri,
-        Some(json!({ "code": "X", "name": "X" })),
+        Some(json!({ "code": "X", "name": "X", "capacity": { "capacity_kw": "1" } })),
         Some(&f.ops),
     )
     .await;

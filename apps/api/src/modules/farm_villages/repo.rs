@@ -1,11 +1,12 @@
-//! farm_villages SQL. Every statement filters `workspace_id`.
+//! farm_villages and farm_village_capacities SQL. Every statement filters `workspace_id`.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
-/// A stored village.
+/// A stored village with its current capacity (all None when it has none or the caller may
+/// not see it).
 pub struct VillageRow {
     pub id: Uuid,
     pub code: String,
@@ -15,6 +16,25 @@ pub struct VillageRow {
     pub primary_language: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub capacity_kw: Option<Decimal>,
+    pub basis: Option<String>,
+    pub simultaneity_factor: Option<Decimal>,
+    pub source_note: Option<String>,
+    pub effective_from: Option<NaiveDate>,
+}
+
+impl VillageRow {
+    /// Same village with its capacity left out.
+    pub fn without_capacity(self) -> Self {
+        Self {
+            capacity_kw: None,
+            basis: None,
+            simultaneity_factor: None,
+            source_note: None,
+            effective_from: None,
+            ..self
+        }
+    }
 }
 
 /// Fields of a new village; `id` None = server picks.
@@ -37,6 +57,24 @@ pub struct VillagePatch {
     pub primary_language: Option<String>,
 }
 
+/// A capacity figure; None = column default (planned, 1.000, today).
+pub struct NewCapacity {
+    pub capacity_kw: Decimal,
+    pub basis: Option<String>,
+    pub simultaneity_factor: Option<Decimal>,
+    pub source_note: Option<String>,
+    pub effective_from: Option<NaiveDate>,
+}
+
+/// A stored capacity row.
+pub struct CapacityRow {
+    pub capacity_kw: Decimal,
+    pub basis: String,
+    pub simultaneity_factor: Decimal,
+    pub source_note: Option<String>,
+    pub effective_from: NaiveDate,
+}
+
 /// One page of villages by code, and the count.
 pub async fn list(
     db: &sqlx::PgPool,
@@ -46,9 +84,14 @@ pub async fn list(
 ) -> Result<(Vec<VillageRow>, i64), sqlx::Error> {
     let rows = sqlx::query_as!(
         VillageRow,
-        "SELECT id, code, name, latitude, longitude, primary_language, created_at, updated_at
-         FROM farm_villages WHERE workspace_id = $1
-         ORDER BY code, id LIMIT $2 OFFSET $3",
+        r#"SELECT v.id, v.code, v.name, v.latitude, v.longitude, v.primary_language,
+                  v.created_at, v.updated_at, c.capacity_kw AS "capacity_kw?", c.basis AS "basis?",
+                  c.simultaneity_factor AS "simultaneity_factor?", c.source_note,
+                  c.effective_from AS "effective_from?"
+           FROM farm_villages v
+           LEFT JOIN farm_village_capacities c ON c.village_id = v.id AND c.is_current
+           WHERE v.workspace_id = $1
+           ORDER BY v.code, v.id LIMIT $2 OFFSET $3"#,
         workspace_id,
         limit,
         offset,
@@ -72,8 +115,13 @@ pub async fn find(
 ) -> Result<Option<VillageRow>, sqlx::Error> {
     sqlx::query_as!(
         VillageRow,
-        "SELECT id, code, name, latitude, longitude, primary_language, created_at, updated_at
-         FROM farm_villages WHERE workspace_id = $1 AND id = $2",
+        r#"SELECT v.id, v.code, v.name, v.latitude, v.longitude, v.primary_language,
+                  v.created_at, v.updated_at, c.capacity_kw AS "capacity_kw?", c.basis AS "basis?",
+                  c.simultaneity_factor AS "simultaneity_factor?", c.source_note,
+                  c.effective_from AS "effective_from?"
+           FROM farm_villages v
+           LEFT JOIN farm_village_capacities c ON c.village_id = v.id AND c.is_current
+           WHERE v.workspace_id = $1 AND v.id = $2"#,
         workspace_id,
         id,
     )
@@ -81,17 +129,32 @@ pub async fn find(
     .await
 }
 
-/// Insert a village.
+/// Lock a village of this workspace for a capacity change; false when it isn't there.
+pub async fn lock(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    Ok(sqlx::query_scalar!(
+        "SELECT id FROM farm_villages WHERE workspace_id = $1 AND id = $2 FOR UPDATE",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(db)
+    .await?
+    .is_some())
+}
+
+/// Insert a village; its id.
 pub async fn insert(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
     v: &NewVillage<'_>,
-) -> Result<VillageRow, sqlx::Error> {
-    sqlx::query_as!(
-        VillageRow,
+) -> Result<Uuid, sqlx::Error> {
+    sqlx::query_scalar!(
         "INSERT INTO farm_villages (id, workspace_id, code, name, latitude, longitude, primary_language)
          VALUES (coalesce($1, uuidv7()), $2, $3, $4, $5, $6, $7)
-         RETURNING id, code, name, latitude, longitude, primary_language, created_at, updated_at",
+         RETURNING id",
         v.id,
         workspace_id,
         v.code,
@@ -110,9 +173,8 @@ pub async fn update(
     workspace_id: Uuid,
     id: Uuid,
     p: &VillagePatch,
-) -> Result<Option<VillageRow>, sqlx::Error> {
-    sqlx::query_as!(
-        VillageRow,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
         "UPDATE farm_villages SET
              code = coalesce($3, code),
              name = coalesce($4, name),
@@ -121,7 +183,7 @@ pub async fn update(
              primary_language = coalesce($9, primary_language),
              updated_at = now()
          WHERE workspace_id = $1 AND id = $2
-         RETURNING id, code, name, latitude, longitude, primary_language, created_at, updated_at",
+         RETURNING id",
         workspace_id,
         id,
         p.code,
@@ -133,5 +195,42 @@ pub async fn update(
         p.primary_language,
     )
     .fetch_optional(db)
+    .await
+}
+
+/// Retire the village's current capacity and record `c` as current. Caller holds the village
+/// lock, so two writers never race for the one current row.
+pub async fn replace_capacity(
+    db: &mut sqlx::PgConnection,
+    workspace_id: Uuid,
+    village_id: Uuid,
+    created_by: Uuid,
+    c: &NewCapacity,
+) -> Result<CapacityRow, sqlx::Error> {
+    sqlx::query!(
+        "UPDATE farm_village_capacities SET is_current = false
+         WHERE workspace_id = $1 AND village_id = $2 AND is_current",
+        workspace_id,
+        village_id,
+    )
+    .execute(&mut *db)
+    .await?;
+    sqlx::query_as!(
+        CapacityRow,
+        "INSERT INTO farm_village_capacities (workspace_id, village_id, capacity_kw, basis,
+             simultaneity_factor, source_note, effective_from, created_by)
+         VALUES ($1, $2, $3, coalesce($4, 'planned'), coalesce($5, 1.000), $6,
+                 coalesce($7, current_date), $8)
+         RETURNING capacity_kw, basis, simultaneity_factor, source_note, effective_from",
+        workspace_id,
+        village_id,
+        c.capacity_kw,
+        c.basis,
+        c.simultaneity_factor,
+        c.source_note,
+        c.effective_from,
+        created_by,
+    )
+    .fetch_one(&mut *db)
     .await
 }

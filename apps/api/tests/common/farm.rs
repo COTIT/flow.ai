@@ -78,14 +78,21 @@ impl Farm {
             .unwrap()
     }
 
-    /// Owner creates a village; returns its id.
+    /// Owner creates a village with RUAHA's demo capacity (Ilundo 500 kW × 0.600, others
+    /// 150 kW × 0.650); returns its id.
     pub async fn village(&self, code: &str, name: &str) -> String {
+        let (kw, factor) = if code == "ILUNDO" {
+            ("500", "0.600")
+        } else {
+            ("150", "0.650")
+        };
         let (status, res) = self
             .call(
                 Method::POST,
                 "/villages",
                 Some(
-                    json!({ "code": code, "name": name, "latitude": "-7.7", "longitude": "35.7" }),
+                    json!({ "code": code, "name": name, "latitude": "-7.7", "longitude": "35.7",
+                    "capacity": { "capacity_kw": kw, "simultaneity_factor": factor } }),
                 ),
                 &self.owner,
             )

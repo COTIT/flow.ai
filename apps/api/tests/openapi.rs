@@ -1257,6 +1257,38 @@ fn every_farm_tenancy_operation_is_documented() {
             "farm_memberships_revoke",
             "204",
         ),
+        (
+            "/farm/villages/{village}/capacity",
+            "post",
+            "farm_villages_capacity_create",
+            "201",
+        ),
+    ]);
+}
+
+#[test]
+fn every_farm_catalogue_operation_is_documented() {
+    assert_documented(&[
+        (
+            "/farm/equipment-categories",
+            "get",
+            "farm_equipment_categories_list",
+            "200",
+        ),
+        (
+            "/farm/equipment-categories",
+            "post",
+            "farm_equipment_categories_create",
+            "201",
+        ),
+        ("/farm/equipment", "get", "farm_equipment_list", "200"),
+        ("/farm/equipment", "post", "farm_equipment_create", "201"),
+        (
+            "/farm/equipment/{equipment}",
+            "get",
+            "farm_equipment_get",
+            "200",
+        ),
     ]);
 }
 

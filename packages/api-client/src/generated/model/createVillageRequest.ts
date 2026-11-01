@@ -5,11 +5,14 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { CapacityRequest } from './capacityRequest';
 
 /**
  * New village. Send a client-made `id` to make retries safe: a repeat with the same id returns the existing village.
  */
 export interface CreateVillageRequest {
+  /** Required: the village's first planned capacity. */
+  capacity: CapacityRequest;
   /** @maxLength 32 */
   code: string;
   /** @nullable */
