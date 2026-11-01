@@ -16,6 +16,8 @@ import {
   useCreateLoanProduct,
   useEquipmentCategories,
 } from '@/features/ops/useCatalogue'
+import { amountToMinor } from '@/features/ops/surveys/figures'
+import { useCurrencies } from '@/features/ops/surveys/useSurveyAdmin'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
@@ -62,7 +64,6 @@ function numberError(value: string, required = false): string | undefined {
   return Number.isFinite(Number(text)) ? undefined : 'catalogue.notANumber'
 }
 
-const numberOrNull = (value: string) => (value.trim() === '' ? null : Number(value.trim()))
 const textOrNull = (value: string) => (value.trim() === '' ? null : value.trim())
 
 const equipmentSchema = z.object({
@@ -79,6 +80,14 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
   const { t } = useTranslation()
   const create = useCreateEquipment()
   const categories = useEquipmentCategories()
+  // shortcut: prices are in the account's default currency (the labels say TZS); add a currency
+  // picker when an account prices equipment in more than one.
+  const currencies = useCurrencies().data ?? []
+  const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
+  /** Integer minor units of the currency, by string maths; null when blank or not an amount. */
+  const minor = (text: string) => (text.trim() === '' ? null : amountToMinor(text.trim(), currency?.decimals ?? 0))
+  const priceError = (text: string) =>
+    numberError(text) ?? (text.trim() !== '' && minor(text) === null ? 'catalogue.notANumber' : undefined)
   const draft = usePersistentForm('catalogue-equipment-create', projectId ?? 'project', EQUIPMENT_DEFAULTS, zodResolver(equipmentSchema))
   const [code, setCode] = draft.field('code')
   const [nameEn, setNameEn] = draft.field('nameEn')
@@ -102,31 +111,32 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
     power: numberError(power),
     hours: numberError(hours),
     days: numberError(days),
-    'buy-price': numberError(price),
-    'rent-price': numberError(rent),
+    'buy-price': priceError(price),
+    'rent-price': priceError(rent),
   }
   const shown = (key: keyof typeof errors) => (touched && errors[key] ? t(errors[key]!) : undefined)
 
   const submit = () => {
     if (inFlight.current || create.isPending || !draft.ready) return
     setTouched(true)
-    if (Object.values(errors).some(Boolean) || !projectId) return
+    if (Object.values(errors).some(Boolean) || !currency) return
 
     inFlight.current = true
+    // Figures go as the decimal text typed, money as integer minor units: no floats.
     void finishDraftWhenSaved(create.mutateAsync({
       id: draft.clientRef,
-      project_id: projectId,
       category_id: categoryId,
       code: code.trim(),
       name_en: nameEn.trim(),
       name_sw: nameSw.trim(),
-      rated_power_kw: numberOrNull(power),
-      typical_hours_per_day: numberOrNull(hours),
-      typical_days_per_week: numberOrNull(days),
+      rated_power_kw: textOrNull(power),
+      typical_hours_per_day: textOrNull(hours),
+      typical_days_per_week: textOrNull(days),
       can_rent: canRent === 'true',
       can_buy: canBuy === 'true',
-      indicative_price: numberOrNull(price),
-      indicative_rent_per_day: numberOrNull(rent),
+      indicative_price_minor: minor(price),
+      indicative_rent_per_day_minor: minor(rent),
+      currency_id: currency.id,
     }), draft.finish).finally(() => { inFlight.current = false })
   }
 
@@ -143,7 +153,7 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
   )
 
   return (
-    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} ready={draft.ready}>
+    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} ready={draft.ready && Boolean(currency)}>
       <Field label={t('catalogue.code')} id="catalogue-code" error={shown('code')} errorTestId="catalogue-code-error">
         {input('code', code, setCode)}
       </Field>

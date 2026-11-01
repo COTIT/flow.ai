@@ -214,7 +214,7 @@
 
 @layer utilities {
   /* Figures stack in tables and Tower tiles. Non-negotiable per spec §14.
-     `EnergyEstimatePanel.test.tsx` reads this class name off an element. */
+     Screen tests read this class name off an element. */
   .tabular {
     font-variant-numeric: tabular-nums;
   }

@@ -9,7 +9,8 @@ import { IndicativePill, Loading } from '@/components/controls'
 import { kindOf } from '@/features/farmer/resourceKind'
 import { useEquipmentList, type EquipmentItem } from '@/features/farmer/useEquipment'
 import { useLoanProducts } from '@/features/farmer/useResources'
-import { formatKw, formatMoney } from '@/lib/format'
+import { formatKw, formatMoney, formatPrice } from '@/lib/format'
+import { LOANS_PORTED } from '@/lib/ported'
 
 const route = getRouteApi('/_farmer/farm/equipment/')
 
@@ -30,22 +31,25 @@ export function EquipmentListScreen() {
   const { t } = useTranslation()
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const kind = kindOf(search)
+  // shortcut: loan listings are not on the API yet, so the loan tab is hidden (LOANS_PORTED).
+  const kind = LOANS_PORTED ? kindOf(search) : 'equipment'
 
   return (
     <section className="flex flex-col gap-3.5" data-testid="equipment-list">
       <header className="flex flex-col gap-1.5">
-        <h1 className="type-screen-title">{t('resources.title')}</h1>
+        <h1 className="type-screen-title">{t(LOANS_PORTED ? 'resources.title' : 'equipment.title')}</h1>
         <p style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink-2)', textWrap: 'pretty' }}>
           {t(kind === 'loan' ? 'resources.loanNote' : 'equipment.notAQuotation')}
         </p>
       </header>
 
-      <ResourceTabs
-        value={kind}
-        onChange={(next) => void navigate({ search: next === 'loan' ? { kind: 'loan' } : {} })}
-        testIdPrefix="resources"
-      />
+      {LOANS_PORTED && (
+        <ResourceTabs
+          value={kind}
+          onChange={(next) => void navigate({ search: next === 'loan' ? { kind: 'loan' } : {} })}
+          testIdPrefix="resources"
+        />
+      )}
 
       {kind === 'equipment' ? <EquipmentCards /> : <LoanCards />}
     </section>
@@ -92,7 +96,7 @@ function EquipmentCards() {
 
 /** "The word indicative appears next to every price" — and every rent. */
 function EquipmentPrices({ item }: { item: EquipmentItem }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   return (
     <span className="flex flex-col items-end gap-1">
       {item.can_buy && item.indicative_price !== null && (
@@ -101,7 +105,7 @@ function EquipmentPrices({ item }: { item: EquipmentItem }) {
           className="tabular inline-flex flex-wrap items-center justify-end gap-2"
           style={{ fontSize: 15, fontWeight: 600 }}
         >
-          {formatMoney(item.indicative_price, item.currency)}
+          {formatPrice(item.indicative_price, i18n.language)}
           <IndicativePill />
         </span>
       )}
@@ -111,7 +115,7 @@ function EquipmentPrices({ item }: { item: EquipmentItem }) {
           className="tabular inline-flex flex-wrap items-center justify-end gap-2"
           style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-2)' }}
         >
-          {t('resources.rentPerDay')}: {formatMoney(item.indicative_rent_per_day, item.currency)}
+          {t('resources.rentPerDay')}: {formatPrice(item.indicative_rent_per_day, i18n.language)}
           <IndicativePill />
         </span>
       )}

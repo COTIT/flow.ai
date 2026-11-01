@@ -15,6 +15,8 @@ import {
   ClipboardList,
   ClipboardCheck,
   ScanLine,
+  Link2,
+  Truck,
 } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -51,6 +53,8 @@ const ICON: Record<string, ComponentType<{ size?: number; strokeWidth?: number }
   '/ops/buyers': Briefcase,
   '/ops/villages': MapPin,
   '/ops/surveys': ClipboardCheck,
+  '/ops/supply-links': Link2,
+  '/ops/dispatch': Truck,
   '/ops/tower': Gauge,
 }
 

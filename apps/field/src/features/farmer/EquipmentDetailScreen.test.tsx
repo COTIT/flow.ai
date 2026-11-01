@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 const useSession = vi.fn()
 const useEquipmentItem = vi.fn()
 const mutateAsync = vi.fn()
+const tzs = (minor: number) => ({ minor, currency: 'TZS', decimals: 2, currency_id: 'c1' })
 
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useParams: () => ({ equipmentId: 'eq1' }) }),
@@ -59,8 +60,7 @@ beforeEach(() => {
       name: 'Mill',
       category_name: 'Processing',
       rated_power_kw: 15,
-      indicative_price: 1000,
-      currency: 'TZS',
+      indicative_price: tzs(100000),
       typical_hours_per_day: 6,
       typical_days_per_week: 5,
       can_rent: false,
@@ -84,24 +84,21 @@ describe('the request form as it arrives', () => {
     expect(screen.getByTestId('request-days')).toHaveValue('5')
   })
 
-  test('shows the estimate for those values', () => {
+  // The estimate is the API's (computed when the request is stored), never worked out here.
+  test('computes no estimate of its own', () => {
     render(<EquipmentDetailScreen />)
-    expect(screen.getByTestId('estimate-panel')).toBeInTheDocument()
+    expect(screen.queryByTestId('estimate-panel')).not.toBeInTheDocument()
   })
 
-  test('submits the numbers that were shown', async () => {
+  test('submits the numbers that were shown, with the draft’s client id and no person', async () => {
     render(<EquipmentDetailScreen />)
     submit()
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
-    expect(mutateAsync.mock.calls[0][0]).toMatchObject({
-      villageId: VILLAGE,
-      personId: 'p1',
-      equipmentId: 'eq1',
-      quantity: 1,
-      hoursPerDay: 6,
-      daysPerWeek: 5,
-    })
+    const sent = mutateAsync.mock.calls[0][0]
+    expect(sent).toMatchObject({ equipmentId: 'eq1', quantity: '1', hoursPerDay: '6', daysPerWeek: '5' })
+    expect(sent.id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(sent).not.toHaveProperty('personId')
   })
 
   test('a purpose of spaces is not stored as a space', async () => {
@@ -189,78 +186,6 @@ describe('impossible assumptions are refused before the round trip', () => {
   })
 })
 
-/**
- * The finding's real complaint: not just that 99 was accepted, but that the
- * screen computed 1,485 kWh/day from it and presented that as an answer.
- */
-describe('the estimate does not compute from impossible inputs', () => {
-  test('an out-of-range hour count replaces the figures with a reason', () => {
-    render(<EquipmentDetailScreen />)
-    set('request-hours', '99')
-
-    expect(screen.queryByTestId('estimate-panel')).not.toBeInTheDocument()
-    expect(screen.getByTestId('estimate-blocked')).toBeInTheDocument()
-  })
-
-  test('so does a blank one', () => {
-    render(<EquipmentDetailScreen />)
-    set('request-days', '')
-
-    expect(screen.queryByTestId('estimate-panel')).not.toBeInTheDocument()
-  })
-
-  test('and the figures come back when the inputs make sense again', () => {
-    render(<EquipmentDetailScreen />)
-    set('request-hours', '99')
-    expect(screen.queryByTestId('estimate-panel')).not.toBeInTheDocument()
-
-    set('request-hours', '8')
-    expect(screen.getByTestId('estimate-panel')).toBeInTheDocument()
-    expect(screen.queryByTestId('estimate-blocked')).not.toBeInTheDocument()
-  })
-
-  test('an unanswered field is asked for, not reported as an error', () => {
-    render(<EquipmentDetailScreen />)
-    set('request-hours', '')
-
-    const blocked = screen.getByTestId('estimate-blocked')
-    expect(blocked).toHaveTextContent(/fill in/i)
-    expect(blocked).not.toHaveTextContent(/0\.000/)
-  })
-
-  /**
-   * QA #32. The copy assumed emptiness: at 99 hours it read "Fill in how many,
-   * hours per day and days per week", when the fields ARE filled and one value
-   * is simply impossible. It told the farmer to do something they had already
-   * done.
-   */
-  test('an answered but impossible field says that, not "fill it in"', () => {
-    render(<EquipmentDetailScreen />)
-    set('request-hours', '99')
-
-    const blocked = screen.getByTestId('estimate-blocked')
-    expect(blocked).not.toHaveTextContent(/fill in/i)
-    expect(blocked).toHaveTextContent(/cannot be estimated|not possible/i)
-  })
-
-  test('and the same for a number that is not a number', () => {
-    render(<EquipmentDetailScreen />)
-    set('request-quantity', 'abc')
-
-    expect(screen.getByTestId('estimate-blocked')).not.toHaveTextContent(/fill in/i)
-  })
-
-  // A blank AND an impossible value together: the blank is the thing the
-  // farmer can act on first.
-  test('a blank alongside an impossible value is still asked for', () => {
-    render(<EquipmentDetailScreen />)
-    set('request-hours', '99')
-    set('request-days', '')
-
-    expect(screen.getByTestId('estimate-blocked')).toHaveTextContent(/fill in/i)
-  })
-})
-
 /** QA #23, on the farmer's side of the same pattern. */
 describe('the request form in flight', () => {
   test('a second submit in the same tick does not send a second request', async () => {
@@ -325,7 +250,7 @@ describe('rent or buy', () => {
       error: null,
       item: {
         id: 'eq1', name: 'Mill', category_name: 'Processing', rated_power_kw: 15,
-        indicative_price: 1000, indicative_rent_per_day: 50, currency: 'TZS',
+        indicative_price: tzs(100000), indicative_rent_per_day: tzs(5000),
         typical_hours_per_day: 6, typical_days_per_week: 5, ...over,
       },
     })

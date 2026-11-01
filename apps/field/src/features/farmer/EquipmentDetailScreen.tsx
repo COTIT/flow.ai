@@ -1,13 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, getRouteApi } from '@tanstack/react-router'
-import { useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 
-import { activeMemberships, ownVillageId } from '@/app/membership'
-import { useSession } from '@/app/session'
 import { EmptyState } from '@/components/EmptyState'
-import { EnergyEstimatePanel } from '@/components/EnergyEstimatePanel'
 import { ErrorState } from '@/components/ErrorState'
 import { IndicativePill, Loading } from '@/components/controls'
 import { BangMark } from '@/components/marks'
@@ -15,7 +11,7 @@ import { useEquipmentItem } from '@/features/farmer/useEquipment'
 import { requestSchema, type RequestForm } from '@/features/farmer/requestSchema'
 import { z } from 'zod'
 import { useSubmitRequest } from '@/features/farmer/useRequests'
-import { formatKw, formatMoney } from '@/lib/format'
+import { formatKw, formatPrice } from '@/lib/format'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 import { FormDraftStatus } from '@/components/FormDraftStatus'
@@ -35,37 +31,24 @@ const EMPTY: RequestDraft = {
   acquisition: '',
 }
 
-/**
- * The persisted form carries `acquisition` beside the estimate's inputs. It is
- * not part of `requestSchema`, which also gates the live estimate: a machine
- * draws the same power rented or owned, so an unanswered choice must not
- * withhold the estimate.
- */
+/** The persisted form carries `acquisition` beside the request's figures. */
 const draftSchema = requestSchema.extend({ acquisition: z.string() })
 
 const isAcquisition = (value: string): value is Acquisition => value === 'rent' || value === 'buy'
 
 /**
- * Spec 6.4 — detail plus the request form, with a live estimate.
- *
- * The estimate shown here is a PREVIEW. pue_recompute_estimate writes the
- * stored row, and the request detail reads that stored figure rather than
- * recomputing — so the two can be compared instead of assumed equal.
- *
- * The inputs are bounded by `requestSchema` (QA #9). The estimate is only
- * computed from inputs that pass it: the finding's real complaint was not that
- * 99 hours was accepted, but that the screen computed a confident
- * 1,485 kWh/day from it and presented that as an answer.
+ * Spec 6.4 — detail plus the request form. The energy estimate is the API's:
+ * computed when the request is stored and shown on the request's own screen,
+ * never worked out here. The inputs are bounded by `requestSchema` (QA #9).
  */
 export function EquipmentDetailScreen() {
   const { equipmentId } = route.useParams()
-  const { t } = useTranslation()
-  const session = useSession()
+  const { t, i18n } = useTranslation()
   const query = useEquipmentItem(equipmentId)
   const submit = useSubmitRequest()
 
   const draft = usePersistentForm<RequestDraft>('equipment-request', equipmentId, EMPTY, zodResolver(draftSchema))
-  const { handleSubmit, control, reset, formState: { errors, isSubmitting } } = draft
+  const { handleSubmit, reset, formState: { errors, isSubmitting } } = draft
   const [quantity, setQuantity] = draft.field('quantity')
   const [hoursPerDay, setHoursPerDay] = draft.field('hours_per_day')
   const [daysPerWeek, setDaysPerWeek] = draft.field('days_per_week')
@@ -100,26 +83,9 @@ export function EquipmentDetailScreen() {
     if (draft.ready && only && acquisition !== only) setAcquisition(only)
   }, [draft.ready, only, acquisition, setAcquisition])
 
-  // Subscribed so the estimate recalculates live, and so it can be withheld
-  // while the assumptions behind it are not possible. `useWatch` rather than
-  // `watch()` because the latter returns a fresh object on every render.
-  const values = useWatch({ control })
-  const parsed = requestSchema.safeParse(values)
-
-  /**
-   * QA #32. A withheld estimate has two quite different causes, and telling a
-   * farmer to "fill in hours per day" when they have just typed 99 into it
-   * asks them to do something they have already done.
-   *
-   * A blank is the one they can act on first, so it wins when both are true.
-   */
-  const anythingBlank =
-    !parsed.success &&
-    parsed.error.issues.some((issue) => issue.message === 'equipment.required')
-
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
 
-  if (query.isLoading || session.isLoading) {
+  if (query.isLoading) {
     return <Loading testId="equipment-detail-loading" />
   }
 
@@ -127,10 +93,6 @@ export function EquipmentDetailScreen() {
   if (!item) {
     return <EmptyState title={t('equipment.notFoundTitle')} detail={t('equipment.notFoundDetail')} />
   }
-
-  const memberships = activeMemberships(session.data?.memberships ?? [])
-  const villageId = ownVillageId(memberships)
-  const personId = session.data?.appUser?.person_id ?? undefined
 
   if (submit.isSuccess) {
     return (
@@ -161,8 +123,6 @@ export function EquipmentDetailScreen() {
     )
   }
 
-  const canRequest = Boolean(villageId && personId)
-
   /**
    * QA #23. `isSubmitting` is react-hook-form's own in-flight flag and it is
    * set synchronously when the handler starts, which `submit.isPending` is
@@ -179,14 +139,12 @@ export function EquipmentDetailScreen() {
     }
     void finishDraftWhenSaved(submit.mutateAsync({
       acquisition: form.acquisition,
+      // Made when the form opened and kept with the draft, so a retry is the same request.
       id: draft.clientRef,
-      actorId: session.data!.userId,
-      villageId: villageId!,
-      personId: personId!,
       equipmentId: item.id,
-      quantity: Number(form.quantity),
-      hoursPerDay: Number(form.hours_per_day),
-      daysPerWeek: Number(form.days_per_week),
+      quantity: form.quantity,
+      hoursPerDay: form.hours_per_day,
+      daysPerWeek: form.days_per_week,
       purpose: form.purpose,
     }), draft.finish)
   })
@@ -231,7 +189,7 @@ export function EquipmentDetailScreen() {
                 <IndicativePill />
               </span>
               <span className="tabular font-semibold" style={{ fontSize: 17 }}>
-                {formatMoney(item.indicative_price, item.currency)}
+                {formatPrice(item.indicative_price, i18n.language)}
               </span>
             </span>
           )}
@@ -242,7 +200,7 @@ export function EquipmentDetailScreen() {
                 <IndicativePill />
               </span>
               <span className="tabular font-semibold" style={{ fontSize: 17 }}>
-                {formatMoney(item.indicative_rent_per_day, item.currency)}
+                {formatPrice(item.indicative_rent_per_day, i18n.language)}
               </span>
             </span>
           )}
@@ -258,9 +216,7 @@ export function EquipmentDetailScreen() {
 
       <form className="flex flex-col gap-4" noValidate onSubmit={onSubmit}>
         <FormDraftStatus dirty={draft.dirty} storageError={draft.storageError} />
-        {/* Everything the person is invited to change, and the estimate that answers it —
-            one anchor for the guided tour, which cuts a spotlight around it. The submit
-            button is deliberately outside. */}
+        {/* Everything the person is invited to change. The submit button is deliberately outside. */}
         <div className="flex flex-col gap-4">
           <fieldset data-testid="equipment-acquisition" className="flex flex-col gap-2">
             <legend style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
@@ -382,32 +338,6 @@ export function EquipmentDetailScreen() {
             </div>
           </div>
 
-          {/* Recalculates live as the assumptions change — but only from
-              assumptions that could be true. A figure computed from 99 hours a
-              day is not an estimate, it is a wrong answer stated confidently. */}
-          {parsed.success ? (
-            <EnergyEstimatePanel
-              ratedPowerKw={item.rated_power_kw ?? 0}
-              quantity={Number(parsed.data.quantity)}
-              hoursPerDay={Number(parsed.data.hours_per_day)}
-              daysPerWeek={Number(parsed.data.days_per_week)}
-            />
-          ) : (
-            <div data-testid="estimate-blocked">
-              <EmptyState
-                title={t(
-                  anythingBlank
-                    ? 'equipment.estimateBlockedTitle'
-                    : 'equipment.estimateImpossibleTitle',
-                )}
-                detail={t(
-                  anythingBlank
-                    ? 'equipment.estimateBlockedDetail'
-                    : 'equipment.estimateImpossibleDetail',
-                )}
-              />
-            </div>
-          )}
         </div>
 
         {submit.isError && (
@@ -419,7 +349,7 @@ export function EquipmentDetailScreen() {
         <button
           type="submit"
           data-testid="request-submit"
-          disabled={!draft.ready || submit.isPending || isSubmitting || !canRequest}
+          disabled={!draft.ready || submit.isPending || isSubmitting}
           className="w-full font-semibold disabled:opacity-60"
           style={{
             minHeight: 52,
