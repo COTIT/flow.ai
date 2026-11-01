@@ -7426,6 +7426,14 @@
             "format": "date-time",
             "type": "string"
           },
+          "customer_name": {
+            "description": "Customer display name: company name, else alias, else first contact; null when none.",
+            "example": "Acme",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "due_date": {
             "format": "date-time",
             "type": [
@@ -7544,6 +7552,7 @@
           "has_collective_invoice",
           "import_id",
           "meta",
+          "customer_name",
           "relationships"
         ],
         "type": "object"
