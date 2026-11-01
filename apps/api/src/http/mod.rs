@@ -52,5 +52,6 @@ pub(crate) fn test_state(pool: sqlx::PgPool) -> crate::AppState {
         pdf: None,
         payments: None,
         checkout_hold_max: 500,
+        signup_enabled: true,
     }
 }

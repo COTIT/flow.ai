@@ -48,6 +48,14 @@ Send it back as `Authorization: Bearer <access_token>`. Tokens expire after `TOK
 
 ## POST /v1/create-workspace
 
+Open only when `SIGNUP_ENABLED=true` (local dev and staging). Off by default: production answers `404` before the body is read, so the closed route looks absent. The first production owner comes from the CLI instead:
+
+```sh
+genesy-360-api create-owner --email owner@example.com --workspace acme [--first-name Ada --last-name Owner]
+```
+
+It creates the user and workspace in one step and prints a one-time password once, on stdout. An existing email (or workspace name) is refused; it never resets anyone.
+
 Creates a user, a workspace owned by that user, the membership and a token, all in one transaction.
 
 | Field | Rules |

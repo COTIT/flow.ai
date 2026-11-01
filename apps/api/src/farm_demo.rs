@@ -53,7 +53,7 @@ pub const STAFF: &[(&str, &str, &str, &str, Option<&str>)] = &[
         Some("MGAMA"),
     ),
 ];
-const OWNER: &str = "amina.admin@ruaha-demo.test";
+pub const OWNER: &str = "amina.admin@ruaha-demo.test";
 
 /// What a run did. The passwords are random per run and exist only here: print them once.
 pub struct Report {
@@ -67,20 +67,20 @@ pub struct Report {
 }
 
 /// 16 random hex characters plus one of each class the staff password rule wants.
-fn random_password() -> Result<String, AppError> {
+pub(crate) fn random_password() -> Result<String, AppError> {
     let (plain, _) = crate::modules::auth::token::generate()?;
     Ok(format!("Demo-{}-Aa1!", &plain.expose()[..16]))
 }
 
 /// In-process client: requests go through the full router, as from 127.0.0.1.
-struct Api {
-    app: Router,
-    staff_password: String,
-    farmer_password: String,
+pub(crate) struct Api {
+    pub(crate) app: Router,
+    pub(crate) staff_password: String,
+    pub(crate) farmer_password: String,
 }
 
 impl Api {
-    async fn call(
+    pub(crate) async fn call(
         &self,
         method: Method,
         uri: &str,
@@ -121,14 +121,19 @@ impl Api {
         Ok(value)
     }
 
-    async fn post(&self, uri: &str, body: Value, token: &str) -> Result<Value, AppError> {
+    pub(crate) async fn post(
+        &self,
+        uri: &str,
+        body: Value,
+        token: &str,
+    ) -> Result<Value, AppError> {
         Ok(self
             .call(Method::POST, uri, Some(body), Some(token))
             .await?["data"]
             .take())
     }
 
-    async fn login(&self, email: &str) -> Result<String, AppError> {
+    pub(crate) async fn login(&self, email: &str) -> Result<String, AppError> {
         let body = json!({ "email": email, "password": self.staff_password });
         let res = self.call(Method::POST, "/login", Some(body), None).await?;
         text(&res["data"], "access_token")
@@ -165,7 +170,7 @@ impl Api {
     }
 }
 
-fn text(v: &Value, key: &str) -> Result<String, AppError> {
+pub(crate) fn text(v: &Value, key: &str) -> Result<String, AppError> {
     v[key]
         .as_str()
         .map(str::to_owned)

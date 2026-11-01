@@ -26095,6 +26095,16 @@
             },
             "description": "Account and workspace created; logged in"
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Signup is switched off (`SIGNUP_ENABLED`)"
+          },
           "408": {
             "content": {
               "application/json": {

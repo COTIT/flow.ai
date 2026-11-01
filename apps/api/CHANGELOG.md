@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Phase 4c step 7, staging demo seed and production bootstrap (`docs/api/demo-seed.md`, `docs/api/auth.md`):
+  - `genesy-360-api seed-demo` (CLI only): refuses unless `GENESY_ALLOW_DEMO_SEED`. Runs once and refuses a half-seeded state. Seeds the AFM shop, the till, the RUAHA farm (farm demo plus 4c) and the supply chain end to end through the API's own routes: link, harvest, batch, packing, transfer, a paid web order and a till sale crediting the farmer, an invoice and a payout. Prints one credentials table to stdout.
+  - `SIGNUP_ENABLED` (off by default): when off, `POST /v1/create-workspace` answers 404 before the body is read. `.env.example` sets it on for local dev.
+  - `genesy-360-api create-owner --email --workspace`: the first production owner, with a one-time password printed once; an existing email is refused.
+  - Config flags accept `1`/`0` as well as `true`/`false`.
 - Phase 4c step 6: demo seed, mapping guard, verify summary. `GET /farm/verify-queue/summary` (any farm role) counts the outstanding records per kind and in total, scoped exactly like the verify lists. The `ruaha-demo` seed adds the equipment catalogue, a loan listing, PUE requests (Ilundo approved peak 10.800 kW, one still submitted, every one a purchase), two buyers, an open maize demand and an Ilundo opportunity carrying 3000 kg. `tests/farm_mapping.rs::phase_4c_rows_are_ported` keeps the 4c rows ported (264 ported, 16 N/A; four N/A by design).
 - Phase 4c step 5, loan listings and bug reports (RUAHA `resource_catalogue.sql`, `bug_reports.sql`; contracts `docs/api/farm-catalogue.md`, `docs/api/farm-bug-reports.md`; migration `farm_loans_bug_reports`):
   - `farm_loan_products`: listings only (indicative range in minor units, 0 < min ≤ max; no interest, deposit, term, schedule or repayment, research item C). `GET /farm/loan-products` (every farm member), `POST` (ops, admin). No route deletes one.
