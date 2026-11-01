@@ -305,3 +305,65 @@ async fn a_stock_row_cannot_hold_another_products_lot(pool: PgPool) {
     .unwrap_err();
     assert!(err.to_string().contains("stocks_lot_fk"), "{err}");
 }
+
+/// A lot's free stock: one row per warehouse holding it (level, reserved, available as
+/// decimal text). Any member reads it, like the lot; another workspace gets 404.
+#[sqlx::test]
+async fn a_lots_free_stock_is_read_per_warehouse(pool: PgPool) {
+    let w = world(pool).await;
+    let a = lot(&w, "ILU-1").await;
+    let stock = |token: String, ws: String| {
+        let (app, uri) = (
+            w.api.app.clone(),
+            format!("/v1/workspace/{ws}/lots/{a}/stock"),
+        );
+        async move { common::send(&app, Method::GET, &uri, None, Some(&token)).await }
+    };
+    let (status, res) = stock(w.api.owner.clone(), w.api.ws.clone()).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"], json!([]), "no stock yet");
+
+    mutate(&w, &a, json!(10)).await;
+    let branch = w
+        .api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Branch" }), "warehouse_id")
+        .await;
+    let (status, res) = w
+        .api
+        .call(
+            Method::POST,
+            &format!("/{a}/stock-mutations"),
+            Some(json!({ "warehouse_id": branch, "quantity": "3", "reason": "harvest" })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    // Held as an order's reservation would hold it (orders are not this test's subject).
+    sqlx::query(
+        "UPDATE stocks SET reserved = 2.5 WHERE lot_id = $1::uuid AND warehouse_id = $2::uuid",
+    )
+    .bind(&a)
+    .bind(&w.warehouse)
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+
+    let bob = member_with(&w.api.app, &w.api.pool, &w.api.ws, "bob@example.com", &[]).await;
+    let (status, res) = stock(bob, w.api.ws.clone()).await;
+    assert_eq!(status, StatusCode::OK, "a member reads it: {res}");
+    assert_eq!(
+        res["data"],
+        json!([
+            { "warehouse_id": branch, "level": "3.00", "reserved": "0.00", "available": "3.00" },
+            { "warehouse_id": w.warehouse, "level": "10.00", "reserved": "2.50", "available": "7.50" },
+        ]),
+        "by warehouse name"
+    );
+
+    let (eve, eve_ws) = common::signup(&w.api.app, "eve@example.com", "evil").await;
+    let (status, _) = stock(eve.clone(), eve_ws).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "not a lot of hers");
+    let (status, _) = stock(eve, w.api.ws.clone()).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "not a member");
+}

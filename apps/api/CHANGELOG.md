@@ -8,6 +8,7 @@
 - Farm follow-ups step 4: `GET /farm/harvest-reports` lists harvest figures across cycles (the verify queue) with `village_id`, `verification`, `current` and paging, under the cycles' visibility rule.
 - Farm follow-ups step 5: every crop cycle (list, get, correction reply, holdings) embeds `crop {id, code, name_en, name_sw, measured_by}`, never null. Holdings no longer loads the crop list.
 - Farm follow-ups step 6, retry-safe supply writes: `POST /lots/{lot}/transfers` and `POST /supply-links` take an `Idempotency-Key` (same key and body replay the first answer; another body 422). Revoke was already 204 on repeat. Dispatch is open to farm `ops`/`admin` as well as `product.update`; granting stays workspace-admin only.
+- Farm follow-ups step 7: `GET /lots/{lot}/stock` returns the lot's `level`, `reserved` and `available` per warehouse as decimal text, for any member who can read the lot.
 - Phase 4b step 7, returns go back into their lots:
   - **Stock:** `reserve::restock_lots` (new; the unused warehouse-level `restock` is gone) puts an order return's units back on the rows the order took them from, per lot (no-lot units to the no-lot row), through `farm_supply::sale::restock_plan`. A recalled, quarantined or expired lot takes its units back and picking keeps them off sale.
   - **One spread:** stock and farmer debits both use `farm_supply::sale::fill`, which fills takes in take order and never moves units backwards, so the two always match. A returned jar that sells again credits its farmers again.
