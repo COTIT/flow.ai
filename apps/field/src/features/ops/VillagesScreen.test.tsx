@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
@@ -280,8 +280,25 @@ describe('setting a village capacity', () => {
     expect(setCapacity).toHaveBeenCalledTimes(1)
     expect(setCapacity.mock.calls[0][0]).toEqual({
       villageId: '30000000-0000-4000-8000-000000000001',
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
       capacity: { capacity_kw: '600', basis: 'planned', simultaneity_factor: '1.000', source_note: '', effective_from: '2026-11-01' },
     })
+  })
+
+  // The id is made when the form opens; a retry after a failed save is the same capacity.
+  test('a retry sends the same client id', async () => {
+    useVillageCapacity.mockReturnValue({ isLoading: false, error: null, data: [village()] })
+    setCapacity.mockRejectedValueOnce(new Error('offline'))
+    render(<VillagesScreen />)
+    await userEvent.click(screen.getByTestId('village-set-capacity'))
+    set('village-capacity', '600')
+    submit()
+    await waitFor(() => expect(setCapacity).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByTestId('village-create-submit')).toBeEnabled())
+    submit()
+
+    await waitFor(() => expect(setCapacity).toHaveBeenCalledTimes(2))
+    expect(setCapacity.mock.calls[1][0].id).toBe(setCapacity.mock.calls[0][0].id)
   })
 
   test('a blank capacity is asked for and nothing is sent', async () => {

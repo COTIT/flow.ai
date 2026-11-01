@@ -18,6 +18,7 @@ import {
   surveys,
   timeline,
 } from "./farmer.api"
+import { requestList } from "./requests.api"
 
 const RESPONSES = `/v1/workspace/w1/farm/surveys/${SURVEY}/responses`
 
@@ -36,6 +37,8 @@ async function open(page: Page, path: string, replies: { status: number; body: u
     "GET /workspace/w1/farm/surveys/eligibility": eligibilityBefore,
     "GET /workspace/w1/farm/vouchers/mine": noVouchers,
     [`GET /workspace/w1/farm/vouchers/${VOUCHER}/timeline`]: timeline,
+    // The home's latest-request card (the e2e build has the resources feature on).
+    "GET /workspace/w1/farm/pue-requests": requestList(),
   }
   await mockApi(page, routes)
   const posted: unknown[] = []
@@ -75,6 +78,7 @@ test("the farmer's home shows the farm summary and the new survey", async ({ pag
   await expect(page.getByTestId("summary-cycles")).toHaveText("1")
   await expect(page.getByTestId("farm-home-surveys")).toContainText("1 new survey")
   await expect(page.getByTestId("farm-home-opportunities")).toHaveCount(0)
+  await expect(page.getByTestId("farm-home-no-requests")).toBeVisible()
   await expectNoHorizontalScroll(page)
 })
 
