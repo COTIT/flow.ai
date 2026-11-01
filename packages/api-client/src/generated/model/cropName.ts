@@ -12,6 +12,8 @@
 export interface CropName {
   code: string;
   id: string;
+  /** `area`, `tree_count` or `unit_count`: which measure a cycle of this crop uses. */
+  measured_by: string;
   name_en: string;
   name_sw: string;
 }

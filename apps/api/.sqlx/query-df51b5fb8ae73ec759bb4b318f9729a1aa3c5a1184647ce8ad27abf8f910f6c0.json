@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT v.id, v.survey_id, s.title_en AS survey_title_en, s.title_sw AS survey_title_sw, v.code,\n                  v.amount_minor, v.currency_id, c.asset_type AS currency, c.decimals, v.status,\n                  (v.status = 'issued' AND v.expires_at <= now()) AS \"expired!\",\n                  v.issued_at, v.expires_at, v.redeemed_at\n           FROM farm_vouchers v\n           JOIN farm_surveys s ON s.id = v.survey_id\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.household_id IN (SELECT farm_person_households($2))\n           ORDER BY v.issued_at DESC, v.id DESC LIMIT $3 OFFSET $4",
+  "query": "SELECT v.id, v.survey_id, s.title_en AS survey_title_en, s.title_sw AS survey_title_sw, v.code,\n                  v.amount_minor, v.currency_id, c.asset_type AS currency, c.decimals, v.status,\n                  (v.status = 'issued' AND v.expires_at <= now()) AS \"expired!\",\n                  v.issued_at, v.expires_at, v.redeemed_at, v.void_reason\n           FROM farm_vouchers v\n           JOIN farm_surveys s ON s.id = v.survey_id\n           JOIN currencies c ON c.id = v.currency_id\n           WHERE v.workspace_id = $1 AND v.household_id IN (SELECT farm_person_households($2))\n           ORDER BY v.issued_at DESC, v.id DESC LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -151,6 +151,17 @@
             "name": "redeemed_at"
           }
         }
+      },
+      {
+        "ordinal": 14,
+        "name": "void_reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_vouchers",
+            "name": "void_reason"
+          }
+        }
       }
     ],
     "parameters": {
@@ -175,8 +186,9 @@
       null,
       false,
       false,
+      true,
       true
     ]
   },
-  "hash": "b2a2c963fc88044a0ae9a9abc68bf27894574411c389e02de4c75f6c7dfa5c24"
+  "hash": "df51b5fb8ae73ec759bb4b318f9729a1aa3c5a1184647ce8ad27abf8f910f6c0"
 }

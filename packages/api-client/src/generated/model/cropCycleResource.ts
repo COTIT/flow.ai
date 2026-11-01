@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { CropName } from './cropName';
 import type { Provenance } from './provenance';
 
 /**
@@ -18,6 +19,8 @@ export interface CropCycleResource {
      */
   area_ha: string | null;
   created_at: string;
+  /** The crop, named even when it is no longer active. */
+  crop: CropName;
   crop_id: string;
   /** @nullable */
   harvest_end: string | null;

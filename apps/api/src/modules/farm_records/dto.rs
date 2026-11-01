@@ -217,6 +217,9 @@ pub struct CropCycleResource {
     village_id: Uuid,
     plot_id: Uuid,
     crop_id: Uuid,
+    /// The crop, named even when it is no longer active.
+    #[schema(value_type = CropName)]
+    crop: Value,
     #[schema(required = true)]
     season_label: Option<String>,
     /// Hectares as decimal text, for crops measured by area.
@@ -247,6 +250,7 @@ impl From<CycleRow> for CropCycleResource {
             village_id: r.village_id,
             plot_id: r.plot_id,
             crop_id: r.crop_id,
+            crop: r.crop,
             season_label: r.season_label,
             area_ha: r.area_ha,
             tree_count: r.tree_count,
@@ -316,6 +320,10 @@ pub struct ListQuery {
     /// Crop cycles only: the cycles on this plot.
     #[param(value_type = Option<Uuid>)]
     pub plot_id: Option<String>,
+    /// Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;
+    /// matched only on persons of the caller's own staff villages). At most 100 characters.
+    #[param(value_type = Option<String>, max_length = 100)]
+    pub q: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,
@@ -343,10 +351,59 @@ pub fn verification_filter(
     Ok(Some(states))
 }
 
+/// `?q=` -> (`ILIKE` pattern on the name, phone digits without `0`/`255`), else a 422 when too long.
+pub fn search_filter(
+    raw: Option<&str>,
+) -> Result<(Option<String>, Option<String>), crate::error::AppError> {
+    let Some(q) = raw.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok((None, None));
+    };
+    if q.chars().count() > 100 {
+        return Err(crate::error::AppError::field(
+            "q",
+            "The q must not be greater than 100 characters.",
+        ));
+    }
+    let escaped = q
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_");
+    let digits: String = q.chars().filter(char::is_ascii_digit).collect();
+    let local = digits
+        .strip_prefix("255")
+        .or_else(|| digits.strip_prefix('0'))
+        .unwrap_or(&digits);
+    Ok((
+        Some(format!("%{escaped}%")),
+        (local.len() >= 3).then(|| local.to_owned()),
+    ))
+}
+
 /// GET harvest reports query.
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct HarvestQuery {
+    /// `true`: only the current figure of each kind.
+    #[param(value_type = Option<bool>)]
+    pub current: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
+    pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
+    pub page_size: Option<String>,
+}
+
+/// GET workspace harvest reports query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct HarvestListQuery {
+    /// Only this village.
+    #[param(value_type = Option<Uuid>)]
+    pub village_id: Option<String>,
+    /// Comma-separated: `unverified`, `pending`, `verified`, `disputed`.
+    #[param(value_type = Option<String>, example = "unverified,pending")]
+    pub verification: Option<String>,
     /// `true`: only the current figure of each kind.
     #[param(value_type = Option<bool>)]
     pub current: Option<String>,
@@ -1148,15 +1205,15 @@ pub struct CropName {
     code: String,
     name_en: String,
     name_sw: String,
+    /// `area`, `tree_count` or `unit_count`: which measure a cycle of this crop uses.
+    measured_by: String,
 }
 
-/// A crop cycle with its crop and every harvest figure (newest first).
+/// A crop cycle (its crop included) and every harvest figure (newest first).
 #[derive(Serialize, ToSchema)]
 pub struct HoldingCycle {
     #[serde(flatten)]
     cycle: CropCycleResource,
-    #[schema(required = true)]
-    crop: Option<CropName>,
     harvests: Vec<HarvestReportResource>,
 }
 
@@ -1189,7 +1246,6 @@ pub struct Holdings {
 
 impl Holdings {
     /// Nest the flat reads: plots under farms, cycles under plots, figures under cycles.
-    #[allow(clippy::too_many_arguments)]
     pub fn assemble(
         households: Vec<HouseholdRow>,
         members: Vec<crate::modules::farm_records::repo::NamedMember>,
@@ -1197,19 +1253,10 @@ impl Holdings {
         plots: Vec<PlotRow>,
         cycles: Vec<CycleRow>,
         harvests: Vec<HarvestRow>,
-        crops: Vec<crate::modules::farm_crops::repo::CropRow>,
     ) -> Self {
         let mut harvests: Vec<HarvestRow> = harvests;
         let mut cycles: Vec<CycleRow> = cycles;
         let mut plots: Vec<PlotRow> = plots;
-        let crop = |id: Uuid| {
-            crops.iter().find(|c| c.id == id).map(|c| CropName {
-                id: c.id,
-                code: c.code.clone(),
-                name_en: c.name_en.clone(),
-                name_sw: c.name_sw.clone(),
-            })
-        };
         let farms = farms
             .into_iter()
             .map(|f| {
@@ -1229,7 +1276,6 @@ impl Holdings {
                                     harvests.drain(..).partition(|h| h.crop_cycle_id == c.id);
                                 harvests = rest;
                                 HoldingCycle {
-                                    crop: crop(c.crop_id),
                                     cycle: c.into(),
                                     harvests: mine.into_iter().map(Into::into).collect(),
                                 }

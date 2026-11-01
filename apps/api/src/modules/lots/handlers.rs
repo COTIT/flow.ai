@@ -21,8 +21,8 @@ use crate::{
         app_keys::secret::CATALOG_READ,
         lots::{
             dto::{
-                CreateLotRequest, ListQuery, LotEventResource, LotResource, LotStockLevel,
-                PageQuery, PassportResource, StockMutationRequest, UpdateLotRequest,
+                CreateLotRequest, ListQuery, LotEventResource, LotFreeStock, LotResource,
+                LotStockLevel, PageQuery, PassportResource, StockMutationRequest, UpdateLotRequest,
             },
             passport::Passport,
             public::PublicLot,
@@ -113,6 +113,31 @@ pub async fn get(
     Ok(Data(
         service::get(&state, access.workspace_id, &id).await?.into(),
     ))
+}
+
+/// GET /lots/{lot}/stock -> the lot's stock per warehouse.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/lots/{lot}/stock", tag = "lots",
+    operation_id = "lots_stock", summary = "A lot's free stock per warehouse",
+    description = "One row per warehouse holding the lot, by warehouse name: `level`, `reserved` (held by orders) and `available`, as 2-decimal text. Same visibility as the lot.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<Vec<LotFreeStock>>, description = "Stock per warehouse; empty when none"),
+        (status = 403, body = MessageBody, description = "Inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn stock(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, id)): LotPath,
+) -> Result<Data<Vec<LotFreeStock>>, AppError> {
+    let rows = service::free_stock(&state, access.workspace_id, &id).await?;
+    Ok(Data(rows.into_iter().map(Into::into).collect()))
 }
 
 /// PATCH /lots/{lot} -> the updated lot.

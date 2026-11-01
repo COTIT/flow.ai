@@ -351,6 +351,31 @@ impl Validate for StockMutationRequest {
     }
 }
 
+/// A lot's stock in one warehouse: on hand, held by orders, and free to sell or ship.
+#[derive(Serialize, ToSchema)]
+pub struct LotFreeStock {
+    warehouse_id: Uuid,
+    /// 2 decimals.
+    #[schema(example = "10.00")]
+    level: String,
+    #[schema(example = "2.50")]
+    reserved: String,
+    /// `level - reserved`.
+    #[schema(example = "7.50")]
+    available: String,
+}
+
+impl From<crate::modules::lots::repo::FreeRow> for LotFreeStock {
+    fn from(r: crate::modules::lots::repo::FreeRow) -> Self {
+        Self {
+            warehouse_id: r.warehouse_id,
+            level: r.level,
+            reserved: r.reserved,
+            available: r.available,
+        }
+    }
+}
+
 /// The lot's level at the warehouse after a stock mutation.
 #[derive(Serialize, ToSchema)]
 pub struct LotStockLevel {

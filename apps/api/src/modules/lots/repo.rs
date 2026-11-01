@@ -394,3 +394,35 @@ pub async fn has_stock(
     .fetch_one(db)
     .await
 }
+
+/// A lot's stock in one warehouse, summed over its rows there; 2-decimal text.
+pub struct FreeRow {
+    pub warehouse_id: Uuid,
+    pub level: String,
+    pub reserved: String,
+    pub available: String,
+}
+
+/// The lot's live stock per warehouse, by warehouse name.
+pub async fn free_stock(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    lot: Uuid,
+) -> Result<Vec<FreeRow>, sqlx::Error> {
+    sqlx::query_as!(
+        FreeRow,
+        r#"SELECT s.warehouse_id,
+                  sum(s.stock_lvl)::numeric(19,2)::text AS "level!",
+                  sum(s.reserved)::numeric(19,2)::text AS "reserved!",
+                  (sum(s.stock_lvl) - sum(s.reserved))::numeric(19,2)::text AS "available!"
+           FROM stocks s
+           JOIN warehouses w ON w.id = s.warehouse_id
+           WHERE s.workspace_id = $1 AND s.lot_id = $2 AND s.deleted_at IS NULL
+           GROUP BY s.warehouse_id, w.name
+           ORDER BY w.name, s.warehouse_id"#,
+        workspace_id,
+        lot,
+    )
+    .fetch_all(db)
+    .await
+}

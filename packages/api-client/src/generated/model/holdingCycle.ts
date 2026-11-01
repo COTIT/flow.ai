@@ -6,13 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CropCycleResource } from './cropCycleResource';
-import type { CropName } from './cropName';
 import type { HarvestReportResource } from './harvestReportResource';
 
 /**
- * A crop cycle with its crop and every harvest figure (newest first).
+ * A crop cycle (its crop included) and every harvest figure (newest first).
  */
-export type HoldingCycle = CropCycleResource & ({
-  crop: CropName | null;
+export type HoldingCycle = CropCycleResource & {
   harvests: HarvestReportResource[];
-});
+};

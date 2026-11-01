@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Farm follow-ups for the field app, step 1: `GET /vouchers/mine` rows carry `void_reason` (null unless voided), so a household sees why its voucher was voided.
+- Farm follow-ups step 2, surveys: `POST /farm/surveys` takes an optional client `id` (a retry answers 200 with the stored survey, an id of another workspace 409). Every survey carries `created_by` and, for staff, `summary` (the voucher sums of `/results`, one aggregate per row; null for farmers).
+- Farm follow-ups step 3: `GET /farm/persons?q=` searches part of the name (any case) or the phone number, the phone only where the caller is staff of the person's village. At most 100 characters.
+- Farm follow-ups step 4: `GET /farm/harvest-reports` lists harvest figures across cycles (the verify queue) with `village_id`, `verification`, `current` and paging, under the cycles' visibility rule.
+- Farm follow-ups step 5: every crop cycle (list, get, correction reply, holdings) embeds `crop {id, code, name_en, name_sw, measured_by}`, never null. Holdings no longer loads the crop list.
+- Farm follow-ups step 6, retry-safe supply writes: `POST /lots/{lot}/transfers` and `POST /supply-links` take an `Idempotency-Key` (same key and body replay the first answer; another body 422). Revoke was already 204 on repeat. Dispatch is open to farm `ops`/`admin` as well as `product.update`; granting stays workspace-admin only.
+- Farm follow-ups step 7: `GET /lots/{lot}/stock` returns the lot's `level`, `reserved` and `available` per warehouse as decimal text, for any member who can read the lot.
 - Phase 4c step 3, market (RUAHA `market.sql`, `mvp_security.sql`, `supply_attached_by.sql`, `views.sql`; contract `docs/api/farm-market.md`; migrations `farm_market`, `farm_opportunity_supply`):
   - `farm_buyers`, `farm_buyer_demands` (no `source` column, on purpose), `farm_opportunities` (demand crop by composite FK; one per demand and village), `farm_opportunity_supply` (append-only; opportunity, harvest and cycle in one village by composite FK; attacher stamped from the caller).
   - Buyers and demand (`/farm/buyers`, `/farm/buyer-demands`): ops and admin only. Opportunities (`POST /farm/buyer-demands/{demand}/opportunities`, `/farm/opportunities`, `…/status`): staff of the village read, ops and admin write; RUAHA's status machine and messages. A farmer sees an opportunity carrying their own supply, own lines only, no attacher.

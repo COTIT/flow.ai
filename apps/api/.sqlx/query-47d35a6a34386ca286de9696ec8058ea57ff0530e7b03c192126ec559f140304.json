@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, s.village_id, s.title_en, s.title_sw, s.description_en, s.description_sw,\n                  s.reward_minor, s.currency_id, c.asset_type AS currency, c.decimals,\n                  s.max_households, s.audit_percent, s.closes_at, s.status, s.published_at,\n                  (SELECT jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name))\n                   FROM users u WHERE u.id = s.published_by) AS published_by,\n                  s.closed_at, s.created_at, s.updated_at,\n                  coalesce((SELECT jsonb_agg(jsonb_build_object('id', q.id, 'position', q.position, 'kind', q.kind,\n                                     'prompt_en', q.prompt_en, 'prompt_sw', q.prompt_sw, 'required', q.required,\n                                     'options', q.options) ORDER BY q.position, q.id)\n                            FROM farm_survey_questions q\n                            WHERE q.survey_id = s.id AND q.deleted_at IS NULL), '[]') AS \"questions!\",\n                  (SELECT count(*) FROM farm_survey_responses r\n                   WHERE r.survey_id = s.id AND r.deleted_at IS NULL) AS \"answered!\"\n           FROM farm_surveys s\n           JOIN currencies c ON c.id = s.currency_id\n           WHERE s.workspace_id = $1 AND ($4::uuid IS NULL OR s.id = $4)\n             AND ($2 OR (s.status <> 'draft' AND (s.village_id IS NULL OR s.village_id = ANY($3))))\n           ORDER BY s.created_at DESC, s.id DESC LIMIT $5 OFFSET $6",
+  "query": "SELECT s.id, s.village_id, s.title_en, s.title_sw, s.description_en, s.description_sw,\n                  s.reward_minor, s.currency_id, c.asset_type AS currency, c.decimals,\n                  s.max_households, s.audit_percent, s.closes_at, s.status, s.published_at,\n                  (SELECT jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name))\n                   FROM users u WHERE u.id = s.published_by) AS published_by,\n                  s.closed_at,\n                  (SELECT jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name))\n                   FROM users u WHERE u.id = s.created_by) AS created_by,\n                  s.created_at, s.updated_at,\n                  -- Same sums as summary() below; CASE skips the subquery for farmers.\n                  CASE WHEN $7 THEN (\n                      SELECT jsonb_build_object(\n                          'issued', jsonb_build_object('count', count(v.id),\n                                                       'minor', coalesce(sum(v.amount_minor), 0)::bigint),\n                          'redeemed', jsonb_build_object(\n                              'count', count(v.id) FILTER (WHERE v.status = 'redeemed'),\n                              'minor', coalesce(sum(v.amount_minor) FILTER (WHERE v.status = 'redeemed'), 0)::bigint),\n                          'outstanding', jsonb_build_object(\n                              'count', count(v.id) FILTER (WHERE v.status = 'issued' AND v.expires_at > now()),\n                              'minor', coalesce(sum(v.amount_minor)\n                                           FILTER (WHERE v.status = 'issued' AND v.expires_at > now()), 0)::bigint),\n                          'expired_count', count(v.id) FILTER (WHERE v.status = 'issued' AND v.expires_at <= now()),\n                          'void_count', count(v.id) FILTER (WHERE v.status = 'void'))\n                      FROM farm_survey_responses r\n                      LEFT JOIN farm_vouchers v ON v.response_id = r.id\n                      WHERE r.survey_id = s.id AND r.deleted_at IS NULL) END AS summary,\n                  coalesce((SELECT jsonb_agg(jsonb_build_object('id', q.id, 'position', q.position, 'kind', q.kind,\n                                     'prompt_en', q.prompt_en, 'prompt_sw', q.prompt_sw, 'required', q.required,\n                                     'options', q.options) ORDER BY q.position, q.id)\n                            FROM farm_survey_questions q\n                            WHERE q.survey_id = s.id AND q.deleted_at IS NULL), '[]') AS \"questions!\",\n                  (SELECT count(*) FROM farm_survey_responses r\n                   WHERE r.survey_id = s.id AND r.deleted_at IS NULL) AS \"answered!\"\n           FROM farm_surveys s\n           JOIN currencies c ON c.id = s.currency_id\n           WHERE s.workspace_id = $1 AND ($4::uuid IS NULL OR s.id = $4)\n             AND ($2 OR (s.status <> 'draft' AND (s.village_id IS NULL OR s.village_id = ANY($3))))\n           ORDER BY s.created_at DESC, s.id DESC LIMIT $5 OFFSET $6",
   "describe": {
     "columns": [
       {
@@ -187,6 +187,12 @@
       },
       {
         "ordinal": 17,
+        "name": "created_by",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 18,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -197,7 +203,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -208,13 +214,19 @@
         }
       },
       {
-        "ordinal": 19,
+        "ordinal": 20,
+        "name": "summary",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 21,
         "name": "questions!",
         "type_info": "Jsonb",
         "origin": "Expression"
       },
       {
-        "ordinal": 20,
+        "ordinal": 22,
         "name": "answered!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -227,7 +239,8 @@
         "UuidArray",
         "Uuid",
         "Int8",
-        "Int8"
+        "Int8",
+        "Bool"
       ]
     },
     "nullable": [
@@ -248,11 +261,13 @@
       true,
       null,
       true,
+      null,
       false,
       false,
+      null,
       null,
       null
     ]
   },
-  "hash": "4ef656fb3f29426f483568ce06f3fa286c2211efa51829eb0187d75852be3f53"
+  "hash": "47d35a6a34386ca286de9696ec8058ea57ff0530e7b03c192126ec559f140304"
 }
