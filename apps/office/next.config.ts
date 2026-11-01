@@ -7,6 +7,7 @@ import { securityHeaders } from "@genesy/security/headers"
 const apiUrl = process.env.API_URL ?? "http://localhost:8080/v1"
 
 const nextConfig: NextConfig = {
+  output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
   transpilePackages: [
     "@genesy/ui",
     "@genesy/api-client",
