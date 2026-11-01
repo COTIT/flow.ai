@@ -197,6 +197,28 @@ impl Rules {
         Some(v)
     }
 
+    /// Optional measurement for a `numeric(p, places)` column: blank = None, else `decimal`
+    /// plus at most `places` decimals, so Postgres never rounds a sent figure silently.
+    pub fn measure(
+        &mut self,
+        field: &str,
+        value: Option<Value>,
+        min: Decimal,
+        max: Decimal,
+        places: u32,
+    ) -> Option<Decimal> {
+        let d = self.decimal(field, &filled(value)?, min, max)?;
+        if d.scale() > places {
+            let f = human(field);
+            self.add(
+                field,
+                format!("The {f} must have 0-{places} decimal places."),
+            );
+            return None;
+        }
+        Some(d)
+    }
+
     /// Laravel `nullable|in:...`: blank = None, else one of `allowed`. `message` replaces
     /// "The selected X is invalid." where Laravel had a custom text.
     pub fn one_of(

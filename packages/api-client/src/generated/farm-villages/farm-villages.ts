@@ -25,7 +25,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CapacityRequest,
   CreateVillageRequest,
+  EnvelopeCapacityResource,
   EnvelopeVillageResource,
   FarmVillagesListParams,
   MessageBody,
@@ -158,7 +160,7 @@ export function useFarmVillagesList<TData = Awaited<ReturnType<typeof farmVillag
 
 
 /**
- * ops or admin. A repeat with the same `id` returns the village already made.
+ * ops or admin. The village is created with its first capacity in one transaction; a missing capacity is refused with `a planned capacity is required`. A repeat with the same `id` returns the village already made.
  * @summary Create a village
  */
 export const farmVillagesCreate = (
@@ -294,4 +296,74 @@ export const useFarmVillagesUpdate = <TError = ErrorType<MessageBody | Validatio
         TContext
       > => {
       return useMutation(getFarmVillagesUpdateMutationOptions(options), queryClient);
+    }
+    /**
+ * ops or admin. The new figure becomes current; the previous one is kept.
+ * @summary Record a new village capacity
+ */
+export const farmVillagesCapacityCreate = (
+    workspace: string,
+    village: string,
+    capacityRequest: BodyType<CapacityRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeCapacityResource>(
+      {url: `/workspace/${workspace}/farm/villages/${village}/capacity`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: capacityRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmVillagesCapacityCreateMutationKey = () => ['farmVillagesCapacityCreate'] as const;
+
+export const getFarmVillagesCapacityCreateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmVillagesCapacityCreate>>, TError,FarmVillagesCapacityCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof farmVillagesCapacityCreate>>, TError,FarmVillagesCapacityCreateMutationVariables, TContext> => {
+
+const mutationKey = getFarmVillagesCapacityCreateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof farmVillagesCapacityCreate>>, FarmVillagesCapacityCreateMutationVariables> = (props) => {
+          const {workspace,village,data} = props ?? {};
+
+          return  farmVillagesCapacityCreate(workspace,village,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FarmVillagesCapacityCreateMutationResult = NonNullable<Awaited<ReturnType<typeof farmVillagesCapacityCreate>>>
+    export type FarmVillagesCapacityCreateMutationBody = BodyType<CapacityRequest>
+    export type FarmVillagesCapacityCreateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmVillagesCapacityCreateMutationVariables = {workspace: string;village: string;data: BodyType<CapacityRequest>}
+
+    /**
+ * @summary Record a new village capacity
+ */
+export const useFarmVillagesCapacityCreate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmVillagesCapacityCreate>>, TError,FarmVillagesCapacityCreateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof farmVillagesCapacityCreate>>,
+        TError,
+        FarmVillagesCapacityCreateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFarmVillagesCapacityCreateMutationOptions(options), queryClient);
     }

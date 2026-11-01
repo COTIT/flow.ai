@@ -2,7 +2,7 @@
 
 Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabase/tests/*.sql`, run by `pnpm db:rls`) and where genesy proves the same rule, or why it does not apply. `tests/farm_mapping.rs` keeps this file honest: exactly 280 rows, every named test exists, every N/A has a reason.
 
-**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **194**. N/A: **86**.
+**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **201**. N/A: **79**.
 
 **How rules map.** RUAHA enforces access with Postgres RLS and `SECURITY DEFINER` RPCs; "zero rows" means "not yours". genesy enforces it in the API: the farm guard (`src/http/farm.rs`), village-scoped SQL in each repo, and composite `(workspace_id, village_id)` foreign keys that make cross-village links impossible. A RUAHA "zero rows" is a genesy `404` (or an empty list); a RUAHA "raises" is a `403`/`422` with RUAHA's message where it has one. Several assertions share one test.
 
@@ -221,17 +221,17 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 206 | grant_staff_test.sql #13 | a malformed email is refused | N/A because the grant takes an existing member by id, not an email and name; the invite and sign-up flows refuse malformed emails and blank names |
 | 207 | grant_staff_test.sql #14 | a blank name is refused | N/A because the grant takes an existing member by id, not an email and name; the invite and sign-up flows refuse malformed emails and blank names |
 | 208 | village_create_test.sql #1 | ops creates a village in its own project | `tests/farm_tenancy.rs::ops_creates_a_village_and_a_retry_replays` |
-| 209 | village_create_test.sql #2 | the new village carries its first planned capacity row | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 209 | village_create_test.sql #2 | the new village carries its first planned capacity row | `tests/farm_energy.rs::a_village_is_created_with_its_first_planned_capacity` |
 | 210 | village_create_test.sql #3 | a created village has energy figures from the start | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
 | 211 | village_create_test.sql #4 | a retried create replays instead of inserting twice | `tests/farm_tenancy.rs::ops_creates_a_village_and_a_retry_replays` |
-| 212 | village_create_test.sql #5 | a village without a planned capacity is refused | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 212 | village_create_test.sql #5 | a village without a planned capacity is refused | `tests/farm_energy.rs::a_village_without_a_planned_capacity_is_refused` |
 | 213 | village_create_test.sql #6 | a duplicate village code in the project is refused | `tests/farm_tenancy.rs::a_duplicate_village_code_is_refused` |
-| 214 | village_create_test.sql #7 | capacity can never be recorded as measured | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 214 | village_create_test.sql #7 | capacity can never be recorded as measured | `tests/farm_energy.rs::capacity_can_never_be_recorded_as_measured` |
 | 215 | village_create_test.sql #8 | ops cannot create a village in another project | `tests/farm_tenancy.rs::ops_cannot_create_a_village_in_another_workspace` |
 | 216 | village_create_test.sql #9 | ops cannot insert a village directly into another project | `tests/farm_tenancy.rs::ops_cannot_create_a_village_in_another_workspace` |
 | 217 | village_create_test.sql #10 | an officer cannot create a village | `tests/farm_tenancy.rs::officers_and_farmers_cannot_create_villages` |
 | 218 | village_create_test.sql #11 | a farmer cannot create a village | `tests/farm_tenancy.rs::officers_and_farmers_cannot_create_villages` |
-| 219 | village_create_test.sql #12 | a farmer cannot add a capacity row | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 219 | village_create_test.sql #12 | a farmer cannot add a capacity row | `tests/farm_energy.rs::officers_and_farmers_cannot_add_a_capacity_row` |
 | 220 | register_cycles_test.sql #1 | two crops register as two cycles on the same plot | `tests/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
 | 221 | register_cycles_test.sql #2 | each crop carries its own expected harvest | `tests/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
 | 222 | register_cycles_test.sql #3 | the result names every cycle it created | `tests/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
@@ -255,14 +255,14 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 240 | plot_documents_test.sql #12 | the farmer does not see the files | `tests/farm_documents.rs::only_staff_of_the_village_see_or_file_documents` |
 | 241 | plot_documents_test.sql #13 | a farmer cannot upload a document | `tests/farm_documents.rs::only_staff_of_the_village_see_or_file_documents` |
 | 242 | plot_documents_test.sql #14 | ops sees the document | `tests/farm_documents.rs::only_staff_of_the_village_see_or_file_documents` |
-| 243 | resource_catalogue_test.sql #1 | ops adds equipment offered for rent only | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
+| 243 | resource_catalogue_test.sql #1 | ops adds equipment offered for rent only | `tests/farm_catalogue.rs::ops_adds_equipment_offered_for_rent_only` |
 | 244 | resource_catalogue_test.sql #2 | ops adds a loan listing | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 245 | resource_catalogue_test.sql #3 | equipment must be offered to rent or to buy | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
+| 245 | resource_catalogue_test.sql #3 | equipment must be offered to rent or to buy | `tests/farm_catalogue.rs::equipment_must_be_offered_to_rent_or_to_buy` |
 | 246 | resource_catalogue_test.sql #4 | a loan range cannot run backwards | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
 | 247 | resource_catalogue_test.sql #5 | a loan listing is retired, never deleted | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
 | 248 | resource_catalogue_test.sql #6 | a loan listing carries no finance terms (research item C) | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
 | 249 | resource_catalogue_test.sql #7 | an officer cannot add a loan listing | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 250 | resource_catalogue_test.sql #8 | a farmer cannot add equipment | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
+| 250 | resource_catalogue_test.sql #8 | a farmer cannot add equipment | `tests/farm_catalogue.rs::a_farmer_reads_equipment_but_cannot_add_it` |
 | 251 | resource_catalogue_test.sql #9 | a farmer can read the loan listings of their project | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
 | 252 | resource_catalogue_test.sql #10 | a machine offered only for sale cannot be requested on rent | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
 | 253 | resource_catalogue_test.sql #11 | a machine offered only on rent cannot be requested to buy | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |

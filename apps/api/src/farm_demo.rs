@@ -235,14 +235,34 @@ pub async fn run(mut state: AppState) -> Result<Report, AppError> {
     )
     .await?;
     let mut villages = std::collections::HashMap::new();
-    for (code, name, lat, lon) in [
-        ("ILUNDO", "Ilundo", "-7.7120", "35.6810"),
-        ("MGAMA", "Mgama", "-7.8030", "35.7540"),
+    // RUAHA seed capacities: planned, never measured.
+    for (code, name, lat, lon, kw, factor, note) in [
+        (
+            "ILUNDO",
+            "Ilundo",
+            "-7.7120",
+            "35.6810",
+            "500",
+            "0.600",
+            "DEMO. Two hydro generators plus backup solar, approx 0.5 MW planned. No battery confirmed.",
+        ),
+        (
+            "MGAMA",
+            "Mgama",
+            "-7.8030",
+            "35.7540",
+            "150",
+            "0.650",
+            "DEMO. Indicative comparison village.",
+        ),
     ] {
         let v = api
             .post(
                 &farm("/villages"),
-                json!({ "code": code, "name": name, "latitude": lat, "longitude": lon }),
+                json!({ "code": code, "name": name, "latitude": lat, "longitude": lon,
+                    "capacity": { "capacity_kw": kw, "basis": "planned",
+                        "simultaneity_factor": factor, "source_note": note,
+                        "effective_from": "2026-01-15" } }),
                 &owner,
             )
             .await?;
