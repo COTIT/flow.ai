@@ -4,6 +4,7 @@
 
 - Farm follow-ups for the field app, step 1: `GET /vouchers/mine` rows carry `void_reason` (null unless voided), so a household sees why its voucher was voided.
 - Farm follow-ups step 2, surveys: `POST /farm/surveys` takes an optional client `id` (a retry answers 200 with the stored survey, an id of another workspace 409). Every survey carries `created_by` and, for staff, `summary` (the voucher sums of `/results`, one aggregate per row; null for farmers).
+- Farm follow-ups step 3: `GET /farm/persons?q=` searches part of the name (any case) or the phone number, the phone only where the caller is staff of the person's village. At most 100 characters.
 - Phase 4b step 7, returns go back into their lots:
   - **Stock:** `reserve::restock_lots` (new; the unused warehouse-level `restock` is gone) puts an order return's units back on the rows the order took them from, per lot (no-lot units to the no-lot row), through `farm_supply::sale::restock_plan`. A recalled, quarantined or expired lot takes its units back and picking keeps them off sale.
   - **One spread:** stock and farmer debits both use `farm_supply::sale::fill`, which fills takes in take order and never moves units backwards, so the two always match. A returned jar that sells again credits its farmers again.

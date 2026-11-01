@@ -670,3 +670,92 @@ async fn holdings_read_a_persons_households_farms_plots_and_cycles_in_one_call(p
     let (status, _) = f.call(Method::GET, &tail, None, &outsider).await;
     assert_eq!(status, StatusCode::NOT_FOUND, "another workspace");
 }
+
+// ---- persons search ----
+
+#[sqlx::test]
+async fn persons_search_by_name_and_phone_within_scope(pool: PgPool) {
+    let (f, c, neema) = setup(pool).await;
+    let q = |q: &str| format!("/persons?q={}", urlencode(q));
+    let hits = |list: Value| (list["meta"]["total"].as_i64().unwrap(), ids(&list));
+
+    assert_eq!(
+        hits(f.list(&q("mwakal"), &f.officer_ilu).await),
+        (2, sorted(vec![&c.neema.person, &c.rehema.person])),
+        "a family name part"
+    );
+    for term in ["NEEMA", "neema mwakalinga", " Neema "] {
+        assert_eq!(
+            hits(f.list(&q(term), &f.officer_ilu).await),
+            (1, vec![c.neema.person.clone()]),
+            "{term}"
+        );
+    }
+    for phone in ["0712000003", "+255712000003", "712 000 003", "255712000003"] {
+        assert_eq!(
+            hits(f.list(&q(phone), &f.officer_ilu).await),
+            (1, vec![c.asha.person.clone()]),
+            "{phone}"
+        );
+    }
+    assert_eq!(
+        f.list(&q("mlowe"), &f.officer_ilu).await["meta"]["total"],
+        0,
+        "an officer never finds another village's person"
+    );
+    assert_eq!(f.list(&q("mlowe"), &f.ops).await["meta"]["total"], 1);
+    assert_eq!(
+        f.list(&q("%"), &f.ops).await["meta"]["total"],
+        0,
+        "wildcards are literal"
+    );
+    assert_eq!(
+        f.list(&q(""), &f.ops).await["meta"]["total"],
+        4,
+        "blank = no filter"
+    );
+    assert_eq!(
+        f.list(&format!("{}&verification=verified", q("mwakal")), &f.ops)
+            .await["meta"]["total"],
+        0,
+        "combines with the other filters"
+    );
+
+    // A farmer reads her household's people but not their phones, so cannot search by them.
+    assert_eq!(
+        hits(f.list(&q("rehema"), &neema).await),
+        (1, vec![c.rehema.person.clone()])
+    );
+    assert_eq!(
+        f.list(&q("0712000002"), &neema).await["meta"]["total"],
+        0,
+        "a hidden phone is not searchable"
+    );
+
+    let (status, res) = f
+        .call(Method::GET, &q(&"a".repeat(101)), None, &f.ops)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"]["q"][0],
+        "The q must not be greater than 100 characters."
+    );
+
+    let (outsider, _) = signup(&f.app, "out@else.test", "elsewhere").await;
+    let (status, _) = f.call(Method::GET, &q("neema"), None, &outsider).await;
+    assert_eq!(
+        status,
+        StatusCode::NOT_FOUND,
+        "another workspace is refused"
+    );
+}
+
+/// Percent-encode a query value (spaces, `+`, `%`).
+fn urlencode(s: &str) -> String {
+    s.bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' => (b as char).to_string(),
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
+}

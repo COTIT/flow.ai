@@ -22,7 +22,8 @@ use crate::{
             CropCycleResource, CycleCorrection, FarmCorrection, FarmResource, HarvestQuery,
             HarvestReportResource, HarvestRevision, Holdings, HouseholdCorrection,
             HouseholdResource, ListQuery, PersonCorrection, PersonResource, PlotCorrection,
-            PlotResource, RegistrationRequest, RegistrationResult, verification_filter,
+            PlotResource, RegistrationRequest, RegistrationResult, search_filter,
+            verification_filter,
         },
         repo::{self, Pick},
         service::{self, Kind, one, path_id, seen},
@@ -100,10 +101,13 @@ macro_rules! record_handlers {
             };
             let scope = access.staff_scope();
             let parent: Option<String> = ($parent)(&q);
+            let (name_like, phone_digits) = search_filter(q.q.as_deref())?;
             let pick = Pick {
                 village,
                 verification: verification_filter(q.verification.as_deref())?,
                 parents: parent.as_deref().filter(|v| !v.is_empty()).map(path_id).transpose()?.map(|id| vec![id]),
+                name_like,
+                phone_digits,
                 limit: page.size,
                 offset: page.offset(),
                 ..Pick::default()

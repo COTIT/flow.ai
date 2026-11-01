@@ -35,6 +35,7 @@ Lists come oldest first: `GET /v1/workspace/{workspace}/farm/{persons|households
 | `verification` | all five | comma-separated states, e.g. `unverified,pending` (the verify queue). An unknown state: `422` |
 | `farm_id` | plots | the plots of one farm |
 | `plot_id` | crop-cycles | the cycles on one plot |
+| `q` | persons | search, trimmed, at most 100 characters (`422` above), blank = no filter. Matches part of the full name in any case (`%` and `_` are literal), or the phone digits (`0712…`, `+255712…` and `712 …` all work, 3 digits or more). The phone is matched only on persons of the caller's own staff villages, since others never see it. The order stays oldest first. |
 | `page`, `page_size` | all five | default 50, max 100 |
 
 A filter never widens what the caller may see: another village's `farm_id` gives an empty list.

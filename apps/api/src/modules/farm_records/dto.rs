@@ -316,6 +316,10 @@ pub struct ListQuery {
     /// Crop cycles only: the cycles on this plot.
     #[param(value_type = Option<Uuid>)]
     pub plot_id: Option<String>,
+    /// Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;
+    /// matched only on persons of the caller's own staff villages). At most 100 characters.
+    #[param(value_type = Option<String>, max_length = 100)]
+    pub q: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,
@@ -341,6 +345,34 @@ pub fn verification_filter(
         ));
     }
     Ok(Some(states))
+}
+
+/// `?q=` -> (`ILIKE` pattern on the name, phone digits without `0`/`255`), else a 422 when too long.
+pub fn search_filter(
+    raw: Option<&str>,
+) -> Result<(Option<String>, Option<String>), crate::error::AppError> {
+    let Some(q) = raw.map(str::trim).filter(|s| !s.is_empty()) else {
+        return Ok((None, None));
+    };
+    if q.chars().count() > 100 {
+        return Err(crate::error::AppError::field(
+            "q",
+            "The q must not be greater than 100 characters.",
+        ));
+    }
+    let escaped = q
+        .replace('\\', "\\\\")
+        .replace('%', "\\%")
+        .replace('_', "\\_");
+    let digits: String = q.chars().filter(char::is_ascii_digit).collect();
+    let local = digits
+        .strip_prefix("255")
+        .or_else(|| digits.strip_prefix('0'))
+        .unwrap_or(&digits);
+    Ok((
+        Some(format!("%{escaped}%")),
+        (local.len() >= 3).then(|| local.to_owned()),
+    ))
 }
 
 /// GET harvest reports query.

@@ -28,6 +28,9 @@ pub struct Pick {
     pub ids: Option<Vec<Uuid>>,
     /// Plots of these farms, or cycles of these plots (other kinds ignore it).
     pub parents: Option<Vec<Uuid>>,
+    /// Persons only: `ILIKE` pattern on the full name, and phone digits (staff rows only).
+    pub name_like: Option<String>,
+    pub phone_digits: Option<String>,
     pub limit: i64,
     pub offset: i64,
 }
@@ -141,6 +144,8 @@ pub async fn persons(
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4)))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
              AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))
+             AND ($11::text IS NULL OR (t.given_name || ' ' || t.family_name) ILIKE $11
+                  OR ($12::text IS NOT NULL AND ($2 OR t.village_id = ANY($3)) AND t.phone LIKE '%' || $12 || '%'))
            ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8"#,
         s.ws,
         s.all,
@@ -152,6 +157,8 @@ pub async fn persons(
         p.offset,
         p.verification.as_deref(),
         p.ids.as_deref(),
+        p.name_like.as_deref(),
+        p.phone_digits.as_deref(),
     )
     .fetch_all(db)
     .await?;
@@ -160,7 +167,9 @@ pub async fn persons(
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4)))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
-             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))"#,
+             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))
+             AND ($9::text IS NULL OR (t.given_name || ' ' || t.family_name) ILIKE $9
+                  OR ($10::text IS NOT NULL AND ($2 OR t.village_id = ANY($3)) AND t.phone LIKE '%' || $10 || '%'))"#,
         s.ws,
         s.all,
         s.villages,
@@ -169,6 +178,8 @@ pub async fn persons(
         p.id,
         p.verification.as_deref(),
         p.ids.as_deref(),
+        p.name_like.as_deref(),
+        p.phone_digits.as_deref(),
     )
     .fetch_one(db)
     .await?;
