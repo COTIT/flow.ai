@@ -11,7 +11,9 @@ use uuid::Uuid;
 use crate::{
     http::json::{Rules, Validate, filled, optional},
     modules::{
-        farm_catalogue::repo::{CategoryRow, EquipmentRow, NewCategory, NewEquipment},
+        farm_catalogue::repo::{
+            CategoryRow, EquipmentRow, LoanRow, NewCategory, NewEquipment, NewLoan,
+        },
         farm_surveys::dto::Money,
     },
 };
@@ -301,6 +303,118 @@ impl Validate for EquipmentRequest {
                 "indicative_rent_per_day_minor",
                 self.indicative_rent_per_day_minor,
             ),
+            currency_id: currency_id?,
+        })
+    }
+}
+
+/// A loan LISTING: what a farmer can ask about at the office. INDICATIVE amounts, not an
+/// offer; no interest, deposit, term, schedule or repayment (research item C).
+#[derive(Serialize, ToSchema)]
+pub struct LoanProductResource {
+    id: Uuid,
+    code: String,
+    name_en: String,
+    name_sw: String,
+    #[schema(required = true)]
+    description_en: Option<String>,
+    #[schema(required = true)]
+    description_sw: Option<String>,
+    indicative_min: Money,
+    indicative_max: Money,
+    is_active: bool,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<LoanRow> for LoanProductResource {
+    fn from(l: LoanRow) -> Self {
+        let money = |minor| Money {
+            minor,
+            currency: l.currency.clone(),
+            decimals: l.decimals,
+            currency_id: l.currency_id,
+        };
+        Self {
+            indicative_min: money(l.indicative_min_minor),
+            indicative_max: money(l.indicative_max_minor),
+            id: l.id,
+            code: l.code,
+            name_en: l.name_en,
+            name_sw: l.name_sw,
+            description_en: l.description_en,
+            description_sw: l.description_sw,
+            is_active: l.is_active,
+            created_at: l.created_at,
+            updated_at: l.updated_at,
+        }
+    }
+}
+
+/// POST /farm/loan-products.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "New loan listing (ops or admin): indicative range in minor units, \
+    0 < min ≤ max. A client `id` makes retries safe."
+)]
+pub struct LoanProductRequest {
+    #[schema(value_type = Option<Uuid>)]
+    id: Option<String>,
+    #[schema(value_type = String, max_length = 32, example = "INPUTS")]
+    code: Option<String>,
+    #[schema(value_type = String, max_length = 120)]
+    name_en: Option<String>,
+    #[schema(value_type = String, max_length = 120)]
+    name_sw: Option<String>,
+    #[schema(value_type = Option<String>, max_length = 1000)]
+    description_en: Option<String>,
+    #[schema(value_type = Option<String>, max_length = 1000)]
+    description_sw: Option<String>,
+    #[schema(value_type = i64)]
+    indicative_min_minor: Option<Value>,
+    #[schema(value_type = i64)]
+    indicative_max_minor: Option<Value>,
+    #[schema(value_type = Uuid)]
+    currency_id: Option<String>,
+}
+
+fn amount(r: &mut Rules, field: &str, value: Option<Value>) -> Option<i64> {
+    let Some(v) = filled(value) else {
+        r.missing(field);
+        return None;
+    };
+    r.integer(field, &v, 1, i64::MAX)
+}
+
+impl Validate for LoanProductRequest {
+    type Valid = NewLoan;
+
+    fn validate(self, r: &mut Rules) -> Option<NewLoan> {
+        let id = client_id(r, self.id);
+        let currency_id = reference(r, "currency_id", self.currency_id);
+        let code = r.text("code", self.code, CODE_MAX);
+        let name_en = r.text("name_en", self.name_en, NAME_MAX);
+        let name_sw = r.text("name_sw", self.name_sw, NAME_MAX);
+        let description_en = r.opt_text("description_en", self.description_en, 1000);
+        let description_sw = r.opt_text("description_sw", self.description_sw, 1000);
+        let min = amount(r, "indicative_min_minor", self.indicative_min_minor);
+        let max = amount(r, "indicative_max_minor", self.indicative_max_minor);
+        if let (Some(min), Some(max)) = (min, max) {
+            r.check(
+                "indicative_max_minor",
+                min <= max,
+                "The indicative max minor must be at least the indicative min minor.",
+            );
+        }
+        Some(NewLoan {
+            id,
+            code,
+            name_en,
+            name_sw,
+            description_en,
+            description_sw,
+            indicative_min_minor: min?,
+            indicative_max_minor: max?,
             currency_id: currency_id?,
         })
     }

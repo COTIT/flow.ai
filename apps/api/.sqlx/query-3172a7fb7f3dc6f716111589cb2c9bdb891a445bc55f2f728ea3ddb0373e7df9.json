@@ -1,0 +1,182 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT b.id, b.ref AS \"ref\", b.reporter_id,\n                  jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name)) AS \"reporter!\",\n                  b.route, b.user_agent, b.viewport, b.description, b.actions, b.screenshot_key,\n                  b.photo_key, b.status, b.resolution, b.created_at\n           FROM farm_bug_reports b JOIN users u ON u.id = b.reporter_id\n           WHERE b.workspace_id = $1 AND ($2::uuid IS NULL OR b.id = $2)\n           ORDER BY b.created_at DESC, b.id DESC LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "ref",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "ref"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "reporter_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "reporter_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "reporter!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "route",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "route"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "user_agent",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "user_agent"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "viewport",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "viewport"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "actions",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "actions"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "screenshot_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "screenshot_key"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "photo_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "photo_key"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "resolution",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "resolution"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "3172a7fb7f3dc6f716111589cb2c9bdb891a445bc55f2f728ea3ddb0373e7df9"
+}

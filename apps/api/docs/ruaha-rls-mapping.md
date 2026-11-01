@@ -2,7 +2,7 @@
 
 Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabase/tests/*.sql`, run by `pnpm db:rls`) and where genesy proves the same rule, or why it does not apply. `tests/farm_mapping.rs` keeps this file honest: exactly 280 rows, every named test exists, every N/A has a reason.
 
-**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **242**. N/A: **38**.
+**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **263**. N/A: **17**.
 
 **How rules map.** RUAHA enforces access with Postgres RLS and `SECURITY DEFINER` RPCs; "zero rows" means "not yours". genesy enforces it in the API: the farm guard (`src/http/farm.rs`), village-scoped SQL in each repo, and composite `(workspace_id, village_id)` foreign keys that make cross-village links impossible. A RUAHA "zero rows" is a genesy `404` (or an empty list); a RUAHA "raises" is a `403`/`422` with RUAHA's message where it has one. Several assertions share one test.
 
@@ -256,14 +256,14 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 241 | plot_documents_test.sql #13 | a farmer cannot upload a document | `tests/farm_documents.rs::only_staff_of_the_village_see_or_file_documents` |
 | 242 | plot_documents_test.sql #14 | ops sees the document | `tests/farm_documents.rs::only_staff_of_the_village_see_or_file_documents` |
 | 243 | resource_catalogue_test.sql #1 | ops adds equipment offered for rent only | `tests/farm_catalogue.rs::ops_adds_equipment_offered_for_rent_only` |
-| 244 | resource_catalogue_test.sql #2 | ops adds a loan listing | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
+| 244 | resource_catalogue_test.sql #2 | ops adds a loan listing | `tests/farm_loans.rs::ops_adds_a_loan_listing_and_every_member_reads_it` |
 | 245 | resource_catalogue_test.sql #3 | equipment must be offered to rent or to buy | `tests/farm_catalogue.rs::equipment_must_be_offered_to_rent_or_to_buy` |
-| 246 | resource_catalogue_test.sql #4 | a loan range cannot run backwards | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 247 | resource_catalogue_test.sql #5 | a loan listing is retired, never deleted | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 248 | resource_catalogue_test.sql #6 | a loan listing carries no finance terms (research item C) | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 249 | resource_catalogue_test.sql #7 | an officer cannot add a loan listing | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
+| 246 | resource_catalogue_test.sql #4 | a loan range cannot run backwards | `tests/farm_loans.rs::a_loan_range_cannot_run_backwards_or_from_zero` |
+| 247 | resource_catalogue_test.sql #5 | a loan listing is retired, never deleted | `tests/farm_loans.rs::a_loan_listing_is_never_deleted_and_carries_no_finance_terms` |
+| 248 | resource_catalogue_test.sql #6 | a loan listing carries no finance terms (research item C) | `tests/farm_loans.rs::a_loan_listing_is_never_deleted_and_carries_no_finance_terms` |
+| 249 | resource_catalogue_test.sql #7 | an officer cannot add a loan listing | `tests/farm_loans.rs::officers_and_farmers_cannot_add_a_loan_listing` |
 | 250 | resource_catalogue_test.sql #8 | a farmer cannot add equipment | `tests/farm_catalogue.rs::a_farmer_reads_equipment_but_cannot_add_it` |
-| 251 | resource_catalogue_test.sql #9 | a farmer can read the loan listings of their project | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
+| 251 | resource_catalogue_test.sql #9 | a farmer can read the loan listings of their project | `tests/farm_loans.rs::ops_adds_a_loan_listing_and_every_member_reads_it` |
 | 252 | resource_catalogue_test.sql #10 | a machine offered only for sale cannot be requested on rent | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
 | 253 | resource_catalogue_test.sql #11 | a machine offered only on rent cannot be requested to buy | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
 | 254 | resource_catalogue_test.sql #12 | a farmer requests a machine on rent | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
@@ -277,19 +277,19 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 262 | supply_attached_by_test.sql #4 | staff who can read the supply line resolve who attached it | `tests/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
 | 263 | supply_attached_by_test.sql #5 | an officer outside the village does not resolve the attacher | `tests/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
 | 264 | supply_attached_by_test.sql #6 | a farmer does not resolve the attacher through supply lines | `tests/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
-| 265 | bug_report_test.sql #1 | a farmer files a bug report, filed as open under their own name | N/A because bug reports are out of scope (G14) |
-| 266 | bug_report_test.sql #2 | a farmer cannot read bug reports, their own included | N/A because bug reports are out of scope (G14) |
-| 267 | bug_report_test.sql #3 | a farmer cannot read bug report images | N/A because bug reports are out of scope (G14) |
-| 268 | bug_report_test.sql #4 | a report cannot be filed in someone else's name | N/A because bug reports are out of scope (G14) |
-| 269 | bug_report_test.sql #5 | a report needs a screenshot or a photo | N/A because bug reports are out of scope (G14) |
-| 270 | bug_report_test.sql #6 | a report needs a description | N/A because bug reports are out of scope (G14) |
-| 271 | bug_report_test.sql #7 | a report carries at most 30 actions | N/A because bug reports are out of scope (G14) |
-| 272 | bug_report_test.sql #8 | a client cannot change a report's status | N/A because bug reports are out of scope (G14) |
-| 273 | bug_report_test.sql #9 | a client cannot delete a report | N/A because bug reports are out of scope (G14) |
-| 274 | bug_report_test.sql #10 | an image cannot be uploaded into someone else's folder | N/A because bug reports are out of scope (G14) |
-| 275 | bug_report_test.sql #11 | no policy lets a bug report image be replaced or deleted | N/A because bug reports are out of scope (G14) |
-| 276 | bug_report_test.sql #12 | an officer cannot read bug reports | N/A because bug reports are out of scope (G14) |
-| 277 | bug_report_test.sql #13 | ops cannot read bug reports | N/A because bug reports are out of scope (G14) |
-| 278 | bug_report_test.sql #14 | admin reads every bug report | N/A because bug reports are out of scope (G14) |
-| 279 | bug_report_test.sql #15 | admin reads bug report images | N/A because bug reports are out of scope (G14) |
-| 280 | bug_report_test.sql #16 | anon cannot read bug reports | N/A because bug reports are out of scope (G14) |
+| 265 | bug_report_test.sql #1 | a farmer files a bug report, filed as open under their own name | `tests/farm_bug_reports.rs::a_farmer_files_a_report_under_their_own_name` |
+| 266 | bug_report_test.sql #2 | a farmer cannot read bug reports, their own included | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 267 | bug_report_test.sql #3 | a farmer cannot read bug report images | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 268 | bug_report_test.sql #4 | a report cannot be filed in someone else's name | `tests/farm_bug_reports.rs::a_report_cannot_be_filed_in_someone_elses_name` |
+| 269 | bug_report_test.sql #5 | a report needs a screenshot or a photo | `tests/farm_bug_reports.rs::a_report_needs_an_image_a_description_and_at_most_30_actions` |
+| 270 | bug_report_test.sql #6 | a report needs a description | `tests/farm_bug_reports.rs::a_report_needs_an_image_a_description_and_at_most_30_actions` |
+| 271 | bug_report_test.sql #7 | a report carries at most 30 actions | `tests/farm_bug_reports.rs::a_report_needs_an_image_a_description_and_at_most_30_actions` |
+| 272 | bug_report_test.sql #8 | a client cannot change a report's status | `tests/farm_bug_reports.rs::no_route_changes_or_deletes_a_report` |
+| 273 | bug_report_test.sql #9 | a client cannot delete a report | `tests/farm_bug_reports.rs::no_route_changes_or_deletes_a_report` |
+| 274 | bug_report_test.sql #10 | an image cannot be uploaded into someone else's folder | `tests/farm_bug_reports.rs::a_farmer_files_a_report_under_their_own_name` |
+| 275 | bug_report_test.sql #11 | no policy lets a bug report image be replaced or deleted | N/A because genesy has no storage policy layer: no route writes, replaces or deletes a stored image, and every upload gets a fresh server-made key in the reporter's folder |
+| 276 | bug_report_test.sql #12 | an officer cannot read bug reports | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 277 | bug_report_test.sql #13 | ops cannot read bug reports | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 278 | bug_report_test.sql #14 | admin reads every bug report | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 279 | bug_report_test.sql #15 | admin reads bug report images | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 280 | bug_report_test.sql #16 | anon cannot read bug reports | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |

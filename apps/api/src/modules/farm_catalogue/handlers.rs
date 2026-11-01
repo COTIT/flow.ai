@@ -18,7 +18,7 @@ use crate::{
     modules::farm_catalogue::{
         dto::{
             EquipmentCategoryRequest, EquipmentCategoryResource, EquipmentRequest,
-            EquipmentResource, ListQuery,
+            EquipmentResource, ListQuery, LoanProductRequest, LoanProductResource,
         },
         service,
     },
@@ -153,5 +153,55 @@ pub async fn create_equipment(
     ValidatedJson(input): ValidatedJson<EquipmentRequest>,
 ) -> Result<(StatusCode, Data<EquipmentResource>), AppError> {
     let (row, new) = service::create_equipment(&state, &access, input).await?;
+    Ok((created(new), Data(row.into())))
+}
+
+/// GET /farm/loan-products -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/loan-products", tag = "farm_loans",
+    operation_id = "farm_loans_list", summary = "List loan listings",
+    description = "Every farm member. Listings only: indicative ranges, no finance terms.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
+    responses(
+        (status = 200, body = Paginated<LoanProductResource>, description = "One page, by English name"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn list_loans(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Query(query): Query<ListQuery>,
+) -> Result<Json<Paginated<LoanProductResource>>, AppError> {
+    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let (rows, total) =
+        service::list_loans(&state, &access, query.active(), page.size, page.offset()).await?;
+    let data = rows.into_iter().map(Into::into).collect();
+    Ok(Json(Paginated::new(data, total, page)))
+}
+
+/// POST /farm/loan-products -> 201 created, 200 replayed.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/farm/loan-products", tag = "farm_loans",
+    operation_id = "farm_loans_create", summary = "Add a loan listing",
+    description = "ops or admin. Never deleted; no route edits one.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = LoanProductRequest,
+    responses(
+        (status = 200, body = Envelope<LoanProductResource>, description = "Replayed: same id, same body"),
+        (status = 201, body = Envelope<LoanProductResource>, description = "Created"),
+        (status = 403, body = MessageBody, description = "Caller is not ops or admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role"),
+        (status = 409, body = MessageBody, description = "The id holds a different listing, or is used elsewhere"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, range backwards, unknown currency or code taken"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn create_loan(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    ValidatedJson(input): ValidatedJson<LoanProductRequest>,
+) -> Result<(StatusCode, Data<LoanProductResource>), AppError> {
+    let (row, new) = service::create_loan(&state, &access, input).await?;
     Ok((created(new), Data(row.into())))
 }

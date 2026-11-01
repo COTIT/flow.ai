@@ -16,13 +16,14 @@ use crate::{
     modules::{
         app_keys, auth, cash, contacts, currencies, custom_statuses, custom_types, deal_pipelines,
         deals, discount_groups, discounts, email_profiles, email_templates, email_verification,
-        farm_catalogue, farm_crops, farm_documents, farm_logins, farm_market, farm_memberships,
-        farm_passbook, farm_payouts, farm_pue, farm_records, farm_supply, farm_surveys, farm_tower,
-        farm_villages, farm_vouchers, files, hourly_rates, invites, invoice_payments, invoices,
-        lots, messages, orders, pdf_templates, permissions, price_corrections, pricing,
-        product_brands, product_categories, product_variants, products, relations, sales_groups,
-        search, settings, shipment_methods, special_offers, stock, storage_locations, storefront,
-        supply_chain, supply_links, teams, till, till_catalog, till_sales,
+        farm_bug_reports, farm_catalogue, farm_crops, farm_documents, farm_logins, farm_market,
+        farm_memberships, farm_passbook, farm_payouts, farm_pue, farm_records, farm_supply,
+        farm_surveys, farm_tower, farm_villages, farm_vouchers, files, hourly_rates, invites,
+        invoice_payments, invoices, lots, messages, orders, pdf_templates, permissions,
+        price_corrections, pricing, product_brands, product_categories, product_variants, products,
+        relations, sales_groups, search, settings, shipment_methods, special_offers, stock,
+        storage_locations, storefront, supply_chain, supply_links, teams, till, till_catalog,
+        till_sales,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -191,6 +192,7 @@ pub(crate) fn documents() -> OpenApiRouter<AppState> {
         .merge(invoices::routes::private())
         .merge(files::routes::private())
         .merge(farm_documents::routes::private())
+        .merge(farm_bug_reports::routes::private())
 }
 
 /// Full spec, built from [`public`], [`private`] and [`documents`], as JSON.

@@ -1970,3 +1970,24 @@ fn every_farm_tower_operation_is_documented() {
         ),
     ]);
 }
+
+#[test]
+fn every_farm_loans_and_bug_reports_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/loan-products", "get", "farm_loans_list", "200"),
+        ("/farm/loan-products", "post", "farm_loans_create", "201"),
+        ("/farm/bug-reports", "get", "farm_bug_reports_list", "200"),
+        (
+            "/farm/bug-reports",
+            "post",
+            "farm_bug_reports_create",
+            "201",
+        ),
+        (
+            "/farm/bug-reports/{report}",
+            "get",
+            "farm_bug_reports_get",
+            "200",
+        ),
+    ]);
+}
