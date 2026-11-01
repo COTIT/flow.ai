@@ -34,8 +34,8 @@
     "more": "Eén {name} meer",
     "quantityOf": "Aantal {name}",
     "remove": "{name} verwijderen",
-    "estimate": "Schatting excl. btw",
-    "estimateHint": "Catalogusprijzen excl. btw; het totaal met btw, afronding en wisselgeld komen van de server bij het afrekenen.",
+    "estimate": "Schatting (offline)",
+    "estimateHint": "Offline: catalogusprijzen incl. btw. Totaal, afronding en wisselgeld van de server komen mee als de verkoop verstuurd is.",
     "method": "Betaalwijze",
     "cash": "Contant",
     "card": "Pin",
@@ -46,7 +46,8 @@
     "charge": "Afrekenen",
     "savedTitle": "Offline bewaard",
     "savedHint": "De kassa is offline. Deze verkoop blijft op dit apparaat en wordt verstuurd zodra er weer verbinding is.",
-    "newSale": "Nieuwe verkoop"
+    "newSale": "Nieuwe verkoop",
+    "quote": "Prijsopgave"
   },
   "nav": {
     "label": "Kassamenu",
@@ -79,7 +80,8 @@
     "remove": "Rij {n} verwijderen",
     "add": "Rij toevoegen",
     "total": "Geteld",
-    "invalid": "Elke rij heeft een waarde (bv. 5,00) en een heel aantal nodig."
+    "invalid": "Elke rij heeft een waarde (bv. 5,00) en een heel aantal nodig.",
+    "piecesOf": "Aantal van {value}"
   },
   "receipt": {
     "title": "Bon",

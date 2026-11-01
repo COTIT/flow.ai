@@ -4,7 +4,9 @@ import {
   expect,
   honey,
   seedTill,
+  quoteReply,
   serveCatalog,
+  serveQuote,
   test,
   type FakeApi,
   type TillRow,
@@ -74,6 +76,7 @@ function booked(body: {
 
 function saleApi(api: FakeApi) {
   serveCatalog(api, [honey, candle])
+  serveQuote(api, [honey, candle])
   api.on("POST", "/workspace/:ws/till/sales", ({ body }) =>
     booked(body as Parameters<typeof booked>[0])
   )
@@ -94,6 +97,11 @@ test("a cash sale sends the catalog prices and shows the API's rounding and chan
   api,
 }) => {
   saleApi(api)
+  // The API's quote: €33.02, which cash pays as €33.00 (5-cent rounding).
+  api.on("POST", "/workspace/:ws/till/sales/quote", ({ body }) => {
+    const b = body as Parameters<typeof quoteReply>[0]
+    return quoteReply(b, 3302, b.payment.method === "cash" ? 3300 : 3302)
+  })
   await seedTill(page)
   await page.goto("/sale")
   await ringUp(page)
@@ -103,10 +111,30 @@ test("a cash sale sends the catalog prices and shows the API's rounding and chan
     "2"
   )
   await expect(cart.getByText("Beeswax candle · Large")).toBeVisible()
-  await expect(cart.getByText("≈ €29.55")).toBeVisible()
+  const quote = cart.getByRole("definition")
+  await expect(quote.filter({ hasText: "€33.02" })).toBeVisible()
+  await expect(quote.filter({ hasText: "-€0.02" })).toBeVisible()
+  await expect(quote.filter({ hasText: "€33.00" })).toBeVisible()
+  await expect(cart.getByText("≈")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 
   await page.getByLabel("Cash received").fill("50")
+  await expect(quote.filter({ hasText: "€17.00" })).toBeVisible()
+  const quoted = api
+    .callsTo("POST", `/workspace/${WS}/till/sales/quote`)
+    .at(-1)!
+  expect(quoted.body).toEqual({
+    lines: [
+      { product_id: "p-honey", quantity: "2", unit_price: 1147 },
+      {
+        product_id: "p-candle",
+        product_variant_id: "v-large",
+        quantity: "1",
+        unit_price: 661,
+      },
+    ],
+    payment: { method: "cash", tendered: 5000 },
+  })
   await page.getByRole("button", { name: "Charge" }).click()
 
   const receipt = page.getByRole("region", { name: "Receipt" })

@@ -8,15 +8,14 @@ import type { CountLine } from "@genesy/api-client/model"
 import { Button } from "@genesy/ui/components/button"
 import { Input } from "@genesy/ui/components/input"
 import { toMinor } from "@genesy/ui/lib/money"
+import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
 
-type Row = { denomination: string; count: string }
+/** `fixed`: a note or coin the register accepts (minor units); otherwise a typed value. */
+type Row = { fixed?: number; denomination: string; count: string }
 const empty: Row = { denomination: "", count: "" }
 
-/**
- * A cash count: one row per note or coin (value + how many).
- * shortcut: free rows until `/till/me` lists the register's accepted denominations.
- */
+/** A cash count: one row per note or coin the register accepts, plus any typed extra rows. */
 export function CountForm({
   submitLabel,
   pending,
@@ -28,13 +27,20 @@ export function CountForm({
 }) {
   const t = useTranslations("count")
   const { money, decimals } = useTillMoney()
-  const [rows, setRows] = React.useState<Row[]>([empty])
+  const accepted = useTill((s) => s.session?.register.accepted_cash) ?? []
+  const [rows, setRows] = React.useState<Row[]>(() =>
+    accepted.length
+      ? accepted.map((v) => ({ fixed: v, denomination: "", count: "" }))
+      : [empty]
+  )
   const [invalid, setInvalid] = React.useState(false)
 
   const lines = rows
-    .filter((r) => r.denomination.trim() || r.count.trim())
+    .filter((r) => r.count.trim() || (!r.fixed && r.denomination.trim()))
     .map((r) => ({
-      denomination: decimals == null ? null : toMinor(r.denomination, decimals),
+      denomination:
+        r.fixed ??
+        (decimals == null ? null : toMinor(r.denomination, decimals)),
       count: /^\d+$/.test(r.count.trim()) ? Number(r.count) : null,
     }))
   const valid = lines.every((l) => l.denomination != null && l.count != null)
@@ -62,32 +68,42 @@ export function CountForm({
       <ul className="flex flex-col gap-2">
         {rows.map((row, i) => (
           <li key={i} className="flex items-center gap-2">
-            <Input
-              aria-label={t("denomination", { n: i + 1 })}
-              inputMode="decimal"
-              placeholder={t("value")}
-              value={row.denomination}
-              onChange={(e) => set(i, { denomination: e.target.value })}
-            />
+            {row.fixed ? (
+              <span className="flex-1 tabular-nums">{money(row.fixed)}</span>
+            ) : (
+              <Input
+                aria-label={t("denomination", { n: i + 1 })}
+                inputMode="decimal"
+                placeholder={t("value")}
+                value={row.denomination}
+                onChange={(e) => set(i, { denomination: e.target.value })}
+              />
+            )}
             <span aria-hidden>×</span>
             <Input
-              aria-label={t("pieces", { n: i + 1 })}
+              aria-label={
+                row.fixed
+                  ? t("piecesOf", { value: money(row.fixed) })
+                  : t("pieces", { n: i + 1 })
+              }
               inputMode="numeric"
               placeholder={t("count")}
               className="w-24"
               value={row.count}
               onChange={(e) => set(i, { count: e.target.value })}
             />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={t("remove", { n: i + 1 })}
-              disabled={rows.length === 1}
-              onClick={() => setRows(rows.filter((_, j) => j !== i))}
-            >
-              <X />
-            </Button>
+            {row.fixed ? null : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("remove", { n: i + 1 })}
+                disabled={rows.length === 1}
+                onClick={() => setRows(rows.filter((_, j) => j !== i))}
+              >
+                <X />
+              </Button>
+            )}
           </li>
         ))}
       </ul>
