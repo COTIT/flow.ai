@@ -116,6 +116,8 @@ const SURFACE_ITEMS: Record<Surface, NavItem[]> = {
     { to: '/ops/buyers', labelKey: 'nav.buyers' },
     { to: '/ops/villages', labelKey: 'nav.villages' },
     { to: '/ops/surveys', labelKey: 'nav.surveys' },
+    { to: '/ops/supply-links', labelKey: 'nav.supplyLinks' },
+    { to: '/ops/dispatch', labelKey: 'nav.dispatch' },
     { to: '/ops/tower', labelKey: 'nav.tower' },
   ],
 }
