@@ -354,5 +354,15 @@
     "receiveFrom": "Batch {code} ontvangen",
     "receiveText": "Er is {quantity} verstuurd. Ontvangen maakt hier een nieuwe batch en kan maar één keer; is er minder aangekomen, vul dan in wat aankwam en het tekort blijft geregistreerd.",
     "newLotCode": "Nieuwe batchcode"
+  },
+  "packing": {
+    "pack": "In potten verpakken",
+    "title": "Batch {code} in potten verpakken",
+    "text": "Maakt een nieuwe batch potten van de kg van deze batch. De kg gaan meteen uit deze batch en de potten op voorraad. Alleen een batch uit aanvoer kan verpakt worden, één keer.",
+    "product": "Potproduct",
+    "units": "Potten gemaakt",
+    "rawKg": "Kg gebruikt",
+    "done": "Batch {code} gemaakt: {units} potten van {kg} kg.",
+    "open": "Batch {code} openen"
   }
 }

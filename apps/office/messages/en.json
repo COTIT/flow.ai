@@ -354,5 +354,15 @@
     "receiveFrom": "Receive batch {code}",
     "receiveText": "{quantity} were sent. Receiving makes a new batch here and can be done only once; if less arrived, enter what arrived and the shortfall stays on record.",
     "newLotCode": "New batch code"
+  },
+  "packing": {
+    "pack": "Pack into jars",
+    "title": "Pack batch {code} into jars",
+    "text": "Makes a new batch of jars from this batch's kg. The kg leave this batch and the jars go into stock at once. Only a batch from a supply can be packed, once.",
+    "product": "Jar product",
+    "units": "Jars made",
+    "rawKg": "Kg used",
+    "done": "Batch {code} made: {units} jars from {kg} kg.",
+    "open": "Open batch {code}"
   }
 }

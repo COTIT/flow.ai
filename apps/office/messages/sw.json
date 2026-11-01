@@ -354,5 +354,15 @@
     "receiveFrom": "Pokea fungu {code}",
     "receiveText": "Kiasi cha {quantity} kilitumwa. Kupokea kunaunda fungu jipya hapa na kunafanyika mara moja tu; kama kimefika kidogo, weka kilichofika na upungufu utabaki kwenye kumbukumbu.",
     "newLotCode": "Namba ya fungu jipya"
+  },
+  "packing": {
+    "pack": "Fungasha kwenye chupa",
+    "title": "Fungasha fungu {code} kwenye chupa",
+    "text": "Inaunda fungu jipya la chupa kutoka kilo za fungu hili. Kilo zinatoka kwenye fungu hili na chupa zinaingia akibani mara moja. Ni fungu la ugavi tu linaloweza kufungashwa, mara moja.",
+    "product": "Bidhaa ya chupa",
+    "units": "Chupa zilizotengenezwa",
+    "rawKg": "Kilo zilizotumika",
+    "done": "Fungu {code} limetengenezwa: chupa {units} kutoka kilo {kg}.",
+    "open": "Fungua fungu {code}"
   }
 }
