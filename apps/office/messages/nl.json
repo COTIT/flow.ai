@@ -207,7 +207,8 @@
     "payments": "Betalingen",
     "noPayments": "Nog geen betalingen.",
     "method": "Methode",
-    "amount": "Bedrag"
+    "amount": "Bedrag",
+    "customer": "Klant"
   },
   "orders": {
     "title": "Orders",

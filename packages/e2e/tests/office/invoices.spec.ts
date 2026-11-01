@@ -3,6 +3,7 @@ import { expect, paged, test, type FakeApi } from "./fake-api"
 const invoice = {
   id: "inv-1",
   invoice_nr: "2026-0001",
+  customer_name: "Acme Imports",
   status: "sent",
   is_credit: false,
   created_at: "2026-10-30T09:00:00Z",
@@ -32,7 +33,17 @@ const invoice = {
 
 function invoicesApi(api: FakeApi) {
   api
-    .on("GET", "/workspace/:ws/invoices", () => paged([invoice]))
+    .on("GET", "/workspace/:ws/invoices", () =>
+      paged([
+        invoice,
+        {
+          ...invoice,
+          id: "inv-2",
+          invoice_nr: "2026-0002",
+          customer_name: null,
+        },
+      ])
+    )
     .on("GET", "/workspace/:ws/invoices/:id", () => ({ data: invoice }))
     .on("GET", "/workspace/:ws/invoices/:id/preview", () => ({
       data: {
@@ -48,7 +59,19 @@ test("invoice list to detail; amounts shown as the API gives them", async ({
 }) => {
   invoicesApi(api)
   await page.goto("/invoices")
-  await expect(page.getByRole("cell", { name: "121.00" })).toBeVisible()
+  await expect(page.getByRole("cell", { name: "121.00" }).first()).toBeVisible()
+  await expect(
+    page
+      .getByRole("row", { name: /2026-0001/ })
+      .getByRole("cell", { name: "Acme Imports" })
+  ).toBeVisible()
+  // No customer on the API's side: a dash, not a guess.
+  await expect(
+    page
+      .getByRole("row", { name: /2026-0002/ })
+      .getByRole("cell", { name: "—" })
+      .first()
+  ).toBeVisible()
   await page.getByRole("link", { name: "2026-0001" }).click()
   await expect(page.getByRole("heading", { name: "2026-0001" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "AFM Honey 500g" })).toBeVisible()

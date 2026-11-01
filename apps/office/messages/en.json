@@ -207,7 +207,8 @@
     "payments": "Payments",
     "noPayments": "No payments yet.",
     "method": "Method",
-    "amount": "Amount"
+    "amount": "Amount",
+    "customer": "Customer"
   },
   "orders": {
     "title": "Orders",

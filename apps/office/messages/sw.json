@@ -207,7 +207,8 @@
     "payments": "Malipo",
     "noPayments": "Bado hakuna malipo.",
     "method": "Njia",
-    "amount": "Kiasi"
+    "amount": "Kiasi",
+    "customer": "Mteja"
   },
   "orders": {
     "title": "Oda",
