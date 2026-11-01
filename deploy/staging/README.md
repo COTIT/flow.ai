@@ -80,7 +80,7 @@ Staging and production, one A and one AAAA record per host:
 | A    | `field`          | `185.77.96.44`        | 3600 |
 | AAAA | `field`          | `2a02:4780:d:ca37::1` | 3600 |
 
-Only add the AAAA records if Traefik answers on IPv6. Otherwise IPv6 visitors fail, and so can Let's Encrypt, which prefers IPv6. Check from any machine with IPv6: `curl -6 -sI http://control.genesy.app`.
+Traefik answers on IPv6 (checked 2026-11-01: HTTP 301 on `[2a02:4780:d:ca37::1]`), so the AAAA records are safe.
 
 Let's Encrypt can only issue the certificates once these names resolve.
 
