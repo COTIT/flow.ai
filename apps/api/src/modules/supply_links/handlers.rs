@@ -11,11 +11,11 @@ use crate::{
     AppState,
     error::{AppError, ValidationErrorBody},
     http::{
-        json::ValidatedJson,
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
+    idempotency::{Answer, Keyed},
     modules::supply_links::{
         dto::{GrantLinkRequest, LinkResource, ListQuery},
         service,
@@ -56,27 +56,26 @@ pub async fn list(
     post, path = "/workspace/{workspace}/supply-links", tag = "supply_links",
     operation_id = "supply_links_grant", summary = "Grant a supply link",
     description = "From this (farm) workspace to a shop workspace, with the public farmer fields it may show. Names and photos are refused until the data-protection gate opens. One pending or live link per pair.",
-    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day."),
+    ),
     request_body = GrantLinkRequest,
     responses(
-        (status = 201, body = Envelope<LinkResource>, description = "Granted, pending acceptance"),
+        (status = 201, body = Envelope<LinkResource>, description = "Granted, pending acceptance (or the first answer again, for a retried Idempotency-Key)"),
         (status = 403, body = MessageBody, description = "Inactive membership, or caller not a workspace admin"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
         (status = 409, body = MessageBody, description = "A pending or live link to that workspace exists"),
-        (status = 422, body = ValidationErrorBody, description = "Unknown or gated field, or bad target workspace"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown or gated field, bad target workspace, or Idempotency-Key reused for another request"),
     ),
     security(("bearer" = []))
 )]
 pub async fn grant(
     State(state): State<AppState>,
     access: Can<WorkspaceAdmin>,
-    ValidatedJson(input): ValidatedJson<GrantLinkRequest>,
-) -> Result<(StatusCode, Data<LinkResource>), AppError> {
-    let link = service::grant(&state, &access, input).await?;
-    Ok((
-        StatusCode::CREATED,
-        Data(LinkResource::new(link, access.workspace_id)),
-    ))
+    Keyed { input, key }: Keyed<GrantLinkRequest>,
+) -> Result<Answer, AppError> {
+    service::grant(&state, &access, input, key).await
 }
 
 /// POST /supply-links/{link}/accept.

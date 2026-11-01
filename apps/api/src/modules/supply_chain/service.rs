@@ -11,6 +11,7 @@ use crate::{
     AppState,
     error::AppError,
     http::workspace::WorkspaceAccess,
+    idempotency::{self, Actor, Answer, Key},
     modules::{
         farm_supply::service::lineage,
         lots::{
@@ -23,7 +24,7 @@ use crate::{
             service::tracks_stock,
         },
         supply_chain::{
-            dto::{NewDispatch, NewPacking, NewReceipt, PackedLotResource},
+            dto::{NewDispatch, NewPacking, NewReceipt, PackedLotResource, SupplyTransferResource},
             repo::{self, TransferRow},
         },
         warehouses::repo as warehouses,
@@ -185,14 +186,22 @@ async fn one(state: &AppState, ws: Uuid, id: Uuid) -> Result<TransferRow, AppErr
 }
 
 /// POST /lots/{lot}/transfers: stock out of the lot, a dispatched transfer to the link's
-/// other side.
+/// other side. A retry under the same Idempotency-Key replays the first answer.
 pub async fn dispatch(
     state: &AppState,
     access: &WorkspaceAccess,
     id: &str,
     d: NewDispatch,
-) -> Result<TransferRow, AppError> {
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
     let ws = access.workspace_id;
+    // First, so a retry answers as before even if the link was revoked since.
+    let mut tx = state.db.begin().await?;
+    if let Some(answer) =
+        idempotency::replay(&mut tx, ws, Actor::User(access.user_id), key.as_ref()).await?
+    {
+        return Ok(answer);
+    }
     let lot = lots::find(&state.db, ws, parse(id)?)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -215,7 +224,6 @@ pub async fn dispatch(
             "The selected warehouse id is invalid.",
         ));
     }
-    let mut tx = state.db.begin().await?;
     let tid = repo::insert_transfer(
         &mut tx,
         d.link_id,
@@ -253,8 +261,14 @@ pub async fn dispatch(
         meta: Some(json!({ "transfer_id": tid, "quantity": format!("{:.2}", d.quantity) })),
     };
     lots::add_event(&mut tx, ws, &event).await?;
+    let row = repo::rows(&mut *tx, ws, Some(tid), 1, 0)
+        .await?
+        .pop()
+        .ok_or(AppError::NotFound)?;
+    let answer = Answer::created(&json!({ "data": SupplyTransferResource::new(row, ws) }));
+    idempotency::finish(&mut tx, ws, key.as_ref(), &answer).await?;
     tx.commit().await?;
-    one(state, ws, tid).await
+    Ok(answer)
 }
 
 /// One page of the workspace's transfers (either side), newest first.

@@ -23,13 +23,15 @@ The raw lot's kg are put into stock with the lot stock route (`POST /lots/{lot}/
 
 `201 {"data": {id, code, public_code, product_id, parent_lot_id, pack_raw_kg, pack_units, best_before, expires_on}}`.
 
-## `POST …/lots/{lot}/transfers` (`product.update`)
+## `POST …/lots/{lot}/transfers` (`product.update`, or farm `ops`/`admin`)
 
 `{link_id, warehouse_id, quantity}`:
 - The link must be one this workspace granted (`422` on `link_id` otherwise). It must be live (`403 The supply link is not live.` when pending or revoked).
 - The lot must come from a supply batch.
 - One transaction: the quantity out of the lot in that warehouse (`422` when it holds less free), a `dispatched` transfer and a `dispatched` lot event.
 - Another workspace's lot gets `404`.
+- Farm ops and admin ship without `product.update`; a field officer, farmer or plain member gets `403`. Granting a link stays with workspace admins (it shares farmer data).
+- Send an `Idempotency-Key` header (1 to 255 visible characters) to make a retry after a lost reply safe: the same key and body replay the first answer byte for byte, another request under the key is `422 Idempotency-Key reused with different request payload`, keys are per workspace and per caller, kept a day. One retry = one transfer, one stock movement, one event.
 
 ## `GET …/supply-transfers?page&page_size` (members)
 
