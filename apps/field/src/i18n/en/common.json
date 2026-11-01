@@ -100,6 +100,7 @@
     "duplicateLoanCode": "That loan code is already in use in this project."
   },
   "dbError": {
+    "noteRequired": "The note field is required to approve or reject.",
     "surveyNotFound": "This survey could not be found.",
     "surveyClosed": "This survey is closed.",
     "notLinkedToFarmer": "Your account is not linked to a registered farmer.",
@@ -418,6 +419,7 @@
     "estimateBlockedDetail": "Fill in how many, hours per day and days per week, and the estimate appears here.",
     "estimateImpossibleTitle": "This cannot be estimated",
     "estimateImpossibleDetail": "One of the figures above is outside what is possible, so no estimate is shown for it. Correct it and the estimate returns.",
+    "noEstimateTitle": "No estimate for this machine",
     "acquisition": "Rent or buy?",
     "acquisitionOnly": {
       "rent": "Offered to rent only.",
@@ -476,7 +478,6 @@
     "neverSummed": "Prospective and approved demand are separate figures and are never added together.",
     "simultaneity": "Simultaneity factor",
     "decisionNote": "Decision note",
-    "decisionNoteRequired": "A decision needs a note explaining it.",
     "startReview": "Start review",
     "approve": "Approve",
     "reject": "Reject",

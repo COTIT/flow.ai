@@ -135,6 +135,24 @@ export const FARMER_CHAPTERS: Chapter[] = [
         bodyKey: 'tour.farmer.equipmentPriceBody',
       },
       {
+        // The form's inputs and the estimate that answers them, in one
+        // element. The submit button is deliberately outside it. The gate is
+        // the estimate itself: an impossible figure hides it, and the next stop
+        // points at it, so the person is held here until a real figure is back.
+        route: '/farm/equipment/$equipmentId',
+        testId: 'request-inputs',
+        titleKey: 'tour.farmer.equipmentTryTitle',
+        bodyKey: 'tour.farmer.equipmentTryBody',
+        tryIt: true,
+        gate: 'estimate-panel',
+      },
+      {
+        route: '/farm/equipment/$equipmentId',
+        testId: 'estimate-panel',
+        titleKey: 'tour.farmer.equipmentEstimateTitle',
+        bodyKey: 'tour.farmer.equipmentEstimateBody',
+      },
+      {
         // Explained, never pressed: the button sends a request to ops.
         route: '/farm/equipment/$equipmentId',
         testId: 'request-submit',

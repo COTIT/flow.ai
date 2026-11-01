@@ -18,6 +18,7 @@ import {
   type ReviewerAction,
 } from '@/features/ops/transitions'
 import { useOpsRequest, useReviewAction, useVillageEnergy } from '@/features/ops/useOpsRequests'
+import { humanizeDbError } from '@/lib/errors'
 import { formatKw, formatKwh, formatTimestamp } from '@/lib/format'
 
 const route = getRouteApi('/_ops/ops/requests/$requestId')
@@ -36,7 +37,6 @@ export function OpsRequestReviewScreen() {
   const review = useReviewAction(requestId, query.request?.village_id)
 
   const [note, setNote] = useState('')
-  const [noteError, setNoteError] = useState(false)
   // Approve and reject cannot be undone, so they wait here until the reviewer confirms.
   const [confirming, setConfirming] = useState<'approve' | 'reject' | null>(null)
 
@@ -57,12 +57,13 @@ export function OpsRequestReviewScreen() {
   const estimate = request.estimate
   const actions = reviewerActions(request.status)
 
+  // The API decides whether a note is needed; its refusal of the note is shown at the field.
+  const noteRefused = review.isError
+    ? (review.error as { response?: { data?: { errors?: { note?: string[] } } } } | null)?.response?.data?.errors?.note?.[0]
+    : undefined
+  const noteError = noteRefused ? humanize(noteRefused, t) : null
+
   const run = (action: ReviewerAction) => {
-    if (requiresDecisionNote(action) && note.trim() === '') {
-      setNoteError(true)
-      return
-    }
-    setNoteError(false)
     if (action === 'approve' || action === 'reject') {
       setConfirming(action)
       return
@@ -71,7 +72,7 @@ export function OpsRequestReviewScreen() {
   }
 
   const submit = (action: ReviewerAction) =>
-    review.mutate({ action, note: requiresDecisionNote(action) ? note.trim() : undefined })
+    review.mutate({ action, note: note.trim() || undefined })
 
   return (
     <section className="flex w-full flex-col gap-[18px]" data-testid="request-review">
@@ -206,7 +207,7 @@ export function OpsRequestReviewScreen() {
         </section>
       )}
 
-      {review.isError && (
+      {review.isError && !noteError && (
         <div data-testid="review-error">
           <ErrorState error={review.error} onRetry={() => review.reset()} />
         </div>
@@ -231,7 +232,7 @@ export function OpsRequestReviewScreen() {
                 rows={2}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                aria-invalid={noteError || undefined}
+                aria-invalid={noteError ? true : undefined}
                 aria-describedby={noteError ? 'decision-note-error' : undefined}
                 className="w-full"
                 style={
@@ -247,7 +248,7 @@ export function OpsRequestReviewScreen() {
                   style={{ fontSize: 13, color: 'var(--flag-ink)' }}
                 >
                   <BangMark />
-                  {t('ops.decisionNoteRequired')}
+                  {noteError}
                 </p>
               )}
             </div>
@@ -287,6 +288,12 @@ export function OpsRequestReviewScreen() {
       )}
     </section>
   )
+}
+
+/** A message from the API, as written (or its known translation). */
+function humanize(text: string, t: (key: string, values?: Record<string, unknown>) => string): string {
+  const human = humanizeDbError(text)
+  return human.kind === 'verbatim' ? human.message : t(human.key, human.values)
 }
 
 function camel(action: ReviewerAction): string {

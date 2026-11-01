@@ -54,3 +54,24 @@ export const energy: MockReply = {
 
 /** A review move by someone who is not ops or admin (the API's words). */
 export const reviewRefused: MockReply = { status: 403, body: { message: "only ops or admin may review a request" } }
+
+/** POST .../pue-requests/estimate: the API's preview for these figures (the mill is 15 kW). Writes nothing. */
+export const estimatePreview = (body: { quantity?: number; hours_per_day?: string; days_per_week?: string }): MockReply => {
+  const kw = 15 * (body.quantity ?? 1)
+  const day = kw * Number(body.hours_per_day)
+  return {
+    body: {
+      data: {
+        rated_power_kw: "15.000", quantity: body.quantity ?? 1, hours_per_day: body.hours_per_day, days_per_week: body.days_per_week,
+        est_power_kw: kw.toFixed(3), est_kwh_per_day: day.toFixed(3), est_kwh_per_week: (day * Number(body.days_per_week)).toFixed(3),
+        method: "level1_rated_x_hours",
+      },
+    },
+  }
+}
+
+/** Approve or reject with no note: the API's own rule. */
+export const noteRequired: MockReply = {
+  status: 422,
+  body: { message: "The given data was invalid.", errors: { note: ["The note field is required to approve or reject."] } },
+}

@@ -1,12 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   farmPueRequestsCreate,
+  farmPueRequestsEstimate,
   farmPueRequestsGet,
   farmPueRequestsList,
   farmPueRequestsTransition,
 } from '@genesy/api-client/endpoints/farm-pue'
-import type { PueRequestResource } from '@genesy/api-client/model'
+import type { EnergyEstimatePreview, PueRequestResource } from '@genesy/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'
@@ -36,6 +38,7 @@ export interface FarmerRequest {
   id: string
   village_id: string
   farm_id: string | null
+  farm_label: string | null
   status: RequestStatus
   acquisition: 'rent' | 'buy'
   quantity: number
@@ -55,12 +58,22 @@ export interface FarmerRequest {
   estimate: StoredEstimate | null
 }
 
+const toEstimate = (e: EnergyEstimatePreview): StoredEstimate => ({
+  rated_power_kw: Number(e.rated_power_kw),
+  quantity: e.quantity,
+  hours_per_day: Number(e.hours_per_day),
+  days_per_week: Number(e.days_per_week),
+  est_power_kw: Number(e.est_power_kw),
+  est_kwh_per_day: Number(e.est_kwh_per_day),
+  est_kwh_per_week: Number(e.est_kwh_per_week),
+})
+
 export function toRequest(row: PueRequestResource, language: string | undefined): FarmerRequest {
-  const e = row.estimate
   return {
     id: row.id,
     village_id: row.village_id,
     farm_id: row.farm_id,
+    farm_label: row.farm?.label ?? null,
     status: row.status as RequestStatus,
     acquisition: row.acquisition as 'rent' | 'buy',
     quantity: row.quantity,
@@ -77,15 +90,7 @@ export function toRequest(row: PueRequestResource, language: string | undefined)
     captured_by_name: row.provenance.captured_by?.name ?? null,
     applicant: row.person.name,
     equipment_name: language === 'sw' ? row.equipment.name_sw : row.equipment.name_en,
-    estimate: e && {
-      rated_power_kw: Number(e.rated_power_kw),
-      quantity: e.quantity,
-      hours_per_day: Number(e.hours_per_day),
-      days_per_week: Number(e.days_per_week),
-      est_power_kw: Number(e.est_power_kw),
-      est_kwh_per_day: Number(e.est_kwh_per_day),
-      est_kwh_per_week: Number(e.est_kwh_per_week),
-    },
+    estimate: row.estimate && toEstimate(row.estimate),
   }
 }
 
@@ -132,6 +137,40 @@ export async function submitRequest(input: NewRequest): Promise<PueRequestResour
     status: 'submitted',
   })
   return res.data
+}
+
+/** The figures a preview is asked for: as typed and already valid on the form. */
+export type EstimateInput = Pick<NewRequest, 'equipmentId' | 'quantity' | 'hoursPerDay' | 'daysPerWeek'>
+
+/** What the API would store for these figures; `null` for a machine with no rated power. Writes nothing. */
+export async function fetchEstimatePreview(input: EstimateInput): Promise<StoredEstimate | null> {
+  const res = await farmPueRequestsEstimate(workspaceId(), {
+    equipment_id: input.equipmentId,
+    quantity: Number(input.quantity),
+    hours_per_day: input.hoursPerDay,
+    days_per_week: input.daysPerWeek,
+  })
+  return res.data && toEstimate(res.data)
+}
+
+/**
+ * The live preview while the farmer types. Asked once typing settles (300 ms); the figures are the
+ * query key, so an answer for older figures is never shown for newer ones. `null` asks nothing.
+ */
+export function useEstimatePreview(input: EstimateInput | null) {
+  const key = input ? JSON.stringify(input) : ''
+  const [settled, setSettled] = useState(key)
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(key), 300)
+    return () => clearTimeout(timer)
+  }, [key])
+  return useQuery({
+    queryKey: ['estimate-preview', settled],
+    enabled: settled !== '',
+    queryFn: () => fetchEstimatePreview(JSON.parse(settled) as EstimateInput),
+    // The last figures stay up while the next ones are asked about.
+    placeholderData: keepPreviousData,
+  })
 }
 
 /** Any transition; the API decides whether it is allowed and its refusal is shown as written. */
