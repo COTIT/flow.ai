@@ -15,6 +15,7 @@ use crate::{
             repo::{self, EnergyRow, NewRow, Pick, PipelineRow, PreviewRow, RequestRow, Seen},
             rules::{self, CREATABLE, CREATE_REFUSED, REVIEW_ONLY, Refusal},
         },
+        farm_tower::service::staff_village,
     },
 };
 
@@ -212,24 +213,6 @@ pub async fn transition(
     repo::move_to(&mut tx, access.workspace_id, id, to, access.user_id, note).await?;
     tx.commit().await?;
     find(state, access, id).await?.ok_or(AppError::NotFound)
-}
-
-/// A village staff read: farmers 403, other villages and unknown ids 404.
-async fn staff_village(
-    state: &AppState,
-    access: &FarmAccess,
-    village: &str,
-) -> Result<Uuid, AppError> {
-    if !access.is_staff() {
-        return Err(AppError::Forbidden(NOT_ALLOWED));
-    }
-    let village = Uuid::parse_str(village).map_err(|_| AppError::NotFound)?;
-    if !access.staff_in(village)
-        || !repo::village_exists(&state.db, access.workspace_id, village).await?
-    {
-        return Err(AppError::NotFound);
-    }
-    Ok(village)
 }
 
 /// Prospective and approved load against the village's current capacity.

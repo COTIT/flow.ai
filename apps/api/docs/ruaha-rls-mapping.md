@@ -2,7 +2,7 @@
 
 Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabase/tests/*.sql`, run by `pnpm db:rls`) and where genesy proves the same rule, or why it does not apply. `tests/farm_mapping.rs` keeps this file honest: exactly 280 rows, every named test exists, every N/A has a reason.
 
-**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **241**. N/A: **39**.
+**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **242**. N/A: **38**.
 
 **How rules map.** RUAHA enforces access with Postgres RLS and `SECURITY DEFINER` RPCs; "zero rows" means "not yours". genesy enforces it in the API: the farm guard (`src/http/farm.rs`), village-scoped SQL in each repo, and composite `(workspace_id, village_id)` foreign keys that make cross-village links impossible. A RUAHA "zero rows" is a genesy `404` (or an empty list); a RUAHA "raises" is a `403`/`422` with RUAHA's message where it has one. Several assertions share one test.
 
@@ -28,7 +28,7 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 13 | rls_test.sql #13 | farmer sees no buyer demand | `tests/farm_market.rs::the_order_book_is_for_ops_and_admin_only` |
 | 14 | rls_test.sql #14 | farmer sees no buyers | `tests/farm_market.rs::the_order_book_is_for_ops_and_admin_only` |
 | 15 | rls_test.sql #15 | Tower energy view is empty for a farmer | `tests/farm_pue.rs::village_energy_and_pipeline_are_for_staff_of_the_village` |
-| 16 | rls_test.sql #16 | Tower production view is empty for a farmer | N/A because Control Tower aggregate views are not ported in this phase; farmers get 403/404 on every staff-only read |
+| 16 | rls_test.sql #16 | Tower production view is empty for a farmer | `tests/farm_tower.rs::tower_reads_are_for_staff_of_the_village` |
 | 17 | rls_test.sql #17 | farmer DOES see the opportunity her own supply is inside | `tests/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
 | 18 | rls_test.sql #18 | nobody can hand-write an energy estimate | `tests/farm_pue.rs::request_provenance_is_normalised_and_estimates_are_never_hand_written` |
 | 19 | rls_test.sql #19 | already-committed harvest cannot be promised to a second live opportunity | `tests/farm_market.rs::a_committed_harvest_cannot_be_promised_to_a_second_live_opportunity` |
