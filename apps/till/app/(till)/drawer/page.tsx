@@ -24,6 +24,8 @@ export default function DrawerPage() {
   const tc = useTranslations("common")
   const locale = useLocale()
   const workspace = useTill((s) => s.device?.workspaceId) ?? ""
+  // Rebuild the count rows when /till/me brings another list of notes and coins.
+  const cash = useTill((s) => s.session?.register.accepted_cash?.join())
   const queryClient = useQueryClient()
   const { money } = useTillMoney()
   // A queued cash sale lands in the shift open when it replays: sync before closing.
@@ -103,11 +105,10 @@ export default function DrawerPage() {
             </p>
           ) : null}
           <CountForm
+            key={cash}
             submitLabel={t("close")}
             pending={close.isPending || waiting > 0}
-            onSubmit={(count) =>
-              close.mutate({ workspace, data: { count } })
-            }
+            onSubmit={(count) => close.mutate({ workspace, data: { count } })}
           />
           <ApiError error={close.error} fallback={tc("error")} />
         </>
@@ -116,6 +117,7 @@ export default function DrawerPage() {
           <p className="text-sm text-muted-foreground">{t("none")}</p>
           <h2 className="font-medium">{t("openTitle")}</h2>
           <CountForm
+            key={cash}
             submitLabel={t("open")}
             pending={open.isPending}
             onSubmit={(count) => {

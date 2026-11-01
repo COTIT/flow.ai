@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-import { useTillLogout } from "@genesy/api-client/endpoints/till"
+import { tillMe, useTillLogout } from "@genesy/api-client/endpoints/till"
 import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { Button } from "@genesy/ui/components/button"
 import { Logo } from "@genesy/ui/components/logo"
@@ -20,7 +20,11 @@ const nav = [
 ] as const
 
 /** Logged-in frame for the till screens: guard, register and user, logout. */
-export default function TillLayout({ children }: { children: React.ReactNode }) {
+export default function TillLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const t = useTranslations()
   const router = useRouter()
   const pathname = usePathname()
@@ -36,6 +40,24 @@ export default function TillLayout({ children }: { children: React.ReactNode }) 
     if (!device) router.replace("/setup")
     else if (!session) router.replace("/login")
   }, [hydrated, device, session, router])
+
+  // The stored login may predate a field (currency, accepted cash) or a settings change:
+  // refresh the register from /till/me on start and whenever the till comes back online.
+  const token = session?.token
+  React.useEffect(() => {
+    if (!token || !device) return
+    const refresh = () =>
+      tillMe(device.workspaceId)
+        .then(({ data }) => {
+          const now = tillStore.getState().session
+          if (now?.token === token)
+            tillStore.getState().signIn({ ...now, ...data })
+        })
+        .catch(() => undefined) // offline or ended: the stored copy stands, a 401 logs out
+    void refresh()
+    window.addEventListener("online", refresh)
+    return () => window.removeEventListener("online", refresh)
+  }, [token, device])
 
   if (!hydrated || !device || !session) return null
 
