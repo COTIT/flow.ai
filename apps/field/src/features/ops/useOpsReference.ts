@@ -7,9 +7,8 @@ import type { BuyerRequest, CapacityRequest } from '@genesy/api-client/model'
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type Enums = Database['public']['Enums']
 
 export interface Buyer {
   id: string

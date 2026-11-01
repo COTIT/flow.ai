@@ -5,9 +5,6 @@ const demands = vi.fn()
 vi.mock('@genesy/api-client/endpoints/farm-pue', () => ({ farmPueRequestsList: (...a: unknown[]) => pue(...a) }))
 vi.mock('@genesy/api-client/endpoints/farm-market', () => ({ farmMarketDemandsList: (...a: unknown[]) => demands(...a) }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
-vi.mock('@/lib/supabase', () => {
-  throw new Error('the ops home must not reach Supabase')
-})
 
 const { fetchOpsQueues } = await import('@/features/ops/useOpsHome')
 

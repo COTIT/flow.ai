@@ -1,7 +1,7 @@
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
 export type EditableTable = 'person' | 'household' | 'farm' | 'plot' | 'crop_cycle' | 'harvest_report'
-export type CropMeasure = Database['public']['Enums']['crop_measure']
+export type CropMeasure = Enums['crop_measure']
 export type EditValues = Record<string, string>
 
 export interface EditContext {
@@ -9,7 +9,7 @@ export interface EditContext {
   personId?: string
   farmId?: string
   cycleId?: string
-  harvestKind?: Database['public']['Enums']['harvest_kind']
+  harvestKind?: Enums['harvest_kind']
 }
 
 export function selectedEditMeasure(
@@ -76,36 +76,10 @@ const optionalNumber = (values: EditValues, key: string) => {
   return raw === '' ? null : Number(raw)
 }
 
-export function buildEditPayload(
-  table: Exclude<EditableTable, 'harvest_report'>,
-  values: EditValues,
-  measure?: CropMeasure,
-) {
-  if (table === 'person') {
-    return {
-      given_name: values.given_name.trim(),
-      family_name: values.family_name.trim(),
-      phone: values.phone?.trim() ?? '',
-    }
-  }
-  if (table === 'household') return { label: values.label.trim() }
-  if (table === 'farm') {
-    return {
-      label: values.label.trim(),
-      latitude: optionalNumber(values, 'latitude'),
-      longitude: optionalNumber(values, 'longitude'),
-    }
-  }
-  if (table === 'plot') {
-    return {
-      label: values.label.trim(),
-      area_ha: optionalNumber(values, 'area_ha'),
-      latitude: optionalNumber(values, 'latitude'),
-      longitude: optionalNumber(values, 'longitude'),
-    }
-  }
+/** The crop-cycle correction body; the other records are sent field by field in useOfficerEdit. */
+export function buildCyclePayload(values: EditValues, measure?: CropMeasure) {
   // The dialog hides the measures a crop does not use but keeps their old
-  // values; the RPC refuses a non-matching measure, so drop them when known.
+  // values; the API refuses a non-matching measure, so drop them when known.
   const keeps = (field: CropMeasure) => !measure || measure === field
   return {
     crop_id: values.crop_id,

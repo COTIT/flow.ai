@@ -19,14 +19,14 @@ import {
   type IdDocumentType,
   type VoucherPreview,
 } from '@/features/officer/useVoucherRedeem'
-import { Constants } from '@/lib/db.types'
+import { ID_DOCUMENT_TYPES } from '@/lib/enums'
 import { dbReasonText } from '@/lib/dbMessages'
 import { formatTimestamp } from '@/lib/format'
 import { localisedField } from '@/lib/names'
 import { formatVoucherCode, normalizeVoucherCode } from '@/lib/voucherCode'
 
 /** The four documents the enum allows — not a list this screen invents. */
-const ID_TYPES = Constants.public.Enums.id_document_type
+const ID_TYPES = ID_DOCUMENT_TYPES
 
 /**
  * `/officer/redeem` — hand over a survey incentive at the office.

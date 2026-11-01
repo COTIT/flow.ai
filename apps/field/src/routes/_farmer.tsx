@@ -1,6 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
-
-import { PortedOutlet } from '@/app/PortedOutlet'
+import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
 import { canAccessSurface, resolveLanding } from '@/app/membership'
 import { ensureSession, passwordChangeRequired } from '@/app/session'
@@ -18,5 +16,5 @@ export const Route = createFileRoute('/_farmer')({
       throw redirect({ to: resolveLanding(session.memberships).to })
     }
   },
-  component: PortedOutlet,
+  component: Outlet,
 })

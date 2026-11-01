@@ -44,7 +44,7 @@ import {
   formatPlainDate,
   formatPrice,
 } from '@/lib/format'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 import { resourcesEnabled } from '@/lib/features'
 
 const route = getRouteApi('/_ops/ops/tower/')
@@ -502,7 +502,7 @@ export function TowerScreen() {
   )
 }
 
-type RequestStatus = Database['public']['Enums']['pue_status']
+type RequestStatus = Enums['pue_status']
 
 /**
  * One of the two peaks. `data-peak-cell` is what

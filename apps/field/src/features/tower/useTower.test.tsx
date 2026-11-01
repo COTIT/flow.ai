@@ -39,9 +39,6 @@ vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
 }))
 vi.mock('@genesy/api-client/endpoints/farm-crops', () => ({ farmCropsList: forward('farmCropsList') }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
-vi.mock('@/lib/supabase', () => {
-  throw new Error('the Tower must not reach Supabase')
-})
 
 const hooks = await import('@/features/tower/useTower')
 await import('@/i18n')

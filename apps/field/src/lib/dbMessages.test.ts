@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, existsSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, test } from 'vitest'
 
@@ -80,10 +80,6 @@ describe('translateDbMessage', () => {
     )
   })
 
-  test('refusals of permission read as the existing not-allowed message', () => {
-    expect(translateDbMessage('only staff may redeem vouchers')?.key).toBe('error.notAllowed')
-  })
-
   // An unfamiliar sentence is far more likely to be one of ours than noise, so
   // it is shown as written.
   test('a message it does not know is left for verbatim display', () => {
@@ -97,25 +93,23 @@ describe('translateDbMessage', () => {
 })
 
 describe('every rule points at real text', () => {
-  // The database's messages live in the migrations. One rule matches a message
-  // the app itself writes, in src/app/session.ts.
-  // shortcut: RUAHA's migrations stayed in the RUAHA repo, so this check is skipped; it is re-pointed at the
-  // Genesy API's messages when dbMessages moves to the API.
-  const migrationsDir = join(__dirname, '../../supabase/migrations')
-  const hasMigrations = existsSync(migrationsDir)
-  const migrations = [
-    ...(hasMigrations ? readdirSync(migrationsDir) : [])
-      .filter((file) => file.endsWith('.sql'))
-      .map((file) => readFileSync(join(migrationsDir, file), 'utf8')),
-    readFileSync(join(__dirname, '../app/session.ts'), 'utf8'),
-  ].join('\n')
+  // The messages live in the Genesy API's Rust sources.
+  const apiDir = join(__dirname, '../../../api/src')
+  const sources = readdirSync(apiDir, { recursive: true, encoding: 'utf8' })
+    .filter((file) => file.endsWith('.rs'))
+    .map((file) => readFileSync(join(apiDir, file), 'utf8'))
+    .join('\n')
+
+  test('the API sources are there to read', () => {
+    expect(sources.length).toBeGreaterThan(100_000)
+  })
 
   // A reworded message would otherwise stop matching in silence and fall back
   // to English, which is exactly the failure a Swahili farmer cannot diagnose.
-  test.skipIf(!hasMigrations).each(DB_MESSAGE_RULES.map((rule) => [rule.key, rule.sql] as const))(
-    '%s: %s is still in the migrations',
-    (_key, sql) => {
-      expect(migrations).toContain(sql)
+  test.each(DB_MESSAGE_RULES.map((rule) => [rule.key, rule.source] as const))(
+    '%s: %s is still in the API',
+    (_key, source) => {
+      expect(sources).toContain(source)
     },
   )
 

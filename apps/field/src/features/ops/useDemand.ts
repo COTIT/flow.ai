@@ -15,7 +15,7 @@ import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'
 import { fetchCrops } from '@/features/officer/useCrops'
 import { apiStatus } from '@/lib/apiError'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 import { isUuid, newUuid } from '@/lib/ids'
 import { localisedName } from '@/lib/names'
 import { queryKeys, isTowerQueryForVillage } from '@/lib/queryKeys'
@@ -31,7 +31,7 @@ export interface Demand {
   indicative_price_per_kg: Money | null
   delivery_point: string | null
   quality_note: string | null
-  status: Database['public']['Enums']['demand_status']
+  status: Enums['demand_status']
 }
 
 function shape(row: BuyerDemandResource, language: string | undefined): Demand {

@@ -14,11 +14,10 @@ import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'
 import type { FarmerAction, RequestStatus, ReviewerAction } from '@/features/ops/transitions'
 import { apiStatus } from '@/lib/apiError'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 import { isUuid } from '@/lib/ids'
 import { queryKeys } from '@/lib/queryKeys'
 
-type Enums = Database['public']['Enums']
 
 const num = (text: string | null) => (text === null ? null : Number(text))
 

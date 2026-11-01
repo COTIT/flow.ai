@@ -1,6 +1,6 @@
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-export type OpportunityStatus = Database['public']['Enums']['opportunity_status']
+export type OpportunityStatus = Enums['opportunity_status']
 
 /**
  * The opportunity status machine.

@@ -7,9 +7,8 @@ import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'
 import { localisedName, type LocalisedNames } from '@/lib/names'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type Enums = Database['public']['Enums']
 
 /** What the query caches: both names per crop, neither chosen yet. */
 export interface FarmerOpportunityRow {

@@ -1,9 +1,9 @@
 import type { RegistrationRequest } from '@genesy/api-client/model'
 
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type CropMeasure = Database['public']['Enums']['crop_measure']
-type Confidence = Database['public']['Enums']['confidence_level']
+type CropMeasure = Enums['crop_measure']
+type Confidence = Enums['confidence_level']
 
 /** One crop grown on the plot: its measure, its harvest window, its expected kg. */
 export interface CycleForm {
