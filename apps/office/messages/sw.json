@@ -14,7 +14,8 @@
     "search": "Tafuta bidhaa",
     "netPrice": "Bei bila VAT",
     "shortDescription": "Maelezo mafupi",
-    "description": "Maelezo"
+    "description": "Maelezo",
+    "storeOnly": "Inauzwa kaunta tu (si kwenye duka la mtandaoni)"
   },
   "nav": {
     "label": "Menyu kuu",
@@ -206,7 +207,8 @@
     "payments": "Malipo",
     "noPayments": "Bado hakuna malipo.",
     "method": "Njia",
-    "amount": "Kiasi"
+    "amount": "Kiasi",
+    "customer": "Mteja"
   },
   "orders": {
     "title": "Oda",
