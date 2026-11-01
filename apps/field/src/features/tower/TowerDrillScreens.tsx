@@ -96,7 +96,8 @@ export function TowerProductionScreen() {
           {grouped.map((row) => (
             <li
               key={`${row.crop_id}-${row.window_month}`}
-              className="inline-flex items-center gap-2 px-3 py-1.5"
+              data-testid="production-group"
+              className="inline-flex flex-wrap items-center gap-2 px-3 py-1.5"
               style={{
                 border: '1px solid var(--rule-2)',
                 borderRadius: 'var(--radius-pill)',
@@ -109,6 +110,13 @@ export function TowerProductionScreen() {
               <b className="tabular font-semibold" style={{ color: 'var(--ink)' }}>
                 {formatKg(row.expected_kg)}
               </b>
+              {/* The API's cycle_area_ha: a sum of cycle areas, never land (the note below says so). */}
+              <span>
+                {t('tower.plantedArea')}{' '}
+                <b className="tabular font-semibold" style={{ color: 'var(--ink)' }}>
+                  {formatArea(row.cycle_area_ha, 'hectare')}
+                </b>
+              </span>
             </li>
           ))}
         </ul>

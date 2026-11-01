@@ -69,12 +69,8 @@ export const OPS_PROGRAMME_CHAPTERS: Chapter[] = [
         titleKey: 'tour.ops.queuesDemandsTitle',
         bodyKey: 'tour.ops.queuesDemandsBody',
       },
-      {
-        route: '/ops',
-        testId: 'ops-queue-verification',
-        titleKey: 'tour.ops.queuesVerificationTitle',
-        bodyKey: 'tour.ops.queuesVerificationBody',
-      },
+      // shortcut: the "records to verify" step is out while the ops home hides that count (no API
+      // total); put it back with the card (keys tour.ops.queuesVerification*).
     ],
   },
   {
