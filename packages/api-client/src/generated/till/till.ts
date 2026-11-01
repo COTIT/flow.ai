@@ -31,6 +31,7 @@ import type {
   CreateVaultRequest,
   EnvelopeKeyRotated,
   EnvelopeOptionShiftResource,
+  EnvelopeQuoteResource,
   EnvelopeRegisterKeyed,
   EnvelopeSaleResource,
   EnvelopeSessionResource,
@@ -46,6 +47,7 @@ import type {
   PaginatedRegisterResource,
   PaginatedSaleResource,
   PaginatedShiftResource,
+  QuoteRequest,
   SaleRequest,
   TillCatalogPage,
   TillCatalogParams,
@@ -902,6 +904,75 @@ export const useTillSalesCreate = <TError = ErrorType<MessageBody | ValidationEr
         TContext
       > => {
       return useMutation(getTillSalesCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * Same lines and payment as `POST /till/sales`, priced and rounded by the same code. Writes nothing: no order, stock or drawer change, and no open shift needed.
+ * @summary Price a till basket as a sale would (writes nothing)
+ */
+export const tillSalesQuote = (
+    workspace: string,
+    quoteRequest: BodyType<QuoteRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeQuoteResource>(
+      {url: `/workspace/${workspace}/till/sales/quote`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: quoteRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillSalesQuoteMutationKey = () => ['tillSalesQuote'] as const;
+
+export const getTillSalesQuoteMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext> => {
+
+const mutationKey = getTillSalesQuoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillSalesQuote>>, TillSalesQuoteMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillSalesQuote(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillSalesQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof tillSalesQuote>>>
+    export type TillSalesQuoteMutationBody = BodyType<QuoteRequest>
+    export type TillSalesQuoteMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillSalesQuoteMutationVariables = {workspace: string;data: BodyType<QuoteRequest>}
+
+    /**
+ * @summary Price a till basket as a sale would (writes nothing)
+ */
+export const useTillSalesQuote = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillSalesQuote>>, TError,TillSalesQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillSalesQuote>>,
+        TError,
+        TillSalesQuoteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillSalesQuoteMutationOptions(options), queryClient);
     }
     /**
  * For the offline queue: check whether a queued sale already landed before replaying it.

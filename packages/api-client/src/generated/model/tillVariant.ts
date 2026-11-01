@@ -22,4 +22,9 @@ export interface TillVariant {
   sku: string | null;
   /** Minor units excl VAT in the register's currency. */
   unit_price: number;
+  /**
+     * One unit incl VAT, minor units; null only when out of range.
+     * @nullable
+     */
+  unit_price_gross: number | null;
 }

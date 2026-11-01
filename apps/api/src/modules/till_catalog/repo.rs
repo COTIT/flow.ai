@@ -2,6 +2,7 @@
 //! register's currency; stock sums the register warehouse's usable rows.
 
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use sqlx::{PgExecutor, types::Json};
 use uuid::Uuid;
@@ -19,7 +20,11 @@ pub struct ProductRow {
     pub has_stock: bool,
     pub sellable: bool,
     pub vat_rate: String,
+    /// The VAT percentage itself, for the gross price.
+    pub vat: Decimal,
     pub unit_price: i64,
+    /// The register currency's decimals.
+    pub decimals: i16,
     pub stock: Option<String>,
     pub variants: Json<Vec<VariantRow>>,
     pub updated_at: DateTime<Utc>,
@@ -95,7 +100,9 @@ pub async fn products(
            SELECT pg.id, pg.name, pg.type, pg.ean13, pg.barcode, pg.store_only, pg.has_stock,
                   pg.sellable AS "sellable!",
                   trim_scale(coalesce(g.vat_amount, 0))::text AS "vat_rate!",
+                  coalesce(g.vat_amount, 0) AS "vat!",
                   round(pg.price * 10::numeric ^ c.decimals)::bigint AS "unit_price!",
+                  c.decimals,
                   CASE WHEN pg.has_stock THEN (
                       SELECT coalesce(sum(s.stock_lvl - s.reserved), 0.00::numeric(19, 2))::text
                       FROM stocks s

@@ -5,11 +5,18 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { RegisterCurrency } from './registerCurrency';
 
 /**
  * The register a session sells on.
  */
 export interface RegisterBrief {
+  /**
+     * Notes and coins the drawer takes (`cash_register.accepted_cash`), in minor units,
+     * ascending; values that aren't a whole minor unit are left out.
+     */
+  accepted_cash: number[];
+  currency: RegisterCurrency;
   currency_id: string;
   id: string;
   name: string;

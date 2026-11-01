@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::{
     http::list::Meta,
     modules::{
+        orders::service::unit_gross,
         storefront::dto::VariantOption,
         till_catalog::repo::{ProductRow, VariantRow},
     },
@@ -37,6 +38,10 @@ pub struct TillProduct {
     /// Minor units excl VAT in the register's currency.
     #[schema(example = 1250)]
     unit_price: i64,
+    /// One unit incl VAT, minor units: what a sale of quantity 1 totals. Null only when out of
+    /// range.
+    #[schema(required = true, example = 1363)]
+    unit_price_gross: Option<i64>,
     has_stock: bool,
     /// Units on hand minus reserved in the register's warehouse (usable lots only), as a
     /// decimal string; may be negative; null when not stock-tracked.
@@ -63,26 +68,33 @@ pub struct TillVariant {
     is_default: bool,
     /// Minor units excl VAT in the register's currency.
     unit_price: i64,
+    /// One unit incl VAT, minor units; null only when out of range.
+    #[schema(required = true)]
+    unit_price_gross: Option<i64>,
     options: Vec<VariantOption>,
-}
-
-impl From<VariantRow> for TillVariant {
-    fn from(v: VariantRow) -> Self {
-        Self {
-            id: v.id,
-            sku: v.sku,
-            ean13: v.ean13,
-            barcode: v.barcode,
-            is_default: v.is_default,
-            unit_price: v.unit_price,
-            options: v.options.into_iter().map(Into::into).collect(),
-        }
-    }
 }
 
 impl From<ProductRow> for TillProduct {
     fn from(p: ProductRow) -> Self {
+        let dp = u32::try_from(p.decimals).unwrap_or(2);
+        let gross = |unit: i64| unit_gross(unit, p.vat, dp);
+        let variants = p
+            .variants
+            .0
+            .into_iter()
+            .map(|v: VariantRow| TillVariant {
+                id: v.id,
+                sku: v.sku,
+                ean13: v.ean13,
+                barcode: v.barcode,
+                is_default: v.is_default,
+                unit_price: v.unit_price,
+                unit_price_gross: gross(v.unit_price),
+                options: v.options.into_iter().map(Into::into).collect(),
+            })
+            .collect();
         Self {
+            unit_price_gross: gross(p.unit_price),
             id: p.id,
             name: p.name,
             r#type: p.r#type,
@@ -94,7 +106,7 @@ impl From<ProductRow> for TillProduct {
             has_stock: p.has_stock,
             stock: p.stock,
             sellable: p.sellable,
-            variants: p.variants.0.into_iter().map(Into::into).collect(),
+            variants,
             updated_at: p.updated_at,
         }
     }
