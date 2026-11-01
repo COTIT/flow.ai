@@ -14,7 +14,8 @@
     "search": "Producten zoeken",
     "netPrice": "Prijs excl. btw",
     "shortDescription": "Korte omschrijving",
-    "description": "Omschrijving"
+    "description": "Omschrijving",
+    "storeOnly": "Alleen aan de kassa verkocht (niet in de webshop)"
   },
   "nav": {
     "label": "Hoofdmenu",

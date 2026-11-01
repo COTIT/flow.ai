@@ -14,7 +14,8 @@
     "search": "Tafuta bidhaa",
     "netPrice": "Bei bila VAT",
     "shortDescription": "Maelezo mafupi",
-    "description": "Maelezo"
+    "description": "Maelezo",
+    "storeOnly": "Inauzwa kaunta tu (si kwenye duka la mtandaoni)"
   },
   "nav": {
     "label": "Menyu kuu",

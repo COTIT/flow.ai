@@ -97,6 +97,7 @@ export default function ProductPage({
                 status: text("status"),
                 short_description: text("short_description"),
                 description: text("description"),
+                store_only: f.get("store_only") === "on",
               },
             })
           }}
@@ -149,6 +150,14 @@ export default function ProductPage({
           >
             <Textarea name="description" defaultValue={p.description ?? ""} />
           </Field>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="store_only"
+              defaultChecked={p.store_only}
+            />
+            {t("products.storeOnly")}
+          </label>
           <ApiError error={update.error} fallback={t("common.error")} />
           {update.isSuccess ? (
             <p role="status" className="text-sm text-muted-foreground">

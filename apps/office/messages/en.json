@@ -14,7 +14,8 @@
     "search": "Search products",
     "netPrice": "Price excl. VAT",
     "shortDescription": "Short description",
-    "description": "Description"
+    "description": "Description",
+    "storeOnly": "Sold at the till only (not in the web shop)"
   },
   "nav": {
     "label": "Main menu",
