@@ -5,6 +5,7 @@ import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { eligibilityBefore, farmerMe } from "./farmer.api"
 import { MILL, equipment, mill, one } from "./equipment.api"
+import { estimatePreview } from "./requests.api"
 
 const EQUIPMENT = "/workspace/w1/farm/equipment"
 
@@ -17,6 +18,8 @@ async function open(page: Page, path: string, extra: Record<string, MockReply> =
     "GET /workspace/w1/farm/surveys/eligibility": eligibilityBefore,
     [`GET ${EQUIPMENT}`]: equipment(mill),
     [`GET ${EQUIPMENT}/${MILL}`]: one(mill),
+    // The request form's live estimate.
+    "POST /workspace/w1/farm/pue-requests/estimate": estimatePreview({ quantity: 1, hours_per_day: "6", days_per_week: "5" }),
     ...extra,
   })
   await page.goto(path)

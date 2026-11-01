@@ -4,6 +4,11 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 const useSession = vi.fn()
 const useEquipmentItem = vi.fn()
 const mutateAsync = vi.fn()
+const useEstimatePreview = vi.fn()
+const ESTIMATE = {
+  rated_power_kw: 15, quantity: 1, hours_per_day: 8, days_per_week: 5,
+  est_power_kw: 15, est_kwh_per_day: 120, est_kwh_per_week: 600,
+}
 const tzs = (minor: number) => ({ minor, currency: 'TZS', decimals: 2, currency_id: 'c1' })
 
 vi.mock('@tanstack/react-router', () => ({
@@ -28,6 +33,7 @@ vi.mock('@/features/farmer/useRequests', () => ({
   // No `mutate`: its per-call callbacks are skipped after unmount, so the
   // screen must chain the draft's finish on mutateAsync instead.
   useSubmitRequest: () => ({ mutateAsync, reset: vi.fn(), ...useSubmitRequestState }),
+  useEstimatePreview: (input: unknown) => useEstimatePreview(input),
 }))
 
 const { EquipmentDetailScreen } = await import('@/features/farmer/EquipmentDetailScreen')
@@ -37,6 +43,8 @@ await import('@/i18n')
 const VILLAGE = '30000000-0000-4000-8000-000000000001'
 
 beforeEach(() => {
+  useEstimatePreview.mockReset()
+  useEstimatePreview.mockReturnValue({ data: ESTIMATE, isPending: false, isError: false, error: null, refetch: vi.fn() })
   mutateAsync.mockReset()
   mutateAsync.mockResolvedValue({ id: 'r1' })
   useSubmitRequestState.isPending = false
@@ -84,10 +92,30 @@ describe('the request form as it arrives', () => {
     expect(screen.getByTestId('request-days')).toHaveValue('5')
   })
 
-  // The estimate is the API's (computed when the request is stored), never worked out here.
-  test('computes no estimate of its own', () => {
+  // The estimate is the API's preview, never worked out here.
+  test('shows the API’s estimate for the figures as typed', () => {
     render(<EquipmentDetailScreen />)
+    set('request-hours', '8')
+
+    expect(useEstimatePreview).toHaveBeenLastCalledWith({ equipmentId: 'eq1', quantity: '1', hoursPerDay: '8', daysPerWeek: '5' })
+    expect(screen.getByTestId('estimate-kwh-day')).toHaveTextContent('120.000 kWh')
+    expect(screen.getByTestId('estimate-kwh-week')).toHaveTextContent('600.000 kWh')
+  })
+
+  test('a machine the API cannot estimate says so', () => {
+    useEstimatePreview.mockReturnValue({ data: null, isPending: false, isError: false, error: null, refetch: vi.fn() })
+    render(<EquipmentDetailScreen />)
+
     expect(screen.queryByTestId('estimate-panel')).not.toBeInTheDocument()
+    expect(screen.getByTestId('estimate-none')).toBeInTheDocument()
+  })
+
+  test('a refused preview is shown as the API wrote it', () => {
+    const error = { response: { status: 422, data: { message: 'invalid', errors: { equipment_id: ['unknown equipment'] } } } }
+    useEstimatePreview.mockReturnValue({ data: undefined, isPending: false, isError: true, error, refetch: vi.fn() })
+    render(<EquipmentDetailScreen />)
+
+    expect(screen.getByTestId('estimate-error')).toHaveTextContent('unknown equipment')
   })
 
   test('submits the numbers that were shown, with the draft’s client id and no person', async () => {
@@ -183,6 +211,39 @@ describe('impossible assumptions are refused before the round trip', () => {
 
     const error = await screen.findByTestId('request-hours-error')
     expect(error).not.toHaveTextContent(/pue_request|check|equipment\./)
+  })
+})
+
+/**
+ * The finding's real complaint: not just that 99 was accepted, but that the
+ * screen showed 1,485 kWh/day from it as an answer. Impossible or missing
+ * figures are not sent for an estimate.
+ */
+describe('the estimate is not asked for impossible inputs', () => {
+  test('an out-of-range hour count replaces the figures with a reason, and asks nothing', () => {
+    render(<EquipmentDetailScreen />)
+    set('request-hours', '99')
+
+    expect(useEstimatePreview).toHaveBeenLastCalledWith(null)
+    expect(screen.queryByTestId('estimate-panel')).not.toBeInTheDocument()
+    expect(screen.getByTestId('estimate-blocked')).toHaveTextContent(/cannot be estimated/i)
+  })
+
+  test('an unanswered field is asked for, not reported as an error', () => {
+    render(<EquipmentDetailScreen />)
+    set('request-days', '')
+
+    expect(useEstimatePreview).toHaveBeenLastCalledWith(null)
+    expect(screen.getByTestId('estimate-blocked')).toHaveTextContent(/fill in/i)
+  })
+
+  test('and the figures come back when the inputs make sense again', () => {
+    render(<EquipmentDetailScreen />)
+    set('request-hours', '99')
+    set('request-hours', '8')
+
+    expect(screen.getByTestId('estimate-panel')).toBeInTheDocument()
+    expect(screen.queryByTestId('estimate-blocked')).not.toBeInTheDocument()
   })
 })
 

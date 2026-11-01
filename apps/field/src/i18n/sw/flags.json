@@ -428,5 +428,7 @@
   "supply.stockRow": "Drafter: Claude, Genesy port step 7; unreviewed.",
   "supply.noStock": "Drafter: Claude, Genesy port step 7; unreviewed.",
   "opportunity.attachConfirmTitle": "Drafter: Claude, Genesy port step 7; unreviewed.",
-  "opportunity.attachConfirmDetail": "Drafter: Claude, Genesy port step 7; unreviewed."
+  "opportunity.attachConfirmDetail": "Drafter: Claude, Genesy port step 7; unreviewed.",
+  "equipment.noEstimateTitle": "Drafter: Claude, Genesy port step 7; unreviewed.",
+  "dbError.noteRequired": "Drafter: Claude, Genesy port step 7; unreviewed."
 }

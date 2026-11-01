@@ -6,10 +6,11 @@ import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { me, role, villages } from "./api"
 import { MILL, mill, one as oneMachine } from "./equipment.api"
 import { eligibilityBefore, farmerMe } from "./farmer.api"
-import { REQUEST, energy, one, pueRequest, requestList } from "./requests.api"
+import { REQUEST, energy, estimatePreview, noteRequired, one, pueRequest, requestList } from "./requests.api"
 
 const REQUESTS = "/workspace/w1/farm/pue-requests"
 const TRANSITIONS = `${REQUESTS}/${REQUEST}/transitions`
+const ESTIMATE = `${REQUESTS}/estimate`
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 type Sent = { key: string; body: unknown }
@@ -52,6 +53,10 @@ test("a farmer files a request from a machine, sees it listed and withdraws it",
       [`GET ${REQUESTS}`]: requestList(),
     },
     {
+      // The preview answers for the figures it was sent.
+      [`POST ${ESTIMATE}`]: (routes, body) => {
+        routes[`POST ${ESTIMATE}`] = estimatePreview(body as Parameters<typeof estimatePreview>[0])
+      },
       [`POST ${REQUESTS}`]: (routes) => {
         routes[`GET ${REQUESTS}`] = requestList(filed)
         routes[`GET ${REQUESTS}/${REQUEST}`] = one(filed)
@@ -65,9 +70,20 @@ test("a farmer files a request from a machine, sees it listed and withdraws it",
     },
   )
 
-  // Prefilled from the machine's typical use; the estimate is the API's, so none is worked out here.
+  // Prefilled from the machine's typical use; the estimate is the API's preview, asked as the farmer types.
   await expect(page.getByTestId("request-hours")).toHaveValue("6")
-  await expect(page.getByTestId("estimate-panel")).toHaveCount(0)
+  await expect(page.getByTestId("estimate-kwh-day")).toHaveText("90.000 kWh")
+  await page.getByTestId("request-hours").fill("8")
+  await expect(page.getByTestId("estimate-kwh-day")).toHaveText("120.000 kWh")
+  await expect(page.getByTestId("estimate-kwh-week")).toHaveText("600.000 kWh")
+  expect(sent.filter((s) => s.key === `POST ${ESTIMATE}`).at(-1)!.body).toEqual({
+    equipment_id: MILL,
+    quantity: 1,
+    hours_per_day: "8",
+    days_per_week: "5",
+  })
+  // A preview writes nothing: no request is filed until submit.
+  expect(sent.filter((s) => s.key === `POST ${REQUESTS}`)).toHaveLength(0)
   await page.getByTestId("equipment-acquisition-buy").check()
   await page.getByTestId("request-purpose").fill("Milling for the co-op")
   await expectNoHorizontalScroll(page)
@@ -81,7 +97,7 @@ test("a farmer files a request from a machine, sees it listed and withdraws it",
     equipment_id: MILL,
     acquisition: "buy",
     quantity: 1,
-    hours_per_day: "6",
+    hours_per_day: "8",
     days_per_week: "5",
     purpose: "Milling for the co-op",
     status: "submitted",
@@ -112,7 +128,7 @@ test("ops starts a review and approves a request from the pipeline", async ({ pa
     "/ops/requests",
     {
       [`GET ${REQUESTS}`]: requestList(pueRequest()),
-      [`GET ${REQUESTS}/${REQUEST}`]: one(pueRequest()),
+      [`GET ${REQUESTS}/${REQUEST}`]: one(pueRequest({ farm_id: "f1", farm: { id: "f1", label: "Kipande" } })),
       "GET /workspace/w1/farm/villages/v1/energy": energy,
     },
     {
@@ -133,6 +149,8 @@ test("ops starts a review and approves a request from the pipeline", async ({ pa
   await row.click()
 
   await expect(page.getByTestId("review-headroom")).toHaveText("500.000 kW")
+  // The farm is named by the API.
+  await expect(page.getByTestId("request-review")).toContainText("Kipande")
   await page.getByTestId("action-start_review").click()
   await page.getByTestId("decision-note").fill("Fits the headroom")
   // Approval cannot be undone: the dialog asks first, and going back sends nothing.
@@ -166,6 +184,27 @@ test.describe("a refused transition", () => {
     await page.getByTestId("action-start_review").click()
 
     await expect(page.getByTestId("review-error")).toContainText("illegal transition withdrawn -> under_review")
+    await expectNoHorizontalScroll(page)
+  })
+})
+
+test.describe("approving with no note", () => {
+  test.use({ allow: { responses: [{ url: `/v1${TRANSITIONS}`, status: 422 }] } })
+
+  test("asks first, then shows the API's refusal at the note field", async ({ page }) => {
+    const sent = await open(page, "ops", `/ops/requests/${REQUEST}`, {
+      [`GET ${REQUESTS}/${REQUEST}`]: one(pueRequest({ status: "under_review" })),
+      "GET /workspace/w1/farm/villages/v1/energy": energy,
+      [`POST ${TRANSITIONS}`]: noteRequired,
+    })
+
+    await page.getByTestId("action-approve").click()
+    await page.getByTestId("confirm-dialog-confirm").click()
+
+    await expect(page.getByTestId("decision-note-error")).toContainText("The note field is required to approve or reject.")
+    await expect(page.getByTestId("decision-note")).toHaveAttribute("aria-invalid", "true")
+    await expect(page.getByTestId("review-error")).toHaveCount(0)
+    expect(sent.filter((s) => s.key === `POST ${TRANSITIONS}`).map((s) => s.body)).toEqual([{ action: "approve" }])
     await expectNoHorizontalScroll(page)
   })
 })
