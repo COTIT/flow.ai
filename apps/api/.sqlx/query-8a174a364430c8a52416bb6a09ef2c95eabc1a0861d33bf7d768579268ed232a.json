@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM farm_opportunities o\n           WHERE o.workspace_id = $1 AND o.deleted_at IS NULL\n             AND ($2 OR o.village_id = ANY($3) OR o.id IN (SELECT farm_person_opportunities($8)))\n             AND ($4::uuid IS NULL OR o.id = $4) AND ($5::uuid IS NULL OR o.village_id = $5)\n             AND ($6::uuid IS NULL OR o.buyer_demand_id = $6) AND ($7::text[] IS NULL OR o.status = ANY($7))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "TextArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8a174a364430c8a52416bb6a09ef2c95eabc1a0861d33bf7d768579268ed232a"
+}

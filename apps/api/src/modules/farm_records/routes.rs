@@ -25,5 +25,6 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(h::get_cycle, h::correct_cycle))
         .routes(routes!(h::verify_cycle))
         .routes(routes!(h::list_harvests, h::revise_harvest))
+        .routes(routes!(h::list_all_harvests))
         .routes(routes!(h::verify_harvest))
 }

@@ -47,6 +47,7 @@ The last three answer every product page's automatic calls. Without them the pag
 The product resource follows Laravel `ProductResource`; see `src/modules/products/resource.rs` for every key.
 
 - **One shape for list and detail:** list rows also carry the detail-only keys.
+- **`store_only`** (Genesy addition, boolean, default false; set on create/update): sold at the till only. `/storefront` never lists it; the till catalog does (`till.md`).
 - **`default_warehouse`:** the full warehouse resource on GET one and search, the compact form in lists.
 - **Prices are strings, printed by `money::format_decimals` the way Laravel's `MoneyHelper` did:**
 

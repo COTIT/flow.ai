@@ -55,7 +55,28 @@ pub async fn list(
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<LinkRow>, i64), sqlx::Error> {
-    let rows = sqlx::query_as!(
+    let rows = rows(db, workspace_id, id, limit, offset).await?;
+    let total = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM supply_links
+           WHERE (from_workspace_id = $1 OR to_workspace_id = $1)
+             AND ($2::uuid IS NULL OR id = $2)"#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(db)
+    .await?;
+    Ok((rows, total))
+}
+
+/// The rows of `list`, without the count (usable inside a transaction).
+pub async fn rows(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Option<Uuid>,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<LinkRow>, sqlx::Error> {
+    sqlx::query_as!(
         LinkRow,
         "SELECT l.id, l.from_workspace_id, l.to_workspace_id, w.id AS partner_id,
                 w.name AS partner_name, l.fields, l.granted_at, l.accepted_at, l.revoked_at
@@ -71,17 +92,7 @@ pub async fn list(
         offset,
     )
     .fetch_all(db)
-    .await?;
-    let total = sqlx::query_scalar!(
-        r#"SELECT count(*) AS "n!" FROM supply_links
-           WHERE (from_workspace_id = $1 OR to_workspace_id = $1)
-             AND ($2::uuid IS NULL OR id = $2)"#,
-        workspace_id,
-        id,
-    )
-    .fetch_one(db)
-    .await?;
-    Ok((rows, total))
+    .await
 }
 
 /// Accept a pending link addressed to `to`; false when it isn't pending.

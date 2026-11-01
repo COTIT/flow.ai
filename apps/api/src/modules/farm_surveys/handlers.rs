@@ -66,9 +66,11 @@ pub async fn list(
     params(("workspace" = Uuid, Path, description = "Workspace id")),
     request_body = SurveyRequest,
     responses(
+        (status = 200, body = Envelope<SurveyResource>, description = "Retry with a known id: the stored survey"),
         (status = 201, body = Envelope<SurveyResource>, description = "Drafted"),
         (status = 403, body = MessageBody, description = "Caller is not a farm admin"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role and is not a member"),
+        (status = 409, body = MessageBody, description = "The id is used outside this workspace"),
         (status = 422, body = UnprocessableBody, description = "Invalid input, unknown currency or village"),
     ),
     security(("bearer" = []))
@@ -78,10 +80,13 @@ pub async fn create(
     access: FarmAccess,
     ValidatedJson(input): ValidatedJson<SurveyRequest>,
 ) -> Result<(StatusCode, Data<SurveyResource>), AppError> {
-    Ok((
-        StatusCode::CREATED,
-        Data(service::create(&state, &access, input).await?.into()),
-    ))
+    let (row, created) = service::create(&state, &access, input).await?;
+    let status = if created {
+        StatusCode::CREATED
+    } else {
+        StatusCode::OK
+    };
+    Ok((status, Data(row.into())))
 }
 
 #[utoipa::path(

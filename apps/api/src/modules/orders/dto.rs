@@ -410,9 +410,39 @@ pub struct OrderResource {
     pub cancelled_at: Option<DateTime<Utc>>,
     #[schema(required = true)]
     pub invoice_id: Option<Uuid>,
+    /// What the API would accept on this order now, from the rules its action routes enforce.
+    /// Status and payment rules only, not the caller's permissions.
+    pub allowed_actions: Vec<OrderAction>,
     pub lines: Vec<OrderLineResource>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// An office action on an order (`POST /orders/{order}/<action>`; `return` is `/returns`,
+/// `refund` is `/refunds`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum OrderAction {
+    Confirm,
+    Pick,
+    Complete,
+    Cancel,
+    Return,
+    Refund,
+    Invoice,
+}
+
+impl OrderAction {
+    /// Every action, in the order `allowed_actions` lists them.
+    pub const ALL: [Self; 7] = [
+        Self::Confirm,
+        Self::Pick,
+        Self::Complete,
+        Self::Cancel,
+        Self::Return,
+        Self::Refund,
+        Self::Invoice,
+    ];
 }
 
 /// The web customer, kept on the order for the office; never sent back to the shop or in

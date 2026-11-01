@@ -16,13 +16,13 @@ use crate::{
     modules::{
         app_keys, auth, cash, contacts, currencies, custom_statuses, custom_types, deal_pipelines,
         deals, discount_groups, discounts, email_profiles, email_templates, email_verification,
-        farm_catalogue, farm_crops, farm_documents, farm_logins, farm_memberships, farm_passbook,
-        farm_payouts, farm_pue, farm_records, farm_supply, farm_surveys, farm_villages,
-        farm_vouchers, files, hourly_rates, invites, invoice_payments, invoices, lots, messages,
-        orders, pdf_templates, permissions, price_corrections, pricing, product_brands,
-        product_categories, product_variants, products, relations, sales_groups, search, settings,
-        shipment_methods, special_offers, stock, storage_locations, storefront, supply_chain,
-        supply_links, teams, till, till_sales,
+        farm_catalogue, farm_crops, farm_documents, farm_logins, farm_market, farm_memberships,
+        farm_passbook, farm_payouts, farm_pue, farm_records, farm_supply, farm_surveys,
+        farm_villages, farm_vouchers, files, hourly_rates, invites, invoice_payments, invoices,
+        lots, messages, orders, pdf_templates, permissions, price_corrections, pricing,
+        product_brands, product_categories, product_variants, products, relations, sales_groups,
+        search, settings, shipment_methods, special_offers, stock, storage_locations, storefront,
+        supply_chain, supply_links, teams, till, till_catalog, till_sales,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -43,6 +43,19 @@ use crate::{
     modifiers(&BearerAuth)
 )]
 struct ApiDoc;
+
+/// A string enum schema from a Rust list, so the spec never holds a second copy of it.
+pub fn string_enum<'a>(
+    values: impl IntoIterator<Item = &'a str>,
+    description: &str,
+) -> utoipa::openapi::RefOr<utoipa::openapi::schema::Schema> {
+    use utoipa::openapi::schema::{ObjectBuilder, Type};
+    ObjectBuilder::new()
+        .schema_type(Type::String)
+        .enum_values(Some(values))
+        .description(Some(description))
+        .into()
+}
 
 /// Registers the `bearer` scheme (user tokens), the `app_key` scheme (`gsk_…` app keys) and
 /// the `till_session` scheme (till tokens), all the same header, that operations list under
@@ -151,6 +164,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(farm_crops::routes::private())
         .merge(farm_catalogue::routes::private())
         .merge(farm_pue::routes::private())
+        .merge(farm_market::routes::private())
         .merge(farm_records::routes::private())
         .merge(farm_logins::routes::private())
         .merge(farm_surveys::routes::private())
@@ -163,6 +177,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(orders::routes::private())
         .merge(orders::routes::storefront())
         .merge(till::routes::private())
+        .merge(till_catalog::routes::private())
         .merge(cash::routes::private())
         .merge(till_sales::routes::private())
 }

@@ -27,7 +27,7 @@ Records are never deleted through the API. A soft-deleted row (`deleted_at`) dis
 - Anything else is `404`, including another workspace.
 - **Phone and GPS** (`phone`, farm and plot `latitude`/`longitude`) are filled only for staff of the record's village. Everyone else gets `null`.
 
-Lists come oldest first: `GET /v1/workspace/{workspace}/farm/{persons|households|farms|plots|crop-cycles}`. Each has `GET …/{id}`. Households embed `members [{person_id, is_head}]`; farms embed `managers [{person_id, is_primary}]`.
+Lists come oldest first: `GET /v1/workspace/{workspace}/farm/{persons|households|farms|plots|crop-cycles}`. Each has `GET …/{id}`. Households embed `members [{person_id, is_head}]`; farms embed `managers [{person_id, is_primary}]`; crop cycles embed `crop {id, code, name_en, name_sw, measured_by}` (always present, also for a crop since made inactive).
 
 | Query | Applies to | Meaning |
 |---|---|---|
@@ -35,6 +35,7 @@ Lists come oldest first: `GET /v1/workspace/{workspace}/farm/{persons|households
 | `verification` | all five | comma-separated states, e.g. `unverified,pending` (the verify queue). An unknown state: `422` |
 | `farm_id` | plots | the plots of one farm |
 | `plot_id` | crop-cycles | the cycles on one plot |
+| `q` | persons | search, trimmed, at most 100 characters (`422` above), blank = no filter. Matches part of the full name in any case (`%` and `_` are literal), or the phone digits (`0712…`, `+255712…` and `712 …` all work, 3 digits or more). The phone is matched only on persons of the caller's own staff villages, since others never see it. The order stays oldest first. |
 | `page`, `page_size` | all five | default 50, max 100 |
 
 A filter never widens what the caller may see: another village's `farm_id` gives an empty list.
@@ -47,7 +48,7 @@ One read for a person page. Visible to whoever may see the person: village staff
 { "data": {
   "households": [ { …household, "people": [ { "person_id", "given_name", "family_name", "is_head" } ] } ],
   "farms": [ { …farm, "plots": [ { …plot, "cycles": [ { …cycle,
-      "crop": { "id", "code", "name_en", "name_sw" },
+      "crop": { "id", "code", "name_en", "name_sw", "measured_by" },
       "harvests": [ …harvest reports, newest first ] } ] } ] } ]
 } }
 ```
@@ -115,6 +116,7 @@ For persons, households, farms, plots, crop-cycles and `harvest-reports`. Field 
 A harvest figure is a series. Each crop cycle has one current `expected` and one current `actual` figure at most; older figures stay on record.
 
 - `GET /v1/workspace/{workspace}/farm/crop-cycles/{cycle}/harvest-reports?current=true`: newest first; `current=true` keeps only the current figures. `404` when the cycle isn't visible.
+- `GET /v1/workspace/{workspace}/farm/harvest-reports?village_id&verification&current&page&page_size`: every report the caller may see, across cycles (the verify queue), newest first. Visibility is the cycles rule: ops and admin all, field officers their villages, a farmer the cycles on their own farms. `verification` as on the lists (`422` on an unknown state).
 - `POST` the same path, field staff only: `{ "kind": "expected|actual", "quantity_kg": "4100", "source": "farmer_reported|field_verified", "confidence": "medium", "reported_for": "2026-09-15", "client_ref": "uuid" }`. The cycle is locked; the current figure of that kind becomes `is_current: false`, and the new one is current. `201` with the new figure.
 - `client_ref` is optional and unique per workspace; it makes a retry safe:
   - the same ref with the same figure returns that figure (`200`) and writes nothing;

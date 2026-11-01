@@ -1,0 +1,113 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.village_id, t.given_name, t.family_name,\n                  CASE WHEN $2 OR t.village_id = ANY($3) THEN t.phone END AS phone,\n                  farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,\n                                  t.verified_by, t.verified_at, t.confidence, t.evidence_ref) AS \"provenance!\",\n                  t.created_at, t.updated_at\n           FROM farm_persons t\n           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n             AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4)))\n             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)\n             AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))\n             AND ($11::text IS NULL OR (t.given_name || ' ' || t.family_name) ILIKE $11\n                  OR ($12::text IS NOT NULL AND ($2 OR t.village_id = ANY($3)) AND t.phone LIKE '%' || $12 || '%'))\n           ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "given_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "given_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "family_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "family_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "phone",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "provenance!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8",
+        "TextArray",
+        "UuidArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "1710eaef1c348070974a0d0bccfa1e9dce11d2c5aae2b41d0c2bd6515f826cef"
+}

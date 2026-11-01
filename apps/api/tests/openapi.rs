@@ -1800,3 +1800,149 @@ fn every_farm_port_support_operation_is_documented() {
         "replay and conflict documented"
     );
 }
+
+#[test]
+fn every_farm_market_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/buyers", "get", "farm_market_buyers_list", "200"),
+        ("/farm/buyers", "post", "farm_market_buyers_create", "201"),
+        (
+            "/farm/buyer-demands",
+            "get",
+            "farm_market_demands_list",
+            "200",
+        ),
+        (
+            "/farm/buyer-demands",
+            "post",
+            "farm_market_demands_create",
+            "201",
+        ),
+        (
+            "/farm/buyer-demands/{demand}",
+            "get",
+            "farm_market_demands_get",
+            "200",
+        ),
+        (
+            "/farm/buyer-demands/{demand}/opportunities",
+            "post",
+            "farm_market_opportunities_create",
+            "201",
+        ),
+        (
+            "/farm/buyer-demands/{demand}/matches",
+            "get",
+            "farm_market_demand_matches",
+            "200",
+        ),
+        (
+            "/farm/opportunities",
+            "get",
+            "farm_market_opportunities_list",
+            "200",
+        ),
+        (
+            "/farm/opportunities/{opportunity}",
+            "get",
+            "farm_market_opportunities_get",
+            "200",
+        ),
+        (
+            "/farm/opportunities/{opportunity}/status",
+            "post",
+            "farm_market_opportunities_status",
+            "200",
+        ),
+        (
+            "/farm/opportunities/{opportunity}/supply",
+            "post",
+            "farm_market_supply_create",
+            "201",
+        ),
+        (
+            "/farm/harvest-available",
+            "get",
+            "farm_market_harvest_available",
+            "200",
+        ),
+        (
+            "/farm/villages/{village}/supply",
+            "get",
+            "farm_market_village_supply",
+            "200",
+        ),
+        (
+            "/farm/villages/{village}/demand-matches",
+            "get",
+            "farm_market_village_matches",
+            "200",
+        ),
+    ]);
+}
+
+/// Closed lists (app-key kinds and scopes, webhook events) are named enums built from the
+/// Rust lists, so the generated client gets unions and no copy of the lists.
+#[test]
+fn key_and_webhook_lists_are_enums() {
+    let s = spec();
+    let values = |name: &str| -> Vec<&str> {
+        let mut v: Vec<&str> = s["components"]["schemas"][name]["enum"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{name} is not an enum"))
+            .iter()
+            .map(|x| x.as_str().unwrap())
+            .collect();
+        v.sort_unstable();
+        v
+    };
+    assert_eq!(values("AppKeyKind"), ["field", "partner", "shop", "till"]);
+    assert_eq!(
+        values("AppKeyScope"),
+        ["catalog:read", "checkout:write", "till:login"]
+    );
+    assert_eq!(
+        values("AppKeyIssuableScope"),
+        ["catalog:read", "checkout:write"]
+    );
+    assert_eq!(
+        values("WebhookEvent"),
+        [
+            "lot.created",
+            "order.created",
+            "passport.published",
+            "product.changed",
+            "sale.attributed",
+            "stock.changed"
+        ]
+    );
+
+    let to = |name: &str| json!({ "$ref": format!("#/components/schemas/{name}") });
+    let field = |schema: &str, f: &str| s["components"]["schemas"][schema]["properties"][f].clone();
+    for r in ["AppKeyResource", "AppKeyCreated", "CreateAppKeyRequest"] {
+        assert_eq!(field(r, "kind"), to("AppKeyKind"), "{r}.kind");
+    }
+    assert_eq!(
+        field("AppKeyResource", "scopes")["items"],
+        to("AppKeyScope")
+    );
+    assert_eq!(field("AppKeyCreated", "scopes")["items"], to("AppKeyScope"));
+    assert_eq!(
+        field("CreateAppKeyRequest", "scopes")["items"],
+        to("AppKeyIssuableScope")
+    );
+    for r in [
+        "WebhookEndpointResource",
+        "WebhookEndpointCreated",
+        "CreateEndpointRequest",
+        "UpdateEndpointRequest",
+    ] {
+        let f = field(r, "events");
+        let items = if f["items"].is_null() {
+            &f["oneOf"][0]["items"]
+        } else {
+            &f["items"]
+        };
+        assert_eq!(*items, to("WebhookEvent"), "{r}.events");
+    }
+}

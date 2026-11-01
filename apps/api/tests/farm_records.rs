@@ -670,3 +670,250 @@ async fn holdings_read_a_persons_households_farms_plots_and_cycles_in_one_call(p
     let (status, _) = f.call(Method::GET, &tail, None, &outsider).await;
     assert_eq!(status, StatusCode::NOT_FOUND, "another workspace");
 }
+
+// ---- persons search ----
+
+#[sqlx::test]
+async fn persons_search_by_name_and_phone_within_scope(pool: PgPool) {
+    let (f, c, neema) = setup(pool).await;
+    let q = |q: &str| format!("/persons?q={}", urlencode(q));
+    let hits = |list: Value| (list["meta"]["total"].as_i64().unwrap(), ids(&list));
+
+    assert_eq!(
+        hits(f.list(&q("mwakal"), &f.officer_ilu).await),
+        (2, sorted(vec![&c.neema.person, &c.rehema.person])),
+        "a family name part"
+    );
+    for term in ["NEEMA", "neema mwakalinga", " Neema "] {
+        assert_eq!(
+            hits(f.list(&q(term), &f.officer_ilu).await),
+            (1, vec![c.neema.person.clone()]),
+            "{term}"
+        );
+    }
+    for phone in ["0712000003", "+255712000003", "712 000 003", "255712000003"] {
+        assert_eq!(
+            hits(f.list(&q(phone), &f.officer_ilu).await),
+            (1, vec![c.asha.person.clone()]),
+            "{phone}"
+        );
+    }
+    assert_eq!(
+        f.list(&q("mlowe"), &f.officer_ilu).await["meta"]["total"],
+        0,
+        "an officer never finds another village's person"
+    );
+    assert_eq!(f.list(&q("mlowe"), &f.ops).await["meta"]["total"], 1);
+    assert_eq!(
+        f.list(&q("%"), &f.ops).await["meta"]["total"],
+        0,
+        "wildcards are literal"
+    );
+    assert_eq!(
+        f.list(&q(""), &f.ops).await["meta"]["total"],
+        4,
+        "blank = no filter"
+    );
+    assert_eq!(
+        f.list(&format!("{}&verification=verified", q("mwakal")), &f.ops)
+            .await["meta"]["total"],
+        0,
+        "combines with the other filters"
+    );
+
+    // A farmer reads her household's people but not their phones, so cannot search by them.
+    assert_eq!(
+        hits(f.list(&q("rehema"), &neema).await),
+        (1, vec![c.rehema.person.clone()])
+    );
+    assert_eq!(
+        f.list(&q("0712000002"), &neema).await["meta"]["total"],
+        0,
+        "a hidden phone is not searchable"
+    );
+
+    let (status, res) = f
+        .call(Method::GET, &q(&"a".repeat(101)), None, &f.ops)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"]["q"][0],
+        "The q must not be greater than 100 characters."
+    );
+
+    let (outsider, _) = signup(&f.app, "out@else.test", "elsewhere").await;
+    let (status, _) = f.call(Method::GET, &q("neema"), None, &outsider).await;
+    assert_eq!(
+        status,
+        StatusCode::NOT_FOUND,
+        "another workspace is refused"
+    );
+}
+
+/// Percent-encode a query value (spaces, `+`, `%`).
+fn urlencode(s: &str) -> String {
+    s.bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' => (b as char).to_string(),
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
+}
+
+// ---- workspace harvest reports ----
+
+#[sqlx::test]
+async fn the_harvest_report_list_follows_the_cycle_rules(pool: PgPool) {
+    let (f, c, neema) = setup(pool).await;
+    let revise = |cycle: &str, kg: &str| {
+        (
+            format!("/crop-cycles/{cycle}/harvest-reports"),
+            json!({ "kind": "expected", "quantity_kg": kg, "source": "field_verified" }),
+        )
+    };
+    let (tail, body) = revise(&c.asha.cycles[0], "50");
+    let (status, res) = f
+        .call(Method::POST, &tail, Some(body), &f.officer_ilu)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let asha = res["data"]["id"].as_str().unwrap().to_owned();
+    let (tail, body) = revise(&c.neema.cycles[0], "2800");
+    let (status, res) = f
+        .call(Method::POST, &tail, Some(body), &f.officer_ilu)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let newest = res["data"]["id"].as_str().unwrap().to_owned();
+    let old = c.neema.harvests[0].clone();
+    let joseph = c.joseph.harvests[0].clone();
+
+    let list = f.list("/harvest-reports", &f.officer_ilu).await;
+    assert_eq!(
+        ids(&list),
+        sorted(vec![&old, &newest, &asha]),
+        "an officer reads their village's figures, superseded ones included"
+    );
+    assert_eq!(list["data"][0]["id"], newest.as_str(), "newest first");
+    assert_eq!(
+        ids(&f
+            .list("/harvest-reports?current=true", &f.officer_ilu)
+            .await),
+        sorted(vec![&newest, &asha])
+    );
+    assert_eq!(
+        ids(&f.list("/harvest-reports", &f.officer_mga).await),
+        vec![joseph.clone()]
+    );
+    assert_eq!(
+        ids(&f.list("/harvest-reports", &neema).await),
+        sorted(vec![&old, &newest]),
+        "a farmer reads her own farm's figures, not a neighbour's"
+    );
+    assert_eq!(f.list("/harvest-reports", &f.ops).await["meta"]["total"], 4);
+    assert_eq!(
+        ids(&f
+            .list(&format!("/harvest-reports?village_id={}", f.mgama), &f.ops)
+            .await),
+        vec![joseph.clone()]
+    );
+
+    let (status, _) = f
+        .call(
+            Method::POST,
+            &format!("/harvest-reports/{joseph}/verification"),
+            None,
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let open = f
+        .list("/harvest-reports?verification=unverified,pending", &f.ops)
+        .await;
+    assert_eq!(ids(&open), sorted(vec![&old, &newest, &asha]));
+
+    let page = f
+        .list("/harvest-reports?page_size=1&page=2", &f.officer_ilu)
+        .await;
+    assert_eq!(page["meta"]["total"], 3);
+    assert_eq!(page["data"].as_array().unwrap().len(), 1);
+
+    let (status, res) = f
+        .call(
+            Method::GET,
+            "/harvest-reports?verification=nope",
+            None,
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"]["verification"][0],
+        "Unknown verification state nope."
+    );
+
+    let (outsider, _) = signup(&f.app, "out@else.test", "elsewhere").await;
+    let (status, _) = f
+        .call(Method::GET, "/harvest-reports", None, &outsider)
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::NOT_FOUND,
+        "another workspace is refused"
+    );
+}
+
+// ---- crop on cycles ----
+
+#[sqlx::test]
+async fn every_crop_cycle_names_its_crop(pool: PgPool) {
+    let (f, c, neema) = setup(pool).await;
+    let (status, res) = f
+        .call(
+            Method::PATCH,
+            &format!("/crops/{}", c.banana),
+            Some(json!({ "is_active": false })),
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let maize = json!({ "id": c.maize, "code": "MAIZE", "name_en": "MAIZE", "name_sw": "MAIZE", "measured_by": "area" });
+    let banana = json!({ "id": c.banana, "code": "BANANA", "name_en": "BANANA", "name_sw": "BANANA", "measured_by": "tree_count" });
+
+    let list = f
+        .list(&format!("/crop-cycles?plot_id={}", c.neema.plot), &neema)
+        .await;
+    let crops: Vec<Value> = list["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|cy| cy["crop"].clone())
+        .collect();
+    assert!(crops.contains(&maize), "{crops:?}");
+    assert!(
+        crops.contains(&banana),
+        "an inactive crop is still named: {crops:?}"
+    );
+
+    let one = f
+        .list(
+            &format!("/crop-cycles/{}", c.joseph.cycles[0]),
+            &f.officer_mga,
+        )
+        .await;
+    assert_eq!(one["data"]["crop"], maize);
+
+    let holdings = f
+        .list(&format!("/persons/{}/holdings", c.neema.person), &neema)
+        .await;
+    let cycles: Vec<&Value> = holdings["data"]["farms"][0]["plots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|p| p["cycles"].as_array().unwrap())
+        .collect();
+    assert!(cycles.iter().any(|cy| cy["crop"] == maize), "{cycles:?}");
+    assert_eq!(
+        holdings.to_string().matches("\"crop\":").count(),
+        cycles.len(),
+        "one crop key per cycle"
+    );
+}

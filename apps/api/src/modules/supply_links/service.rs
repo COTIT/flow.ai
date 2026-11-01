@@ -2,14 +2,16 @@
 //! workspace's admin accepts a pending link; either side's admin revokes, and a revoked link
 //! stays revoked. One open link per pair. Workspaces outside a link never see it.
 
+use serde_json::json;
 use uuid::Uuid;
 
 use crate::{
     AppState,
     error::AppError,
     http::workspace::WorkspaceAccess,
+    idempotency::{self, Actor, Answer, Key},
     modules::supply_links::{
-        dto::NewLink,
+        dto::{LinkResource, NewLink},
         repo::{self, LinkRow},
     },
 };
@@ -27,13 +29,21 @@ fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
 }
 
-/// Grant a pending link from this workspace.
+/// Grant a pending link from this workspace. A retry under the same Idempotency-Key replays
+/// the first answer.
 pub async fn grant(
     state: &AppState,
     access: &WorkspaceAccess,
     input: NewLink,
-) -> Result<LinkRow, AppError> {
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
     let ws = access.workspace_id;
+    let mut tx = state.db.begin().await?;
+    if let Some(answer) =
+        idempotency::replay(&mut tx, ws, Actor::User(access.user_id), key.as_ref()).await?
+    {
+        return Ok(answer);
+    }
     if input.to_workspace_id == ws
         || !repo::workspace_exists(&state.db, input.to_workspace_id).await?
     {
@@ -43,7 +53,7 @@ pub async fn grant(
         ));
     }
     let id = repo::insert(
-        &state.db,
+        &mut *tx,
         ws,
         input.to_workspace_id,
         &input.fields,
@@ -56,7 +66,14 @@ pub async fn grant(
             _ => e.into(),
         },
     )?;
-    one(state, ws, id).await
+    let row = repo::rows(&mut *tx, ws, Some(id), 1, 0)
+        .await?
+        .pop()
+        .ok_or(AppError::NotFound)?;
+    let answer = Answer::created(&json!({ "data": LinkResource::new(row, ws) }));
+    idempotency::finish(&mut tx, ws, key.as_ref(), &answer).await?;
+    tx.commit().await?;
+    Ok(answer)
 }
 
 /// One page of the workspace's links, newest first.

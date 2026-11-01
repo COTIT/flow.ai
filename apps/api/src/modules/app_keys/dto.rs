@@ -3,19 +3,54 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use utoipa::{IntoParams, ToSchema};
+use utoipa::{IntoParams, PartialSchema, ToSchema, openapi::RefOr, openapi::schema::Schema};
 use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, Validate},
     modules::app_keys::{
         repo::KeyRow,
-        secret::{KINDS, SCOPES},
+        secret::{KINDS, SCOPES, TILL_LOGIN},
     },
+    openapi::string_enum,
 };
 
 const NAME_MAX: usize = 100;
 const SCOPES_MAX: usize = 20;
+
+/// `KINDS` as a spec enum (docs only).
+pub struct AppKeyKind;
+
+impl PartialSchema for AppKeyKind {
+    fn schema() -> RefOr<Schema> {
+        string_enum(KINDS.iter().copied(), "App a key is issued to.")
+    }
+}
+
+impl ToSchema for AppKeyKind {}
+
+/// Every scope a key may hold: `SCOPES` plus the register-only `till:login` (docs only).
+pub struct AppKeyScope;
+
+impl PartialSchema for AppKeyScope {
+    fn schema() -> RefOr<Schema> {
+        let all = SCOPES.iter().copied().chain([TILL_LOGIN]);
+        string_enum(all, "A scope a key holds.")
+    }
+}
+
+impl ToSchema for AppKeyScope {}
+
+/// `SCOPES`, the ones `/app-keys` issues (docs only).
+pub struct AppKeyIssuableScope;
+
+impl PartialSchema for AppKeyIssuableScope {
+    fn schema() -> RefOr<Schema> {
+        string_enum(SCOPES.iter().copied(), "A scope `/app-keys` can issue.")
+    }
+}
+
+impl ToSchema for AppKeyIssuableScope {}
 
 /// A key as listed: never the secret, only its first 8 characters.
 #[derive(Serialize, ToSchema)]
@@ -23,8 +58,9 @@ const SCOPES_MAX: usize = 20;
 pub struct AppKeyResource {
     id: Uuid,
     name: String,
-    /// `shop`, `till`, `field` or `partner`.
+    #[schema(value_type = AppKeyKind)]
     kind: String,
+    #[schema(value_type = Vec<AppKeyScope>)]
     scopes: Vec<String>,
     /// First 8 characters of the key, to tell keys apart.
     #[schema(example = "gsk_3f9a")]
@@ -58,7 +94,9 @@ impl From<KeyRow> for AppKeyResource {
 pub struct AppKeyCreated {
     id: Uuid,
     name: String,
+    #[schema(value_type = AppKeyKind)]
     kind: String,
+    #[schema(value_type = Vec<AppKeyScope>)]
     scopes: Vec<String>,
     prefix: String,
     created_at: DateTime<Utc>,
@@ -100,10 +138,10 @@ pub struct ListQuery {
 pub struct CreateAppKeyRequest {
     #[schema(value_type = String, max_length = 100, example = "Web shop")]
     name: Option<String>,
-    #[schema(value_type = String, example = "shop")]
+    #[schema(value_type = AppKeyKind, example = "shop")]
     kind: Option<String>,
-    /// At least one of: `catalog:read`.
-    #[schema(value_type = Vec<String>, example = json!(["catalog:read"]))]
+    /// 1 to 20 scopes.
+    #[schema(value_type = Vec<AppKeyIssuableScope>, example = json!(["catalog:read"]))]
     scopes: Option<Value>,
 }
 

@@ -107,7 +107,28 @@ pub async fn list(
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<TransferRow>, i64), sqlx::Error> {
-    let rows = sqlx::query_as!(
+    let rows = rows(db, workspace_id, id, limit, offset).await?;
+    let total = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM supply_transfers
+           WHERE (from_workspace_id = $1 OR to_workspace_id = $1)
+             AND ($2::uuid IS NULL OR id = $2)"#,
+        workspace_id,
+        id,
+    )
+    .fetch_one(db)
+    .await?;
+    Ok((rows, total))
+}
+
+/// The rows of `list`, without the count (usable inside a transaction).
+pub async fn rows(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Option<Uuid>,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<TransferRow>, sqlx::Error> {
+    sqlx::query_as!(
         TransferRow,
         r#"SELECT t.id, t.link_id, t.from_workspace_id, t.to_workspace_id, w.name AS partner_name,
                   f.code AS from_lot_code, f.public_code AS from_lot_public_code,
@@ -127,17 +148,7 @@ pub async fn list(
         offset,
     )
     .fetch_all(db)
-    .await?;
-    let total = sqlx::query_scalar!(
-        r#"SELECT count(*) AS "n!" FROM supply_transfers
-           WHERE (from_workspace_id = $1 OR to_workspace_id = $1)
-             AND ($2::uuid IS NULL OR id = $2)"#,
-        workspace_id,
-        id,
-    )
-    .fetch_one(db)
-    .await?;
-    Ok((rows, total))
+    .await
 }
 
 /// Lock a transfer addressed to `to`; (quantity, received yet, link) or None.

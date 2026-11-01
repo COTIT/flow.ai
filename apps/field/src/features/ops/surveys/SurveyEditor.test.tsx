@@ -39,8 +39,10 @@ const survey = {
   published_at: null,
   published_by: null,
   closed_at: null,
+  created_by: null,
   created_at: '2026-09-28T08:00:00Z',
   updated_at: '2026-09-28T08:00:00Z',
+  summary: null,
 }
 
 const renderEditor = () =>
