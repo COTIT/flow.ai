@@ -18,7 +18,7 @@ import {
   useOrdersRefund,
   useOrdersReturns,
 } from "@genesy/api-client/endpoints/orders"
-import type { OrderResource } from "@genesy/api-client/model"
+import type { OrderAction, OrderResource } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
@@ -103,9 +103,8 @@ export default function OrderPage({
     formatMoney(minor, o.decimals, o.currency, locale)
   const statusLabel = (s: string) =>
     t.has(`orders.statuses.${s}`) ? t(`orders.statuses.${s}`) : s
-  // Which buttons fit which status; the API still decides and answers 409 otherwise.
-  const is = (...s: string[]) => s.includes(o.status)
-  const afterSale = is("completed", "partially_returned", "returned")
+  // The API lists what this order's status and payments allow; anything else would be a 409.
+  const can = (action: OrderAction) => o.allowed_actions.includes(action)
 
   return (
     <>
@@ -140,7 +139,7 @@ export default function OrderPage({
         </dl>
 
         <div className="flex flex-wrap gap-2">
-          {is("draft") ? (
+          {can("confirm") ? (
             <Button
               disabled={confirm.isPending}
               onClick={() => confirm.mutate(vars)}
@@ -148,8 +147,8 @@ export default function OrderPage({
               {t("orders.confirm")}
             </Button>
           ) : null}
-          {is("open") ? <PickDialog order={o} onDone={onSuccess} /> : null}
-          {is("open") ? (
+          {can("pick") ? <PickDialog order={o} onDone={onSuccess} /> : null}
+          {can("complete") ? (
             <ConfirmDialog
               trigger={t("orders.complete")}
               destructive={false}
@@ -161,7 +160,7 @@ export default function OrderPage({
               onConfirm={() => complete.mutate(vars)}
             />
           ) : null}
-          {(is("open") || afterSale) && !o.invoice_id ? (
+          {can("invoice") ? (
             <Button
               variant="outline"
               disabled={invoice.isPending}
@@ -170,11 +169,11 @@ export default function OrderPage({
               {t("orders.makeInvoice")}
             </Button>
           ) : null}
-          {is("completed", "partially_returned") ? (
+          {can("return") ? (
             <ReturnsDialog order={o} onDone={onSuccess} />
           ) : null}
-          {o.paid_at ? <RefundDialog order={o} onDone={onSuccess} /> : null}
-          {is("draft", "awaiting_payment", "open") ? (
+          {can("refund") ? <RefundDialog order={o} onDone={onSuccess} /> : null}
+          {can("cancel") ? (
             <ConfirmDialog
               trigger={t("orders.cancel")}
               title={t("orders.cancelTitle", { number: o.number })}
