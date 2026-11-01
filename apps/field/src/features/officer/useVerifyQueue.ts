@@ -23,9 +23,8 @@ import type { VerifiableTable } from '@/features/officer/personDetail'
 import { provenanceOf } from '@/features/officer/useOfficerRecords'
 import { localisedName } from '@/lib/names'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type Enums = Database['public']['Enums']
 
 export interface QueueRow {
   table: VerifiableTable

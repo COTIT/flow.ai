@@ -1,0 +1,183 @@
+# Genesy production: API + own Postgres + the five apps, routed by the VPS's existing Traefik.
+# Run from the repo root (see deploy/production/README.md):
+#   docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d
+# Its own project: never touches control360 or genesy-prod-green. No Mailpit, no fake payments,
+# no demo seed, no self-signup.
+name: genesy-prod
+
+x-hardening: &hardening
+  restart: unless-stopped
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+x-edge-labels: &edge-labels
+  traefik.enable: "true"
+  traefik.docker.network: ${TRAEFIK_NETWORK:?set TRAEFIK_NETWORK in .env.production}
+
+x-api-env: &api-env
+  DATABASE_URL_FILE: /run/secrets/database_url
+  CREDENTIALS_KEY_FILE: /run/secrets/credentials_key
+  SMTP_URL_FILE: /run/secrets/smtp_url
+  BIND_ADDR: 0.0.0.0:8080
+  RUST_LOG: ${RUST_LOG:-genesy_360_api=info,tower_http=info}
+  FRONTEND_URL: https://office.genesy.app
+  API_PUBLIC_URL: https://api.genesy.app
+  MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM in .env.production}
+  # Traefik replaces client-sent X-Forwarded-For, so the first entry is the real client.
+  TRUST_PROXY_HEADERS: "true"
+  # Accounts come from `create-owner` and invites only (README "First owner").
+  SIGNUP_ENABLED: "false"
+  # PAYMENTS_PROVIDER unset: web payments answer 503 until a real provider is chosen.
+
+services:
+  db:
+    image: postgres:18.4-alpine3.24@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      POSTGRES_USER: genesy
+      POSTGRES_DB: genesy
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/18/docker.
+      - pg:/var/lib/postgresql
+    networks: [internal]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "genesy", "-d", "genesy"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+  api:
+    <<: *hardening
+    # Default build: PAYMENTS_PROVIDER=fake is refused.
+    build: { context: ../../apps/api }
+    image: genesy-prod/api:${GENESY_REF:?set GENESY_REF in .env.production}
+    environment: *api-env
+    secrets: [database_url, credentials_key, smtp_url]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [internal, edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-production-api.rule: Host(`api.genesy.app`)
+      traefik.http.routers.genesy-production-api.entrypoints: ${TRAEFIK_ENTRYPOINT:?set TRAEFIK_ENTRYPOINT in .env.production}
+      traefik.http.routers.genesy-production-api.tls.certresolver: ${TRAEFIK_CERTRESOLVER:?set TRAEFIK_CERTRESOLVER in .env.production}
+      traefik.http.services.genesy-production-api.loadbalancer.server.port: "8080"
+      traefik.http.services.genesy-production-api.loadbalancer.healthcheck.path: /healthz
+
+  shop:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: deploy/images/next.Dockerfile
+      args: { APP: shop }
+    image: genesy-prod/shop:${GENESY_REF}
+    environment:
+      API_URL: http://api:8080/v1
+      SITE_URL: https://shop.genesy.app
+      # App key (scope catalog:read) made in the office; empty until then (shop answers 503).
+      STOREFRONT_APP_KEY: ${STOREFRONT_APP_KEY:-}
+      FILES_ORIGIN: ${FILES_ORIGIN:-}
+    networks: [internal, edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-production-shop.rule: Host(`shop.genesy.app`)
+      traefik.http.routers.genesy-production-shop.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-production-shop.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.services.genesy-production-shop.loadbalancer.server.port: "3000"
+
+  office:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: deploy/images/next.Dockerfile
+      args: { APP: office, NEXT_PUBLIC_SHOP_URL: "https://shop.genesy.app" }
+    image: genesy-prod/office:${GENESY_REF}
+    environment:
+      API_URL: http://api:8080/v1
+    networks: [internal, edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-production-office.rule: Host(`office.genesy.app`)
+      traefik.http.routers.genesy-production-office.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-production-office.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.services.genesy-production-office.loadbalancer.server.port: "3000"
+
+  till:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: deploy/images/next.Dockerfile
+      args: { APP: till }
+    image: genesy-prod/till:${GENESY_REF}
+    environment:
+      API_URL: http://api:8080/v1
+    networks: [internal, edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-production-till.rule: Host(`till.genesy.app`)
+      traefik.http.routers.genesy-production-till.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-production-till.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.services.genesy-production-till.loadbalancer.server.port: "3000"
+
+  field:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: deploy/images/field.Dockerfile
+      # No demo banner; equipment, loans and requests stay hidden (release flag off).
+      args: { VITE_DATA_MODE: "", VITE_FEATURE_RESOURCES: "off" }
+    image: genesy-prod/field:${GENESY_REF}
+    networks: [internal, edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-production-field.rule: Host(`field.genesy.app`)
+      traefik.http.routers.genesy-production-field.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-production-field.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.services.genesy-production-field.loadbalancer.server.port: "8080"
+
+  # One-off API commands (`create-owner`), on demand: `... --profile cli run --rm cli <command>`.
+  # Its own service without Traefik labels, so a one-off container never receives web traffic.
+  cli:
+    profiles: [cli]
+    image: genesy-prod/api:${GENESY_REF}
+    environment: *api-env
+    secrets: [database_url, credentials_key, smtp_url]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [internal]
+    restart: "no"
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+networks:
+  internal: {}
+  # The existing Traefik's network (created by Traefik's own stack, not by this file).
+  edge:
+    external: true
+    name: ${TRAEFIK_NETWORK}
+
+volumes:
+  pg:
+    # Made once by hand (README "One-time setup"). External, so `down -v` never deletes prod data.
+    external: true
+    name: genesy-prod-pg
+
+# Files made once on the VPS (README "One-time setup"); never committed.
+secrets:
+  db_password:
+    file: ${SECRETS_DIR:-./secrets}/db_password
+  database_url:
+    file: ${SECRETS_DIR:-./secrets}/database_url
+  credentials_key:
+    file: ${SECRETS_DIR:-./secrets}/credentials_key
+  smtp_url:
+    file: ${SECRETS_DIR:-./secrets}/smtp_url

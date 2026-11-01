@@ -7,7 +7,7 @@ import {
   formatKg,
   formatKw,
   formatKwh,
-  formatMoney,
+  formatPrice,
   formatPercent,
   formatPlainDate,
   formatTimestamp,
@@ -62,18 +62,19 @@ describe('weight, power, energy', () => {
 })
 
 describe('money', () => {
-  // numeric(14,2) plus an explicit currency code, default TZS. Every price is
+  // Integer minor units plus an explicit currency code. Every price is
   // indicative — the caller is responsible for saying so.
   test('shows the amount with its currency code', () => {
-    expect(formatMoney(22000000, 'TZS')).toBe('TZS 22,000,000.00')
+    const text = formatPrice({ minor: 2200000000, currency: 'TZS', decimals: 2, currency_id: 'c1' }, 'en')
+    expect(text.replace(/\s/g, ' ')).toBe('TZS 22,000,000.00')
   })
 
   test('a different currency is never assumed away', () => {
-    expect(formatMoney(1500.5, 'USD')).toBe('USD 1,500.50')
+    expect(formatPrice({ minor: 150050, currency: 'USD', decimals: 2, currency_id: 'c2' }, 'en')).toBe('$1,500.50')
   })
 
   test('null reads as unknown', () => {
-    expect(formatMoney(null, 'TZS')).toBe('—')
+    expect(formatPrice(null, 'en')).toBe('—')
   })
 })
 

@@ -44,6 +44,7 @@ pub mod price_corrections;
 pub mod pricing;
 pub mod product_brands;
 pub mod product_categories;
+pub mod product_images;
 pub mod product_variants;
 pub mod products;
 pub mod relations;

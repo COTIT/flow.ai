@@ -5,6 +5,9 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { LotRef } from './lotRef';
+import type { Pack } from './pack';
+import type { ReceivedFrom } from './receivedFrom';
 
 /**
  * A batch of one stock-tracked product.
@@ -20,11 +23,14 @@ export interface LotResource {
   id: string;
   /** @nullable */
   origin: string | null;
+  pack: Pack | null;
+  parent_lot: LotRef | null;
   /** @nullable */
   produced_on: string | null;
   product_id: string;
   /** Code in the QR link `/b/{public_code}`; fixed at creation. */
   public_code: string;
+  received_from: ReceivedFrom | null;
   /** `quarantine`, `released` (sellable) or `recalled`. */
   status: string;
   updated_at: string;

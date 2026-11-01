@@ -30,6 +30,7 @@ import type {
   EnvelopeProductCreated,
   EnvelopeProductResource,
   EnvelopeSaleStatics,
+  EnvelopeVecProductImageResource,
   MessageBody,
   PaginatedProductPriceHistoryRow,
   PaginatedProductResource,
@@ -38,6 +39,7 @@ import type {
   ProductsGetParams,
   ProductsListParams,
   ProductsPriceHistoryParams,
+  ReplaceImagesRequest,
   ValidationErrorBody
 } from '../model';
 
@@ -607,6 +609,174 @@ export const useProductsDuplicate = <TError = ErrorType<MessageBody>,
         TContext
       > => {
       return useMutation(getProductsDuplicateMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary A product's images, in order
+ */
+export const productsImagesList = (
+    workspace: string,
+    product: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecProductImageResource>(
+      {url: `/workspace/${workspace}/products/${product}/images`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getProductsImagesListQueryKey = (workspace: string,
+    product: string,) => {
+    return [
+    `/workspace/${workspace}/products/${product}/images`
+    ] as const;
+    }
+
+
+export const getProductsImagesListQueryOptions = <TData = Awaited<ReturnType<typeof productsImagesList>>, TError = ErrorType<MessageBody>>(workspace: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsImagesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getProductsImagesListQueryKey(workspace,product);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof productsImagesList>>> = ({ signal }) => productsImagesList(workspace,product, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && product !== null && product !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof productsImagesList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ProductsImagesListQueryResult = NonNullable<Awaited<ReturnType<typeof productsImagesList>>>
+export type ProductsImagesListQueryError = ErrorType<MessageBody>
+
+
+export function useProductsImagesList<TData = Awaited<ReturnType<typeof productsImagesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    product: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsImagesList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsImagesList>>,
+          TError,
+          Awaited<ReturnType<typeof productsImagesList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsImagesList<TData = Awaited<ReturnType<typeof productsImagesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsImagesList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof productsImagesList>>,
+          TError,
+          Awaited<ReturnType<typeof productsImagesList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProductsImagesList<TData = Awaited<ReturnType<typeof productsImagesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsImagesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary A product's images, in order
+ */
+
+export function useProductsImagesList<TData = Awaited<ReturnType<typeof productsImagesList>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    product: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof productsImagesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getProductsImagesListQueryOptions(workspace,product,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * @summary Replace a product's images
+ */
+export const productsImagesReplace = (
+    workspace: string,
+    product: string,
+    replaceImagesRequest: BodyType<ReplaceImagesRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecProductImageResource>(
+      {url: `/workspace/${workspace}/products/${product}/images`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: replaceImagesRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getProductsImagesReplaceMutationKey = () => ['productsImagesReplace'] as const;
+
+export const getProductsImagesReplaceMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsImagesReplace>>, TError,ProductsImagesReplaceMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof productsImagesReplace>>, TError,ProductsImagesReplaceMutationVariables, TContext> => {
+
+const mutationKey = getProductsImagesReplaceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof productsImagesReplace>>, ProductsImagesReplaceMutationVariables> = (props) => {
+          const {workspace,product,data} = props ?? {};
+
+          return  productsImagesReplace(workspace,product,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProductsImagesReplaceMutationResult = NonNullable<Awaited<ReturnType<typeof productsImagesReplace>>>
+    export type ProductsImagesReplaceMutationBody = BodyType<ReplaceImagesRequest>
+    export type ProductsImagesReplaceMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type ProductsImagesReplaceMutationVariables = {workspace: string;product: string;data: BodyType<ReplaceImagesRequest>}
+
+    /**
+ * @summary Replace a product's images
+ */
+export const useProductsImagesReplace = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof productsImagesReplace>>, TError,ProductsImagesReplaceMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof productsImagesReplace>>,
+        TError,
+        ProductsImagesReplaceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getProductsImagesReplaceMutationOptions(options), queryClient);
     }
     /**
  * @summary List linked products

@@ -1,8 +1,8 @@
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type Verification = Database['public']['Enums']['verification_status']
-type Source = Database['public']['Enums']['source_type']
-type Confidence = Database['public']['Enums']['confidence_level']
+type Verification = Enums['verification_status']
+type Source = Enums['source_type']
+type Confidence = Enums['confidence_level']
 
 /** The provenance block every observed record carries. */
 export interface Provenance {
@@ -57,11 +57,11 @@ export interface PersonDetail {
               planted_on: string | null
               harvest_start: string | null
               harvest_end: string | null
-              status: Database['public']['Enums']['crop_cycle_status']
+              status: Enums['crop_cycle_status']
               harvests: Array<
                 Provenance & {
                   id: string
-                  kind: Database['public']['Enums']['harvest_kind']
+                  kind: Enums['harvest_kind']
                   quantity_kg: number
                   is_current: boolean
                   reported_for: string | null

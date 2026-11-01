@@ -11,7 +11,7 @@ import {
 import { workspaceId } from '@/app/workspace'
 
 import {
-  buildEditPayload,
+  buildCyclePayload,
   type CropMeasure,
   type EditContext,
   type EditableTable,
@@ -19,11 +19,9 @@ import {
   validateEdit,
 } from '@/features/officer/officerEdit'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type CyclePayload = ReturnType<typeof buildEditPayload>
-
-export function useOfficerEdit(measure?: Database['public']['Enums']['crop_measure']) {
+export function useOfficerEdit(measure?: Enums['crop_measure']) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -62,8 +60,7 @@ export function useOfficerEdit(measure?: Database['public']['Enums']['crop_measu
       }
 
       if (table === 'crop_cycle') {
-        // The crop_cycle branch of the payload; TS cannot narrow the union on the table argument.
-        const payload = buildEditPayload(table, values, activeMeasure) as Extract<CyclePayload, { crop_id: string }>
+        const payload = buildCyclePayload(values, activeMeasure)
         // PUT takes every editable field; the area goes as typed, so no float rounds it.
         await farmRecordsCropCyclesCorrect(workspaceId(), id, {
           ...payload,

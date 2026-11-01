@@ -16,6 +16,7 @@ use crate::{
     },
     modules::{
         app_keys::secret::CATALOG_READ,
+        product_images,
         storefront::{
             dto::{ListQuery, StorefrontProduct},
             repo,
@@ -48,7 +49,12 @@ pub async fn list(
         None if page.offset() > 0 => repo::count(&state.db, key.workspace_id).await?,
         None => 0,
     };
-    let data = rows.into_iter().map(Into::into).collect();
+    let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+    let images = product_images::service::storefront_links(&state, key.workspace_id, &ids).await?;
+    let data = rows
+        .into_iter()
+        .map(|r| StorefrontProduct::new(r, &images))
+        .collect();
     Ok(Json(Paginated::new(data, total, page)))
 }
 
@@ -76,5 +82,6 @@ pub async fn get(
         .await?
         .pop()
         .ok_or(AppError::NotFound)?;
-    Ok(Data(row.into()))
+    let images = product_images::service::storefront_links(&state, key.workspace_id, &[id]).await?;
+    Ok(Data(StorefrontProduct::new(row, &images)))
 }

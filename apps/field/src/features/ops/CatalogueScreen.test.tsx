@@ -7,7 +7,6 @@ const useLoanProducts = vi.fn()
 const createEquipment = vi.fn()
 const createLoan = vi.fn()
 const createCategory = vi.fn()
-const flags = { loans: false }
 const createState = { isPending: false, isError: false, error: null as Error | null }
 const search = { kind: undefined as string | undefined }
 const navigate = vi.fn()
@@ -18,7 +17,6 @@ vi.mock('@/features/farmer/useEquipment', () => ({
 vi.mock('@/features/farmer/useResources', () => ({
   useLoanProducts: () => useLoanProducts(),
 }))
-vi.mock('@/lib/ported', () => ({ get LOANS_PORTED() { return flags.loans } }))
 vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
   useCurrencies: () => ({ data: [{ id: 'c1', decimals: 2, default_currency: true, asset_type: 'tzs', active: true }] }),
 }))
@@ -72,14 +70,12 @@ const loan = (over: Record<string, unknown> = {}) => ({
   code: 'INPUT',
   name: 'Input loan: seed and fertiliser',
   description: 'For a season of seed and fertiliser.',
-  indicative_min_amount: 200000,
-  indicative_max_amount: 1500000,
-  currency: 'TZS',
+  indicative_min: tzs(20000000),
+  indicative_max: tzs(150000000),
   ...over,
 })
 
 beforeEach(() => {
-  flags.loans = false
   createCategory.mockReset()
   createCategory.mockResolvedValue({ id: 'cat9' })
   useEquipmentList.mockReset()
@@ -129,17 +125,7 @@ describe('CatalogueScreen states', () => {
 })
 
 describe('the resource catalogue', () => {
-  test('shows no loan tab while loan listings are not on the API', () => {
-    search.kind = 'loan'
-    render(<CatalogueScreen />)
-
-    expect(screen.queryByTestId('catalogue-tab-loan')).not.toBeInTheDocument()
-    expect(screen.getByTestId('catalogue-table')).toBeInTheDocument()
-    expect(useLoanProducts).not.toHaveBeenCalled()
-  })
-
   test('is a resource catalogue, not only equipment', () => {
-    flags.loans = true
     render(<CatalogueScreen />)
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/resource catalogue/i)
@@ -148,7 +134,6 @@ describe('the resource catalogue', () => {
   })
 
   test('switching kind is held in the URL', async () => {
-    flags.loans = true
     render(<CatalogueScreen />)
     await userEvent.click(screen.getByTestId('catalogue-tab-loan'))
 
@@ -209,7 +194,6 @@ describe('the resource catalogue', () => {
  */
 describe('loan listings', () => {
   beforeEach(() => {
-    flags.loans = true
     search.kind = 'loan'
   })
 
@@ -318,7 +302,6 @@ describe('adding to the catalogue', () => {
   })
 
   test('adds a loan listing with its indicative range, and nothing else', async () => {
-    flags.loans = true
     search.kind = 'loan'
     render(<CatalogueScreen />)
     await userEvent.click(screen.getByTestId('catalogue-create-open'))
@@ -332,17 +315,34 @@ describe('adding to the catalogue', () => {
     submit()
 
     expect(createLoan).toHaveBeenCalledTimes(1)
-    expect(createLoan.mock.calls[0][0]).toMatchObject({
-      project_id: '20000000-0000-4000-8000-000000000001',
+    // The API's body: integer minor units in the account's currency, the device's id.
+    expect(createLoan.mock.calls[0][0]).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
       code: 'WOMEN',
       name_en: 'Women group loan',
       name_sw: 'Mkopo wa kikundi cha wanawake',
-      indicative_min_amount: 500000,
-      indicative_max_amount: 3000000,
+      indicative_min_minor: 50000000,
+      indicative_max_minor: 300000000,
       description_en: null,
       description_sw: null,
+      currency_id: 'c1',
     })
     expect(createEquipment).not.toHaveBeenCalled()
+  })
+
+  test('a loan amount with more decimals than the currency has is refused', async () => {
+    search.kind = 'loan'
+    render(<CatalogueScreen />)
+    await userEvent.click(screen.getByTestId('catalogue-create-open'))
+    set('catalogue-code', 'WOMEN')
+    set('catalogue-name-en', 'Women group loan')
+    set('catalogue-name-sw', 'Mkopo')
+    set('catalogue-min', '12.555')
+    set('catalogue-max', '3000000')
+    submit()
+
+    expect(screen.getByTestId('catalogue-min-error')).toBeInTheDocument()
+    expect(createLoan).not.toHaveBeenCalled()
   })
 
   test("the API's refusal is shown as written", async () => {

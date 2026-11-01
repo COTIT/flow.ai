@@ -1,8 +1,8 @@
 # Ruaha 360 (`@genesy/field`)
 
-> Ported from the RUAHA repository into the Genesy monorepo (Vite app, port 3002). Its data layer is moving from
-> Supabase to the Genesy API step by step; until then the app still reads `VITE_SUPABASE_*`. Run with
-> `pnpm --filter @genesy/field dev`. The notes below are RUAHA's own and describe the Supabase setup.
+> Ported from the RUAHA repository into the Genesy monorepo (Vite app, port 3002). It runs on the Genesy API
+> (`apps/api`, the `/v1/farm/*` endpoints) through `@genesy/api-client`; there is no other backend. Run with
+> `pnpm --filter @genesy/field dev`. The product notes below are RUAHA's own.
 
 Rural economic development platform for Ruaha Energy. First deployment:
 Ilundo, Tanzania.
@@ -25,36 +25,21 @@ that is a view over what the officer wrote:
 - the Control Tower aggregates all of it, and every headline drills back to
   the records underneath it
 
-The three specifications are `docs/schema.md`, `docs/business-rules.md` and
-`docs/screens-and-components.md`. `supabase/migrations/` is the fourth.
-`CLAUDE.md` is the working agreement.
+The specifications are `docs/schema.md`, `docs/business-rules.md` and
+`docs/screens-and-components.md`; the rules themselves live in the Genesy API.
 
 ---
 
 ## Running it
 
 ```bash
-pnpm install
-pnpm dev
+pnpm --filter @genesy/field dev     # needs the Genesy API running (see the root README)
+pnpm --filter @genesy/field test    # vitest
+pnpm --filter @genesy/field typecheck
 ```
 
-`.env` needs `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` and
-`VITE_DATA_MODE=demo`, plus `SUPABASE_DB_*` for the database scripts. There is
-no service-role key anywhere in this application, deliberately.
-
-```bash
-pnpm typecheck        # tsc
-pnpm test             # vitest
-pnpm e2e              # playwright, against the cloud dev project
-pnpm e2e journey      # the eight-step acceptance journey alone
-pnpm db:rls           # the 24 policy assertions
-pnpm db:push          # apply pending migrations
-pnpm i18n:handover    # regenerate docs/i18n-handover.md
-```
-
-**There is no local Supabase on this project.** The cloud dev project is the
-only database; every `db:*` script points there through `scripts/db-url.mjs`.
-See `supabase/README.md`.
+`.env.local` needs only `VITE_DATA_MODE=demo` and `VITE_FEATURE_RESOURCES` (see
+`.env.example`). The browser suite lives in `packages/e2e/tests/field`.
 
 ---
 
@@ -94,9 +79,8 @@ bundle complete, keeps placeholders intact, and rejects the incentive being
 described as earnings, a wallet, a balance or a payment. It cannot check that
 the Swahili is right. Only a native reviewer can.
 
-Not translated: the GoTrue (sign-in provider) error sentences, and any
-database message not listed in `src/lib/dbMessages.ts`, which are shown as the
-database wrote them. The sign-in screen also opens in English until a person
+Not translated: any API message not listed in `src/lib/dbMessages.ts`, which
+is shown as the API wrote it. The sign-in screen also opens in English until a person
 switches language, because the signed-out choice is not remembered.
 
 ### What is deliberately absent
@@ -118,7 +102,7 @@ and none should be guessed at.
 
 ## Where the numbers come from
 
-Every figure on a screen is read from a database view. The client does not
+Every figure on a screen is read from the Genesy API. The client does not
 aggregate — see `docs/business-rules.md` §7 and §11. The seeded demo figures
 are part of the specification and are asserted by the test suite:
 

@@ -16,7 +16,7 @@ import { resolveLanding, safeRedirect } from '@/app/membership'
 import { sessionQuery } from '@/app/session'
 import { holdTempPassword } from '@/app/tempPassword'
 import { apiErrorMessage, apiStatus } from '@/lib/apiError'
-import { loginEmailFor } from '@/lib/phone'
+import { normalizePhone } from '@/lib/phone'
 import { authLogin } from '@genesy/api-client/endpoints/auth'
 import { farmLoginsLogin } from '@genesy/api-client/endpoints/farm-logins'
 import { sessionStore } from '@genesy/api-client/session'
@@ -32,7 +32,7 @@ const schema = z.object({
   email: z
     .string()
     .min(1, 'login.emailRequired')
-    .refine((value) => loginEmailFor(value) !== null, 'login.emailInvalid'),
+    .refine((value) => value.trim().includes('@') || normalizePhone(value) !== null, 'login.emailInvalid'),
   password: z.string().min(1, 'login.passwordRequired'),
 })
 

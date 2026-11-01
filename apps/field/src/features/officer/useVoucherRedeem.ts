@@ -9,10 +9,10 @@ import type { Money, Redeemed } from '@genesy/api-client/model'
 import { workspaceId } from '@/app/workspace'
 import type { AuditEvent } from '@/components/AuditTimeline'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-export type IdDocumentType = Database['public']['Enums']['id_document_type']
-type VoucherStatus = Database['public']['Enums']['voucher_status']
+export type IdDocumentType = Enums['id_document_type']
+type VoucherStatus = Enums['voucher_status']
 
 /** `POST /farm/vouchers/lookup` when the code names a voucher this caller may see. */
 export interface VoucherPreview {

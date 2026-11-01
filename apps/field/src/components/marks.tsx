@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react'
 
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type VerificationStatus = Database['public']['Enums']['verification_status']
-type ConfidenceLevel = Database['public']['Enums']['confidence_level']
+type VerificationStatus = Enums['verification_status']
+type ConfidenceLevel = Enums['confidence_level']
 
 /**
  * The mark vocabulary.

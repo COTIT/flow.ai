@@ -6741,6 +6741,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_ProductImageResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ProductImageResource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_ProductVariantResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -7601,6 +7616,77 @@
         ],
         "type": "object"
       },
+      "FarmerCreditResource": {
+        "description": "A sale or return of the lot that credited or debited its farmers.",
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "jars": {
+            "description": "Units sold (sale), or the change in units returned (return; positive = jars came back).\nDecimal string.",
+            "example": "3.00",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`sale` or `return`.",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "order_number": {
+            "example": "ORD-0042",
+            "type": "string"
+          },
+          "till_ref": {
+            "description": "The till's `client_ref` when a till sold it; null for web and office orders.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "order_id",
+          "order_number",
+          "till_ref",
+          "kind",
+          "jars",
+          "at"
+        ],
+        "type": "object"
+      },
+      "FarmerCreditsPage": {
+        "description": "GET /lots/{lot}/farmer-credits: a page of credits and the farmer groups the public page\nshows. No farmer names, ids, kg, prices or amounts.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/FarmerCreditResource"
+            },
+            "type": "array"
+          },
+          "farmer_groups": {
+            "description": "How many farmer groups (villages) the lot's public page shows, under the supply link's\nallow-list; null when it shows none (no supply lineage, or `village` not shared).",
+            "example": 1,
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "farmer_groups"
+        ],
+        "type": "object"
+      },
       "FileCreated": {
         "description": "`{data:{file_id}}`.",
         "properties": {
@@ -8441,6 +8527,28 @@
           "provenance",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "ImageInput": {
+        "description": "One image to show.",
+        "properties": {
+          "file_id": {
+            "description": "A stored `image/*` file of this workspace.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_variant_id": {
+            "description": "A variant of this product; leave out for the product itself.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "file_id"
         ],
         "type": "object"
       },
@@ -10556,6 +10664,24 @@
         ],
         "type": "object"
       },
+      "LotRef": {
+        "description": "Another lot of this workspace.",
+        "properties": {
+          "code": {
+            "example": "ILU-H-1",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code"
+        ],
+        "type": "object"
+      },
       "LotResource": {
         "description": "A batch of one stock-tracked product.",
         "properties": {
@@ -10592,6 +10718,28 @@
               "null"
             ]
           },
+          "pack": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Pack",
+                "description": "How it was packed from its parent; null when not packed."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parent_lot": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LotRef",
+                "description": "The lot this one was packed from; null when not packed here."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "produced_on": {
             "format": "date",
             "type": [
@@ -10607,6 +10755,17 @@
             "description": "Code in the QR link `/b/{public_code}`; fixed at creation.",
             "example": "7K2M9QXH4D",
             "type": "string"
+          },
+          "received_from": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReceivedFrom",
+                "description": "The supply transfer this lot was received from; null when not received."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "description": "`quarantine`, `released` (sellable) or `recalled`.",
@@ -10627,6 +10786,9 @@
           "best_before",
           "expires_on",
           "origin",
+          "parent_lot",
+          "pack",
+          "received_from",
           "created_at",
           "updated_at"
         ],
@@ -12086,6 +12248,26 @@
         },
         "required": [
           "country"
+        ],
+        "type": "object"
+      },
+      "Pack": {
+        "description": "Kg of the parent used and units made: kg per unit = raw_kg / units.",
+        "properties": {
+          "raw_kg": {
+            "description": "Decimal string.",
+            "example": "7.50",
+            "type": "string"
+          },
+          "units": {
+            "description": "Decimal string.",
+            "example": "10.00",
+            "type": "string"
+          }
+        },
+        "required": [
+          "raw_kg",
+          "units"
         ],
         "type": "object"
       },
@@ -14874,6 +15056,46 @@
         },
         "required": [
           "product_id"
+        ],
+        "type": "object"
+      },
+      "ProductImageResource": {
+        "description": "One image of a product.",
+        "properties": {
+          "file_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "link": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Link",
+                "description": "Signed link; null on a server without file storage."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "description": "1-based display order.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "product_variant_id": {
+            "description": "Null = the product's own image.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "file_id",
+          "product_variant_id",
+          "position",
+          "link"
         ],
         "type": "object"
       },
@@ -17824,6 +18046,27 @@
         ],
         "type": "object"
       },
+      "ReceivedFrom": {
+        "description": "The transfer a lot was received from, with the sender's lot codes.",
+        "properties": {
+          "from_lot_code": {
+            "type": "string"
+          },
+          "from_lot_public_code": {
+            "type": "string"
+          },
+          "transfer_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "transfer_id",
+          "from_lot_code",
+          "from_lot_public_code"
+        ],
+        "type": "object"
+      },
       "ReceivedLot": {
         "description": "The lot a transfer was received into.",
         "properties": {
@@ -19106,6 +19349,22 @@
           "credit_invoice_payment_term",
           "collective_invoice_payment_term",
           "estimate_validity_period"
+        ],
+        "type": "object"
+      },
+      "ReplaceImagesRequest": {
+        "description": "The product's images in display order; `[]` removes them all.",
+        "properties": {
+          "images": {
+            "description": "At most 20; each file at most once.",
+            "items": {
+              "$ref": "#/components/schemas/ImageInput"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "images"
         ],
         "type": "object"
       },
@@ -21300,6 +21559,13 @@
             "format": "uuid",
             "type": "string"
           },
+          "images": {
+            "description": "The product's own images in order, as signed links (fetch before `expires_at`).",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "type": "array"
+          },
           "name": {
             "type": "string"
           },
@@ -21347,6 +21613,7 @@
           "currency",
           "currency_decimals",
           "available_stock",
+          "images",
           "variants"
         ],
         "type": "object"
@@ -21369,6 +21636,13 @@
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "images": {
+            "description": "This variant's own images in order, as signed links.",
+            "items": {
+              "$ref": "#/components/schemas/Link"
+            },
+            "type": "array"
           },
           "is_default": {
             "type": "boolean"
@@ -21404,7 +21678,8 @@
           "is_default",
           "price_gross",
           "price_net",
-          "options"
+          "options",
+          "images"
         ],
         "type": "object"
       },
@@ -59873,6 +60148,150 @@
         ]
       }
     },
+    "/workspace/{workspace}/lots/{lot}/farmer-credits": {
+      "get": {
+        "operationId": "lots_farmer_credits",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FarmerCreditsPage"
+                }
+              }
+            },
+            "description": "One page, newest first; no farmer data or amounts"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sales and returns of a lot that credited its farmers",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
     "/workspace/{workspace}/lots/{lot}/packings": {
       "post": {
         "description": "Makes a child lot of the jar product with `parent_lot_id`, and the kg used and units made as two exact numbers. Moves `raw_kg` out of the parent and `units` into the child in the warehouse, in one transaction (`lot.created`, `packed` on the parent). Only a lot from a supply batch or a supply transfer; never a packed one.",
@@ -67254,6 +67673,292 @@
           }
         ],
         "summary": "Copy a product",
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/workspace/{workspace}/products/{product}/images": {
+      "get": {
+        "operationId": "products_images_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Product id",
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_ProductImageResource"
+                }
+              }
+            },
+            "description": "The images, with signed links"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or product, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A product's images, in order",
+        "tags": [
+          "products"
+        ]
+      },
+      "put": {
+        "operationId": "products_images_replace",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Product id",
+            "in": "path",
+            "name": "product",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceImagesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_ProductImageResource"
+                }
+              }
+            },
+            "description": "Saved; the images in order"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, missing `product.update`, or files sent without `file.get`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or product, or caller not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "More than 20, a file twice, not this workspace's image, or another product's variant"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Replace a product's images",
         "tags": [
           "products"
         ]
