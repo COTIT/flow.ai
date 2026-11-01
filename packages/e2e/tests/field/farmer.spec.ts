@@ -17,7 +17,9 @@ import {
   submitted,
   surveys,
   timeline,
+  voidedVouchers,
 } from "./farmer.api"
+import { noOpportunities } from "./market.api"
 import { requestList } from "./requests.api"
 
 const RESPONSES = `/v1/workspace/w1/farm/surveys/${SURVEY}/responses`
@@ -27,7 +29,12 @@ const RESPONSES = `/v1/workspace/w1/farm/surveys/${SURVEY}/responses`
  * once one succeeds, eligibility and vouchers/mine answer as the API would after the save.
  * Returns the bodies the app posted.
  */
-async function open(page: Page, path: string, replies: { status: number; body: unknown }[] = []) {
+async function open(
+  page: Page,
+  path: string,
+  replies: { status: number; body: unknown }[] = [],
+  extra: Record<string, MockReply> = {},
+) {
   await seedSession(page)
   await page.addInitScript(() => localStorage.setItem("ruaha360:tours-seen", JSON.stringify(["farmer:u1"])))
   const routes: Record<string, MockReply> = {
@@ -39,6 +46,8 @@ async function open(page: Page, path: string, replies: { status: number; body: u
     [`GET /workspace/w1/farm/vouchers/${VOUCHER}/timeline`]: timeline,
     // The home's latest-request card (the e2e build has the resources feature on).
     "GET /workspace/w1/farm/pue-requests": requestList(),
+    "GET /workspace/w1/farm/opportunities": noOpportunities,
+    ...extra,
   }
   await mockApi(page, routes)
   const posted: unknown[] = []
@@ -77,7 +86,8 @@ test("the farmer's home shows the farm summary and the new survey", async ({ pag
   await expect(page.getByTestId("summary-plots")).toHaveText("1")
   await expect(page.getByTestId("summary-cycles")).toHaveText("1")
   await expect(page.getByTestId("farm-home-surveys")).toContainText("1 new survey")
-  await expect(page.getByTestId("farm-home-opportunities")).toHaveCount(0)
+  // Opportunities are on the API: none yet is stated, not hidden.
+  await expect(page.getByTestId("farm-home-opportunities")).toBeVisible()
   await expect(page.getByTestId("farm-home-no-requests")).toBeVisible()
   await expectNoHorizontalScroll(page)
 })
@@ -121,6 +131,19 @@ test("answering a survey posts once with a client_ref and shows the voucher", as
     answers: { "q-yn": true, "q-sc": "crib", "q-num": "12" },
     client_ref: expect.stringMatching(/^[0-9a-f-]{36}$/),
   })
+  await expectNoHorizontalScroll(page)
+})
+
+test("a voucher ops voided says so, with their reason and no QR code", async ({ page }) => {
+  await open(page, `/farm/surveys/${SURVEY}`, [], {
+    "GET /workspace/w1/farm/surveys/eligibility": eligibilityAfter,
+    "GET /workspace/w1/farm/vouchers/mine": voidedVouchers,
+  })
+
+  const card = page.getByTestId("voucher-card")
+  await expect(card).toHaveAttribute("data-status", "void")
+  await expect(card.getByTestId("voucher-validity")).toHaveText("Cancelled: Duplicate household")
+  await expect(card.getByTestId("voucher-qr")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 })
 

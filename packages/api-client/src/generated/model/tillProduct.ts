@@ -35,6 +35,12 @@ export interface TillProduct {
   type: string;
   /** Minor units excl VAT in the register's currency. */
   unit_price: number;
+  /**
+     * One unit incl VAT, minor units: what a sale of quantity 1 totals. Null only when out of
+     * range.
+     * @nullable
+     */
+  unit_price_gross: number | null;
   updated_at: string;
   /** Default variant first. */
   variants: TillVariant[];

@@ -1,21 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { farmMarketBuyersCreate, farmMarketBuyersList } from '@genesy/api-client/endpoints/farm-market'
 import { farmVillagesCapacityCreate, farmVillagesCreate, farmVillagesList } from '@genesy/api-client/endpoints/farm-villages'
-import type { CapacityRequest } from '@genesy/api-client/model'
+import type { BuyerRequest, CapacityRequest } from '@genesy/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'
 import { queryKeys } from '@/lib/queryKeys'
-import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/db.types'
-import { recoverInsert } from '@/lib/recoverInsert'
-import { EarlierVersionSavedError } from '@/lib/drafts'
 
 type Enums = Database['public']['Enums']
 
 export interface Buyer {
   id: string
-  project_id: string
   name: string
   channel: Enums['buyer_channel']
   contact_note: string | null
@@ -36,63 +33,35 @@ export interface VillageCapacity {
 
 export const BUYER_CHANNELS: Enums['buyer_channel'][] = ['direct', 'afm', 'other']
 
-/**
- * Buyers — spec 7.5. Scoped by `buyer_read` to `app_projects()`.
- *
- * `buyer` is a CONFIG table: business-rules §4 lists it among the tables with
- * no provenance columns, so nothing here goes through `withProvenance`. A
- * buyer's stated requirement is a counterparty input, not a fact learned about
- * the productive economy.
- */
+/** Buyers — spec 7.5. Ops and admin read and write them; the API refuses everyone else. */
 export async function fetchBuyers(): Promise<Buyer[]> {
-  const { data, error } = await supabase
-    .from('buyer')
-    .select('id, project_id, name, channel, contact_note, is_active')
-    .order('name')
-
-  if (error) throw new Error(error.message)
-  return (data ?? []) as Buyer[]
+  const workspace = workspaceId()
+  const rows = await allPages((params) => farmMarketBuyersList(workspace, params))
+  return rows.map(({ id, name, channel, contact_note, is_active }) => ({
+    id,
+    name,
+    channel: channel as Buyer['channel'],
+    contact_note,
+    is_active,
+  }))
 }
 
 export function useBuyers() {
   return useQuery({ queryKey: queryKeys.buyers(), queryFn: fetchBuyers })
 }
 
-export interface NewBuyer {
-  id?: string
-  project_id: string
-  name: string
-  channel: Enums['buyer_channel']
-  contact_note: string | null
-}
-
 /**
- * Create a buyer.
- *
- * `buyer_write` requires `app_manages_project`, so RLS decides whether this
- * caller may. The unique (project_id, name) constraint is left to the
- * database: its error is surfaced rather than pre-checked, per
- * business-rules §0.3.
+ * Create a buyer. `id` is the draft's client ref, so a retry after a lost reply replays (200)
+ * instead of adding a second buyer. The unique name is the API's rule; its message is shown.
  */
 export function useCreateBuyer() {
   const queryClient = useQueryClient()
-
-  // One list for success and for a recovered earlier save, so they cannot drift.
-  const invalidate = async () => {
-    // The demand form's buyer picker reads the same rows.
-    await queryClient.invalidateQueries({ queryKey: queryKeys.buyers() })
-    await queryClient.invalidateQueries({ queryKey: ['demands'] })
-  }
-
   return useMutation({
-    mutationFn: async (buyer: NewBuyer) => {
-      const { error } = await supabase.from('buyer').insert(buyer)
-      if (error) await recoverInsert('buyer', buyer.id, error, { ...buyer })
-    },
-    onSuccess: invalidate,
-    // The earlier submission saved: the list the user is sent to must hold it.
-    onError: async (error) => {
-      if (error instanceof EarlierVersionSavedError) await invalidate()
+    mutationFn: async (buyer: BuyerRequest) => (await farmMarketBuyersCreate(workspaceId(), buyer)).data,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.buyers() })
+      // The demand form's buyer picker reads the same rows.
+      await queryClient.invalidateQueries({ queryKey: ['demand-form-options'] })
     },
   })
 }

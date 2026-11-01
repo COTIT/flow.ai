@@ -19,7 +19,7 @@ use crate::{
     modules::{
         till::session::TillSession,
         till_sales::{
-            dto::{SaleQuery, SaleRequest, SaleResource},
+            dto::{QuoteRequest, QuoteResource, SaleQuery, SaleRequest, SaleResource},
             service,
         },
     },
@@ -58,6 +58,29 @@ pub async fn sell(
         StatusCode::OK
     };
     Ok((status, Data(row.into())))
+}
+
+/// POST /till/sales/quote -> `{data: quote}`: what the sale would book, booking nothing.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/till/sales/quote", tag = "till",
+    operation_id = "till_sales_quote", summary = "Price a till basket as a sale would (writes nothing)",
+    description = "Same lines and payment as `POST /till/sales`, priced and rounded by the same code. Writes nothing: no order, stock or drawer change, and no open shift needed.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = QuoteRequest,
+    responses(
+        (status = 200, body = Envelope<QuoteResource>, description = "What the sale would book now"),
+        (status = 401, body = MessageBody, description = "No live till session"),
+        (status = 404, body = MessageBody, description = "Workspace is not the session's"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown product, or too little cash tendered"),
+    ),
+    security(("till_session" = []))
+)]
+pub async fn quote(
+    State(state): State<AppState>,
+    session: TillSession,
+    ValidatedJson(q): ValidatedJson<QuoteRequest>,
+) -> Result<Data<QuoteResource>, AppError> {
+    Ok(Data(service::quote(&state, &session.row, q).await?))
 }
 
 /// GET /till/sales/{client_ref} -> `{data: sale}` of this register.

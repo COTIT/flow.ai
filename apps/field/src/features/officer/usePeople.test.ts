@@ -35,11 +35,13 @@ describe('fetchPeople', () => {
     })
   })
 
-  test('matches a name search on either name part, any case, and sends no filter when none is set', async () => {
+  test("sends a search to the API's ?q= and keeps what it answers, with no filter when none is set", async () => {
     farmRecordsPersonsList.mockReset()
-    farmRecordsPersonsList.mockResolvedValue(page([person('p1', 'Neema', 'Mwakalinga'), person('p2', 'Juma', 'Abdallah')], 1, 1))
-    expect((await fetchPeople({ q: 'mwaka' })).map((r) => r.id)).toEqual(['p1'])
-    expect((await fetchPeople({ q: 'JUMA' })).map((r) => r.id)).toEqual(['p2'])
-    expect(farmRecordsPersonsList).toHaveBeenCalledWith('w1', { page: 1, page_size: 100 })
+    farmRecordsPersonsList.mockResolvedValue(page([person('p1', 'Neema', 'Mwakalinga')], 1, 1))
+    // The API also matches the phone for staff, so a row the name does not contain is kept.
+    expect((await fetchPeople({ q: '0712' })).map((r) => r.id)).toEqual(['p1'])
+    expect(farmRecordsPersonsList).toHaveBeenLastCalledWith('w1', { page: 1, page_size: 100, q: '0712' })
+    await fetchPeople({})
+    expect(farmRecordsPersonsList).toHaveBeenLastCalledWith('w1', { page: 1, page_size: 100 })
   })
 })

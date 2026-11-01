@@ -68,15 +68,48 @@ describe('OpsRequestReviewScreen', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Request failed')
   })
 
-  test('requires a decision note and submits an approved action after keyboard entry', async () => {
+  test('names the farm from the API', () => {
+    render(<OpsRequestReviewScreen />)
+    expect(screen.getByTestId('request-review')).toHaveTextContent('Kipande')
+  })
+
+  // Whether a note is needed is the API's rule: an empty note still asks first and is sent.
+  test('approving with no note asks first and sends no note', async () => {
     const user = userEvent.setup()
     render(<OpsRequestReviewScreen />)
 
     await user.click(screen.getByTestId('action-approve'))
-    expect(screen.getByTestId('decision-note-error')).toBeInTheDocument()
-    await user.type(screen.getByTestId('decision-note'), 'Capacity confirmed')
-    await user.click(screen.getByTestId('action-approve'))
-    expect(mutate).toHaveBeenCalledWith({ action: 'approve', note: 'Capacity confirmed' })
+    expect(screen.queryByTestId('decision-note-error')).not.toBeInTheDocument()
+    await user.click(screen.getByTestId('confirm-dialog-confirm'))
+    expect(mutate).toHaveBeenCalledWith({ action: 'approve', note: undefined })
+  })
+
+  test('the API’s refusal of a missing note is shown at the note field', () => {
+    const error = { response: { status: 422, data: { message: 'The given data was invalid.', errors: { note: ['The note field is required to approve or reject.'] } } } }
+    useReviewAction.mockReturnValue({ isPending: false, isError: true, error, mutate, reset: vi.fn() })
+    render(<OpsRequestReviewScreen />)
+
+    expect(screen.getByTestId('decision-note-error')).toHaveTextContent('The note field is required to approve or reject.')
+    expect(screen.getByTestId('decision-note')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.queryByTestId('review-error')).not.toBeInTheDocument()
+  })
+
+  // Approve and reject cannot be undone, so each asks first.
+  test.each(['approve', 'reject'] as const)('%s asks first: cancel sends nothing, confirm sends once', async (action) => {
+    const user = userEvent.setup()
+    render(<OpsRequestReviewScreen />)
+    await user.type(screen.getByTestId('decision-note'), 'Checked on site')
+
+    await user.click(screen.getByTestId(`action-${action}`))
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+    await user.click(screen.getByTestId('confirm-dialog-cancel'))
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    expect(mutate).not.toHaveBeenCalled()
+
+    await user.click(screen.getByTestId(`action-${action}`))
+    await user.click(screen.getByTestId('confirm-dialog-confirm'))
+    expect(mutate).toHaveBeenCalledTimes(1)
+    expect(mutate).toHaveBeenCalledWith({ action, note: 'Checked on site' })
   })
 
   test('names who captured the request, from the API', () => {

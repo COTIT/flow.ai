@@ -4,10 +4,17 @@ import { mockApi } from "../../src/api-mock"
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { me, role, villages } from "./api"
-import { batches, dispatched, granted, links, notLive, transfers, warehouses } from "./supply.api"
+import { batches, dispatched, granted, links, lotStock, notLive, transfers, unavailable, warehouses } from "./supply.api"
 
-/** Signed in as ops; returns how many transfers reached the API. */
-async function open(page: Page, path: string, dispatchReply = { status: 201, body: dispatched as unknown }) {
+const KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+type Reply = { status: number; body: unknown }
+
+/**
+ * Signed in as ops. The n-th transfer is answered with the n-th reply (the last one repeats).
+ * Returns how many transfers reached the API and the Idempotency-Key each carried.
+ */
+async function open(page: Page, path: string, dispatchReplies: Reply[] = [{ status: 201, body: dispatched }]) {
   await seedSession(page)
   await page.addInitScript(() => localStorage.setItem("ruaha360:tours-seen", JSON.stringify(["ops:u1"])))
   await mockApi(page, {
@@ -18,11 +25,14 @@ async function open(page: Page, path: string, dispatchReply = { status: 201, bod
     "GET /workspace/w1/supply-transfers": transfers,
     "GET /workspace/w1/farm/supply-batches": batches,
     "GET /workspace/w1/warehouses": warehouses,
+    "GET /workspace/w1/lots/lot1/stock": lotStock,
   })
   // Registered after mockApi, so it answers first: counts sends, and answers slowly so a second tap lands in flight.
-  const sends = { count: 0 }
+  const sends = { count: 0, keys: [] as (string | undefined)[] }
   await page.route("**/v1/workspace/w1/lots/lot1/transfers", async (route) => {
     sends.count++
+    sends.keys.push(await route.request().headerValue("idempotency-key") ?? undefined)
+    const dispatchReply = dispatchReplies[Math.min(sends.count, dispatchReplies.length) - 1]!
     await new Promise((resolve) => setTimeout(resolve, 400))
     await route.fulfill({
       status: dispatchReply.status,
@@ -58,7 +68,10 @@ test("ops see the links they granted and grant one to the shop", async ({ page }
     (r) => r.method() === "POST" && r.url().endsWith("/v1/workspace/w1/supply-links")
   )
   await page.getByTestId("supply-grant-submit").click()
-  expect((await sent).postDataJSON()).toEqual({ to_workspace_id: "w-shop", fields: ["village"] })
+  const request = await sent
+  expect(request.postDataJSON()).toEqual({ to_workspace_id: "w-shop", fields: ["village"] })
+  // Makes a retry after a lost reply safe: the API replays the first answer.
+  expect(await request.headerValue("idempotency-key")).toMatch(KEY)
   await expect(page.getByTestId("supply-grant-to")).toHaveValue("")
   await expectNoHorizontalScroll(page)
 })
@@ -71,6 +84,8 @@ test("a dispatch goes through the dialog: cancel sends nothing, confirm sends on
   await expect(row).toContainText("Received 39.50")
 
   await fill(page)
+  // The picked lot's stock, for reading: the API still refuses an over-send.
+  await expect(page.getByTestId("dispatch-stock-row")).toHaveText("Iringa store: 35.00 available · 40.00 on hand, 5.00 held for orders")
   await page.getByTestId("dispatch-send").click()
   await expect(page.getByTestId("confirm-dialog")).toContainText("12.50 of lot ILU-H-2026-01 to AFM shop")
   await page.getByTestId("confirm-dialog-cancel").click()
@@ -83,14 +98,38 @@ test("a dispatch goes through the dialog: cancel sends nothing, confirm sends on
   expect((await sent).postDataJSON()).toEqual({ link_id: "l1", warehouse_id: "wh1", quantity: "12.50" })
   await expect(page.getByTestId("dispatch-sent")).toBeVisible()
   expect(sends.count).toBe(1)
+  expect(sends.keys[0]).toMatch(KEY)
   await expectNoHorizontalScroll(page)
+})
+
+test.describe("a dispatch whose reply was lost", () => {
+  test.use({ allow: { responses: [{ url: "/v1/workspace/w1/lots/lot1/transfers", status: 503 }] } })
+
+  test("is resent under the same Idempotency-Key, so the API replays one transfer", async ({ page }) => {
+    const sends = await open(page, "/ops/dispatch", [
+      { status: 503, body: unavailable },
+      { status: 201, body: dispatched },
+    ])
+    await fill(page)
+    await page.getByTestId("dispatch-send").click()
+    await page.getByTestId("confirm-dialog-confirm").click()
+    await expect(page.getByTestId("dispatch-error")).toBeVisible()
+
+    await page.getByTestId("dispatch-send").click()
+    await page.getByTestId("confirm-dialog-confirm").click()
+    await expect(page.getByTestId("dispatch-sent")).toBeVisible()
+    expect(sends.count).toBe(2)
+    expect(sends.keys[0]).toMatch(KEY)
+    expect(sends.keys[1]).toBe(sends.keys[0])
+    await expectNoHorizontalScroll(page)
+  })
 })
 
 test.describe("a refused dispatch", () => {
   test.use({ allow: { responses: [{ url: "/v1/workspace/w1/lots/lot1/transfers", status: 403 }] } })
 
   test("shows the API's message as written", async ({ page }) => {
-    const sends = await open(page, "/ops/dispatch", { status: 403, body: notLive })
+    const sends = await open(page, "/ops/dispatch", [{ status: 403, body: notLive }])
     await fill(page)
     await page.getByTestId("dispatch-send").click()
     await page.getByTestId("confirm-dialog-confirm").click()

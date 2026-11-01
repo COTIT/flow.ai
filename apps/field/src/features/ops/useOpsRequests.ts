@@ -18,8 +18,6 @@ import { queryKeys } from '@/lib/queryKeys'
 
 export interface OpsRequest extends FarmerRequest {
   village_name: string
-  /** shortcut: the request carries only `farm_id`, so the farm is unnamed; join farms when the review needs it. */
-  farm_label: string | null
 }
 
 /** The pipeline — spec 7.2. Filters go to the API, never applied to fetched rows. */
@@ -53,7 +51,6 @@ function useShape() {
   return (row: PueRequestResource): OpsRequest => ({
     ...toRequest(row, i18n.resolvedLanguage),
     village_name: scope.data?.villages[row.village_id] ?? '',
-    farm_label: null,
   })
 }
 

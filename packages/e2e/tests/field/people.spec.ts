@@ -4,7 +4,7 @@ import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { me, villages } from "./api"
 import { page as listPage, person, record, spouse, tourSeen } from "./officer-records.api"
 
-test("an officer lists their people, filters by verification on the API and searches by name", async ({ page }) => {
+test("an officer lists their people, filters by verification and searches on the API", async ({ page }) => {
   await seedSession(page)
   await tourSeen(page)
   await mockApi(page, { "GET /farm/me": me(), "GET /workspace/w1/farm/villages": villages })
@@ -25,11 +25,11 @@ test("an officer lists their people, filters by verification on the API and sear
   expect(reads.at(-1)?.searchParams.get("verification")).toBe("unverified")
   await expect(page).toHaveURL(/verification=unverified/)
 
-  // shortcut: names are matched in the app until GET /farm/persons takes ?q=; the filter still goes to the API.
-  filtered = false
-  await page.goto("/officer/people?q=juma")
+  // The search is the API's `?q=` (name, or phone for staff): its phone match is shown as is.
+  await page.goto("/officer/people?q=0712")
   await expect(page.getByTestId("people-row")).toHaveCount(1)
-  await expect(page.getByTestId("people-row")).toContainText("Juma Mwakalinga")
+  await expect(page.getByTestId("people-row")).toContainText("Neema Mwakalinga")
+  expect(reads.at(-1)?.searchParams.get("q")).toBe("0712")
   await expectNoHorizontalScroll(page)
 })
 

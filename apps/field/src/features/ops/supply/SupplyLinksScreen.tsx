@@ -11,6 +11,7 @@ import { Card, Loading } from '@/components/controls'
 import { Button } from '@/components/ui/button'
 import { type SupplyLink, useGrantLink, useRevokeLink, useSupplyLinks } from '@/features/ops/supply/useSupply'
 import { formatTimestamp } from '@/lib/format'
+import { newUuid } from '@/lib/ids'
 
 /**
  * The fields `supply-links.md` accepts today. `farmer_names` and `farmer_photos` are refused until the
@@ -95,17 +96,20 @@ function GrantForm() {
   const [to, setTo] = useState('')
   const [fields, setFields] = useState<string[]>([])
   const inFlight = useRef(false)
+  /** Kept until a link is granted, edits included, so a lost reply can never turn into a second link. */
+  const idempotencyKey = useRef(newUuid())
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (inFlight.current) return
     inFlight.current = true
     grant.mutate(
-      { toWorkspaceId: to.trim(), fields },
+      { toWorkspaceId: to.trim(), fields, idempotencyKey: idempotencyKey.current },
       {
         onSuccess: () => {
+          idempotencyKey.current = newUuid()
           setTo('')
-          setFields([])
+          setFields(() => [])
         },
         onSettled: () => (inFlight.current = false),
       },

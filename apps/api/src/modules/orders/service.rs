@@ -69,6 +69,19 @@ fn minor(d: Decimal, dp: u32) -> Option<i64> {
     i64::try_from(d.mantissa()).ok()
 }
 
+/// One unit at `unit_price` (minor units excl VAT) incl `vat` %, priced like a one-line
+/// order: what a sale or quote of quantity 1 totals. None when out of range.
+pub fn unit_gross(unit_price: i64, vat: Decimal, dp: u32) -> Option<i64> {
+    let line = engine::Line {
+        quantity: Decimal::ONE,
+        price: Decimal::new(unit_price, dp),
+        vat,
+        ..engine::Line::default()
+    };
+    let s = engine::summarise(&[line], dp).ok()?;
+    minor(s.total, dp)
+}
+
 /// Lines priced in minor units, the order totals and the per-rate summary.
 pub struct Priced {
     pub lines: Vec<NewLine>,

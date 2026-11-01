@@ -6,7 +6,23 @@ type Order = {
   status: string
   paid_at: string | null
   invoice_id: string | null
+  allowed_actions?: string[]
   [k: string]: unknown
+}
+
+// What the API would allow per status; a test can pass its own allowed_actions instead.
+function allowedFor(o: Order): string[] {
+  const byStatus: Record<string, string[]> = {
+    draft: ["confirm", "cancel"],
+    awaiting_payment: ["cancel"],
+    open: ["pick", "complete", "invoice", "cancel"],
+    completed: ["return", "invoice"],
+    partially_returned: ["return", "invoice"],
+  }
+  return [
+    ...(byStatus[o.status] ?? []),
+    ...(o.paid_at ? ["refund"] : []),
+  ].filter((a) => a !== "invoice" || !o.invoice_id)
 }
 
 function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
@@ -70,8 +86,10 @@ function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
     updated_at: "2026-10-30T09:00:00Z",
     ...start,
   }
+  if (!start.allowed_actions) order.allowed_actions = allowedFor(order)
   const to = (status: string) => () => {
     order.status = status
+    order.allowed_actions = allowedFor(order)
     return { data: order }
   }
   api
@@ -103,6 +121,7 @@ function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
     .on("POST", "/workspace/:ws/orders/:id/returns", to("partially_returned"))
     .on("POST", "/workspace/:ws/orders/:id/invoice", () => {
       order.invoice_id = "inv-9"
+      order.allowed_actions = allowedFor(order)
       return { data: order }
     })
     .on("POST", "/workspace/:ws/orders/:id/refunds", ({ body }) => ({
@@ -217,7 +236,12 @@ test.describe(() => {
     page,
     api,
   }) => {
-    ordersApi(api, { status: "open", paid_at: "2026-10-30T10:00:00Z" })
+    // The list said cancel was allowed, then a payment landed: the API still answers 409.
+    ordersApi(api, {
+      status: "open",
+      paid_at: "2026-10-30T10:00:00Z",
+      allowed_actions: ["cancel", "refund"],
+    })
     await page.goto("/orders/ord-1")
     await page.getByRole("button", { name: "Cancel order" }).click()
     await page
@@ -333,4 +357,57 @@ test("refund retried after a network failure reuses its key; the API sees one re
   await expect(dialog.getByRole("status")).toContainText("$1.00")
   expect(sent).toHaveLength(3)
   expect(sent[2]).not.toBe(sent[0])
+})
+
+test("only the API's allowed_actions show as buttons", async ({
+  page,
+  api,
+}) => {
+  ordersApi(api, {
+    status: "open",
+    paid_at: "2026-10-30T10:00:00Z",
+    allowed_actions: ["refund"],
+  })
+  await page.goto("/orders/ord-1")
+  await expect(page.getByRole("button", { name: "Refund" })).toBeVisible()
+  for (const name of [
+    "Confirm order",
+    "Record picking",
+    "Complete",
+    "Make invoice",
+    "Take back returns",
+    "Cancel order",
+  ])
+    await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0)
+})
+
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [
+        { url: "/v1/workspace/w1/orders/ord-1/refunds", status: 409 },
+      ],
+    },
+  })
+
+  test("refund on a fully refunded order shows the API's 409", async ({
+    page,
+    api,
+  }) => {
+    ordersApi(api, { status: "completed", paid_at: "2026-10-30T10:00:00Z" })
+    api.on("POST", "/workspace/:ws/orders/:id/refunds", () => ({
+      status: 409,
+      body: { message: "Nothing paid on this order is left to refund." },
+    }))
+    await page.goto("/orders/ord-1")
+    await page.getByRole("button", { name: "Refund" }).click()
+    const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("Amount (USD)").fill("1")
+    await dialog.getByRole("button", { name: "Refund" }).click()
+    await expect(
+      dialog
+        .getByRole("alert")
+        .filter({ hasText: "Nothing paid on this order is left to refund." })
+    ).toBeVisible()
+  })
 })

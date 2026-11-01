@@ -8,7 +8,6 @@ const api = {
   plots: vi.fn(),
   plot: vi.fn(),
   harvests: vi.fn(),
-  crops: vi.fn(),
 }
 vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
   farmRecordsCropCyclesGet: (...args: unknown[]) => api.cycle(...args),
@@ -16,9 +15,6 @@ vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
   farmRecordsPlotsList: (...args: unknown[]) => api.plots(...args),
   farmRecordsPlotsGet: (...args: unknown[]) => api.plot(...args),
   farmRecordsHarvestReportsList: (...args: unknown[]) => api.harvests(...args),
-}))
-vi.mock('@genesy/api-client/endpoints/farm-crops', () => ({
-  farmCropsList: (...args: unknown[]) => api.crops(...args),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
@@ -41,9 +37,12 @@ const id = '11111111-1111-4111-8111-111111111111'
 beforeEach(() => {
   for (const fn of Object.values(api)) fn.mockReset()
   api.plot.mockResolvedValue({ data: { id: 'p1', label: 'Kipande cha juu' } })
-  api.harvests.mockResolvedValue({ data: [] })
-  api.crops.mockResolvedValue({ data: [{ id: 'crop', name_en: 'Maize', name_sw: 'Mahindi' }] })
+  api.harvests.mockResolvedValue(series([]))
 })
+const series = (data: unknown[], current = 1, last = 1) => ({
+  data, meta: { current_page: current, last_page: last, per_page: 100, total: data.length, from: null, to: null },
+})
+const MAIZE = { id: 'crop', code: 'maize', name_en: 'Maize', name_sw: 'Mahindi', measured_by: 'area' }
 
 describe('officer farm and cycle reads', () => {
   test('rejects malformed IDs before querying', async () => {
@@ -88,32 +87,34 @@ describe('officer farm and cycle reads', () => {
     expect(api.cycle).not.toHaveBeenCalled()
   })
 
-  // The cycle detail joins four reads on the client: the cycle, its plot's
-  // label, its harvest series and the crop names (no single API call has all).
-  test('joins the cycle, plot label, crop names and harvest series', async () => {
+  // The cycle detail joins three reads on the client: the cycle (its crop embedded), its plot's
+  // label and its harvest series, every page.
+  test('joins the cycle, its embedded crop, plot label and every page of the harvest series', async () => {
     api.cycle.mockResolvedValue({
       data: {
-        id, village_id: 'v1', crop_id: 'crop', plot_id: 'p1', season_label: null, status: 'growing',
+        id, village_id: 'v1', crop_id: 'crop', crop: MAIZE, plot_id: 'p1', season_label: null, status: 'growing',
         area_ha: '1.6000', tree_count: null, unit_count: null,
         planted_on: null, harvest_start: null, harvest_end: null, provenance: provenance('verified'),
       },
     })
-    api.harvests.mockResolvedValue({
-      data: [
+    api.harvests
+      .mockResolvedValueOnce(series([
         { id: 'old', kind: 'expected', quantity_kg: '3200.00', is_current: false, reported_for: '2026-09-02', provenance: provenance() },
         { id: 'new', kind: 'expected', quantity_kg: '4100.00', is_current: true, reported_for: null, provenance: provenance() },
         { id: 'older', kind: 'expected', quantity_kg: '1.00', is_current: false, reported_for: '2026-09-01', provenance: provenance() },
+      ], 1, 2))
+      .mockResolvedValueOnce(series([
         { id: 'oldest', kind: 'expected', quantity_kg: '1.00', is_current: false, reported_for: null, provenance: provenance() },
         { id: 'dated-before-null', kind: 'expected', quantity_kg: '1.00', is_current: false, reported_for: '2026-08-01', provenance: provenance() },
         { id: 'null-after-date', kind: 'expected', quantity_kg: '1.00', is_current: false, reported_for: null, provenance: provenance() },
-      ],
-    })
+      ], 2, 2))
 
     const cycle = await fetchCycleDetail(id)
 
     expect(api.cycle).toHaveBeenCalledWith('w1', id)
     expect(api.plot).toHaveBeenCalledWith('w1', 'p1')
-    expect(api.harvests).toHaveBeenCalledWith('w1', id, { page_size: 100 })
+    expect(api.harvests).toHaveBeenNthCalledWith(1, 'w1', id, { page: 1, page_size: 100 })
+    expect(api.harvests).toHaveBeenNthCalledWith(2, 'w1', id, { page: 2, page_size: 100 })
     expect(cycle).toMatchObject({
       crop: { name_en: 'Maize', name_sw: 'Mahindi' },
       plot_label: 'Kipande cha juu',
@@ -126,17 +127,16 @@ describe('officer farm and cycle reads', () => {
     expect(cycle?.harvests.map((item) => item.id)).toEqual(['new', 'old', 'older', 'dated-before-null', 'oldest', 'null-after-date'])
   })
 
-  test('a cycle whose crop is not listed has no name, and a counted crop keeps its count', async () => {
-    api.crops.mockResolvedValue({ data: [] })
+  test('a crop since made inactive is still named, and a counted crop keeps its count', async () => {
     api.cycle.mockResolvedValue({
       data: {
-        id, village_id: 'v1', crop_id: 'gone', plot_id: 'p1', season_label: null, status: 'planned',
+        id, village_id: 'v1', crop_id: 'gone', crop: { ...MAIZE, id: 'gone', name_en: 'Old coffee', name_sw: 'Kahawa ya zamani' }, plot_id: 'p1', season_label: null, status: 'planned',
         area_ha: null, tree_count: 40, unit_count: null,
         planted_on: null, harvest_start: null, harvest_end: null, provenance: provenance(),
       },
     })
     const cycle = await fetchCycleDetail(id)
-    expect(cycle).toMatchObject({ crop: null, area_ha: null, tree_count: 40, harvests: [] })
+    expect(cycle).toMatchObject({ crop: { name_en: 'Old coffee', name_sw: 'Kahawa ya zamani' }, area_ha: null, tree_count: 40, harvests: [] })
   })
 
   test('useFarmDetail exposes query loading and data', async () => {

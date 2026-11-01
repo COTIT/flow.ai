@@ -148,7 +148,7 @@ describe('BuyersScreen create', () => {
     expect(mutateAsync).not.toHaveBeenCalled()
   })
 
-  test('a valid buyer is sent with the session project and trimmed values', async () => {
+  test('a valid buyer is sent with its draft id and trimmed values', async () => {
     useBuyers.mockReturnValue({ isLoading: false, error: null, data: [] })
     render(<BuyersScreen />)
     await openCreate()
@@ -159,9 +159,8 @@ describe('BuyersScreen create', () => {
 
     expect(mutateAsync).toHaveBeenCalledTimes(1)
     expect(mutateAsync.mock.calls[0][0]).toEqual({
-      // The draft's clientRef, so an uncertain response reconciles by id.
+      // The draft's clientRef, so a retry after a lost reply replays instead of adding twice.
       id: expect.stringMatching(/^[0-9a-f-]{36}$/),
-      project_id: '20000000-0000-4000-8000-000000000001',
       name: 'Mbeya Millers',
       channel: 'afm',
       contact_note: null,

@@ -10,6 +10,7 @@ const supplyChainList = vi.fn()
 const supplyChainDispatch = vi.fn()
 const farmSupplyList = vi.fn()
 const warehousesList = vi.fn()
+const lotsStock = vi.fn()
 
 vi.mock('@genesy/api-client/endpoints/supply-links', () => ({
   supplyLinksList: (...a: unknown[]) => supplyLinksList(...a),
@@ -25,6 +26,9 @@ vi.mock('@genesy/api-client/endpoints/farm-supply', () => ({
 }))
 vi.mock('@genesy/api-client/endpoints/warehouses', () => ({
   warehousesList: (...a: unknown[]) => warehousesList(...a),
+}))
+vi.mock('@genesy/api-client/endpoints/lots', () => ({
+  lotsStock: (...a: unknown[]) => lotsStock(...a),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
@@ -51,12 +55,16 @@ describe('links', () => {
     expect(supplyLinksList).toHaveBeenLastCalledWith('w1', { page: 2, page_size: 100 })
   })
 
-  test('grants with the target workspace and the allow-list as the API names them', async () => {
+  test('grants with the target workspace and the allow-list as the API names them, under the form\'s Idempotency-Key', async () => {
     supplyLinksGrant.mockResolvedValue({ data: { id: 'l9', status: 'pending' } })
     const { result } = renderHook(() => hooks.useGrantLink(), { wrapper: wrapper() })
 
-    await act(() => result.current.mutateAsync({ toWorkspaceId: 'w-shop', fields: ['village'] }))
-    expect(supplyLinksGrant).toHaveBeenCalledWith('w1', { to_workspace_id: 'w-shop', fields: ['village'] })
+    await act(() => result.current.mutateAsync({ toWorkspaceId: 'w-shop', fields: ['village'], idempotencyKey: 'k-1' }))
+    expect(supplyLinksGrant).toHaveBeenCalledWith(
+      'w1',
+      { to_workspace_id: 'w-shop', fields: ['village'] },
+      { headers: { 'Idempotency-Key': 'k-1' } },
+    )
   })
 
   test('revokes a link by id', async () => {
@@ -92,11 +100,28 @@ describe('dispatch', () => {
     supplyChainDispatch.mockResolvedValue({ data: { id: 't1' } })
     const { result } = renderHook(() => hooks.useDispatch(), { wrapper: wrapper() })
 
-    await act(() => result.current.mutateAsync({ lotId: 'lot1', linkId: 'l1', warehouseId: 'wh1', quantity: '12.50' }))
-    expect(supplyChainDispatch).toHaveBeenCalledWith('w1', 'lot1', {
-      link_id: 'l1',
-      warehouse_id: 'wh1',
-      quantity: '12.50',
+    await act(() =>
+      result.current.mutateAsync({ lotId: 'lot1', linkId: 'l1', warehouseId: 'wh1', quantity: '12.50', idempotencyKey: 'k-2' }),
+    )
+    expect(supplyChainDispatch).toHaveBeenCalledWith(
+      'w1',
+      'lot1',
+      { link_id: 'l1', warehouse_id: 'wh1', quantity: '12.50' },
+      { headers: { 'Idempotency-Key': 'k-2' } },
+    )
+  })
+
+  test("reads the picked lot's stock per warehouse, and nothing before a lot is picked", async () => {
+    const rows = [{ warehouse_id: 'wh1', level: '40.00', reserved: '5.00', available: '35.00' }]
+    lotsStock.mockResolvedValue({ data: rows })
+    const { result, rerender } = renderHook(({ lot }) => hooks.useLotStock(lot), {
+      wrapper: wrapper(),
+      initialProps: { lot: '' },
     })
+    expect(lotsStock).not.toHaveBeenCalled()
+
+    rerender({ lot: 'lot1' })
+    await waitFor(() => expect(result.current.data).toEqual(rows))
+    expect(lotsStock).toHaveBeenCalledWith('w1', 'lot1')
   })
 })

@@ -13,6 +13,9 @@ vi.mock('@/features/ops/useDemand', () => ({
   // No `mutate`: its per-call callbacks are skipped after unmount.
   useCreateDemand: () => ({ mutateAsync, reset: vi.fn(), isError: false, ...createState }),
 }))
+vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
+  useCurrencies: () => ({ data: [{ id: 'c-tzs', code: 'TZS', decimals: 2, default_currency: true, active: true }] }),
+}))
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useSearch: () => ({}), useNavigate: () => vi.fn() }),
   useNavigate: () => vi.fn(),
@@ -59,11 +62,7 @@ beforeEach(() => {
     isLoading: false,
     data: {
       buyers: [
-        {
-          id: 'b1',
-          name: 'Iringa Grain Traders',
-          project_id: '20000000-0000-4000-8000-000000000001',
-        },
+        { id: 'b1', name: 'Iringa Grain Traders' },
       ],
       crops: [{ id: 'c1', name: 'Maize' }],
     },
@@ -214,16 +213,16 @@ describe('the figures the columns would silently change', () => {
     expect(mutateAsync).not.toHaveBeenCalled()
   })
 
-  // The check constraint owns this rule; the client sends it and shows the reply.
-  test('a negative price is sent to the database, not pre-checked', async () => {
+  // A price travels as integer minor units, and "-1" is not an amount those can be read from.
+  test('a negative price is refused as not an amount', async () => {
     render(<DemandListScreen />)
     await fill()
     setField('demand-price', '-1')
 
     submitForm()
 
-    expect(screen.queryByTestId('demand-price-error')).not.toBeInTheDocument()
-    expect(mutateAsync).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('demand-price-error')).toBeInTheDocument()
+    expect(mutateAsync).not.toHaveBeenCalled()
   })
 
   test('a price with three decimals is refused', async () => {
@@ -237,7 +236,7 @@ describe('the figures the columns would silently change', () => {
     expect(mutateAsync).not.toHaveBeenCalled()
   })
 
-  test('a price written with a point passes through as typed', async () => {
+  test('a price written with a point is sent as integer minor units of the account currency', async () => {
     render(<DemandListScreen />)
     await fill()
     setField('demand-price', '12.5')
@@ -246,7 +245,18 @@ describe('the figures the columns would silently change', () => {
 
     expect(screen.queryByTestId('demand-price-error')).not.toBeInTheDocument()
     expect(mutateAsync).toHaveBeenCalledTimes(1)
-    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ pricePerKg: '12.5', quantityKg: 2500 })
+    expect(mutateAsync.mock.calls[0][0]).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      buyer_id: 'b1',
+      crop_id: 'c1',
+      quantity_kg: '2500',
+      window_start: '',
+      window_end: '',
+      delivery_point: null,
+      quality_note: null,
+      indicative_price_per_kg_minor: 1250,
+      currency_id: 'c-tzs',
+    })
   })
 
   test('the price is optional', async () => {
@@ -257,7 +267,7 @@ describe('the figures the columns would silently change', () => {
 
     expect(screen.queryByTestId('demand-price-error')).not.toBeInTheDocument()
     expect(mutateAsync).toHaveBeenCalledTimes(1)
-    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ pricePerKg: '' })
+    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ indicative_price_per_kg_minor: null, currency_id: null })
   })
 
   test('a quantity with three decimals is refused', async () => {
@@ -279,7 +289,8 @@ describe('the figures the columns would silently change', () => {
     submitForm()
 
     expect(mutateAsync).toHaveBeenCalledTimes(1)
-    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ quantityKg: 10.12 })
+    // kg as the decimal text typed, never through a float.
+    expect(mutateAsync.mock.calls[0][0]).toMatchObject({ quantity_kg: '10.12' })
   })
 
   // `Number('abc') <= 0` is false, so text used to pass the old check and be

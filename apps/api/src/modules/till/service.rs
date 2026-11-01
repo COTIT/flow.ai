@@ -3,6 +3,10 @@
 //! (15 minutes, doubling), 20 within an hour lock the register (15 minutes); a wrong PIN, an
 //! unknown and an inactive user answer alike.
 
+use std::str::FromStr;
+
+use rust_decimal::{Decimal, prelude::ToPrimitive};
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{
@@ -15,7 +19,7 @@ use crate::{
             secret::{self, CATALOG_READ, TILL_LOGIN},
         },
         auth::{password, token},
-        currencies, permissions, products,
+        currencies, permissions, products, settings,
         till::{
             dto::{
                 NewRegister, NewTillUser, RegisterKeyed, SessionResource, TillLoginResource,
@@ -261,8 +265,43 @@ pub async fn login(
         .ok_or(AppError::Unauthorized)?;
     Ok(TillLoginResource {
         token: plain.expose().to_owned(),
-        session: SessionResource::from(&row),
+        session: session(state, &row).await?,
     })
+}
+
+/// The session `s` as a resource, with its register's accepted cash.
+pub async fn session(state: &AppState, s: &SessionRow) -> Result<SessionResource, AppError> {
+    let section =
+        settings::service::section_or_default(&state.db, s.workspace_id, "cash_register").await?;
+    let listed = section["accepted_cash"].as_array().cloned();
+    let values = listed.unwrap_or_else(|| {
+        settings::service::ACCEPTED_CASH
+            .into_iter()
+            .map(Value::from)
+            .collect()
+    });
+    let dp = u32::try_from(s.currency_decimals).unwrap_or(2);
+    Ok(SessionResource::new(s, minor_units(&values, dp)))
+}
+
+/// Major-unit amounts (numbers or decimal strings) as sorted, distinct, positive minor units;
+/// an amount that isn't a whole minor unit is left out.
+fn minor_units(values: &[Value], dp: u32) -> Vec<i64> {
+    let mut out: Vec<i64> = values
+        .iter()
+        .filter_map(|v| match v {
+            Value::String(s) => Decimal::from_str(s.trim()).ok(),
+            // The JSON text, not an f64: exact.
+            Value::Number(n) => Decimal::from_str(&n.to_string()).ok(),
+            _ => None,
+        })
+        .filter_map(|d| d.checked_mul(Decimal::from(10_i64.pow(dp))))
+        .filter(|d| d.fract().is_zero() && d.is_sign_positive() && !d.is_zero())
+        .filter_map(|d| d.to_i64())
+        .collect();
+    out.sort_unstable();
+    out.dedup();
+    out
 }
 
 /// End the caller's session.

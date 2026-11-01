@@ -8,20 +8,19 @@ const cycleGet = vi.fn()
 vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
   farmRecordsCropCyclesGet: (...args: unknown[]) => cycleGet(...args),
   farmRecordsPlotsGet: () => Promise.resolve({ data: { label: 'Kipande cha juu' } }),
-  farmRecordsHarvestReportsList: () => Promise.resolve({ data: [] }),
-}))
-vi.mock('@genesy/api-client/endpoints/farm-crops', () => ({
-  farmCropsList: () => Promise.resolve({ data: [{ id: 'maize', name_en: 'Maize', name_sw: 'Mahindi' }] }),
+  farmRecordsHarvestReportsList: () =>
+    Promise.resolve({ data: [], meta: { current_page: 1, last_page: 1, per_page: 100, total: 0, from: null, to: null } }),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const { useCycleDetail } = await import('@/features/officer/useOfficerRecords')
 const i18n = (await import('@/i18n')).default
 
-/** What the API returns: the crop by id; its BOTH names come from the crops list. */
+/** What the API returns: the cycle with its crop embedded, BOTH names. */
 const CYCLE = {
   id: 'cy1',
   crop_id: 'maize',
+  crop: { id: 'maize', code: 'maize', name_en: 'Maize', name_sw: 'Mahindi', measured_by: 'area' },
   plot_id: 'p1',
   village_id: 'v1',
   season_label: 'Msimu 2026 A',

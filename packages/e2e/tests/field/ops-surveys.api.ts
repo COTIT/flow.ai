@@ -32,6 +32,8 @@ const survey = (over: Record<string, unknown>) => ({
   closed_at: null,
   published_at: null,
   published_by: null,
+  created_by: { id: "u1", name: "Amina Admin" },
+  summary: null,
   responses: 0,
   questions: [],
   created_at: "2026-09-19T08:00:00Z",
@@ -46,6 +48,14 @@ export const liveSurvey = survey({
   responses: 3,
   published_at: "2026-09-20T08:00:00Z",
   published_by: { id: "u1", name: "Amina Admin" },
+  // The list's voucher sums, for staff (null for farmers).
+  summary: {
+    issued: { count: 3, minor: 1500000 },
+    redeemed: { count: 1, minor: 500000 },
+    outstanding: { count: 1, minor: 500000 },
+    expired_count: 0,
+    void_count: 1,
+  },
   questions: [question],
 })
 

@@ -34,8 +34,8 @@
     "more": "One more {name}",
     "quantityOf": "Quantity of {name}",
     "remove": "Remove {name}",
-    "estimate": "Estimate",
-    "estimateHint": "Catalog prices; the till's total, rounding and change come from the server when you charge.",
+    "estimate": "Estimate excl. VAT",
+    "estimateHint": "Catalog prices excl. VAT; the total with VAT, rounding and change come from the server when you charge.",
     "method": "Payment method",
     "cash": "Cash",
     "card": "Card",
@@ -46,7 +46,6 @@
     "charge": "Charge",
     "savedTitle": "Saved offline",
     "savedHint": "The till is offline. This sale is kept on this device and sent once the connection is back.",
-    "estimatedChange": "Change",
     "newSale": "New sale"
   },
   "nav": {

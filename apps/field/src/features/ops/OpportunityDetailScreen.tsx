@@ -4,6 +4,7 @@ import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { zodResolver } from '@hookform/resolvers/zod'
 
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { DrillLink } from '@/components/DrillLink'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -28,7 +29,6 @@ import {
   useOpportunityStatus,
 } from '@/features/ops/useOpportunity'
 import { formatKg, formatPlainDate, formatTimestamp } from '@/lib/format'
-import { useActorName } from '@/lib/actorNames'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
@@ -48,15 +48,14 @@ const ACTION_LABEL: Record<OpportunityAction, string> = {
  * opportunity_supply -> harvest_report -> crop_cycle -> plot -> farm IS the
  * traceability claim: every line drills to the record under it.
  *
- * The over-commitment error from opportunity_supply_guard is shown as written.
- * There is deliberately no client-side pre-check — a copy of the guard drifts,
- * and the message names the real numbers.
+ * The API's over-commitment refusal is shown as written. There is deliberately
+ * no client-side pre-check — a copy of the rule drifts, and the message names
+ * the real numbers. A line cannot be edited or detached, so Attach asks first.
  *
  * Status is the screen's other action. Declining or lapsing RELEASES the
  * committed supply (business-rules §7) and cannot be undone, so both go
  * through a confirmation that names the kilograms going back. There is no
- * "detach" control: `opportunity_supply` has no DELETE policy and no
- * `deleted_at`, and the release is how a wrong commitment is unwound.
+ * "detach" control: the release is how a wrong commitment is unwound.
  */
 export function OpportunityDetailScreen() {
   const { opportunityId } = route.useParams()
@@ -82,6 +81,8 @@ export function OpportunityDetailScreen() {
    * synchronously and is released when the write settles.
    */
   const attachInFlight = useRef(false)
+  /** A checked attach awaiting confirmation: lines are never edited or detached. */
+  const [attachPending, setAttachPending] = useState<{ harvestReportId: string; contributedKg: string } | null>(null)
   /** The releasing action awaiting confirmation, if any. */
   const [confirming, setConfirming] = useState<OpportunityAction | null>(null)
 
@@ -107,9 +108,9 @@ export function OpportunityDetailScreen() {
   /**
    * Validates the column's own shape, then sends.
    *
-   * Over-commitment is NOT checked here: `opportunity_supply_guard` owns it,
-   * its message names the actual kilograms, and business-rules §8 says to show
-   * it as written. So a figure past `available_kg` is sent on purpose.
+   * Over-commitment is NOT checked here: the API owns it, its message names
+   * the actual kilograms, and business-rules §8 says to show it as written. So
+   * a figure past `available_kg` is sent on purpose.
    */
   function attachSupply() {
     if (attachInFlight.current || attach.isPending || !draft.ready) return
@@ -125,16 +126,17 @@ export function OpportunityDetailScreen() {
     }
 
     setAttachErrors({})
-    const row = rows.find((r) => r.harvest_report_id === parsed.data.harvest_report_id)
+    setAttachPending({ harvestReportId: parsed.data.harvest_report_id, contributedKg: parsed.data.contributed_kg })
+  }
+
+  /** The draft's id goes with it and is kept until success, so a retry replays the same line. */
+  function confirmAttach() {
+    if (!attachPending || attachInFlight.current) return
     attachInFlight.current = true
-    void finishDraftWhenSaved(attach.mutateAsync(
-      {
-        id: draft.clientRef,
-        harvestReportId: parsed.data.harvest_report_id,
-        cropCycleId: row?.crop_cycle_id ?? '',
-        contributedKg: Number(parsed.data.contributed_kg),
-      },
-    ), draft.finish).finally(() => { attachInFlight.current = false })
+    void finishDraftWhenSaved(attach.mutateAsync({ id: draft.clientRef, ...attachPending }), draft.finish).finally(() => {
+      attachInFlight.current = false
+      setAttachPending(null)
+    })
   }
 
   const attachError = (field: 'harvest_report_id' | 'contributed_kg', testId: string) =>
@@ -346,7 +348,7 @@ export function OpportunityDetailScreen() {
                       </DrillLink>
                     </td>
                     <td className="px-3.5 py-3">
-                      <AttachedBy actorId={line.captured_by} at={line.captured_at} />
+                      <AttachedBy name={line.captured_by} at={line.captured_at} />
                     </td>
                     <td className="tabular px-3.5 py-3 text-right font-semibold">
                       {formatKg(line.contributed_kg)}
@@ -505,18 +507,29 @@ export function OpportunityDetailScreen() {
           </form>
         )}
       </section>
+
+      {attachPending && (
+        <ConfirmDialog
+          title={t('opportunity.attachConfirmTitle')}
+          detail={t('opportunity.attachConfirmDetail', {
+            kg: formatKg(Number(attachPending.contributedKg)),
+            farmer: rows.find((r) => r.harvest_report_id === attachPending.harvestReportId)?.farmer ?? '—',
+          })}
+          confirmLabel={t('opportunity.attach')}
+          cancelLabel={t('opportunity.releaseNo')}
+          confirming={attach.isPending}
+          onConfirm={confirmAttach}
+          onCancel={() => setAttachPending(null)}
+        />
+      )}
     </section>
   )
 }
 
 const SUPPLY_DEFAULTS = { harvest_report_id: '', contributed_kg: '' }
 
-/**
- * Who attached a supply line, and when. A seeded line has no actor, and a name
- * the caller may not see comes back as zero rows: both are a dash, never an id.
- */
-function AttachedBy({ actorId, at }: { actorId: string | null; at: string | null }) {
-  const name = useActorName(actorId)
+/** Who attached a supply line (the API embeds the name), and when; nobody named is a dash. */
+function AttachedBy({ name, at }: { name: string | null; at: string | null }) {
   return (
     <span data-testid="supply-attached-by" className="flex flex-col leading-snug">
       <span>{name ?? '—'}</span>

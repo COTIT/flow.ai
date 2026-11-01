@@ -5935,6 +5935,18 @@
         ],
         "type": "object"
       },
+      "Envelope_QuoteResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/QuoteResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Redeemed": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -17278,6 +17290,148 @@
         ],
         "type": "object"
       },
+      "QuoteLine": {
+        "description": "One quoted line, as the sale would book it.",
+        "properties": {
+          "line_excl": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "line_total": {
+            "description": "line_excl + line_vat.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "line_vat": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_variant_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity": {
+            "description": "Decimal string.",
+            "example": "2.00",
+            "type": "string"
+          },
+          "unit_price": {
+            "description": "Minor units excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product_id",
+          "product_variant_id",
+          "quantity",
+          "unit_price",
+          "line_excl",
+          "line_vat",
+          "line_total"
+        ],
+        "type": "object"
+      },
+      "QuoteRequest": {
+        "description": "A basket to price as `POST /till/sales` would, without booking it. Same lines and payment; cash `tendered` is optional (gives `change`).",
+        "properties": {
+          "lines": {
+            "description": "1 to 50 lines; `unit_price` is required, `discount_percentage` and `title` are not taken.",
+            "items": {
+              "$ref": "#/components/schemas/LineRequest"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "payment": {
+            "$ref": "#/components/schemas/TillPayment"
+          }
+        },
+        "required": [
+          "payment"
+        ],
+        "type": "object"
+      },
+      "QuoteResource": {
+        "description": "What `POST /till/sales` would book for this basket now. Minor units.",
+        "properties": {
+          "change": {
+            "description": "tendered − due; null for card or without `tendered`.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "due": {
+            "description": "To pay: cash rounded to the currency's step, card = total.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            },
+            "type": "array"
+          },
+          "mismatched_lines": {
+            "description": "Lines at another unit price than the catalog's.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "price_mismatch": {
+            "description": "total − server_total.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "rounding": {
+            "description": "due − total.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "server_total": {
+            "description": "The same lines at today's catalog prices.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "subtotal": {
+            "description": "Excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Incl VAT: the order total.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "vat": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lines",
+          "subtotal",
+          "vat",
+          "total",
+          "server_total",
+          "price_mismatch",
+          "mismatched_lines",
+          "due",
+          "rounding",
+          "change"
+        ],
+        "type": "object"
+      },
       "ReceiveRequest": {
         "description": "Receive a dispatched transfer into a new lot of this workspace.",
         "properties": {
@@ -17516,6 +17670,29 @@
       "RegisterBrief": {
         "description": "The register a session sells on.",
         "properties": {
+          "accepted_cash": {
+            "description": "Notes and coins the drawer takes (`cash_register.accepted_cash`), in minor units,\nascending; values that aren't a whole minor unit are left out.",
+            "example": [
+              5,
+              10,
+              20,
+              50,
+              100,
+              200,
+              500,
+              1000,
+              2000,
+              5000
+            ],
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/RegisterCurrency"
+          },
           "currency_id": {
             "format": "uuid",
             "type": "string"
@@ -17537,7 +17714,30 @@
           "id",
           "name",
           "warehouse_id",
-          "currency_id"
+          "currency_id",
+          "currency",
+          "accepted_cash"
+        ],
+        "type": "object"
+      },
+      "RegisterCurrency": {
+        "description": "The register's currency.",
+        "properties": {
+          "code": {
+            "description": "ISO 4217.",
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "description": "Where the decimal point goes in minor units.",
+            "example": 2,
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "decimals"
         ],
         "type": "object"
       },
@@ -21821,6 +22021,15 @@
             "format": "int64",
             "type": "integer"
           },
+          "unit_price_gross": {
+            "description": "One unit incl VAT, minor units: what a sale of quantity 1 totals. Null only when out of\nrange.",
+            "example": 1363,
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "updated_at": {
             "format": "date-time",
             "type": "string"
@@ -21847,6 +22056,7 @@
           "store_only",
           "vat_rate",
           "unit_price",
+          "unit_price_gross",
           "has_stock",
           "stock",
           "sellable",
@@ -21950,6 +22160,14 @@
             "description": "Minor units excl VAT in the register's currency.",
             "format": "int64",
             "type": "integer"
+          },
+          "unit_price_gross": {
+            "description": "One unit incl VAT, minor units; null only when out of range.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -21959,6 +22177,7 @@
           "barcode",
           "is_default",
           "unit_price",
+          "unit_price_gross",
           "options"
         ],
         "type": "object"
@@ -76142,6 +76361,151 @@
           }
         ],
         "summary": "Book a till sale (or replay it)",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/sales/quote": {
+      "post": {
+        "description": "Same lines and payment as `POST /till/sales`, priced and rounded by the same code. Writes nothing: no order, stock or drawer change, and no open shift needed.",
+        "operationId": "till_sales_quote",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuoteResource"
+                }
+              }
+            },
+            "description": "What the sale would book now"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live till session"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Workspace is not the session's"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown product, or too little cash tendered"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "till_session": []
+          }
+        ],
+        "summary": "Price a till basket as a sale would (writes nothing)",
         "tags": [
           "till"
         ]

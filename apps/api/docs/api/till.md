@@ -91,6 +91,7 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 `Authorization: Bearer <token>`. A session stops working when it is ended or expired, when the register's key is rotated or revoked, when the till user is set inactive, or when the workspace is deleted. Then: 401.
 
 - `GET /till/me` → `{data: {register, user, expires_at}}`
+- `register` (on `/till/me` and the `/till/login` reply): `id`, `name`, `warehouse_id`, `currency_id`, `currency {code, decimals}`, and `accepted_cash`: the drawer's notes and coins from settings `cash_register.accepted_cash` (stored as major-unit numbers or strings; the euro list when unset), converted exactly to minor units of the register's currency, sorted and distinct. A value that isn't a whole minor unit is left out.
 - `POST /till/logout` → 204
 
 ## Catalog (till token)
@@ -100,7 +101,7 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 What the session's register sells, by id, paged (`page_size` default 50, max 100). Workspace, currency and warehouse come from the register. Code: `src/modules/till_catalog/`.
 
 - Products in another currency are left out (a sale refuses them). `store_only` products show (the web shop hides them).
-- Row: `id`, `name`, `type`, `ean13`, `barcode`, `store_only`, `vat_rate` (decimal string from the VAT group, `0` without one), `unit_price` (minor units excl VAT; what `POST /till/sales` books, so no mismatch flag), `has_stock`, `stock` (level − reserved in the register's warehouse, released unexpired lots and no-lot rows; may be negative; null when not tracked), `sellable`, `variants[]` (`id`, `sku`, `ean13`, `barcode`, `is_default`, `unit_price`, `options`), `updated_at`.
+- Row: `id`, `name`, `type`, `ean13`, `barcode`, `store_only`, `vat_rate` (decimal string from the VAT group, `0` without one), `unit_price` (minor units excl VAT; what `POST /till/sales` books, so no mismatch flag), `unit_price_gross` (one unit incl VAT in minor units, priced by the order engine like a one-line sale: equals `POST /till/sales/quote` for quantity 1; null only when out of range), `has_stock`, `stock` (level − reserved in the register's warehouse, released unexpired lots and no-lot rows; may be negative; null when not tracked), `sellable`, `variants[]` (`id`, `sku`, `ean13`, `barcode`, `is_default`, `unit_price`, `unit_price_gross`, `options`), `updated_at`.
 - `code`: exact product or variant EAN-13 or barcode, any case (≤ 100 chars).
 - Without `updated_since`: sellable products only. With it (RFC 3339): every product whose row, a variant, its VAT group, or a stock row or lot in the register's warehouse changed after it, sellable or not; `sellable: false` tells the till to drop it.
 - Reply: `{data, meta, next_since}`. `next_since` is a minute before the read: send it as the next `updated_since` and upsert by id (repeats are expected).
@@ -186,6 +187,12 @@ What happens, in one transaction:
 ```
 
 The drawer's expected cash uses `due`, the amount actually taken, so it balances even when `price_mismatch` is not 0.
+
+### `POST /till/sales/quote`
+
+`{lines, payment}` as `POST /till/sales`, without `client_ref` or `sold_at`; cash `tendered` is optional. Priced by the same code as the sale (`till_sales::service::price_sale`: the till's prices, the catalog's, cash rounding, the tendered check) inside a transaction that is rolled back. Writes nothing: no order, stock, drawer or replay row, and no open shift is needed.
+
+200 `{data: {lines: [{product_id, product_variant_id, quantity, unit_price, line_excl, line_vat, line_total}], subtotal, vat, total, server_total, price_mismatch, mismatched_lines, due, rounding, change}}` in minor units; `change` is null for card or without `tendered`. The same 422s as the sale (lines, payment, tendered below due); 401 without a till session, 404 on another workspace's path.
 
 ### `GET /till/sales/{client_ref}`
 

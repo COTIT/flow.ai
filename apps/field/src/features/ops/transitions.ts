@@ -51,7 +51,7 @@ export function reviewerActions(status: RequestStatus): ReviewerAction[] {
   }
 }
 
-/** Spec 7.3: approve and reject both require a decision_note. */
+/** Spec 7.3: approve and reject carry a decision_note (the API requires it); here it only places the note field. */
 export function requiresDecisionNote(action: ReviewerAction): boolean {
   return action === 'approve' || action === 'reject'
 }

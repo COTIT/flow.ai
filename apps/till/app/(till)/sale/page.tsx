@@ -44,10 +44,7 @@ export default function SalePage() {
     sale: SaleResource
     lines: CartLine[]
   } | null>(null)
-  const [saved, setSaved] = React.useState<{
-    lines: CartLine[]
-    tendered: number | null
-  } | null>(null)
+  const [saved, setSaved] = React.useState<CartLine[] | null>(null)
 
   const sale = useTillSalesCreate({
     mutation: {
@@ -73,14 +70,14 @@ export default function SalePage() {
       body: { ...body, sold_at: new Date().toISOString() },
       lines,
     })
-    setSaved({ lines, tendered: body.payment.tendered ?? null })
+    setSaved(lines)
     cartStore.getState().clear()
     setTendered("")
     setReference("")
   }
 
   if (saved) {
-    const total = estimate(saved.lines)
+    const total = estimate(saved)
     return (
       <section
         aria-label={t("savedTitle")}
@@ -91,14 +88,6 @@ export default function SalePage() {
         <dl className="grid grid-cols-2 gap-1 text-sm">
           <dt>{t("estimate")}</dt>
           <dd className="text-right tabular-nums">≈ {money(total)}</dd>
-          {saved.tendered != null ? (
-            <>
-              <dt>{t("estimatedChange")}</dt>
-              <dd className="text-right tabular-nums">
-                ≈ {money(saved.tendered - total)}
-              </dd>
-            </>
-          ) : null}
         </dl>
         <Button onClick={() => setSaved(null)}>{t("newSale")}</Button>
       </section>
@@ -129,12 +118,12 @@ export default function SalePage() {
         <h1 className="text-xl font-medium">{t("title")}</h1>
         <form
           className="flex flex-col gap-2"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault()
-            const item = catalog.findByCode(code)
+            setCode("")
+            const item = await catalog.lookup(code)
             setNotFound(item ? null : code)
             if (item) add(item)
-            setCode("")
           }}
         >
           <Label htmlFor="sale-code">{t("scan")}</Label>
@@ -168,7 +157,7 @@ export default function SalePage() {
                   onClick={() => add(item)}
                 >
                   <span>{item.name}</span>
-                  <span className="tabular-nums">{money(item.unitGross)}</span>
+                  <span className="tabular-nums">{money(item.unitNet)}</span>
                 </Button>
               </li>
             ))}
@@ -190,7 +179,7 @@ export default function SalePage() {
                 <span className="mr-auto min-w-0">
                   {l.name}
                   <span className="block text-muted-foreground tabular-nums">
-                    {money(l.unitGross)}
+                    {money(l.unitNet)}
                   </span>
                 </span>
                 <Button
@@ -307,7 +296,10 @@ export default function SalePage() {
             </p>
           ) : null}
           {sale.error ? (
-            <div role="alert" className="flex flex-col gap-1 text-sm text-destructive">
+            <div
+              role="alert"
+              className="flex flex-col gap-1 text-sm text-destructive"
+            >
               <p>
                 {(sale.error.response?.data as { message?: string } | undefined)
                   ?.message ?? tc("error")}

@@ -1,21 +1,22 @@
 import { expectNoHorizontalScroll } from "../../src/test"
 import {
+  catalogPage,
   expect,
   honey,
-  paged,
   seedTill,
+  serveCatalog,
   test,
   type FakeApi,
+  type TillRow,
   WS,
 } from "./fake-till"
 
-const candle = {
+const candle: TillRow = {
   ...honey,
   id: "p-candle",
   name: "Beeswax candle",
   ean13: null,
-  price_gross: 600,
-  price_net: 496,
+  unit_price: 496,
   variants: [
     {
       id: "v-small",
@@ -23,8 +24,7 @@ const candle = {
       barcode: null,
       ean13: "8712345000011",
       is_default: true,
-      price_gross: 600,
-      price_net: 496,
+      unit_price: 496,
       options: [{ type: "Size", value: "Small" }],
     },
     {
@@ -33,8 +33,7 @@ const candle = {
       barcode: null,
       ean13: "8712345000028",
       is_default: false,
-      price_gross: 800,
-      price_net: 661,
+      unit_price: 661,
       options: [{ type: "Size", value: "Large" }],
     },
   ],
@@ -43,7 +42,10 @@ const candle = {
 const salesUrl = `/v1/workspace/${WS}/till/sales`
 
 /** The API's answer: a total of €33.02 rounds to €33.00 in cash. */
-function booked(body: { client_ref: string; payment: Record<string, unknown> }) {
+function booked(body: {
+  client_ref: string
+  payment: Record<string, unknown>
+}) {
   const cash = body.payment.method === "cash"
   return {
     status: 201,
@@ -71,17 +73,18 @@ function booked(body: { client_ref: string; payment: Record<string, unknown> }) 
 }
 
 function saleApi(api: FakeApi) {
-  api
-    .on("GET", "/storefront/products", () => paged([honey, candle]))
-    .on("POST", "/workspace/:ws/till/sales", ({ body }) =>
-      booked(body as Parameters<typeof booked>[0])
-    )
+  serveCatalog(api, [honey, candle])
+  api.on("POST", "/workspace/:ws/till/sales", ({ body }) =>
+    booked(body as Parameters<typeof booked>[0])
+  )
 }
 
 async function ringUp(page: import("@playwright/test").Page) {
   await page.getByLabel("Search products").fill("honey")
   await page.getByRole("button", { name: /Ilundo honey 500 g/ }).click()
-  await page.getByRole("button", { name: "One more Ilundo honey 500 g" }).click()
+  await page
+    .getByRole("button", { name: "One more Ilundo honey 500 g" })
+    .click()
   await page.getByLabel("Scan or type a barcode").fill("8712345000028")
   await page.getByLabel("Scan or type a barcode").press("Enter")
 }
@@ -96,16 +99,20 @@ test("a cash sale sends the catalog prices and shows the API's rounding and chan
   await ringUp(page)
 
   const cart = page.getByRole("region", { name: "Cart" })
-  await expect(cart.getByLabel("Quantity of Ilundo honey 500 g")).toHaveText("2")
+  await expect(cart.getByLabel("Quantity of Ilundo honey 500 g")).toHaveText(
+    "2"
+  )
   await expect(cart.getByText("Beeswax candle · Large")).toBeVisible()
-  await expect(cart.getByText("≈ €33.00")).toBeVisible()
+  await expect(cart.getByText("≈ €29.55")).toBeVisible()
   await expectNoHorizontalScroll(page)
 
   await page.getByLabel("Cash received").fill("50")
   await page.getByRole("button", { name: "Charge" }).click()
 
   const receipt = page.getByRole("region", { name: "Receipt" })
-  await expect(receipt.getByRole("heading", { name: "Receipt 1042" })).toBeVisible()
+  await expect(
+    receipt.getByRole("heading", { name: "Receipt 1042" })
+  ).toBeVisible()
   await expect(receipt.getByText("€33.02")).toBeVisible()
   await expect(receipt.getByText("-€0.02")).toBeVisible()
   await expect(receipt.getByText("€33.00")).toBeVisible()
@@ -152,6 +159,21 @@ test("a card sale records the slip reference and has no change", async ({
   })
 })
 
+test("a scan asks the API for the exact code", async ({ page, api }) => {
+  const asked: string[] = []
+  saleApi(api)
+  api.on("GET", "/workspace/:ws/till/catalog", ({ query }) => {
+    asked.push(query.get("code") ?? "")
+    return catalogPage([candle])
+  })
+  await seedTill(page)
+  await page.goto("/sale")
+  await page.getByLabel("Scan or type a barcode").fill("8712345000028")
+  await page.getByLabel("Scan or type a barcode").press("Enter")
+  await expect(page.getByText("Beeswax candle · Large")).toBeVisible()
+  expect(asked).toContain("8712345000028")
+})
+
 test("an unknown barcode is reported, nothing added", async ({ page, api }) => {
   saleApi(api)
   await seedTill(page)
@@ -187,7 +209,9 @@ test.describe("refused sales", () => {
         status: 422,
         body: {
           message: "The given data was invalid.",
-          errors: { "payment.tendered": ["The cash tendered is less than due."] },
+          errors: {
+            "payment.tendered": ["The cash tendered is less than due."],
+          },
         },
       }
     })
@@ -204,7 +228,9 @@ test.describe("refused sales", () => {
 
     await page.getByLabel("Cash received").fill("40")
     await page.getByRole("button", { name: "Charge" }).click()
-    await expect(page.getByRole("heading", { name: "Receipt 1042" })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "Receipt 1042" })
+    ).toBeVisible()
     const posts = api.callsTo("POST", `/workspace/${WS}/till/sales`)
     expect(posts).toHaveLength(2)
     const refs = posts.map((p) => (p.body as { client_ref: string }).client_ref)
@@ -227,6 +253,8 @@ test.describe("refused sales", () => {
         .getByRole("alert")
         .filter({ hasText: "No shift is open on this register." })
     ).toBeVisible()
-    await expect(page.getByRole("link", { name: "Open the drawer" })).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Open the drawer" })
+    ).toBeVisible()
   })
 })
