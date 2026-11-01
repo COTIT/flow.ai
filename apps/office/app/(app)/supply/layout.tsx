@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 
-const tabs = ["links"] as const
+const tabs = ["links", "transfers"] as const
 
 /** Supply from partner workspaces: one heading and a tab row. */
 export default function SupplyLayout({

@@ -336,6 +336,23 @@
     "acceptText": "Batches can then be sent to this workspace. Your public batch pages may show: {fields}.",
     "revoke": "Revoke",
     "revokeTitle": "Revoke the supply link with {partner}?",
-    "revokeText": "No more batches can be sent or received over it. Stock already received keeps crediting farmers. To resume, the partner must grant a new link."
+    "revokeText": "No more batches can be sent or received over it. Stock already received keeps crediting farmers. To resume, the partner must grant a new link.",
+    "noTransfers": "No supply transfers yet.",
+    "fromLot": "From batch",
+    "quantity": "Quantity",
+    "received": "Received",
+    "receivedInto": "{quantity} into {code}",
+    "transferDirections": {
+      "incoming": "Incoming",
+      "outgoing": "Outgoing"
+    },
+    "transferStatuses": {
+      "dispatched": "On its way",
+      "received": "Received"
+    },
+    "receive": "Receive",
+    "receiveFrom": "Receive batch {code}",
+    "receiveText": "{quantity} were sent. Receiving makes a new batch here and can be done only once; if less arrived, enter what arrived and the shortfall stays on record.",
+    "newLotCode": "New batch code"
   }
 }

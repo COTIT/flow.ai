@@ -336,6 +336,23 @@
     "acceptText": "Daarna kunnen batches naar deze werkruimte worden gestuurd. Je publieke batchpagina's mogen tonen: {fields}.",
     "revoke": "Intrekken",
     "revokeTitle": "Aanvoerkoppeling met {partner} intrekken?",
-    "revokeText": "Er kunnen geen batches meer over worden gestuurd of ontvangen. Al ontvangen voorraad blijft boeren vergoeden. Om verder te gaan moet de partner een nieuwe koppeling verlenen."
+    "revokeText": "Er kunnen geen batches meer over worden gestuurd of ontvangen. Al ontvangen voorraad blijft boeren vergoeden. Om verder te gaan moet de partner een nieuwe koppeling verlenen.",
+    "noTransfers": "Nog geen overdrachten.",
+    "fromLot": "Van batch",
+    "quantity": "Hoeveelheid",
+    "received": "Ontvangen",
+    "receivedInto": "{quantity} in {code}",
+    "transferDirections": {
+      "incoming": "Inkomend",
+      "outgoing": "Uitgaand"
+    },
+    "transferStatuses": {
+      "dispatched": "Onderweg",
+      "received": "Ontvangen"
+    },
+    "receive": "Ontvangen",
+    "receiveFrom": "Batch {code} ontvangen",
+    "receiveText": "Er is {quantity} verstuurd. Ontvangen maakt hier een nieuwe batch en kan maar één keer; is er minder aangekomen, vul dan in wat aankwam en het tekort blijft geregistreerd.",
+    "newLotCode": "Nieuwe batchcode"
   }
 }

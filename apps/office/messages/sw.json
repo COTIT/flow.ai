@@ -336,6 +336,23 @@
     "acceptText": "Baada ya hapo mafungu yanaweza kutumwa hapa. Kurasa zako za umma zinaweza kuonyesha: {fields}.",
     "revoke": "Futa",
     "revokeTitle": "Futa kiungo cha ugavi na {partner}?",
-    "revokeText": "Hakuna mafungu zaidi yatakayotumwa au kupokelewa kupitia kiungo hiki. Akiba iliyokwisha pokelewa inaendelea kuwalipa wakulima. Kuendelea, mshirika lazima atoe kiungo kipya."
+    "revokeText": "Hakuna mafungu zaidi yatakayotumwa au kupokelewa kupitia kiungo hiki. Akiba iliyokwisha pokelewa inaendelea kuwalipa wakulima. Kuendelea, mshirika lazima atoe kiungo kipya.",
+    "noTransfers": "Bado hakuna uhamisho.",
+    "fromLot": "Kutoka fungu",
+    "quantity": "Kiasi",
+    "received": "Imepokelewa",
+    "receivedInto": "{quantity} kwenye {code}",
+    "transferDirections": {
+      "incoming": "Inayoingia",
+      "outgoing": "Inayotoka"
+    },
+    "transferStatuses": {
+      "dispatched": "Njiani",
+      "received": "Imepokelewa"
+    },
+    "receive": "Pokea",
+    "receiveFrom": "Pokea fungu {code}",
+    "receiveText": "Kiasi cha {quantity} kilitumwa. Kupokea kunaunda fungu jipya hapa na kunafanyika mara moja tu; kama kimefika kidogo, weka kilichofika na upungufu utabaki kwenye kumbukumbu.",
+    "newLotCode": "Namba ya fungu jipya"
   }
 }
