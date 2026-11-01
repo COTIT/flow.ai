@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { BUTTON_PRIMARY, CONTROL } from '@/components/controlStyles'
@@ -36,6 +37,8 @@ export function OpsRequestReviewScreen() {
 
   const [note, setNote] = useState('')
   const [noteError, setNoteError] = useState(false)
+  // Approve and reject cannot be undone, so they wait here until the reviewer confirms.
+  const [confirming, setConfirming] = useState<'approve' | 'reject' | null>(null)
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
 
@@ -60,8 +63,15 @@ export function OpsRequestReviewScreen() {
       return
     }
     setNoteError(false)
-    review.mutate({ action, note: requiresDecisionNote(action) ? note.trim() : undefined })
+    if (action === 'approve' || action === 'reject') {
+      setConfirming(action)
+      return
+    }
+    submit(action)
   }
+
+  const submit = (action: ReviewerAction) =>
+    review.mutate({ action, note: requiresDecisionNote(action) ? note.trim() : undefined })
 
   return (
     <section className="flex w-full flex-col gap-[18px]" data-testid="request-review">
@@ -259,6 +269,21 @@ export function OpsRequestReviewScreen() {
             ))}
           </div>
         </section>
+      )}
+
+      {confirming && (
+        <ConfirmDialog
+          title={t(confirming === 'approve' ? 'ops.confirmApproveTitle' : 'ops.confirmRejectTitle')}
+          detail={t(confirming === 'approve' ? 'ops.confirmApproveDetail' : 'ops.confirmRejectDetail')}
+          confirmLabel={t(`ops.${confirming}`)}
+          cancelLabel={t('ops.confirmCancel')}
+          confirming={review.isPending}
+          onConfirm={() => {
+            submit(confirming)
+            setConfirming(null)
+          }}
+          onCancel={() => setConfirming(null)}
+        />
       )}
     </section>
   )

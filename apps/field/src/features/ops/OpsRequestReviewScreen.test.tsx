@@ -76,7 +76,26 @@ describe('OpsRequestReviewScreen', () => {
     expect(screen.getByTestId('decision-note-error')).toBeInTheDocument()
     await user.type(screen.getByTestId('decision-note'), 'Capacity confirmed')
     await user.click(screen.getByTestId('action-approve'))
+    await user.click(screen.getByTestId('confirm-dialog-confirm'))
     expect(mutate).toHaveBeenCalledWith({ action: 'approve', note: 'Capacity confirmed' })
+  })
+
+  // Approve and reject cannot be undone, so each asks first.
+  test.each(['approve', 'reject'] as const)('%s asks first: cancel sends nothing, confirm sends once', async (action) => {
+    const user = userEvent.setup()
+    render(<OpsRequestReviewScreen />)
+    await user.type(screen.getByTestId('decision-note'), 'Checked on site')
+
+    await user.click(screen.getByTestId(`action-${action}`))
+    expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+    await user.click(screen.getByTestId('confirm-dialog-cancel'))
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    expect(mutate).not.toHaveBeenCalled()
+
+    await user.click(screen.getByTestId(`action-${action}`))
+    await user.click(screen.getByTestId('confirm-dialog-confirm'))
+    expect(mutate).toHaveBeenCalledTimes(1)
+    expect(mutate).toHaveBeenCalledWith({ action, note: 'Checked on site' })
   })
 
   test('names who captured the request, from the API', () => {

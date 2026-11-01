@@ -135,7 +135,13 @@ test("ops starts a review and approves a request from the pipeline", async ({ pa
   await expect(page.getByTestId("review-headroom")).toHaveText("500.000 kW")
   await page.getByTestId("action-start_review").click()
   await page.getByTestId("decision-note").fill("Fits the headroom")
+  // Approval cannot be undone: the dialog asks first, and going back sends nothing.
   await page.getByTestId("action-approve").click()
+  await page.getByTestId("confirm-dialog-cancel").click()
+  await expect(page.getByTestId("confirm-dialog")).toHaveCount(0)
+  expect(sent.filter((s) => s.key === `POST ${TRANSITIONS}`)).toHaveLength(1)
+  await page.getByTestId("action-approve").click()
+  await page.getByTestId("confirm-dialog-confirm").click()
 
   await expect(page.getByTestId("action-approve")).toHaveCount(0)
   await expect(page.getByTestId("request-review")).toContainText("Fits the headroom")

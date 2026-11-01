@@ -486,7 +486,12 @@
     "notFoundDetail": "Huenda halipo, au huna ruhusa ya kulifikia.",
     "noHeadroom": "Hakuna uwezo uliorekodiwa kwa kijiji hiki",
     "noHeadroomDetail": "Rekodi ya sasa ya village_capacity inahitajika kabla uwezo uliobaki haujaonyeshwa.",
-    "colAcquisition": "Kukodi au kununua"
+    "colAcquisition": "Kukodi au kununua",
+    "confirmApproveTitle": "Idhinisha ombi hili?",
+    "confirmApproveDetail": "Ombi lililoidhinishwa haliwezi kurudishwa.",
+    "confirmRejectTitle": "Kataa ombi hili?",
+    "confirmRejectDetail": "Ombi lililokataliwa haliwezi kurudishwa.",
+    "confirmCancel": "Rudi"
   },
   "capacityBasis": {
     "planned": "Uliopangwa",

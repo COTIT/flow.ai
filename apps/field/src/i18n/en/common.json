@@ -486,7 +486,12 @@
     "notFoundDetail": "It may not exist, or you may not have access to it.",
     "noHeadroom": "No capacity recorded for this village",
     "noHeadroomDetail": "A current village_capacity row is needed before headroom can be shown.",
-    "colAcquisition": "Rent or buy"
+    "colAcquisition": "Rent or buy",
+    "confirmApproveTitle": "Approve this request?",
+    "confirmApproveDetail": "An approved request cannot be undone.",
+    "confirmRejectTitle": "Reject this request?",
+    "confirmRejectDetail": "A rejected request cannot be undone.",
+    "confirmCancel": "Go back"
   },
   "capacityBasis": {
     "planned": "Planned",
