@@ -55,6 +55,7 @@ pub mod supply_chain;
 pub mod supply_links;
 pub mod teams;
 pub mod till;
+pub mod till_catalog;
 pub mod till_sales;
 pub mod users;
 pub mod vat_groups;

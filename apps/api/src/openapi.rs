@@ -22,7 +22,7 @@ use crate::{
         permissions, price_corrections, pricing, product_brands, product_categories,
         product_variants, products, relations, sales_groups, search, settings, shipment_methods,
         special_offers, stock, storage_locations, storefront, supply_chain, supply_links, teams,
-        till, till_sales,
+        till, till_catalog, till_sales,
         users::{self, dto::UserEmailResource},
         vat_groups, warehouse_bins, warehouse_locations, warehouse_rows, warehouse_sections,
         warehouse_shelves, warehouses, webhooks, workspaces,
@@ -175,6 +175,7 @@ pub(crate) fn private() -> OpenApiRouter<AppState> {
         .merge(orders::routes::private())
         .merge(orders::routes::storefront())
         .merge(till::routes::private())
+        .merge(till_catalog::routes::private())
         .merge(cash::routes::private())
         .merge(till_sales::routes::private())
 }

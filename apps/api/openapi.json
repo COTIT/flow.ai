@@ -13757,6 +13757,13 @@
               "null"
             ]
           },
+          "store_only": {
+            "description": "Sold at the till only; the web shop never lists it.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "supplier_discount_code": {
             "type": [
               "string",
@@ -14229,6 +14236,10 @@
             },
             "type": "array"
           },
+          "store_only": {
+            "description": "Sold at the till only; the web shop never lists it (Genesy addition).",
+            "type": "boolean"
+          },
           "supplier_discount_code": {
             "type": [
               "string",
@@ -14403,6 +14414,7 @@
           "relationships",
           "vat_group_id",
           "export_enabled",
+          "store_only",
           "export_price_sync",
           "export_product_data",
           "export_data"
@@ -20037,6 +20049,31 @@
         ],
         "type": "object"
       },
+      "TillCatalogPage": {
+        "description": "A catalog page plus where the next delta read starts.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TillProduct"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "next_since": {
+            "description": "Send as `updated_since` on the next sync. A minute before this read, so repeats are\npossible; upsert by id.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "next_since"
+        ],
+        "type": "object"
+      },
       "TillLoginRequest": {
         "description": "Till user and PIN, sent with the register's device key.",
         "properties": {
@@ -20106,6 +20143,92 @@
         ],
         "type": "object"
       },
+      "TillProduct": {
+        "description": "A product as the till sells it. `unit_price` is what `POST /till/sales` books (minor units excl VAT, the register's currency).",
+        "properties": {
+          "barcode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ean13": {
+            "example": "8712345678906",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_stock": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sellable": {
+            "description": "False once archived, disabled or deleted: only a delta read (`updated_since`) returns\nsuch a row, so the till drops it.",
+            "type": "boolean"
+          },
+          "stock": {
+            "description": "Units on hand minus reserved in the register's warehouse (usable lots only), as a\ndecimal string; may be negative; null when not stock-tracked.",
+            "example": "7.00",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "store_only": {
+            "description": "Sold at the till only; the web shop never lists it.",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "physical, digital, service, giftcard, …",
+            "type": "string"
+          },
+          "unit_price": {
+            "description": "Minor units excl VAT in the register's currency.",
+            "example": 1250,
+            "format": "int64",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "variants": {
+            "description": "Default variant first.",
+            "items": {
+              "$ref": "#/components/schemas/TillVariant"
+            },
+            "type": "array"
+          },
+          "vat_rate": {
+            "description": "VAT percentage as a decimal string; `0` when the product has no VAT group.",
+            "example": "9",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "ean13",
+          "barcode",
+          "store_only",
+          "vat_rate",
+          "unit_price",
+          "has_stock",
+          "stock",
+          "sellable",
+          "variants",
+          "updated_at"
+        ],
+        "type": "object"
+      },
       "TillUserBrief": {
         "description": "A till user in the login picker or a session.",
         "properties": {
@@ -20160,6 +20283,57 @@
           "active",
           "locked",
           "created_at"
+        ],
+        "type": "object"
+      },
+      "TillVariant": {
+        "description": "A live variant of a till product.",
+        "properties": {
+          "barcode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ean13": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/VariantOption"
+            },
+            "type": "array"
+          },
+          "sku": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unit_price": {
+            "description": "Minor units excl VAT in the register's currency.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "sku",
+          "ean13",
+          "barcode",
+          "is_default",
+          "unit_price",
+          "options"
         ],
         "type": "object"
       },
@@ -69002,6 +69176,160 @@
         "summary": "Receive a supply transfer",
         "tags": [
           "supply_chain"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/catalog": {
+      "get": {
+        "operationId": "till_catalog",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "RFC 3339. Only products changed after it (price, variants, VAT group, this register's\nstock or lots), including ones no longer sellable.",
+            "in": "query",
+            "name": "updated_since",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exact product or variant EAN-13 or barcode, any case, at most 100 characters.",
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TillCatalogPage"
+                }
+              }
+            },
+            "description": "One page of the register's catalog"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live till session (ended, expired, key rotated or revoked, user inactive)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Workspace is not the session's"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`updated_since` not RFC 3339, or `code` too long"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "till_session": []
+          }
+        ],
+        "summary": "What this register sells (paged, delta sync, barcode lookup)",
+        "tags": [
+          "till"
         ]
       }
     },

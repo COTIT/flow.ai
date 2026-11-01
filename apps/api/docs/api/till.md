@@ -93,6 +93,20 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 - `GET /till/me` → `{data: {register, user, expires_at}}`
 - `POST /till/logout` → 204
 
+## Catalog (till token)
+
+### `GET /till/catalog?page&page_size&updated_since&code`
+
+What the session's register sells, by id, paged (`page_size` default 50, max 100). Workspace, currency and warehouse come from the register. Code: `src/modules/till_catalog/`.
+
+- Products in another currency are left out (a sale refuses them). `store_only` products show (the web shop hides them).
+- Row: `id`, `name`, `type`, `ean13`, `barcode`, `store_only`, `vat_rate` (decimal string from the VAT group, `0` without one), `unit_price` (minor units excl VAT; what `POST /till/sales` books, so no mismatch flag), `has_stock`, `stock` (level − reserved in the register's warehouse, released unexpired lots and no-lot rows; may be negative; null when not tracked), `sellable`, `variants[]` (`id`, `sku`, `ean13`, `barcode`, `is_default`, `unit_price`, `options`), `updated_at`.
+- `code`: exact product or variant EAN-13 or barcode, any case (≤ 100 chars).
+- Without `updated_since`: sellable products only. With it (RFC 3339): every product whose row, a variant, its VAT group, or a stock row or lot in the register's warehouse changed after it, sellable or not; `sellable: false` tells the till to drop it.
+- Reply: `{data, meta, next_since}`. `next_since` is a minute before the read: send it as the next `updated_since` and upsert by id (repeats are expected).
+- shortcut: a lot passing its expiry date changes no row, so the delta doesn't carry it; the next full read does.
+- `401` without a live till session (a member token or app key included), `404` on another workspace's path, `422` for a bad `updated_since` or a long `code`.
+
 ## Cash
 
 All amounts are integer minor units of the register's currency (EUR: cents). A **count** is a list of at most 50 lines `{denomination, count}`: `denomination` 1–1 000 000 000 minor units per note or coin, `count` 0–1 000 000 pieces, each denomination once. Errors are keyed `count.N.denomination` / `count.N.count`.

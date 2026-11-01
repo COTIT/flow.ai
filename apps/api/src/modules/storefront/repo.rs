@@ -1,4 +1,4 @@
-//! Storefront SQL: one statement per page or product. Prices become integer minor units of the
+//! Storefront SQL: one statement per page or product; store-only products never show. Prices become integer minor units of the
 //! product's currency; available stock sums every live stock row.
 
 use serde::Deserialize;
@@ -44,8 +44,8 @@ pub struct OptionRow {
     pub value: String,
 }
 
-/// Sellable products of the workspace (active, not archived, not deleted), by id; `only`
-/// narrows to one. `total` on each row counts every match.
+/// Sellable web products of the workspace (active, not archived, not deleted, not store-only),
+/// by id; `only` narrows to one. `total` on each row counts every match.
 pub async fn products(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -61,7 +61,7 @@ pub async fn products(
                       count(*) OVER () AS total
                FROM products p
                WHERE p.workspace_id = $1 AND p.deleted_at IS NULL
-                 AND p.status = 'active' AND NOT p.archived
+                 AND p.status = 'active' AND NOT p.archived AND NOT p.store_only
                  AND ($2::uuid IS NULL OR p.id = $2)
                ORDER BY p.id
                LIMIT $3 OFFSET $4
@@ -115,7 +115,8 @@ pub async fn products(
 pub async fn count(db: impl PgExecutor<'_>, workspace_id: Uuid) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM products
-           WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'active' AND NOT archived"#,
+           WHERE workspace_id = $1 AND deleted_at IS NULL AND status = 'active' AND NOT archived
+             AND NOT store_only"#,
         workspace_id,
     )
     .fetch_one(db)
