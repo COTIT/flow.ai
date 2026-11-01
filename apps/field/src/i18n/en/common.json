@@ -587,6 +587,8 @@
     "releaseDetail": "{{kg}} returns to available supply for this village, and the buyer's coverage falls. This cannot be undone: a declined or lapsed opportunity cannot be reopened.",
     "releaseYes": "Yes, release the supply",
     "releaseNo": "Cancel",
+    "attachConfirmTitle": "Attach this supply?",
+    "attachConfirmDetail": "{{kg}} from {{farmer}} will count as committed to this opportunity. A supply line cannot be edited or removed afterwards.",
     "releasedNote": "Closed. Its {{kg}} has gone back to available supply for this village. The supply lines below stay on the record — nothing was deleted.",
     "attachClosedTitle": "Nothing more can be attached",
     "attachClosedDetail": "This opportunity is closed, so its supply no longer counts as committed. A line attached here would record a commitment against nothing.",

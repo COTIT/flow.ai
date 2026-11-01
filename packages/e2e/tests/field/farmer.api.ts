@@ -125,4 +125,6 @@ export const timeline: MockReply = {
 export const farmerHome: Record<string, MockReply> = {
   ...records,
   "GET /workspace/w1/farm/surveys/eligibility": eligibilityBefore,
+  // The home's opportunities card.
+  "GET /workspace/w1/farm/opportunities": page([]),
 }

@@ -23,7 +23,9 @@ import {
   useDemands,
   type Demand,
 } from '@/features/ops/useDemand'
-import { formatKg, formatMoney, formatPlainDate } from '@/lib/format'
+import { amountToMinor } from '@/features/ops/surveys/figures'
+import { useCurrencies } from '@/features/ops/surveys/useSurveyAdmin'
+import { formatKg, formatPlainDate, formatPrice } from '@/lib/format'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { hasAtMostDecimals } from '@/lib/decimals'
 import { usePersistentForm } from '@/lib/usePersistentForm'
@@ -31,11 +33,15 @@ import { useSession } from '@/app/session'
 
 /** Spec 7.6 — the order book, plus a create form. */
 export function DemandListScreen() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const query = useDemands()
   const options = useDemandFormOptions()
   const create = useCreateDemand()
+  // shortcut: prices are in the account's default currency; add a currency picker when an account
+  // trades in more than one.
+  const currencies = useCurrencies().data ?? []
+  const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
   const session = useSession()
   const projectScope = session.data?.memberships.find(m => m.role === 'ops' || m.role === 'admin')?.project_id ?? 'project'
   const draft = usePersistentForm('demand-create', projectScope, DEMAND_DEFAULTS, zodResolver(demandSchema))
@@ -75,7 +81,9 @@ export function DemandListScreen() {
           return `${formatPlainDate(start)} – ${formatPlainDate(end)}`
         },
       }),
-      col.accessor('indicative_price_per_kg', {
+      // Sorted by minor units; shown as Money.
+      col.accessor((r) => r.indicative_price_per_kg?.minor ?? null, {
+        id: 'indicative_price_per_kg',
         header: t('demand.colPrice'),
         meta: { numeric: true },
         // Prices are indicative, never quotations — and the tag travels with
@@ -83,7 +91,7 @@ export function DemandListScreen() {
         cell: (c) => (
           <span className="inline-flex flex-wrap items-baseline justify-end gap-2">
             <span className="tabular font-semibold">
-              {formatMoney(c.getValue(), c.row.original.currency)}
+              {formatPrice(c.row.original.indicative_price_per_kg, i18n.language)}
             </span>
             <IndicativePill />
           </span>
@@ -98,13 +106,13 @@ export function DemandListScreen() {
         cell: (c) => <StatusPill kind="demand" status={c.getValue()} />,
       }),
     ]
-  }, [t])
+  }, [t, i18n.language])
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
 
-  const projectId = options.data?.buyers.find((b) => b.id === buyerId)?.project_id
   const quantityError = quantityErrorKey(quantity)
-  const priceError = priceErrorKey(pricePerKg)
+  const priceMinor = pricePerKg.trim() === '' ? null : amountToMinor(pricePerKg.trim(), currency?.decimals ?? 0)
+  const priceError = priceErrorKey(pricePerKg) ?? (pricePerKg.trim() !== '' && priceMinor === null ? 'demand.priceNotANumber' : undefined)
   const missing = {
     buyer: touched && buyerId === '',
     crop: touched && cropId === '',
@@ -113,22 +121,22 @@ export function DemandListScreen() {
   const submit = () => {
     if (inFlight.current || create.isPending || !draft.ready) return
     setTouched(true)
-    if (buyerId === '' || cropId === '' || quantityError || priceError) return
-    if (!projectId) return
+    if (buyerId === '' || cropId === '' || quantityError || priceError || !currency) return
 
     inFlight.current = true
+    // kg as the decimal text typed, the price as integer minor units: no floats.
     void finishDraftWhenSaved(create.mutateAsync(
       {
         id: draft.clientRef,
-        projectId,
-        buyerId,
-        cropId,
-        quantityKg: Number(quantity),
-        windowStart,
-        windowEnd,
-        deliveryPoint,
-        pricePerKg,
-        qualityNote,
+        buyer_id: buyerId,
+        crop_id: cropId,
+        quantity_kg: quantity.trim(),
+        window_start: windowStart,
+        window_end: windowEnd,
+        delivery_point: deliveryPoint.trim() || null,
+        quality_note: qualityNote.trim() || null,
+        indicative_price_per_kg_minor: priceMinor,
+        currency_id: priceMinor === null ? null : currency.id,
       },
     ), draft.finish).finally(() => { inFlight.current = false })
   }
@@ -251,7 +259,7 @@ export function DemandListScreen() {
             <Button
               type="submit"
               data-testid="demand-create-submit"
-              disabled={!draft.ready || create.isPending}
+              disabled={!draft.ready || !currency || create.isPending}
               className="w-fit"
             >
               {create.isPending ? t('demand.creating') : t('demand.create')}
@@ -313,8 +321,7 @@ function priceErrorKey(value: string): string | undefined {
   if (text === '') return undefined
   const n = Number(text)
   if (!Number.isFinite(n)) return 'demand.priceNotANumber'
-  // A negative price is left to the demand's check constraint (CLAUDE.md §5):
-  // it is rejected with the database's own message, not a client copy.
+  // A negative price is left to the API: it is refused with its own message, not a client copy.
   if (!hasAtMostDecimals(n, 2)) return 'demand.twoDecimals'
   return undefined
 }
