@@ -1,4 +1,4 @@
-# Context for deploy/staging web images (repo root). apps/api builds from its own folder.
+# Context for deploy/images web images (repo root). apps/api builds from its own folder.
 **/node_modules
 **/.next
 **/dist
@@ -14,4 +14,4 @@
 .claude
 apps/api
 deploy
-!deploy/staging/field.nginx.conf
+!deploy/images/field.nginx.conf

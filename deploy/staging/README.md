@@ -17,8 +17,8 @@ Think of it as a dress rehearsal stage: same sets as opening night, fake money i
 - No real payment provider. `PAYMENTS_PROVIDER=fake`, so checkout links go to `pay.fake.test`.
 - No outgoing mail. Every mail lands in Mailpit.
 - No uploads bucket, no PDF renderer. Those routes answer 503, as designed.
+- Field is built with `VITE_FEATURE_RESOURCES=on` (equipment, loans, requests) and the demo banner.
 - No prod secret, ever.
-- The field app still reads Supabase for most screens until its port to the API lands. On staging it loads, but those screens stay empty.
 
 Every step below is for the user to run on the VPS, or for the coordinator once the user says go.
 
@@ -28,11 +28,11 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 | ---------------------------- | ------------------------------------------------------------------------------------ |
 | `docker-compose.staging.yml` | The stack, with Traefik labels                                                       |
 | `docker-compose.local.yml`   | Local override: no Traefik, ports on `127.0.0.1:18080` and `18100`–`18103`           |
-| `.env.staging.example`       | Every variable, no values. Copy it to `.env.staging` on the VPS.                     |
+| `.env.staging.example`       | Every variable, no secrets. Copy it to `.env.staging` on the VPS.                    |
 | `secrets/`                   | Secret files on the VPS only. Git ignores everything in it.                          |
-| `next.Dockerfile`            | shop, office and till (Next standalone, `--build-arg APP=…`)                         |
-| `field.Dockerfile`           | field: a Vite build, served by nginx                                                 |
-| `field.nginx.conf`           | SPA fallback and the `/v1` forward to the API                                        |
+| `../images/next.Dockerfile`  | shop, office and till (Next standalone, `--build-arg APP=…`); shared with production |
+| `../images/field.Dockerfile` | field: a Vite build, served by nginx; shared with production                         |
+| `../images/field.nginx.conf` | SPA fallback and the `/v1` forward to the API                                        |
 | `smoke.sh`                   | Local check: build, start, probe, then remove everything it added                    |
 | `../../apps/api/Dockerfile`  | API image. The build arg `ALLOW_FAKE_PAYMENTS=1` is set by the staging compose only. |
 
@@ -44,51 +44,57 @@ That has a side effect: every `debug_assert!` in the API and its crates runs on 
 
 In `apps/api/src`, the only thing `cfg!(debug_assertions)` decides is the payments choice. The default build (prod) never gets this arg.
 
-## Assumptions about the VPS (check before the first deploy)
+## The VPS (read on 2026-11-01)
 
-- Traefik v3 (the label is `ipallowlist`; v2 calls it `ipwhitelist`), with the Docker provider. Every router here sets `traefik.enable=true`, so `exposedByDefault=false` is fine.
-- Traefik already redirects HTTP to HTTPS on its own.
-- Traefik is the first hop: no CDN in front of it. If there is one, the IP allow-list and the API's per-IP rate limit see the CDN's address instead of the visitor's.
-- Three facts are unknown. They go in `.env.staging`, which refuses to start until they are filled in:
-  - `TRAEFIK_NETWORK`: the network `control360-traefik-traefik-1` is attached to;
-  - `TRAEFIK_ENTRYPOINT`: the HTTPS entrypoint (guess: `websecure`);
-  - `TRAEFIK_CERTRESOLVER`: the Let's Encrypt resolver (guess: `letsencrypt`).
+- Traefik v3.6, Docker provider, `exposedByDefault=false` (every router here sets `traefik.enable=true`).
+- External network `traefik`. Entrypoints `web` (redirects to HTTPS) and `websecure`. Cert resolver `le` (HTTP challenge). These are the defaults in `.env.staging.example`.
+- IPv4 `185.77.96.44`, IPv6 `2a02:4780:d:ca37::1`. 4 cores, 15 GB RAM.
+- Deploy user `deploy`. Staging lives in `/srv/genesy-staging`, production in `/srv/genesy-prod`, CI in `/srv/genesy-ci`.
+- Existing hosts: `control.genesy.app` and `*.control.genesy.app` only. Nothing else under `genesy.app` is taken.
+- Traefik is the first hop (no CDN), so the IP allow-list and the API's per-IP rate limit see the visitor's address.
 
 ## DNS records (OpenProvider, zone `genesy.app`)
 
-Point five names at the VPS. Either add one A record each:
+Staging and production, one A and one AAAA record per host:
 
-| Type | Name             | Value        | TTL  |
-| ---- | ---------------- | ------------ | ---- |
-| A    | `staging-api`    | `<VPS IPv4>` | 3600 |
-| A    | `staging-shop`   | `<VPS IPv4>` | 3600 |
-| A    | `staging-office` | `<VPS IPv4>` | 3600 |
-| A    | `staging-till`   | `<VPS IPv4>` | 3600 |
-| A    | `staging-field`  | `<VPS IPv4>` | 3600 |
+| Type | Name             | Value                 | TTL  |
+| ---- | ---------------- | --------------------- | ---- |
+| A    | `staging-api`    | `185.77.96.44`        | 3600 |
+| AAAA | `staging-api`    | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `staging-shop`   | `185.77.96.44`        | 3600 |
+| AAAA | `staging-shop`   | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `staging-office` | `185.77.96.44`        | 3600 |
+| AAAA | `staging-office` | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `staging-till`   | `185.77.96.44`        | 3600 |
+| AAAA | `staging-till`   | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `staging-field`  | `185.77.96.44`        | 3600 |
+| AAAA | `staging-field`  | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `api`            | `185.77.96.44`        | 3600 |
+| AAAA | `api`            | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `shop`           | `185.77.96.44`        | 3600 |
+| AAAA | `shop`           | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `office`         | `185.77.96.44`        | 3600 |
+| AAAA | `office`         | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `till`           | `185.77.96.44`        | 3600 |
+| AAAA | `till`           | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `field`          | `185.77.96.44`        | 3600 |
+| AAAA | `field`          | `2a02:4780:d:ca37::1` | 3600 |
 
-Add a matching AAAA record for each name if the VPS has IPv6.
-
-Or use one A record, `staging` → `<VPS IPv4>`, plus five CNAMEs (`staging-api` → `staging.genesy.app.`, and so on). Then a new IP is a one-record change.
+Only add the AAAA records if Traefik answers on IPv6. Otherwise IPv6 visitors fail, and so can Let's Encrypt, which prefers IPv6. Check from any machine with IPv6: `curl -6 -sI http://control.genesy.app`.
 
 Let's Encrypt can only issue the certificates once these names resolve.
 
 ## One-time setup (on the VPS)
 
 ```bash
-# 1. Read the Traefik facts for .env.staging
-docker inspect control360-traefik-traefik-1 --format '{{json .NetworkSettings.Networks}}'
-docker inspect control360-traefik-traefik-1 --format '{{json .Config.Cmd}}'   # entrypoints, resolver
-```
-
-```bash
-# 2. A deploy checkout, separate from the CI runner's
-sudo mkdir -p /srv/genesy-staging && sudo chown "$USER" /srv/genesy-staging
-git clone git@github.com:<owner>/genesy.git /srv/genesy-staging
+# 1. A deploy checkout (as user deploy), separate from the CI runner's
+sudo mkdir -p /srv/genesy-staging && sudo chown deploy /srv/genesy-staging
+git clone git@github.com:COTIT/genesy.git /srv/genesy-staging
 cd /srv/genesy-staging/deploy/staging
 ```
 
 ```bash
-# 3. Secret files (random, made on the VPS, never copied anywhere)
+# 2. Secret files (random, made on the VPS, never copied anywhere)
 chmod 700 secrets
 pw="$(openssl rand -hex 24)"
 printf '%s' "$pw" > secrets/db_password
@@ -99,7 +105,7 @@ chmod 444 secrets/*   # containers run as non-root users; the 700 folder keeps o
 ```
 
 ```bash
-# 4. Env file: fill in TRAEFIK_NETWORK, TRAEFIK_ENTRYPOINT, TRAEFIK_CERTRESOLVER
+# 3. Env file (Traefik values are already filled in)
 cp .env.staging.example .env.staging && chmod 600 .env.staging
 ```
 
@@ -150,33 +156,30 @@ Then open <http://localhost:8025>.
 
 ## Reset
 
-This wipes the staging database and every caught mail, then starts clean:
+This wipes the staging database and every caught mail, starts clean, then reseeds:
 
 ```bash
 cd /srv/genesy-staging
 docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging down -v
 docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging up -d --wait
+docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging --profile seed run --rm seed
 ```
 
 `down -v` only removes this project's volume (`genesy-staging_pg`). The secret files stay, so the new database gets the same password.
 
-To remove staging entirely, run `down -v --rmi all`, then delete `/srv/genesy-staging` and the DNS records.
+To remove staging entirely, run `down -v --rmi all`, then delete `/srv/genesy-staging` and the staging DNS records.
 
 ## Demo data
 
-Today, the RUAHA farm demo workspace:
+After the first deploy, and after each reset:
 
 ```bash
 docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging --profile seed run --rm seed
 ```
 
-This runs `genesy-360-api seed-farm-demo`. It prints the demo passwords once, so save them somewhere safe.
+This runs `genesy-360-api seed-demo` (from Phase 4c), which fills every app with demo data. It only runs where `GENESY_ALLOW_DEMO_SEED=1`, and only the staging compose sets that. If it prints demo passwords, save them somewhere safe.
 
-**Placeholder (after Phase 4c):** a `seed-demo` command will fill every app with demo data, and `seed-demo --reset` will wipe and reseed it. The `seed` service's `command` changes to `["seed-demo"]` then. Reset with seed becomes:
-
-```bash
-docker compose ... --profile seed run --rm seed seed-demo --reset
-```
+`seed` is its own service with no Traefik labels, so the one-off container never receives web traffic.
 
 ## Local smoke check (no VPS, no Traefik)
 

@@ -37,6 +37,8 @@ x-api-env: &api-env
   TRUST_PROXY_HEADERS: "true"
   # Boots only because the image is built with ALLOW_FAKE_PAYMENTS=1 (see apps/api/Dockerfile).
   PAYMENTS_PROVIDER: fake
+  # Lets `seed-demo` write demo data; never set in production.
+  GENESY_ALLOW_DEMO_SEED: "1"
 
 x-api-build: &api-build
   context: ../../apps/api
@@ -100,7 +102,7 @@ services:
     <<: *hardening
     build:
       context: ../..
-      dockerfile: deploy/staging/next.Dockerfile
+      dockerfile: deploy/images/next.Dockerfile
       args: { APP: shop }
     image: genesy-staging/shop:${GENESY_REF:-local}
     environment:
@@ -122,7 +124,7 @@ services:
     <<: *hardening
     build:
       context: ../..
-      dockerfile: deploy/staging/next.Dockerfile
+      dockerfile: deploy/images/next.Dockerfile
       args:
         { APP: office, NEXT_PUBLIC_SHOP_URL: "https://staging-shop.genesy.app" }
     image: genesy-staging/office:${GENESY_REF:-local}
@@ -141,7 +143,7 @@ services:
     <<: *hardening
     build:
       context: ../..
-      dockerfile: deploy/staging/next.Dockerfile
+      dockerfile: deploy/images/next.Dockerfile
       args: { APP: till }
     image: genesy-staging/till:${GENESY_REF:-local}
     environment:
@@ -159,7 +161,8 @@ services:
     <<: *hardening
     build:
       context: ../..
-      dockerfile: deploy/staging/field.Dockerfile
+      dockerfile: deploy/images/field.Dockerfile
+      args: { VITE_DATA_MODE: demo, VITE_FEATURE_RESOURCES: "on" }
     image: genesy-staging/field:${GENESY_REF:-local}
     networks: [internal, edge]
     labels:
@@ -170,14 +173,12 @@ services:
       traefik.http.routers.genesy-staging-field.middlewares: genesy-staging-allow,genesy-staging-noindex
       traefik.http.services.genesy-staging-field.loadbalancer.server.port: "8080"
 
-  # Demo data, on demand: `... --profile seed run --rm seed`. Today it runs `seed-farm-demo`
-  # (RUAHA farm workspace; prints the demo passwords once).
-  # Placeholder: after Phase 4c this becomes `seed-demo` (every app), and `seed-demo --reset`
-  # wipes and reseeds. Not built yet; see README "Demo data".
+  # Demo data for every app, on demand: `... --profile seed run --rm seed`.
+  # Reset = `down -v`, `up -d --wait`, then this again (README "Reset").
   seed:
     profiles: [seed]
     image: genesy-staging/api:${GENESY_REF:-local}
-    command: ["seed-farm-demo"]
+    command: ["seed-demo"]
     environment: *api-env
     secrets: [database_url, credentials_key]
     depends_on:
