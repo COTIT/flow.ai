@@ -65,7 +65,7 @@ Questions have `position`, `kind` (`single_choice`, `multi_choice`, `number`, `t
 
 ## Vouchers
 
-- **`GET /vouchers/mine`**: the household's vouchers **with their codes**. This is the only place a code is ever shown. The audit flag is not shown.
+- **`GET /vouchers/mine`**: the household's vouchers **with their codes**. This is the only place a code is ever shown. The audit flag is not shown. A voided voucher carries `void_reason` (the reason ops gave); it is `null` otherwise.
 - **`POST /vouchers/lookup {code}`**: field staff only (`403` otherwise).
   - Case, spaces and dashes don't matter; O reads as 0, I and L as 1, and a `PREFIX:` from a QR code is dropped.
   - Every lookup is logged:

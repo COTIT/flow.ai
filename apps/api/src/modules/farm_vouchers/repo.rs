@@ -191,6 +191,7 @@ pub struct MineRow {
     pub issued_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
     pub redeemed_at: Option<DateTime<Utc>>,
+    pub void_reason: Option<String>,
 }
 
 pub async fn mine(
@@ -205,7 +206,7 @@ pub async fn mine(
         r#"SELECT v.id, v.survey_id, s.title_en AS survey_title_en, s.title_sw AS survey_title_sw, v.code,
                   v.amount_minor, v.currency_id, c.asset_type AS currency, c.decimals, v.status,
                   (v.status = 'issued' AND v.expires_at <= now()) AS "expired!",
-                  v.issued_at, v.expires_at, v.redeemed_at
+                  v.issued_at, v.expires_at, v.redeemed_at, v.void_reason
            FROM farm_vouchers v
            JOIN farm_surveys s ON s.id = v.survey_id
            JOIN currencies c ON c.id = v.currency_id

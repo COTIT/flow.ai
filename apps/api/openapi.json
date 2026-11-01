@@ -9846,6 +9846,13 @@
               "string",
               "null"
             ]
+          },
+          "void_reason": {
+            "description": "Why ops voided it; null unless `status` is `void`.",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -9859,7 +9866,8 @@
           "expired",
           "issued_at",
           "expires_at",
-          "redeemed_at"
+          "redeemed_at",
+          "void_reason"
         ],
         "type": "object"
       },
