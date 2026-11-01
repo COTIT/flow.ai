@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 
-import { clearTrail, installClickTrail, recordTrail, redactUrl, trailFetch, trailSnapshot } from '@/lib/bugTrail'
+import { createApiClient } from '@genesy/api-client/client'
+
+import { clearTrail, installClickTrail, recordTrail, redactUrl, trailApi, trailSnapshot } from '@/lib/bugTrail'
 
 beforeEach(() => clearTrail())
 afterEach(() => {
@@ -52,17 +54,36 @@ test('clicks inside the bug reporter itself are not recorded', () => {
   expect(trailSnapshot()).toHaveLength(0)
 })
 
-test('an API call is recorded with method, redacted path, status and time', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 201 })))
-  await trailFetch('https://x.supabase.co/rest/v1/bug_report?select=id', { method: 'POST', body: 'secret' })
+/** An axios instance like the app's: `/v1` base, answering with `reply` instead of the network. */
+function instance(reply: (config: { url?: string }) => Promise<unknown>) {
+  const api = createApiClient({ baseURL: '/v1' })
+  api.defaults.adapter = reply as never
+  trailApi(api)
+  return api
+}
+
+test('an API call is recorded with method, redacted path, status and time — never a body', async () => {
+  const api = instance(async (config) => ({ data: {}, status: 201, statusText: 'Created', headers: {}, config }))
+  await api.post('/workspace/w1/farm/bug-reports', { description: 'secret' }, { params: { phone: '0712345678' } })
   const [entry] = trailSnapshot()
   expect(entry.kind).toBe('api')
-  expect(entry.detail).toMatch(/^POST \/rest\/v1\/bug_report\?select → 201 \(\d+ms\)$/)
+  expect(entry.detail).toMatch(/^POST \/v1\/workspace\/w1\/farm\/bug-reports\?phone → 201 \(\d+ms\)$/)
   expect(entry.detail).not.toContain('secret')
+  expect(entry.detail).not.toContain('0712345678')
 })
 
-test('a failed API call is recorded and still fails', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
-  await expect(trailFetch('https://x.supabase.co/auth/v1/token?grant_type=password')).rejects.toThrow()
-  expect(trailSnapshot()[0].detail).toMatch(/^GET \/auth\/v1\/token\?grant_type → Failed to fetch/)
+test('a refused API call is recorded with its status and still fails', async () => {
+  const api = instance(async (config) => {
+    throw Object.assign(new Error('Request failed'), { config, response: { status: 422, data: { message: 'secret' } } })
+  })
+  await expect(api.get('/farm/me')).rejects.toThrow()
+  expect(trailSnapshot()[0].detail).toMatch(/^GET \/v1\/farm\/me → 422 \(\d+ms\)$/)
+})
+
+test('a call that never got an answer is recorded with the reason', async () => {
+  const api = instance(async (config) => {
+    throw Object.assign(new Error('Network Error'), { config })
+  })
+  await expect(api.get('/farm/me')).rejects.toThrow()
+  expect(trailSnapshot()[0].detail).toMatch(/^GET \/v1\/farm\/me → Network Error/)
 })

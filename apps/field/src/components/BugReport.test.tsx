@@ -11,12 +11,10 @@ const { BugReportButton } = await import('@/components/BugReport')
 const { clearTrail, recordTrail } = await import('@/lib/bugTrail')
 await import('@/i18n')
 
-const ME = '80000000-0000-4000-8000-000000000005'
-
 function renderButton() {
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { mutations: { retry: false } } })}>
-      <BugReportButton reporterId={ME} />
+      <BugReportButton />
     </QueryClientProvider>,
   )
 }
@@ -68,20 +66,27 @@ test('without a screenshot a photo is required, and with one the report goes', a
 
   await waitFor(() =>
     expect(submitBugReport).toHaveBeenCalledWith(
-      expect.objectContaining({ reporterId: ME, description: 'Survey list stays empty', screenshot: null, photo }),
+      expect.objectContaining({ id: expect.stringMatching(/^[0-9a-f-]{36}$/), description: 'Survey list stays empty', screenshot: null, photo }),
     ),
   )
   expect(await screen.findByTestId('bug-sent')).toHaveTextContent('Thank you. Your report was sent.')
   await waitFor(() => expect(screen.queryByTestId('bug-sheet')).not.toBeInTheDocument())
 })
 
-test('a refused report keeps the sheet open with the server message', async () => {
-  submitBugReport.mockRejectedValue(new Error('The object exceeded the maximum allowed size'))
+test('a refused report keeps the sheet open with the API message, and a retry sends the same id', async () => {
+  submitBugReport.mockRejectedValueOnce({
+    isAxiosError: true,
+    response: { status: 422, data: { message: 'invalid', errors: { photo: ['The photo must be at most 5 MB.'] } } },
+  })
   renderButton()
   await userEvent.click(screen.getByTestId('bug-fab'))
   await userEvent.type(await screen.findByTestId('bug-description'), 'x')
   await userEvent.click(screen.getByTestId('bug-submit'))
 
-  expect(await screen.findByTestId('bug-send-error')).toHaveTextContent('The object exceeded the maximum allowed size')
+  expect(await screen.findByTestId('bug-send-error')).toHaveTextContent('The photo must be at most 5 MB.')
   expect(screen.getByTestId('bug-sheet')).toBeInTheDocument()
+
+  await userEvent.click(screen.getByTestId('bug-submit'))
+  await waitFor(() => expect(submitBugReport).toHaveBeenCalledTimes(2))
+  expect(submitBugReport.mock.calls[1][0].id).toBe(submitBugReport.mock.calls[0][0].id)
 })

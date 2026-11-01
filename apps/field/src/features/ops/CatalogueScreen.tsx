@@ -20,8 +20,7 @@ import { useLoanProducts, type LoanItem } from '@/features/farmer/useResources'
 import { kindOf, type ResourceKind } from '@/features/farmer/resourceKind'
 import { CatalogueCategories } from '@/features/ops/CatalogueCategories'
 import { CatalogueCreatePanel } from '@/features/ops/CatalogueCreatePanel'
-import { formatKw, formatMoney, formatPrice } from '@/lib/format'
-import { LOANS_PORTED } from '@/lib/ported'
+import { formatKw, formatPrice } from '@/lib/format'
 
 /** A figure that is genuinely absent reads as absent, never as zero. */
 const DASH = '—'
@@ -44,8 +43,7 @@ export function CatalogueScreen() {
   const { t } = useTranslation()
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  // shortcut: loan listings are not on the API yet, so the loan tab is hidden (LOANS_PORTED).
-  const kind = LOANS_PORTED ? kindOf(search) : 'equipment'
+  const kind = kindOf(search)
   const [createOpen, setCreateOpen] = useState(false)
 
   const setKind = (next: ResourceKind) => {
@@ -57,7 +55,7 @@ export function CatalogueScreen() {
     <section className="flex flex-col gap-4">
       <PageHeader
         title={t('catalogue.title')}
-        description={<span data-testid="catalogue-note">{t(LOANS_PORTED ? 'catalogue.note' : 'equipment.notAQuotation')}</span>}
+        description={<span data-testid="catalogue-note">{t('catalogue.note')}</span>}
         actions={
           <Button
             type="button"
@@ -74,11 +72,9 @@ export function CatalogueScreen() {
       />
 
       {/* A literal anchor for the guided tour, which cannot point at a templated id. */}
-      {LOANS_PORTED && (
-        <div data-testid="catalogue-kinds" className="w-fit">
-          <ResourceTabs value={kind} onChange={setKind} testIdPrefix="catalogue" />
-        </div>
-      )}
+      <div data-testid="catalogue-kinds" className="w-fit">
+        <ResourceTabs value={kind} onChange={setKind} testIdPrefix="catalogue" />
+      </div>
 
       {createOpen && <CatalogueCreatePanel kind={kind} onClose={() => setCreateOpen(false)} />}
 
@@ -165,7 +161,7 @@ function EquipmentTable() {
 }
 
 function LoanTable() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const query = useLoanProducts()
 
   const columns = useMemo(() => {
@@ -183,15 +179,15 @@ function LoanTable() {
         cell: (c) => (
           <span data-testid="catalogue-loan-range" className="inline-flex flex-wrap items-baseline justify-end gap-2">
             <span className="tabular font-semibold">
-              {formatMoney(c.row.original.indicative_min_amount, c.row.original.currency)} –{' '}
-              {formatMoney(c.row.original.indicative_max_amount, c.row.original.currency)}
+              {formatPrice(c.row.original.indicative_min, i18n.language)} –{' '}
+              {formatPrice(c.row.original.indicative_max, i18n.language)}
             </span>
             <IndicativePill />
           </span>
         ),
       }),
     ]
-  }, [t])
+  }, [t, i18n.language])
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
   if (query.isLoading) return <Loading testId="catalogue-loading" />

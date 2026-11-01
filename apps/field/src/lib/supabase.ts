@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 
-import { trailFetch } from '@/lib/bugTrail'
 import type { Database } from '@/lib/db.types'
 
 // db.types.ts is GENERATED. Never hand-edit it; regenerate after every
@@ -23,6 +22,4 @@ export const supabase = createClient<Database>(url, anonKey, {
     persistSession: true,
     autoRefreshToken: true,
   },
-  // Every API call lands on the bug-report trail (path and status only).
-  global: { fetch: trailFetch },
 })

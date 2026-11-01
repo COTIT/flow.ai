@@ -7,6 +7,7 @@ const api = {
   farmEquipmentCategoriesList: vi.fn(),
   farmEquipmentCategoriesCreate: vi.fn(),
   farmEquipmentCreate: vi.fn(),
+  farmLoansCreate: vi.fn(),
 }
 const forward = (name: keyof typeof api) => (...args: unknown[]) => api[name](...args)
 vi.mock('@genesy/api-client/endpoints/farm-equipment', () => ({
@@ -14,6 +15,7 @@ vi.mock('@genesy/api-client/endpoints/farm-equipment', () => ({
   farmEquipmentCategoriesCreate: forward('farmEquipmentCategoriesCreate'),
   farmEquipmentCreate: forward('farmEquipmentCreate'),
 }))
+vi.mock('@genesy/api-client/endpoints/farm-loans', () => ({ farmLoansCreate: forward('farmLoansCreate') }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const hooks = await import('@/features/ops/useCatalogue')
@@ -87,5 +89,29 @@ describe('a new machine', () => {
 
     expect(api.farmEquipmentCreate).toHaveBeenCalledWith('w1', body)
     expect(keys(invalidate)).toContainEqual(queryKeys.equipment('mine'))
+  })
+})
+
+describe('a new loan listing', () => {
+  test('is posted with its id and minor units, then the loan list refreshes', async () => {
+    api.farmLoansCreate.mockResolvedValue({ data: { id: 'l9' } })
+    const { invalidate, wrapper } = client()
+    const { result } = renderHook(() => hooks.useCreateLoanProduct(), { wrapper })
+    const body = {
+      id: 'l9',
+      code: 'WOMEN',
+      name_en: 'Women group loan',
+      name_sw: 'Mkopo wa kikundi',
+      description_en: null,
+      description_sw: null,
+      indicative_min_minor: 50000000,
+      indicative_max_minor: 300000000,
+      currency_id: 'c1',
+    }
+
+    await result.current.mutateAsync(body)
+
+    expect(api.farmLoansCreate).toHaveBeenCalledWith('w1', body)
+    expect(keys(invalidate)).toContainEqual(queryKeys.loanProducts())
   })
 })

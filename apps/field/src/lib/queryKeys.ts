@@ -72,8 +72,6 @@ export const queryKeys = {
   /** Spec 6.6's farmer-facing opportunities. Language is chosen at render. */
   farmerOpportunities: () => ['farmerOpportunities'] as const,
 
-  /** A provenance actor's display name, from the scoped `app_actor_names`. */
-  actorName: (actorId: string) => ['actorName', actorId] as const,
 
   farm: (farmId: string) => ['farm', farmId] as const,
   farms: (villageId: string) => ['farms', villageId] as const,

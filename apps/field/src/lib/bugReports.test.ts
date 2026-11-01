@@ -1,64 +1,50 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 
-const upload = vi.fn()
-const insert = vi.fn()
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    storage: { from: (bucket: string) => ({ upload: (...args: unknown[]) => upload(bucket, ...args) }) },
-    from: (table: string) => ({ insert: (row: unknown) => insert(table, row) }),
-  },
+const farmBugReportsCreate = vi.fn()
+vi.mock('@genesy/api-client/endpoints/farm-bug-reports', () => ({
+  farmBugReportsCreate: (...args: unknown[]) => farmBugReportsCreate(...args),
 }))
+vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const { submitBugReport } = await import('@/lib/bugReports')
 
-const ME = '80000000-0000-4000-8000-000000000005'
+const ID = '81000000-0000-4000-8000-000000000001'
 const actions = [{ at: '2026-10-25T10:00:00Z', kind: 'nav' as const, route: '/farm', detail: '(start) → /farm' }]
-const report = {
-  reporterId: ME,
-  description: 'The survey list is empty',
-  actions,
-  screenshot: new Blob(['png'], { type: 'image/png' }),
-  photo: null,
-}
+const screenshot = new Blob(['png'], { type: 'image/png' })
+const report = { id: ID, description: 'The survey list is empty', actions, screenshot, photo: null }
 
 beforeEach(() => {
-  upload.mockReset().mockResolvedValue({ data: {}, error: null })
-  insert.mockReset().mockResolvedValue({ error: null })
+  farmBugReportsCreate.mockReset().mockResolvedValue({ data: { id: ID, ref: 12 } })
 })
 
-test('stores the image in the reporter folder, then files the report pointing at it', async () => {
+test('files one multipart report under the caller, with the client id and the trail as JSON', async () => {
   await submitBugReport(report)
 
-  const [bucket, path, , options] = upload.mock.calls[0]
-  expect(bucket).toBe('bug-reports')
-  expect(path).toMatch(new RegExp(`^${ME}/[0-9a-f-]{36}\\.png$`))
-  expect(options).toMatchObject({ contentType: 'image/png', upsert: false })
-
-  const [table, row] = insert.mock.calls[0]
-  expect(table).toBe('bug_report')
-  expect(row).toMatchObject({
-    description: 'The survey list is empty',
-    actions,
-    screenshot_path: path,
-    photo_path: null,
+  expect(farmBugReportsCreate).toHaveBeenCalledTimes(1)
+  const [workspace, form] = farmBugReportsCreate.mock.calls[0]
+  expect(workspace).toBe('w1')
+  expect(form).toEqual({
+    id: ID,
     route: '/',
+    user_agent: navigator.userAgent,
+    viewport: expect.stringMatching(/^\d+x\d+$/),
+    description: 'The survey list is empty',
+    actions: JSON.stringify(actions),
+    screenshot,
+    photo: null,
   })
-  expect(row.viewport).toMatch(/^\d+x\d+$/)
+  // The API files under the signed-in user; naming a reporter is an unknown field (422).
+  expect(form).not.toHaveProperty('reporter_id')
 })
 
-test('stores a photo as well, keeping its own extension', async () => {
-  await submitBugReport({ ...report, photo: new File(['jpg'], 'IMG_1.JPG', { type: 'image/jpeg' }) })
-  expect(upload).toHaveBeenCalledTimes(2)
-  expect(insert.mock.calls[0][1].photo_path).toMatch(/\.jpg$/)
+test('sends a photo as well', async () => {
+  const photo = new File(['jpg'], 'IMG_1.JPG', { type: 'image/jpeg' })
+  await submitBugReport({ ...report, photo })
+  expect(farmBugReportsCreate.mock.calls[0][1].photo).toBe(photo)
 })
 
-test('a refused upload stops before the report is filed, with storage\'s own message', async () => {
-  upload.mockResolvedValue({ data: null, error: { message: 'The object exceeded the maximum allowed size' } })
-  await expect(submitBugReport(report)).rejects.toThrow('The object exceeded the maximum allowed size')
-  expect(insert).not.toHaveBeenCalled()
-})
-
-test('a refused report surfaces the database message', async () => {
-  insert.mockResolvedValue({ error: { message: 'new row violates check constraint "bug_report_has_image"' } })
-  await expect(submitBugReport(report)).rejects.toThrow('bug_report_has_image')
+test('a refusal comes back as the API error', async () => {
+  const refusal = { isAxiosError: true, response: { status: 422, data: { message: 'The upload has an unknown field.' } } }
+  farmBugReportsCreate.mockRejectedValue(refusal)
+  await expect(submitBugReport(report)).rejects.toBe(refusal)
 })

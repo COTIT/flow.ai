@@ -6,20 +6,21 @@ import { useTranslation } from 'react-i18next'
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, CONTROL_FIELD } from '@/components/controlStyles'
 import { FormField } from '@/components/FormField'
+import { apiErrorMessage } from '@/lib/apiError'
 import { captureScreen, submitBugReport } from '@/lib/bugReports'
 import type { TrailEntry } from '@/lib/bugTrail'
 import { trailSnapshot } from '@/lib/bugTrail'
+import { newUuid } from '@/lib/ids'
 
 /**
- * The floating "report a problem" button and its bottom sheet (migration
- * 20261025090001_bug_reports).
+ * The floating "report a problem" button and its bottom sheet (`POST farm/bug-reports`).
  *
  * The tap freezes the last 30 steps and takes the screenshot BEFORE the sheet
  * opens, so neither the button nor the sheet is in the picture and the sheet's
  * own clicks are not on the trail. Everything inside carries
  * `data-bug-report`, which both the trail and the screenshot skip.
  */
-export function BugReportButton({ reporterId }: { reporterId: string }) {
+export function BugReportButton() {
   const { t } = useTranslation()
   const [capturing, setCapturing] = useState(false)
   const [captured, setCaptured] = useState<{ actions: TrailEntry[]; screenshot: Blob | null } | null>(null)
@@ -92,7 +93,6 @@ export function BugReportButton({ reporterId }: { reporterId: string }) {
               <div aria-hidden className="mx-auto mb-4 h-1.5 w-10 rounded-full" style={{ background: 'var(--rule-2)' }} />
               {captured && (
                 <BugReportForm
-                  reporterId={reporterId}
                   actions={captured.actions}
                   screenshot={captured.screenshot}
                   onSent={() => {
@@ -118,12 +118,10 @@ function useObjectUrl(blob: Blob | null) {
 }
 
 function BugReportForm({
-  reporterId,
   actions,
   screenshot,
   onSent,
 }: {
-  reporterId: string
   actions: TrailEntry[]
   screenshot: Blob | null
   onSent: () => void
@@ -136,9 +134,11 @@ function BugReportForm({
   const [attempted, setAttempted] = useState(false)
   const screenshotUrl = useObjectUrl(screenshot)
   const photoUrl = useObjectUrl(photo)
+  // Made when the sheet opens and kept through retries, so an uncertain send is filed once.
+  const [id] = useState(newUuid)
 
   const send = useMutation({
-    mutationFn: () => submitBugReport({ reporterId, description: description.trim(), actions, screenshot, photo }),
+    mutationFn: () => submitBugReport({ id, description: description.trim(), actions, screenshot, photo }),
     onSuccess: onSent,
   })
 
@@ -233,7 +233,7 @@ function BugReportForm({
 
       {send.error && (
         <p role="alert" data-testid="bug-send-error" className="font-medium" style={{ fontSize: 14, color: 'var(--flag-ink)' }}>
-          {send.error.message}
+          {apiErrorMessage(send.error) ?? send.error.message}
         </p>
       )}
 
