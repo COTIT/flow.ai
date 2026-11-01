@@ -16,7 +16,7 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 
 - **No Mailpit.** Mail goes to the real SMTP server in `secrets/smtp_url`.
 - **No fake payments.** The API image is the default build, which refuses `PAYMENTS_PROVIDER=fake`. With no provider set, web payments answer 503 until a real provider is chosen (see `deferred-providers.md`).
-- **No demo seed, no self-signup.** `GENESY_ALLOW_DEMO_SEED` is unset and `SIGNUP_ENABLED=false`. The first account comes from `create-owner`; everyone else is invited.
+- **No demo seed, no self-signup.** `GENESY_ALLOW_DEMO_SEED` is unset and `SIGNUP_ENABLED=false` (also the API default). The first account comes from `create-owner`; everyone else is invited.
 - **External Postgres volume.** It is called `genesy-prod-pg` and you make it by hand, so no `down -v` can delete it.
 - **No `noindex` header, no IP allow-list.**
 - **Field release flag off.** `VITE_FEATURE_RESOURCES=off` hides equipment, loans and requests; no demo banner.
@@ -107,10 +107,10 @@ Self-signup is off, so the first account is made from the command line, once:
 
 ```bash
 docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production \
-  --profile cli run --rm cli create-owner --help
+  --profile cli run --rm cli create-owner --email <email> --workspace <name>
 ```
 
-`create-owner` comes from Phase 4c, so check `--help` for its exact flags. It creates the owner and their workspace. Everyone else is then invited from the office.
+This runs `genesy-360-api create-owner`. It creates the owner and their workspace, and prints a one-time password **once**. Hand that password to the owner over a private channel. Everyone else is invited from the office.
 
 `cli` is its own service with no Traefik labels, so the one-off container never receives web traffic.
 
