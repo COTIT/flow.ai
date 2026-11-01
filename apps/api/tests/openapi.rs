@@ -1806,9 +1806,24 @@ fn every_farm_market_operation_is_documented() {
     assert_documented(&[
         ("/farm/buyers", "get", "farm_market_buyers_list", "200"),
         ("/farm/buyers", "post", "farm_market_buyers_create", "201"),
-        ("/farm/buyer-demands", "get", "farm_market_demands_list", "200"),
-        ("/farm/buyer-demands", "post", "farm_market_demands_create", "201"),
-        ("/farm/buyer-demands/{demand}", "get", "farm_market_demands_get", "200"),
+        (
+            "/farm/buyer-demands",
+            "get",
+            "farm_market_demands_list",
+            "200",
+        ),
+        (
+            "/farm/buyer-demands",
+            "post",
+            "farm_market_demands_create",
+            "201",
+        ),
+        (
+            "/farm/buyer-demands/{demand}",
+            "get",
+            "farm_market_demands_get",
+            "200",
+        ),
         (
             "/farm/buyer-demands/{demand}/opportunities",
             "post",
@@ -1821,7 +1836,12 @@ fn every_farm_market_operation_is_documented() {
             "farm_market_demand_matches",
             "200",
         ),
-        ("/farm/opportunities", "get", "farm_market_opportunities_list", "200"),
+        (
+            "/farm/opportunities",
+            "get",
+            "farm_market_opportunities_list",
+            "200",
+        ),
         (
             "/farm/opportunities/{opportunity}",
             "get",
@@ -1840,7 +1860,12 @@ fn every_farm_market_operation_is_documented() {
             "farm_market_supply_create",
             "201",
         ),
-        ("/farm/harvest-available", "get", "farm_market_harvest_available", "200"),
+        (
+            "/farm/harvest-available",
+            "get",
+            "farm_market_harvest_available",
+            "200",
+        ),
         (
             "/farm/villages/{village}/supply",
             "get",
