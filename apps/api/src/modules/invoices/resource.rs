@@ -197,6 +197,18 @@ pub fn detail(
     })
 }
 
+/// The customer's display name from its list resource: company name, else alias, else the
+/// first contact's full name; blank counts as absent.
+fn customer_name(relation: Option<&Value>) -> Option<&str> {
+    let r = relation?;
+    fn text(v: &Value) -> Option<&str> {
+        v.as_str().map(str::trim).filter(|s| !s.is_empty())
+    }
+    text(&r["company_name"])
+        .or_else(|| text(&r["alias"]))
+        .or_else(|| text(&r["relationships"]["contacts"][0]["full_name"]))
+}
+
 /// One list row (Laravel InvoiceIndexResource), from the stored totals.
 pub fn index(row: &InvoiceRow, e: &Embeds) -> Value {
     let (summary, discounted, _) = read_summary(&row.summary);
@@ -229,6 +241,7 @@ pub fn index(row: &InvoiceRow, e: &Embeds) -> Value {
         "has_collective_invoice": false,
         "import_id": null,
         "meta": row.meta,
+        "customer_name": customer_name(e.relations.get(&row.relation_id)),
         "relationships": {
             "relation": e.relations.get(&row.relation_id),
             "currency": e.currencies.get(&row.currency_id),

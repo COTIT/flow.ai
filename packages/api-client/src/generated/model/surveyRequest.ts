@@ -28,6 +28,12 @@ export interface SurveyRequest {
      * @nullable
      */
   description_sw?: string | null;
+  /**
+     * Create only: a client-made id, so a retried create returns the same survey (200).
+     * Ignored on PATCH.
+     * @nullable
+     */
+  id?: string | null;
   /** @nullable */
   max_households?: number | null;
   /** The incentive in minor units of `currency_id`. */

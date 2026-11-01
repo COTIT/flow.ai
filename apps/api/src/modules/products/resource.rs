@@ -204,6 +204,7 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         },
         "vat_group_id": p.vat_group_id,
         "export_enabled": p.export_enabled,
+        "store_only": p.store_only,
         "export_price_sync": p.export_price_sync,
         "export_product_data": p.export_product_data,
         "export_data": p.export_data.clone().unwrap_or_else(|| json!({
@@ -470,6 +471,8 @@ pub struct ProductDoc {
     #[schema(required = true)]
     vat_group_id: Option<Uuid>,
     export_enabled: bool,
+    /// Sold at the till only; the web shop never lists it (Genesy addition).
+    store_only: bool,
     export_price_sync: bool,
     export_product_data: bool,
     /// `title`, `description_short`, `description`, `meta_title`, `meta_description`,

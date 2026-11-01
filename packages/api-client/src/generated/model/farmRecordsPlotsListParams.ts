@@ -24,6 +24,12 @@ farm_id?: string;
  */
 plot_id?: string;
 /**
+ * Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;
+ * matched only on persons of the caller's own staff villages). At most 100 characters.
+ * @maxLength 100
+ */
+q?: string;
+/**
  * 1-based; junk falls back to 1.
  */
 page?: number;

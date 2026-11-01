@@ -47,6 +47,8 @@ import type {
   PaginatedSaleResource,
   PaginatedShiftResource,
   SaleRequest,
+  TillCatalogPage,
+  TillCatalogParams,
   TillLoginRequest,
   TillRegistersListParams,
   TillSalesListParams,
@@ -78,6 +80,106 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+/**
+ * @summary What this register sells (paged, delta sync, barcode lookup)
+ */
+export const tillCatalog = (
+    workspace: string,
+    params?: TillCatalogParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<TillCatalogPage>(
+      {url: `/workspace/${workspace}/till/catalog`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillCatalogQueryKey = (workspace: string,
+    params?: TillCatalogParams,) => {
+    return [
+    `/workspace/${workspace}/till/catalog`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getTillCatalogQueryOptions = <TData = Awaited<ReturnType<typeof tillCatalog>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: TillCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillCatalog>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getTillCatalogQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof tillCatalog>>> = ({ signal }) => tillCatalog(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof tillCatalog>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type TillCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof tillCatalog>>>
+export type TillCatalogQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useTillCatalog<TData = Awaited<ReturnType<typeof tillCatalog>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  TillCatalogParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillCatalog>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillCatalog>>,
+          TError,
+          Awaited<ReturnType<typeof tillCatalog>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillCatalog<TData = Awaited<ReturnType<typeof tillCatalog>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: TillCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillCatalog>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tillCatalog>>,
+          TError,
+          Awaited<ReturnType<typeof tillCatalog>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useTillCatalog<TData = Awaited<ReturnType<typeof tillCatalog>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: TillCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillCatalog>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary What this register sells (paged, delta sync, barcode lookup)
+ */
+
+export function useTillCatalog<TData = Awaited<ReturnType<typeof tillCatalog>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: TillCatalogParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillCatalog>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getTillCatalogQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 /**
  * Sent with the register's device key. Every 5th wrong PIN locks the user (15 minutes, doubling each time, at most 24 hours); 20 wrong PINs within an hour lock the register for 15 minutes; 429 until then. The token lasts 8 hours.

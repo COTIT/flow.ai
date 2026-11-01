@@ -12,7 +12,7 @@ import {
   useWebhooksList,
   useWebhooksUpdate,
 } from "@genesy/api-client/endpoints/webhooks"
-import type { WebhookEndpointResource } from "@genesy/api-client/model"
+import type { WebhookEndpointResource, WebhookEvent } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
@@ -188,7 +188,8 @@ function EndpointDialog({
               const f = new FormData(e.currentTarget)
               const data = {
                 url: String(f.get("url") ?? ""),
-                events: splitList(f.get("events")),
+                // Free text; the API's 422 refuses unknown events.
+                events: splitList(f.get("events")) as WebhookEvent[],
                 description: String(f.get("description") ?? "") || null,
               }
               if (endpoint)

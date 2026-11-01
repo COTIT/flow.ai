@@ -156,6 +156,16 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<LotRo
         .ok_or(AppError::NotFound)
 }
 
+/// A lot's live stock per warehouse, after the same 404 as `get`.
+pub async fn free_stock(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+) -> Result<Vec<repo::FreeRow>, AppError> {
+    let lot = get(state, workspace_id, id).await?;
+    Ok(repo::free_stock(&state.db, workspace_id, lot.id).await?)
+}
+
 /// One page, newest first. Unknown filter values match nothing.
 pub async fn list(
     state: &AppState,

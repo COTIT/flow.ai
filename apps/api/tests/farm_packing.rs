@@ -593,3 +593,99 @@ async fn transfers_need_a_live_link_and_each_side_does_only_its_part(pool: PgPoo
     let (status, _) = dispatch(&c, &c.raw, &s.link, "1").await;
     assert_eq!(status, StatusCode::FORBIDDEN, "revoked link");
 }
+
+/// POST with an Idempotency-Key, as raw bytes so a replay can be compared byte for byte.
+async fn keyed(
+    f: &Farm,
+    ws: &str,
+    tail: &str,
+    body: Value,
+    token: &str,
+    key: &str,
+) -> (StatusCode, axum::body::Bytes) {
+    common::send_raw(
+        &f.app,
+        Method::POST,
+        &format!("/v1/workspace/{ws}{tail}"),
+        Some(body),
+        Some(token),
+        &[("idempotency-key", key)],
+    )
+    .await
+}
+
+/// A dispatch retried after a lost reply sends once: one transfer, one stock movement, one
+/// event, the same answer. Another body under the key is refused; another workspace's key is
+/// its own.
+#[sqlx::test]
+async fn a_retried_dispatch_sends_once(pool: PgPool) {
+    let c = chain(pool).await;
+    let (_, res) = pack(&c, &c.raw, packing(&c, "ILU-J-1", "10", "7.50")).await;
+    let jar = res["data"]["id"].as_str().unwrap().to_owned();
+    let s = shop(&c, json!(["village"])).await;
+    let tail = format!("/lots/{jar}/transfers");
+    let body = json!({ "link_id": s.link, "warehouse_id": c.warehouse, "quantity": "4" });
+
+    let first = keyed(&c.f, &c.f.ws, &tail, body.clone(), &c.f.owner, "d-1").await;
+    assert_eq!(first.0, StatusCode::CREATED);
+    let again = keyed(&c.f, &c.f.ws, &tail, body.clone(), &c.f.owner, "d-1").await;
+    assert_eq!(again, first, "byte-identical replay");
+    assert_eq!(level(&c.f.pool, &jar).await, "6.00", "stock taken once");
+    let counts: (i64, i64, i64) = sqlx::query_as(
+        "SELECT (SELECT count(*) FROM supply_transfers WHERE from_lot_id = $1::uuid),
+                (SELECT count(*) FROM stock_movements WHERE lot_id = $1::uuid AND related_domain = 'supply_transfer'),
+                (SELECT count(*) FROM lot_events WHERE lot_id = $1::uuid AND kind = 'dispatched')",
+    )
+    .bind(&jar)
+    .fetch_one(&c.f.pool)
+    .await
+    .unwrap();
+    assert_eq!(counts, (1, 1, 1));
+
+    let other = json!({ "link_id": s.link, "warehouse_id": c.warehouse, "quantity": "1" });
+    let (status, bytes) = keyed(&c.f, &c.f.ws, &tail, other, &c.f.owner, "d-1").await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&bytes).unwrap()["message"],
+        "Idempotency-Key reused with different request payload"
+    );
+    // The shop's workspace under the same key gets its own answer: R's lot is not there.
+    let (status, _) = keyed(&c.f, &s.a_ws, &tail, body, &s.a, "d-1").await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "no replay across workspaces");
+    assert_eq!(level(&c.f.pool, &jar).await, "6.00");
+}
+
+/// Farm ops and admin ship stock without `product.update`; a field officer or a plain member
+/// may not.
+#[sqlx::test]
+async fn farm_ops_dispatch_and_plain_members_do_not(pool: PgPool) {
+    let c = chain(pool).await;
+    let (_, res) = pack(&c, &c.raw, packing(&c, "ILU-J-1", "10", "7.50")).await;
+    let jar = res["data"]["id"].as_str().unwrap().to_owned();
+    let s = shop(&c, json!(["village"])).await;
+    let tail = format!("/lots/{jar}/transfers");
+    let body = json!({ "link_id": s.link, "warehouse_id": c.warehouse, "quantity": "1" });
+
+    let (status, res) =
+        c.f.ws_call(Method::POST, &tail, Some(body.clone()), &c.f.ops)
+            .await;
+    assert_eq!(status, StatusCode::CREATED, "farm ops ship: {res}");
+    let plain = c.f.member("plain@ruaha.test").await;
+    for token in [&plain, &c.f.officer_ilu] {
+        let (status, _) =
+            c.f.ws_call(Method::POST, &tail, Some(body.clone()), token)
+                .await;
+        assert_eq!(status, StatusCode::FORBIDDEN);
+    }
+    assert_eq!(level(&c.f.pool, &jar).await, "9.00");
+    // Sharing farmer data stays with workspace admins: farm ops may not grant a link.
+    let (status, _) =
+        c.f.ws_call(
+            Method::POST,
+            "/supply-links",
+            Some(json!({ "to_workspace_id": s.a_ws, "fields": ["village"] })),
+            &c.f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+}

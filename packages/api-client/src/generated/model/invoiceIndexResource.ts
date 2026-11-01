@@ -16,6 +16,11 @@ import type { SummaryResource } from './summaryResource';
 export interface InvoiceIndexResource {
   balance: InvoiceListBalance;
   created_at: string;
+  /**
+     * Customer display name: company name, else alias, else first contact; null when none.
+     * @nullable
+     */
+  customer_name: string | null;
   /** @nullable */
   due_date: string | null;
   /** Always false. */

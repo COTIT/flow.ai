@@ -4,6 +4,8 @@ Events sent to URLs a workspace registers. Code: `src/modules/webhooks/`.
 
 ## Events
 
+The spec lists the names as enum `WebhookEvent`.
+
 | Type | When | `data` |
 |---|---|---|
 | `stock.changed` | a stock level or what orders hold of it changes (mutations, set levels, bin moves, invoice and order stock moves, holds). Requirement-only changes send nothing. | `stock_id, product_id, warehouse_id, lot_id` (null for no-lot stock), `reason` (increase, decrease, set_level, reserved, released), `quantity_change, quantity_after` (decimal strings; holds send change `0.00`: re-read availability) |

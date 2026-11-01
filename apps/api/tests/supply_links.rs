@@ -239,3 +239,41 @@ async fn a_live_link_opens_none_of_rs_records_to_a(pool: PgPool) {
     .await;
     assert_eq!(status, StatusCode::NOT_FOUND, "R's lots");
 }
+
+/// A grant retried with its Idempotency-Key answers the first 201 again and leaves one link;
+/// another body under the key is refused. (Revoke is already safe to repeat: 204 each time.)
+#[sqlx::test]
+async fn a_retried_grant_makes_one_link(pool: PgPool) {
+    let t = two(pool).await;
+    let send = |fields: Value, key: &'static str| {
+        let (app, uri, token, a_ws) = (
+            t.r.app.clone(),
+            format!("/v1/workspace/{}/supply-links", t.r.ws),
+            t.r.owner.clone(),
+            t.a_ws.clone(),
+        );
+        async move {
+            common::send_raw(
+                &app,
+                Method::POST,
+                &uri,
+                Some(json!({ "to_workspace_id": a_ws, "fields": fields })),
+                Some(&token),
+                &[("idempotency-key", key)],
+            )
+            .await
+        }
+    };
+    let first = send(json!(["village"]), "g-1").await;
+    assert_eq!(first.0, StatusCode::CREATED);
+    let again = send(json!(["village"]), "g-1").await;
+    assert_eq!(again, first, "byte-identical replay, not a 409");
+    let (_, list) = call(&t, Method::GET, &t.r.ws, "", None, &t.r.owner).await;
+    assert_eq!(list["meta"]["total"], 1);
+    let (status, bytes) = send(json!(["farmer_count"]), "g-1").await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&bytes).unwrap()["message"],
+        "Idempotency-Key reused with different request payload"
+    );
+}

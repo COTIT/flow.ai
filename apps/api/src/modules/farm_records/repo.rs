@@ -28,6 +28,9 @@ pub struct Pick {
     pub ids: Option<Vec<Uuid>>,
     /// Plots of these farms, or cycles of these plots (other kinds ignore it).
     pub parents: Option<Vec<Uuid>>,
+    /// Persons only: `ILIKE` pattern on the full name, and phone digits (staff rows only).
+    pub name_like: Option<String>,
+    pub phone_digits: Option<String>,
     pub limit: i64,
     pub offset: i64,
 }
@@ -95,6 +98,8 @@ pub struct CycleRow {
     pub village_id: Uuid,
     pub plot_id: Uuid,
     pub crop_id: Uuid,
+    /// `{id, code, name_en, name_sw, measured_by}`.
+    pub crop: Value,
     pub season_label: Option<String>,
     pub area_ha: Option<String>,
     pub tree_count: Option<i32>,
@@ -141,6 +146,8 @@ pub async fn persons(
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4)))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
              AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))
+             AND ($11::text IS NULL OR (t.given_name || ' ' || t.family_name) ILIKE $11
+                  OR ($12::text IS NOT NULL AND ($2 OR t.village_id = ANY($3)) AND t.phone LIKE '%' || $12 || '%'))
            ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8"#,
         s.ws,
         s.all,
@@ -152,6 +159,8 @@ pub async fn persons(
         p.offset,
         p.verification.as_deref(),
         p.ids.as_deref(),
+        p.name_like.as_deref(),
+        p.phone_digits.as_deref(),
     )
     .fetch_all(db)
     .await?;
@@ -160,7 +169,9 @@ pub async fn persons(
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4)))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
-             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))"#,
+             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))
+             AND ($9::text IS NULL OR (t.given_name || ' ' || t.family_name) ILIKE $9
+                  OR ($10::text IS NOT NULL AND ($2 OR t.village_id = ANY($3)) AND t.phone LIKE '%' || $10 || '%'))"#,
         s.ws,
         s.all,
         s.villages,
@@ -169,6 +180,8 @@ pub async fn persons(
         p.id,
         p.verification.as_deref(),
         p.ids.as_deref(),
+        p.name_like.as_deref(),
+        p.phone_digits.as_deref(),
     )
     .fetch_one(db)
     .await?;
@@ -354,7 +367,11 @@ pub async fn cycles(
 ) -> Result<(Vec<CycleRow>, i64), sqlx::Error> {
     let rows = sqlx::query_as!(
         CycleRow,
-        r#"SELECT t.id, t.village_id, t.plot_id, t.crop_id, t.season_label,
+        r#"SELECT t.id, t.village_id, t.plot_id, t.crop_id,
+                  (SELECT jsonb_build_object('id', cr.id, 'code', cr.code, 'name_en', cr.name_en,
+                                             'name_sw', cr.name_sw, 'measured_by', cr.measured_by)
+                   FROM farm_crops cr WHERE cr.workspace_id = t.workspace_id AND cr.id = t.crop_id) AS "crop!",
+                  t.season_label,
                   t.area_ha::text AS area_ha, t.tree_count, t.unit_count, t.planted_on,
                   t.harvest_start, t.harvest_end, t.status,
                   farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,
@@ -447,6 +464,64 @@ pub async fn harvests(
         ws,
         cycle,
         id,
+        current_only,
+    )
+    .fetch_one(db)
+    .await?;
+    Ok((rows, total))
+}
+
+/// Harvest reports across the workspace, by their cycle's visibility (the `cycles` rule),
+/// newest first.
+pub async fn harvest_list(
+    db: &sqlx::PgPool,
+    s: &Seen<'_>,
+    p: &Pick,
+    current_only: bool,
+) -> Result<(Vec<HarvestRow>, i64), sqlx::Error> {
+    let rows = sqlx::query_as!(
+        HarvestRow,
+        r#"SELECT t.id, t.village_id, t.crop_cycle_id, t.kind, t.quantity_kg::text AS "quantity_kg!",
+                  t.reported_for, t.is_current,
+                  farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,
+                                  t.verified_by, t.verified_at, t.confidence, t.evidence_ref) AS "provenance!",
+                  t.created_at, t.updated_at
+           FROM farm_harvest_reports t
+           JOIN farm_crop_cycles c ON c.id = t.crop_cycle_id AND c.workspace_id = $1 AND c.deleted_at IS NULL
+           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+             AND ($2 OR c.village_id = ANY($3)
+                  OR c.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL
+                                   AND pl.farm_id IN (SELECT farm_person_farms($4))))
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::text[] IS NULL OR t.verification = ANY($6))
+             AND (NOT $7 OR t.is_current)
+           ORDER BY t.created_at DESC, t.id DESC LIMIT $8 OFFSET $9"#,
+        s.ws,
+        s.all,
+        s.villages,
+        s.person,
+        p.village,
+        p.verification.as_deref(),
+        current_only,
+        p.limit,
+        p.offset,
+    )
+    .fetch_all(db)
+    .await?;
+    let total = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM farm_harvest_reports t
+           JOIN farm_crop_cycles c ON c.id = t.crop_cycle_id AND c.workspace_id = $1 AND c.deleted_at IS NULL
+           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+             AND ($2 OR c.village_id = ANY($3)
+                  OR c.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL
+                                   AND pl.farm_id IN (SELECT farm_person_farms($4))))
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::text[] IS NULL OR t.verification = ANY($6))
+             AND (NOT $7 OR t.is_current)"#,
+        s.ws,
+        s.all,
+        s.villages,
+        s.person,
+        p.village,
+        p.verification.as_deref(),
         current_only,
     )
     .fetch_one(db)
