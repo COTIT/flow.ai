@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { useTillLogout } from "@genesy/api-client/endpoints/till"
@@ -9,12 +10,19 @@ import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { Button } from "@genesy/ui/components/button"
 import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { cn } from "@genesy/ui/lib/utils"
 import { tillStore, useTill } from "@/lib/till-store"
+
+const nav = [
+  { href: "/sale", label: "nav.sale" },
+  { href: "/drawer", label: "nav.drawer" },
+] as const
 
 /** Logged-in frame for the till screens: guard, register and user, logout. */
 export default function TillLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations()
   const router = useRouter()
+  const pathname = usePathname()
   const hydrated = useTill((s) => s.hydrated)
   const device = useTill((s) => s.device)
   const session = useTill((s) => s.session)
@@ -51,6 +59,24 @@ export default function TillLayout({ children }: { children: React.ReactNode }) 
           {t("common.logout")}
         </Button>
       </header>
+      <nav
+        aria-label={t("nav.label")}
+        className="-mx-1 flex gap-1 overflow-x-auto border-b border-border pb-2"
+      >
+        {nav.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={pathname.startsWith(item.href) ? "page" : undefined}
+            className={cn(
+              "shrink-0 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted",
+              "aria-[current=page]:bg-secondary aria-[current=page]:font-medium aria-[current=page]:text-foreground"
+            )}
+          >
+            {t(item.label)}
+          </Link>
+        ))}
+      </nav>
       <main className="flex flex-col gap-4">{children}</main>
     </div>
   )

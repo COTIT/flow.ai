@@ -54,3 +54,4 @@ export const test = base.extend<{ api: FakeApi }>({
 })
 
 export { expect, paged }
+export type { FakeApi }

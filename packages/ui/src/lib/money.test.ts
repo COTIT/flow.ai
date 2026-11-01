@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { formatMoney } from "./money"
+import { formatMoney, toMinor } from "./money"
 
 // Intl puts a narrow no-break space in some locales; compare on plain spaces.
 const fmt = (...args: Parameters<typeof formatMoney>) =>
@@ -27,5 +27,23 @@ describe("formatMoney", () => {
     expect(fmt(9007199254740993n, 2, "USD", "en")).toBe(
       "$90,071,992,547,409.93"
     )
+  })
+})
+
+describe("toMinor", () => {
+  it("turns a typed amount into minor units by string", () => {
+    expect(toMinor("12.5", 2)).toBe(1250)
+    expect(toMinor("0,05", 2)).toBe(5)
+    expect(toMinor(" 20 ", 2)).toBe(2000)
+    expect(toMinor("500", 0)).toBe(500)
+  })
+
+  it("refuses what isn't a plain positive amount", () => {
+    expect(toMinor("", 2)).toBeNull()
+    expect(toMinor("0", 2)).toBeNull()
+    expect(toMinor("-1", 2)).toBeNull()
+    expect(toMinor("1.005", 2)).toBeNull()
+    expect(toMinor("1e3", 2)).toBeNull()
+    expect(toMinor("99999999999999999", 2)).toBeNull()
   })
 })
