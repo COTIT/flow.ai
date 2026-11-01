@@ -6,11 +6,11 @@ const useEquipmentList = vi.fn()
 const useLoanProducts = vi.fn()
 const search = { kind: undefined as string | undefined }
 const navigate = vi.fn()
-const flags = { pue: false }
+const flags = { loans: false }
 
 vi.mock('@/features/farmer/useEquipment', () => ({ useEquipmentList: () => useEquipmentList() }))
 vi.mock('@/features/farmer/useResources', () => ({ useLoanProducts: () => useLoanProducts() }))
-vi.mock('@/lib/ported', () => ({ get PUE_PORTED() { return flags.pue } }))
+vi.mock('@/lib/ported', () => ({ get LOANS_PORTED() { return flags.loans } }))
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useSearch: () => search, useNavigate: () => navigate }),
   Link: ({ children, ...props }: { children: React.ReactNode }) => <a href="#x" {...props}>{children}</a>,
@@ -43,7 +43,7 @@ const loan = {
 }
 
 beforeEach(() => {
-  flags.pue = false
+  flags.loans = false
   search.kind = undefined
   navigate.mockReset()
   useEquipmentList.mockReturnValue({ isLoading: false, error: null, items: [machine()] })
@@ -64,7 +64,7 @@ describe('the Resources screen', () => {
   })
 
   test('offers equipment and loans', () => {
-    flags.pue = true
+    flags.loans = true
     render(<EquipmentListScreen />)
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Equipment and loans')
@@ -72,7 +72,7 @@ describe('the Resources screen', () => {
   })
 
   test('switching to loans is held in the URL', async () => {
-    flags.pue = true
+    flags.loans = true
     render(<EquipmentListScreen />)
     await userEvent.click(screen.getByTestId('resources-tab-loan'))
 
@@ -112,7 +112,7 @@ describe('the Resources screen', () => {
 /** Loans are listings: never an offer, never requested in the app. */
 describe('loans', () => {
   beforeEach(() => {
-    flags.pue = true
+    flags.loans = true
     search.kind = 'loan'
   })
 

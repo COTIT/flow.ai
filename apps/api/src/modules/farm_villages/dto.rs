@@ -8,7 +8,7 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
-    http::json::{Rules, Validate, filled, optional, present},
+    http::json::{Rules, Validate, filled, human, optional, present},
     modules::farm_villages::repo::{CapacityRow, NewCapacity, VillagePatch, VillageRow},
 };
 
@@ -24,6 +24,7 @@ const CAPACITY_REQUIRED: &str = "a planned capacity is required";
 /// A village's current capacity: planned or nameplate, never measured.
 #[derive(Serialize, ToSchema)]
 pub struct CapacityResource {
+    id: Uuid,
     /// kW as text, 2 decimals.
     #[schema(example = "500.00")]
     capacity_kw: String,
@@ -40,6 +41,7 @@ pub struct CapacityResource {
 impl From<CapacityRow> for CapacityResource {
     fn from(c: CapacityRow) -> Self {
         Self {
+            id: c.id,
             capacity_kw: c.capacity_kw.to_string(),
             basis: c.basis,
             simultaneity_factor: c.simultaneity_factor.to_string(),
@@ -73,23 +75,29 @@ pub struct VillageResource {
 impl From<VillageRow> for VillageResource {
     fn from(v: VillageRow) -> Self {
         let capacity = match (
+            v.capacity_id,
             v.capacity_kw,
             v.basis,
             v.simultaneity_factor,
             v.effective_from,
         ) {
-            (Some(capacity_kw), Some(basis), Some(simultaneity_factor), Some(effective_from)) => {
-                Some(
-                    CapacityRow {
-                        capacity_kw,
-                        basis,
-                        simultaneity_factor,
-                        source_note: v.source_note,
-                        effective_from,
-                    }
-                    .into(),
-                )
-            }
+            (
+                Some(id),
+                Some(capacity_kw),
+                Some(basis),
+                Some(simultaneity_factor),
+                Some(effective_from),
+            ) => Some(
+                CapacityRow {
+                    id,
+                    capacity_kw,
+                    basis,
+                    simultaneity_factor,
+                    source_note: v.source_note,
+                    effective_from,
+                }
+                .into(),
+            ),
             _ => None,
         };
         Self {
@@ -150,6 +158,9 @@ pub struct CreateVillageRequest {
     one is kept as history."
 )]
 pub struct CapacityRequest {
+    /// Client id: a retried save replays instead of recording the figure twice.
+    #[schema(value_type = Option<Uuid>)]
+    id: Option<String>,
     /// kW, at most 2 decimals.
     #[schema(value_type = String, example = "500")]
     capacity_kw: Option<Value>,
@@ -198,7 +209,13 @@ impl Validate for CapacityRequest {
             );
             d
         });
+        let id = optional(self.id).and_then(|v| {
+            let id = Uuid::parse_str(&v).ok();
+            r.check("id", id.is_some(), "The id must be a valid UUID.");
+            id
+        });
         Some(NewCapacity {
+            id,
             capacity_kw: capacity_kw?,
             basis: r.one_of("basis", self.basis, BASES, None),
             simultaneity_factor: factor,
@@ -211,12 +228,29 @@ impl Validate for CapacityRequest {
 /// `capacity` inside a village create: required, checked as a `CapacityRequest` with
 /// `capacity.` before each field.
 fn capacity(r: &mut Rules, value: Option<Value>) -> Option<NewCapacity> {
-    let req = value
-        .filter(|v| filled(v.get("capacity_kw").cloned()).is_some())
-        .and_then(|v| serde_json::from_value::<CapacityRequest>(v).ok());
-    let Some(req) = req else {
+    let Some(value) = value.filter(|v| filled(v.get("capacity_kw").cloned()).is_some()) else {
         r.add("capacity", CAPACITY_REQUIRED);
         return None;
+    };
+    let req = match serde_json::from_value::<CapacityRequest>(value.clone()) {
+        Ok(req) => req,
+        Err(_) => {
+            // Only the text fields can fail to deserialize; name the one that did.
+            let wrong: Vec<&str> = ["basis", "source_note", "effective_from"]
+                .into_iter()
+                .filter(|f| value.get(f).is_some_and(|v| !v.is_null() && !v.is_string()))
+                .collect();
+            for f in &wrong {
+                r.add(
+                    &format!("capacity.{f}"),
+                    format!("The {} must be a string.", human(f)),
+                );
+            }
+            if wrong.is_empty() {
+                r.add("capacity", CAPACITY_REQUIRED);
+            }
+            return None;
+        }
     };
     let mut inner = Rules::default();
     let c = req.validate(&mut inner);

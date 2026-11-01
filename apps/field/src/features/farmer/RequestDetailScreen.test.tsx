@@ -4,10 +4,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const useRequest = vi.fn()
 const mutate = vi.fn()
-const transitionState = { isPending: false, error: null as Error | null }
+const transitionState = { isPending: false, error: null as unknown }
 
-const actorName = vi.fn((_id: string | null | undefined): string | undefined => undefined)
-vi.mock('@/lib/actorNames', () => ({ useActorName: (id: string | null | undefined) => actorName(id) }))
 vi.mock('@/features/farmer/useRequests', () => ({
   useRequest: () => useRequest(),
   useFarmerTransition: () => ({ mutate, ...transitionState }),
@@ -32,7 +30,7 @@ const request = (over: Record<string, unknown> = {}) => ({
   verification: 'unverified',
   confidence: null,
   captured_at: '2026-09-09T12:00:00Z',
-  captured_by: null,
+  captured_by_name: null,
   village_id: 'v1',
   status: 'draft',
   quantity: 1,
@@ -130,7 +128,8 @@ describe('RequestDetailScreen farmer actions', () => {
 
   // The guard's messages are written to be read by humans (business-rules §9).
   test("a refusal from the guard is surfaced verbatim", () => {
-    transitionState.error = new Error('illegal transition draft -> approved')
+    // An axios error from the API, its body's message shown as written.
+    transitionState.error = { response: { status: 422, data: { message: 'illegal transition draft -> approved' } } }
     show({ status: 'draft' })
     render(<RequestDetailScreen />)
 
@@ -184,21 +183,9 @@ describe('RequestDetailScreen states', () => {
 })
 
 describe('RequestDetailScreen provenance', () => {
-  const ACTOR = '80000000-0000-4000-8000-000000000005'
-
-  test('the badge names who captured the request, never their raw id', () => {
-    actorName.mockImplementation((id) => (id === ACTOR ? 'Neema Mwakalinga' : undefined))
-    useRequest.mockReturnValue({ isLoading: false, error: null, request: request({ captured_by: ACTOR }) })
+  test('the badge names who captured the request, from the API', () => {
+    useRequest.mockReturnValue({ isLoading: false, error: null, request: request({ captured_by_name: 'Neema Mwakalinga' }) })
     render(<RequestDetailScreen />)
-    const badge = screen.getAllByTestId('provenance-badge')[0]
-    expect(badge.getAttribute('title')).toContain('Neema Mwakalinga')
-    expect(badge.getAttribute('title')).not.toContain(ACTOR)
-  })
-
-  test('an actor the caller may not see is omitted, not shown as an id', () => {
-    actorName.mockReturnValue(undefined)
-    useRequest.mockReturnValue({ isLoading: false, error: null, request: request({ captured_by: ACTOR }) })
-    render(<RequestDetailScreen />)
-    expect(screen.getAllByTestId('provenance-badge')[0].getAttribute('title')).not.toContain(ACTOR)
+    expect(screen.getAllByTestId('provenance-badge')[0].getAttribute('title')).toContain('Neema Mwakalinga')
   })
 })

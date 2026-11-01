@@ -64,7 +64,7 @@ export interface NewLoanProduct {
 
 /**
  * shortcut: loan products are not on the API yet (a later domain), so this still writes to Supabase;
- * the catalogue keeps its loan tab hidden (`PUE_PORTED`) until loans move to the API.
+ * the catalogue keeps its loan tab hidden (`LOANS_PORTED`) until loans move to the API.
  */
 export function useCreateLoanProduct() {
   const queryClient = useQueryClient()
