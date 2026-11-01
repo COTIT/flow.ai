@@ -587,6 +587,8 @@
     "releaseDetail": "Kiasi cha {{kg}} kinarudi kwenye ugavi unaopatikana wa kijiji hiki, na sehemu ya mahitaji ya mnunuzi iliyokidhiwa inapungua. Hili haliwezi kutenduliwa: fursa ambayo mnunuzi ameikataa au iliyoisha muda haiwezi kufunguliwa tena.",
     "releaseYes": "Ndiyo, achilia ugavi",
     "releaseNo": "Ghairi",
+    "attachConfirmTitle": "Ambatisha ugavi huu?",
+    "attachConfirmDetail": "Kiasi cha {{kg}} kutoka kwa {{farmer}} kitahesabiwa kuwa kimeahidiwa kwa fursa hii. Mstari wa ugavi hauwezi kuhaririwa wala kuondolewa baadaye.",
     "releasedNote": "Imefungwa. Kiasi chake cha {{kg}} kimerudi kwenye ugavi unaopatikana wa kijiji hiki. Mistari ya ugavi iliyo hapa chini inabaki kwenye rekodi — hakuna kilichofutwa.",
     "attachClosedTitle": "Hakuna kinachoweza kuambatishwa tena",
     "attachClosedDetail": "Fursa hii imefungwa, kwa hiyo ugavi wake haujahesabiwa tena kuwa umeahidiwa. Mstari ulioambatishwa hapa ungerekodi ahadi isiyo na fursa hai inayoihusu.",
