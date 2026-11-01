@@ -2,5 +2,59 @@
   "app": {
     "title": "Genesy Till",
     "tagline": "Point of sale and cash payouts."
+  },
+  "setup": {
+    "title": "Set up this till",
+    "hint": "Enter the workspace id and the device key shown once in office when the register was created.",
+    "workspace": "Workspace id",
+    "key": "Device key",
+    "submit": "Save"
+  },
+  "login": {
+    "title": "Who is selling?",
+    "who": "Till users",
+    "pin": "PIN",
+    "submit": "Log in",
+    "back": "Back",
+    "wrongPin": "Wrong PIN.",
+    "locked": "Too many wrong PINs. Try again later.",
+    "pinFormat": "The PIN is 4 to 8 digits.",
+    "keyRefused": "This device's key is no longer accepted. Set up the till again.",
+    "setupAgain": "Set up again"
+  },
+  "sale": {
+    "title": "Sale"
+  },
+  "nav": {
+    "label": "Till menu",
+    "sale": "Sale",
+    "drawer": "Drawer"
+  },
+  "drawer": {
+    "title": "Drawer",
+    "none": "No shift is open on this register.",
+    "openTitle": "Count the float",
+    "open": "Open shift",
+    "closeTitle": "Count the drawer to close",
+    "close": "Close shift",
+    "openedAt": "Opened",
+    "opening": "Opening float",
+    "expected": "Expected cash",
+    "counted": "Counted",
+    "difference": "Difference",
+    "closedTitle": "Shift closed",
+    "short": "Short",
+    "over": "Over",
+    "balanced": "Balanced"
+  },
+  "count": {
+    "denomination": "Value of row {n}",
+    "pieces": "Pieces of row {n}",
+    "value": "Note or coin",
+    "count": "Pieces",
+    "remove": "Remove row {n}",
+    "add": "Add row",
+    "total": "Counted",
+    "invalid": "Each row needs a value (e.g. 5.00) and a whole number of pieces."
   }
 }

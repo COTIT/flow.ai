@@ -2,5 +2,59 @@
   "app": {
     "title": "Genesy Till",
     "tagline": "Mauzo ya dukani na malipo ya pesa taslimu."
+  },
+  "setup": {
+    "title": "Sanidi kituo hiki cha mauzo",
+    "hint": "Weka kitambulisho cha workspace na ufunguo wa kifaa ulioonyeshwa mara moja ofisini rejista ilipoundwa.",
+    "workspace": "Kitambulisho cha workspace",
+    "key": "Ufunguo wa kifaa",
+    "submit": "Hifadhi"
+  },
+  "login": {
+    "title": "Nani anauza?",
+    "who": "Watumiaji wa kituo",
+    "pin": "PIN",
+    "submit": "Ingia",
+    "back": "Rudi",
+    "wrongPin": "PIN si sahihi.",
+    "locked": "PIN zisizo sahihi zimezidi. Jaribu tena baadaye.",
+    "pinFormat": "PIN ni tarakimu 4 hadi 8.",
+    "keyRefused": "Ufunguo wa kifaa hiki haukubaliki tena. Sanidi kituo upya.",
+    "setupAgain": "Sanidi upya"
+  },
+  "sale": {
+    "title": "Mauzo"
+  },
+  "nav": {
+    "label": "Menyu ya kituo",
+    "sale": "Mauzo",
+    "drawer": "Droo"
+  },
+  "drawer": {
+    "title": "Droo ya pesa",
+    "none": "Hakuna zamu iliyo wazi kwenye rejista hii.",
+    "openTitle": "Hesabu pesa za kuanzia",
+    "open": "Fungua zamu",
+    "closeTitle": "Hesabu droo ili kufunga",
+    "close": "Funga zamu",
+    "openedAt": "Ilifunguliwa",
+    "opening": "Pesa za kuanzia",
+    "expected": "Pesa zinazotarajiwa",
+    "counted": "Zilizohesabiwa",
+    "difference": "Tofauti",
+    "closedTitle": "Zamu imefungwa",
+    "short": "Upungufu",
+    "over": "Ziada",
+    "balanced": "Sawa"
+  },
+  "count": {
+    "denomination": "Thamani ya mstari {n}",
+    "pieces": "Idadi ya mstari {n}",
+    "value": "Noti au sarafu",
+    "count": "Idadi",
+    "remove": "Ondoa mstari {n}",
+    "add": "Ongeza mstari",
+    "total": "Zilizohesabiwa",
+    "invalid": "Kila mstari unahitaji thamani (mf. 5.00) na idadi kamili."
   }
 }

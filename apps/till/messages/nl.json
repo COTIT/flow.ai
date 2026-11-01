@@ -2,5 +2,59 @@
   "app": {
     "title": "Genesy Till",
     "tagline": "Kassa en contante uitbetalingen."
+  },
+  "setup": {
+    "title": "Deze kassa instellen",
+    "hint": "Vul het workspace-id in en de apparaatsleutel die office eenmalig toonde bij het aanmaken van de kassa.",
+    "workspace": "Workspace-id",
+    "key": "Apparaatsleutel",
+    "submit": "Opslaan"
+  },
+  "login": {
+    "title": "Wie verkoopt er?",
+    "who": "Kassagebruikers",
+    "pin": "Pincode",
+    "submit": "Inloggen",
+    "back": "Terug",
+    "wrongPin": "Verkeerde pincode.",
+    "locked": "Te vaak een verkeerde pincode. Probeer het later opnieuw.",
+    "pinFormat": "De pincode is 4 tot 8 cijfers.",
+    "keyRefused": "De sleutel van dit apparaat wordt niet meer geaccepteerd. Stel de kassa opnieuw in.",
+    "setupAgain": "Opnieuw instellen"
+  },
+  "sale": {
+    "title": "Verkoop"
+  },
+  "nav": {
+    "label": "Kassamenu",
+    "sale": "Verkoop",
+    "drawer": "Lade"
+  },
+  "drawer": {
+    "title": "Kassalade",
+    "none": "Er is geen dienst open op deze kassa.",
+    "openTitle": "Tel het wisselgeld",
+    "open": "Dienst openen",
+    "closeTitle": "Tel de lade om af te sluiten",
+    "close": "Dienst sluiten",
+    "openedAt": "Geopend",
+    "opening": "Wisselgeld bij opening",
+    "expected": "Verwacht contant",
+    "counted": "Geteld",
+    "difference": "Verschil",
+    "closedTitle": "Dienst gesloten",
+    "short": "Tekort",
+    "over": "Overschot",
+    "balanced": "Klopt"
+  },
+  "count": {
+    "denomination": "Waarde van rij {n}",
+    "pieces": "Aantal van rij {n}",
+    "value": "Biljet of munt",
+    "count": "Aantal",
+    "remove": "Rij {n} verwijderen",
+    "add": "Rij toevoegen",
+    "total": "Geteld",
+    "invalid": "Elke rij heeft een waarde (bv. 5,00) en een heel aantal nodig."
   }
 }
