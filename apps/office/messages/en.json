@@ -25,7 +25,8 @@
     "stock": "Stock",
     "invoices": "Invoices",
     "orders": "Orders",
-    "till": "Till"
+    "till": "Till",
+    "supply": "Supply"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -302,5 +303,39 @@
     "catalog": "At catalog prices",
     "mismatch": "Mismatch",
     "mismatchValue": "{amount} ({lines} lines)"
+  },
+  "supply": {
+    "title": "Supply",
+    "tabs": {
+      "links": "Supply links",
+      "transfers": "Transfers"
+    },
+    "linksHint": "Links let a partner's farm send batches here. The allow-list says which farmer details may show on your public batch pages; names and photos never do.",
+    "noLinks": "No supply links yet.",
+    "partner": "Partner",
+    "direction": "Direction",
+    "allowList": "May show",
+    "granted": "Granted",
+    "noFields": "No farmer details",
+    "directions": {
+      "incoming": "From partner",
+      "outgoing": "To partner"
+    },
+    "statuses": {
+      "pending": "Waiting for acceptance",
+      "live": "Live",
+      "revoked": "Revoked"
+    },
+    "fields": {
+      "village": "Village",
+      "farmer_count": "Number of farmers",
+      "harvest_window": "Harvest dates"
+    },
+    "accept": "Accept",
+    "acceptTitle": "Accept the supply link from {partner}?",
+    "acceptText": "Batches can then be sent to this workspace. Your public batch pages may show: {fields}.",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke the supply link with {partner}?",
+    "revokeText": "No more batches can be sent or received over it. Stock already received keeps crediting farmers. To resume, the partner must grant a new link."
   }
 }
