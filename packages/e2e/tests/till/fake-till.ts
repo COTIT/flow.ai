@@ -134,6 +134,9 @@ export async function fakeTill(page: Page) {
     }))
     .on("POST", "/workspace/:ws/till/login", () => ({ data: session }))
     .on("POST", "/workspace/:ws/till/logout", () => ({ status: 204 }))
+    .on("GET", "/workspace/:ws/till/me", () => ({
+      data: { expires_at: session.expires_at, register, user: amina },
+    }))
   serveCatalog(api, [honey])
   serveQuote(api, [honey])
   await page.route("**/v1/**", (route) => api.handle(route))
