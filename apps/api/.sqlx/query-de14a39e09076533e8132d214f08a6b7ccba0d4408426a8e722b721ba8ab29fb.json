@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT buyer_demand_id, village_id, note FROM farm_opportunities\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "buyer_demand_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunities",
+            "name": "buyer_demand_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunities",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunities",
+            "name": "note"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "de14a39e09076533e8132d214f08a6b7ccba0d4408426a8e722b721ba8ab29fb"
+}

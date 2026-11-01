@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Phase 4c step 3, market (RUAHA `market.sql`, `mvp_security.sql`, `supply_attached_by.sql`, `views.sql`; contract `docs/api/farm-market.md`; migrations `farm_market`, `farm_opportunity_supply`):
+  - `farm_buyers`, `farm_buyer_demands` (no `source` column, on purpose), `farm_opportunities` (demand crop by composite FK; one per demand and village), `farm_opportunity_supply` (append-only; opportunity, harvest and cycle in one village by composite FK; attacher stamped from the caller).
+  - Buyers and demand (`/farm/buyers`, `/farm/buyer-demands`): ops and admin only. Opportunities (`POST /farm/buyer-demands/{demand}/opportunities`, `/farm/opportunities`, `…/status`): staff of the village read, ops and admin write; RUAHA's status machine and messages. A farmer sees an opportunity carrying their own supply, own lines only, no attacher.
+  - `POST /farm/opportunities/{opportunity}/supply`: RUAHA's supply guard in `farm_market::service::attach` (harvest rows locked first, then the opportunity, then the committed figure in its own statement); 4b's over-commitment text.
+  - `farm_harvest_committed_kg` now also counts live-opportunity kg, keeping 4b's series meaning: opportunity kg count against the expected harvest and supply-batch kg against the actual harvest; the two do not block each other. View `farm_harvest_available`.
+  - `GET /farm/harvest-available`, `/farm/villages/{village}/supply`, `/farm/buyer-demands/{demand}/matches`, `/farm/villages/{village}/demand-matches` (each harvest counted once per village).
 - Phase 4c step 2, productive-use requests and village energy (RUAHA `pue.sql`, `energy.sql`, `resource_catalogue.sql`, `mvp_security.sql`; contract `docs/api/farm-pue.md`; migration `farm_pue`):
   - `farm_pue_requests` (person and farm in the request's village by composite FK; rent or buy; provenance stamped by the server) and `farm_energy_estimates` (one per request, inputs snapshotted, outputs `GENERATED ALWAYS`, written only by trigger `farm_pue_recompute_estimate`; a machine with no rated power has none).
   - `GET|POST /farm/pue-requests`, `GET /farm/pue-requests/{request}`: a farmer files and reads their own, staff for persons of their villages. Created only as draft or submitted; rent/buy must be offered by the catalogue (RUAHA's words). Client `id` replays or 409.

@@ -1,0 +1,178 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.id AS buyer_demand_id, b.id AS buyer_id, b.name AS buyer_name, d.crop_id,\n                  d.quantity_kg AS demand_kg, d.window_start, d.window_end,\n                  s.village_id AS \"village_id!\", v.name AS village_name,\n                  s.available_kg AS \"available_kg!\", s.committed_kg AS \"committed_kg!\",\n                  least(d.quantity_kg, s.available_kg) AS \"coverable_kg!\",\n                  round(100 * least(d.quantity_kg, s.available_kg) / d.quantity_kg, 1) AS \"coverage_pct!\",\n                  o.id AS \"opportunity_id?\", o.status AS \"opportunity_status?\"\n           FROM farm_buyer_demands d\n           JOIN farm_buyers b ON b.id = d.buyer_id\n           JOIN LATERAL (\n               SELECT a.village_id, sum(a.available_kg) AS available_kg, sum(a.committed_kg) AS committed_kg\n               FROM farm_harvest_available a\n               WHERE a.workspace_id = d.workspace_id AND a.crop_id = d.crop_id\n                 AND a.harvest_start <= d.window_end AND a.harvest_end >= d.window_start\n                 AND ($3::uuid IS NULL OR a.village_id = $3)\n               GROUP BY a.village_id\n           ) s ON true\n           JOIN farm_villages v ON v.id = s.village_id\n           LEFT JOIN farm_opportunities o ON o.buyer_demand_id = d.id AND o.village_id = s.village_id\n                AND o.deleted_at IS NULL\n           WHERE d.workspace_id = $1 AND d.deleted_at IS NULL AND d.status = 'open'\n             AND ($2::uuid IS NULL OR d.id = $2)\n           ORDER BY d.window_start, d.id, v.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "buyer_demand_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "buyer_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_buyers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "buyer_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_buyers",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "crop_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "crop_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "demand_kg",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "quantity_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "window_start",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "window_start"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "window_end",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "window_end"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "village_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "village_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "available_kg!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "committed_kg!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "coverable_kg!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "coverage_pct!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 13,
+        "name": "opportunity_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunities",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "opportunity_status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunities",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "1b3a92430d16a97c82d8b2d2b8942e0564848df039a5d60fc0ca21593751950f"
+}

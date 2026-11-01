@@ -1,0 +1,198 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.harvest_report_id AS \"harvest_report_id!\", a.crop_cycle_id AS \"crop_cycle_id!\",\n                  a.village_id AS \"village_id!\", a.crop_id AS \"crop_id!\", a.plot_id AS \"plot_id!\",\n                  pl.label AS plot_label, mp.id AS \"farmer_person_id?\",\n                  concat_ws(' ', mp.given_name, mp.family_name) AS farmer_name,\n                  a.harvest_start, a.harvest_end, a.quantity_kg AS \"quantity_kg!\", a.confidence,\n                  a.verification AS \"verification!\", a.committed_kg AS \"committed_kg!\",\n                  a.available_kg AS \"available_kg!\"\n           FROM farm_harvest_available a\n           JOIN farm_plots pl ON pl.id = a.plot_id\n           LEFT JOIN farm_managers m ON m.farm_id = pl.farm_id AND m.is_primary\n           LEFT JOIN farm_persons mp ON mp.id = m.person_id\n           WHERE a.workspace_id = $1\n             AND ($2 OR a.village_id = ANY($3) OR pl.farm_id IN (SELECT farm_person_farms($4)))\n             AND ($5::uuid IS NULL OR a.village_id = $5) AND ($6::uuid IS NULL OR a.crop_id = $6)\n           ORDER BY a.harvest_start NULLS LAST, a.harvest_report_id LIMIT $7 OFFSET $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "harvest_report_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "harvest_report_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "crop_cycle_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "crop_cycle_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "village_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "crop_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "crop_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "plot_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "plot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "plot_label",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_plots",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "farmer_person_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "farmer_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "harvest_start",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "harvest_start"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "harvest_end",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "harvest_end"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "quantity_kg!",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "quantity_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "confidence",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "confidence"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "verification!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "verification"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "committed_kg!",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "committed_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "available_kg!",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_available",
+            "name": "available_kg"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ea35faff33b23e47b6647d03054201133fcf807649d1c74ed4b111b4c38be2c1"
+}

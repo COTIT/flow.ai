@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_opportunities (id, workspace_id, buyer_demand_id, village_id, crop_id,\n             note, captured_by)\n         VALUES (coalesce($1, uuidv7()), $2, $3, $4, $5, $6, $7)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunities",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "68d831abc93f65ddee75e27479289637b78337c318b19a9d9c96ee6396d004e6"
+}
