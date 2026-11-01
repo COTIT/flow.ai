@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.person_id, sum(e.amount)::bigint AS \"amount!\"\n           FROM farm_sale_attributions a\n           JOIN farm_passbook_entries e ON e.attribution_id = a.id\n           WHERE a.sold_workspace_id = $1 AND a.order_id = $2 AND a.sold_lot_id = $3\n             AND a.kind = 'return'\n           GROUP BY e.person_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "person_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "person_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "amount!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "d3a7baa9080f56804439104d72012fb1733534ac8bc6a93299193623ecf30de8"
+}

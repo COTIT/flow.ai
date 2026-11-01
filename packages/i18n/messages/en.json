@@ -40,7 +40,9 @@
     "validUntil": "Valid until {date}",
     "certFile": "View certificate",
     "farmers": "Meet the farmers",
-    "harvested": "Harvested {dates}",
-    "published": "Passport version {version}, published {date}"
+    "harvested": "Harvested {start} – {end}",
+    "published": "Passport version {version}, published {date}",
+    "harvestedOn": "Harvested {date}",
+    "farmerCount": "{count} farmers"
   }
 }

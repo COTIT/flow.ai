@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.workspace_id, l.parent_lot_id, l.pack_raw_kg, l.pack_units,\n                  t.from_lot_id AS \"from_lot_id?\", t.fields AS \"fields?\"\n           FROM lots l\n           LEFT JOIN supply_transfers t ON t.to_workspace_id = l.workspace_id AND t.to_lot_id = l.id\n           WHERE l.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "parent_lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "parent_lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "pack_raw_kg",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "pack_raw_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "pack_units",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "pack_units"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "from_lot_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "from_lot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "fields?",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "fields"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "4928c4c849fb3803e72b91648d78842f8f52cefd7c040ca0646a31a2729c6647"
+}

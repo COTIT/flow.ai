@@ -46,6 +46,36 @@ pub struct Redeemer {
     pub manages: bool,
 }
 
+/// Why a staff member may not hand cash to a household (vouchers and payouts alike).
+#[derive(Debug, PartialEq, Eq)]
+pub enum Conflict {
+    /// They registered the household.
+    Registered,
+    /// They verified the household.
+    Verified,
+    /// Their own person belongs to it.
+    OwnHousehold,
+}
+
+/// Four eyes on cash to a household: whoever registered or verified it, or belongs to it,
+/// must leave the hand-over to someone else.
+pub fn household_conflict(
+    captured_by: Option<Uuid>,
+    verified_by: Option<Uuid>,
+    me: Uuid,
+    in_household: bool,
+) -> Option<Conflict> {
+    if captured_by == Some(me) {
+        Some(Conflict::Registered)
+    } else if verified_by == Some(me) {
+        Some(Conflict::Verified)
+    } else if in_household {
+        Some(Conflict::OwnHousehold)
+    } else {
+        None
+    }
+}
+
 /// RUAHA `voucher_block_reason`: the first reason that applies, None = may redeem.
 pub fn block_reason(v: &VoucherFacts<'_>, me: &Redeemer, now: DateTime<Utc>) -> Option<String> {
     if v.status == "redeemed" {
@@ -68,19 +98,28 @@ pub fn block_reason(v: &VoucherFacts<'_>, me: &Redeemer, now: DateTime<Utc>) -> 
         let on = v.expires_at.with_timezone(&tz()).format("%d %b %Y");
         return Some(format!("this voucher expired on {on}"));
     }
-    if v.household_captured_by == Some(me.id) {
-        return Some(
-            "you registered this household, so another staff member must redeem this voucher"
-                .into(),
-        );
-    }
-    if v.household_verified_by == Some(me.id) {
-        return Some(
-            "you verified this household, so another staff member must redeem this voucher".into(),
-        );
-    }
-    if me.in_household {
-        return Some("you cannot redeem a voucher for your own household".into());
+    match household_conflict(
+        v.household_captured_by,
+        v.household_verified_by,
+        me.id,
+        me.in_household,
+    ) {
+        Some(Conflict::Registered) => {
+            return Some(
+                "you registered this household, so another staff member must redeem this voucher"
+                    .into(),
+            );
+        }
+        Some(Conflict::Verified) => {
+            return Some(
+                "you verified this household, so another staff member must redeem this voucher"
+                    .into(),
+            );
+        }
+        Some(Conflict::OwnHousehold) => {
+            return Some("you cannot redeem a voucher for your own household".into());
+        }
+        None => {}
     }
     if v.audit_required && !me.manages {
         return Some(

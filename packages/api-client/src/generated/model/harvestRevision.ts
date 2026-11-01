@@ -10,6 +10,12 @@
  * A new figure for this cycle. It replaces the current one of the same kind, which stays on record.
  */
 export interface HarvestRevision {
+  /**
+     * Made on the device: a retry with the same ref returns the same figure (200); the same
+     * ref with a different figure is a 409.
+     * @nullable
+     */
+  client_ref?: string | null;
   /** @nullable */
   confidence?: string | null;
   /** `expected` or `actual`. */

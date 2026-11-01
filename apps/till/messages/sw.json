@@ -2,5 +2,107 @@
   "app": {
     "title": "Genesy Till",
     "tagline": "Mauzo ya dukani na malipo ya pesa taslimu."
+  },
+  "setup": {
+    "title": "Sanidi kituo hiki cha mauzo",
+    "hint": "Weka kitambulisho cha workspace na ufunguo wa kifaa ulioonyeshwa mara moja ofisini rejista ilipoundwa.",
+    "workspace": "Kitambulisho cha workspace",
+    "key": "Ufunguo wa kifaa",
+    "submit": "Hifadhi"
+  },
+  "login": {
+    "title": "Nani anauza?",
+    "who": "Watumiaji wa kituo",
+    "pin": "PIN",
+    "submit": "Ingia",
+    "back": "Rudi",
+    "wrongPin": "PIN si sahihi.",
+    "locked": "PIN zisizo sahihi zimezidi. Jaribu tena baadaye.",
+    "pinFormat": "PIN ni tarakimu 4 hadi 8.",
+    "keyRefused": "Ufunguo wa kifaa hiki haukubaliki tena. Sanidi kituo upya.",
+    "setupAgain": "Sanidi upya"
+  },
+  "sale": {
+    "title": "Mauzo",
+    "scan": "Changanua au andika msimbopau",
+    "notFound": "Hakuna bidhaa yenye msimbo {code}.",
+    "search": "Tafuta bidhaa",
+    "results": "Matokeo ya utafutaji",
+    "cart": "Kikapu",
+    "empty": "Kikapu ni tupu.",
+    "less": "Punguza {name} moja",
+    "more": "Ongeza {name} moja",
+    "quantityOf": "Idadi ya {name}",
+    "remove": "Ondoa {name}",
+    "estimate": "Makadirio",
+    "estimateHint": "Bei za katalogi; jumla, ukokotoaji na chenji vinatoka kwa seva unapotoza.",
+    "method": "Njia ya malipo",
+    "cash": "Taslimu",
+    "card": "Kadi",
+    "tendered": "Pesa zilizopokelewa",
+    "reference": "Kumbukumbu ya risiti ya kadi",
+    "badTendered": "Weka pesa zilizopokelewa, mf. 20.00.",
+    "toDrawer": "Fungua droo",
+    "charge": "Toza",
+    "savedTitle": "Imehifadhiwa nje ya mtandao",
+    "savedHint": "Kituo hakiko mtandaoni. Mauzo haya yamehifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
+    "estimatedChange": "Chenji",
+    "newSale": "Mauzo mapya"
+  },
+  "nav": {
+    "label": "Menyu ya kituo",
+    "sale": "Mauzo",
+    "drawer": "Droo"
+  },
+  "drawer": {
+    "title": "Droo ya pesa",
+    "none": "Hakuna zamu iliyo wazi kwenye rejista hii.",
+    "openTitle": "Hesabu pesa za kuanzia",
+    "open": "Fungua zamu",
+    "closeTitle": "Hesabu droo ili kufunga",
+    "close": "Funga zamu",
+    "openedAt": "Ilifunguliwa",
+    "opening": "Pesa za kuanzia",
+    "expected": "Pesa zinazotarajiwa",
+    "counted": "Zilizohesabiwa",
+    "difference": "Tofauti",
+    "closedTitle": "Zamu imefungwa",
+    "short": "Upungufu",
+    "over": "Ziada",
+    "balanced": "Sawa",
+    "queued": "Mauzo {count} ya nje ya mtandao bado hayajatumwa. Yatume kabla ya kufunga zamu."
+  },
+  "count": {
+    "denomination": "Thamani ya mstari {n}",
+    "pieces": "Idadi ya mstari {n}",
+    "value": "Noti au sarafu",
+    "count": "Idadi",
+    "remove": "Ondoa mstari {n}",
+    "add": "Ongeza mstari",
+    "total": "Zilizohesabiwa",
+    "invalid": "Kila mstari unahitaji thamani (mf. 5.00) na idadi kamili."
+  },
+  "receipt": {
+    "title": "Risiti",
+    "total": "Jumla",
+    "rounding": "Ukokotoaji wa taslimu",
+    "due": "Kulipa",
+    "tendered": "Pesa zilizopokelewa",
+    "change": "Chenji",
+    "card": "Risiti ya kadi",
+    "print": "Chapisha",
+    "newSale": "Mauzo mapya"
+  },
+  "queue": {
+    "title": "Mauzo ya nje ya mtandao",
+    "badge": "{count, plural, =0 {Mauzo yote yametumwa} one {Mauzo # ya kutuma} other {Mauzo # ya kutuma}}",
+    "sync": "Tuma sasa",
+    "empty": "Hakuna mauzo ya nje ya mtandao.",
+    "pending": "Yanasubiri",
+    "done": "Yamerekodiwa",
+    "conflict": "Mgongano",
+    "review": "Yanahitaji ukaguzi",
+    "booked": "Mauzo {number}: {due}",
+    "dismiss": "Ondoa"
   }
 }

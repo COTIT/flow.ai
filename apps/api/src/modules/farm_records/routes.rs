@@ -11,6 +11,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(h::list_persons))
         .routes(routes!(h::get_person, h::correct_person))
         .routes(routes!(h::verify_person))
+        .routes(routes!(h::holdings))
         .routes(routes!(h::list_households))
         .routes(routes!(h::get_household, h::correct_household))
         .routes(routes!(h::verify_household))

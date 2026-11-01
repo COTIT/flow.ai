@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_sale_attributions (workspace_id, batch_id, kind, sold_workspace_id,\n                                             order_id, order_number, sold_lot_id, jars,\n                                             pack_raw_kg, pack_units, price_per_kg, currency_id,\n                                             total)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Int8",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e3531fa074a70abb1aca5f355c40c826711811a818e8aa321fbf14a0f37c818e"
+}

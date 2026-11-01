@@ -46,8 +46,8 @@ pub struct PublicLot {
     origin: Option<String>,
     product: PublicProduct,
     passport: PublicPassport,
-    /// Consented farmer fields only; empty until farmer consent exists.
-    farmers: Vec<PublicFarmer>,
+    /// Who grew it, per village (supply lots); empty otherwise.
+    farmers: Vec<PublicFarmerGroup>,
 }
 
 /// The lot's product, public fields only.
@@ -60,17 +60,40 @@ pub struct PublicProduct {
     short_description: Option<String>,
 }
 
-// shortcut: never built until consented supply links exist (Phase 4, G10); drop the allow then.
-#[allow(dead_code)]
-/// The farmer fields a page may ever show (allow-list by type: no contact, no exact
-/// location, no money).
+/// Who grew a lot, per village: no names, contacts, exact places or money (G10). The count is
+/// null below 3 farmers, so a small group can't be told apart.
 #[derive(Serialize, ToSchema)]
-pub struct PublicFarmer {
+pub struct PublicFarmerGroup {
     village: String,
-    first_name: String,
+    /// Number of farmers; null when fewer than 3.
     #[schema(required = true)]
-    photo: Option<Link>,
-    harvest_dates: Vec<NaiveDate>,
+    farmers: Option<i64>,
+    /// Earliest harvest start of their crop cycles.
+    #[schema(required = true)]
+    harvest_start: Option<NaiveDate>,
+    /// Latest harvest end of their crop cycles.
+    #[schema(required = true)]
+    harvest_end: Option<NaiveDate>,
+}
+
+/// Fewest farmers whose count a page shows.
+const MIN_GROUP: i64 = 3;
+
+impl PublicFarmerGroup {
+    /// A village's group; `farmers` is hidden below 3.
+    pub fn new(
+        village: String,
+        farmers: i64,
+        harvest_start: Option<NaiveDate>,
+        harvest_end: Option<NaiveDate>,
+    ) -> Self {
+        Self {
+            village,
+            farmers: (farmers >= MIN_GROUP).then_some(farmers),
+            harvest_start,
+            harvest_end,
+        }
+    }
 }
 
 /// The published passport with links in place of file ids.
@@ -134,7 +157,12 @@ pub enum PublicBlock {
 
 impl PublicLot {
     /// The page for `row` and its passport `p`; `links` maps file id to link (missing = null).
-    pub fn new(row: PublicRow, p: Passport, links: &HashMap<Uuid, Link>) -> Self {
+    pub fn new(
+        row: PublicRow,
+        p: Passport,
+        links: &HashMap<Uuid, Link>,
+        farmers: Vec<PublicFarmerGroup>,
+    ) -> Self {
         let link = |id: Option<Uuid>| id.and_then(|id| links.get(&id).cloned());
         let certificates = p
             .certificates
@@ -185,8 +213,7 @@ impl PublicLot {
                 version: row.version,
                 published_at: row.published_at,
             },
-            // shortcut: no farmer data until consented supply links exist (Phase 4, G10).
-            farmers: Vec::new(),
+            farmers,
         }
     }
 }

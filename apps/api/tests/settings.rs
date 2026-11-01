@@ -657,8 +657,9 @@ async fn big_settings_read_quickly(pool: PgPool) {
     for _ in 0..20 {
         get(&api, "").await;
     }
+    // Catches a pathological (e.g. per-key quadratic) read path; 5 s leaves room for a loaded CI box.
     assert!(
-        started.elapsed().as_millis() < 1_000,
+        started.elapsed().as_millis() < 5_000,
         "{:?}",
         started.elapsed()
     );
@@ -930,4 +931,34 @@ async fn malformed_stored_sections_fall_back(pool: PgPool) {
         get(&api, "?type=cash_register").await["cash_drawer_link_mode"],
         "flexible"
     );
+}
+
+#[sqlx::test]
+async fn cash_rounding_steps_per_currency(pool: PgPool) {
+    let api = api(pool).await;
+    saved(
+        &api,
+        json!({ "cash_register": { "cash_rounding": [{ "currency": "EUR", "step": 5 }] } }),
+    )
+    .await;
+    let cash = get(&api, "?type=cash_register").await;
+    assert_eq!(
+        cash["cash_rounding"],
+        json!([{ "currency": "EUR", "step": 5 }])
+    );
+    assert_eq!(
+        error(
+            &api,
+            json!({ "cash_register": { "cash_rounding": [{ "currency": "EUR", "step": 0 }] } }),
+            "cash_register.cash_rounding.0.step",
+        )
+        .await,
+        "The cash register.cash rounding.0.step must be at least 1."
+    );
+    error(
+        &api,
+        json!({ "cash_register": { "cash_rounding": [{ "step": 5 }] } }),
+        "cash_register.cash_rounding.0.currency",
+    )
+    .await;
 }

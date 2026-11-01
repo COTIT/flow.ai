@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(sum(amount), 0)::bigint AS \"balance!\" FROM farm_passbook_entries\n           WHERE workspace_id = $1 AND person_id = $2 AND currency_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "balance!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f167d186a843a5e1bf7699d8b9741d890f3c31ef7ea14397832fcef94f284269"
+}

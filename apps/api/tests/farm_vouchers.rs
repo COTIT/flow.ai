@@ -513,7 +513,10 @@ async fn the_trail_is_append_only_and_filtered_by_who_asks(pool: PgPool) {
 async fn redemptions_reconcile_per_officer_per_day_in_minor_units(pool: PgPool) {
     let (f, s, _, _, code) = setup(pool, 0).await;
     redeem(&f, &code, &s.juma).await;
-    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    // Totals are bucketed by Tanzania date (UTC+3, no DST); a UTC date misses the 21:00-24:00 UTC window.
+    let today = (chrono::Utc::now() + chrono::Duration::hours(3))
+        .format("%Y-%m-%d")
+        .to_string();
     let q = format!("?from=2026-01-01&to={}", today);
     let (status, totals) = f
         .call(

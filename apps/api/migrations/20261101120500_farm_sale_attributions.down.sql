@@ -1,0 +1,4 @@
+DROP INDEX stock_movements_related_idx;
+DROP INDEX farm_passbook_entries_attribution_idx;
+ALTER TABLE farm_passbook_entries DROP CONSTRAINT farm_passbook_entries_attribution_fk;
+DROP TABLE farm_sale_attributions;

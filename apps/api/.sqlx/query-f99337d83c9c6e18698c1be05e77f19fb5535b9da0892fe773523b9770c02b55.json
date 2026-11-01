@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH old AS (\n             UPDATE till_sessions SET ended_at = now()\n             WHERE workspace_id = $1 AND till_user_id = $3 AND register_id = $2\n               AND ended_at IS NULL\n         )\n         INSERT INTO till_sessions (workspace_id, register_id, till_user_id, app_key_id,\n                                    token_hash, created_at, expires_at)\n         VALUES ($1, $2, $3, $4, $5, now(), now() + interval '8 hours')\n         RETURNING expires_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "till_sessions",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f99337d83c9c6e18698c1be05e77f19fb5535b9da0892fe773523b9770c02b55"
+}

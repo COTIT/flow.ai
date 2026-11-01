@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(bool_or(h.captured_by = $3), false) AS \"registered!\",\n                  coalesce(bool_or(h.verified_by = $3), false) AS \"verified!\",\n                  coalesce(bool_or(EXISTS (SELECT 1 FROM farm_household_members o\n                                           WHERE o.household_id = h.id AND o.person_id = $4)),\n                           false) AS \"own!\"\n           FROM farm_household_members m\n           JOIN farm_households h ON h.workspace_id = m.workspace_id AND h.id = m.household_id\n           WHERE m.workspace_id = $1 AND m.person_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "registered!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "verified!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "own!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c4e043fea16da846b9bd4cec5522deb620e3c2045abbc11121b4cdddab97bfe7"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE till_registers SET app_key_id = $3, failed_pins = 0, failed_since = NULL,\n                                   locked_until = NULL, updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a8688dcfe89de74fc3a55ffb22dd7a741861592cb763ece81cffe1ab9551075"
+}

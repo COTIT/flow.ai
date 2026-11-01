@@ -22,8 +22,9 @@ test("catalog lists products with prices and stock, and opens a product", async 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Ilundo Wild Forest Honey"
   )
-  await expect(page.getByText("Size: 500 g")).toBeVisible()
-  await expect(page.getByText("$24.99")).toBeVisible()
+  const sizes = page.getByRole("list").filter({ hasText: "Size: 250 g" })
+  await expect(sizes.getByText("Size: 500 g")).toBeVisible()
+  await expect(sizes.getByText("$24.99")).toBeVisible()
   await expect(page).toHaveTitle("Ilundo Wild Forest Honey · Genesy Shop")
   await expectNoHorizontalScroll(page)
 

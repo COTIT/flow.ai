@@ -4,12 +4,14 @@ import { test as base, expect, type Page } from "@playwright/test"
  * What a test expects to go wrong. Exact matches only, no patterns:
  * - responses: one URL (absolute, or relative to baseURL) with one status
  * - console: the full text of an expected console error
+ * - failures: one URL whose request is expected to fail (e.g. a dropped connection)
  * e.g. `test.use({ allow: { responses: [{ url: "/b/ZZZZZZZZZZ", status: 404 }] } })`.
  * (An object, not an array: test.use reads an array as `[value, options]`.)
  */
 export type Allow = {
   responses?: { url: string; status: number }[]
   console?: string[]
+  failures?: string[]
 }
 
 type Options = { allow: Allow }
@@ -34,7 +36,9 @@ export const test = base.extend<Options & { guard: void }>({
         if (r.status() >= 400 && !isAllowed(r.url(), r.status()))
           problems.push(`HTTP ${r.status()} ${r.request().method()} ${r.url()}`)
       })
+      const failures = (allow.failures ?? []).map((u) => new URL(u, baseURL).href)
       page.on("requestfailed", (r) => {
+        if (failures.includes(r.url())) return
         // Navigating away cancels Next's prefetches; that is not a failure.
         if (r.failure()?.errorText !== "net::ERR_ABORTED")
           problems.push(`request failed: ${r.url()} ${r.failure()?.errorText}`)

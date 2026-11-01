@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.status, coalesce(l.expires_on < current_date, false) AS \"expired!\"\n           FROM stock_reservations r\n           JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id\n           JOIN lots l ON l.workspace_id = s.workspace_id AND l.id = s.lot_id\n           WHERE r.workspace_id = $1 AND r.related_domain = $2 AND r.related_id = $3\n             AND r.product_id = $4 AND s.warehouse_id = $5\n           ORDER BY l.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "expired!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "4d890573bf639626be1b7bf478c5eb610f615c9e98ea7a3327caf1b4bbe15444"
+}

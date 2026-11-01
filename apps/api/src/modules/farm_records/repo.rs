@@ -18,9 +18,16 @@ pub struct Seen<'a> {
 }
 
 /// Which rows: one village, one id, one page.
+#[derive(Default)]
 pub struct Pick {
     pub village: Option<Uuid>,
     pub id: Option<Uuid>,
+    /// Only rows in one of these verification states.
+    pub verification: Option<Vec<String>>,
+    /// Only these rows.
+    pub ids: Option<Vec<Uuid>>,
+    /// Plots of these farms, or cycles of these plots (other kinds ignore it).
+    pub parents: Option<Vec<Uuid>>,
     pub limit: i64,
     pub offset: i64,
 }
@@ -29,10 +36,9 @@ impl Pick {
     /// Exactly the row with this id.
     pub fn one(id: Uuid) -> Self {
         Self {
-            village: None,
             id: Some(id),
             limit: 1,
-            offset: 0,
+            ..Self::default()
         }
     }
 }
@@ -134,6 +140,7 @@ pub async fn persons(
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4)))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))
            ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8"#,
         s.ws,
         s.all,
@@ -143,6 +150,8 @@ pub async fn persons(
         p.id,
         p.limit,
         p.offset,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
     )
     .fetch_all(db)
     .await?;
@@ -150,13 +159,16 @@ pub async fn persons(
         r#"SELECT count(*) AS "n!" FROM farm_persons t
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4)))
-             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)"#,
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))"#,
         s.ws,
         s.all,
         s.villages,
         s.person,
         p.village,
         p.id,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
     )
     .fetch_one(db)
     .await?;
@@ -184,6 +196,7 @@ pub async fn households(
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_households($4)))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))
            ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8"#,
         s.ws,
         s.all,
@@ -193,6 +206,8 @@ pub async fn households(
         p.id,
         p.limit,
         p.offset,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
     )
     .fetch_all(db)
     .await?;
@@ -200,13 +215,16 @@ pub async fn households(
         r#"SELECT count(*) AS "n!" FROM farm_households t
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_households($4)))
-             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)"#,
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))"#,
         s.ws,
         s.all,
         s.villages,
         s.person,
         p.village,
         p.id,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
     )
     .fetch_one(db)
     .await?;
@@ -236,6 +254,7 @@ pub async fn farms(
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_farms($4)))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))
            ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8"#,
         s.ws,
         s.all,
@@ -245,6 +264,8 @@ pub async fn farms(
         p.id,
         p.limit,
         p.offset,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
     )
     .fetch_all(db)
     .await?;
@@ -252,13 +273,16 @@ pub async fn farms(
         r#"SELECT count(*) AS "n!" FROM farms t
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_farms($4)))
-             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)"#,
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))"#,
         s.ws,
         s.all,
         s.villages,
         s.person,
         p.village,
         p.id,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
     )
     .fetch_one(db)
     .await?;
@@ -283,6 +307,8 @@ pub async fn plots(
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.farm_id IN (SELECT farm_person_farms($4)))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))
+             AND ($11::uuid[] IS NULL OR t.farm_id = ANY($11))
            ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8"#,
         s.ws,
         s.all,
@@ -292,6 +318,9 @@ pub async fn plots(
         p.id,
         p.limit,
         p.offset,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
+        p.parents.as_deref(),
     )
     .fetch_all(db)
     .await?;
@@ -299,13 +328,18 @@ pub async fn plots(
         r#"SELECT count(*) AS "n!" FROM farm_plots t
            WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
              AND ($2 OR t.village_id = ANY($3) OR t.farm_id IN (SELECT farm_person_farms($4)))
-             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)"#,
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))
+             AND ($9::uuid[] IS NULL OR t.farm_id = ANY($9))"#,
         s.ws,
         s.all,
         s.villages,
         s.person,
         p.village,
         p.id,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
+        p.parents.as_deref(),
     )
     .fetch_one(db)
     .await?;
@@ -332,6 +366,8 @@ pub async fn cycles(
                   OR t.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL
                                    AND pl.farm_id IN (SELECT farm_person_farms($4))))
              AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($9::text[] IS NULL OR t.verification = ANY($9)) AND ($10::uuid[] IS NULL OR t.id = ANY($10))
+             AND ($11::uuid[] IS NULL OR t.plot_id = ANY($11))
            ORDER BY t.created_at, t.id LIMIT $7 OFFSET $8"#,
         s.ws,
         s.all,
@@ -341,6 +377,9 @@ pub async fn cycles(
         p.id,
         p.limit,
         p.offset,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
+        p.parents.as_deref(),
     )
     .fetch_all(db)
     .await?;
@@ -350,13 +389,18 @@ pub async fn cycles(
              AND ($2 OR t.village_id = ANY($3)
                   OR t.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL
                                    AND pl.farm_id IN (SELECT farm_person_farms($4))))
-             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)"#,
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::uuid IS NULL OR t.id = $6)
+             AND ($7::text[] IS NULL OR t.verification = ANY($7)) AND ($8::uuid[] IS NULL OR t.id = ANY($8))
+             AND ($9::uuid[] IS NULL OR t.plot_id = ANY($9))"#,
         s.ws,
         s.all,
         s.villages,
         s.person,
         p.village,
         p.id,
+        p.verification.as_deref(),
+        p.ids.as_deref(),
+        p.parents.as_deref(),
     )
     .fetch_one(db)
     .await?;
@@ -727,11 +771,12 @@ pub async fn insert_harvest(
     kind: &str,
     quantity_kg: Decimal,
     reported_for: Option<NaiveDate>,
+    client_ref: Option<Uuid>,
 ) -> Result<Uuid, sqlx::Error> {
     sqlx::query_scalar!(
         "INSERT INTO farm_harvest_reports (workspace_id, village_id, crop_cycle_id, kind, quantity_kg,
-                                           reported_for, source, captured_by, confidence)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+                                           reported_for, source, captured_by, confidence, client_ref)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
         s.ws,
         s.village,
         cycle,
@@ -741,12 +786,125 @@ pub async fn insert_harvest(
         s.source,
         s.actor,
         s.confidence,
+        client_ref,
     )
     .fetch_one(db)
     .await
 }
 
 // ---- harvest revision ----
+
+/// The harvest figure an earlier request with this ref wrote, as that request sent it.
+pub struct RefRow {
+    pub id: Uuid,
+    pub crop_cycle_id: Uuid,
+    pub kind: String,
+    pub quantity_kg: Decimal,
+    pub source: String,
+    pub confidence: Option<String>,
+    pub reported_for: Option<NaiveDate>,
+}
+
+pub async fn harvest_by_ref(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    client_ref: Uuid,
+) -> Result<Option<RefRow>, sqlx::Error> {
+    sqlx::query_as!(
+        RefRow,
+        "SELECT id, crop_cycle_id, kind, quantity_kg, source, confidence, reported_for
+         FROM farm_harvest_reports WHERE workspace_id = $1 AND client_ref = $2",
+        ws,
+        client_ref
+    )
+    .fetch_optional(db)
+    .await
+}
+
+// ---- holdings ----
+
+/// Live households the person belongs to.
+pub async fn household_ids_of(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    person: Uuid,
+) -> Result<Vec<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT hm.household_id FROM farm_household_members hm
+         JOIN farm_households h ON h.id = hm.household_id AND h.deleted_at IS NULL
+         WHERE hm.workspace_id = $1 AND hm.person_id = $2",
+        ws,
+        person
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Farms the person manages or their household owns.
+pub async fn farm_ids_of(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    person: Uuid,
+) -> Result<Vec<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT f.id AS "id!" FROM farms f
+           WHERE f.workspace_id = $1 AND f.id IN (SELECT farm_person_farms($2))"#,
+        ws,
+        person
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// A household member with their name.
+pub struct NamedMember {
+    pub household_id: Uuid,
+    pub person_id: Uuid,
+    pub given_name: String,
+    pub family_name: String,
+    pub is_head: bool,
+}
+
+/// Live members of these households, in joining order.
+pub async fn named_members(
+    db: impl PgExecutor<'_>,
+    households: &[Uuid],
+) -> Result<Vec<NamedMember>, sqlx::Error> {
+    sqlx::query_as!(
+        NamedMember,
+        "SELECT m.household_id, m.person_id, p.given_name, p.family_name, m.is_head
+         FROM farm_household_members m
+         JOIN farm_persons p ON p.id = m.person_id AND p.deleted_at IS NULL
+         WHERE m.household_id = ANY($1)
+         ORDER BY m.created_at, m.id",
+        households
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Every harvest figure of these cycles, newest first.
+pub async fn harvests_of_cycles(
+    db: impl PgExecutor<'_>,
+    ws: Uuid,
+    cycles: &[Uuid],
+) -> Result<Vec<HarvestRow>, sqlx::Error> {
+    sqlx::query_as!(
+        HarvestRow,
+        r#"SELECT t.id, t.village_id, t.crop_cycle_id, t.kind, t.quantity_kg::text AS "quantity_kg!",
+                  t.reported_for, t.is_current,
+                  farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,
+                                  t.verified_by, t.verified_at, t.confidence, t.evidence_ref) AS "provenance!",
+                  t.created_at, t.updated_at
+           FROM farm_harvest_reports t
+           WHERE t.workspace_id = $1 AND t.crop_cycle_id = ANY($2) AND t.deleted_at IS NULL
+           ORDER BY t.created_at DESC, t.id DESC"#,
+        ws,
+        cycles
+    )
+    .fetch_all(db)
+    .await
+}
 
 /// Lock a live cycle in the staff scope; its village when found.
 pub async fn lock_cycle(

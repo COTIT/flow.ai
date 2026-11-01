@@ -27,6 +27,7 @@ import type {
 import type {
   CreateLotRequest,
   EnvelopeLotResource,
+  EnvelopeLotStockLevel,
   EnvelopePassportResource,
   EnvelopePublicLot,
   LotsEventsParams,
@@ -35,6 +36,7 @@ import type {
   PaginatedLotEventResource,
   PaginatedLotResource,
   Passport,
+  StockMutationRequest,
   UpdateLotRequest,
   ValidationErrorBody
 } from '../model';
@@ -896,4 +898,73 @@ export const useLotsPassportPublish = <TError = ErrorType<MessageBody | Validati
         TContext
       > => {
       return useMutation(getLotsPassportPublishMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Put stock into or take it out of a lot
+ */
+export const lotsStockMutate = (
+    workspace: string,
+    lot: string,
+    stockMutationRequest: BodyType<StockMutationRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeLotStockLevel>(
+      {url: `/workspace/${workspace}/lots/${lot}/stock-mutations`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: stockMutationRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getLotsStockMutateMutationKey = () => ['lotsStockMutate'] as const;
+
+export const getLotsStockMutateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof lotsStockMutate>>, TError,LotsStockMutateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof lotsStockMutate>>, TError,LotsStockMutateMutationVariables, TContext> => {
+
+const mutationKey = getLotsStockMutateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof lotsStockMutate>>, LotsStockMutateMutationVariables> = (props) => {
+          const {workspace,lot,data} = props ?? {};
+
+          return  lotsStockMutate(workspace,lot,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LotsStockMutateMutationResult = NonNullable<Awaited<ReturnType<typeof lotsStockMutate>>>
+    export type LotsStockMutateMutationBody = BodyType<StockMutationRequest>
+    export type LotsStockMutateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type LotsStockMutateMutationVariables = {workspace: string;lot: string;data: BodyType<StockMutationRequest>}
+
+    /**
+ * @summary Put stock into or take it out of a lot
+ */
+export const useLotsStockMutate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof lotsStockMutate>>, TError,LotsStockMutateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof lotsStockMutate>>,
+        TError,
+        LotsStockMutateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getLotsStockMutateMutationOptions(options), queryClient);
     }

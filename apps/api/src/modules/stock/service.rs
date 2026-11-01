@@ -106,6 +106,7 @@ async fn slot(
         product_id,
         warehouse_id,
         bin,
+        lot_id: None,
     })
 }
 
@@ -203,6 +204,7 @@ async fn entry_slots(
             product_id,
             warehouse_id: e.warehouse_id,
             bin,
+            lot_id: None,
         });
     }
     if errors.is_empty() {
@@ -403,6 +405,7 @@ pub async fn move_between_bins(
         product_id: product.id,
         warehouse_id: m.warehouse_id,
         bin,
+        lot_id: None,
     };
     let from = slot(bin(m.bin_from, "source", "bin_id_from")?);
     let to = slot(bin(m.bin_to, "target", "bin_id_to")?);
@@ -529,6 +532,7 @@ pub async fn list(
                 "minimal_stock_level": r.minimal_stock_level,
                 "maximum_stock_level": r.maximum_stock_level,
                 "meta": r.meta,
+                "lot": resource::lot(r.lot_id, r.lot_code.as_deref(), r.lot_expires_on),
                 "relationships": {
                     "product": products.get(&r.product_id),
                     "warehouse": warehouses.get(&r.warehouse_id),

@@ -1,7 +1,7 @@
 //! SQL for stocks and the stock_movements ledger. Every write runs in the caller's
 //! transaction: lock the slot's row (or create it), change it, append one movement.
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
 use serde_json::Value;
 use sqlx::PgConnection;
@@ -10,12 +10,13 @@ use uuid::Uuid;
 use crate::{modules::webhooks, money::round};
 
 /// Where a stock row sits: product + warehouse, plus a bin (with its shelf) or none for the
-/// warehouse-level row.
+/// warehouse-level row, plus a lot or none for the product's no-lot stock.
 #[derive(Clone, Copy, Debug)]
 pub struct Slot {
     pub product_id: Uuid,
     pub warehouse_id: Uuid,
     pub bin: Option<Bin>,
+    pub lot_id: Option<Uuid>,
 }
 
 /// A bin and the shelf it sits on.
@@ -33,6 +34,7 @@ pub struct StockRow {
     pub warehouse_id: Uuid,
     pub shelf_id: Option<Uuid>,
     pub bin_id: Option<Uuid>,
+    pub lot_id: Option<Uuid>,
     pub stock_lvl: Decimal,
     pub reserved: Decimal,
     pub minimal_stock_level: i32,
@@ -191,6 +193,9 @@ pub struct StockLine {
     pub bin_id: Option<Uuid>,
     pub bin_code: Option<String>,
     pub bin_name: Option<String>,
+    pub lot_id: Option<Uuid>,
+    pub lot_code: Option<String>,
+    pub lot_expires_on: Option<NaiveDate>,
 }
 
 /// Live stock rows of `product_ids` with their relations, oldest first.
@@ -207,11 +212,13 @@ pub async fn lines(
                   w.is_store AS "w_is_store?", w.pickup_enabled AS "w_pickup?",
                   w.location AS "w_location?",
                   sh.id AS "shelf_id?", sh.shelf_code AS "shelf_code?", sh.shelf_name AS "shelf_name?",
-                  b.id AS "bin_id?", b.bin_code AS "bin_code?", b.bin_name AS "bin_name?"
+                  b.id AS "bin_id?", b.bin_code AS "bin_code?", b.bin_name AS "bin_name?",
+                  l.id AS "lot_id?", l.code AS "lot_code?", l.expires_on AS "lot_expires_on?"
            FROM stocks s
            LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
            LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL
            LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL
+           LEFT JOIN lots l ON l.id = s.lot_id
            WHERE s.workspace_id = $1 AND s.product_id = ANY($2) AND s.deleted_at IS NULL
            ORDER BY s.id"#,
         workspace_id,
@@ -233,16 +240,18 @@ pub async fn locked(
         .await?;
     sqlx::query_as!(
         StockRow,
-        "SELECT id, product_id, warehouse_id, shelf_id, bin_id, stock_lvl, reserved,
+        "SELECT id, product_id, warehouse_id, shelf_id, bin_id, lot_id, stock_lvl, reserved,
                 minimal_stock_level, maximum_stock_level
          FROM stocks
          WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3
-           AND bin_id IS NOT DISTINCT FROM $4 AND deleted_at IS NULL
+           AND bin_id IS NOT DISTINCT FROM $4 AND lot_id IS NOT DISTINCT FROM $5
+           AND deleted_at IS NULL
          FOR NO KEY UPDATE",
         workspace_id,
         slot.product_id,
         slot.warehouse_id,
         slot.bin.map(|b| b.bin_id),
+        slot.lot_id,
     )
     .fetch_optional(&mut *conn)
     .await
@@ -260,15 +269,17 @@ pub async fn lock_or_create(
         return Ok((row, false));
     }
     let created = sqlx::query_scalar!(
-        "INSERT INTO stocks (workspace_id, product_id, warehouse_id, shelf_id, bin_id)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (product_id, warehouse_id, bin_id) WHERE deleted_at IS NULL DO NOTHING
+        "INSERT INTO stocks (workspace_id, product_id, warehouse_id, shelf_id, bin_id, lot_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (product_id, warehouse_id, bin_id, lot_id) WHERE deleted_at IS NULL
+         DO NOTHING
          RETURNING id",
         workspace_id,
         slot.product_id,
         slot.warehouse_id,
         slot.bin.map(|b| b.shelf_id),
         slot.bin.map(|b| b.bin_id),
+        slot.lot_id,
     )
     .fetch_optional(&mut *conn)
     .await?
@@ -396,12 +407,42 @@ pub async fn lock_all(
         if lock_or_create(conn, workspace_id, slot).await?.1 {
             created.push(k);
         }
+        // The lot rows sort right after the no-lot warehouse row: still key order.
+        if slot.bin.is_none() && slot.lot_id.is_none() {
+            lot_rows(conn, workspace_id, slot.product_id, slot.warehouse_id).await?;
+        }
     }
     Ok(created)
 }
 
-/// A slot's identity and lock order: product, warehouse, then bin (the warehouse row first).
-pub type SlotKey = (Uuid, Uuid, Option<Uuid>);
+/// The product's live warehouse-level lot rows (no bin) at the warehouse, locked in
+/// [`SlotKey`] order (by lot).
+pub async fn lot_rows(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    product_id: Uuid,
+    warehouse_id: Uuid,
+) -> Result<Vec<StockRow>, sqlx::Error> {
+    sqlx::query_as!(
+        StockRow,
+        "SELECT id, product_id, warehouse_id, shelf_id, bin_id, lot_id, stock_lvl, reserved,
+                minimal_stock_level, maximum_stock_level
+         FROM stocks
+         WHERE workspace_id = $1 AND product_id = $2 AND warehouse_id = $3
+           AND bin_id IS NULL AND lot_id IS NOT NULL AND deleted_at IS NULL
+         ORDER BY lot_id
+         FOR NO KEY UPDATE",
+        workspace_id,
+        product_id,
+        warehouse_id,
+    )
+    .fetch_all(conn)
+    .await
+}
+
+/// A slot's identity and lock order: product, warehouse, bin (the warehouse row first), then
+/// lot (the no-lot row first). Rust's `Option` and Postgres' uuid order agree (bytewise).
+pub type SlotKey = (Uuid, Uuid, Option<Uuid>, Option<Uuid>);
 
 /// The [`SlotKey`] of `slot`.
 pub fn key(slot: &Slot) -> SlotKey {
@@ -409,6 +450,7 @@ pub fn key(slot: &Slot) -> SlotKey {
         slot.product_id,
         slot.warehouse_id,
         slot.bin.map(|b| b.bin_id),
+        slot.lot_id,
     )
 }
 
@@ -466,9 +508,9 @@ pub async fn record(
              bin_id, movement_type, quantity_change, quantity_before, quantity_after,
              minimal_stock_level_before, minimal_stock_level_after, maximum_stock_level_before,
              maximum_stock_level_after, reason, is_correction, user_id, related_domain,
-             related_id, meta)
+             related_id, meta, lot_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-                 $18, $19, $20)",
+                 $18, $19, $20, $21)",
         workspace_id,
         row.id,
         row.product_id,
@@ -489,6 +531,7 @@ pub async fn record(
         related_domain,
         related_id,
         m.cause.meta,
+        row.lot_id,
     )
     .execute(&mut *conn)
     .await?;
@@ -500,6 +543,7 @@ pub async fn record(
         "stock_id": row.id,
         "product_id": row.product_id,
         "warehouse_id": row.warehouse_id,
+        "lot_id": row.lot_id,
         "reason": m.kind,
         "quantity_change": format!("{:.2}", m.after - m.before),
         "quantity_after": format!("{:.2}", m.after),
@@ -595,6 +639,9 @@ pub struct BinsRow {
     pub b_id: Option<Uuid>,
     pub b_code: Option<String>,
     pub b_name: Option<String>,
+    pub lot_id: Option<Uuid>,
+    pub lot_code: Option<String>,
+    pub lot_expires_on: Option<NaiveDate>,
 }
 
 /// Live stock rows of the product with their place, oldest first.
@@ -611,13 +658,15 @@ pub async fn with_bins(
                   r.id AS "r_id?", r.row_code AS "r_code?", r.row_name AS "r_name?",
                   sec.id AS "sec_id?", sec.section_code AS "sec_code?",
                   sec.section_name AS "sec_name?",
-                  b.id AS "b_id?", b.bin_code AS "b_code?", b.bin_name AS "b_name?"
+                  b.id AS "b_id?", b.bin_code AS "b_code?", b.bin_name AS "b_name?",
+                  l.id AS "lot_id?", l.code AS "lot_code?", l.expires_on AS "lot_expires_on?"
            FROM stocks s
            LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
            LEFT JOIN warehouse_section_row_shelves sh ON sh.id = s.shelf_id AND sh.deleted_at IS NULL
            LEFT JOIN warehouse_section_rows r ON r.id = sh.row_id AND r.deleted_at IS NULL
            LEFT JOIN warehouse_sections sec ON sec.id = r.section_id AND sec.deleted_at IS NULL
            LEFT JOIN warehouse_section_row_bins b ON b.id = s.bin_id AND b.deleted_at IS NULL
+           LEFT JOIN lots l ON l.id = s.lot_id
            WHERE s.workspace_id = $1 AND s.product_id = $2 AND s.deleted_at IS NULL
            ORDER BY s.id"#,
         workspace_id,
@@ -817,6 +866,9 @@ pub struct ListRow {
     pub minimal_stock_level: i32,
     pub maximum_stock_level: i32,
     pub meta: Option<Value>,
+    pub lot_id: Option<Uuid>,
+    pub lot_code: Option<String>,
+    pub lot_expires_on: Option<NaiveDate>,
     pub total: i64,
 }
 
@@ -841,10 +893,12 @@ pub async fn list(
         return sqlx::query_as!(
             ListRow,
             r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
-                      s.maximum_stock_level, s.meta, count(*) OVER () AS "total!"
+                      s.maximum_stock_level, s.meta, l.id AS "lot_id?", l.code AS "lot_code?", l.expires_on AS "lot_expires_on?",
+                      count(*) OVER () AS "total!"
                FROM stocks s
                JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL
                JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+               LEFT JOIN lots l ON l.id = s.lot_id
                WHERE s.workspace_id = $1 AND s.deleted_at IS NULL
                ORDER BY s.id
                LIMIT $2 OFFSET $3"#,
@@ -858,10 +912,12 @@ pub async fn list(
     sqlx::query_as!(
         ListRow,
         r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
-                  s.maximum_stock_level, s.meta, count(*) OVER () AS "total!"
+                  s.maximum_stock_level, s.meta, l.id AS "lot_id?", l.code AS "lot_code?", l.expires_on AS "lot_expires_on?",
+                  count(*) OVER () AS "total!"
            FROM stocks s
            JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL
            JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+           LEFT JOIN lots l ON l.id = s.lot_id
            WHERE s.workspace_id = $1 AND s.deleted_at IS NULL AND s.stock_lvl < 0 AND w.is_store
              AND ($2::text IS NULL OR p.name ILIKE $2 OR p.reference ILIKE $2
                   OR p.reference_vendor ILIKE $2 OR p.product_nr_formatted ILIKE $2
@@ -994,6 +1050,7 @@ mod tests {
             product_id: product,
             warehouse_id,
             bin: None,
+            lot_id: None,
         };
         let cause = Cause {
             reason: Some("order 7"),

@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #eae6d2; }
+  a { color: #1d70b7; }
+  a:hover { color: #14548a; }
+</style>
+</helmet>
+
+<div style="--deep:#0c1f5b;--primary:#1d70b7;--accent:#93c01f;--surface:#f5f3e5;--b10:rgba(12,31,91,.1);--b15:rgba(12,31,91,.15);--b20:rgba(12,31,91,.2);--b25:rgba(12,31,91,.25);--b30:rgba(12,31,91,.3);--t40:rgba(12,31,91,.4);--t50:rgba(12,31,91,.5);--t60:rgba(12,31,91,.6);--t70:rgba(12,31,91,.7);--t80:rgba(12,31,91,.8);--w50:rgba(255,255,255,.5);--w60:rgba(255,255,255,.6);--w70:rgba(255,255,255,.7);--dest:oklch(0.577 0.245 27.325);--dest30:oklch(0.577 0.245 27.325 / 30%);--dest05:oklch(0.577 0.245 27.325 / 5%);font-family:'Poppins',ui-sans-serif,system-ui,sans-serif;color:var(--deep);background:#eae6d2;padding:28px 20px 80px;display:flex;flex-direction:column;gap:36px;-webkit-font-smoothing:antialiased">
+
+  <header style="max-width:900px;display:flex;flex-direction:column;gap:10px">
+    <p style="margin:0;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(12,31,91,.55)">Recreation · current build</p>
+    <h1 style="margin:0;font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.01em">Ruaha 360 as it is today</h1>
+    <p style="margin:0;font-size:15px;line-height:1.55;color:#46547d;text-wrap:pretty">Every screen below is rebuilt from <code style="font-size:13px">src/features/**</code>, <code style="font-size:13px">src/components/**</code> and <code style="font-size:13px">src/app/**</code>, on the tokens in <code style="font-size:13px">src/styles/globals.css</code> — Poppins, 4px radii, borders and no shadow, <code style="font-size:13px">text-deep/60</code> secondaries. Figures and names are the seeded demo data from <code style="font-size:13px">supabase/seed.sql</code>. <code style="font-size:13px">data-testid</code>s are carried through so they can be compared against the redesign.</p>
+  </header>
+
+  <!-- ══ AUTH ══ -->
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(12,31,91,.5)">Auth · /login · /select-role · /no-access</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+      <figure data-screen-label="Login" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 340px;min-width:0;max-width:480px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/login</b> · login-submit · idle</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div data-testid="demo-banner" style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--b10);background:#fff;padding:12px 16px">
+            <span style="font-weight:600;color:var(--primary);font-size:16px">Ruaha 360</span>
+            <div style="display:flex;align-items:center;gap:12px">
+              <select aria-label="Language" data-testid="language-switch" style="font-family:inherit;font-size:14px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:4px 8px;color:var(--deep)"><option>English</option></select>
+            </div>
+          </div>
+          <div style="padding:16px">
+            <div style="max-width:384px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+              <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Sign in</h1>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <label for="cur-login-email" style="font-size:14px;line-height:20px;font-weight:500">Email address</label>
+                  <input id="cur-login-email" data-testid="login-email" type="email" value="ops@demo.ruaha360.test" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <label for="cur-login-pw" style="font-size:14px;line-height:20px;font-weight:500">Password</label>
+                  <input id="cur-login-pw" data-testid="login-password" type="password" value="demo1234" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)">
+                </div>
+                <button type="button" data-testid="login-submit" style="font-family:inherit;width:100%;border:0;border-radius:4px;background:var(--primary);color:#fff;padding:8px 12px;font-size:16px;font-weight:500">Sign in</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Login error" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 300px;min-width:0;max-width:420px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/login</b> · invalid credentials + field errors</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;background:var(--surface);padding:16px">
+          <div style="max-width:384px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:14px;line-height:20px;font-weight:500">Email address</label>
+              <input value="ops@demo" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--dest);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)">
+              <p data-testid="login-email-error" style="margin:0;font-size:14px;line-height:20px;color:var(--dest)">That does not look like an email address.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:14px;line-height:20px;font-weight:500">Password</label>
+              <input type="password" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--dest);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box">
+              <p data-testid="login-password-error" style="margin:0;font-size:14px;line-height:20px;color:var(--dest)">Enter your password.</p>
+            </div>
+            <p data-testid="login-error" role="alert" style="margin:0;border:1px solid var(--dest30);background:var(--dest05);border-radius:4px;padding:8px 12px;font-size:14px;line-height:20px;color:var(--dest)">That email and password do not match an account.</p>
+            <button type="button" style="font-family:inherit;width:100%;border:0;border-radius:4px;background:var(--primary);color:#fff;padding:8px 12px;font-size:16px;font-weight:500;opacity:.6">Signing in…</button>
+          </div>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Select role" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 280px;min-width:0;max-width:380px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/select-role</b> · select-role</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;background:var(--surface);padding:16px">
+          <section data-testid="select-role" style="max-width:448px;margin:0 auto;display:flex;flex-direction:column;gap:12px">
+            <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Choose a role</h1>
+            <p style="margin:0;font-size:14px;line-height:20px;color:var(--t70)">You hold more than one role. Pick the one you want to work in.</p>
+            <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
+              <li><button type="button" data-testid="select-role-ops" style="font-family:inherit;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;text-align:left;font-size:14px;color:var(--deep)"><span style="display:block;font-weight:500">Operations</span><span style="display:block;font-size:12px;line-height:16px;color:var(--t60)">Ruaha Ilundo Programme — DEMO</span><span style="display:block;font-size:12px;line-height:16px;color:var(--t60)">Whole project</span></button></li>
+              <li><button type="button" data-testid="select-role-field_officer" style="font-family:inherit;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;text-align:left;font-size:14px;color:var(--deep)"><span style="display:block;font-weight:500">Field officer</span><span style="display:block;font-size:12px;line-height:16px;color:var(--t60)">Ruaha Ilundo Programme — DEMO</span><span style="display:block;font-size:12px;line-height:16px;color:var(--t60)">Ilundo</span></button></li>
+            </ul>
+          </section>
+        </div>
+      </figure>
+
+      <figure data-screen-label="No access" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 280px;min-width:0;max-width:380px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/no-access</b> · no-access</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;background:var(--surface);padding:16px">
+          <section data-testid="no-access" style="max-width:448px;margin:0 auto;display:flex;flex-direction:column;gap:12px">
+            <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">No access yet</h1>
+            <p style="margin:0;font-size:14px;line-height:20px;color:var(--t70)">Your account is not attached to a project yet. Ask your programme manager to add you.</p>
+            <button type="button" data-testid="sign-out" style="font-family:inherit;align-self:flex-start;border:1px solid var(--b20);border-radius:4px;background:transparent;padding:8px 12px;font-size:14px;font-weight:500;color:var(--deep)">Sign out</button>
+          </section>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ══ OFFICER ══ -->
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(12,31,91,.5)">Officer surface · bottom tabs, mobile-first</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+      <figure data-screen-label="Officer home" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 400px;min-width:0;max-width:460px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/officer</b> · officer-home</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface);display:flex;flex-direction:column;min-height:620px">
+          <div data-testid="demo-banner" style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--b10);background:#fff;padding:12px 16px">
+            <span style="font-weight:600;color:var(--primary);font-size:16px">Ruaha 360</span>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span data-testid="current-user" style="font-size:14px;color:var(--t70)">Salima Officer</span>
+              <select aria-label="Language" style="font-family:inherit;font-size:14px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:4px 8px;color:var(--deep)"><option>Kiswahili</option></select>
+              <button type="button" style="font-family:inherit;border:1px solid var(--b20);border-radius:4px;background:transparent;padding:4px 8px;font-size:14px;color:var(--deep)">Sign out</button>
+            </div>
+          </div>
+          <main style="flex:1;padding:16px 16px 80px">
+            <section data-testid="officer-home" style="display:flex;flex-direction:column;gap:20px">
+              <header style="display:flex;flex-direction:column;gap:12px;align-items:flex-start">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Your villages</h1>
+                <a href="#1a" data-testid="officer-home-register" style="border-radius:4px;background:var(--primary);color:#fff;padding:8px 16px;font-size:14px;font-weight:500;text-decoration:none">Register a farmer</a>
+              </header>
+              <div data-testid="officer-unverified" style="border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px;font-size:14px;line-height:20px">3 records still need verifying. <a href="#1a" data-testid="officer-unverified-link" style="font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">Open the verify queue</a></div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600;color:var(--t70)">Assigned villages</h2>
+                <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px">
+                  <li data-testid="officer-village" style="border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                    <p style="margin:0;font-weight:500">Ilundo</p>
+                    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+                      <div><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">People</p><p style="margin:2px 0 0;font-size:18px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums">6</p></div>
+                      <div><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Farms</p><p style="margin:2px 0 0;font-size:18px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums">4</p></div>
+                      <div><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Equipment requests</p><p style="margin:2px 0 0;font-size:18px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums">5</p></div>
+                    </div>
+                    <p style="margin:12px 0 0;font-size:12px;line-height:16px;color:var(--t60)">3 records here still need verifying</p>
+                  </li>
+                </ul>
+              </div>
+            </section>
+          </main>
+          <nav aria-label="Primary navigation" data-testid="nav-tabs" style="border-top:1px solid var(--b10);background:#fff">
+            <ul style="margin:0;padding:0;list-style:none;display:flex">
+              <li style="flex:1"><a href="#1a" style="display:block;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--primary);text-decoration:none">Register</a></li>
+              <li style="flex:1"><a href="#1a" style="display:block;padding:10px 4px;text-align:center;font-size:12px;color:var(--t70);text-decoration:none">People</a></li>
+              <li style="flex:1"><a href="#1a" style="display:block;padding:10px 4px;text-align:center;font-size:12px;color:var(--t70);text-decoration:none">Verify</a></li>
+            </ul>
+          </nav>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Officer register" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 400px;min-width:0;max-width:460px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/officer/register</b> · register-submit · 5 fieldsets, ~20 fields</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--b10);background:#fff;padding:12px 16px">
+            <span style="font-weight:600;color:var(--primary);font-size:16px">Ruaha 360</span>
+            <span style="font-size:14px;color:var(--t70)">Salima Officer</span>
+          </div>
+          <main style="padding:16px">
+            <section style="max-width:576px;display:flex;flex-direction:column;gap:20px">
+              <header style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Register a farmer</h1>
+                <p style="margin:0;font-size:14px;line-height:20px;color:var(--t70)">One page, one submit. Everything below is created together.</p>
+                <p style="margin:0;font-size:12px;line-height:16px;color:var(--t50)">Recorded as field-verified, captured by you. This is not a choice.</p>
+                <span data-testid="unsaved-draft-badge" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;font-weight:500;color:var(--t80)"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:var(--dest)"></span>Not yet submitted</span>
+              </header>
+
+              <fieldset style="margin:0;border:1px solid var(--b10);border-radius:4px;background:var(--w60);padding:16px;display:flex;flex-direction:column;gap:12px">
+                <legend style="padding:0 4px;font-size:14px;line-height:20px;font-weight:600">Person</legend>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">First name</label><input data-testid="register-given-name" value="Amina" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Family name</label><input data-testid="register-family-name" value="" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <p data-testid="register-family-name-error" style="margin:0;font-size:14px;line-height:20px;color:var(--dest)">This is required.</p>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Phone (optional)</label><input data-testid="register-phone" value="+255700000103" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <p data-testid="register-phone-hint" style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Include the country code, for example +255700000101.</p>
+              </fieldset>
+
+              <fieldset style="margin:0;border:1px solid var(--b10);border-radius:4px;background:var(--w60);padding:16px;display:flex;flex-direction:column;gap:12px">
+                <legend style="padding:0 4px;font-size:14px;line-height:20px;font-weight:600">Household</legend>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Household name (optional)</label><input data-testid="register-household-label" value="Sanga household" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px"><input type="checkbox" data-testid="register-is-head" checked>This person heads the household</label>
+              </fieldset>
+
+              <fieldset style="margin:0;border:1px solid var(--b10);border-radius:4px;background:var(--w60);padding:16px;display:flex;flex-direction:column;gap:12px">
+                <legend style="padding:0 4px;font-size:14px;line-height:20px;font-weight:600">Farm</legend>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Farm name</label><input data-testid="register-farm-label" value="Shamba la Sanga" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+                  <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Latitude (optional)</label><input data-testid="register-farm-latitude" value="-8.1301" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                  <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Longitude (optional)</label><input data-testid="register-farm-longitude" value="35.1892" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                </div>
+              </fieldset>
+
+              <fieldset style="margin:0;border:1px solid var(--b10);border-radius:4px;background:var(--w60);padding:16px;display:flex;flex-direction:column;gap:12px">
+                <legend style="padding:0 4px;font-size:14px;line-height:20px;font-weight:600">Plot</legend>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Plot name</label><input data-testid="register-plot-label" value="Kipande kimoja" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Plot area (ha)</label><input data-testid="register-plot-area" value="0.60005" inputmode="decimal" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <p data-testid="register-plot-area-rounded" style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">This will be stored as 0.6001.</p>
+              </fieldset>
+
+              <fieldset style="margin:0;border:1px solid var(--b10);border-radius:4px;background:var(--w60);padding:16px;display:flex;flex-direction:column;gap:12px">
+                <legend style="padding:0 4px;font-size:14px;line-height:20px;font-weight:600">Crop cycle</legend>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Crop</label><select data-testid="register-crop" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"><option>Mahindi</option><option>Parachichi</option><option>Kahawa</option></select></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Planted area (ha)</label><input data-testid="register-cycle-area" value="0.6000" inputmode="decimal" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+                  <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Harvest window starts</label><input data-testid="register-harvest-start" type="date" value="2026-09-01" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                  <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Harvest window ends</label><input data-testid="register-harvest-end" type="date" value="2026-09-30" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                </div>
+              </fieldset>
+
+              <fieldset style="margin:0;border:1px solid var(--b10);border-radius:4px;background:var(--w60);padding:16px;display:flex;flex-direction:column;gap:12px">
+                <legend style="padding:0 4px;font-size:14px;line-height:20px;font-weight:600">Expected harvest</legend>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Expected harvest (kg)</label><input data-testid="register-harvest-kg" value="1450" inputmode="decimal" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Confidence</label><select data-testid="register-confidence" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"><option>Medium</option></select></div>
+              </fieldset>
+
+              <button type="button" data-testid="register-submit" style="font-family:inherit;width:100%;border:0;border-radius:4px;background:var(--primary);color:#fff;padding:10px 12px;font-size:16px;font-weight:500">Register</button>
+            </section>
+          </main>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Verify queue" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 400px;min-width:0;max-width:460px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/officer/verify</b> · verify-queue · provenance repeated down a list</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--b10);background:#fff;padding:12px 16px">
+            <span style="font-weight:600;color:var(--primary);font-size:16px">Ruaha 360</span><span style="font-size:14px;color:var(--t70)">Salima Officer</span>
+          </div>
+          <main style="padding:16px 16px 80px">
+            <section data-testid="verify-queue" style="display:flex;flex-direction:column;gap:16px">
+              <header style="display:flex;flex-direction:column;gap:4px">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Verify</h1>
+                <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Records captured in your villages that nobody has checked yet. Verifying attaches your name to the record.</p>
+              </header>
+              <p data-testid="verify-queue-count" style="margin:0;font-size:14px;line-height:20px;color:var(--t70)">3 records waiting</p>
+              <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
+                <li data-testid="verify-queue-row" data-table="person" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:12px">
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <p style="margin:0;font-size:14px;line-height:20px;font-weight:500"><span style="margin-right:8px;border-radius:4px;background:var(--b10);padding:2px 6px;font-size:12px;font-weight:400;color:var(--t70)">Person</span>Amina Sanga</p>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Ilundo</p>
+                    <span data-testid="provenance-badge" data-source="farmer_reported" data-verification="unverified" style="display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;color:var(--deep);width:fit-content"><span style="font-weight:500">Farmer reported</span><span data-testid="provenance-verification" style="color:var(--t50)">Unverified</span><span data-testid="provenance-confidence" style="color:var(--t60)">Medium</span></span>
+                  </div>
+                  <button type="button" data-testid="verify-person-6001" style="font-family:inherit;border:1px solid rgba(29,112,183,.4);border-radius:4px;background:rgba(29,112,183,.05);padding:4px 8px;font-size:12px;font-weight:500;color:var(--primary)">Verify</button>
+                </li>
+                <li data-testid="verify-queue-row" data-table="plot" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:12px">
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <p style="margin:0;font-size:14px;line-height:20px;font-weight:500"><span style="margin-right:8px;border-radius:4px;background:var(--b10);padding:2px 6px;font-size:12px;font-weight:400;color:var(--t70)">Plot</span>Kipande cha barabara</p>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Ilundo</p>
+                    <span data-testid="provenance-badge" data-source="farmer_reported" data-verification="unverified" style="display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;color:var(--deep);width:fit-content"><span style="font-weight:500">Farmer reported</span><span style="color:var(--t50)">Unverified</span><span style="color:var(--t60)">Low</span></span>
+                  </div>
+                  <button type="button" style="font-family:inherit;border:1px solid rgba(29,112,183,.4);border-radius:4px;background:rgba(29,112,183,.05);padding:4px 8px;font-size:12px;font-weight:500;color:var(--primary)">Verify</button>
+                </li>
+                <li data-testid="verify-queue-row" data-table="crop_cycle" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:12px">
+                  <div style="display:flex;flex-direction:column;gap:4px">
+                    <p style="margin:0;font-size:14px;line-height:20px;font-weight:500"><span style="margin-right:8px;border-radius:4px;background:var(--b10);padding:2px 6px;font-size:12px;font-weight:400;color:var(--t70)">Crop cycle</span>Asali · Kipande cha mlima</p>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Ilundo</p>
+                    <span data-testid="provenance-badge" data-source="farmer_reported" data-verification="pending" style="display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;color:var(--deep);width:fit-content"><span style="font-weight:500">Farmer reported</span><span style="color:var(--t70)">Pending</span><span style="color:var(--t60)">Low</span></span>
+                  </div>
+                  <button type="button" style="font-family:inherit;border:1px solid rgba(29,112,183,.4);border-radius:4px;background:rgba(29,112,183,.05);padding:4px 8px;font-size:12px;font-weight:500;color:var(--primary)">Verify</button>
+                </li>
+              </ul>
+            </section>
+          </main>
+        </div>
+      </figure>
+
+      <figure data-screen-label="People table" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 520px;min-width:0;max-width:720px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/officer/people</b> · people-table · DataTable + provenance column</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <main style="padding:16px 16px 80px">
+            <section style="display:flex;flex-direction:column;gap:16px">
+              <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">People</h1>
+              <div style="display:flex;flex-wrap:wrap;gap:12px">
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:14px"><span style="font-size:12px;line-height:16px;color:var(--t60)">Search by name</span><input data-testid="people-search" type="search" placeholder="Given or family name" style="font-family:inherit;font-size:16px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;color:var(--deep)"></label>
+                <label style="display:flex;flex-direction:column;gap:4px;font-size:14px"><span style="font-size:12px;line-height:16px;color:var(--t60)">Verification</span><select data-testid="people-filter-verification" style="font-family:inherit;font-size:16px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;color:var(--deep)"><option>All</option></select></label>
+              </div>
+              <div style="overflow-x:auto">
+                <table data-testid="people-table" style="width:100%;border-collapse:collapse;font-size:14px">
+                  <thead><tr style="border-bottom:1px solid var(--b15);text-align:left">
+                    <th scope="col" aria-sort="none" style="padding:8px;font-weight:600"><span style="display:inline-flex;align-items:center;gap:4px">Name <span aria-hidden="true" style="color:var(--t40)">↕</span></span></th>
+                    <th scope="col" style="padding:8px;font-weight:600"><span style="display:inline-flex;align-items:center;gap:4px">Phone <span aria-hidden="true" style="color:var(--t40)">↕</span></span></th>
+                    <th scope="col" style="padding:8px;font-weight:600"><span style="display:inline-flex;align-items:center;gap:4px">Village <span aria-hidden="true" style="color:var(--t40)">↕</span></span></th>
+                    <th scope="col" style="padding:8px;font-weight:600">Provenance</th>
+                  </tr></thead>
+                  <tbody>
+                    <tr data-testid="people-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Neema Mwakalinga</td><td style="padding:8px;font-variant-numeric:tabular-nums">+255700000101</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px"><span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500;color:var(--primary)">Verified</span><span style="color:var(--t60)">High</span></span></td></tr>
+                    <tr data-testid="people-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Joseph Kimaro</td><td style="padding:8px;font-variant-numeric:tabular-nums">+255700000102</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px"><span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">High</span></span></td></tr>
+                    <tr data-testid="people-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Amina Sanga</td><td style="padding:8px;font-variant-numeric:tabular-nums">—</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px"><span data-testid="provenance-badge" data-source="farmer_reported" data-verification="unverified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;color:var(--deep)"><span style="font-weight:500">Farmer reported</span><span style="color:var(--t50)">Unverified</span><span style="color:var(--t60)">Medium</span></span></td></tr>
+                    <tr data-testid="people-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Baraka Mgeni</td><td style="padding:8px;font-variant-numeric:tabular-nums">+255700000104</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px"><span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">Medium</span></span></td></tr>
+                    <tr data-testid="people-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Rehema Mwakalinga</td><td style="padding:8px;font-variant-numeric:tabular-nums">—</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px"><span data-testid="provenance-badge" data-source="farmer_reported" data-verification="pending" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;color:var(--deep)"><span style="font-weight:500">Farmer reported</span><span style="color:var(--t70)">Pending</span><span style="color:var(--t60)">Low</span></span></td></tr>
+                    <tr data-testid="people-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Daudi Mbwana</td><td style="padding:8px;font-variant-numeric:tabular-nums">—</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px"><span data-testid="provenance-badge" data-source="farmer_reported" data-verification="unverified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;color:var(--deep)"><span style="font-weight:500">Farmer reported</span><span style="color:var(--t50)">Unverified</span><span style="color:var(--t60)">Low</span></span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </main>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ══ FARMER ══ -->
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(12,31,91,.5)">Farmer surface · lowest literacy assumptions, worst hardware</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+      <figure data-screen-label="Farm home" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 380px;min-width:0;max-width:440px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/farm</b> · farm-home</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface);display:flex;flex-direction:column;min-height:640px">
+          <div style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--b10);background:#fff;padding:12px 16px">
+            <span style="font-weight:600;color:var(--primary);font-size:16px">Ruaha 360</span><span data-testid="current-user" style="font-size:14px;color:var(--t70)">Neema Mwakalinga</span>
+          </div>
+          <main style="flex:1;padding:16px 16px 80px">
+            <section data-testid="farm-home" style="display:flex;flex-direction:column;gap:20px">
+              <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">My farm</h1>
+              <section data-testid="farm-home-summary" style="display:flex;flex-direction:column;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                <p style="margin:0;font-weight:500">Shamba la Neema</p>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+                  <div><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Farms</p><p data-testid="summary-farms" style="margin:2px 0 0;font-size:18px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums">1</p></div>
+                  <div><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Plots</p><p data-testid="summary-plots" style="margin:2px 0 0;font-size:18px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums">2</p></div>
+                  <div><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Crops growing</p><p data-testid="summary-cycles" style="margin:2px 0 0;font-size:18px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums">3</p></div>
+                </div>
+                <a href="#1a" style="font-size:14px;font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">See my records</a>
+              </section>
+              <section style="display:flex;flex-direction:column;gap:8px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Latest equipment request</h2>
+                <div data-testid="farm-home-latest-request" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+                  <span style="font-size:14px">Mashine ya kusaga mahindi 500 kg/saa</span>
+                  <span data-testid="status-pill" data-status="approved" style="display:inline-flex;align-items:center;border:1px solid rgba(147,192,31,.5);border-radius:999px;background:rgba(147,192,31,.15);padding:2px 8px;font-size:12px;font-weight:500;color:var(--deep)">Approved</span>
+                </div>
+                <a href="#1a" style="font-size:14px;font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">Browse equipment</a>
+              </section>
+              <section data-testid="farm-home-opportunities" style="display:flex;flex-direction:column;gap:8px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Opportunities</h2>
+                <p style="margin:0;font-size:14px">Your harvest is in 1 opportunity.</p>
+                <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">An opportunity is not a sale, a delivery or a payment.</p>
+                <a href="#1a" data-testid="farm-home-opportunities-link" style="font-size:14px;font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">See opportunities</a>
+              </section>
+            </section>
+          </main>
+          <nav aria-label="Primary navigation" data-testid="nav-tabs" style="border-top:1px solid var(--b10);background:#fff">
+            <ul style="margin:0;padding:0;list-style:none;display:flex">
+              <li style="flex:1"><a href="#1a" style="display:block;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--primary);text-decoration:none">My farm</a></li>
+              <li style="flex:1"><a href="#1a" style="display:block;padding:10px 4px;text-align:center;font-size:12px;color:var(--t70);text-decoration:none">Equipment</a></li>
+              <li style="flex:1"><a href="#1a" style="display:block;padding:10px 4px;text-align:center;font-size:12px;color:var(--t70);text-decoration:none">Requests</a></li>
+              <li style="flex:1"><a href="#1a" style="display:block;padding:10px 4px;text-align:center;font-size:12px;color:var(--t70);text-decoration:none">Opportunities</a></li>
+            </ul>
+          </nav>
+        </div>
+      </figure>
+
+      <figure data-screen-label="My farm" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 380px;min-width:0;max-width:440px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/farm/my-farm</b> · my-farm · provenance on every line</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <main style="padding:16px 16px 80px">
+            <section data-testid="my-farm" style="display:flex;flex-direction:column;gap:16px">
+              <header style="display:flex;flex-direction:column;gap:4px">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">My farm</h1>
+                <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">This is a record of what has been registered. Ask your field officer to change anything.</p>
+              </header>
+              <article data-testid="farm-card" style="display:flex;flex-direction:column;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:12px">
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+                  <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Shamba la Neema</h2>
+                  <span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">High</span></span>
+                </div>
+                <div data-testid="plot-card" style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--b10);padding-top:8px">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+                    <span style="font-size:14px;font-weight:500">Kipande cha juu</span>
+                    <span style="font-size:14px;color:var(--t70);font-variant-numeric:tabular-nums">1.8000 ha</span>
+                    <span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">High</span></span>
+                  </div>
+                  <div data-testid="cycle-card" style="margin-left:12px;display:flex;flex-direction:column;gap:4px;border-left:1px solid var(--b10);padding-left:12px">
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:14px">Mahindi</span><span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">High</span></span></div>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Harvest window: 1 Sep 2026 – 30 Sep 2026</p>
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t60)">Expected harvest:</span><span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums">4,100.00 kg</span><span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">High</span></span></div>
+                  </div>
+                  <div data-testid="cycle-card" style="margin-left:12px;display:flex;flex-direction:column;gap:4px;border-left:1px solid var(--b10);padding-left:12px">
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:14px">Ndizi</span><span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">Medium</span></span></div>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Harvest window: 10 Sep 2026 – 20 Oct 2026</p>
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t60)">Expected harvest:</span><span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums">1,800.00 kg</span><span data-testid="provenance-badge" data-source="farmer_reported" data-verification="unverified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:4px 10px;font-size:12px;color:var(--deep)"><span style="font-weight:500">Farmer reported</span><span style="color:var(--t50)">Unverified</span><span style="color:var(--t60)">Medium</span></span></div>
+                  </div>
+                </div>
+                <div data-testid="plot-card" style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--b10);padding-top:8px">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+                    <span style="font-size:14px;font-weight:500">Kipande cha chini</span>
+                    <span style="font-size:14px;color:var(--t70);font-variant-numeric:tabular-nums">0.9000 ha</span>
+                    <span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">High</span></span>
+                  </div>
+                  <div data-testid="cycle-card" style="margin-left:12px;display:flex;flex-direction:column;gap:4px;border-left:1px solid var(--b10);padding-left:12px">
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:14px">Mahindi</span><span data-testid="provenance-badge" data-source="field_verified" data-verification="verified" style="display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:4px 10px;font-size:12px;color:var(--primary)"><span style="font-weight:500">Field verified</span><span style="font-weight:500">Verified</span><span style="color:var(--t60)">High</span></span></div>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Harvest window: 5 Sep 2026 – 28 Sep 2026</p>
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:12px;color:var(--t60)">Expected harvest:</span><span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums">2,300.00 kg</span></div>
+                  </div>
+                </div>
+              </article>
+            </section>
+          </main>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Equipment detail" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 380px;min-width:0;max-width:460px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/farm/equipment/$id</b> · equipment-detail + estimate-panel</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <main style="padding:16px 16px 80px">
+            <section data-testid="equipment-detail" style="max-width:512px;display:flex;flex-direction:column;gap:16px">
+              <header style="display:flex;flex-direction:column;gap:4px">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Mashine ya kusaga mahindi 500 kg/saa</h1>
+                <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Kusaga</p>
+                <p style="margin:0;font-size:14px;font-variant-numeric:tabular-nums">15.000 kW</p>
+                <p data-testid="equipment-price" style="margin:0;font-size:14px;font-variant-numeric:tabular-nums">TZS 22,000,000.00 <span style="font-size:12px;font-weight:400;color:var(--t60)">(indicative)</span></p>
+                <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Prices are indicative, not quotations.</p>
+              </header>
+              <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Request this</h2>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">How many</label><input data-testid="request-quantity" value="1" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Hours per day</label><input data-testid="request-hours" value="6" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Days per week</label><input data-testid="request-days" value="5" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+                <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">What will you use it for?</label><textarea data-testid="request-purpose" rows="2" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)">Kusaga mahindi ya kijiji</textarea></div>
+              </div>
+              <section data-testid="estimate-panel" style="display:flex;flex-direction:column;gap:12px;border:1px dashed var(--b30);border-radius:4px;background:var(--w60);padding:16px">
+                <header style="display:flex;flex-direction:column;gap:4px">
+                  <h3 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Energy estimate</h3>
+                  <p style="margin:0;font-size:12px;line-height:16px;font-weight:500;color:var(--t70)">This is an estimate, not a measurement.</p>
+                  <p data-testid="estimate-basis" style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Calculated from rated power and the operating assumptions below (Level 1).</p>
+                </header>
+                <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;row-gap:4px;font-size:12px">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Rated power</dt><dd data-testid="estimate-rated-power" style="margin:0;font-variant-numeric:tabular-nums">15.000 kW</dd></div>
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Quantity</dt><dd data-testid="estimate-quantity" style="margin:0;font-variant-numeric:tabular-nums">1</dd></div>
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Hours per day</dt><dd data-testid="estimate-hours" style="margin:0;font-variant-numeric:tabular-nums">6</dd></div>
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Days per week</dt><dd data-testid="estimate-days" style="margin:0;font-variant-numeric:tabular-nums">5</dd></div>
+                </dl>
+                <dl style="margin:0;display:grid;row-gap:4px;border-top:1px solid var(--b10);padding-top:12px;font-size:14px">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Estimated peak</dt><dd data-testid="estimate-power" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">15.000 kW</dd></div>
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Estimated per day</dt><dd data-testid="estimate-kwh-day" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">90.000 kWh</dd></div>
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Estimated per week</dt><dd data-testid="estimate-kwh-week" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">450.000 kWh</dd></div>
+                </dl>
+                <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Peak power does not change with hours of use.</p>
+              </section>
+              <button type="button" data-testid="request-submit" style="font-family:inherit;width:100%;border:0;border-radius:4px;background:var(--primary);color:#fff;padding:10px 12px;font-size:16px;font-weight:500">Submit request</button>
+            </section>
+          </main>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Estimate blocked" style="margin:0;display:flex;flex-direction:column;gap:8px;flex:1 1 300px;min-width:0;max-width:400px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">estimate-blocked</b> · both withheld states</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:12px">
+          <div data-testid="estimate-blocked" style="border:1px dashed var(--b20);border-radius:4px;background:var(--w50);padding:32px 16px;text-align:center">
+            <p style="margin:0;font-weight:500">No estimate yet</p>
+            <p style="margin:4px 0 0;font-size:14px;line-height:20px;color:var(--t60)">Fill in how many, hours per day and days per week, and the estimate appears here.</p>
+          </div>
+          <div data-testid="estimate-blocked" style="border:1px dashed var(--b20);border-radius:4px;background:var(--w50);padding:32px 16px;text-align:center">
+            <p style="margin:0;font-weight:500">This cannot be estimated</p>
+            <p style="margin:4px 0 0;font-size:14px;line-height:20px;color:var(--t60)">One of the figures above is outside what is possible, so no estimate is shown for it. Correct it and the estimate returns.</p>
+          </div>
+          <p style="margin:0;font-size:12px;color:var(--t60)">Loading, everywhere in the app:</p>
+          <p data-testid="farm-home-loading" style="margin:0;font-size:14px;line-height:20px;color:var(--t60)">Loading…</p>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ══ OPS ══ -->
+  <section style="display:flex;flex-direction:column;gap:18px">
+    <h2 style="margin:0;font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(12,31,91,.5)">Ops surface · sidebar at lg, scrollable strip below it</h2>
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <figure data-screen-label="Ops home" style="margin:0;display:flex;flex-direction:column;gap:8px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/ops</b> · ops-home · with the sidebar shell</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--b10);background:#fff;padding:12px 16px">
+            <span style="font-weight:600;color:var(--primary);font-size:16px">Ruaha 360</span>
+            <div style="display:flex;align-items:center;gap:12px"><span data-testid="current-user" style="font-size:14px;color:var(--t70)">Asha Ops</span><select aria-label="Language" style="font-family:inherit;font-size:14px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:4px 8px;color:var(--deep)"><option>English</option></select><button type="button" style="font-family:inherit;border:1px solid var(--b20);border-radius:4px;background:transparent;padding:4px 8px;font-size:14px;color:var(--deep)">Sign out</button></div>
+          </div>
+          <div style="display:flex">
+            <nav aria-label="Primary navigation" data-testid="nav-sidebar" style="width:208px;flex-shrink:0;border-right:1px solid var(--b10);background:#fff;padding:12px">
+              <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px">
+                <li><a href="#1a" style="display:block;border-radius:4px;padding:6px 8px;font-size:14px;color:var(--t70);text-decoration:none">Requests</a></li>
+                <li><a href="#1a" style="display:block;border-radius:4px;padding:6px 8px;font-size:14px;color:var(--t70);text-decoration:none">Demand</a></li>
+                <li><a href="#1a" style="display:block;border-radius:4px;padding:6px 8px;font-size:14px;color:var(--t70);text-decoration:none">Catalogue</a></li>
+                <li><a href="#1a" style="display:block;border-radius:4px;padding:6px 8px;font-size:14px;color:var(--t70);text-decoration:none">Buyers</a></li>
+                <li><a href="#1a" style="display:block;border-radius:4px;padding:6px 8px;font-size:14px;color:var(--t70);text-decoration:none">Villages</a></li>
+                <li><a href="#1a" style="display:block;border-radius:4px;padding:6px 8px;font-size:14px;font-weight:500;color:var(--primary);text-decoration:none">Control Tower</a></li>
+              </ul>
+            </nav>
+            <main style="flex:1;padding:16px;min-width:0">
+              <section data-testid="ops-home" style="display:flex;flex-direction:column;gap:16px">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Today</h1>
+                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+                  <a href="#1a" data-testid="ops-queue-requests" style="display:block;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px;text-decoration:none;color:var(--deep)"><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Requests awaiting review</p><p style="margin:4px 0 0;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums">1</p><p style="margin:4px 0 0;font-size:12px;line-height:16px;color:var(--t60)">Submitted or under review</p></a>
+                  <a href="#1a" data-testid="ops-queue-demands" style="display:block;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px;text-decoration:none;color:var(--deep)"><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Open buyer demands</p><p style="margin:4px 0 0;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums">2</p><p style="margin:4px 0 0;font-size:12px;line-height:16px;color:var(--t60)">Still looking for supply</p></a>
+                  <a href="#1a" data-testid="ops-queue-verification" style="display:block;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px;text-decoration:none;color:var(--deep)"><p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Records to verify</p><p style="margin:4px 0 0;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums">3</p><p style="margin:4px 0 0;font-size:12px;line-height:16px;color:var(--t60)">Captured but not yet checked</p></a>
+                </div>
+              </section>
+            </main>
+          </div>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Control Tower" style="margin:0;display:flex;flex-direction:column;gap:8px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/ops/tower</b> · tower · five uniform tiles in a two-column grid</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="background:var(--accent);color:var(--deep);padding:6px 16px;text-align:center;font-size:12px;font-weight:500;line-height:16px"><span style="font-weight:600">Demo data</span> — Every figure here is invented. Nothing is a measured Ruaha result.</div>
+          <main style="padding:16px">
+            <section data-testid="tower" style="display:flex;flex-direction:column;gap:16px">
+              <header style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Control Tower</h1>
+                <label style="font-size:14px"><span style="margin-right:8px;color:var(--t60)">Village</span><select data-testid="tower-village" style="font-family:inherit;font-size:14px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:4px 8px;color:var(--deep)"><option>Ilundo</option><option>Mgama</option></select></label>
+              </header>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+
+                <section data-testid="tile-production" style="display:flex;flex-direction:column;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                  <header style="display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px">
+                      <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Production</h2>
+                      <a href="#1a" data-testid="tile-drill" style="font-size:12px;font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">See the records</a>
+                    </div>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Expected and actual harvest by crop and window.</p>
+                  </header>
+                  <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
+                    <li style="display:flex;flex-direction:column;gap:2px">
+                      <p style="margin:0;font-size:14px;line-height:20px;font-weight:500">Mahindi · 1 Sep 2026</p>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Expected</span><span style="font-weight:600;font-variant-numeric:tabular-nums">12,000.00 kg</span></div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Actual</span><span style="font-weight:600;font-variant-numeric:tabular-nums">—</span></div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Planted area across cycles</span><span style="font-weight:600;font-variant-numeric:tabular-nums">4.9000 ha</span></div>
+                    </li>
+                    <li style="display:flex;flex-direction:column;gap:2px">
+                      <p style="margin:0;font-size:14px;line-height:20px;font-weight:500">Ndizi · 10 Sep 2026</p>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Expected</span><span style="font-weight:600;font-variant-numeric:tabular-nums">1,800.00 kg</span></div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Actual</span><span style="font-weight:600;font-variant-numeric:tabular-nums">—</span></div>
+                    </li>
+                  </ul>
+                  <p style="margin:0;font-size:12px;line-height:16px;color:var(--t50)">The sum of cycle areas. Intercropping means several cycles share a plot, so this can exceed the village’s hectares. It is not land area.</p>
+                </section>
+
+                <section data-testid="tile-pue" style="display:flex;flex-direction:column;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                  <header style="display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px">
+                      <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Equipment pipeline</h2>
+                      <a href="#1a" data-testid="tile-drill" style="font-size:12px;font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">See the records</a>
+                    </div>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Requests by status, with the catalogue value they represent.</p>
+                  </header>
+                  <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px">
+                    <li style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Approved · 2 Requests</span><span style="font-weight:600;font-variant-numeric:tabular-nums">TZS 38,600,000.00 (indicative)</span></li>
+                    <li style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Under review · 1 Requests</span><span style="font-weight:600;font-variant-numeric:tabular-nums">TZS 32,000,000.00 (indicative)</span></li>
+                    <li style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Rejected · 1 Requests</span><span style="font-weight:600;font-variant-numeric:tabular-nums">TZS 15,000,000.00 (indicative)</span></li>
+                    <li style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Draft · 1 Requests</span><span style="font-weight:600;font-variant-numeric:tabular-nums">TZS 41,000,000.00 (indicative)</span></li>
+                  </ul>
+                  <p style="margin:0;font-size:12px;line-height:16px;color:var(--t50)">Catalogue price times quantity. Not financed value and not a loan book.</p>
+                </section>
+
+                <section data-testid="tile-energy" style="display:flex;flex-direction:column;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                  <header style="display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px">
+                      <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Energy</h2>
+                      <a href="#1a" data-testid="tile-drill" style="font-size:12px;font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">See the records</a>
+                    </div>
+                  </header>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Planned capacity</span><span data-testid="tower-capacity" style="font-weight:600;font-variant-numeric:tabular-nums">500.000 kW</span></div><p style="margin:2px 0 0;font-size:12px;line-height:16px;color:var(--t50)">Basis: Planned</p></div>
+                    <div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Prospective peak</span><span data-testid="tower-prospective-peak" style="font-weight:600;font-variant-numeric:tabular-nums">7.200 kW</span></div><p style="margin:2px 0 0;font-size:12px;line-height:16px;color:var(--t50)">Requests submitted or under review. An application, not a load.</p></div>
+                    <div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Approved peak</span><span data-testid="tower-approved-peak" style="font-weight:600;font-variant-numeric:tabular-nums">10.800 kW</span></div><p style="margin:2px 0 0;font-size:12px;line-height:16px;color:var(--t50)">Decided yes. Still not measured consumption.</p></div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Headroom</span><span data-testid="tower-headroom" style="font-weight:600;font-variant-numeric:tabular-nums">489.200 kW</span></div>
+                    <div><div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Simultaneity factor</span><span data-testid="tower-simultaneity" style="font-weight:600;font-variant-numeric:tabular-nums">0.600</span></div><p style="margin:2px 0 0;font-size:12px;line-height:16px;color:var(--t50)">Applied to the peaks above. Village peak is not the sum of rated power.</p></div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Estimated per week</span><span style="font-weight:600;font-variant-numeric:tabular-nums">324.000 kWh</span></div>
+                    <p style="margin:0;font-size:12px;line-height:16px;font-weight:500;color:var(--t70)">Prospective and approved are separate figures and are never added together.</p>
+                  </div>
+                </section>
+
+                <section data-testid="tile-market" style="display:flex;flex-direction:column;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                  <header style="display:flex;flex-direction:column;gap:4px">
+                    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px">
+                      <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Market</h2>
+                      <a href="#1a" data-testid="tile-drill" style="font-size:12px;font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">See the records</a>
+                    </div>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Open demand against supply that is still available.</p>
+                  </header>
+                  <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px">
+                    <li style="display:flex;flex-direction:column;gap:2px">
+                      <p style="margin:0;font-size:14px;line-height:20px;font-weight:500">Iringa Grain Traders — DEMO · Mahindi</p>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Open demand</span><span style="font-weight:600;font-variant-numeric:tabular-nums">9,000.00 kg</span></div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Available</span><span style="font-weight:600;font-variant-numeric:tabular-nums">5,600.00 kg</span></div>
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Coverage</span><span style="font-weight:600;font-variant-numeric:tabular-nums">62.2%</span></div>
+                    </li>
+                  </ul>
+                </section>
+
+                <section data-testid="tile-quality" style="display:flex;flex-direction:column;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w70);padding:16px">
+                  <header style="display:flex;flex-direction:column;gap:4px">
+                    <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Data quality</h2>
+                    <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">How much of what has been recorded has been checked.</p>
+                  </header>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Persons verified</span><span style="font-weight:600;font-variant-numeric:tabular-nums">3 / 6</span></div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Farms with GPS</span><span style="font-weight:600;font-variant-numeric:tabular-nums">3 / 4</span></div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:14px"><span style="color:var(--t60)">Cycles with an estimate</span><span style="font-weight:600;font-variant-numeric:tabular-nums">5 / 7</span></div>
+                  </div>
+                </section>
+              </div>
+            </section>
+          </main>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Tower energy drill" style="margin:0;display:flex;flex-direction:column;gap:8px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/ops/tower/energy</b> · energy-table · grouped, with the arithmetic stated</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;overflow:hidden;background:var(--surface);padding:16px">
+          <section style="display:flex;flex-direction:column;gap:12px">
+            <a href="#1a" style="font-size:14px;font-weight:500;color:var(--primary);text-decoration:underline;text-underline-offset:4px">Back to the Tower</a>
+            <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Requests behind the energy figures</h1>
+            <div style="overflow-x:auto">
+              <table data-testid="energy-table" style="width:100%;border-collapse:collapse;font-size:14px">
+                <thead><tr style="border-bottom:1px solid var(--b15);text-align:left"><th scope="col" style="padding:8px;font-weight:600">Applicant</th><th scope="col" style="padding:8px;font-weight:600">Equipment</th><th scope="col" style="padding:8px;font-weight:600">Status</th><th scope="col" style="padding:8px;font-weight:600">Est. peak</th></tr></thead>
+                <tbody data-testid="energy-group-prospective" style="border-bottom:2px solid var(--b15)">
+                  <tr style="background:rgba(12,31,91,.05)"><th colspan="4" style="padding:8px;text-align:left"><span style="font-weight:600">Prospective peak</span><span style="margin-left:8px;font-weight:400;font-size:12px;color:var(--t60)">Requests submitted or under review. An application, not a load.</span></th></tr>
+                  <tr data-testid="energy-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px">Baraka Mgeni</td><td style="padding:8px">Mashine ya kukausha nafaka 1000 kg</td><td style="padding:8px"><span data-testid="status-pill" data-status="under_review" style="display:inline-flex;align-items:center;border:1px solid rgba(29,112,183,.5);border-radius:999px;background:rgba(29,112,183,.1);padding:2px 8px;font-size:12px;font-weight:500;color:var(--primary)">Under review</span></td><td style="padding:8px;font-variant-numeric:tabular-nums"><a href="#1a" data-testid="drill-link" style="color:var(--primary);text-decoration:underline;text-underline-offset:4px">12.000 kW</a></td></tr>
+                  <tr style="font-size:14px"><td colspan="3" style="padding:8px;text-align:right;color:var(--t70)">Sum of estimated peaks <span style="font-variant-numeric:tabular-nums">12.000 kW</span> × 0.6 simultaneity =</td><td data-testid="energy-prospective-peak" style="padding:8px;font-weight:600;font-variant-numeric:tabular-nums">7.200 kW</td></tr>
+                </tbody>
+                <tbody data-testid="energy-group-approved" style="border-bottom:2px solid var(--b15)">
+                  <tr style="background:rgba(12,31,91,.05)"><th colspan="4" style="padding:8px;text-align:left"><span style="font-weight:600">Approved peak</span><span style="margin-left:8px;font-weight:400;font-size:12px;color:var(--t60)">Decided yes. Still not measured consumption.</span></th></tr>
+                  <tr data-testid="energy-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px">Neema Mwakalinga</td><td style="padding:8px">Mashine ya kusaga mahindi 500 kg/saa</td><td style="padding:8px"><span data-testid="status-pill" data-status="approved" style="display:inline-flex;align-items:center;border:1px solid rgba(147,192,31,.5);border-radius:999px;background:rgba(147,192,31,.15);padding:2px 8px;font-size:12px;font-weight:500;color:var(--deep)">Approved</span></td><td style="padding:8px;font-variant-numeric:tabular-nums"><a href="#1a" data-testid="drill-link" style="color:var(--primary);text-decoration:underline;text-underline-offset:4px">15.000 kW</a></td></tr>
+                  <tr data-testid="energy-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px">Joseph Kimaro</td><td style="padding:8px">Pampu ya maji ya jua 2 HP</td><td style="padding:8px"><span data-testid="status-pill" data-status="approved" style="display:inline-flex;align-items:center;border:1px solid rgba(147,192,31,.5);border-radius:999px;background:rgba(147,192,31,.15);padding:2px 8px;font-size:12px;font-weight:500;color:var(--deep)">Approved</span></td><td style="padding:8px;font-variant-numeric:tabular-nums"><a href="#1a" data-testid="drill-link" style="color:var(--primary);text-decoration:underline;text-underline-offset:4px">3.000 kW</a></td></tr>
+                  <tr style="font-size:14px"><td colspan="3" style="padding:8px;text-align:right;color:var(--t70)">Sum of estimated peaks <span style="font-variant-numeric:tabular-nums">18.000 kW</span> × 0.6 simultaneity =</td><td data-testid="energy-approved-peak" style="padding:8px;font-weight:600;font-variant-numeric:tabular-nums">10.800 kW</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p style="margin:0;font-size:12px;line-height:16px;font-weight:500;color:var(--t70)">Prospective and approved are separate figures and are never added together.</p>
+            <p data-testid="energy-excluded" style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">2 more requests in this village are draft, rejected or withdrawn. They feed neither figure — the equipment pipeline tile counts every status.</p>
+            <p style="margin:0;font-size:12px;line-height:16px;color:var(--t50)">This is an estimate, not a measurement.</p>
+          </section>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Ops requests" style="margin:0;display:flex;flex-direction:column;gap:8px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/ops/requests</b> · requests-table</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;background:var(--surface);padding:16px">
+          <section style="display:flex;flex-direction:column;gap:16px">
+            <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Request pipeline</h1>
+            <div style="display:flex;flex-wrap:wrap;gap:12px">
+              <label style="font-size:14px"><span style="margin-right:8px;color:var(--t60)">Status</span><select data-testid="filter-status" style="font-family:inherit;font-size:14px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:4px 8px;color:var(--deep)"><option>All statuses</option></select></label>
+              <label style="font-size:14px"><span style="margin-right:8px;color:var(--t60)">Village</span><select data-testid="filter-village" style="font-family:inherit;font-size:14px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:4px 8px;color:var(--deep)"><option>All villages</option></select></label>
+            </div>
+            <div style="overflow-x:auto">
+              <table data-testid="requests-table" style="width:100%;border-collapse:collapse;font-size:14px">
+                <thead><tr style="border-bottom:1px solid var(--b15);text-align:left">
+                  <th scope="col" aria-sort="none" style="padding:8px;font-weight:600"><span style="display:inline-flex;gap:4px;align-items:center">Applicant <span aria-hidden="true" style="color:var(--t40)">↕</span></span></th>
+                  <th scope="col" style="padding:8px;font-weight:600"><span style="display:inline-flex;gap:4px;align-items:center">Village <span aria-hidden="true" style="color:var(--t40)">↕</span></span></th>
+                  <th scope="col" style="padding:8px;font-weight:600"><span style="display:inline-flex;gap:4px;align-items:center">Equipment <span aria-hidden="true" style="color:var(--t40)">↕</span></span></th>
+                  <th scope="col" style="padding:8px;font-weight:600"><span style="display:inline-flex;gap:4px;align-items:center">Est. kW <span aria-hidden="true" style="color:var(--t40)">↕</span></span></th>
+                  <th scope="col" style="padding:8px;font-weight:600"><span style="display:inline-flex;gap:4px;align-items:center">Status <span aria-hidden="true" style="color:var(--t40)">↕</span></span></th>
+                  <th scope="col" aria-sort="descending" style="padding:8px;font-weight:600"><span style="display:inline-flex;gap:4px;align-items:center">Submitted <span aria-hidden="true" style="color:var(--t40)">↓</span></span></th>
+                </tr></thead>
+                <tbody>
+                  <tr data-testid="request-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Neema Mwakalinga</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px;font-variant-numeric:tabular-nums">Mashine ya kusaga mahindi 500 kg/saa</td><td style="padding:8px;font-variant-numeric:tabular-nums">15.000 kW</td><td style="padding:8px"><span data-testid="status-pill" data-status="approved" style="display:inline-flex;align-items:center;border:1px solid rgba(147,192,31,.5);border-radius:999px;background:rgba(147,192,31,.15);padding:2px 8px;font-size:12px;font-weight:500;color:var(--deep)">Approved</span></td><td style="padding:8px;font-variant-numeric:tabular-nums">2 Sep 2026, 09:14</td></tr>
+                  <tr data-testid="request-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Joseph Kimaro</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px;font-variant-numeric:tabular-nums">Pampu ya maji ya jua 2 HP</td><td style="padding:8px;font-variant-numeric:tabular-nums">3.000 kW</td><td style="padding:8px"><span data-testid="status-pill" data-status="approved" style="display:inline-flex;align-items:center;border:1px solid rgba(147,192,31,.5);border-radius:999px;background:rgba(147,192,31,.15);padding:2px 8px;font-size:12px;font-weight:500;color:var(--deep)">Approved</span></td><td style="padding:8px;font-variant-numeric:tabular-nums">2 Sep 2026, 09:20</td></tr>
+                  <tr data-testid="request-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Baraka Mgeni</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px;font-variant-numeric:tabular-nums">Mashine ya kukausha nafaka 1000 kg</td><td style="padding:8px;font-variant-numeric:tabular-nums">12.000 kW</td><td style="padding:8px"><span data-testid="status-pill" data-status="under_review" style="display:inline-flex;align-items:center;border:1px solid rgba(29,112,183,.5);border-radius:999px;background:rgba(29,112,183,.1);padding:2px 8px;font-size:12px;font-weight:500;color:var(--primary)">Under review</span></td><td style="padding:8px;font-variant-numeric:tabular-nums">3 Sep 2026, 11:02</td></tr>
+                  <tr data-testid="request-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Amina Sanga</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px;font-variant-numeric:tabular-nums">Mashine ya kukamua mafuta 200 kg/siku</td><td style="padding:8px;font-variant-numeric:tabular-nums">7.500 kW</td><td style="padding:8px"><span data-testid="status-pill" data-status="rejected" style="display:inline-flex;align-items:center;border:1px solid var(--dest30);border-radius:999px;background:var(--dest05);padding:2px 8px;font-size:12px;font-weight:500;color:var(--dest)">Rejected</span></td><td style="padding:8px;font-variant-numeric:tabular-nums">3 Sep 2026, 11:40</td></tr>
+                  <tr data-testid="request-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Neema Mwakalinga</td><td style="padding:8px;font-variant-numeric:tabular-nums">Ilundo</td><td style="padding:8px;font-variant-numeric:tabular-nums">Chumba cha baridi 5 kW</td><td style="padding:8px;font-variant-numeric:tabular-nums">—</td><td style="padding:8px"><span data-testid="status-pill" data-status="draft" style="display:inline-flex;align-items:center;border:1px solid var(--b20);border-radius:999px;background:#fff;padding:2px 8px;font-size:12px;font-weight:500;color:var(--t60)">Draft</span></td><td style="padding:8px;font-variant-numeric:tabular-nums">—</td></tr>
+                  <tr data-testid="request-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px;font-variant-numeric:tabular-nums">Zawadi Ngowi</td><td style="padding:8px;font-variant-numeric:tabular-nums">Mgama</td><td style="padding:8px;font-variant-numeric:tabular-nums">Pampu ya maji ya jua 2 HP</td><td style="padding:8px;font-variant-numeric:tabular-nums">1.500 kW</td><td style="padding:8px"><span data-testid="status-pill" data-status="withdrawn" style="display:inline-flex;align-items:center;border:1px dashed var(--b30);border-radius:999px;background:#fff;padding:2px 8px;font-size:12px;font-weight:500;color:var(--t50)">Withdrawn</span></td><td style="padding:8px;font-variant-numeric:tabular-nums">1 Sep 2026, 08:05</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Request review" style="margin:0;display:flex;flex-direction:column;gap:8px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/ops/requests/$id</b> · request-review</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;background:var(--surface);padding:16px">
+          <section data-testid="request-review" style="max-width:672px;display:flex;flex-direction:column;gap:20px">
+            <header style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Mashine ya kukausha nafaka 1000 kg</h1>
+                <span data-testid="status-pill" data-status="under_review" style="display:inline-flex;align-items:center;border:1px solid rgba(29,112,183,.5);border-radius:999px;background:rgba(29,112,183,.1);padding:2px 8px;font-size:12px;font-weight:500;color:var(--primary)">Under review</span>
+              </div>
+              <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;row-gap:4px;font-size:14px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Applicant</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">Baraka Mgeni</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Village</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">Ilundo</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Farm</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">Shamba la Mgeni</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Submitted</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">3 Sep 2026, 11:02</dd></div>
+              </dl>
+              <p style="margin:0;font-size:14px;line-height:20px;color:var(--t70)">Kukausha nafaka baada ya mavuno</p>
+            </header>
+            <section data-testid="review-estimate" style="display:flex;flex-direction:column;gap:4px">
+              <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Snapshotted inputs</h2>
+              <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">These are the assumptions as they were when the estimate was calculated.</p>
+              <dl style="margin:4px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;row-gap:4px;font-size:14px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Rated power</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">12.000 kW</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Quantity</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">1</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Hours per day</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">8</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Days per week</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">4</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Estimated peak</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">12.000 kW</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Estimated per week</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">384.000 kWh</dd></div>
+              </dl>
+              <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">This is an estimate, not a measurement.</p>
+            </section>
+            <section style="display:flex;flex-direction:column;gap:4px">
+              <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Village headroom</h2>
+              <dl style="margin:4px 0 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;row-gap:4px;font-size:14px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Planned capacity</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">500.000 kW</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Basis</dt><dd data-testid="review-capacity-basis" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">Planned</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Approved peak</dt><dd data-testid="review-approved-peak" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">10.800 kW</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Prospective peak</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">7.200 kW</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Headroom</dt><dd data-testid="review-headroom" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">489.200 kW</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Simultaneity factor</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">0.6</dd></div>
+              </dl>
+              <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Prospective and approved demand are separate figures and are never added together.</p>
+            </section>
+            <section style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <label for="cur-note" style="font-size:14px;line-height:20px;font-weight:500">Decision note</label>
+                <textarea id="cur-note" data-testid="decision-note" rows="2" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></textarea>
+                <p data-testid="decision-note-error" role="alert" style="margin:0;font-size:14px;line-height:20px;color:var(--dest)">A decision needs a note explaining it.</p>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <button type="button" data-testid="action-approve" style="font-family:inherit;border:0;border-radius:4px;background:var(--primary);color:#fff;padding:8px 12px;font-size:14px;font-weight:500">Approve</button>
+                <button type="button" data-testid="action-reject" style="font-family:inherit;border:0;border-radius:4px;background:var(--primary);color:#fff;padding:8px 12px;font-size:14px;font-weight:500">Reject</button>
+              </div>
+            </section>
+          </section>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Demand detail" style="margin:0;display:flex;flex-direction:column;gap:8px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/ops/demand/$id</b> · demand-detail + CoverageBar</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;background:var(--surface);padding:16px">
+          <section data-testid="demand-detail" style="max-width:768px;display:flex;flex-direction:column;gap:20px">
+            <header style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Iringa Grain Traders — DEMO</h1>
+                <span data-testid="status-pill" data-status="open" style="display:inline-flex;align-items:center;border:1px solid rgba(29,112,183,.3);border-radius:999px;background:rgba(29,112,183,.05);padding:2px 8px;font-size:12px;font-weight:500;color:var(--primary)">Open</span>
+              </div>
+              <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;row-gap:4px;font-size:14px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Crop</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">Mahindi</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Quantity</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">9,000.00 kg</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Window</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">1 Sep 2026 – 30 Sep 2026</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Indicative price/kg</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">TZS 780.00 (indicative)</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Delivery point</dt><dd style="margin:0;font-weight:500">Ilundo collection shed</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Quality note</dt><dd style="margin:0;font-weight:500">Dry, below 13.5% moisture. DEMO figure.</dd></div>
+              </dl>
+            </header>
+            <section style="display:flex;flex-direction:column;gap:8px">
+              <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Villages that could supply this</h2>
+              <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:14px">
+                  <thead><tr style="border-bottom:1px solid var(--b15);text-align:left"><th scope="col" style="padding:8px;font-weight:600">Village</th><th scope="col" style="padding:8px;font-weight:600">Available</th><th scope="col" style="padding:8px;font-weight:600">Coverable</th><th scope="col" style="padding:8px;font-weight:600">Coverage</th><th scope="col" style="padding:8px;font-weight:600">Opportunity</th></tr></thead>
+                  <tbody><tr data-testid="match-row-ilundo" style="border-bottom:1px solid var(--b10)"><td style="padding:8px">Ilundo</td><td style="padding:8px;font-variant-numeric:tabular-nums">5,600.00 kg</td><td style="padding:8px;font-variant-numeric:tabular-nums">5,600.00 kg</td><td style="padding:8px;font-variant-numeric:tabular-nums">62.2%</td><td style="padding:8px"><a href="#1a" data-testid="drill-link" style="color:var(--primary);text-decoration:underline;text-underline-offset:4px">Proposed</a></td></tr></tbody>
+                </table>
+              </div>
+              <div data-testid="coverage-ilundo" style="display:flex;flex-direction:column;gap:4px;border:1px solid var(--b10);border-radius:4px;background:var(--w60);padding:12px">
+                <p style="margin:0;font-size:12px;font-weight:500">Ilundo</p>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px"><span style="font-size:14px;color:var(--t60)">Coverage</span><span data-testid="coverage-pct" style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums">62.2%</span></div>
+                  <div role="meter" aria-label="Coverage" aria-valuenow="62.2" aria-valuemin="0" aria-valuemax="100" style="height:8px;width:100%;overflow:hidden;border-radius:999px;background:var(--b10)"><div style="height:100%;width:62.2%;border-radius:999px;background:var(--accent)"></div></div>
+                  <dl style="margin:0;display:grid;row-gap:4px;font-size:12px">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Demand</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">9,000.00 kg</dd></div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Available</dt><dd data-testid="coverage-available" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">5,600.00 kg</dd></div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Already committed</dt><dd data-testid="coverage-committed" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">6,400.00 kg</dd></div>
+                  </dl>
+                  <p style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">Committed supply is promised to a live opportunity and is not available again.</p>
+                </div>
+              </div>
+              <div data-testid="no-matching-supply" style="border:1px dashed var(--b20);border-radius:4px;background:var(--w50);padding:32px 16px;text-align:center">
+                <p style="margin:0;font-weight:500">No matching supply</p>
+                <p style="margin:4px 0 0;font-size:14px;line-height:20px;color:var(--t60)">No village has available supply of this crop in this window. That is an honest zero, not a missing row.</p>
+              </div>
+            </section>
+            <p style="margin:0;border:1px solid var(--b15);border-radius:4px;background:var(--w60);padding:8px 12px;font-size:12px;line-height:16px;color:var(--t70)">An opportunity is not a sale, a delivery or a payment. It records that a village could supply a buyer.</p>
+          </section>
+        </div>
+      </figure>
+
+      <figure data-screen-label="Opportunity detail" style="margin:0;display:flex;flex-direction:column;gap:8px">
+        <figcaption style="font-size:12px;color:#46547d"><b style="font-weight:600">/ops/opportunities/$id</b> · opportunity-detail · supply lines, status machine, attach form, release confirm</figcaption>
+        <div style="border:1px solid var(--b15);border-radius:10px;background:var(--surface);padding:16px">
+          <section data-testid="opportunity-detail" style="max-width:768px;display:flex;flex-direction:column;gap:20px">
+            <header style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+                <h1 style="margin:0;font-size:18px;line-height:28px;font-weight:600">Iringa Grain Traders — DEMO · Ilundo</h1>
+                <span data-testid="status-pill" data-status="proposed" style="display:inline-flex;align-items:center;border:1px solid var(--b25);border-radius:999px;background:#fff;padding:2px 8px;font-size:12px;font-weight:500;color:var(--deep)">Proposed</span>
+              </div>
+              <dl style="margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;row-gap:4px;font-size:14px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Crop</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">Mahindi</dd></div>
+                <div data-testid="demand-quantity-row" style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Buyer's demand</dt><dd style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">9,000.00 kg</dd></div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px"><dt style="color:var(--t60)">Offered</dt><dd data-testid="offered-total" style="margin:0;font-weight:500;font-variant-numeric:tabular-nums">6,400.00 kg</dd></div>
+              </dl>
+              <p data-testid="offered-total-note" style="margin:0;font-size:12px;line-height:16px;color:var(--t60)">This total is re-summed by the database from the supply lines below. It cannot drift from them.</p>
+            </header>
+            <p style="margin:0;border:1px solid var(--b15);border-radius:4px;background:var(--w60);padding:8px 12px;font-size:12px;line-height:16px;color:var(--t70)">An opportunity is not a sale, a delivery or a payment. Accepted means both sides agreed to keep talking; nothing has moved.</p>
+            <div data-testid="opportunity-actions" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+              <button type="button" data-testid="action-share" style="font-family:inherit;border:0;border-radius:4px;background:var(--primary);color:#fff;padding:8px 12px;font-size:14px;font-weight:500">Share with buyer</button>
+              <button type="button" data-testid="action-lapse" style="font-family:inherit;border:1px solid var(--dest30);border-radius:4px;background:transparent;padding:8px 12px;font-size:14px;font-weight:500;color:var(--dest)">Mark lapsed</button>
+            </div>
+            <div data-testid="release-confirm" role="alertdialog" aria-label="Release the committed supply?" style="display:flex;flex-direction:column;gap:8px;border:1px solid var(--dest30);border-radius:4px;background:var(--dest05);padding:12px">
+              <p style="margin:0;font-size:14px;line-height:20px;font-weight:500">Release the committed supply?</p>
+              <p style="margin:0;font-size:12px;line-height:16px;color:var(--t70)">6,400.00 kg returns to available supply for this village, and the buyer's coverage falls. This cannot be undone: a declined or lapsed opportunity cannot be reopened.</p>
+              <div style="display:flex;flex-wrap:wrap;gap:8px">
+                <button type="button" data-testid="release-confirm-yes" style="font-family:inherit;border:0;border-radius:4px;background:var(--dest);color:#fff;padding:8px 12px;font-size:14px;font-weight:500">Yes, release the supply</button>
+                <button type="button" data-testid="release-confirm-no" style="font-family:inherit;border:1px solid var(--b20);border-radius:4px;background:transparent;padding:8px 12px;font-size:14px;font-weight:500;color:var(--deep)">Cancel</button>
+              </div>
+            </div>
+            <section style="display:flex;flex-direction:column;gap:8px">
+              <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Supply</h2>
+              <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:14px">
+                  <thead><tr style="border-bottom:1px solid var(--b15);text-align:left"><th scope="col" style="padding:8px;font-weight:600">Farmer</th><th scope="col" style="padding:8px;font-weight:600">Plot</th><th scope="col" style="padding:8px;font-weight:600">Crop cycle</th><th scope="col" style="padding:8px;font-weight:600">Contributed</th></tr></thead>
+                  <tbody>
+                    <tr data-testid="supply-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px"><a href="#1a" data-testid="drill-link" style="color:var(--primary);text-decoration:underline;text-underline-offset:4px">Neema Mwakalinga</a></td><td style="padding:8px">Kipande cha juu</td><td style="padding:8px"><a href="#1a" data-testid="drill-link" style="color:var(--primary);text-decoration:underline;text-underline-offset:4px">Mahindi</a></td><td style="padding:8px;font-variant-numeric:tabular-nums">4,100.00 kg</td></tr>
+                    <tr data-testid="supply-row" style="border-bottom:1px solid var(--b10)"><td style="padding:8px"><a href="#1a" data-testid="drill-link" style="color:var(--primary);text-decoration:underline;text-underline-offset:4px">Neema Mwakalinga</a></td><td style="padding:8px">Kipande cha chini</td><td style="padding:8px"><a href="#1a" data-testid="drill-link" style="color:var(--primary);text-decoration:underline;text-underline-offset:4px">Mahindi</a></td><td style="padding:8px;font-variant-numeric:tabular-nums">2,300.00 kg</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            <section style="max-width:512px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--b10);border-radius:4px;background:var(--w60);padding:16px">
+              <h2 style="margin:0;font-size:14px;line-height:20px;font-weight:600">Attach supply</h2>
+              <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Available harvest</label><select data-testid="attach-harvest" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"><option>5,600.00 kg expected · 5,600.00 kg available · 2 Sep 2026</option></select></div>
+              <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:14px;line-height:20px;font-weight:500">Contribute (kg)</label><input data-testid="attach-kg" value="100" style="font-family:inherit;font-size:16px;width:100%;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:8px 12px;box-sizing:border-box;color:var(--deep)"></div>
+              <div data-testid="attach-error" role="alert" style="border:1px solid var(--dest30);border-radius:4px;background:var(--dest05);padding:12px 16px">
+                <p style="margin:0;font-size:14px;line-height:20px;font-weight:500;color:var(--dest)">Something went wrong</p>
+                <p style="margin:4px 0 0;font-size:14px;line-height:20px;color:var(--t80)">over-commitment: 4100.00 kg available, 4100.00 kg already committed, 100.00 kg requested</p>
+                <button type="button" data-testid="error-retry" style="font-family:inherit;margin-top:12px;border:1px solid var(--b20);border-radius:4px;background:#fff;padding:6px 12px;font-size:14px;font-weight:500;color:var(--deep)">Try again</button>
+              </div>
+              <button type="button" data-testid="attach-submit" style="font-family:inherit;align-self:flex-start;border:0;border-radius:4px;background:var(--primary);color:#fff;padding:8px 12px;font-size:14px;font-weight:500">Attach</button>
+            </section>
+          </section>
+        </div>
+      </figure>
+    </div>
+  </section>
+</div>
+
+</x-dc>
+</body>
+</html>

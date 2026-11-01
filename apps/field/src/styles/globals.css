@@ -1,0 +1,336 @@
+@import 'tailwindcss';
+
+/* Poppins, self-hosted. Weights 400/500/600/700, latin subset only.
+   The bare `@fontsource/poppins/400.css` entrypoints also pull devanagari,
+   which is ~160 kB of faces neither English nor Swahili can render — and the
+   PWA precaches the shell, so it is 160 kB a field phone downloads over 3G. */
+@import '@fontsource/poppins/latin-400.css';
+@import '@fontsource/poppins/latin-500.css';
+@import '@fontsource/poppins/latin-600.css';
+@import '@fontsource/poppins/latin-700.css';
+
+/* Compiles the `dark:` variant so shadcn components keep working, but no dark
+   palette is defined and nothing toggles the class. Dark mode is not a product
+   requirement — add it deliberately if it ever becomes one. */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* Ruaha brand, from the brand book. `deep` and `surface` are brand tokens
+     with no shadcn equivalent; `primary` and `accent` deliberately share
+     shadcn's semantic slots so there is exactly one blue and one green in the
+     system rather than a brand set and a component set that drift. */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-deep: var(--deep);
+  --color-surface: var(--surface);
+
+  /* The redesign's own scale. Colour stops being an opacity: `text-deep/60`
+     measured 4.17:1 on the sand ground and was carrying every secondary string
+     in the product. These three inks, and the three deep steps of the brand,
+     replace it. */
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-primary-ink: var(--primary-ink);
+  --color-green-ink: var(--green-ink);
+  --color-flag-ink: var(--flag-ink);
+  --color-paper: var(--paper);
+  --color-sand: var(--sand);
+  --color-sand-2: var(--sand-2);
+  --color-rule: var(--rule);
+  --color-rule-2: var(--rule-2);
+  --color-primary-tint: var(--primary-tint);
+  --color-green-tint: var(--green-tint);
+  --color-flag-tint: var(--flag-tint);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* The redesign's four radii, named for what they wrap. */
+  --radius-control: var(--radius-control);
+  --radius-card: var(--radius-card);
+  --radius-frame: var(--radius-frame);
+  --radius-pill: var(--radius-pill);
+}
+
+:root {
+  /* ── Ruaha brand book ────────────────────────────────── */
+  --primary: #1d70b7;
+  --accent: #93c01f;
+  --deep: #0c1f5b;
+  --surface: #f5f3e5;
+
+  --primary-foreground: #ffffff;
+  --accent-foreground: var(--deep);
+
+  /* ── ink scale · replaces every text-deep/NN ─────────── */
+  --ink: #0c1f5b; /* body, headings              12.5:1 on sand */
+  --ink-2: #46547d; /* secondary strings            6.6:1 on sand */
+  --ink-3: #5d698b; /* notes, captions              4.8:1 on sand */
+  /* text-deep/60 measured 4.17:1 and fails. Do not reintroduce it. */
+
+  /* ── deep steps of the brand, for text on tints ──────── */
+  --primary-ink: #14548a; /* 7.0:1 on sand and on primary-tint */
+  --green-ink: #3f5410; /* 7.5:1 — the only legible green for text */
+  --flag-ink: #9e1b1b; /* 7.2:1 — errors, destructive, unsaved */
+
+  /* ── surfaces · replaces bg-white/50|60|70 ───────────── */
+  --paper: #ffffff; /* cards, inputs, nav, table body */
+  --sand: #f5f3e5; /* page ground */
+  --sand-2: #efeada; /* sunken: table head, quality tile, empty state */
+
+  /* ── tints ───────────────────────────────────────────── */
+  --primary-tint: rgba(29, 112, 183, 0.08);
+  --green-tint: rgba(147, 192, 31, 0.2);
+  --flag-tint: rgba(158, 27, 27, 0.07);
+
+  /* ── rules · replaces border-deep/10|15|20|25|30 ─────── */
+  --rule: rgba(12, 31, 91, 0.12); /* every hairline divider */
+  --rule-2: rgba(12, 31, 91, 0.22); /* chip, control and card edges */
+
+  /* ── the scrim ───────────────────────────────────────── */
+  /* The only thing in this design that dims the page: the guided tour's
+     overlay, which has to leave the spotlit element legible while making
+     everything else clearly not the subject. Brand navy rather than black,
+     so the dimmed page still reads as this product. */
+  --scrim: rgba(12, 31, 91, 0.55);
+
+  /* ── radii ───────────────────────────────────────────── */
+  --radius-control: 8px; /* buttons, inputs, selects */
+  --radius-card: 12px; /* cards, tiles, tables, panels */
+  --radius-frame: 14px; /* screen shells */
+  --radius-pill: 999px; /* chips, meters, badges */
+
+  /* ── the floating tab bar's distance from the screen edge ─
+     A 12px floor where the hardware asks for nothing (older phones, Android
+     3-button navigation), and the system inset less 10px where it does: on an
+     iPhone the pill rides above the home indicator, which then sits in the gap
+     beneath it. Needs `viewport-fit=cover` in index.html, or env() is 0. */
+  --tab-bar-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) - 10px));
+
+  /* ── derived surfaces ────────────────────────────────── */
+  --background: var(--sand);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --secondary: var(--sand-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--sand-2);
+  --muted-foreground: var(--ink-2);
+  --destructive: var(--flag-ink);
+  --border: var(--rule);
+  --input: var(--rule-2);
+  --ring: var(--primary);
+
+  /* Placeholders. No chart library is installed and none is added before the
+     Tower renders real numbers (CLAUDE.md). */
+  --chart-1: var(--primary);
+  --chart-2: var(--accent);
+  --chart-3: var(--deep);
+  --chart-4: oklch(0.65 0.12 230);
+  --chart-5: oklch(0.75 0.14 120);
+
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--primary-tint);
+  --sidebar-accent-foreground: var(--primary-ink);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--primary);
+
+  --radius: 0.625rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+  }
+  html {
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Field phones on 3G: nothing animates, nothing transitions, nothing blurs.
+     A state change is a repaint, not a performance. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Themed keyboard focus. The browser default is not enough on this ground. */
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Figures stack in tables and Tower tiles. Non-negotiable per spec §14.
+     `EnergyEstimatePanel.test.tsx` reads this class name off an element. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A horizontally-scrollable row with no visible scrollbar track — the
+     register wizard rail. The affordance is the sizing (the last step peeks
+     off-edge), not chrome. */
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── the type scale ──────────────────────────────────────────────────────
+     Eight steps, Poppins, four weights. 12px is the floor: nothing smaller
+     ships, because the farmer surface assumes the lowest literacy and the
+     worst hardware in the programme. */
+
+  /* Tower headline figure only. */
+  .type-display {
+    font-size: 30px;
+    line-height: 34px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+  }
+
+  /* Tile figures, queue counts. Always tabular — they stack. */
+  .type-figure {
+    font-size: 22px;
+    line-height: 26px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One per screen. */
+  .type-title {
+    font-size: 19px;
+    line-height: 26px;
+    font-weight: 600;
+    letter-spacing: -0.008em;
+  }
+
+  /* The screen title on a redesigned screen shell. */
+  .type-screen-title {
+    font-size: 24px;
+    line-height: 29px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  /* Replaces text-sm/semibold as the section label. */
+  .type-section {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Default. Was 14/20. */
+  .type-body {
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 400;
+  }
+
+  /* Product-language sentences: the ones that must not shrink into fine print. */
+  .type-body-strong {
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 500;
+  }
+
+  /* Secondary strings. Pair with --ink-2. */
+  .type-small {
+    font-size: 13px;
+    line-height: 19px;
+    font-weight: 400;
+  }
+
+  /* The floor. Pair with --ink-3. Nothing smaller ships. */
+  .type-note {
+    font-size: 12px;
+    line-height: 17px;
+    font-weight: 400;
+  }
+
+  /* ── below the floor, deliberately, and only here ────────────────────────
+     The handoff contradicts itself: its prose says nothing below 12px ships,
+     its design file sets column labels at 11px and tag pills at 10px, and the
+     implementation prompt says that where the two disagree the design file
+     wins. So these two steps exist — and they are the ONLY two. Both are
+     uppercase micro-labels: a word naming a column or tagging a card, read
+     once on arrival by someone already oriented, never a sentence and never a
+     figure. Everything a user reads for meaning is 12px or larger.
+
+     If the designer confirms the 12px floor was meant to apply here too, this
+     is the one place to change it. */
+
+  /* Column headers in a DataTable. */
+  .type-column-label {
+    font-size: 11px;
+    line-height: 15px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ESTIMATE, DEMO DATA, and the verify count — a tag, not a label. */
+  .type-microlabel {
+    font-size: 10px;
+    line-height: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+}

@@ -8,7 +8,7 @@ mod common;
 use axum::http::{Method, StatusCode};
 use common::{
     farm::{Cast, Farm},
-    send,
+    send, signup,
 };
 use serde_json::{Value, json};
 use sqlx::PgPool;
@@ -479,4 +479,186 @@ async fn the_temporary_password_never_reaches_the_logs(pool: PgPool) {
         !text.contains(&password),
         "temporary password logged:\n{text}"
     );
+}
+
+fn keys(v: &Value) -> Vec<String> {
+    let mut k: Vec<String> = v.as_object().unwrap().keys().cloned().collect();
+    k.sort();
+    k
+}
+
+#[sqlx::test]
+async fn farm_me_shows_the_account_and_its_farm_roles(pool: PgPool) {
+    let (f, c) = setup(pool).await;
+    let login = issued(&f, &c.neema.person).await;
+    let (_, s) = sign_in(&f, "0712000001", &temp(&login)).await;
+    let token = s["data"]["access_token"].as_str().unwrap().to_owned();
+    let (status, me) = send(&f.app, Method::GET, "/v1/farm/me", None, Some(&token)).await;
+    assert_eq!(status, StatusCode::OK, "{me}");
+    let d = &me["data"];
+    assert_eq!(
+        keys(d),
+        ["locale", "memberships", "must_change_password", "user"]
+    );
+    assert_eq!(keys(&d["user"]), ["email", "id", "name", "phone"]);
+    assert_eq!(d["user"]["phone"], "+255712000001");
+    assert_eq!(d["user"]["name"], "Neema Mwakalinga");
+    assert!(d["user"]["email"].is_null());
+    assert_eq!(d["locale"], "sw", "farmers start in Swahili");
+    assert_eq!(d["must_change_password"], true);
+    let m = &d["memberships"][0];
+    assert_eq!(
+        keys(m),
+        [
+            "id",
+            "person_id",
+            "role",
+            "village_id",
+            "village_name",
+            "workspace_id",
+            "workspace_name"
+        ]
+    );
+    assert_eq!(
+        (m["workspace_id"].as_str(), m["role"].as_str()),
+        (Some(f.ws.as_str()), Some("farmer"))
+    );
+    assert_eq!(m["workspace_name"], "ruaha");
+    assert_eq!(m["village_id"], f.ilundo.as_str());
+    assert_eq!(m["village_name"], "Ilundo");
+    assert_eq!(m["person_id"], c.neema.person.as_str());
+
+    let (status, staff) = send(
+        &f.app,
+        Method::GET,
+        "/v1/farm/me",
+        None,
+        Some(&f.officer_ilu),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(staff["data"]["user"]["email"], "salima@ruaha.test");
+    assert_eq!(staff["data"]["locale"], "en");
+    assert_eq!(staff["data"]["must_change_password"], false);
+    let roles: Vec<&str> = staff["data"]["memberships"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["role"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        roles,
+        ["field_officer"],
+        "only the caller's own rows, not the workspace's"
+    );
+    assert!(staff["data"]["memberships"][0]["person_id"].is_null());
+
+    let (status, _) = send(&f.app, Method::GET, "/v1/farm/me", None, None).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+}
+
+#[sqlx::test]
+async fn farm_me_lists_only_live_rows_of_the_caller(pool: PgPool) {
+    let (f, _) = setup(pool.clone()).await;
+    // Another workspace with its own farm roles: never in this caller's list.
+    let (other, ws2) = signup(&f.app, "other@else.test", "elsewhere").await;
+    let other_id = f.user_id("other@else.test").await;
+    send(
+        &f.app,
+        Method::POST,
+        &format!("/v1/workspace/{ws2}/farm/memberships"),
+        Some(json!({ "user_id": other_id, "role": "admin" })),
+        Some(&other),
+    )
+    .await;
+    let (_, me) = send(&f.app, Method::GET, "/v1/farm/me", None, Some(&f.ops)).await;
+    let ws: Vec<&str> = me["data"]["memberships"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["workspace_id"].as_str().unwrap())
+        .collect();
+    assert_eq!(ws, [f.ws.as_str()]);
+
+    // Revoked: gone.
+    let (_, list) = f
+        .call(Method::GET, "/memberships", None, &f.officer_mga)
+        .await;
+    let id = list["data"][0]["id"].as_str().unwrap().to_owned();
+    f.call(Method::DELETE, &format!("/memberships/{id}"), None, &f.ops)
+        .await;
+    let (_, me) = send(
+        &f.app,
+        Method::GET,
+        "/v1/farm/me",
+        None,
+        Some(&f.officer_mga),
+    )
+    .await;
+    assert_eq!(
+        me["data"]["memberships"],
+        json!([]),
+        "a revoked role is not listed"
+    );
+
+    // Deactivated workspace member: their staff role stops counting.
+    sqlx::query("UPDATE workspace_members SET active = false WHERE user_id = (SELECT id FROM users WHERE email = 'ops@ruaha.test')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (status, me) = send(&f.app, Method::GET, "/v1/farm/me", None, Some(&f.ops)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        me["data"]["memberships"],
+        json!([]),
+        "a deactivated member's staff role is not listed"
+    );
+}
+#[sqlx::test]
+async fn a_farmer_or_officer_saves_their_language(pool: PgPool) {
+    let (f, c) = setup(pool).await;
+    let login = issued(&f, &c.neema.person).await;
+    let (_, s) = sign_in(&f, "0712000001", &temp(&login)).await;
+    let farmer = s["data"]["access_token"].as_str().unwrap().to_owned();
+    for (token, locale) in [
+        (&farmer, "en"),
+        (&f.officer_ilu, "nl"),
+        (&f.officer_ilu, "sw"),
+    ] {
+        let (status, res) = send(
+            &f.app,
+            Method::PATCH,
+            "/v1/farm/me",
+            Some(json!({ "locale": locale })),
+            Some(token),
+        )
+        .await;
+        assert_eq!(status, StatusCode::NO_CONTENT, "{res}");
+        let (_, me) = send(&f.app, Method::GET, "/v1/farm/me", None, Some(token)).await;
+        assert_eq!(me["data"]["locale"], locale, "saved");
+    }
+    for body in [
+        json!({ "locale": "fr" }),
+        json!({ "locale": "en", "name": "x" }),
+        json!({}),
+    ] {
+        let (status, res) = send(
+            &f.app,
+            Method::PATCH,
+            "/v1/farm/me",
+            Some(body.clone()),
+            Some(&farmer),
+        )
+        .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}: {res}");
+    }
+    let (status, _) = send(
+        &f.app,
+        Method::PATCH,
+        "/v1/farm/me",
+        Some(json!({ "locale": "en" })),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
 }

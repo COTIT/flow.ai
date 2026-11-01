@@ -6,13 +6,14 @@ Events sent to URLs a workspace registers. Code: `src/modules/webhooks/`.
 
 | Type | When | `data` |
 |---|---|---|
-| `stock.changed` | a stock level or what orders hold of it changes (mutations, set levels, bin moves, invoice and order stock moves, holds). Requirement-only changes send nothing. | `stock_id, product_id, warehouse_id, reason` (increase, decrease, set_level, reserved, released), `quantity_change, quantity_after` (decimal strings; holds send change `0.00`: re-read availability) |
+| `stock.changed` | a stock level or what orders hold of it changes (mutations, set levels, bin moves, invoice and order stock moves, holds). Requirement-only changes send nothing. | `stock_id, product_id, warehouse_id, lot_id` (null for no-lot stock), `reason` (increase, decrease, set_level, reserved, released), `quantity_change, quantity_after` (decimal strings; holds send change `0.00`: re-read availability) |
 | `product.changed` | a product or one of its variants is created, updated or deleted | `product_id, action` (created, updated, deleted; variant writes are `updated`) |
 | `order.created` | an order is created (office draft or web checkout) | `order_id, number, status, source, currency, subtotal, vat, total` (minor units). Never customer details. |
 | `lot.created` | a lot is created | `lot_id, product_id, code, public_code` |
 | `passport.published` | a lot's passport is published (each new version) | `lot_id, product_id, public_code, version` |
+| `sale.attributed` | farmers of a supply lot were credited for a sale (`kind: sale`) or debited for a return (`kind: return`); sent in the farm workspace only | `attribution_id, kind, sold_workspace_id, order_number, sold_lot_id, batch_id, jars` (decimal string), `price_per_kg, currency_id, total` (minor units), `farmers` (count). Each farmer's amount is in their passbook. |
 
-Payloads are thin: re-read through `/storefront` for the details. Planned, not sent yet: `harvest.reported`, `sale.attributed`.
+Payloads are thin: re-read through `/storefront` for the details. Planned, not sent yet: `harvest.reported`.
 
 ## Delivery
 

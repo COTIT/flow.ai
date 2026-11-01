@@ -1214,6 +1214,12 @@ fn every_lots_operation_is_documented() {
             "lots_passport_unpublish",
             "200",
         ),
+        (
+            "/lots/{lot}/stock-mutations",
+            "post",
+            "lots_stock_mutate",
+            "200",
+        ),
     ]);
 }
 
@@ -1229,6 +1235,93 @@ fn lot_page_mounts_are_documented() {
     assert_eq!(shop["operationId"], "storefront_lots_get");
     assert_eq!(shop["security"][0]["app_key"], json!([]));
     assert!(shop["responses"]["404"].is_object());
+}
+
+#[test]
+fn every_till_operation_is_documented() {
+    assert_documented(&[
+        ("/till/registers", "get", "till_registers_list", "200"),
+        ("/till/registers", "post", "till_registers_create", "201"),
+        (
+            "/till/registers/{register}/key",
+            "post",
+            "till_registers_rotate_key",
+            "200",
+        ),
+        ("/till/users", "get", "till_users_list", "200"),
+        ("/till/users", "post", "till_users_create", "201"),
+        ("/till/users/{user}", "patch", "till_users_update", "200"),
+        ("/till/vaults", "get", "till_vaults_list", "200"),
+        ("/till/vaults", "post", "till_vaults_create", "201"),
+        ("/till/shifts", "get", "till_shifts_list", "200"),
+        ("/till/sales", "get", "till_sales_list", "200"),
+    ]);
+    // Device routes take the register's key, till routes the session token.
+    let s = spec();
+    for (tail, method, id, ok, scheme) in [
+        (
+            "/till/login/users",
+            "get",
+            "till_login_users",
+            "200",
+            "app_key",
+        ),
+        ("/till/login", "post", "till_login", "200", "app_key"),
+        ("/till/logout", "post", "till_logout", "204", "till_session"),
+        ("/till/me", "get", "till_me", "200", "till_session"),
+        (
+            "/till/sales",
+            "post",
+            "till_sales_create",
+            "201",
+            "till_session",
+        ),
+        (
+            "/till/sales/{client_ref}",
+            "get",
+            "till_sales_get",
+            "200",
+            "till_session",
+        ),
+        (
+            "/till/shift",
+            "get",
+            "till_shift_current",
+            "200",
+            "till_session",
+        ),
+        (
+            "/till/shift/open",
+            "post",
+            "till_shift_open",
+            "201",
+            "till_session",
+        ),
+        (
+            "/till/shift/close",
+            "post",
+            "till_shift_close",
+            "200",
+            "till_session",
+        ),
+        (
+            "/till/transfers",
+            "post",
+            "till_transfers_create",
+            "201",
+            "till_session",
+        ),
+    ] {
+        let path = format!("{W}{tail}");
+        let op = &s["paths"][&path][method];
+        assert_eq!(op["operationId"], id, "{method} {path}");
+        assert!(op["responses"][ok].is_object(), "{method} {path}: no {ok}");
+        assert!(
+            op["responses"]["401"].is_object(),
+            "{method} {path}: no 401"
+        );
+        assert_eq!(op["security"][0][scheme], json!([]), "{method} {path}");
+    }
 }
 
 // ---- Farm (RUAHA phase 4) ----
@@ -1356,6 +1449,110 @@ fn every_farm_records_operation_is_documented() {
         .map(|(p, m, i, s)| (*p, *m, i.as_str(), *s))
         .collect();
     assert_documented(&ops);
+}
+
+#[test]
+fn every_farm_supply_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/supply-batches", "get", "farm_supply_list", "200"),
+        ("/farm/supply-batches", "post", "farm_supply_create", "201"),
+        (
+            "/farm/supply-batches/{batch}",
+            "get",
+            "farm_supply_get",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
+fn every_farm_passbook_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/passbook/mine", "get", "farm_passbook_mine", "200"),
+        (
+            "/farm/persons/{person}/passbook",
+            "get",
+            "farm_passbook_person",
+            "200",
+        ),
+        (
+            "/farm/persons/{person}/passport-consent",
+            "post",
+            "farm_passbook_give_consent",
+            "200",
+        ),
+        (
+            "/farm/persons/{person}/passport-consent",
+            "delete",
+            "farm_passbook_withdraw_consent",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
+fn every_farm_payouts_operation_is_documented() {
+    assert_documented(&[
+        ("/farm/payouts", "post", "farm_payouts_create", "201"),
+        (
+            "/farm/payouts/{payout}/void",
+            "post",
+            "farm_payouts_void",
+            "200",
+        ),
+        (
+            "/farm/cash/movements",
+            "post",
+            "farm_payouts_cash_movement",
+            "201",
+        ),
+        (
+            "/farm/cash/reconciliation",
+            "get",
+            "farm_payouts_reconciliation",
+            "200",
+        ),
+    ]);
+}
+
+#[test]
+fn every_supply_links_operation_is_documented() {
+    assert_documented(&[
+        ("/supply-links", "get", "supply_links_list", "200"),
+        ("/supply-links", "post", "supply_links_grant", "201"),
+        (
+            "/supply-links/{link}/accept",
+            "post",
+            "supply_links_accept",
+            "200",
+        ),
+        (
+            "/supply-links/{link}",
+            "delete",
+            "supply_links_revoke",
+            "204",
+        ),
+    ]);
+}
+
+#[test]
+fn every_supply_chain_operation_is_documented() {
+    assert_documented(&[
+        ("/lots/{lot}/packings", "post", "supply_chain_pack", "201"),
+        (
+            "/lots/{lot}/transfers",
+            "post",
+            "supply_chain_dispatch",
+            "201",
+        ),
+        ("/supply-transfers", "get", "supply_chain_list", "200"),
+        (
+            "/supply-transfers/{transfer}/receive",
+            "post",
+            "supply_chain_receive",
+            "201",
+        ),
+    ]);
 }
 
 #[test]
@@ -1537,4 +1734,32 @@ fn every_farm_surveys_and_vouchers_operation_is_documented() {
         assert!(props.is_object(), "{name}");
         assert!(props.get("code").is_none(), "{name} exposes the code");
     }
+}
+
+#[test]
+fn every_farm_port_support_operation_is_documented() {
+    assert_documented(&[(
+        "/farm/persons/{person}/holdings",
+        "get",
+        "farm_records_persons_holdings",
+        "200",
+    )]);
+    assert_ops(&[
+        ("/farm/me", "get", "farm_logins_me", "200"),
+        ("/farm/me", "patch", "farm_logins_update_me", "204"),
+    ]);
+    let s = spec();
+    let list = &s["paths"]["/workspace/{workspace}/farm/plots"]["get"]["parameters"];
+    for name in ["verification", "farm_id", "village_id"] {
+        assert!(
+            list.as_array().unwrap().iter().any(|p| p["name"] == name),
+            "plots list: {name}"
+        );
+    }
+    let revise = &s["paths"]["/workspace/{workspace}/farm/crop-cycles/{cycle}/harvest-reports"]["post"]
+        ["responses"];
+    assert!(
+        revise["200"].is_object() && revise["409"].is_object(),
+        "replay and conflict documented"
+    );
 }

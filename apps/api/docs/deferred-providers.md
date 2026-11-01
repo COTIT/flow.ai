@@ -27,6 +27,7 @@ Each entry: what is ready, what is left, where to start.
 
 ## Payments: PAY.nl terminals (till, F16)
 
+- **Prepared (phase 2b):** a till sale takes `payment: {method: "card", reference?}`: the cashier runs any external terminal and records the slip reference by hand. `till_sales.method` and `card_reference` hold it; no rounding, no drawer row.
 - **Left:** only needed if an EU till customer needs card terminals. Reference: Control POS terminal polling.
 
 ## Email delivery (production)

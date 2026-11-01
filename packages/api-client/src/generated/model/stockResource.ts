@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { StockResourceLot } from './stockResourceLot';
 import type { StockResourceMeta } from './stockResourceMeta';
 import type { StockResourceRelationships } from './stockResourceRelationships';
 
@@ -13,6 +14,11 @@ import type { StockResourceRelationships } from './stockResourceRelationships';
  */
 export interface StockResource {
   id: string;
+  /**
+     * `id`, `code`, `expires_on`; null for no-lot stock.
+     * @nullable
+     */
+  lot: StockResourceLot;
   maximum_stock_level: number;
   /** @nullable */
   meta: StockResourceMeta;

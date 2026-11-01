@@ -4,6 +4,9 @@ const api = vi.hoisted(() => ({
   storefrontProductsList: vi.fn(),
   storefrontProductsGet: vi.fn(),
   storefrontLotsGet: vi.fn(),
+  storefrontOrdersCreate: vi.fn(),
+  storefrontOrdersGet: vi.fn(),
+  storefrontOrdersPayment: vi.fn(),
 }))
 vi.mock("@genesy/api-client/endpoints/storefront", () => api)
 vi.mock("next/navigation", () => ({
@@ -12,8 +15,15 @@ vi.mock("next/navigation", () => ({
   },
 }))
 
-const { getLot, getProduct, listProducts, StorefrontUnavailable } =
-  await import("./storefront")
+const {
+  createOrder,
+  getLot,
+  getOrder,
+  getProduct,
+  listProducts,
+  startPayment,
+  StorefrontUnavailable,
+} = await import("./storefront")
 
 const httpError = (status: number) =>
   Object.assign(new Error(`Request failed with status code ${status}`), {
@@ -132,6 +142,101 @@ describe("getLot", () => {
     expect(api.storefrontLotsGet).toHaveBeenCalledTimes(2)
     expect(api.storefrontLotsGet.mock.calls[1]![1].fetchOptions).toEqual({
       cache: "no-store",
+    })
+  })
+})
+
+const ORDER_ID = "99999999-9999-4999-8999-999999999999"
+const order = { id: ORDER_ID, number: "WEB-1", status: "awaiting_payment" }
+const errorWith = (status: number, data: unknown) =>
+  Object.assign(new Error(`status ${status}`), { response: { status, data } })
+
+describe("createOrder", () => {
+  const input = {
+    lines: [{ product_id: "p1", product_variant_id: null, quantity: "2" }],
+    customer: { email: "a@b.test", name: "A" },
+  }
+
+  it("posts the checkout with the app key and an idempotency key, never cached", async () => {
+    api.storefrontOrdersCreate.mockResolvedValue({ data: order })
+    expect(await createOrder(input, "key-1")).toEqual({ ok: true, order })
+    const [body, options] = api.storefrontOrdersCreate.mock.calls[0]!
+    expect(body).toEqual(input)
+    expect(options.headers).toEqual({
+      Authorization: "Bearer gsk_test_key",
+      "Idempotency-Key": "key-1",
+    })
+    expect(options.fetchOptions).toEqual({ cache: "no-store" })
+  })
+
+  it("passes the API's field messages back for the form (e.g. stock)", async () => {
+    const errors = { "lines.0.quantity": ["Not enough stock: 2 available."] }
+    api.storefrontOrdersCreate.mockRejectedValue(
+      errorWith(422, { message: "invalid", errors })
+    )
+    expect(await createOrder(input, "k")).toEqual({
+      ok: false,
+      kind: "invalid",
+      errors,
+    })
+  })
+
+  it("says busy on 429 and unavailable on anything else", async () => {
+    api.storefrontOrdersCreate.mockRejectedValueOnce(errorWith(429, {}))
+    expect(await createOrder(input, "k")).toEqual({ ok: false, kind: "busy" })
+    api.storefrontOrdersCreate.mockRejectedValueOnce(
+      errorWith(500, { message: "secret" })
+    )
+    expect(await createOrder(input, "k")).toEqual({
+      ok: false,
+      kind: "unavailable",
+    })
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain(
+      "secret"
+    )
+  })
+})
+
+describe("getOrder", () => {
+  it("reads the order fresh, and 404s a malformed id without a call", async () => {
+    api.storefrontOrdersGet.mockResolvedValue({ data: order })
+    expect(await getOrder(ORDER_ID)).toEqual(order)
+    expect(api.storefrontOrdersGet.mock.calls[0]![1].fetchOptions).toEqual({
+      cache: "no-store",
+    })
+    await expect(getOrder("../products")).rejects.toThrow("NEXT_NOT_FOUND")
+    expect(api.storefrontOrdersGet).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("startPayment", () => {
+  it("returns where to send the customer, coming back to the order page", async () => {
+    api.storefrontOrdersPayment.mockResolvedValue({
+      data: {
+        payment_id: "x",
+        status: "open",
+        checkout_url: "https://pay.example/1",
+      },
+    })
+    expect(await startPayment(ORDER_ID, "https://shop.test/orders/1")).toEqual({
+      ok: true,
+      checkoutUrl: "https://pay.example/1",
+    })
+    expect(api.storefrontOrdersPayment.mock.calls[0]![1]).toEqual({
+      redirect_url: "https://shop.test/orders/1",
+    })
+  })
+
+  it.each([
+    [503, { message: "no payment provider configured" }, "no_provider"],
+    [503, { message: "provider unavailable" }, "provider_down"],
+    [409, { message: "conflict" }, "not_payable"],
+    [500, { message: "secret" }, "unavailable"],
+  ])("maps %i %j to %s", async (status, data, kind) => {
+    api.storefrontOrdersPayment.mockRejectedValue(errorWith(status, data))
+    expect(await startPayment(ORDER_ID, "https://shop.test/o")).toEqual({
+      ok: false,
+      kind,
     })
   })
 })

@@ -26,8 +26,13 @@ pub struct Farm {
 
 impl Farm {
     pub async fn new(pool: PgPool) -> Self {
+        Self::new_named(pool, "ruaha.test", "ruaha").await
+    }
+
+    /// The same cast in a workspace named `name`, staff emails at `domain` (two farms in one DB).
+    pub async fn new_named(pool: PgPool, domain: &str, name: &str) -> Self {
         let app = app(pool.clone());
-        let (owner, ws) = signup(&app, "owner@ruaha.test", "ruaha").await;
+        let (owner, ws) = signup(&app, &format!("owner@{domain}"), name).await;
         let mut farm = Self {
             app,
             pool,
@@ -39,18 +44,18 @@ impl Farm {
             ilundo: String::new(),
             mgama: String::new(),
         };
-        let owner_id = farm.user_id("owner@ruaha.test").await;
+        let owner_id = farm.user_id(&format!("owner@{domain}")).await;
         farm.grant(&farm.owner, &owner_id, "admin", None).await;
         farm.ilundo = farm.village("ILUNDO", "Ilundo").await;
         farm.mgama = farm.village("MGAMA", "Mgama").await;
-        farm.ops = farm.staff("ops@ruaha.test", "ops", None).await;
+        farm.ops = farm.staff(&format!("ops@{domain}"), "ops", None).await;
         let ilu = farm.ilundo.clone();
         let mga = farm.mgama.clone();
         farm.officer_ilu = farm
-            .staff("salima@ruaha.test", "field_officer", Some(&ilu))
+            .staff(&format!("salima@{domain}"), "field_officer", Some(&ilu))
             .await;
         farm.officer_mga = farm
-            .staff("peter@ruaha.test", "field_officer", Some(&mga))
+            .staff(&format!("peter@{domain}"), "field_officer", Some(&mga))
             .await;
         farm
     }
@@ -131,7 +136,7 @@ impl Farm {
 
     /// New user who is an active member of this workspace, no farm role.
     pub async fn member(&self, email: &str) -> String {
-        let own = format!("ws-{}", &email[..email.find('@').unwrap()]);
+        let own = format!("ws-{}", email.replace(['@', '.'], "-"));
         let (token, _) = signup(&self.app, email, &own).await;
         join_workspace(&self.pool, &self.ws, email).await;
         token
@@ -140,7 +145,7 @@ impl Farm {
     /// New user with only a farmer membership in `village` (not a workspace member).
     /// Direct SQL: farmer roles come from login issue, not the grant route.
     pub async fn farmer(&self, email: &str, village: &str) -> String {
-        let own = format!("ws-{}", &email[..email.find('@').unwrap()]);
+        let own = format!("ws-{}", email.replace(['@', '.'], "-"));
         let (token, _) = signup(&self.app, email, &own).await;
         sqlx::query(
             "INSERT INTO farm_memberships (workspace_id, user_id, role, village_id)
@@ -502,5 +507,124 @@ impl Farm {
             .fetch_one(&self.pool)
             .await
             .unwrap()
+    }
+}
+
+/// Supply-chain helpers (Phase 4b): products, warehouses, harvests, batches, lot stock.
+impl Farm {
+    /// `/v1/workspace/{ws}{tail}` of this farm's workspace as `token`.
+    pub async fn ws_call(
+        &self,
+        method: Method,
+        tail: &str,
+        body: Option<Value>,
+        token: &str,
+    ) -> (StatusCode, Value) {
+        let url = format!("/v1/workspace/{}{tail}", self.ws);
+        send(&self.app, method, &url, body, Some(token)).await
+    }
+
+    /// Owner adds a stock-tracked product; its id.
+    pub async fn product(&self, name: &str) -> String {
+        let body = json!({ "name": name, "price": 10 });
+        let (status, res) = self
+            .ws_call(Method::POST, "/products", Some(body), &self.owner)
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        res["data"]["product_id"].as_str().unwrap().to_owned()
+    }
+
+    /// Owner adds a warehouse; its id.
+    pub async fn warehouse(&self, name: &str) -> String {
+        let (status, res) = self
+            .ws_call(
+                Method::POST,
+                "/warehouses",
+                Some(json!({ "name": name })),
+                &self.owner,
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        res["data"]["warehouse_id"].as_str().unwrap().to_owned()
+    }
+
+    /// An Ilundo farmer with one maize-like cycle of `crop`: (person, cycle).
+    pub async fn grower(&self, name: &str, phone: &str, crop: &str) -> (String, String) {
+        let (status, res) = self
+            .register(
+                &self.officer_ilu,
+                json!({
+                    "client_ref": client_ref(), "village_id": self.ilundo,
+                    "person": { "given_name": name, "family_name": "Grower", "phone": phone },
+                    "household": { "label": format!("{name} household") },
+                    "farm": { "label": format!("{name} farm"), "latitude": "-7.75", "longitude": "35.75" },
+                    "plot": { "label": "plot", "area_ha": "1.0" },
+                    "cycles": [{ "crop_id": crop, "area_ha": "1.0",
+                                 "harvest_start": "2026-09-01", "harvest_end": "2026-09-30" }]
+                }),
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        let d = &res["data"];
+        (
+            d["person_id"].as_str().unwrap().to_owned(),
+            d["crop_cycle_ids"][0].as_str().unwrap().to_owned(),
+        )
+    }
+
+    /// The Ilundo officer reports an actual figure on `cycle`; the owner verifies it. Its id.
+    pub async fn actual(&self, cycle: &str, kg: &str) -> String {
+        let (status, res) = self
+            .call(
+                Method::POST,
+                &format!("/crop-cycles/{cycle}/harvest-reports"),
+                Some(json!({ "kind": "actual", "quantity_kg": kg, "source": "field_verified" })),
+                &self.officer_ilu,
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        let id = res["data"]["id"].as_str().unwrap().to_owned();
+        self.verify("harvest-reports", &id, &self.owner).await;
+        id
+    }
+
+    /// ops buys `lines` (harvest, kg) of `crop` in Ilundo at `price_per_kg` into a raw lot of
+    /// `product`; the batch.
+    pub async fn batch(
+        &self,
+        code: &str,
+        crop: &str,
+        product: &str,
+        currency: &str,
+        price_per_kg: i64,
+        lines: &[(&str, &str)],
+    ) -> Value {
+        let lines: Vec<Value> = lines
+            .iter()
+            .map(|(h, kg)| json!({ "harvest_report_id": h, "kg": kg }))
+            .collect();
+        let body = json!({
+            "client_ref": client_ref(), "village_id": self.ilundo, "crop_id": crop, "code": code,
+            "raw_product_id": product, "price_per_kg": price_per_kg, "currency_id": currency,
+            "lines": lines
+        });
+        let (status, res) = self
+            .call(Method::POST, "/supply-batches", Some(body), &self.ops)
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        res["data"].clone()
+    }
+
+    /// Owner puts `qty` of `lot` into `warehouse` (Phase 3 lot stock-in).
+    pub async fn lot_stock(&self, lot: &str, warehouse: &str, qty: &str) {
+        let (status, res) = self
+            .ws_call(
+                Method::POST,
+                &format!("/lots/{lot}/stock-mutations"),
+                Some(json!({ "warehouse_id": warehouse, "quantity": qty, "reason": "received" })),
+                &self.owner,
+            )
+            .await;
+        assert!(status.is_success(), "{status} {res}");
     }
 }
