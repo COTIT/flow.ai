@@ -390,6 +390,27 @@ pub struct HarvestQuery {
     pub page_size: Option<String>,
 }
 
+/// GET workspace harvest reports query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct HarvestListQuery {
+    /// Only this village.
+    #[param(value_type = Option<Uuid>)]
+    pub village_id: Option<String>,
+    /// Comma-separated: `unverified`, `pending`, `verified`, `disputed`.
+    #[param(value_type = Option<String>, example = "unverified,pending")]
+    pub verification: Option<String>,
+    /// `true`: only the current figure of each kind.
+    #[param(value_type = Option<bool>)]
+    pub current: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
+    pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
+    pub page_size: Option<String>,
+}
+
 /// What a registration created; also the stored receipt a retry replays.
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct RegistrationResult {

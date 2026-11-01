@@ -116,6 +116,7 @@ For persons, households, farms, plots, crop-cycles and `harvest-reports`. Field 
 A harvest figure is a series. Each crop cycle has one current `expected` and one current `actual` figure at most; older figures stay on record.
 
 - `GET /v1/workspace/{workspace}/farm/crop-cycles/{cycle}/harvest-reports?current=true`: newest first; `current=true` keeps only the current figures. `404` when the cycle isn't visible.
+- `GET /v1/workspace/{workspace}/farm/harvest-reports?village_id&verification&current&page&page_size`: every report the caller may see, across cycles (the verify queue), newest first. Visibility is the cycles rule: ops and admin all, field officers their villages, a farmer the cycles on their own farms. `verification` as on the lists (`422` on an unknown state).
 - `POST` the same path, field staff only: `{ "kind": "expected|actual", "quantity_kg": "4100", "source": "farmer_reported|field_verified", "confidence": "medium", "reported_for": "2026-09-15", "client_ref": "uuid" }`. The cycle is locked; the current figure of that kind becomes `is_current: false`, and the new one is current. `201` with the new figure.
 - `client_ref` is optional and unique per workspace; it makes a retry safe:
   - the same ref with the same figure returns that figure (`200`) and writes nothing;

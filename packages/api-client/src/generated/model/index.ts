@@ -331,6 +331,7 @@ export * from './farmPassbookPersonParams';
 export * from './farmPayoutsReconciliationParams';
 export * from './farmRecordsCropCyclesListParams';
 export * from './farmRecordsFarmsListParams';
+export * from './farmRecordsHarvestReportsAllParams';
 export * from './farmRecordsHarvestReportsListParams';
 export * from './farmRecordsHouseholdsListParams';
 export * from './farmRecordsPersonsListParams';

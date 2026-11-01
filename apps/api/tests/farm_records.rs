@@ -759,3 +759,104 @@ fn urlencode(s: &str) -> String {
         })
         .collect()
 }
+
+// ---- workspace harvest reports ----
+
+#[sqlx::test]
+async fn the_harvest_report_list_follows_the_cycle_rules(pool: PgPool) {
+    let (f, c, neema) = setup(pool).await;
+    let revise = |cycle: &str, kg: &str| {
+        (
+            format!("/crop-cycles/{cycle}/harvest-reports"),
+            json!({ "kind": "expected", "quantity_kg": kg, "source": "field_verified" }),
+        )
+    };
+    let (tail, body) = revise(&c.asha.cycles[0], "50");
+    let (status, res) = f
+        .call(Method::POST, &tail, Some(body), &f.officer_ilu)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let asha = res["data"]["id"].as_str().unwrap().to_owned();
+    let (tail, body) = revise(&c.neema.cycles[0], "2800");
+    let (status, res) = f
+        .call(Method::POST, &tail, Some(body), &f.officer_ilu)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let newest = res["data"]["id"].as_str().unwrap().to_owned();
+    let old = c.neema.harvests[0].clone();
+    let joseph = c.joseph.harvests[0].clone();
+
+    let list = f.list("/harvest-reports", &f.officer_ilu).await;
+    assert_eq!(
+        ids(&list),
+        sorted(vec![&old, &newest, &asha]),
+        "an officer reads their village's figures, superseded ones included"
+    );
+    assert_eq!(list["data"][0]["id"], newest.as_str(), "newest first");
+    assert_eq!(
+        ids(&f
+            .list("/harvest-reports?current=true", &f.officer_ilu)
+            .await),
+        sorted(vec![&newest, &asha])
+    );
+    assert_eq!(
+        ids(&f.list("/harvest-reports", &f.officer_mga).await),
+        vec![joseph.clone()]
+    );
+    assert_eq!(
+        ids(&f.list("/harvest-reports", &neema).await),
+        sorted(vec![&old, &newest]),
+        "a farmer reads her own farm's figures, not a neighbour's"
+    );
+    assert_eq!(f.list("/harvest-reports", &f.ops).await["meta"]["total"], 4);
+    assert_eq!(
+        ids(&f
+            .list(&format!("/harvest-reports?village_id={}", f.mgama), &f.ops)
+            .await),
+        vec![joseph.clone()]
+    );
+
+    let (status, _) = f
+        .call(
+            Method::POST,
+            &format!("/harvest-reports/{joseph}/verification"),
+            None,
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let open = f
+        .list("/harvest-reports?verification=unverified,pending", &f.ops)
+        .await;
+    assert_eq!(ids(&open), sorted(vec![&old, &newest, &asha]));
+
+    let page = f
+        .list("/harvest-reports?page_size=1&page=2", &f.officer_ilu)
+        .await;
+    assert_eq!(page["meta"]["total"], 3);
+    assert_eq!(page["data"].as_array().unwrap().len(), 1);
+
+    let (status, res) = f
+        .call(
+            Method::GET,
+            "/harvest-reports?verification=nope",
+            None,
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(
+        res["errors"]["verification"][0],
+        "Unknown verification state nope."
+    );
+
+    let (outsider, _) = signup(&f.app, "out@else.test", "elsewhere").await;
+    let (status, _) = f
+        .call(Method::GET, "/harvest-reports", None, &outsider)
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::NOT_FOUND,
+        "another workspace is refused"
+    );
+}

@@ -465,6 +465,64 @@ pub async fn harvests(
     Ok((rows, total))
 }
 
+/// Harvest reports across the workspace, by their cycle's visibility (the `cycles` rule),
+/// newest first.
+pub async fn harvest_list(
+    db: &sqlx::PgPool,
+    s: &Seen<'_>,
+    p: &Pick,
+    current_only: bool,
+) -> Result<(Vec<HarvestRow>, i64), sqlx::Error> {
+    let rows = sqlx::query_as!(
+        HarvestRow,
+        r#"SELECT t.id, t.village_id, t.crop_cycle_id, t.kind, t.quantity_kg::text AS "quantity_kg!",
+                  t.reported_for, t.is_current,
+                  farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,
+                                  t.verified_by, t.verified_at, t.confidence, t.evidence_ref) AS "provenance!",
+                  t.created_at, t.updated_at
+           FROM farm_harvest_reports t
+           JOIN farm_crop_cycles c ON c.id = t.crop_cycle_id AND c.workspace_id = $1 AND c.deleted_at IS NULL
+           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+             AND ($2 OR c.village_id = ANY($3)
+                  OR c.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL
+                                   AND pl.farm_id IN (SELECT farm_person_farms($4))))
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::text[] IS NULL OR t.verification = ANY($6))
+             AND (NOT $7 OR t.is_current)
+           ORDER BY t.created_at DESC, t.id DESC LIMIT $8 OFFSET $9"#,
+        s.ws,
+        s.all,
+        s.villages,
+        s.person,
+        p.village,
+        p.verification.as_deref(),
+        current_only,
+        p.limit,
+        p.offset,
+    )
+    .fetch_all(db)
+    .await?;
+    let total = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM farm_harvest_reports t
+           JOIN farm_crop_cycles c ON c.id = t.crop_cycle_id AND c.workspace_id = $1 AND c.deleted_at IS NULL
+           WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+             AND ($2 OR c.village_id = ANY($3)
+                  OR c.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL
+                                   AND pl.farm_id IN (SELECT farm_person_farms($4))))
+             AND ($5::uuid IS NULL OR t.village_id = $5) AND ($6::text[] IS NULL OR t.verification = ANY($6))
+             AND (NOT $7 OR t.is_current)"#,
+        s.ws,
+        s.all,
+        s.villages,
+        s.person,
+        p.village,
+        p.verification.as_deref(),
+        current_only,
+    )
+    .fetch_one(db)
+    .await?;
+    Ok((rows, total))
+}
+
 // ---- registration ----
 
 /// A replayable registration: who made it and what it returned.

@@ -19,8 +19,8 @@ use crate::{
     },
     modules::farm_records::{
         dto::{
-            CropCycleResource, CycleCorrection, FarmCorrection, FarmResource, HarvestQuery,
-            HarvestReportResource, HarvestRevision, Holdings, HouseholdCorrection,
+            CropCycleResource, CycleCorrection, FarmCorrection, FarmResource, HarvestListQuery,
+            HarvestQuery, HarvestReportResource, HarvestRevision, Holdings, HouseholdCorrection,
             HouseholdResource, ListQuery, PersonCorrection, PersonResource, PlotCorrection,
             PlotResource, RegistrationRequest, RegistrationResult, search_filter,
             verification_filter,
@@ -309,6 +309,49 @@ pub async fn list_harvests(
     let current = q.current.as_deref().is_some_and(flag);
     let (rows, total) =
         service::harvests(&state, &access, &cycle, current, page.size, page.offset()).await?;
+    Ok(Json(Paginated::new(
+        rows.into_iter().map(Into::into).collect(),
+        total,
+        page,
+    )))
+}
+
+/// GET /farm/harvest-reports.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/harvest-reports", tag = "farm_records",
+    operation_id = "farm_records_harvest_reports_all", summary = "List harvest figures across cycles",
+    description = "The verify queue. Newest first. Same visibility as the cycles: ops and admin all, \
+        field officers their villages, a farmer the cycles on their own farms.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), HarvestListQuery),
+    responses(
+        (status = 200, body = Paginated<HarvestReportResource>, description = "One page"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown verification state"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role and is not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn list_all_harvests(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Query(q): Query<HarvestListQuery>,
+) -> Result<Json<Paginated<HarvestReportResource>>, AppError> {
+    let page = Page::parse(q.page.as_deref(), q.page_size.as_deref());
+    let pick = Pick {
+        village: q
+            .village_id
+            .as_deref()
+            .filter(|v| !v.is_empty())
+            .map(path_id)
+            .transpose()?,
+        verification: verification_filter(q.verification.as_deref())?,
+        limit: page.size,
+        offset: page.offset(),
+        ..Pick::default()
+    };
+    let current = q.current.as_deref().is_some_and(flag);
+    let scope = access.staff_scope();
+    let (rows, total) =
+        repo::harvest_list(&state.db, &seen(&access, &scope.villages), &pick, current).await?;
     Ok(Json(Paginated::new(
         rows.into_iter().map(Into::into).collect(),
         total,
