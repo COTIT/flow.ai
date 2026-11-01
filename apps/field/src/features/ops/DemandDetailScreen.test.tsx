@@ -13,9 +13,6 @@ vi.mock('@tanstack/react-router', () => ({
     <a href={to ?? '#'} {...props}>{children}</a>
   ),
 }))
-vi.mock('@/app/scope', () => ({
-  useScopeNames: () => ({ data: { villages: { v1: 'Ilundo' } } }),
-}))
 vi.mock('@/features/ops/useDemand', () => ({
   useDemand: () => useDemand(),
   useDemandMatches: () => useDemandMatches(),
@@ -26,9 +23,10 @@ const { DemandDetailScreen } = await import('@/features/ops/DemandDetailScreen')
 await import('@/i18n')
 
 const demand = {
-  id: 'd1', buyer_name: 'Iringa Grain Traders', crop_name: 'Maize', crop_id: 'c1',
+  id: 'd1', buyer_name: 'Iringa Grain Traders', crop_name: 'Maize',
   quantity_kg: 9000, window_start: '2026-09-01', window_end: '2026-09-30',
-  indicative_price_per_kg: 780, currency: 'TZS', delivery_point: 'Warehouse', quality_note: null,
+  indicative_price_per_kg: { minor: 78000, decimals: 2, currency: 'TZS', currency_id: 'c-tzs' },
+  delivery_point: 'Warehouse', quality_note: null,
   status: 'open',
 }
 
@@ -63,7 +61,7 @@ describe('DemandDetailScreen', () => {
     useDemandMatches.mockReturnValue({
       isLoading: false,
       error: null,
-      data: [{ village_id: 'v1', available_kg: 5600, committed_kg: 6400, coverable_kg: 5600, coverage_pct: 62.2, opportunity_id: null, opportunity_status: null }],
+      data: [{ village_id: 'v1', village_name: 'Ilundo', available_kg: 5600, committed_kg: 6400, coverable_kg: 5600, coverage_pct: 62.2, opportunity_id: null, opportunity_status: null }],
     })
     const user = userEvent.setup()
     render(<DemandDetailScreen />)
@@ -73,7 +71,27 @@ describe('DemandDetailScreen', () => {
     expect(screen.getByRole('link', { name: /Back/ })).toHaveAttribute('href', '/ops/demand')
     expect(screen.getByTestId('match-row-v1')).toHaveTextContent('Ilundo')
     await user.click(screen.getByTestId('create-opportunity'))
-    expect(mutate).toHaveBeenCalledWith({ villageId: 'v1', cropId: 'c1' })
+    // The API gives the opportunity the demand's crop; only the village is sent.
+    expect(mutate).toHaveBeenCalledWith({ villageId: 'v1' })
+  })
+
+  test('shows the indicative price as Money', () => {
+    render(<DemandDetailScreen />)
+    expect(screen.getByTestId('demand-detail')).toHaveTextContent(/TZS\s?780\.00/)
+  })
+
+  // Matches are ops/admin only: a refusal is shown as written in their place, the demand stays.
+  test('a refused comparison is shown as written, the demand stays on screen', () => {
+    useDemandMatches.mockReturnValue({
+      isLoading: false,
+      error: { response: { status: 403, data: { message: 'only project ops or admin may read demand matches' } } },
+      data: undefined,
+      refetch: vi.fn(),
+    })
+    render(<DemandDetailScreen />)
+
+    expect(screen.getByTestId('demand-matches-error')).toHaveTextContent('only project ops or admin may read demand matches')
+    expect(screen.getByTestId('demand-detail')).toHaveTextContent('Iringa Grain Traders')
   })
 
   test('states an empty supply result instead of hiding the demand', () => {

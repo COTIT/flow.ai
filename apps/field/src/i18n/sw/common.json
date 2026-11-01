@@ -100,6 +100,7 @@
     "duplicateLoanCode": "Msimbo huo wa mkopo tayari unatumika katika mradi huu."
   },
   "dbError": {
+    "noteRequired": "Maelezo yanahitajika ili kuidhinisha au kukataa.",
     "surveyNotFound": "Dodoso hili halikupatikana.",
     "surveyClosed": "Dodoso hili limefungwa.",
     "notLinkedToFarmer": "Akaunti yako haijaunganishwa na mkulima aliyesajiliwa.",
@@ -418,6 +419,7 @@
     "estimateBlockedDetail": "Jaza idadi, saa kwa siku na siku kwa wiki, na makadirio yataonekana hapa.",
     "estimateImpossibleTitle": "Hili haliwezi kukadiriwa",
     "estimateImpossibleDetail": "Moja ya namba zilizo hapo juu iko nje ya kinachowezekana, kwa hiyo hakuna makadirio yanayoonyeshwa kwake. Irekebishe, na makadirio yatarudi.",
+    "noEstimateTitle": "Hakuna makadirio ya mashine hii",
     "acquisition": "Kukodi au kununua?",
     "acquisitionOnly": {
       "rent": "Kinapatikana kwa kukodi tu.",
@@ -476,7 +478,6 @@
     "neverSummed": "Mahitaji yanayotarajiwa na yaliyoidhinishwa ni takwimu tofauti na hayajumlishwi kamwe.",
     "simultaneity": "Kigezo cha matumizi ya wakati mmoja",
     "decisionNote": "Maelezo ya uamuzi",
-    "decisionNoteRequired": "Uamuzi unahitaji maelezo yanayouelezea.",
     "startReview": "Anza mapitio",
     "approve": "Idhinisha",
     "reject": "Kataa",
@@ -587,6 +588,8 @@
     "releaseDetail": "Kiasi cha {{kg}} kinarudi kwenye ugavi unaopatikana wa kijiji hiki, na sehemu ya mahitaji ya mnunuzi iliyokidhiwa inapungua. Hili haliwezi kutenduliwa: fursa ambayo mnunuzi ameikataa au iliyoisha muda haiwezi kufunguliwa tena.",
     "releaseYes": "Ndiyo, achilia ugavi",
     "releaseNo": "Ghairi",
+    "attachConfirmTitle": "Ambatisha ugavi huu?",
+    "attachConfirmDetail": "Kiasi cha {{kg}} kutoka kwa {{farmer}} kitahesabiwa kuwa kimeahidiwa kwa fursa hii. Mstari wa ugavi hauwezi kuhaririwa wala kuondolewa baadaye.",
     "releasedNote": "Imefungwa. Kiasi chake cha {{kg}} kimerudi kwenye ugavi unaopatikana wa kijiji hiki. Mistari ya ugavi iliyo hapa chini inabaki kwenye rekodi — hakuna kilichofutwa.",
     "attachClosedTitle": "Hakuna kinachoweza kuambatishwa tena",
     "attachClosedDetail": "Fursa hii imefungwa, kwa hiyo ugavi wake haujahesabiwa tena kuwa umeahidiwa. Mstari ulioambatishwa hapa ungerekodi ahadi isiyo na fursa hai inayoihusu.",

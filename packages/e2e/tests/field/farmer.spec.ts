@@ -19,6 +19,7 @@ import {
   timeline,
   voidedVouchers,
 } from "./farmer.api"
+import { noOpportunities } from "./market.api"
 import { requestList } from "./requests.api"
 
 const RESPONSES = `/v1/workspace/w1/farm/surveys/${SURVEY}/responses`
@@ -45,6 +46,7 @@ async function open(
     [`GET /workspace/w1/farm/vouchers/${VOUCHER}/timeline`]: timeline,
     // The home's latest-request card (the e2e build has the resources feature on).
     "GET /workspace/w1/farm/pue-requests": requestList(),
+    "GET /workspace/w1/farm/opportunities": noOpportunities,
     ...extra,
   }
   await mockApi(page, routes)
@@ -84,7 +86,8 @@ test("the farmer's home shows the farm summary and the new survey", async ({ pag
   await expect(page.getByTestId("summary-plots")).toHaveText("1")
   await expect(page.getByTestId("summary-cycles")).toHaveText("1")
   await expect(page.getByTestId("farm-home-surveys")).toContainText("1 new survey")
-  await expect(page.getByTestId("farm-home-opportunities")).toHaveCount(0)
+  // Opportunities are on the API: none yet is stated, not hidden.
+  await expect(page.getByTestId("farm-home-opportunities")).toBeVisible()
   await expect(page.getByTestId("farm-home-no-requests")).toBeVisible()
   await expectNoHorizontalScroll(page)
 })

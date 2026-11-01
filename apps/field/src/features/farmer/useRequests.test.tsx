@@ -1,3 +1,6 @@
+import { createElement, type ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const api = {
@@ -5,16 +8,18 @@ const api = {
   farmPueRequestsGet: vi.fn(),
   farmPueRequestsCreate: vi.fn(),
   farmPueRequestsTransition: vi.fn(),
+  farmPueRequestsEstimate: vi.fn(),
 }
 vi.mock('@genesy/api-client/endpoints/farm-pue', () => ({
   farmPueRequestsList: (...args: unknown[]) => api.farmPueRequestsList(...args),
   farmPueRequestsGet: (...args: unknown[]) => api.farmPueRequestsGet(...args),
   farmPueRequestsCreate: (...args: unknown[]) => api.farmPueRequestsCreate(...args),
   farmPueRequestsTransition: (...args: unknown[]) => api.farmPueRequestsTransition(...args),
+  farmPueRequestsEstimate: (...args: unknown[]) => api.farmPueRequestsEstimate(...args),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
-const { fetchMyRequests, fetchRequest, submitRequest, transitionRequest, toRequest } = await import(
+const { fetchEstimatePreview, fetchMyRequests, fetchRequest, submitRequest, transitionRequest, toRequest, useEstimatePreview } = await import(
   '@/features/farmer/useRequests'
 )
 
@@ -95,6 +100,11 @@ describe('the shape the screens read', () => {
     expect(r.estimate).toMatchObject({ est_power_kw: 15, est_kwh_per_day: 120, est_kwh_per_week: 720 })
   })
 
+  test('the farm is named by the API', () => {
+    expect(toRequest(pueRequest({ farm_id: 'f1', farm: { id: 'f1', label: 'Kipande' } }) as never, 'en').farm_label).toBe('Kipande')
+    expect(toRequest(pueRequest({ farm: null }) as never, 'en').farm_label).toBeNull()
+  })
+
   test('a machine with no rated power has no estimate', () => {
     expect(toRequest(pueRequest({ estimate: null, hours_per_day: null }) as never, 'en').estimate).toBeNull()
   })
@@ -137,5 +147,57 @@ describe('moving a request', () => {
 
     expect(api.farmPueRequestsTransition).toHaveBeenNthCalledWith(1, 'w1', ID, { action: 'withdraw' })
     expect(api.farmPueRequestsTransition).toHaveBeenNthCalledWith(2, 'w1', ID, { action: 'approve', note: 'Fits the headroom' })
+  })
+})
+
+const preview = {
+  rated_power_kw: '15.000', quantity: 2, hours_per_day: '8.00', days_per_week: '5.0',
+  est_power_kw: '30.000', est_kwh_per_day: '240.000', est_kwh_per_week: '1200.000', method: 'level1_rated_x_hours',
+}
+
+describe('the estimate preview', () => {
+  test('asks the API with the figures as typed (hours and days as decimal text) and shows its answer', async () => {
+    api.farmPueRequestsEstimate.mockResolvedValue({ data: preview })
+
+    const estimate = await fetchEstimatePreview({ equipmentId: 'eq1', quantity: '2', hoursPerDay: '8', daysPerWeek: '5' })
+
+    expect(api.farmPueRequestsEstimate).toHaveBeenCalledWith('w1', {
+      equipment_id: 'eq1', quantity: 2, hours_per_day: '8', days_per_week: '5',
+    })
+    expect(estimate).toEqual({
+      rated_power_kw: 15, quantity: 2, hours_per_day: 8, days_per_week: 5,
+      est_power_kw: 30, est_kwh_per_day: 240, est_kwh_per_week: 1200,
+    })
+  })
+
+  test('a machine with no rated power has none', async () => {
+    api.farmPueRequestsEstimate.mockResolvedValue({ data: null })
+    expect(await fetchEstimatePreview({ equipmentId: 'eq1', quantity: '1', hoursPerDay: '6', daysPerWeek: '5' })).toBeNull()
+  })
+
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client: new QueryClient({ defaultOptions: { queries: { retry: false } } }) }, children)
+  const input = (hoursPerDay: string) => ({ equipmentId: 'eq1', quantity: '1', hoursPerDay, daysPerWeek: '5' })
+
+  test('waits for typing to settle: only the figures the farmer stopped on are asked about', async () => {
+    api.farmPueRequestsEstimate.mockResolvedValue({ data: preview })
+    const { result, rerender } = renderHook(({ value }) => useEstimatePreview(value), {
+      wrapper,
+      initialProps: { value: input('6') as ReturnType<typeof input> | null },
+    })
+    await waitFor(() => expect(result.current.data).toBeTruthy())
+
+    rerender({ value: input('7') })
+    rerender({ value: input('8') })
+    await waitFor(() => expect(api.farmPueRequestsEstimate).toHaveBeenCalledTimes(2))
+    await new Promise((resolve) => setTimeout(resolve, 400))
+
+    expect(api.farmPueRequestsEstimate.mock.calls.map((c) => c[1].hours_per_day)).toEqual(['6', '8'])
+  })
+
+  test('asks nothing while the figures are missing or impossible', async () => {
+    renderHook(() => useEstimatePreview(null), { wrapper })
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    expect(api.farmPueRequestsEstimate).not.toHaveBeenCalled()
   })
 })

@@ -107,7 +107,7 @@ impl Pue {
             .call(
                 Method::POST,
                 &tail,
-                Some(json!({ "action": action })),
+                Some(json!({ "action": action, "note": "checked" })),
                 token,
             )
             .await
@@ -654,4 +654,125 @@ async fn the_pipeline_adds_rent_per_day_apart_from_purchase_prices(pool: PgPool)
     let draft = row("draft");
     assert_eq!(draft["request_count"], 1);
     assert_eq!(draft["indicative_rent_per_day"], Value::Null);
+}
+
+// ---- additions for the field port ----
+
+#[sqlx::test]
+async fn approve_and_reject_need_a_decision_note(pool: PgPool) {
+    let p = pue(pool).await;
+    let id = p
+        .requested(&p.neema, json!({ "equipment_id": p.mill }))
+        .await;
+    p.moved(&id, &["start_review"]).await;
+    let tail = format!("/pue-requests/{id}/transitions");
+    for body in [
+        json!({ "action": "approve" }),
+        json!({ "action": "reject", "note": "  " }),
+    ] {
+        let (status, res) =
+            p.f.call(Method::POST, &tail, Some(body.clone()), &p.f.ops)
+                .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}: {res}");
+        assert!(res["errors"]["note"].is_array(), "{body}: {res}");
+    }
+    let (_, res) = p.get(&id, &p.f.ops).await;
+    assert_eq!(res["data"]["status"], "under_review");
+    // Other moves need none.
+    let draft = p
+        .requested(
+            &p.neema,
+            json!({ "equipment_id": p.mill, "status": "draft" }),
+        )
+        .await;
+    let (status, res) =
+        p.f.call(
+            Method::POST,
+            &format!("/pue-requests/{draft}/transitions"),
+            Some(json!({ "action": "submit" })),
+            &p.neema,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+}
+
+#[sqlx::test]
+async fn a_request_names_its_farm(pool: PgPool) {
+    let p = pue(pool).await;
+    let (_, res) = p
+        .request(
+            &p.f.officer_ilu,
+            json!({ "equipment_id": p.mill, "person_id": p.c.neema.person, "farm_id": p.c.neema.farm }),
+        )
+        .await;
+    assert_eq!(res["data"]["farm"]["id"], p.c.neema.farm, "{res}");
+    assert_eq!(res["data"]["farm"]["label"], "Mwakalinga farm");
+    let list = p.f.list("/pue-requests", &p.neema).await;
+    assert_eq!(list["data"][0]["farm"]["label"], "Mwakalinga farm");
+    let (_, res) = p.request(&p.neema, json!({ "equipment_id": p.mill })).await;
+    assert_eq!(res["data"]["farm"], Value::Null);
+}
+
+#[sqlx::test]
+async fn the_estimate_preview_is_the_estimate_a_request_gets(pool: PgPool) {
+    let p = pue(pool).await;
+    let inputs = json!({ "equipment_id": p.pump, "quantity": 2, "hours_per_day": "4" });
+    let (status, res) =
+        p.f.call(
+            Method::POST,
+            "/pue-requests/estimate",
+            Some(inputs),
+            &p.neema,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let preview = res["data"].clone();
+    assert_eq!(preview["est_power_kw"], "3.000", "{res}");
+    assert_eq!(preview["days_per_week"], "6.0");
+    assert_eq!(preview["est_kwh_per_week"], "72.000");
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM farm_pue_requests")
+        .fetch_one(&p.f.pool)
+        .await
+        .unwrap();
+    assert_eq!(n, 0, "a preview writes nothing");
+    let (_, res) = p
+        .request(
+            &p.neema,
+            json!({ "equipment_id": p.pump, "acquisition": "rent", "quantity": 2, "hours_per_day": "4" }),
+        )
+        .await;
+    let stored = &res["data"]["estimate"];
+    for k in [
+        "rated_power_kw",
+        "quantity",
+        "hours_per_day",
+        "days_per_week",
+        "est_power_kw",
+        "est_kwh_per_day",
+        "est_kwh_per_week",
+        "method",
+    ] {
+        assert_eq!(preview[k], stored[k], "{k}");
+    }
+    // A machine with no rated power gets no estimate; an unknown one is refused.
+    let (status, res) =
+        p.f.call(
+            Method::POST,
+            "/pue-requests/estimate",
+            Some(json!({ "equipment_id": p.sheller })),
+            &p.neema,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"], Value::Null);
+    let (status, res) =
+        p.f.call(
+            Method::POST,
+            "/pue-requests/estimate",
+            Some(json!({ "equipment_id": "019a0000-0000-7000-8000-0000000000ff" })),
+            &p.neema,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(res["errors"]["equipment_id"].is_array(), "{res}");
 }

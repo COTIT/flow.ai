@@ -109,7 +109,7 @@ export function FarmHomeScreen() {
       </section>
       </Card>
 
-      {/* shortcut: the API has no opportunities yet; that card stays hidden until its screen is ported. */}
+      {/* Shown now that /farm/opportunities is ported; the gate goes with PORTED (port step 8). */}
       {isPorted('/farm/opportunities') && <OpportunitiesCard />}
       {resourcesEnabled && isPorted('/farm/requests') && <LatestRequestCard />}
     </section>

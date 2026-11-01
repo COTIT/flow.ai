@@ -189,6 +189,8 @@ export const DB_MESSAGE_RULES: DbMessageRule[] = [
   // A missing field the form should have supplied, not something to fix.
   fixed('error.unexpected', 'village_id is required'),
   fixed('error.unexpected', 'unknown crop'),
+  // The API's (apps/api farm_pue dto.rs): approve and reject without a note.
+  fixed('dbError.noteRequired', 'The note field is required to approve or reject.'),
 ]
 
 /**

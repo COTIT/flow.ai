@@ -30,6 +30,11 @@ export const PORTED: readonly string[] = [
   '/farm/requests/*',
   '/ops/requests',
   '/ops/requests/*',
+  '/farm/opportunities',
+  '/ops/buyers',
+  '/ops/demand',
+  '/ops/demand/*',
+  '/ops/opportunities/*',
 ]
 
 export function isPorted(pathname: string, ported: readonly string[] = PORTED): boolean {
