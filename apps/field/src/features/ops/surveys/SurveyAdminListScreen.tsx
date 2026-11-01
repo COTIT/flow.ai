@@ -17,7 +17,7 @@ import { StatusPill } from '@/components/StatusPill'
 import { TableSurface } from '@/components/TableSurface'
 import { Button } from '@/components/ui/button'
 import { Field, Panel, SectionTitle } from '@/features/ops/surveys/Field'
-import { amountToMinor } from '@/features/ops/surveys/figures'
+import { amountToMinor, countAndAmount } from '@/features/ops/surveys/figures'
 import { canAuthorSurveys } from '@/features/ops/surveys/permissions'
 import {
   useCreateSurvey,
@@ -79,8 +79,18 @@ export function SurveyAdminListScreen() {
         meta: { numeric: true },
         cell: (c) => <span data-testid="survey-responses">{c.getValue()}</span>,
       }),
-      // shortcut: redeemed / outstanding per survey are hidden — GET .../surveys has no voucher
-      // sums (the old summary view); they show on the survey's results. Add when the list sends them.
+      col.accessor((row) => row.summary?.redeemed.minor ?? null, {
+        id: 'redeemed',
+        header: t('surveyAdmin.columns.redeemed'),
+        meta: { numeric: true },
+        cell: (c) => <span data-testid="survey-redeemed">{sums(c.row.original, 'redeemed', i18n.language)}</span>,
+      }),
+      col.accessor((row) => row.summary?.outstanding.minor ?? null, {
+        id: 'outstanding',
+        header: t('surveyAdmin.columns.outstanding'),
+        meta: { numeric: true },
+        cell: (c) => <span data-testid="survey-outstanding">{sums(c.row.original, 'outstanding', i18n.language)}</span>,
+      }),
     ]
   }, [t, i18n.language])
 
@@ -149,6 +159,10 @@ export function SurveyAdminListScreen() {
   )
 }
 
+/** The API's voucher sums for one survey (null for farmers, who never see this list). */
+const sums = (row: ListRow, which: 'redeemed' | 'outstanding', language: string) =>
+  countAndAmount(row.summary?.[which], row.reward.currency, row.reward.decimals, language)
+
 const NEW_SURVEY_DEFAULTS: { title_en: string; reward_amount: string; currency_id: string } = {
   title_en: '',
   reward_amount: '',
@@ -179,9 +193,10 @@ function NewSurveyPanel({ onClose, onCreated }: { onClose: () => void; onCreated
     event.preventDefault()
     if (inFlight.current || create.isPending || !draft.ready || !currency) return
     inFlight.current = true
-    // shortcut: no client id is sent — the API's create takes none (see useCreateSurvey).
     const save = create
       .mutateAsync({
+        // Kept with the draft until it is saved: a retry after a lost reply gets the same survey back.
+        id: draft.clientRef,
         title_en: title.trim(),
         // Null (blank or not an amount) goes as null: the API says what is wrong.
         reward_minor: amountToMinor(reward, currency.decimals),

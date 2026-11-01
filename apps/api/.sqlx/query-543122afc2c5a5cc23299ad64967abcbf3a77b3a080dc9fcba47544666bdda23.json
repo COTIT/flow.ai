@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.crop_id, date_trunc('month', c.harvest_start)::date AS window_month,\n                  count(*) AS \"cycle_count!\", count(DISTINCT c.plot_id) AS \"plot_count!\",\n                  sum(c.area_ha) AS cycle_area_ha, sum(c.tree_count) AS tree_count,\n                  sum(c.unit_count) AS unit_count, sum(e.quantity_kg) AS expected_kg,\n                  sum(a.quantity_kg) AS actual_kg,\n                  count(*) FILTER (WHERE c.verification = 'verified') AS \"verified_cycles!\"\n           FROM farm_crop_cycles c\n           LEFT JOIN farm_harvest_reports e ON e.crop_cycle_id = c.id AND e.kind = 'expected'\n                AND e.is_current AND e.deleted_at IS NULL\n           LEFT JOIN farm_harvest_reports a ON a.crop_cycle_id = c.id AND a.kind = 'actual'\n                AND a.is_current AND a.deleted_at IS NULL\n           WHERE c.workspace_id = $1 AND c.village_id = $2 AND c.deleted_at IS NULL\n           GROUP BY c.crop_id, date_trunc('month', c.harvest_start)\n           ORDER BY window_month NULLS LAST, c.crop_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "crop_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_crop_cycles",
+            "name": "crop_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "window_month",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "cycle_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "plot_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "cycle_area_ha",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "tree_count",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "unit_count",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "expected_kg",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "actual_kg",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "verified_cycles!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "543122afc2c5a5cc23299ad64967abcbf3a77b3a080dc9fcba47544666bdda23"
+}

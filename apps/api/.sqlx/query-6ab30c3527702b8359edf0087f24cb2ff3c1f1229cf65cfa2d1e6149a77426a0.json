@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM farm_buyer_demands d\n           WHERE d.workspace_id = $1 AND d.deleted_at IS NULL\n             AND ($2::uuid IS NULL OR d.id = $2) AND ($3::text[] IS NULL OR d.status = ANY($3))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6ab30c3527702b8359edf0087f24cb2ff3c1f1229cf65cfa2d1e6149a77426a0"
+}

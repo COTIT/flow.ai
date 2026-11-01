@@ -1,0 +1,143 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.id, s.workspace_id, s.register_id, r.name AS register_name, r.warehouse_id,\n                r.currency_id, upper(c.asset_type) AS \"currency_code!\",\n                c.decimals AS currency_decimals, s.till_user_id, u.name AS user_name, s.expires_at\n         FROM till_sessions s\n         JOIN till_registers r ON r.workspace_id = s.workspace_id AND r.id = s.register_id\n                              AND r.app_key_id = s.app_key_id\n         JOIN currencies c ON c.workspace_id = r.workspace_id AND c.id = r.currency_id\n         JOIN app_keys a ON a.id = s.app_key_id AND a.revoked_at IS NULL\n         JOIN till_users u ON u.workspace_id = s.workspace_id AND u.id = s.till_user_id\n                          AND u.active\n         JOIN workspaces w ON w.id = s.workspace_id AND w.deleted_at IS NULL\n         WHERE s.token_hash = $1 AND s.ended_at IS NULL AND s.expires_at > now()",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_sessions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_sessions",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "register_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_sessions",
+            "name": "register_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "register_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_registers",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "currency_code!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "currency_decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "till_user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "till_sessions",
+            "name": "till_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "user_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "till_users",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "till_sessions",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ded144317567d27a0e654d8db03949dde96369f31a2b8fb329299c1f966c0ed3"
+}

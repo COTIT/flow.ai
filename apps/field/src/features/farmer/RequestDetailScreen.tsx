@@ -10,8 +10,8 @@ import { AcquisitionPill } from '@/components/OfferedPills'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { useFarmerTransition, useRequest } from '@/features/farmer/useRequests'
 import { farmerActions } from '@/features/ops/transitions'
+import { humanizeDbError } from '@/lib/errors'
 import { formatKw, formatKwh, formatTimestamp } from '@/lib/format'
-import { useActorName } from '@/lib/actorNames'
 
 const route = getRouteApi('/_farmer/farm/requests/$requestId')
 
@@ -19,21 +19,16 @@ const route = getRouteApi('/_farmer/farm/requests/$requestId')
  * Spec 6.5 — the equipment, the assumptions, the STORED estimate, and the
  * decision note once decided.
  *
- * The estimate here is read from energy_estimate, not recomputed: the trigger
- * is its only writer, and showing the stored row is what lets the preview and
- * the stored figure be compared rather than assumed identical.
+ * The estimate is the API's stored one; its database is the only writer.
  *
- * A submitted request is not editable. pue_request_guard freezes the content
- * once it leaves draft, so no edit control is offered — rendering one would be
+ * A submitted request is not editable: the API has no content edit route, so no edit control is offered — rendering one would be
  * a lie about what is possible.
  */
 export function RequestDetailScreen() {
   const { requestId } = route.useParams()
   const { t } = useTranslation()
   const query = useRequest(requestId)
-  // A name, never the raw id: resolved through the scoped provenance lookup.
-  const capturedBy = useActorName(query.request?.captured_by)
-  const transition = useFarmerTransition(requestId, query.request?.village_id ?? undefined)
+  const transition = useFarmerTransition(requestId)
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
 
@@ -41,7 +36,7 @@ export function RequestDetailScreen() {
     return <Loading testId="request-detail-loading" />
   }
 
-  // Zero rows is an answer: RLS says this request is not visible.
+  // Not found is an answer: someone else's request, or none.
   if (!query.request) {
     return <EmptyState title={t('requests.notFoundTitle')} detail={t('requests.notFoundDetail')} />
   }
@@ -59,7 +54,7 @@ export function RequestDetailScreen() {
           <StatusPill kind="request" status={request.status} />
           <AcquisitionPill mode={request.acquisition} />
         </div>
-        <ProvenanceBadge source={request.source} verification={request.verification} confidence={request.confidence} capturedAt={request.captured_at} capturedBy={capturedBy} />
+        <ProvenanceBadge source={request.source} verification={request.verification} confidence={request.confidence} capturedAt={request.captured_at} capturedBy={request.captured_by_name} />
         {request.purpose && (
           <p style={{ fontSize: 15, color: 'var(--ink-2)' }}>{request.purpose}</p>
         )}
@@ -164,7 +159,7 @@ export function RequestDetailScreen() {
                 lineHeight: 1.55,
               }}
             >
-              {transition.error.message}
+              {refusal(transition.error, t)}
             </p>
           )}
 
@@ -197,6 +192,12 @@ export function RequestDetailScreen() {
       )}
     </section>
   )
+}
+
+/** The API's refusal, as written (or its known translation). */
+function refusal(error: unknown, t: (key: string, values?: Record<string, unknown>) => string): string {
+  const human = humanizeDbError(error)
+  return human.kind === 'verbatim' ? human.message : t(human.key, human.values)
 }
 
 /**

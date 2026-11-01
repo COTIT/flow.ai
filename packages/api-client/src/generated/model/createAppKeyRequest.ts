@@ -5,14 +5,16 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { AppKeyIssuableScope } from './appKeyIssuableScope';
+import type { AppKeyKind } from './appKeyKind';
 
 /**
  * New app key for one app of this workspace.
  */
 export interface CreateAppKeyRequest {
-  kind: string;
+  kind: AppKeyKind;
   /** @maxLength 100 */
   name: string;
-  /** At least one of: `catalog:read`. */
-  scopes: string[];
+  /** 1 to 20 scopes. */
+  scopes: AppKeyIssuableScope[];
 }

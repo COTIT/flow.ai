@@ -1,0 +1,185 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT v.id, v.code, v.name, v.latitude, v.longitude, v.primary_language,\n                  v.created_at, v.updated_at, c.id AS \"capacity_id?\", c.capacity_kw AS \"capacity_kw?\", c.basis AS \"basis?\",\n                  c.simultaneity_factor AS \"simultaneity_factor?\", c.source_note,\n                  c.effective_from AS \"effective_from?\"\n           FROM farm_villages v\n           LEFT JOIN farm_village_capacities c ON c.village_id = v.id AND c.is_current\n           WHERE v.workspace_id = $1 AND v.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "latitude",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "latitude"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "longitude",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "longitude"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "primary_language",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "primary_language"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_villages",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "capacity_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "capacity_kw?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "capacity_kw"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "basis?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "basis"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "simultaneity_factor?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "simultaneity_factor"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "source_note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "source_note"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "effective_from?",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "effective_from"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "79763889fe9e253a32a183bfa21e12d9df0540f40aab5d0d9c85652ac4f04b0f"
+}

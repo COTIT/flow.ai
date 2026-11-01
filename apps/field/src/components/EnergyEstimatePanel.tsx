@@ -2,43 +2,25 @@ import type { ReactNode } from 'react'
 import { BatteryCharging, Zap } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { computeEstimate } from '@/features/farmer/energyEstimate'
+import type { StoredEstimate } from '@/features/farmer/useRequests'
 import { formatKw, formatKwh } from '@/lib/format'
-
-export interface EnergyEstimatePanelProps {
-  ratedPowerKw: number
-  quantity: number
-  hoursPerDay: number
-  daysPerWeek: number
-}
 
 /**
  * Shows the inputs, the arithmetic and the outputs — spec §9.1.
  *
  * The arithmetic is shown AS arithmetic: three equation lines, each starting
- * from what the line above produced. A two-column list said what the numbers
- * were but not that the second follows from the first, and an estimate that
- * shows its working is harder to mistake for a measurement.
+ * from what the line above produced. An estimate that shows its working is
+ * harder to mistake for a measurement.
  *
- * Mirrors energy_estimate's generated columns exactly. If the two ever
- * disagree, this component is wrong. It is a PREVIEW only: the stored figure
- * is written by pue_recompute_estimate, which is the sole writer of
- * energy_estimate — clients hold no write policy on it at all.
+ * Every figure is the API's (its estimate preview, from the same SQL the stored
+ * estimate uses); this component displays them and works nothing out.
  *
  * Always labelled an estimate. It is not measured consumption and not a
- * commitment. The dashed border is gone; the header band on a solid
- * ground says "estimate" in words instead.
+ * commitment.
  */
-export function EnergyEstimatePanel({
-  ratedPowerKw,
-  quantity,
-  hoursPerDay,
-  daysPerWeek,
-}: EnergyEstimatePanelProps) {
+export function EnergyEstimatePanel({ estimate }: { estimate: StoredEstimate }) {
   const { t } = useTranslation()
-  const estimate = computeEstimate({ ratedPowerKw, quantity, hoursPerDay, daysPerWeek })
-
-  const shown = (value: number) => (Number.isFinite(value) ? value : 0)
+  const { rated_power_kw: ratedPowerKw, quantity, hours_per_day: hoursPerDay, days_per_week: daysPerWeek } = estimate
 
   return (
     <section
@@ -92,12 +74,12 @@ export function EnergyEstimatePanel({
             terms={[
               <Term key="rated" testId="estimate-rated-power" value={formatKw(ratedPowerKw)} unit={t('estimate.rated')} />,
               <Operator key="x1">×</Operator>,
-              <Term key="qty" testId="estimate-quantity" value={String(shown(quantity))} unit={t('estimate.units', { count: shown(quantity) })} />,
+              <Term key="qty" testId="estimate-quantity" value={String(quantity)} unit={t('estimate.units', { count: quantity })} />,
               <Operator key="e1">=</Operator>,
             ]}
             result={
               <Result testId="estimate-power" icon={<Zap aria-hidden size={16} strokeWidth={2.25} style={{ flex: 'none' }} />}>
-                {formatKw(estimate.estPowerKw)}
+                {formatKw(estimate.est_power_kw)}
               </Result>
             }
             resultLabel={t('estimate.peak')}
@@ -107,14 +89,14 @@ export function EnergyEstimatePanel({
             name="day"
             ruled
             terms={[
-              <Carried key="peak" value={formatKw(estimate.estPowerKw)} />,
+              <Carried key="peak" value={formatKw(estimate.est_power_kw)} />,
               <Operator key="x2">×</Operator>,
-              <Term key="hours" testId="estimate-hours" value={String(shown(hoursPerDay))} unit={t('estimate.hoursADay')} />,
+              <Term key="hours" testId="estimate-hours" value={String(hoursPerDay)} unit={t('estimate.hoursADay')} />,
               <Operator key="e2">=</Operator>,
             ]}
             result={
               <Result testId="estimate-kwh-day" icon={<BatteryCharging aria-hidden size={16} strokeWidth={2.25} style={{ flex: 'none' }} />}>
-                {formatKwh(estimate.estKwhPerDay)}
+                {formatKwh(estimate.est_kwh_per_day)}
               </Result>
             }
             resultLabel={t('estimate.aDay')}
@@ -124,14 +106,14 @@ export function EnergyEstimatePanel({
             name="week"
             ruled
             terms={[
-              <Carried key="day" value={formatKwh(estimate.estKwhPerDay)} />,
+              <Carried key="day" value={formatKwh(estimate.est_kwh_per_day)} />,
               <Operator key="x3">×</Operator>,
-              <Term key="days" testId="estimate-days" value={String(shown(daysPerWeek))} unit={t('estimate.daysAWeek')} />,
+              <Term key="days" testId="estimate-days" value={String(daysPerWeek)} unit={t('estimate.daysAWeek')} />,
               <Operator key="e3">=</Operator>,
             ]}
             result={
               <Result testId="estimate-kwh-week" icon={<BatteryCharging aria-hidden size={16} strokeWidth={2.25} style={{ flex: 'none' }} />}>
-                {formatKwh(estimate.estKwhPerWeek)}
+                {formatKwh(estimate.est_kwh_per_week)}
               </Result>
             }
             resultLabel={t('estimate.aWeek')}

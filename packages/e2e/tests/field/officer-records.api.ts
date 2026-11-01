@@ -43,12 +43,14 @@ export const plot = (over: Record<string, unknown> = {}) => ({
   id: PLOT, farm_id: FARM, label: "Riverside", village_id: "v1", area_ha: "1.8000",
   latitude: null, longitude: null, provenance: provenance(), ...stamps, ...over,
 })
+/** Crop cycles embed their crop (also one since made inactive). */
 export const cycle = {
-  id: CYCLE, plot_id: PLOT, crop_id: MAIZE, village_id: "v1", season_label: "Masika", status: "growing",
+  id: CYCLE, plot_id: PLOT, crop_id: MAIZE, crop: { id: MAIZE, code: "MZ", name_en: "Maize", name_sw: "Mahindi", measured_by: "area" },
+  village_id: "v1", season_label: "Masika", status: "growing",
   area_ha: "1.6000", tree_count: null, unit_count: null, planted_on: null,
   harvest_start: "2026-09-01", harvest_end: "2026-09-30", provenance: provenance(), ...stamps,
 }
-const harvest = {
+export const harvest = {
   id: HARVEST, crop_cycle_id: CYCLE, village_id: "v1", kind: "expected", quantity_kg: "4100.00", is_current: true,
   reported_for: null, provenance: provenance(), ...stamps,
 }
@@ -67,7 +69,7 @@ export const holdings = (farmLabel = "Riverside farm") => ({
       ...farm({ label: farmLabel }),
       plots: [{
         ...plot(),
-        cycles: [{ ...cycle, crop: { id: MAIZE, code: "MZ", name_en: "Maize", name_sw: "Mahindi" }, harvests: [harvest] }],
+        cycles: [{ ...cycle, harvests: [harvest] }],
       }],
     }],
   },
@@ -102,7 +104,7 @@ export async function record(page: Page, method: string, path: string, reply: ()
 export const tourSeen = (page: Page) =>
   page.addInitScript(() => localStorage.setItem("ruaha360:tours-seen", JSON.stringify(["officer:u1"])))
 
-/** The `/officer` home's reads (per-village totals of the five record lists), all empty: spread into a mockApi table. */
+/** The `/officer` home's reads (per-village totals of the record lists and harvest figures), all empty: spread into a mockApi table. */
 export const officerHome: Record<string, MockReply> = Object.fromEntries(
-  ["persons", "households", "farms", "plots", "crop-cycles"].map((kind) => [`GET /workspace/w1/farm/${kind}`, { body: page([]) }]),
+  ["persons", "households", "farms", "plots", "crop-cycles", "harvest-reports"].map((kind) => [`GET /workspace/w1/farm/${kind}`, { body: page([]) }]),
 )

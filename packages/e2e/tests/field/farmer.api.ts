@@ -47,7 +47,7 @@ export const records: Record<string, MockReply> = {
                 cycles: [
                   {
                     id: "c1", plot_id: "pl1", crop_id: "cr-mz", status: "growing", season_label: null, planted_on: null, area_ha: "1.6000", tree_count: null, unit_count: null, harvest_start: "2026-09-01", harvest_end: "2026-09-30", provenance, ...stamps,
-                    crop: { id: "cr-mz", code: "MZ", name_en: "Maize", name_sw: "Mahindi" },
+                    crop: { id: "cr-mz", code: "MZ", name_en: "Maize", name_sw: "Mahindi", measured_by: "area" },
                     harvests: [
                       { id: "hr1", crop_cycle_id: "c1", kind: "expected", is_current: true, quantity_kg: "4100.00", reported_for: null, provenance, ...stamps },
                     ],
@@ -97,13 +97,15 @@ export const eligibilityAfter = page([
 ])
 
 export const noVouchers = page([])
-export const myVouchers = page([
-  {
-    id: VOUCHER, survey_id: SURVEY, survey_title_en: "Maize storage", survey_title_sw: null, code: CODE,
-    amount: REWARD, status: "issued", expired: false, issued_at: "2026-10-30T08:00:00Z",
-    expires_at: "2026-11-29T08:00:00Z", redeemed_at: null,
-  },
-])
+const myVoucher = {
+  id: VOUCHER, survey_id: SURVEY, survey_title_en: "Maize storage", survey_title_sw: null, code: CODE,
+  amount: REWARD, status: "issued", expired: false, issued_at: "2026-10-30T08:00:00Z",
+  expires_at: "2026-11-29T08:00:00Z", redeemed_at: null, void_reason: null,
+}
+export const myVouchers = page([myVoucher])
+
+/** The same voucher after ops voided it: vouchers/mine carries their reason. */
+export const voidedVouchers = page([{ ...myVoucher, status: "void", void_reason: "Duplicate household" }])
 
 /** POST .../responses: 201 the first time, 200 with replayed:true for the same client_ref. */
 export const submitted = (replayed: boolean) => ({
@@ -123,4 +125,6 @@ export const timeline: MockReply = {
 export const farmerHome: Record<string, MockReply> = {
   ...records,
   "GET /workspace/w1/farm/surveys/eligibility": eligibilityBefore,
+  // The home's opportunities card.
+  "GET /workspace/w1/farm/opportunities": page([]),
 }

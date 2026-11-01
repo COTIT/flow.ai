@@ -1,0 +1,303 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.id, d.buyer_id, b.name AS buyer_name, b.channel AS buyer_channel,\n                  d.crop_id, c.code AS crop_code, c.name_en AS crop_name_en, c.name_sw AS crop_name_sw,\n                  d.quantity_kg, d.quality_note, d.window_start, d.window_end, d.delivery_point,\n                  d.indicative_price_per_kg_minor, d.currency_id, cur.asset_type AS \"currency?\",\n                  cur.decimals AS \"decimals?\", d.status, d.verification, d.confidence, d.captured_at,\n                  (SELECT jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name))\n                   FROM users u WHERE u.id = d.captured_by) AS captured_by,\n                  d.created_at, d.updated_at\n           FROM farm_buyer_demands d\n           JOIN farm_buyers b ON b.id = d.buyer_id\n           JOIN farm_crops c ON c.id = d.crop_id\n           LEFT JOIN currencies cur ON cur.id = d.currency_id\n           WHERE d.workspace_id = $1 AND d.deleted_at IS NULL\n             AND ($2::uuid IS NULL OR d.id = $2) AND ($3::text[] IS NULL OR d.status = ANY($3))\n           ORDER BY d.window_start, d.id LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "buyer_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "buyer_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "buyer_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_buyers",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "buyer_channel",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_buyers",
+            "name": "channel"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "crop_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "crop_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "crop_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_crops",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "crop_name_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_crops",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "crop_name_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_crops",
+            "name": "name_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "quantity_kg",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "quantity_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "quality_note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "quality_note"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "window_start",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "window_start"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "window_end",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "window_end"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "delivery_point",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "delivery_point"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "indicative_price_per_kg_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "indicative_price_per_kg_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "currency?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "decimals?",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "verification",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "verification"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "confidence",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "confidence"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "captured_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "captured_at"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "captured_by",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 22,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_buyer_demands",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "TextArray",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "309cc1641f56207958118800d07743cbc37fa1dfc7eb7b894e3ab2d06467501a"
+}

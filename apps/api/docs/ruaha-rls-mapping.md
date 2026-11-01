@@ -2,7 +2,7 @@
 
 Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabase/tests/*.sql`, run by `pnpm db:rls`) and where genesy proves the same rule, or why it does not apply. `tests/farm_mapping.rs` keeps this file honest: exactly 280 rows, every named test exists, every N/A has a reason.
 
-**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **194**. N/A: **86**.
+**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **264**. N/A: **16**.
 
 **How rules map.** RUAHA enforces access with Postgres RLS and `SECURITY DEFINER` RPCs; "zero rows" means "not yours". genesy enforces it in the API: the farm guard (`src/http/farm.rs`), village-scoped SQL in each repo, and composite `(workspace_id, village_id)` foreign keys that make cross-village links impossible. A RUAHA "zero rows" is a genesy `404` (or an empty list); a RUAHA "raises" is a `403`/`422` with RUAHA's message where it has one. Several assertions share one test.
 
@@ -20,22 +20,22 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 5 | rls_test.sql #5 | Ilundo officer sees no Mgama persons | `tests/farm_records.rs::officers_read_their_village_only` |
 | 6 | rls_test.sql #6 | Mgama officer sees both Mgama persons | `tests/farm_records.rs::officers_read_their_village_only` |
 | 7 | rls_test.sql #7 | Mgama officer sees only the Mgama farm | `tests/farm_records.rs::officers_read_their_village_only` |
-| 8 | rls_test.sql #8 | farmer cannot approve their own request | N/A because PUE requests and energy estimates are out of scope (G14) |
-| 9 | rls_test.sql #9 | farmer cannot move their own request to review | N/A because PUE requests and energy estimates are out of scope (G14) |
+| 8 | rls_test.sql #8 | farmer cannot approve their own request | `tests/farm_pue.rs::a_farmer_cannot_review_or_approve_their_own_request` |
+| 9 | rls_test.sql #9 | farmer cannot move their own request to review | `tests/farm_pue.rs::a_farmer_cannot_review_or_approve_their_own_request` |
 | 10 | rls_test.sql #10 | ops cannot mint an admin membership | `tests/farm_tenancy.rs::ops_cannot_mint_admin_or_self_elevate` |
 | 11 | rls_test.sql #11 | ops cannot self-elevate | `tests/farm_tenancy.rs::ops_cannot_mint_admin_or_self_elevate` |
 | 12 | rls_test.sql #12 | ops cannot flip a farmer membership to admin | `tests/farm_tenancy.rs::ops_cannot_touch_admin_memberships` |
-| 13 | rls_test.sql #13 | farmer sees no buyer demand | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 14 | rls_test.sql #14 | farmer sees no buyers | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 15 | rls_test.sql #15 | Tower energy view is empty for a farmer | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
-| 16 | rls_test.sql #16 | Tower production view is empty for a farmer | N/A because Control Tower aggregate views are not ported in this phase; farmers get 403/404 on every staff-only read |
-| 17 | rls_test.sql #17 | farmer DOES see the opportunity her own supply is inside | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 18 | rls_test.sql #18 | nobody can hand-write an energy estimate | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
-| 19 | rls_test.sql #19 | already-committed harvest cannot be promised to a second live opportunity | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 20 | rls_test.sql #20 | both villages appear in the Tower (each has a current capacity row) | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
-| 21 | rls_test.sql #21 | Ilundo approved peak = (15.0 + 2 x 1.5) x 0.600 = 10.800 kW | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 13 | rls_test.sql #13 | farmer sees no buyer demand | `tests/farm_market.rs::the_order_book_is_for_ops_and_admin_only` |
+| 14 | rls_test.sql #14 | farmer sees no buyers | `tests/farm_market.rs::the_order_book_is_for_ops_and_admin_only` |
+| 15 | rls_test.sql #15 | Tower energy view is empty for a farmer | `tests/farm_pue.rs::village_energy_and_pipeline_are_for_staff_of_the_village` |
+| 16 | rls_test.sql #16 | Tower production view is empty for a farmer | `tests/farm_tower.rs::tower_reads_are_for_staff_of_the_village` |
+| 17 | rls_test.sql #17 | farmer DOES see the opportunity her own supply is inside | `tests/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
+| 18 | rls_test.sql #18 | nobody can hand-write an energy estimate | `tests/farm_pue.rs::request_provenance_is_normalised_and_estimates_are_never_hand_written` |
+| 19 | rls_test.sql #19 | already-committed harvest cannot be promised to a second live opportunity | `tests/farm_market.rs::a_committed_harvest_cannot_be_promised_to_a_second_live_opportunity` |
+| 20 | rls_test.sql #20 | both villages appear in the Tower (each has a current capacity row) | `tests/farm_pue.rs::village_energy_keeps_prospective_and_approved_load_apart` |
+| 21 | rls_test.sql #21 | Ilundo approved peak = (15.0 + 2 x 1.5) x 0.600 = 10.800 kW | `tests/farm_pue.rs::village_energy_keeps_prospective_and_approved_load_apart` |
 | 22 | rls_test.sql #22 | Ilundo September maize expected = 12000 kg (superseded estimate excluded) | `tests/farm_records.rs::a_harvest_revision_keeps_one_current_row_and_the_history` |
-| 23 | rls_test.sql #23 | available = 12000 - 6400 already committed | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
+| 23 | rls_test.sql #23 | available = 12000 - 6400 already committed | `tests/farm_market.rs::ops_attaches_supply_and_the_server_sums_it` |
 | 24 | rls_test.sql #24 | farmer cannot verify a record | `tests/farm_records.rs::verification_stamps_the_verifier_and_is_one_way` |
 | 25 | rls_test.sql #25 | farmer cannot use the officer correction RPC | `tests/farm_records.rs::correction_rules` |
 | 26 | rls_test.sql #26 | farmer cannot supersede a harvest figure | `tests/farm_records.rs::a_harvest_revision_keeps_one_current_row_and_the_history` |
@@ -60,23 +60,23 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 45 | mvp_security_test.sql #6 | farmer verification spoof denied | `tests/farm_records.rs::correction_rules` |
 | 46 | mvp_security_test.sql #7 | farmer provenance spoof denied | `tests/farm_records.rs::correction_rules` |
 | 47 | mvp_security_test.sql #8 | safe self preferences remain editable | N/A because account preferences (locale, display name) are the users module, unchanged here; phone-only accounts get 403 there by design (G11) |
-| 48 | mvp_security_test.sql #9 | officer cannot read buyer order book | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
+| 48 | mvp_security_test.sql #9 | officer cannot read buyer order book | `tests/farm_market.rs::the_order_book_is_for_ops_and_admin_only` |
 | 49 | mvp_security_test.sql #10 | officer cannot bypass verification RPC | `tests/farm_records.rs::correction_rules` |
 | 50 | mvp_security_test.sql #11 | direct relationship injection denied | `tests/farm_registration.rs::a_registration_cannot_join_another_villages_household_or_farm` |
-| 51 | mvp_security_test.sql #12 | officer supply write denied | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 52 | mvp_security_test.sql #13 | officer opportunity update affects no rows | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
+| 51 | mvp_security_test.sql #12 | officer supply write denied | `tests/farm_market.rs::only_ops_and_admin_attach_supply` |
+| 52 | mvp_security_test.sql #13 | officer opportunity update affects no rows | `tests/farm_market.rs::only_ops_and_admin_write_opportunities` |
 | 53 | mvp_security_test.sql #14 | RPC registration remains usable | `tests/farm_registration.rs::registration_creates_the_chain_with_server_provenance` |
 | 54 | mvp_security_test.sql #15 | registration replay creates no duplicate | `tests/farm_registration.rs::a_replay_returns_the_original_and_creates_nothing` |
 | 55 | mvp_security_test.sql #16 | out-of-village registration denied | `tests/farm_registration.rs::registration_is_refused_outside_the_officers_villages` |
-| 56 | mvp_security_test.sql #17 | offered total is server-only | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 57 | mvp_security_test.sql #18 | demand view owns committed total | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 58 | mvp_security_test.sql #19 | demand capture cannot be forged | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 59 | mvp_security_test.sql #20 | cannot accept before sharing | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 60 | mvp_security_test.sql #21 | terminal opportunity cannot reopen | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 61 | mvp_security_test.sql #22 | farmer request provenance is normalised, not trusted | N/A because PUE requests and energy estimates are out of scope (G14) |
+| 56 | mvp_security_test.sql #17 | offered total is server-only | `tests/farm_market.rs::ops_proposes_a_village_against_a_demand` |
+| 57 | mvp_security_test.sql #18 | demand view owns committed total | `tests/farm_market.rs::village_supply_and_matches_count_each_harvest_once` |
+| 58 | mvp_security_test.sql #19 | demand capture cannot be forged | `tests/farm_market.rs::ops_records_a_demand_and_its_capture_is_the_servers` |
+| 59 | mvp_security_test.sql #20 | cannot accept before sharing | `tests/farm_market.rs::opportunities_follow_ruahas_status_machine` |
+| 60 | mvp_security_test.sql #21 | terminal opportunity cannot reopen | `tests/farm_market.rs::opportunities_follow_ruahas_status_machine` |
+| 61 | mvp_security_test.sql #22 | farmer request provenance is normalised, not trusted | `tests/farm_pue.rs::request_provenance_is_normalised_and_estimates_are_never_hand_written` |
 | 62 | mvp_security_test.sql #23 | farmer resolves the officer on her own records | `tests/farm_records.rs::names_of_actors_resolve_only_on_visible_records` |
 | 63 | mvp_security_test.sql #24 | farmer cannot resolve unrelated account names | `tests/farm_records.rs::names_of_actors_resolve_only_on_visible_records` |
-| 64 | mvp_security_test.sql #25 | farmer opportunity write denied | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
+| 64 | mvp_security_test.sql #25 | farmer opportunity write denied | `tests/farm_market.rs::only_ops_and_admin_write_opportunities` |
 | 65 | mvp_security_test.sql #26 | anonymous registration denied | `tests/farm_registration.rs::farmers_and_anonymous_callers_cannot_register` |
 | 66 | mvp_security_test.sql #27 | anonymous verification denied | `tests/farm_tenancy.rs::outsiders_get_404_and_anonymous_401` |
 | 67 | mvp_security_test.sql #28 | anonymous name lookup denied | `tests/farm_records.rs::another_workspace_reads_nothing` |
@@ -84,13 +84,13 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 69 | mvp_security_test.sql #30 | cross-village household join denied for project staff | `tests/farm_registration.rs::a_registration_cannot_join_another_villages_household_or_farm` |
 | 70 | mvp_security_test.sql #31 | cross-village farm join denied for project staff | `tests/farm_registration.rs::a_registration_cannot_join_another_villages_household_or_farm` |
 | 71 | mvp_security_test.sql #32 | a denied registration leaves nothing behind | `tests/farm_registration.rs::crop_rules_refuse_the_whole_registration` |
-| 72 | mvp_security_test.sql #33 | multi-month demand counts Ilundo availability once | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 73 | mvp_security_test.sql #34 | multi-month demand counts Ilundo commitments once | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 74 | mvp_security_test.sql #35 | one row per village, never per harvest | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 75 | mvp_security_test.sql #36 | ops attaches supply and the database sums it | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 76 | mvp_security_test.sql #37 | supply from another village is refused | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 77 | mvp_security_test.sql #38 | an opportunity cannot be born shared | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 78 | mvp_security_test.sql #39 | lapsed is terminal | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
+| 72 | mvp_security_test.sql #33 | multi-month demand counts Ilundo availability once | `tests/farm_market.rs::village_supply_and_matches_count_each_harvest_once` |
+| 73 | mvp_security_test.sql #34 | multi-month demand counts Ilundo commitments once | `tests/farm_market.rs::village_supply_and_matches_count_each_harvest_once` |
+| 74 | mvp_security_test.sql #35 | one row per village, never per harvest | `tests/farm_market.rs::village_supply_and_matches_count_each_harvest_once` |
+| 75 | mvp_security_test.sql #36 | ops attaches supply and the database sums it | `tests/farm_market.rs::ops_attaches_supply_and_the_server_sums_it` |
+| 76 | mvp_security_test.sql #37 | supply from another village is refused | `tests/farm_market.rs::supply_must_be_a_current_expected_harvest_of_the_village_and_crop` |
+| 77 | mvp_security_test.sql #38 | an opportunity cannot be born shared | `tests/farm_market.rs::an_opportunity_is_born_proposed_for_the_demand_crop` |
+| 78 | mvp_security_test.sql #39 | lapsed is terminal | `tests/farm_market.rs::opportunities_follow_ruahas_status_machine` |
 | 79 | mvp_security_test.sql #40 | Mgama officer reads no Ilundo farm managers | `tests/farm_records.rs::farm_managers_are_read_within_scope` |
 | 80 | mvp_security_test.sql #41 | Mgama officer reads exactly Mgama farm managers | `tests/farm_records.rs::farm_managers_are_read_within_scope` |
 | 81 | mvp_security_test.sql #42 | Ilundo officer still reads Ilundo farm managers | `tests/farm_records.rs::farm_managers_are_read_within_scope` |
@@ -100,8 +100,8 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 85 | mvp_security_test.sql #46 | mixed membership: no staff read of other Ilundo household members | `tests/farm_records.rs::mixed_membership_gives_staff_reads_only_where_staff` |
 | 86 | mvp_security_test.sql #47 | mixed membership: own household still read as a farmer | `tests/farm_records.rs::mixed_membership_gives_staff_reads_only_where_staff` |
 | 87 | mvp_security_test.sql #48 | mixed membership: Mgama household members read as staff | `tests/farm_records.rs::mixed_membership_gives_staff_reads_only_where_staff` |
-| 88 | mvp_security_test.sql #49 | mixed membership: no staff read of Ilundo opportunity supply | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 89 | mvp_security_test.sql #50 | mixed membership: Mgama opportunity supply read as staff | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
+| 88 | mvp_security_test.sql #49 | mixed membership: no staff read of Ilundo opportunity supply | `tests/farm_market.rs::mixed_membership_reads_supply_as_staff_only_in_staff_villages` |
+| 89 | mvp_security_test.sql #50 | mixed membership: Mgama opportunity supply read as staff | `tests/farm_market.rs::mixed_membership_reads_supply_as_staff_only_in_staff_villages` |
 | 90 | mvp_security_test.sql #51 | mixed membership: no staff read of other Ilundo farm managers | `tests/farm_records.rs::mixed_membership_gives_staff_reads_only_where_staff` |
 | 91 | mvp_security_test.sql #52 | mixed membership: own household farm manager still read | `tests/farm_records.rs::mixed_membership_gives_staff_reads_only_where_staff` |
 | 92 | mvp_security_test.sql #53 | mixed membership: Mgama farm manager read as staff | `tests/farm_records.rs::mixed_membership_gives_staff_reads_only_where_staff` |
@@ -221,17 +221,17 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 206 | grant_staff_test.sql #13 | a malformed email is refused | N/A because the grant takes an existing member by id, not an email and name; the invite and sign-up flows refuse malformed emails and blank names |
 | 207 | grant_staff_test.sql #14 | a blank name is refused | N/A because the grant takes an existing member by id, not an email and name; the invite and sign-up flows refuse malformed emails and blank names |
 | 208 | village_create_test.sql #1 | ops creates a village in its own project | `tests/farm_tenancy.rs::ops_creates_a_village_and_a_retry_replays` |
-| 209 | village_create_test.sql #2 | the new village carries its first planned capacity row | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
-| 210 | village_create_test.sql #3 | a created village has energy figures from the start | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 209 | village_create_test.sql #2 | the new village carries its first planned capacity row | `tests/farm_energy.rs::a_village_is_created_with_its_first_planned_capacity` |
+| 210 | village_create_test.sql #3 | a created village has energy figures from the start | `tests/farm_pue.rs::a_new_village_has_energy_figures_from_the_start` |
 | 211 | village_create_test.sql #4 | a retried create replays instead of inserting twice | `tests/farm_tenancy.rs::ops_creates_a_village_and_a_retry_replays` |
-| 212 | village_create_test.sql #5 | a village without a planned capacity is refused | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 212 | village_create_test.sql #5 | a village without a planned capacity is refused | `tests/farm_energy.rs::a_village_without_a_planned_capacity_is_refused` |
 | 213 | village_create_test.sql #6 | a duplicate village code in the project is refused | `tests/farm_tenancy.rs::a_duplicate_village_code_is_refused` |
-| 214 | village_create_test.sql #7 | capacity can never be recorded as measured | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 214 | village_create_test.sql #7 | capacity can never be recorded as measured | `tests/farm_energy.rs::capacity_can_never_be_recorded_as_measured` |
 | 215 | village_create_test.sql #8 | ops cannot create a village in another project | `tests/farm_tenancy.rs::ops_cannot_create_a_village_in_another_workspace` |
 | 216 | village_create_test.sql #9 | ops cannot insert a village directly into another project | `tests/farm_tenancy.rs::ops_cannot_create_a_village_in_another_workspace` |
 | 217 | village_create_test.sql #10 | an officer cannot create a village | `tests/farm_tenancy.rs::officers_and_farmers_cannot_create_villages` |
 | 218 | village_create_test.sql #11 | a farmer cannot create a village | `tests/farm_tenancy.rs::officers_and_farmers_cannot_create_villages` |
-| 219 | village_create_test.sql #12 | a farmer cannot add a capacity row | N/A because energy, village capacity and Control Tower energy views are out of scope (G14) |
+| 219 | village_create_test.sql #12 | a farmer cannot add a capacity row | `tests/farm_energy.rs::officers_and_farmers_cannot_add_a_capacity_row` |
 | 220 | register_cycles_test.sql #1 | two crops register as two cycles on the same plot | `tests/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
 | 221 | register_cycles_test.sql #2 | each crop carries its own expected harvest | `tests/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
 | 222 | register_cycles_test.sql #3 | the result names every cycle it created | `tests/farm_registration.rs::two_crops_register_as_two_cycles_each_with_its_measure` |
@@ -255,41 +255,41 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 240 | plot_documents_test.sql #12 | the farmer does not see the files | `tests/farm_documents.rs::only_staff_of_the_village_see_or_file_documents` |
 | 241 | plot_documents_test.sql #13 | a farmer cannot upload a document | `tests/farm_documents.rs::only_staff_of_the_village_see_or_file_documents` |
 | 242 | plot_documents_test.sql #14 | ops sees the document | `tests/farm_documents.rs::only_staff_of_the_village_see_or_file_documents` |
-| 243 | resource_catalogue_test.sql #1 | ops adds equipment offered for rent only | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 244 | resource_catalogue_test.sql #2 | ops adds a loan listing | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 245 | resource_catalogue_test.sql #3 | equipment must be offered to rent or to buy | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 246 | resource_catalogue_test.sql #4 | a loan range cannot run backwards | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 247 | resource_catalogue_test.sql #5 | a loan listing is retired, never deleted | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 248 | resource_catalogue_test.sql #6 | a loan listing carries no finance terms (research item C) | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 249 | resource_catalogue_test.sql #7 | an officer cannot add a loan listing | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 250 | resource_catalogue_test.sql #8 | a farmer cannot add equipment | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 251 | resource_catalogue_test.sql #9 | a farmer can read the loan listings of their project | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 252 | resource_catalogue_test.sql #10 | a machine offered only for sale cannot be requested on rent | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 253 | resource_catalogue_test.sql #11 | a machine offered only on rent cannot be requested to buy | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 254 | resource_catalogue_test.sql #12 | a farmer requests a machine on rent | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 255 | resource_catalogue_test.sql #13 | a submitted request cannot switch between rent and buy | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 256 | resource_catalogue_test.sql #14 | and stays on rent | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 257 | resource_catalogue_test.sql #15 | a rent request adds its rent per day, not a price, to the pipeline | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 258 | resource_catalogue_test.sql #16 | every seeded request is a purchase | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
-| 259 | supply_attached_by_test.sql #1 | before attaching, the new ops account is no name the officer may see | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 260 | supply_attached_by_test.sql #2 | a supply line records who attached it, not who the client claims | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 261 | supply_attached_by_test.sql #3 | an update cannot rewrite who attached a line, or when | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 262 | supply_attached_by_test.sql #4 | staff who can read the supply line resolve who attached it | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 263 | supply_attached_by_test.sql #5 | an officer outside the village does not resolve the attacher | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 264 | supply_attached_by_test.sql #6 | a farmer does not resolve the attacher through supply lines | N/A because market module out of scope (G14): buyers, demand, opportunities and supply lines are not ported in this phase |
-| 265 | bug_report_test.sql #1 | a farmer files a bug report, filed as open under their own name | N/A because bug reports are out of scope (G14) |
-| 266 | bug_report_test.sql #2 | a farmer cannot read bug reports, their own included | N/A because bug reports are out of scope (G14) |
-| 267 | bug_report_test.sql #3 | a farmer cannot read bug report images | N/A because bug reports are out of scope (G14) |
-| 268 | bug_report_test.sql #4 | a report cannot be filed in someone else's name | N/A because bug reports are out of scope (G14) |
-| 269 | bug_report_test.sql #5 | a report needs a screenshot or a photo | N/A because bug reports are out of scope (G14) |
-| 270 | bug_report_test.sql #6 | a report needs a description | N/A because bug reports are out of scope (G14) |
-| 271 | bug_report_test.sql #7 | a report carries at most 30 actions | N/A because bug reports are out of scope (G14) |
-| 272 | bug_report_test.sql #8 | a client cannot change a report's status | N/A because bug reports are out of scope (G14) |
-| 273 | bug_report_test.sql #9 | a client cannot delete a report | N/A because bug reports are out of scope (G14) |
-| 274 | bug_report_test.sql #10 | an image cannot be uploaded into someone else's folder | N/A because bug reports are out of scope (G14) |
-| 275 | bug_report_test.sql #11 | no policy lets a bug report image be replaced or deleted | N/A because bug reports are out of scope (G14) |
-| 276 | bug_report_test.sql #12 | an officer cannot read bug reports | N/A because bug reports are out of scope (G14) |
-| 277 | bug_report_test.sql #13 | ops cannot read bug reports | N/A because bug reports are out of scope (G14) |
-| 278 | bug_report_test.sql #14 | admin reads every bug report | N/A because bug reports are out of scope (G14) |
-| 279 | bug_report_test.sql #15 | admin reads bug report images | N/A because bug reports are out of scope (G14) |
-| 280 | bug_report_test.sql #16 | anon cannot read bug reports | N/A because bug reports are out of scope (G14) |
+| 243 | resource_catalogue_test.sql #1 | ops adds equipment offered for rent only | `tests/farm_catalogue.rs::ops_adds_equipment_offered_for_rent_only` |
+| 244 | resource_catalogue_test.sql #2 | ops adds a loan listing | `tests/farm_loans.rs::ops_adds_a_loan_listing_and_every_member_reads_it` |
+| 245 | resource_catalogue_test.sql #3 | equipment must be offered to rent or to buy | `tests/farm_catalogue.rs::equipment_must_be_offered_to_rent_or_to_buy` |
+| 246 | resource_catalogue_test.sql #4 | a loan range cannot run backwards | `tests/farm_loans.rs::a_loan_range_cannot_run_backwards_or_from_zero` |
+| 247 | resource_catalogue_test.sql #5 | a loan listing is retired, never deleted | `tests/farm_loans.rs::a_loan_listing_is_never_deleted_and_carries_no_finance_terms` |
+| 248 | resource_catalogue_test.sql #6 | a loan listing carries no finance terms (research item C) | `tests/farm_loans.rs::a_loan_listing_is_never_deleted_and_carries_no_finance_terms` |
+| 249 | resource_catalogue_test.sql #7 | an officer cannot add a loan listing | `tests/farm_loans.rs::officers_and_farmers_cannot_add_a_loan_listing` |
+| 250 | resource_catalogue_test.sql #8 | a farmer cannot add equipment | `tests/farm_catalogue.rs::a_farmer_reads_equipment_but_cannot_add_it` |
+| 251 | resource_catalogue_test.sql #9 | a farmer can read the loan listings of their project | `tests/farm_loans.rs::ops_adds_a_loan_listing_and_every_member_reads_it` |
+| 252 | resource_catalogue_test.sql #10 | a machine offered only for sale cannot be requested on rent | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
+| 253 | resource_catalogue_test.sql #11 | a machine offered only on rent cannot be requested to buy | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
+| 254 | resource_catalogue_test.sql #12 | a farmer requests a machine on rent | `tests/farm_pue.rs::a_machine_is_requested_only_as_the_catalogue_offers_it` |
+| 255 | resource_catalogue_test.sql #13 | a submitted request cannot switch between rent and buy | N/A because no route edits a request's content: a request keeps the machine, quantity and rent/buy it asked for, so there is no switch to refuse |
+| 256 | resource_catalogue_test.sql #14 | and stays on rent | N/A because no route edits a request's content: a request keeps the machine, quantity and rent/buy it asked for, so there is no switch to refuse |
+| 257 | resource_catalogue_test.sql #15 | a rent request adds its rent per day, not a price, to the pipeline | `tests/farm_pue.rs::the_pipeline_adds_rent_per_day_apart_from_purchase_prices` |
+| 258 | resource_catalogue_test.sql #16 | every seeded request is a purchase | `tests/farm_demo.rs::the_demo_seeds_energy_and_the_market` |
+| 259 | supply_attached_by_test.sql #1 | before attaching, the new ops account is no name the officer may see | N/A because genesy has no name lookup: an account's name appears only embedded on a row the caller may read, so before a line is attached there is nothing to resolve |
+| 260 | supply_attached_by_test.sql #2 | a supply line records who attached it, not who the client claims | `tests/farm_market.rs::ops_attaches_supply_and_the_server_sums_it` |
+| 261 | supply_attached_by_test.sql #3 | an update cannot rewrite who attached a line, or when | `tests/farm_market.rs::a_supply_line_is_never_rewritten` |
+| 262 | supply_attached_by_test.sql #4 | staff who can read the supply line resolve who attached it | `tests/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
+| 263 | supply_attached_by_test.sql #5 | an officer outside the village does not resolve the attacher | `tests/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
+| 264 | supply_attached_by_test.sql #6 | a farmer does not resolve the attacher through supply lines | `tests/farm_market.rs::a_farmer_sees_the_opportunity_their_supply_is_in_without_the_attacher` |
+| 265 | bug_report_test.sql #1 | a farmer files a bug report, filed as open under their own name | `tests/farm_bug_reports.rs::a_farmer_files_a_report_under_their_own_name` |
+| 266 | bug_report_test.sql #2 | a farmer cannot read bug reports, their own included | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 267 | bug_report_test.sql #3 | a farmer cannot read bug report images | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 268 | bug_report_test.sql #4 | a report cannot be filed in someone else's name | `tests/farm_bug_reports.rs::a_report_cannot_be_filed_in_someone_elses_name` |
+| 269 | bug_report_test.sql #5 | a report needs a screenshot or a photo | `tests/farm_bug_reports.rs::a_report_needs_an_image_a_description_and_at_most_30_actions` |
+| 270 | bug_report_test.sql #6 | a report needs a description | `tests/farm_bug_reports.rs::a_report_needs_an_image_a_description_and_at_most_30_actions` |
+| 271 | bug_report_test.sql #7 | a report carries at most 30 actions | `tests/farm_bug_reports.rs::a_report_needs_an_image_a_description_and_at_most_30_actions` |
+| 272 | bug_report_test.sql #8 | a client cannot change a report's status | `tests/farm_bug_reports.rs::no_route_changes_or_deletes_a_report` |
+| 273 | bug_report_test.sql #9 | a client cannot delete a report | `tests/farm_bug_reports.rs::no_route_changes_or_deletes_a_report` |
+| 274 | bug_report_test.sql #10 | an image cannot be uploaded into someone else's folder | `tests/farm_bug_reports.rs::a_farmer_files_a_report_under_their_own_name` |
+| 275 | bug_report_test.sql #11 | no policy lets a bug report image be replaced or deleted | N/A because genesy has no storage policy layer: no route writes, replaces or deletes a stored image, and every upload gets a fresh server-made key in the reporter's folder |
+| 276 | bug_report_test.sql #12 | an officer cannot read bug reports | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 277 | bug_report_test.sql #13 | ops cannot read bug reports | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 278 | bug_report_test.sql #14 | admin reads every bug report | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 279 | bug_report_test.sql #15 | admin reads bug report images | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |
+| 280 | bug_report_test.sql #16 | anon cannot read bug reports | `tests/farm_bug_reports.rs::only_farm_admin_reads_reports_and_their_images` |

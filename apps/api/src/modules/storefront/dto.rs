@@ -1,11 +1,16 @@
 //! Storefront response bodies. Only what a shop may show: never purchase or cost prices,
 //! supplier data, internal notes or stock locations.
 
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use crate::modules::storefront::repo::{OptionRow, ProductRow, VariantRow};
+use crate::modules::{
+    lots::public::Link,
+    storefront::repo::{OptionRow, ProductRow, VariantRow},
+};
 
 /// A sellable product.
 #[derive(Serialize, ToSchema)]
@@ -43,6 +48,8 @@ pub struct StorefrontProduct {
     /// product isn't stock-tracked.
     #[schema(required = true, example = "7.50")]
     available_stock: Option<String>,
+    /// The product's own images in order, as signed links (fetch before `expires_at`).
+    images: Vec<Link>,
     /// Default variant first.
     variants: Vec<StorefrontVariant>,
 }
@@ -63,6 +70,8 @@ pub struct StorefrontVariant {
     /// Minor units of the product's currency.
     price_net: i64,
     options: Vec<VariantOption>,
+    /// This variant's own images in order, as signed links.
+    images: Vec<Link>,
 }
 
 /// One option value of a variant.
@@ -83,9 +92,16 @@ impl From<OptionRow> for VariantOption {
     }
 }
 
-impl From<VariantRow> for StorefrontVariant {
-    fn from(v: VariantRow) -> Self {
+/// Signed image links per (product, variant); variant None = the product's own.
+pub type Images = HashMap<(Uuid, Option<Uuid>), Vec<Link>>;
+
+impl StorefrontVariant {
+    fn new(v: VariantRow, product_id: Uuid, images: &Images) -> Self {
         Self {
+            images: images
+                .get(&(product_id, Some(v.id)))
+                .cloned()
+                .unwrap_or_default(),
             id: v.id,
             sku: v.sku,
             barcode: v.barcode,
@@ -98,9 +114,12 @@ impl From<VariantRow> for StorefrontVariant {
     }
 }
 
-impl From<ProductRow> for StorefrontProduct {
-    fn from(p: ProductRow) -> Self {
+impl StorefrontProduct {
+    /// `p` with its images from `images`.
+    pub fn new(p: ProductRow, images: &Images) -> Self {
+        let id = p.id;
         Self {
+            images: images.get(&(id, None)).cloned().unwrap_or_default(),
             id: p.id,
             name: p.name,
             brand: p.brand,
@@ -114,7 +133,12 @@ impl From<ProductRow> for StorefrontProduct {
             currency: p.currency,
             currency_decimals: p.currency_decimals,
             available_stock: p.available_stock,
-            variants: p.variants.0.into_iter().map(Into::into).collect(),
+            variants: p
+                .variants
+                .0
+                .into_iter()
+                .map(|v| StorefrontVariant::new(v, id, images))
+                .collect(),
         }
     }
 }

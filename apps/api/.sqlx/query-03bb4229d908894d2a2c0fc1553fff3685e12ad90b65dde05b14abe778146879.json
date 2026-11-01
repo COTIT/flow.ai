@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n             (SELECT count(*) FROM farm_persons t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n                AND t.verification IN ('unverified', 'pending')\n                AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4))))\n               AS \"persons!\",\n             (SELECT count(*) FROM farm_households t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n                AND t.verification IN ('unverified', 'pending')\n                AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_households($4))))\n               AS \"households!\",\n             (SELECT count(*) FROM farms t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n                AND t.verification IN ('unverified', 'pending')\n                AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_farms($4))))\n               AS \"farms!\",\n             (SELECT count(*) FROM farm_plots t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n                AND t.verification IN ('unverified', 'pending')\n                AND ($2 OR t.village_id = ANY($3) OR t.farm_id IN (SELECT farm_person_farms($4))))\n               AS \"plots!\",\n             (SELECT count(*) FROM farm_crop_cycles t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n                AND t.verification IN ('unverified', 'pending')\n                AND ($2 OR t.village_id = ANY($3)\n                     OR t.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL\n                                      AND pl.farm_id IN (SELECT farm_person_farms($4)))))\n               AS \"crop_cycles!\",\n             (SELECT count(*) FROM farm_harvest_reports t\n                JOIN farm_crop_cycles c ON c.id = t.crop_cycle_id AND c.workspace_id = $1 AND c.deleted_at IS NULL\n                WHERE t.workspace_id = $1 AND t.deleted_at IS NULL\n                AND t.verification IN ('unverified', 'pending')\n                AND ($2 OR c.village_id = ANY($3)\n                     OR c.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL\n                                      AND pl.farm_id IN (SELECT farm_person_farms($4)))))\n               AS \"harvest_reports!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "persons!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "households!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "farms!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "plots!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "crop_cycles!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "harvest_reports!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "03bb4229d908894d2a2c0fc1553fff3685e12ad90b65dde05b14abe778146879"
+}

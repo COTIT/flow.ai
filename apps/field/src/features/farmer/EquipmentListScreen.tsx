@@ -9,7 +9,7 @@ import { IndicativePill, Loading } from '@/components/controls'
 import { kindOf } from '@/features/farmer/resourceKind'
 import { useEquipmentList, type EquipmentItem } from '@/features/farmer/useEquipment'
 import { useLoanProducts } from '@/features/farmer/useResources'
-import { formatKw, formatMoney } from '@/lib/format'
+import { formatKw, formatPrice } from '@/lib/format'
 
 const route = getRouteApi('/_farmer/farm/equipment/')
 
@@ -92,7 +92,7 @@ function EquipmentCards() {
 
 /** "The word indicative appears next to every price" — and every rent. */
 function EquipmentPrices({ item }: { item: EquipmentItem }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   return (
     <span className="flex flex-col items-end gap-1">
       {item.can_buy && item.indicative_price !== null && (
@@ -101,7 +101,7 @@ function EquipmentPrices({ item }: { item: EquipmentItem }) {
           className="tabular inline-flex flex-wrap items-center justify-end gap-2"
           style={{ fontSize: 15, fontWeight: 600 }}
         >
-          {formatMoney(item.indicative_price, item.currency)}
+          {formatPrice(item.indicative_price, i18n.language)}
           <IndicativePill />
         </span>
       )}
@@ -111,7 +111,7 @@ function EquipmentPrices({ item }: { item: EquipmentItem }) {
           className="tabular inline-flex flex-wrap items-center justify-end gap-2"
           style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-2)' }}
         >
-          {t('resources.rentPerDay')}: {formatMoney(item.indicative_rent_per_day, item.currency)}
+          {t('resources.rentPerDay')}: {formatPrice(item.indicative_rent_per_day, i18n.language)}
           <IndicativePill />
         </span>
       )}
@@ -120,7 +120,7 @@ function EquipmentPrices({ item }: { item: EquipmentItem }) {
 }
 
 function LoanCards() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const query = useLoanProducts()
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
@@ -146,7 +146,7 @@ function LoanCards() {
               className="tabular inline-flex flex-wrap items-center gap-2"
               style={{ fontSize: 15, fontWeight: 600 }}
             >
-              {formatMoney(loan.indicative_min_amount, loan.currency)} – {formatMoney(loan.indicative_max_amount, loan.currency)}
+              {formatPrice(loan.indicative_min, i18n.language)} – {formatPrice(loan.indicative_max, i18n.language)}
               <IndicativePill />
             </span>
             <span className="type-note font-medium" style={{ color: 'var(--primary-ink)' }}>

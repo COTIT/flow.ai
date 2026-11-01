@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM product_images WHERE workspace_id = $1 AND product_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8fd748579df9c9a5c9f79baef601348649087bc42a59a18d80fd7987fa6450b3"
+}

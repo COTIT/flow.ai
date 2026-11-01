@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
@@ -6,6 +6,7 @@ const useEquipmentList = vi.fn()
 const useLoanProducts = vi.fn()
 const createEquipment = vi.fn()
 const createLoan = vi.fn()
+const createCategory = vi.fn()
 const createState = { isPending: false, isError: false, error: null as Error | null }
 const search = { kind: undefined as string | undefined }
 const navigate = vi.fn()
@@ -16,11 +17,15 @@ vi.mock('@/features/farmer/useEquipment', () => ({
 vi.mock('@/features/farmer/useResources', () => ({
   useLoanProducts: () => useLoanProducts(),
 }))
+vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
+  useCurrencies: () => ({ data: [{ id: 'c1', decimals: 2, default_currency: true, asset_type: 'tzs', active: true }] }),
+}))
 vi.mock('@/features/ops/useCatalogue', () => ({
   useEquipmentCategories: () => ({
     isLoading: false,
-    data: [{ id: 'cat1', name: 'Milling' }, { id: 'cat2', name: 'Irrigation' }],
+    data: [{ id: 'cat1', code: 'MILLING', name: 'Milling' }, { id: 'cat2', code: 'IRRIGATION', name: 'Irrigation' }],
   }),
+  useCreateCategory: () => ({ mutateAsync: createCategory, reset: vi.fn(), isPending: false, isError: false, error: null }),
   useCreateEquipment: () => ({ mutateAsync: createEquipment, reset: vi.fn(), ...createState }),
   useCreateLoanProduct: () => ({ mutateAsync: createLoan, reset: vi.fn(), ...createState }),
 }))
@@ -45,6 +50,7 @@ vi.mock('@/lib/drafts', async (importOriginal) => {
 const { CatalogueScreen } = await import('@/features/ops/CatalogueScreen')
 await import('@/i18n')
 
+const tzs = (minor: number) => ({ minor, currency: 'TZS', decimals: 2, currency_id: 'c1' })
 const item = (over: Record<string, unknown> = {}) => ({
   id: '51000000-0000-4000-8000-000000000001',
   name: 'Maize mill 500 kg/hr',
@@ -52,11 +58,10 @@ const item = (over: Record<string, unknown> = {}) => ({
   rated_power_kw: 15,
   typical_hours_per_day: 6,
   typical_days_per_week: 5,
-  indicative_price: 22000000,
-  indicative_rent_per_day: 150000,
+  indicative_price: tzs(2200000000),
+  indicative_rent_per_day: tzs(15000000),
   can_rent: true,
   can_buy: true,
-  currency: 'TZS',
   ...over,
 })
 
@@ -65,13 +70,14 @@ const loan = (over: Record<string, unknown> = {}) => ({
   code: 'INPUT',
   name: 'Input loan: seed and fertiliser',
   description: 'For a season of seed and fertiliser.',
-  indicative_min_amount: 200000,
-  indicative_max_amount: 1500000,
-  currency: 'TZS',
+  indicative_min: tzs(20000000),
+  indicative_max: tzs(150000000),
   ...over,
 })
 
 beforeEach(() => {
+  createCategory.mockReset()
+  createCategory.mockResolvedValue({ id: 'cat9' })
   useEquipmentList.mockReset()
   useLoanProducts.mockReset()
   createEquipment.mockReset()
@@ -245,17 +251,21 @@ describe('adding to the catalogue', () => {
     submit()
 
     expect(createEquipment).toHaveBeenCalledTimes(1)
-    expect(createEquipment.mock.calls[0][0]).toMatchObject({
-      project_id: '20000000-0000-4000-8000-000000000001',
+    // The API's body: decimal text for figures, integer minor units for money, the device's id.
+    expect(createEquipment.mock.calls[0][0]).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
       category_id: 'cat1',
       code: 'HAMMER',
       name_en: 'Hammer mill',
       name_sw: 'Mashine ya nyundo',
-      rated_power_kw: 5.5,
+      rated_power_kw: '5.5',
+      typical_hours_per_day: null,
+      typical_days_per_week: null,
       can_rent: true,
       can_buy: false,
-      indicative_rent_per_day: 60000,
-      indicative_price: null,
+      indicative_rent_per_day_minor: 6000000,
+      indicative_price_minor: null,
+      currency_id: 'c1',
     })
   })
 
@@ -281,6 +291,16 @@ describe('adding to the catalogue', () => {
     expect(createEquipment).not.toHaveBeenCalled()
   })
 
+  test('a price with more decimals than the currency has is refused', async () => {
+    render(<CatalogueScreen />)
+    await userEvent.click(screen.getByTestId('catalogue-create-open'))
+    set('catalogue-buy-price', '12.555')
+    submit()
+
+    expect(screen.getByTestId('catalogue-buy-price-error')).toBeInTheDocument()
+    expect(createEquipment).not.toHaveBeenCalled()
+  })
+
   test('adds a loan listing with its indicative range, and nothing else', async () => {
     search.kind = 'loan'
     render(<CatalogueScreen />)
@@ -295,25 +315,88 @@ describe('adding to the catalogue', () => {
     submit()
 
     expect(createLoan).toHaveBeenCalledTimes(1)
-    expect(createLoan.mock.calls[0][0]).toMatchObject({
-      project_id: '20000000-0000-4000-8000-000000000001',
+    // The API's body: integer minor units in the account's currency, the device's id.
+    expect(createLoan.mock.calls[0][0]).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
       code: 'WOMEN',
       name_en: 'Women group loan',
       name_sw: 'Mkopo wa kikundi cha wanawake',
-      indicative_min_amount: 500000,
-      indicative_max_amount: 3000000,
+      indicative_min_minor: 50000000,
+      indicative_max_minor: 300000000,
       description_en: null,
       description_sw: null,
+      currency_id: 'c1',
     })
     expect(createEquipment).not.toHaveBeenCalled()
   })
 
-  test("the database's refusal is shown", async () => {
+  test('a loan amount with more decimals than the currency has is refused', async () => {
+    search.kind = 'loan'
+    render(<CatalogueScreen />)
+    await userEvent.click(screen.getByTestId('catalogue-create-open'))
+    set('catalogue-code', 'WOMEN')
+    set('catalogue-name-en', 'Women group loan')
+    set('catalogue-name-sw', 'Mkopo')
+    set('catalogue-min', '12.555')
+    set('catalogue-max', '3000000')
+    submit()
+
+    expect(screen.getByTestId('catalogue-min-error')).toBeInTheDocument()
+    expect(createLoan).not.toHaveBeenCalled()
+  })
+
+  test("the API's refusal is shown as written", async () => {
     createState.isError = true
-    createState.error = new Error('new row for relation "equipment" violates check constraint "equipment_offered"')
+    createState.error = {
+      isAxiosError: true,
+      response: { status: 422, data: { message: 'invalid', errors: { can_rent: ['equipment must be offered to rent or to buy'] } } },
+    } as unknown as Error
     render(<CatalogueScreen />)
     await userEvent.click(screen.getByTestId('catalogue-create-open'))
 
-    expect(screen.getByTestId('catalogue-create-error')).toHaveTextContent(/rent, to buy, or both/i)
+    expect(screen.getByTestId('catalogue-create-error')).toHaveTextContent('equipment must be offered to rent or to buy')
+  })
+})
+
+describe('equipment categories', () => {
+  const set = (testId: string, value: string) =>
+    fireEvent.change(screen.getByTestId(testId), { target: { value } })
+
+  test('are listed with their codes', () => {
+    render(<CatalogueScreen />)
+
+    const rows = screen.getAllByTestId('category-row')
+    expect(rows[0]).toHaveTextContent('Milling')
+    expect(rows[0]).toHaveTextContent('MILLING')
+  })
+
+  const ready = () => waitFor(() => expect(screen.getByTestId('category-submit')).toBeEnabled())
+
+  test('a new one is sent with both names and a device-made id', async () => {
+    render(<CatalogueScreen />)
+    await ready()
+    set('category-code', 'COLD')
+    set('category-name-en', 'Cold storage')
+    set('category-name-sw', 'Hifadhi baridi')
+    fireEvent.submit(screen.getByTestId('category-submit').closest('form')!)
+
+    expect(createCategory).toHaveBeenCalledTimes(1)
+    expect(createCategory.mock.calls[0][0]).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      code: 'COLD',
+      name_en: 'Cold storage',
+      name_sw: 'Hifadhi baridi',
+    })
+  })
+
+  test('needs a code and both names', async () => {
+    render(<CatalogueScreen />)
+    await ready()
+    fireEvent.submit(screen.getByTestId('category-submit').closest('form')!)
+
+    expect(screen.getByTestId('category-code-error')).toBeInTheDocument()
+    expect(screen.getByTestId('category-name-en-error')).toBeInTheDocument()
+    expect(screen.getByTestId('category-name-sw-error')).toBeInTheDocument()
+    expect(createCategory).not.toHaveBeenCalled()
   })
 })

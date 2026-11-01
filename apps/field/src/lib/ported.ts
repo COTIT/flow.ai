@@ -20,12 +20,27 @@ export const PORTED: readonly string[] = [
   '/officer/people/*',
   '/officer/farms/*',
   '/officer/verify',
+  '/ops/supply-links',
+  '/ops/dispatch',
+  '/ops/catalogue',
+  '/farm/equipment',
+  '/farm/equipment/*',
+  '/ops/villages',
+  '/farm/requests',
+  '/farm/requests/*',
+  '/ops/requests',
+  '/ops/requests/*',
+  '/farm/opportunities',
+  '/ops/buyers',
+  '/ops/demand',
+  '/ops/demand/*',
+  '/ops/opportunities/*',
+  '/ops',
+  '/ops/tower',
+  '/ops/tower/*',
 ]
 
 export function isPorted(pathname: string, ported: readonly string[] = PORTED): boolean {
   const path = pathname.replace(/\/+$/, '') || '/'
   return ported.some((p) => (p.endsWith('/*') ? path.startsWith(p.slice(0, -1)) : path === p))
 }
-
-/** The bug-report button writes to Supabase storage until the API has bug reports (port step 7). */
-export const BUG_REPORTS_PORTED = false

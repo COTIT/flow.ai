@@ -1,0 +1,405 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.village_id,\n                  jsonb_build_object('id', p.id, 'name', concat_ws(' ', p.given_name, p.family_name)) AS \"person!\",\n                  r.farm_id, fa.label AS \"farm_label?\", r.equipment_id, eq.code AS equipment_code,\n                  eq.name_en AS equipment_name_en, eq.name_sw AS equipment_name_sw,\n                  r.acquisition, r.quantity, r.hours_per_day, r.days_per_week, r.purpose, r.status,\n                  r.submitted_at, r.decided_at,\n                  (SELECT jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name))\n                   FROM users u WHERE u.id = r.decided_by) AS decided_by,\n                  r.decision_note,\n                  farm_provenance(r.source, r.captured_at, r.captured_by, r.verification,\n                                  r.verified_by, r.verified_at, r.confidence, r.evidence_ref) AS \"provenance!\",\n                  e.rated_power_kw AS \"e_rated_power_kw?\", e.quantity AS \"e_quantity?\",\n                  e.hours_per_day AS \"e_hours_per_day?\", e.days_per_week AS \"e_days_per_week?\",\n                  e.est_power_kw AS \"e_power_kw?\", e.est_kwh_per_day AS \"e_kwh_per_day?\",\n                  e.est_kwh_per_week AS \"e_kwh_per_week?\", e.method AS \"e_method?\",\n                  e.source AS \"e_source?\", e.confidence AS \"e_confidence?\",\n                  e.computed_at AS \"e_computed_at?\",\n                  r.created_at, r.updated_at\n           FROM farm_pue_requests r\n           JOIN farm_persons p ON p.id = r.person_id\n           JOIN farm_equipment eq ON eq.id = r.equipment_id\n           LEFT JOIN farms fa ON fa.id = r.farm_id\n           LEFT JOIN farm_energy_estimates e ON e.pue_request_id = r.id\n           WHERE r.workspace_id = $1 AND r.deleted_at IS NULL\n             AND ($2 OR r.village_id = ANY($3) OR r.person_id = $4)\n             AND ($5::uuid IS NULL OR r.village_id = $5) AND ($6::uuid IS NULL OR r.id = $6)\n             AND ($7::text[] IS NULL OR r.status = ANY($7))\n           ORDER BY r.created_at DESC, r.id DESC LIMIT $8 OFFSET $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "person!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "farm_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "farm_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "farm_label?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farms",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "equipment_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "equipment_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "equipment_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "equipment_name_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "equipment_name_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "name_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "acquisition",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "acquisition"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "quantity",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "hours_per_day",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "hours_per_day"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "days_per_week",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "days_per_week"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "purpose",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "purpose"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "submitted_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "submitted_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "decided_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "decided_at"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "decided_by",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 18,
+        "name": "decision_note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "decision_note"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "provenance!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 20,
+        "name": "e_rated_power_kw?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "rated_power_kw"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "e_quantity?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "quantity"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "e_hours_per_day?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "hours_per_day"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "e_days_per_week?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "days_per_week"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
+        "name": "e_power_kw?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "est_power_kw"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "e_kwh_per_day?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "est_kwh_per_day"
+          }
+        }
+      },
+      {
+        "ordinal": 26,
+        "name": "e_kwh_per_week?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "est_kwh_per_week"
+          }
+        }
+      },
+      {
+        "ordinal": 27,
+        "name": "e_method?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "method"
+          }
+        }
+      },
+      {
+        "ordinal": 28,
+        "name": "e_source?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 29,
+        "name": "e_confidence?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "confidence"
+          }
+        }
+      },
+      {
+        "ordinal": 30,
+        "name": "e_computed_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_energy_estimates",
+            "name": "computed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 31,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 32,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_pue_requests",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "TextArray",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      null,
+      true,
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "428a7f32cd5fb2b7a53b12016a6d5ab54a66cb9e67a6dac5434433435d93a350"
+}

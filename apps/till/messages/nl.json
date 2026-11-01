@@ -2,5 +2,108 @@
   "app": {
     "title": "Genesy Till",
     "tagline": "Kassa en contante uitbetalingen."
+  },
+  "setup": {
+    "title": "Deze kassa instellen",
+    "hint": "Vul het workspace-id in en de apparaatsleutel die office eenmalig toonde bij het aanmaken van de kassa.",
+    "workspace": "Workspace-id",
+    "key": "Apparaatsleutel",
+    "submit": "Opslaan"
+  },
+  "login": {
+    "title": "Wie verkoopt er?",
+    "who": "Kassagebruikers",
+    "pin": "Pincode",
+    "submit": "Inloggen",
+    "back": "Terug",
+    "wrongPin": "Verkeerde pincode.",
+    "locked": "Te vaak een verkeerde pincode. Probeer het later opnieuw.",
+    "pinFormat": "De pincode is 4 tot 8 cijfers.",
+    "keyRefused": "De sleutel van dit apparaat wordt niet meer geaccepteerd. Stel de kassa opnieuw in.",
+    "setupAgain": "Opnieuw instellen"
+  },
+  "sale": {
+    "title": "Verkoop",
+    "scan": "Scan of typ een barcode",
+    "notFound": "Geen product met code {code}.",
+    "search": "Producten zoeken",
+    "results": "Zoekresultaten",
+    "cart": "Winkelwagen",
+    "empty": "De winkelwagen is leeg.",
+    "less": "Eén {name} minder",
+    "more": "Eén {name} meer",
+    "quantityOf": "Aantal {name}",
+    "remove": "{name} verwijderen",
+    "estimate": "Schatting (offline)",
+    "estimateHint": "Offline: catalogusprijzen incl. btw. Totaal, afronding en wisselgeld van de server komen mee als de verkoop verstuurd is.",
+    "method": "Betaalwijze",
+    "cash": "Contant",
+    "card": "Pin",
+    "tendered": "Ontvangen contant",
+    "reference": "Referentie pinbon",
+    "badTendered": "Vul het ontvangen bedrag in, bv. 20,00.",
+    "toDrawer": "Open de kassalade",
+    "charge": "Afrekenen",
+    "savedTitle": "Offline bewaard",
+    "savedHint": "De kassa is offline. Deze verkoop blijft op dit apparaat en wordt verstuurd zodra er weer verbinding is.",
+    "newSale": "Nieuwe verkoop",
+    "quote": "Prijsopgave"
+  },
+  "nav": {
+    "label": "Kassamenu",
+    "sale": "Verkoop",
+    "drawer": "Lade"
+  },
+  "drawer": {
+    "title": "Kassalade",
+    "none": "Er is geen dienst open op deze kassa.",
+    "openTitle": "Tel het wisselgeld",
+    "open": "Dienst openen",
+    "closeTitle": "Tel de lade om af te sluiten",
+    "close": "Dienst sluiten",
+    "openedAt": "Geopend",
+    "opening": "Wisselgeld bij opening",
+    "expected": "Verwacht contant",
+    "counted": "Geteld",
+    "difference": "Verschil",
+    "closedTitle": "Dienst gesloten",
+    "short": "Tekort",
+    "over": "Overschot",
+    "balanced": "Klopt",
+    "queued": "Nog {count, plural, one {# offline verkoop} other {# offline verkopen}} te versturen. Verstuur ze voor het sluiten van de dienst."
+  },
+  "count": {
+    "denomination": "Waarde van rij {n}",
+    "pieces": "Aantal van rij {n}",
+    "value": "Biljet of munt",
+    "count": "Aantal",
+    "remove": "Rij {n} verwijderen",
+    "add": "Rij toevoegen",
+    "total": "Geteld",
+    "invalid": "Elke rij heeft een waarde (bv. 5,00) en een heel aantal nodig.",
+    "piecesOf": "Aantal van {value}"
+  },
+  "receipt": {
+    "title": "Bon",
+    "total": "Totaal",
+    "rounding": "Afronding contant",
+    "due": "Te betalen",
+    "tendered": "Ontvangen contant",
+    "change": "Wisselgeld",
+    "card": "Pinbon",
+    "print": "Afdrukken",
+    "newSale": "Nieuwe verkoop"
+  },
+  "queue": {
+    "title": "Offline verkopen",
+    "badge": "{count, plural, =0 {Offline verkopen verstuurd} one {# verkoop te versturen} other {# verkopen te versturen}}",
+    "sync": "Nu versturen",
+    "empty": "Geen offline verkopen.",
+    "pending": "Wacht",
+    "done": "Geboekt",
+    "conflict": "Conflict",
+    "review": "Nakijken",
+    "booked": "Verkoop {number}: {due}",
+    "dismiss": "Verbergen"
   }
 }

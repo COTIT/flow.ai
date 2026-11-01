@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_equipment (id, workspace_id, category_id, code, name_en, name_sw,\n             rated_power_kw, typical_hours_per_day, typical_days_per_week, can_rent, can_buy,\n             indicative_price_minor, indicative_rent_per_day_minor, currency_id)\n         VALUES (coalesce($1, uuidv7()), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Bool",
+        "Bool",
+        "Int8",
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c2e2cc8cdffd6b955a197802375b51aec8410420a897c3dc3b5b2e20aa7894ff"
+}

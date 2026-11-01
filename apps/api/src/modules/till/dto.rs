@@ -262,6 +262,22 @@ pub struct RegisterBrief {
     /// Store warehouse the till takes stock from.
     warehouse_id: Uuid,
     currency_id: Uuid,
+    currency: RegisterCurrency,
+    /// Notes and coins the drawer takes (`cash_register.accepted_cash`), in minor units,
+    /// ascending; values that aren't a whole minor unit are left out.
+    #[schema(example = json!([5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]))]
+    accepted_cash: Vec<i64>,
+}
+
+/// The register's currency.
+#[derive(Serialize, ToSchema)]
+pub struct RegisterCurrency {
+    /// ISO 4217.
+    #[schema(example = "EUR")]
+    code: String,
+    /// Where the decimal point goes in minor units.
+    #[schema(example = 2)]
+    decimals: i16,
 }
 
 /// GET /till/me: who is logged in on which register, until when.
@@ -272,14 +288,20 @@ pub struct SessionResource {
     expires_at: DateTime<Utc>,
 }
 
-impl From<&SessionRow> for SessionResource {
-    fn from(s: &SessionRow) -> Self {
+impl SessionResource {
+    /// The session `s`; `accepted_cash` in minor units of its register's currency.
+    pub fn new(s: &SessionRow, accepted_cash: Vec<i64>) -> Self {
         Self {
             register: RegisterBrief {
                 id: s.register_id,
                 name: s.register_name.clone(),
                 warehouse_id: s.warehouse_id,
                 currency_id: s.currency_id,
+                currency: RegisterCurrency {
+                    code: s.currency_code.clone(),
+                    decimals: s.currency_decimals,
+                },
+                accepted_cash,
             },
             user: TillUserBrief {
                 id: s.till_user_id,

@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { Link } from './link';
 import type { StorefrontVariant } from './storefrontVariant';
 
 /**
@@ -29,6 +30,8 @@ export interface StorefrontProduct {
   /** @nullable */
   ean13: string | null;
   id: string;
+  /** The product's own images in order, as signed links (fetch before `expires_at`). */
+  images: Link[];
   name: string;
   /** Consumer price including VAT, in minor units. */
   price_gross: number;

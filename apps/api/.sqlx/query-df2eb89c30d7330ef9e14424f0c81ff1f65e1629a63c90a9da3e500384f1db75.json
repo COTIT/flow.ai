@@ -1,0 +1,93 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.order_id, a.order_number, t.client_ref AS \"till_ref?\", a.kind,\n                  a.jars::text AS \"jars!\", a.created_at AS at, count(*) OVER () AS \"total!\"\n           FROM farm_sale_attributions a\n           LEFT JOIN till_sales t ON t.workspace_id = a.sold_workspace_id\n                                 AND t.order_id = a.order_id\n           WHERE a.sold_workspace_id = $1 AND a.sold_lot_id = $2\n           ORDER BY a.created_at DESC, a.id DESC\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "order_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "order_number",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "order_number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "till_ref?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "till_sales",
+            "name": "client_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "jars!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_sale_attributions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "df2eb89c30d7330ef9e14424f0c81ff1f65e1629a63c90a9da3e500384f1db75"
+}

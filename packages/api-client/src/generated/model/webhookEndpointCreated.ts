@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { WebhookEvent } from './webhookEvent';
 
 /**
  * A new endpoint. Store `secret` now: it is never shown again.
@@ -14,7 +15,7 @@ export interface WebhookEndpointCreated {
   created_at: string;
   /** @nullable */
   description: string | null;
-  events: string[];
+  events: WebhookEvent[];
   id: string;
   /** Standard Webhooks secret: HMAC-SHA256 key is the base64 after `whsec_`. */
   secret: string;

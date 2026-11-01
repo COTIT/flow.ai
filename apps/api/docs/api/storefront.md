@@ -2,7 +2,7 @@
 
 Catalog read for apps holding an app key with `catalog:read` (see `app-keys.md`). Code: `src/modules/storefront/`.
 
-Only sellable products show: `status = active`, not archived, not deleted. Anything else, an id of another workspace, or a malformed id is `404`.
+Only sellable web products show: `status = active`, not archived, not deleted, not `store_only` (sold at the till only, see `till.md`). Anything else, an id of another workspace, or a malformed id is `404`.
 
 ## `GET /v1/storefront/products?page&page_size`
 
@@ -11,6 +11,8 @@ Only sellable products show: `status = active`, not archived, not deleted. Anyth
 ## `GET /v1/storefront/products/{product}`
 
 `200 {"data": product}`.
+
+**Images.** A product carries `images` (its own) and each variant `images` (that variant's): `[{url, expires_at}]` in the order the office set (`products.md`, images). Links are signed per request and expire (`expires_at`): cache the reply for less than that, or read again. A deleted file drops out; a server without file storage gives `[]`. Two statements per page, not per product.
 
 ## Product
 

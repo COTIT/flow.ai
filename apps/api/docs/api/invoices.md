@@ -167,6 +167,7 @@ Rows (InvoiceIndexResource):
 - `total_amount`: the stored total, two places kept.
 - `summary`: from the stored totals; no line is read.
 - `has_activities`, `has_note_activity`, `has_collective_invoice`: false until those modules are ported.
+- `customer_name` (Genesy addition): the relation's company name, else its alias, else its first contact's full name; null when none is set. Read from the embedded relation, no extra query.
 - `relationships.{relation, currency}`.
 
 ## Delete guards on other modules

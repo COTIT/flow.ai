@@ -533,3 +533,185 @@ async fn returned_jars_go_back_into_their_lot_and_sell_with_credit_again(pool: P
             .unwrap();
     assert_eq!(kinds, ["sale", "return", "sale"]);
 }
+
+/// The selling workspace sees, per lot, which sales and returns credited farmers: refs, jars,
+/// kind and time, plus how many farmer groups the public page shows. Never a farmer, an amount,
+/// a price or a farm-side id.
+#[sqlx::test]
+async fn the_shop_reads_its_lots_farmer_credits_without_farm_data(pool: PgPool) {
+    let s = sold(pool, true).await;
+    give_back(&s, "1").await;
+    let t = till(&s).await;
+    let (status, res) = ws_call(
+        &s.f,
+        &s.shop_ws,
+        Method::POST,
+        "/till/sales",
+        Some(json!({
+            "client_ref": "till-7",
+            "lines": [{ "product_id": s.product, "quantity": "2", "unit_price": 1 }],
+            "payment": { "method": "card" },
+        })),
+        &t,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let till_order = res["data"]["number"].as_str().unwrap().to_owned();
+    let lot: String =
+        sqlx::query_scalar("SELECT DISTINCT sold_lot_id::text FROM farm_sale_attributions")
+            .fetch_one(&s.f.pool)
+            .await
+            .unwrap();
+    let path = format!("/lots/{lot}/farmer-credits");
+
+    let (status, res) = ws_call(&s.f, &s.shop_ws, Method::GET, &path, None, &s.shop).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let rows = res["data"].as_array().unwrap();
+    let seen: Vec<(Value, Value, Value)> = rows
+        .iter()
+        .map(|r| (r["kind"].clone(), r["jars"].clone(), r["till_ref"].clone()))
+        .collect();
+    assert_eq!(
+        seen,
+        [
+            (json!("sale"), json!("2.00"), json!("till-7")),
+            (json!("return"), json!("1.00"), Value::Null),
+            (json!("sale"), json!("3.00"), Value::Null),
+        ],
+        "newest first"
+    );
+    assert_eq!(rows[0]["order_number"], till_order.as_str());
+    assert_eq!(rows[2]["order_id"], s.order.as_str());
+    let mut keys: Vec<&str> = rows[0]
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        ["at", "jars", "kind", "order_id", "order_number", "till_ref"]
+    );
+    assert_eq!(res["farmer_groups"], 1, "the public page's village groups");
+    assert_eq!(res["meta"]["total"], 3);
+    let body = res.to_string();
+    for secret in [
+        s.f.ws.as_str(),
+        s.persons[0].as_str(),
+        s.persons[1].as_str(),
+        "800000",
+        "1800000",
+        "Neema",
+    ] {
+        assert!(!body.contains(secret), "leaks {secret}: {body}");
+    }
+
+    // The farm workspace can't read the shop's lot, from either path; nor can a stranger.
+    for ws in [&s.f.ws, &s.shop_ws] {
+        let (status, _) = ws_call(&s.f, ws, Method::GET, &path, None, &s.f.owner).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "farm owner via {ws}");
+    }
+    let (eve, eve_ws) = signup(&s.f.app, "eve@example.com", "evil").await;
+    let (status, _) = ws_call(&s.f, &eve_ws, Method::GET, &path, None, &eve).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+/// A lot that never came from a supply batch has no credits and no farmer groups.
+#[sqlx::test]
+async fn a_lot_without_farmers_has_no_credits(pool: PgPool) {
+    let s = sold(pool, true).await;
+    let product = created(
+        &s.f,
+        &s.shop_ws,
+        "/products",
+        json!({ "name": "Wax", "price": 3 }),
+        &s.shop,
+        "product_id",
+    )
+    .await;
+    let lot = created(
+        &s.f,
+        &s.shop_ws,
+        "/lots",
+        json!({ "product_id": product, "code": "WAX-1" }),
+        &s.shop,
+        "id",
+    )
+    .await;
+    let (status, res) = ws_call(
+        &s.f,
+        &s.shop_ws,
+        Method::GET,
+        &format!("/lots/{lot}/farmer-credits"),
+        None,
+        &s.shop,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"], json!([]));
+    assert_eq!(res["farmer_groups"], Value::Null);
+}
+
+/// Each lot names where it came from: the packed lot its parent and pack, the received lot its
+/// transfer and the sender's codes; a raw lot nothing. List and get agree.
+#[sqlx::test]
+async fn lots_show_their_lineage(pool: PgPool) {
+    let s = sold(pool, true).await;
+    let (jars, raw, raw_code): (String, String, String) = sqlx::query_as(
+        "SELECT l.id::text, p.id::text, p.code FROM lots l JOIN lots p ON p.id = l.parent_lot_id",
+    )
+    .fetch_one(&s.f.pool)
+    .await
+    .unwrap();
+    let (received, transfer, jars_code, jars_public): (String, String, String, String) =
+        sqlx::query_as(
+            "SELECT t.to_lot_id::text, t.id::text, l.code, l.public_code
+             FROM supply_transfers t JOIN lots l ON l.id = t.from_lot_id",
+        )
+        .fetch_one(&s.f.pool)
+        .await
+        .unwrap();
+    let lot = |ws: &str, token: &str, id: &str| {
+        let (ws, token, id) = (ws.to_owned(), token.to_owned(), id.to_owned());
+        let f = &s.f;
+        async move {
+            let (status, one) =
+                ws_call(f, &ws, Method::GET, &format!("/lots/{id}"), None, &token).await;
+            assert_eq!(status, StatusCode::OK, "{one}");
+            let (_, page) = ws_call(f, &ws, Method::GET, "/lots", None, &token).await;
+            let listed = page["data"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|l| l["id"] == id.as_str())
+                .cloned()
+                .unwrap();
+            assert_eq!(listed, one["data"], "list and get agree");
+            one["data"].clone()
+        }
+    };
+
+    let packed = lot(&s.f.ws, &s.f.owner, &jars).await;
+    assert_eq!(packed["parent_lot"], json!({ "id": raw, "code": raw_code }));
+    assert_eq!(
+        packed["pack"],
+        json!({ "raw_kg": "7.50", "units": "10.00" })
+    );
+    assert_eq!(packed["received_from"], Value::Null);
+
+    let plain = lot(&s.f.ws, &s.f.owner, &raw).await;
+    for k in ["parent_lot", "pack", "received_from"] {
+        assert_eq!(plain[k], Value::Null, "{k}");
+    }
+
+    let got = lot(&s.shop_ws, &s.shop, &received).await;
+    assert_eq!(
+        got["received_from"],
+        json!({ "transfer_id": transfer, "from_lot_code": jars_code,
+                "from_lot_public_code": jars_public })
+    );
+    assert_eq!(got["parent_lot"], Value::Null);
+    // The sender's lot id stays on the farm side.
+    assert!(!got.to_string().contains(&jars), "{got}");
+}

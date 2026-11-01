@@ -4,8 +4,6 @@ import { useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
 
-import { activeMemberships, ownVillageId } from '@/app/membership'
-import { useSession } from '@/app/session'
 import { EmptyState } from '@/components/EmptyState'
 import { EnergyEstimatePanel } from '@/components/EnergyEstimatePanel'
 import { ErrorState } from '@/components/ErrorState'
@@ -14,8 +12,8 @@ import { BangMark } from '@/components/marks'
 import { useEquipmentItem } from '@/features/farmer/useEquipment'
 import { requestSchema, type RequestForm } from '@/features/farmer/requestSchema'
 import { z } from 'zod'
-import { useSubmitRequest } from '@/features/farmer/useRequests'
-import { formatKw, formatMoney } from '@/lib/format'
+import { useEstimatePreview, useSubmitRequest } from '@/features/farmer/useRequests'
+import { formatKw, formatPrice } from '@/lib/format'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 import { FormDraftStatus } from '@/components/FormDraftStatus'
@@ -48,19 +46,15 @@ const isAcquisition = (value: string): value is Acquisition => value === 'rent' 
 /**
  * Spec 6.4 — detail plus the request form, with a live estimate.
  *
- * The estimate shown here is a PREVIEW. pue_recompute_estimate writes the
- * stored row, and the request detail reads that stored figure rather than
- * recomputing — so the two can be compared instead of assumed equal.
- *
- * The inputs are bounded by `requestSchema` (QA #9). The estimate is only
- * computed from inputs that pass it: the finding's real complaint was not that
- * 99 hours was accepted, but that the screen computed a confident
- * 1,485 kWh/day from it and presented that as an answer.
+ * The estimate is the API's preview (nothing is written), asked as the farmer
+ * types and never worked out here. The inputs are bounded by `requestSchema`
+ * (QA #9), and only inputs that pass it are sent: the finding's real complaint
+ * was not that 99 hours was accepted, but that the screen showed a confident
+ * 1,485 kWh/day from it as an answer.
  */
 export function EquipmentDetailScreen() {
   const { equipmentId } = route.useParams()
-  const { t } = useTranslation()
-  const session = useSession()
+  const { t, i18n } = useTranslation()
   const query = useEquipmentItem(equipmentId)
   const submit = useSubmitRequest()
 
@@ -100,18 +94,25 @@ export function EquipmentDetailScreen() {
     if (draft.ready && only && acquisition !== only) setAcquisition(only)
   }, [draft.ready, only, acquisition, setAcquisition])
 
-  // Subscribed so the estimate recalculates live, and so it can be withheld
-  // while the assumptions behind it are not possible. `useWatch` rather than
-  // `watch()` because the latter returns a fresh object on every render.
+  // `useWatch` rather than `watch()`: the latter returns a fresh object on every render.
   const values = useWatch({ control })
   const parsed = requestSchema.safeParse(values)
+  const preview = useEstimatePreview(
+    parsed.success && item
+      ? {
+          equipmentId: item.id,
+          quantity: parsed.data.quantity,
+          hoursPerDay: parsed.data.hours_per_day,
+          daysPerWeek: parsed.data.days_per_week,
+        }
+      : null,
+  )
 
   /**
    * QA #32. A withheld estimate has two quite different causes, and telling a
    * farmer to "fill in hours per day" when they have just typed 99 into it
-   * asks them to do something they have already done.
-   *
-   * A blank is the one they can act on first, so it wins when both are true.
+   * asks them to do something they have already done. A blank is the one they
+   * can act on first, so it wins when both are true.
    */
   const anythingBlank =
     !parsed.success &&
@@ -119,7 +120,7 @@ export function EquipmentDetailScreen() {
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
 
-  if (query.isLoading || session.isLoading) {
+  if (query.isLoading) {
     return <Loading testId="equipment-detail-loading" />
   }
 
@@ -127,10 +128,6 @@ export function EquipmentDetailScreen() {
   if (!item) {
     return <EmptyState title={t('equipment.notFoundTitle')} detail={t('equipment.notFoundDetail')} />
   }
-
-  const memberships = activeMemberships(session.data?.memberships ?? [])
-  const villageId = ownVillageId(memberships)
-  const personId = session.data?.appUser?.person_id ?? undefined
 
   if (submit.isSuccess) {
     return (
@@ -161,8 +158,6 @@ export function EquipmentDetailScreen() {
     )
   }
 
-  const canRequest = Boolean(villageId && personId)
-
   /**
    * QA #23. `isSubmitting` is react-hook-form's own in-flight flag and it is
    * set synchronously when the handler starts, which `submit.isPending` is
@@ -179,14 +174,12 @@ export function EquipmentDetailScreen() {
     }
     void finishDraftWhenSaved(submit.mutateAsync({
       acquisition: form.acquisition,
+      // Made when the form opened and kept with the draft, so a retry is the same request.
       id: draft.clientRef,
-      actorId: session.data!.userId,
-      villageId: villageId!,
-      personId: personId!,
       equipmentId: item.id,
-      quantity: Number(form.quantity),
-      hoursPerDay: Number(form.hours_per_day),
-      daysPerWeek: Number(form.days_per_week),
+      quantity: form.quantity,
+      hoursPerDay: form.hours_per_day,
+      daysPerWeek: form.days_per_week,
       purpose: form.purpose,
     }), draft.finish)
   })
@@ -231,7 +224,7 @@ export function EquipmentDetailScreen() {
                 <IndicativePill />
               </span>
               <span className="tabular font-semibold" style={{ fontSize: 17 }}>
-                {formatMoney(item.indicative_price, item.currency)}
+                {formatPrice(item.indicative_price, i18n.language)}
               </span>
             </span>
           )}
@@ -242,7 +235,7 @@ export function EquipmentDetailScreen() {
                 <IndicativePill />
               </span>
               <span className="tabular font-semibold" style={{ fontSize: 17 }}>
-                {formatMoney(item.indicative_rent_per_day, item.currency)}
+                {formatPrice(item.indicative_rent_per_day, i18n.language)}
               </span>
             </span>
           )}
@@ -382,31 +375,25 @@ export function EquipmentDetailScreen() {
             </div>
           </div>
 
-          {/* Recalculates live as the assumptions change — but only from
-              assumptions that could be true. A figure computed from 99 hours a
-              day is not an estimate, it is a wrong answer stated confidently. */}
-          {parsed.success ? (
-            <EnergyEstimatePanel
-              ratedPowerKw={item.rated_power_kw ?? 0}
-              quantity={Number(parsed.data.quantity)}
-              hoursPerDay={Number(parsed.data.hours_per_day)}
-              daysPerWeek={Number(parsed.data.days_per_week)}
-            />
-          ) : (
+          {!parsed.success ? (
             <div data-testid="estimate-blocked">
               <EmptyState
-                title={t(
-                  anythingBlank
-                    ? 'equipment.estimateBlockedTitle'
-                    : 'equipment.estimateImpossibleTitle',
-                )}
-                detail={t(
-                  anythingBlank
-                    ? 'equipment.estimateBlockedDetail'
-                    : 'equipment.estimateImpossibleDetail',
-                )}
+                title={t(anythingBlank ? 'equipment.estimateBlockedTitle' : 'equipment.estimateImpossibleTitle')}
+                detail={t(anythingBlank ? 'equipment.estimateBlockedDetail' : 'equipment.estimateImpossibleDetail')}
               />
             </div>
+          ) : preview.isError ? (
+            <div data-testid="estimate-error">
+              <ErrorState error={preview.error} onRetry={() => void preview.refetch()} />
+            </div>
+          ) : preview.data ? (
+            <EnergyEstimatePanel estimate={preview.data} />
+          ) : preview.data === null ? (
+            <div data-testid="estimate-none">
+              <EmptyState title={t('equipment.noEstimateTitle')} detail={t('requests.noEstimateDetail')} />
+            </div>
+          ) : (
+            <Loading testId="estimate-loading" />
           )}
         </div>
 
@@ -419,7 +406,7 @@ export function EquipmentDetailScreen() {
         <button
           type="submit"
           data-testid="request-submit"
-          disabled={!draft.ready || submit.isPending || isSubmitting || !canRequest}
+          disabled={!draft.ready || submit.isPending || isSubmitting}
           className="w-full font-semibold disabled:opacity-60"
           style={{
             minHeight: 52,

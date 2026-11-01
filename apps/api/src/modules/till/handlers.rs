@@ -266,6 +266,9 @@ pub async fn logout(
     ),
     security(("till_session" = []))
 )]
-pub async fn me(session: TillSession) -> Data<SessionResource> {
-    Data(SessionResource::from(&session.row))
+pub async fn me(
+    State(state): State<AppState>,
+    session: TillSession,
+) -> Result<Data<SessionResource>, AppError> {
+    Ok(Data(service::session(&state, &session.row).await?))
 }

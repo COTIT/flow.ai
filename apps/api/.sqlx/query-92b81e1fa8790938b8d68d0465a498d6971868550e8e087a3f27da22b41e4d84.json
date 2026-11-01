@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT workspace_id, reporter_id, ref FROM farm_bug_reports WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "reporter_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "reporter_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "ref",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_bug_reports",
+            "name": "ref"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "92b81e1fa8790938b8d68d0465a498d6971868550e8e087a3f27da22b41e4d84"
+}

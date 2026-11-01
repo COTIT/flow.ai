@@ -40,6 +40,9 @@ pub struct MyVoucher {
     expires_at: DateTime<Utc>,
     #[schema(required = true)]
     redeemed_at: Option<DateTime<Utc>>,
+    /// Why ops voided it; null unless `status` is `void`.
+    #[schema(required = true)]
+    void_reason: Option<String>,
 }
 
 impl From<MineRow> for MyVoucher {
@@ -61,6 +64,7 @@ impl From<MineRow> for MyVoucher {
             issued_at: v.issued_at,
             expires_at: v.expires_at,
             redeemed_at: v.redeemed_at,
+            void_reason: v.void_reason,
         }
     }
 }

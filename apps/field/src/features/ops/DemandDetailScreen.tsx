@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
-import { useScopeNames } from '@/app/scope'
 import { CoverageBar } from '@/components/CoverageBar'
 import { DrillLink } from '@/components/DrillLink'
 import { EmptyState } from '@/components/EmptyState'
@@ -16,31 +15,28 @@ import {
   useDemand,
   useDemandMatches,
 } from '@/features/ops/useDemand'
-import { formatKg, formatMoney, formatPercent, formatPlainDate } from '@/lib/format'
+import { formatKg, formatPercent, formatPlainDate, formatPrice } from '@/lib/format'
 
 const route = getRouteApi('/_ops/ops/demand/$demandId')
 
 /**
  * Spec 7.7 — the comparison, not a match. No allocation, no ranking.
  *
- * Every figure on this screen is read from a view. The client does not
- * aggregate and does not calculate coverage (business-rules §11): coverage_pct
- * comes from v_demand_match and committed_kg from v_village_supply.
+ * Every figure on this screen is the API's. The client does not aggregate and
+ * does not calculate coverage (business-rules §11).
  *
- * v_demand_match produces NO ROWS when nothing overlaps, so the zero is
+ * The comparison has NO ROWS when nothing overlaps, so the zero is
  * STATED rather than left to an empty table. The seeded coffee demand is
  * exactly that case, and hiding it would misrepresent the programme.
  */
 export function DemandDetailScreen() {
   const { demandId } = route.useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const demandQuery = useDemand(demandId)
   const matchQuery = useDemandMatches(demandId)
-  const scope = useScopeNames()
   const createOpportunity = useCreateOpportunity(demandId)
 
-  const error = demandQuery.error ?? matchQuery.error
-  if (error) return <ErrorState error={error} onRetry={() => void demandQuery.refetch()} />
+  if (demandQuery.error) return <ErrorState error={demandQuery.error} onRetry={() => void demandQuery.refetch()} />
 
   if (demandQuery.isLoading) {
     return (
@@ -55,8 +51,6 @@ export function DemandDetailScreen() {
 
   const demand = demandQuery.demand
   const matches = matchQuery.data ?? []
-  const villageName = (id: string | null) =>
-    (id ? scope.data?.villages[id] : undefined) ?? id ?? '—'
 
   return (
     <section className="flex w-full flex-col gap-[18px]" data-testid="demand-detail">
@@ -78,7 +72,7 @@ export function DemandDetailScreen() {
               parenthesis nobody reads. */}
           <Row
             label={t('demand.colPrice')}
-            value={formatMoney(demand.indicative_price_per_kg, demand.currency)}
+            value={formatPrice(demand.indicative_price_per_kg, i18n.language)}
             pill={<IndicativePill />}
           />
           {demand.delivery_point && (
@@ -93,7 +87,12 @@ export function DemandDetailScreen() {
           {t('demand.matches')}
         </h2>
 
-        {matchQuery.isLoading ? (
+        {matchQuery.error ? (
+          // Matches are ops/admin only; a refusal is shown as written and the demand stays.
+          <div data-testid="demand-matches-error">
+            <ErrorState error={matchQuery.error} onRetry={() => void matchQuery.refetch()} />
+          </div>
+        ) : matchQuery.isLoading ? (
           <Loading />
         ) : matches.length === 0 ? (
           // An honest zero, stated. The demand above stays on screen.
@@ -122,7 +121,7 @@ export function DemandDetailScreen() {
                       style={{ borderTop: '1px solid var(--rule)' }}
                     >
                       <td className="px-3.5 py-3" style={{ fontWeight: 500 }}>
-                        {villageName(match.village_id)}
+                        {match.village_name}
                       </td>
                       <td className="tabular px-3.5 py-3 text-right font-semibold">
                         {formatKg(match.available_kg)}
@@ -146,10 +145,7 @@ export function DemandDetailScreen() {
                             data-testid="create-opportunity"
                             disabled={createOpportunity.isPending}
                             onClick={() =>
-                              createOpportunity.mutate({
-                                villageId: match.village_id!,
-                                cropId: demand.crop_id,
-                              })
+                              createOpportunity.mutate({ villageId: match.village_id })
                             }
                             className="disabled:opacity-60"
                             style={{
@@ -190,7 +186,7 @@ export function DemandDetailScreen() {
                 }}
               >
                 <CoverageBar
-                  label={villageName(match.village_id)}
+                  label={match.village_name}
                   demandKg={demand.quantity_kg}
                   availableKg={match.available_kg}
                   committedKg={match.committed_kg}
