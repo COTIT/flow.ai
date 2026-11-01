@@ -10,7 +10,7 @@ use crate::{
         response::{Data, Envelope, MessageBody},
     },
     modules::farm_tower::{
-        dto::{VillageDataQualityResource, VillageProductionResource},
+        dto::{VerifyQueueSummary, VillageDataQualityResource, VillageProductionResource},
         service,
     },
 };
@@ -63,4 +63,25 @@ pub async fn data_quality(
 ) -> Result<Data<VillageDataQualityResource>, AppError> {
     let (id, row) = service::data_quality(&state, &access, &village).await?;
     Ok(Data(VillageDataQualityResource::new(id, row)))
+}
+
+/// GET /farm/verify-queue/summary.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/verify-queue/summary", tag = "farm_tower",
+    operation_id = "farm_tower_verify_summary", summary = "Records to verify",
+    description = "Per kind and in total, the records the caller's verify lists hold \
+    (`?verification=unverified,pending`): ops and admin the workspace, field officers their \
+    villages, a farmer their own records.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<VerifyQueueSummary>, description = "Counts"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn verify_summary(
+    State(state): State<AppState>,
+    access: FarmAccess,
+) -> Result<Data<VerifyQueueSummary>, AppError> {
+    Ok(Data(service::verify_queue(&state, &access).await?.into()))
 }

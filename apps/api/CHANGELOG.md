@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Phase 4c step 6: demo seed, mapping guard, verify summary. `GET /farm/verify-queue/summary` (any farm role) counts the outstanding records per kind and in total, scoped exactly like the verify lists. The `ruaha-demo` seed adds the equipment catalogue, a loan listing, PUE requests (Ilundo approved peak 10.800 kW, one still submitted, every one a purchase), two buyers, an open maize demand and an Ilundo opportunity carrying 3000 kg. `tests/farm_mapping.rs::phase_4c_rows_are_ported` keeps the 4c rows ported (264 ported, 16 N/A; four N/A by design).
 - Phase 4c step 5, loan listings and bug reports (RUAHA `resource_catalogue.sql`, `bug_reports.sql`; contracts `docs/api/farm-catalogue.md`, `docs/api/farm-bug-reports.md`; migration `farm_loans_bug_reports`):
   - `farm_loan_products`: listings only (indicative range in minor units, 0 < min ≤ max; no interest, deposit, term, schedule or repayment, research item C). `GET /farm/loan-products` (every farm member), `POST` (ops, admin). No route deletes one.
   - `farm_bug_reports` (`ref` ticket number, reporter = caller, actions ≤ 30, a screenshot or photo required). `POST /farm/bug-reports` multipart (images by bytes, 5 MB each, fresh keys under `…/bug-reports/{reporter}/`), `GET /farm/bug-reports` and `/{report}` (farm admin only, 10-minute image links). No route changes or deletes a report; status moves by operator SQL.

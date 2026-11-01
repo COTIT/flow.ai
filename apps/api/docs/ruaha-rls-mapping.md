@@ -2,7 +2,7 @@
 
 Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabase/tests/*.sql`, run by `pnpm db:rls`) and where genesy proves the same rule, or why it does not apply. `tests/farm_mapping.rs` keeps this file honest: exactly 280 rows, every named test exists, every N/A has a reason.
 
-**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **263**. N/A: **17**.
+**Count.** RUAHA has **280** assertions (`pg_temp.assert_eq` + `pg_temp.assert_raises` calls). The "282" in the brief counted the two helper definitions and the two `drop function` lines in `rls_test.sql`; RUAHA's own `CLAUDE.md` says 280. Ported: **264**. N/A: **16**.
 
 **How rules map.** RUAHA enforces access with Postgres RLS and `SECURITY DEFINER` RPCs; "zero rows" means "not yours". genesy enforces it in the API: the farm guard (`src/http/farm.rs`), village-scoped SQL in each repo, and composite `(workspace_id, village_id)` foreign keys that make cross-village links impossible. A RUAHA "zero rows" is a genesy `404` (or an empty list); a RUAHA "raises" is a `403`/`422` with RUAHA's message where it has one. Several assertions share one test.
 
@@ -270,7 +270,7 @@ Every assertion of RUAHA's database suite (`/Users/cotit/Documents/RUAHA/supabas
 | 255 | resource_catalogue_test.sql #13 | a submitted request cannot switch between rent and buy | N/A because no route edits a request's content: a request keeps the machine, quantity and rent/buy it asked for, so there is no switch to refuse |
 | 256 | resource_catalogue_test.sql #14 | and stays on rent | N/A because no route edits a request's content: a request keeps the machine, quantity and rent/buy it asked for, so there is no switch to refuse |
 | 257 | resource_catalogue_test.sql #15 | a rent request adds its rent per day, not a price, to the pipeline | `tests/farm_pue.rs::the_pipeline_adds_rent_per_day_apart_from_purchase_prices` |
-| 258 | resource_catalogue_test.sql #16 | every seeded request is a purchase | N/A because equipment, rent/buy offers, loan listings and PUE requests are out of scope (G14) |
+| 258 | resource_catalogue_test.sql #16 | every seeded request is a purchase | `tests/farm_demo.rs::the_demo_seeds_energy_and_the_market` |
 | 259 | supply_attached_by_test.sql #1 | before attaching, the new ops account is no name the officer may see | N/A because genesy has no name lookup: an account's name appears only embedded on a row the caller may read, so before a line is attached there is nothing to resolve |
 | 260 | supply_attached_by_test.sql #2 | a supply line records who attached it, not who the client claims | `tests/farm_market.rs::ops_attaches_supply_and_the_server_sums_it` |
 | 261 | supply_attached_by_test.sql #3 | an update cannot rewrite who attached a line, or when | `tests/farm_market.rs::a_supply_line_is_never_rewritten` |

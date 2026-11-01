@@ -9,4 +9,5 @@ pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::production))
         .routes(routes!(handlers::data_quality))
+        .routes(routes!(handlers::verify_summary))
 }

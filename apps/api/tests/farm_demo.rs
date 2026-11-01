@@ -117,6 +117,58 @@ async fn the_demo_tells_the_ruaha_story(pool: PgPool) {
     assert_eq!(superseded, 1, "one revised estimate stays on record");
 }
 
+#[sqlx::test]
+async fn the_demo_seeds_energy_and_the_market(pool: PgPool) {
+    let report = seeded(&pool).await;
+    let app = common::app(pool.clone());
+    let (status, res) = send(
+        &app,
+        Method::POST,
+        "/v1/login",
+        Some(json!({ "email": "asha.ops@ruaha-demo.test", "password": report.staff_password.unwrap() })),
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let ops = res["data"]["access_token"].as_str().unwrap().to_owned();
+    let ilundo: String =
+        sqlx::query_scalar("SELECT id::text FROM farm_villages WHERE code = 'ILUNDO'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let uri = format!(
+        "/v1/workspace/{}/farm/villages/{ilundo}/energy",
+        report.workspace_id
+    );
+    let (status, e) = send(&app, Method::GET, &uri, None, Some(&ops)).await;
+    assert_eq!(status, StatusCode::OK, "{e}");
+    // (15.0 + 2 × 1.5) × 0.600
+    assert_eq!(e["data"]["approved_peak_kw"], "10.800", "{e}");
+    assert_eq!(e["data"]["prospective_kw_raw"], "15.000", "{e}");
+    let (requests, purchases): (i64, i64) = sqlx::query_as(
+        "SELECT count(*), count(*) FILTER (WHERE acquisition = 'buy') FROM farm_pue_requests",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        (requests, purchases),
+        (3, 3),
+        "every seeded request is a purchase"
+    );
+    let offered: String =
+        sqlx::query_scalar("SELECT offered_quantity_kg::text FROM farm_opportunities")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(offered, "3000.00");
+    let loans: i64 = sqlx::query_scalar("SELECT count(*) FROM farm_loan_products")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(loans, 1);
+}
+
 /// The staff password is not a fixed string from the source.
 fn seeded_fresh_passwords_differ(pw: &str) -> bool {
     pw.starts_with("Demo-")

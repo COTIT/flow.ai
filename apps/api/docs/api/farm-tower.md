@@ -17,3 +17,11 @@ Live crop cycles by crop and harvest month:
 ## `GET /v1/workspace/{workspace}/farm/villages/{village}/data-quality`
 
 `{village_id, persons, persons_verified, farms, farms_with_gps, cycles, cycles_with_estimate}`, counting live rows only. `cycles_with_estimate` counts cycles with a current expected harvest figure.
+
+## `GET /v1/workspace/{workspace}/farm/verify-queue/summary`
+
+Any farm role. The records waiting for a second pair of eyes (`verification` `unverified` or `pending`), counted exactly as the caller's verify lists hold them (`GET …/persons?verification=unverified,pending` and the same for households, farms, plots, crop cycles and harvest figures): ops and admin the whole workspace, field officers their villages, a farmer their own records. Every outstanding harvest figure counts, superseded ones included, as the list does.
+
+```json
+{ "data": { "persons": 4, "households": 4, "farms": 3, "plots": 4, "crop_cycles": 4, "harvest_reports": 2, "total": 21 } }
+```

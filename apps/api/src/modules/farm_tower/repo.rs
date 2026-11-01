@@ -101,3 +101,64 @@ pub async fn village_exists(
     .fetch_one(db)
     .await
 }
+
+/// Outstanding (`unverified` or `pending`) records per kind, scoped exactly like the verify
+/// lists: staff villages, or for a farmer the rows reachable from their own person. Every
+/// harvest figure counts, as the harvest list does.
+pub struct QueueRow {
+    pub persons: i64,
+    pub households: i64,
+    pub farms: i64,
+    pub plots: i64,
+    pub crop_cycles: i64,
+    pub harvest_reports: i64,
+}
+
+pub async fn verify_queue(
+    db: &sqlx::PgPool,
+    ws: Uuid,
+    all: bool,
+    villages: &[Uuid],
+    person: Option<Uuid>,
+) -> Result<QueueRow, sqlx::Error> {
+    sqlx::query_as!(
+        QueueRow,
+        r#"SELECT
+             (SELECT count(*) FROM farm_persons t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+                AND t.verification IN ('unverified', 'pending')
+                AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_persons($4))))
+               AS "persons!",
+             (SELECT count(*) FROM farm_households t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+                AND t.verification IN ('unverified', 'pending')
+                AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_households($4))))
+               AS "households!",
+             (SELECT count(*) FROM farms t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+                AND t.verification IN ('unverified', 'pending')
+                AND ($2 OR t.village_id = ANY($3) OR t.id IN (SELECT farm_person_farms($4))))
+               AS "farms!",
+             (SELECT count(*) FROM farm_plots t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+                AND t.verification IN ('unverified', 'pending')
+                AND ($2 OR t.village_id = ANY($3) OR t.farm_id IN (SELECT farm_person_farms($4))))
+               AS "plots!",
+             (SELECT count(*) FROM farm_crop_cycles t WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+                AND t.verification IN ('unverified', 'pending')
+                AND ($2 OR t.village_id = ANY($3)
+                     OR t.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL
+                                      AND pl.farm_id IN (SELECT farm_person_farms($4)))))
+               AS "crop_cycles!",
+             (SELECT count(*) FROM farm_harvest_reports t
+                JOIN farm_crop_cycles c ON c.id = t.crop_cycle_id AND c.workspace_id = $1 AND c.deleted_at IS NULL
+                WHERE t.workspace_id = $1 AND t.deleted_at IS NULL
+                AND t.verification IN ('unverified', 'pending')
+                AND ($2 OR c.village_id = ANY($3)
+                     OR c.plot_id IN (SELECT pl.id FROM farm_plots pl WHERE pl.deleted_at IS NULL
+                                      AND pl.farm_id IN (SELECT farm_person_farms($4)))))
+               AS "harvest_reports!""#,
+        ws,
+        all,
+        villages,
+        person,
+    )
+    .fetch_one(db)
+    .await
+}

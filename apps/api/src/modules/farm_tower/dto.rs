@@ -6,7 +6,7 @@ use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::modules::farm_tower::repo::{ProductionRow, QualityRow};
+use crate::modules::farm_tower::repo::{ProductionRow, QualityRow, QueueRow};
 
 fn fixed(d: Option<Decimal>, places: usize) -> Option<String> {
     d.map(|d| format!("{d:.places$}"))
@@ -77,6 +77,34 @@ impl VillageDataQualityResource {
             farms_with_gps: q.farms_with_gps,
             cycles: q.cycles,
             cycles_with_estimate: q.cycles_with_estimate,
+        }
+    }
+}
+
+/// Records waiting for a second pair of eyes (`unverified` or `pending`), per kind, as the
+/// caller's verify lists hold them.
+#[derive(Serialize, ToSchema)]
+pub struct VerifyQueueSummary {
+    persons: i64,
+    households: i64,
+    farms: i64,
+    plots: i64,
+    crop_cycles: i64,
+    /// Every outstanding harvest figure, superseded ones included (as the list).
+    harvest_reports: i64,
+    total: i64,
+}
+
+impl From<QueueRow> for VerifyQueueSummary {
+    fn from(q: QueueRow) -> Self {
+        Self {
+            total: q.persons + q.households + q.farms + q.plots + q.crop_cycles + q.harvest_reports,
+            persons: q.persons,
+            households: q.households,
+            farms: q.farms,
+            plots: q.plots,
+            crop_cycles: q.crop_cycles,
+            harvest_reports: q.harvest_reports,
         }
     }
 }

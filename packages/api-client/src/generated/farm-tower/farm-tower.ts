@@ -22,6 +22,7 @@ import type {
 
 import type {
   EnvelopeVecVillageProductionResource,
+  EnvelopeVerifyQueueSummary,
   EnvelopeVillageDataQualityResource,
   MessageBody
 } from '../model';
@@ -48,6 +49,99 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+/**
+ * Per kind and in total, the records the caller's verify lists hold (`?verification=unverified,pending`): ops and admin the workspace, field officers their villages, a farmer their own records.
+ * @summary Records to verify
+ */
+export const farmTowerVerifySummary = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVerifyQueueSummary>(
+      {url: `/workspace/${workspace}/farm/verify-queue/summary`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmTowerVerifySummaryQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/farm/verify-queue/summary`
+    ] as const;
+    }
+
+
+export const getFarmTowerVerifySummaryQueryOptions = <TData = Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmTowerVerifySummaryQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmTowerVerifySummary>>> = ({ signal }) => farmTowerVerifySummary(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmTowerVerifySummaryQueryResult = NonNullable<Awaited<ReturnType<typeof farmTowerVerifySummary>>>
+export type FarmTowerVerifySummaryQueryError = ErrorType<MessageBody>
+
+
+export function useFarmTowerVerifySummary<TData = Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmTowerVerifySummary>>,
+          TError,
+          Awaited<ReturnType<typeof farmTowerVerifySummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmTowerVerifySummary<TData = Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmTowerVerifySummary>>,
+          TError,
+          Awaited<ReturnType<typeof farmTowerVerifySummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmTowerVerifySummary<TData = Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Records to verify
+ */
+
+export function useFarmTowerVerifySummary<TData = Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmTowerVerifySummary>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmTowerVerifySummaryQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 /**
  * @summary Village data quality
