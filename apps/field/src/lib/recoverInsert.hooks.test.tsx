@@ -29,7 +29,6 @@ vi.mock('@/lib/recoverInsert', () => ({
 }))
 
 const { EarlierVersionSavedError } = await import('@/lib/drafts')
-const { useSubmitRequest } = await import('@/features/farmer/useRequests')
 const { useCreateDemand } = await import('@/features/ops/useDemand')
 const { useCreateBuyer } = await import('@/features/ops/useOpsReference')
 const { useAttachSupply } = await import('@/features/ops/useOpportunity')
@@ -71,20 +70,6 @@ function run(useHook: () => { mutateAsync: (input: never) => Promise<unknown> },
 }
 
 const cases: Case[] = [
-  {
-    name: 'useSubmitRequest',
-    mutate: run(useSubmitRequest, {
-      id: ID,
-      actorId: 'actor',
-      villageId: VILLAGE,
-      personId: 'person',
-      equipmentId: 'equipment',
-      quantity: 1,
-      hoursPerDay: 4,
-      daysPerWeek: 5,
-      purpose: '',
-    }),
-  },
   {
     name: 'useCreateDemand',
     mutate: run(useCreateDemand, {

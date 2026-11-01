@@ -24,7 +24,7 @@ pub struct Money {
     pub currency_id: Uuid,
 }
 
-/// Who published a survey.
+/// Who published (or created) a survey.
 #[derive(Serialize, ToSchema)]
 pub struct PublisherRef {
     id: Uuid,
@@ -90,8 +90,25 @@ pub struct SurveyResource {
     responses: i64,
     #[schema(value_type = Vec<QuestionResource>)]
     questions: Value,
+    /// Null for a survey made without a signed-in user.
+    #[schema(required = true, value_type = Option<PublisherRef>)]
+    created_by: Option<Value>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    /// Voucher sums, the same as `/results`. Null for farmers.
+    #[schema(required = true, value_type = Option<SurveySummary>)]
+    summary: Option<Value>,
+}
+
+/// A survey's voucher sums (money in minor units of the reward currency).
+#[derive(Serialize, ToSchema)]
+pub struct SurveySummary {
+    issued: CountMinor,
+    redeemed: CountMinor,
+    /// Issued, not expired, not redeemed.
+    outstanding: CountMinor,
+    expired_count: i64,
+    void_count: i64,
 }
 
 impl From<SurveyRow> for SurveyResource {
@@ -118,8 +135,10 @@ impl From<SurveyRow> for SurveyResource {
             closed_at: s.closed_at,
             responses: s.answered,
             questions: s.questions,
+            created_by: s.created_by,
             created_at: s.created_at,
             updated_at: s.updated_at,
+            summary: s.summary,
         }
     }
 }
@@ -140,6 +159,10 @@ pub struct ListQuery {
 #[derive(Deserialize, ToSchema)]
 #[schema(description = "Survey fields. Editable only while the survey is a draft.")]
 pub struct SurveyRequest {
+    /// Create only: a client-made id, so a retried create returns the same survey (200).
+    /// Ignored on PATCH.
+    #[schema(value_type = Option<Uuid>)]
+    id: Option<String>,
     #[serde(default, deserialize_with = "present")]
     #[schema(value_type = String, max_length = 200)]
     title_en: Option<Option<String>>,
@@ -177,6 +200,7 @@ pub struct SurveyRequest {
 
 /// Validated survey fields; None = not sent.
 pub struct SurveyInput {
+    pub id: Option<Uuid>,
     pub title_en: Option<String>,
     pub title_sw: Option<Option<String>>,
     pub description_en: Option<Option<String>>,
@@ -242,6 +266,7 @@ impl Validate for SurveyRequest {
             })
         });
         Some(SurveyInput {
+            id: uuid_field(r, "id", self.id),
             title_en: r.patch_text("title_en", self.title_en, 200),
             title_sw: r.patch_opt_text("title_sw", self.title_sw, 200),
             description_en: r.patch_opt_text("description_en", self.description_en, 2000),

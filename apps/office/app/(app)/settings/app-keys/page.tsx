@@ -11,6 +11,7 @@ import {
   useAppKeysList,
   useAppKeysRevoke,
 } from "@genesy/api-client/endpoints/app-keys"
+import type { AppKeyIssuableScope, AppKeyKind } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
@@ -168,8 +169,9 @@ function CreateKey({ onCreated }: { onCreated: () => void }) {
                 workspace: workspaceId,
                 data: {
                   name: String(f.get("name") ?? ""),
-                  kind: String(f.get("kind") ?? ""),
-                  scopes: splitList(f.get("scopes")),
+                  // Free text; the API's 422 refuses unknown values.
+                  kind: String(f.get("kind") ?? "") as AppKeyKind,
+                  scopes: splitList(f.get("scopes")) as AppKeyIssuableScope[],
                 },
               })
             }}

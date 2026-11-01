@@ -76,6 +76,11 @@ impl<T> Paginated<T> {
             data,
         }
     }
+
+    /// The rows and the paging details, for a reply that adds keys next to them.
+    pub fn into_parts(self) -> (Vec<T>, Meta) {
+        (self.data, self.meta)
+    }
 }
 
 /// `q` -> escaped ILIKE pattern. Blank or `*` (vimdesk-web's "match all") = no filter;

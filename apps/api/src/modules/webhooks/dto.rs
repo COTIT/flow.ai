@@ -3,18 +3,33 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use utoipa::{IntoParams, ToSchema};
+use utoipa::{IntoParams, PartialSchema, ToSchema, openapi::RefOr, openapi::schema::Schema};
 use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, Validate, is_url, present},
     modules::webhooks::{events::EVENTS, repo::EndpointPatch, repo::EndpointRow},
+    openapi::string_enum,
 };
 
 const URL_MAX: usize = 2000;
 const DESCRIPTION_MAX: usize = 500;
 const EVENTS_MAX: usize = 50;
 const BAD_URL: &str = "The url must be a public https URL.";
+
+/// `EVENTS` as a spec enum (docs only).
+pub struct WebhookEvent;
+
+impl PartialSchema for WebhookEvent {
+    fn schema() -> RefOr<Schema> {
+        string_enum(
+            EVENTS.iter().copied(),
+            "An event an endpoint can subscribe to.",
+        )
+    }
+}
+
+impl ToSchema for WebhookEvent {}
 
 /// An endpoint, never its secret.
 #[derive(Serialize, ToSchema)]
@@ -25,7 +40,7 @@ pub struct WebhookEndpointResource {
     id: Uuid,
     #[schema(example = "https://shop.example.com/hooks")]
     url: String,
-    /// Subscribed events: `order.created`, `product.changed`, `stock.changed`.
+    #[schema(value_type = Vec<WebhookEvent>)]
     events: Vec<String>,
     #[schema(required = true)]
     description: Option<String>,
@@ -55,6 +70,7 @@ impl From<EndpointRow> for WebhookEndpointResource {
 pub struct WebhookEndpointCreated {
     id: Uuid,
     url: String,
+    #[schema(value_type = Vec<WebhookEvent>)]
     events: Vec<String>,
     #[schema(required = true)]
     description: Option<String>,
@@ -100,7 +116,7 @@ pub struct ListQuery {
 pub struct CreateEndpointRequest {
     #[schema(value_type = String, max_length = 2000, example = "https://shop.example.com/hooks")]
     url: Option<String>,
-    #[schema(value_type = Vec<String>, example = json!(["stock.changed"]))]
+    #[schema(value_type = Vec<WebhookEvent>, example = json!(["stock.changed"]))]
     events: Option<Value>,
     #[schema(max_length = 500)]
     description: Option<String>,
@@ -119,7 +135,7 @@ pub struct NewEndpointInput {
 pub struct UpdateEndpointRequest {
     #[schema(value_type = Option<String>, max_length = 2000)]
     url: Option<String>,
-    #[schema(value_type = Option<Vec<String>>)]
+    #[schema(value_type = Option<Vec<WebhookEvent>>)]
     events: Option<Value>,
     #[serde(default, deserialize_with = "present")]
     #[schema(value_type = Option<String>, max_length = 500)]

@@ -7,7 +7,7 @@
  */
 
 /**
- * Who published a survey.
+ * Who published (or created) a survey.
  */
 export interface PublisherRef {
   id: string;

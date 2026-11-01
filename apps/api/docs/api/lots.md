@@ -55,6 +55,8 @@ Stock rows carry an optional `lot_id`. Null is the product's no-lot stock, which
 - An unknown or foreign warehouse gives `422` on `warehouse_id`.
 - Reply: `200 {data: {warehouse_id, stock_lvl}}`.
 
+`GET /lots/{lot}/stock` (any member, like reading the lot; another workspace's lot `404`): `200 {data: [{warehouse_id, level, reserved, available}]}`, one row per warehouse holding the lot (its rows there summed), by warehouse name, 2-decimal text. `available = level − reserved`. No stock: `[]`.
+
 Once a lot holds any stock row, its `code` can't change (`422` on `code`); the code is printed on labels.
 
 The product read (`stocks[]`), `GET /products/stocks` and `stock-with-bins` show lot rows as rows of their own, with `lot: {id, code, expires_on}`. No-lot rows have `lot: null`.

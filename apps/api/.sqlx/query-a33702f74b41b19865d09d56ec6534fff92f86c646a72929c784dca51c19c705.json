@@ -1,0 +1,269 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, e.category_id, k.code AS category_code, k.name_en AS category_name_en,\n                k.name_sw AS category_name_sw, e.code, e.name_en, e.name_sw, e.rated_power_kw,\n                e.typical_hours_per_day, e.typical_days_per_week, e.can_rent, e.can_buy,\n                e.indicative_price_minor, e.indicative_rent_per_day_minor, e.currency_id,\n                c.asset_type AS currency, c.decimals, e.is_active, e.created_at, e.updated_at\n         FROM farm_equipment e\n         JOIN farm_equipment_categories k ON k.id = e.category_id\n         JOIN currencies c ON c.id = e.currency_id\n         WHERE e.workspace_id = $1 AND e.id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "category_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "category_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "category_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "category_name_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "category_name_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "name_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "name_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "name_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "name_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "rated_power_kw",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "rated_power_kw"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "typical_hours_per_day",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "typical_hours_per_day"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "typical_days_per_week",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "typical_days_per_week"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "can_rent",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "can_rent"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "can_buy",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "can_buy"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "indicative_price_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "indicative_price_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "indicative_rent_per_day_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "indicative_rent_per_day_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "is_active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "is_active"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a33702f74b41b19865d09d56ec6534fff92f86c646a72929c784dca51c19c705"
+}

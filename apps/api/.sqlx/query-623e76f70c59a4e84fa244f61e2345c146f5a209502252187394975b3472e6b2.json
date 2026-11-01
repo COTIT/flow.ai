@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH load AS (\n               SELECT coalesce(sum(e.est_power_kw) FILTER (WHERE r.status IN ('submitted', 'under_review')), 0)::numeric(12,3) AS prospective,\n                      coalesce(sum(e.est_power_kw) FILTER (WHERE r.status = 'approved'), 0)::numeric(12,3) AS approved,\n                      coalesce(sum(e.est_kwh_per_week) FILTER (WHERE r.status = 'approved'), 0)::numeric(12,3) AS kwh_week,\n                      count(e.id) FILTER (WHERE r.status = 'approved') AS assets\n               FROM farm_energy_estimates e\n               JOIN farm_pue_requests r ON r.id = e.pue_request_id AND r.deleted_at IS NULL\n               WHERE e.workspace_id = $1 AND e.village_id = $2)\n           SELECT c.capacity_kw AS \"capacity_kw?\", c.basis AS \"capacity_basis?\",\n                  c.simultaneity_factor AS \"simultaneity_factor?\",\n                  l.prospective AS \"prospective_kw_raw!\", l.approved AS \"approved_kw_raw!\",\n                  round(l.prospective * c.simultaneity_factor, 3) AS \"prospective_peak_kw?\",\n                  round(l.approved * c.simultaneity_factor, 3) AS \"approved_peak_kw?\",\n                  round(c.capacity_kw - l.approved * c.simultaneity_factor, 3) AS \"headroom_kw?\",\n                  l.kwh_week AS \"approved_kwh_per_week!\", l.assets AS \"approved_assets!\"\n           FROM load l\n           LEFT JOIN farm_village_capacities c ON c.village_id = $2 AND c.is_current",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "capacity_kw?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "capacity_kw"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "capacity_basis?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "basis"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "simultaneity_factor?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "simultaneity_factor"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "prospective_kw_raw!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "approved_kw_raw!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "prospective_peak_kw?",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "approved_peak_kw?",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "headroom_kw?",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "approved_kwh_per_week!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "approved_assets!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "623e76f70c59a4e84fa244f61e2345c146f5a209502252187394975b3472e6b2"
+}

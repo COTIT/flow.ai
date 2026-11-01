@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.order_id AS \"order_id!\",\n                  (coalesce(sum(p.amount) FILTER (WHERE p.kind = 'payment' AND p.status = 'paid'), 0)\n                   - coalesce(sum(p.amount) FILTER (WHERE p.kind = 'refund'\n                                                     AND p.status = 'refunded'), 0))::int8\n                    AS \"net!\",\n                  coalesce((SELECT f.amount - (SELECT coalesce(sum(r.amount), 0)\n                                               FROM order_payments r\n                                               WHERE r.workspace_id = f.workspace_id\n                                                 AND r.parent_id = f.id AND r.kind = 'refund'\n                                                 AND r.status NOT IN ('failed', 'canceled'))\n                            FROM order_payments f\n                            WHERE f.workspace_id = $1 AND f.order_id = p.order_id\n                              AND f.kind = 'payment' AND f.status = 'paid'\n                            ORDER BY f.created_at LIMIT 1), 0)::int8 AS \"refundable!\"\n           FROM order_payments p\n           WHERE p.workspace_id = $1 AND p.order_id = ANY($2)\n           GROUP BY p.order_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_payments",
+            "name": "order_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "net!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "refundable!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "1a39c6ac6cb6202e5ada01ea9abc282758a6d55fcf10ea4f24b51ebef836a854"
+}

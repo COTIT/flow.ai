@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { WebhookEvent } from './webhookEvent';
 
 /**
  * New endpoint. `url` must be https.
@@ -15,7 +16,7 @@ export interface CreateEndpointRequest {
      * @nullable
      */
   description?: string | null;
-  events: string[];
+  events: WebhookEvent[];
   /** @maxLength 2000 */
   url: string;
 }

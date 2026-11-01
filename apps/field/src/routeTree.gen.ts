@@ -30,6 +30,8 @@ import { Route as OfficerOfficerVerifyRouteImport } from './routes/_officer/offi
 import { Route as OpsOpsIndexRouteImport } from './routes/_ops/ops.index'
 import { Route as OpsOpsBuyersRouteImport } from './routes/_ops/ops.buyers'
 import { Route as OpsOpsCatalogueRouteImport } from './routes/_ops/ops.catalogue'
+import { Route as OpsOpsDispatchRouteImport } from './routes/_ops/ops.dispatch'
+import { Route as OpsOpsSupplyLinksRouteImport } from './routes/_ops/ops.supply-links'
 import { Route as OpsOpsTowerRouteImport } from './routes/_ops/ops.tower'
 import { Route as OpsOpsVillagesRouteImport } from './routes/_ops/ops.villages'
 import { Route as FarmerFarmEquipmentIndexRouteImport } from './routes/_farmer/farm.equipment.index'
@@ -156,6 +158,16 @@ const OpsOpsBuyersRoute = OpsOpsBuyersRouteImport.update({
 const OpsOpsCatalogueRoute = OpsOpsCatalogueRouteImport.update({
   id: '/catalogue',
   path: '/catalogue',
+  getParentRoute: () => OpsOpsRoute,
+} as any)
+const OpsOpsDispatchRoute = OpsOpsDispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
+  getParentRoute: () => OpsOpsRoute,
+} as any)
+const OpsOpsSupplyLinksRoute = OpsOpsSupplyLinksRouteImport.update({
+  id: '/supply-links',
+  path: '/supply-links',
   getParentRoute: () => OpsOpsRoute,
 } as any)
 const OpsOpsTowerRoute = OpsOpsTowerRouteImport.update({
@@ -310,6 +322,8 @@ export interface FileRoutesByFullPath {
   '/officer/verify': typeof OfficerOfficerVerifyRoute
   '/ops/buyers': typeof OpsOpsBuyersRoute
   '/ops/catalogue': typeof OpsOpsCatalogueRoute
+  '/ops/dispatch': typeof OpsOpsDispatchRoute
+  '/ops/supply-links': typeof OpsOpsSupplyLinksRoute
   '/ops/tower': typeof OpsOpsTowerRouteWithChildren
   '/ops/villages': typeof OpsOpsVillagesRoute
   '/farm/': typeof FarmerFarmIndexRoute
@@ -352,6 +366,8 @@ export interface FileRoutesByTo {
   '/officer/verify': typeof OfficerOfficerVerifyRoute
   '/ops/buyers': typeof OpsOpsBuyersRoute
   '/ops/catalogue': typeof OpsOpsCatalogueRoute
+  '/ops/dispatch': typeof OpsOpsDispatchRoute
+  '/ops/supply-links': typeof OpsOpsSupplyLinksRoute
   '/ops/villages': typeof OpsOpsVillagesRoute
   '/farm': typeof FarmerFarmIndexRoute
   '/officer': typeof OfficerOfficerIndexRoute
@@ -400,6 +416,8 @@ export interface FileRoutesById {
   '/_officer/officer/verify': typeof OfficerOfficerVerifyRoute
   '/_ops/ops/buyers': typeof OpsOpsBuyersRoute
   '/_ops/ops/catalogue': typeof OpsOpsCatalogueRoute
+  '/_ops/ops/dispatch': typeof OpsOpsDispatchRoute
+  '/_ops/ops/supply-links': typeof OpsOpsSupplyLinksRoute
   '/_ops/ops/tower': typeof OpsOpsTowerRouteWithChildren
   '/_ops/ops/villages': typeof OpsOpsVillagesRoute
   '/_farmer/farm/': typeof FarmerFarmIndexRoute
@@ -447,6 +465,8 @@ export interface FileRouteTypes {
     | '/officer/verify'
     | '/ops/buyers'
     | '/ops/catalogue'
+    | '/ops/dispatch'
+    | '/ops/supply-links'
     | '/ops/tower'
     | '/ops/villages'
     | '/farm/'
@@ -489,6 +509,8 @@ export interface FileRouteTypes {
     | '/officer/verify'
     | '/ops/buyers'
     | '/ops/catalogue'
+    | '/ops/dispatch'
+    | '/ops/supply-links'
     | '/ops/villages'
     | '/farm'
     | '/officer'
@@ -536,6 +558,8 @@ export interface FileRouteTypes {
     | '/_officer/officer/verify'
     | '/_ops/ops/buyers'
     | '/_ops/ops/catalogue'
+    | '/_ops/ops/dispatch'
+    | '/_ops/ops/supply-links'
     | '/_ops/ops/tower'
     | '/_ops/ops/villages'
     | '/_farmer/farm/'
@@ -724,6 +748,20 @@ declare module '@tanstack/react-router' {
       path: '/catalogue'
       fullPath: '/ops/catalogue'
       preLoaderRoute: typeof OpsOpsCatalogueRouteImport
+      parentRoute: typeof OpsOpsRoute
+    }
+    '/_ops/ops/dispatch': {
+      id: '/_ops/ops/dispatch'
+      path: '/dispatch'
+      fullPath: '/ops/dispatch'
+      preLoaderRoute: typeof OpsOpsDispatchRouteImport
+      parentRoute: typeof OpsOpsRoute
+    }
+    '/_ops/ops/supply-links': {
+      id: '/_ops/ops/supply-links'
+      path: '/supply-links'
+      fullPath: '/ops/supply-links'
+      preLoaderRoute: typeof OpsOpsSupplyLinksRouteImport
       parentRoute: typeof OpsOpsRoute
     }
     '/_ops/ops/tower': {
@@ -1003,6 +1041,8 @@ const OpsOpsTowerRouteWithChildren = OpsOpsTowerRoute._addFileChildren(
 interface OpsOpsRouteChildren {
   OpsOpsBuyersRoute: typeof OpsOpsBuyersRoute
   OpsOpsCatalogueRoute: typeof OpsOpsCatalogueRoute
+  OpsOpsDispatchRoute: typeof OpsOpsDispatchRoute
+  OpsOpsSupplyLinksRoute: typeof OpsOpsSupplyLinksRoute
   OpsOpsTowerRoute: typeof OpsOpsTowerRouteWithChildren
   OpsOpsVillagesRoute: typeof OpsOpsVillagesRoute
   OpsOpsIndexRoute: typeof OpsOpsIndexRoute
@@ -1019,6 +1059,8 @@ interface OpsOpsRouteChildren {
 const OpsOpsRouteChildren: OpsOpsRouteChildren = {
   OpsOpsBuyersRoute: OpsOpsBuyersRoute,
   OpsOpsCatalogueRoute: OpsOpsCatalogueRoute,
+  OpsOpsDispatchRoute: OpsOpsDispatchRoute,
+  OpsOpsSupplyLinksRoute: OpsOpsSupplyLinksRoute,
   OpsOpsTowerRoute: OpsOpsTowerRouteWithChildren,
   OpsOpsVillagesRoute: OpsOpsVillagesRoute,
   OpsOpsIndexRoute: OpsOpsIndexRoute,

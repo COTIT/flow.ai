@@ -26,4 +26,9 @@ export interface MyVoucher {
   survey_title_en: string;
   /** @nullable */
   survey_title_sw: string | null;
+  /**
+     * Why ops voided it; null unless `status` is `void`.
+     * @nullable
+     */
+  void_reason: string | null;
 }
