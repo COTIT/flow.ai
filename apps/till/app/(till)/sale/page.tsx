@@ -24,10 +24,12 @@ import { queueStore } from "@/lib/sale-queue"
 import { useTill } from "@/lib/till-store"
 import { useTillCatalog, type Sellable } from "@/lib/use-catalog"
 import { useTillMoney } from "@/lib/use-money"
+import { useQuote } from "@/lib/use-quote"
 
 /** Ring up a sale: search or scan, adjust the cart, take cash or card, show the receipt. */
 export default function SalePage() {
   const t = useTranslations("sale")
+  const tr = useTranslations("receipt")
   const tc = useTranslations("common")
   const workspace = useTill((s) => s.device?.workspaceId) ?? ""
   const catalog = useTillCatalog()
@@ -45,6 +47,9 @@ export default function SalePage() {
     lines: CartLine[]
   } | null>(null)
   const [saved, setSaved] = React.useState<CartLine[] | null>(null)
+  const cash =
+    method === "cash" && decimals != null ? toMinor(tendered, decimals) : null
+  const { online, quote, error: quoteError } = useQuote(lines, method, cash)
 
   const sale = useTillSalesCreate({
     mutation: {
@@ -157,7 +162,7 @@ export default function SalePage() {
                   onClick={() => add(item)}
                 >
                   <span>{item.name}</span>
-                  <span className="tabular-nums">{money(item.unitNet)}</span>
+                  <span className="tabular-nums">{money(item.unitGross)}</span>
                 </Button>
               </li>
             ))}
@@ -179,7 +184,7 @@ export default function SalePage() {
                 <span className="mr-auto min-w-0">
                   {l.name}
                   <span className="block text-muted-foreground tabular-nums">
-                    {money(l.unitNet)}
+                    {money(l.unitGross)}
                   </span>
                 </span>
                 <Button
@@ -222,20 +227,44 @@ export default function SalePage() {
             ))}
           </ul>
         )}
-        <p className="flex justify-between border-t pt-2 font-medium">
-          <span>{t("estimate")}</span>
-          <span className="tabular-nums">≈ {money(estimate(lines))}</span>
-        </p>
-        <p className="text-xs text-muted-foreground">{t("estimateHint")}</p>
+        {lines.length === 0 ? null : online ? (
+          <dl
+            aria-label={t("quote")}
+            className="grid grid-cols-2 gap-1 border-t pt-2 text-sm"
+          >
+            {(
+              [
+                [tr("total"), quote?.total],
+                ...(quote?.rounding ? [[tr("rounding"), quote.rounding]] : []),
+                [tr("due"), quote?.due],
+                ...(quote?.change != null
+                  ? [[tr("change"), quote.change]]
+                  : []),
+              ] as [string, number | undefined][]
+            ).map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt>{label}</dt>
+                <dd className="text-right font-medium tabular-nums">
+                  {quote ? money(value) : "…"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <>
+            <p className="flex justify-between border-t pt-2 font-medium">
+              <span>{t("estimate")}</span>
+              <span className="tabular-nums">≈ {money(estimate(lines))}</span>
+            </p>
+            <p className="text-xs text-muted-foreground">{t("estimateHint")}</p>
+          </>
+        )}
+        <ApiError error={quoteError} fallback={tc("error")} />
 
         <form
           className="flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault()
-            const cash =
-              method === "cash" && decimals != null
-                ? toMinor(tendered, decimals)
-                : null
             setBadTendered(method === "cash" && cash == null)
             if (method === "cash" && cash == null) return
             const body: SaleRequest = {

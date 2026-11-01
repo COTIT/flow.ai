@@ -47,11 +47,10 @@ test("opening a shift sends the counted float and shows the API's figures", asyn
     page.getByText("No shift is open on this register.")
   ).toBeVisible()
 
-  await page.getByLabel("Value of row 1").fill("20")
-  await page.getByLabel("Pieces of row 1").fill("2")
-  await page.getByRole("button", { name: "Add row" }).click()
-  await page.getByLabel("Value of row 2").fill("0,05")
-  await page.getByLabel("Pieces of row 2").fill("3")
+  // One row per note or coin the register accepts (from the login's register).
+  await expect(page.getByLabel(/^Pieces of /)).toHaveCount(10)
+  await page.getByLabel("Pieces of €20.00").fill("2")
+  await page.getByLabel("Pieces of €0.05").fill("3")
   await expect(page.getByText("Counted: €40.15")).toBeVisible()
   await expectNoHorizontalScroll(page)
   await page.getByRole("button", { name: "Open shift" }).click()
@@ -60,8 +59,8 @@ test("opening a shift sends the counted float and shows the API's figures", asyn
   const [open] = api.callsTo("POST", `/workspace/${WS}/till/shift/open`)
   expect(open!.body).toEqual({
     count: [
-      { denomination: 2000, count: 2 },
       { denomination: 5, count: 3 },
+      { denomination: 2000, count: 2 },
     ],
   })
 })
@@ -75,8 +74,7 @@ test("closing a shift shows the variance the API returns", async ({
   await page.goto("/drawer")
   await expect(page.getByText("€65.15")).toBeVisible()
 
-  await page.getByLabel("Value of row 1").fill("65")
-  await page.getByLabel("Pieces of row 1").fill("1")
+  await page.getByLabel("Pieces of €50.00").fill("1")
   await page.getByRole("button", { name: "Close shift" }).click()
 
   await expect(
@@ -96,8 +94,7 @@ test("a row without a valid value is refused before sending", async ({
   drawerApi(api, null)
   await seedTill(page)
   await page.goto("/drawer")
-  await page.getByLabel("Value of row 1").fill("5.005")
-  await page.getByLabel("Pieces of row 1").fill("1")
+  await page.getByLabel("Pieces of €20.00").fill("two")
   await page.getByRole("button", { name: "Open shift" }).click()
   await expect(
     page.getByRole("alert").filter({
@@ -125,8 +122,7 @@ test.describe("shift already open elsewhere", () => {
     }))
     await seedTill(page)
     await page.goto("/drawer")
-    await page.getByLabel("Value of row 1").fill("10")
-    await page.getByLabel("Pieces of row 1").fill("1")
+    await page.getByLabel("Pieces of €10.00").fill("1")
     await page.getByRole("button", { name: "Open shift" }).click()
     await expect(
       page

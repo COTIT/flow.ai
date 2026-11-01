@@ -34,8 +34,8 @@
     "more": "Ongeza {name} moja",
     "quantityOf": "Idadi ya {name}",
     "remove": "Ondoa {name}",
-    "estimate": "Makadirio bila VAT",
-    "estimateHint": "Bei za katalogi bila VAT; jumla pamoja na VAT, ukokotoaji na chenji vinatoka kwa seva unapotoza.",
+    "estimate": "Makadirio (nje ya mtandao)",
+    "estimateHint": "Nje ya mtandao: bei za katalogi pamoja na VAT. Jumla, ukokotoaji na chenji vya seva vinakuja mauzo yakitumwa.",
     "method": "Njia ya malipo",
     "cash": "Taslimu",
     "card": "Kadi",
@@ -46,7 +46,8 @@
     "charge": "Toza",
     "savedTitle": "Imehifadhiwa nje ya mtandao",
     "savedHint": "Kituo hakiko mtandaoni. Mauzo haya yamehifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
-    "newSale": "Mauzo mapya"
+    "newSale": "Mauzo mapya",
+    "quote": "Bei ya sasa"
   },
   "nav": {
     "label": "Menyu ya kituo",
@@ -79,7 +80,8 @@
     "remove": "Ondoa mstari {n}",
     "add": "Ongeza mstari",
     "total": "Zilizohesabiwa",
-    "invalid": "Kila mstari unahitaji thamani (mf. 5.00) na idadi kamili."
+    "invalid": "Kila mstari unahitaji thamani (mf. 5.00) na idadi kamili.",
+    "piecesOf": "Idadi ya {value}"
   },
   "receipt": {
     "title": "Risiti",
