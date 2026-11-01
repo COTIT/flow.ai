@@ -12,6 +12,8 @@ export const register = {
   name: "Iringa till 1",
   warehouse_id: "wh-shop",
   currency_id: "cur-eur",
+  currency: { code: "EUR", decimals: 2 },
+  accepted_cash: [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000],
 }
 export const amina = { id: "tu-1", name: "Amina" }
 
@@ -32,6 +34,7 @@ export const honey = {
   store_only: false,
   vat_rate: "9",
   unit_price: 1147,
+  unit_price_gross: 1250 as number | null,
   has_stock: true,
   stock: "7.00",
   sellable: true,
@@ -68,6 +71,49 @@ export function serveCatalog(api: FakeApi, rows: TillRow[]) {
   })
 }
 
+type QuoteBody = {
+  lines: { product_id: string; product_variant_id?: string; quantity: string }[]
+  payment: { method: string; tendered?: number }
+}
+
+/**
+ * Answers `POST /till/sales/quote` from the rows' gross prices, without rounding;
+ * specs that need the API's cash rounding answer it themselves.
+ */
+export function serveQuote(api: FakeApi, rows: TillRow[]) {
+  const gross = (l: QuoteBody["lines"][number]) => {
+    const p = rows.find((r) => r.id === l.product_id)!
+    const v = (p.variants as { id: string; unit_price_gross: number }[]).find(
+      (x) => x.id === l.product_variant_id
+    )
+    return (v?.unit_price_gross ?? p.unit_price_gross!) * Number(l.quantity)
+  }
+  api.on("POST", "/workspace/:ws/till/sales/quote", ({ body }) => {
+    const b = body as QuoteBody
+    const total = b.lines.reduce((sum, l) => sum + gross(l), 0)
+    return quoteReply(b, total, total)
+  })
+}
+
+/** A quote as the API shapes it, for a basket totalling `total` and paying `due`. */
+export function quoteReply(body: QuoteBody, total: number, due: number) {
+  const tendered = body.payment.tendered
+  return {
+    data: {
+      lines: [],
+      subtotal: total,
+      vat: 0,
+      total,
+      server_total: total,
+      price_mismatch: 0,
+      mismatched_lines: 0,
+      rounding: due - total,
+      due,
+      change: tendered == null ? null : tendered - due,
+    },
+  }
+}
+
 /** Starts the page paired (and logged in unless `loggedIn: false`), via the till's localStorage entry. */
 export async function seedTill(page: Page, { loggedIn = true } = {}) {
   const value = JSON.stringify({
@@ -83,16 +129,16 @@ export async function seedTill(page: Page, { loggedIn = true } = {}) {
 /** A FakeApi with the login routes, the catalog and the currency; specs add the rest. */
 export async function fakeTill(page: Page) {
   const api = new FakeApi()
-    // The till reads the register's currency off one storefront row (device key) for now.
-    .on("GET", "/storefront/products", () =>
-      paged([{ id: "p-honey", currency: "EUR", currency_decimals: 2 }])
-    )
     .on("GET", "/workspace/:ws/till/login/users", () => ({
       data: [amina, { id: "tu-2", name: "Baraka" }],
     }))
     .on("POST", "/workspace/:ws/till/login", () => ({ data: session }))
     .on("POST", "/workspace/:ws/till/logout", () => ({ status: 204 }))
+    .on("GET", "/workspace/:ws/till/me", () => ({
+      data: { expires_at: session.expires_at, register, user: amina },
+    }))
   serveCatalog(api, [honey])
+  serveQuote(api, [honey])
   await page.route("**/v1/**", (route) => api.handle(route))
   return api
 }

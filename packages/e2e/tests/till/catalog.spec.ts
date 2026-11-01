@@ -94,11 +94,10 @@ test.describe("offline scan", () => {
     void api // installs the fake API
     await seedCatalog(page)
     await seedTill(page)
-    // Let the start-up delta and currency read land before the network goes.
-    const settled = Promise.all([
-      page.waitForResponse((r) => r.url().includes("/till/catalog?page=1")),
-      page.waitForResponse((r) => r.url().includes("/storefront/products")),
-    ])
+    // Let the start-up delta land before the network goes.
+    const settled = page.waitForResponse((r) =>
+      r.url().includes("/till/catalog?page=1")
+    )
     await page.goto("/sale")
     await settled
     await context.setOffline(true)

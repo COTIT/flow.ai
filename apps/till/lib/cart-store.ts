@@ -10,6 +10,8 @@ export type CartLine = {
   name: string
   /** Catalog price excl VAT, minor units: sent as `unit_price`. */
   unitNet: number
+  /** One unit incl VAT from the catalog: the offline estimate only. */
+  unitGross: number | null
   /** shortcut: whole pieces only; weighed goods (2-decimal quantities) need the quote API first. */
   quantity: number
 }
@@ -74,10 +76,11 @@ export function toSaleLines(lines: CartLine[]): LineRequest[] {
 }
 
 /**
- * The cart's amount excl VAT before the API has priced it, labelled "≈ excl. VAT" on screen
- * (VAT is the API's to work out). shortcut: until `POST /till/sales/quote` lands; then online
- * shows the quote.
+ * Offline only, labelled "≈": catalog gross × pieces. Online the cart shows the API's quote.
+ * null when a line has no gross price.
  */
-export function estimate(lines: CartLine[]): number {
-  return lines.reduce((sum, l) => sum + l.unitNet * l.quantity, 0)
+export function estimate(lines: CartLine[]): number | null {
+  return lines.some((l) => l.unitGross == null)
+    ? null
+    : lines.reduce((sum, l) => sum + l.unitGross! * l.quantity, 0)
 }
