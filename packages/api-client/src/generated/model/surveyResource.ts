@@ -8,6 +8,7 @@
 import type { Money } from './money';
 import type { PublisherRef } from './publisherRef';
 import type { QuestionResource } from './questionResource';
+import type { SurveySummary } from './surveySummary';
 
 /**
  * A survey. A household answers it once and receives a voucher for `reward`.
@@ -19,6 +20,7 @@ export interface SurveyResource {
   /** @nullable */
   closes_at: string | null;
   created_at: string;
+  created_by: PublisherRef | null;
   /** @nullable */
   description_en: string | null;
   /** @nullable */
@@ -35,6 +37,7 @@ export interface SurveyResource {
   reward: Money;
   /** `draft`, `live` or `closed`. */
   status: string;
+  summary: SurveySummary | null;
   title_en: string;
   /** @nullable */
   title_sw: string | null;

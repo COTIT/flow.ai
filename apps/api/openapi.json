@@ -949,6 +949,271 @@
         ],
         "type": "object"
       },
+      "BuyerDemandRequest": {
+        "description": "New demand (ops or admin). Born open and unverified, captured by the caller; status, verification and capture are never read from the body. A client `id` makes retries safe.",
+        "properties": {
+          "buyer_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "confidence": {
+            "description": "`low`, `medium` or `high`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "crop_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "delivery_point": {
+            "maxLength": 200,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "indicative_price_per_kg_minor": {
+            "description": "Minor units of `currency_id` per kg; needs `currency_id`.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "quality_note": {
+            "maxLength": 500,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity_kg": {
+            "description": "kg > 0, at most 2 decimals.",
+            "example": "5000",
+            "type": "string"
+          },
+          "window_end": {
+            "description": "On or after `window_start`.",
+            "format": "date",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "buyer_id",
+          "crop_id",
+          "quantity_kg",
+          "window_start",
+          "window_end"
+        ],
+        "type": "object"
+      },
+      "BuyerDemandResource": {
+        "description": "A buyer's stated requirement, recorded by ops.",
+        "properties": {
+          "buyer": {
+            "$ref": "#/components/schemas/MarketBuyerRef"
+          },
+          "buyer_channel": {
+            "description": "`direct`, `afm` or `other`.",
+            "type": "string"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "captured_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "crop": {
+            "$ref": "#/components/schemas/MarketCropRef"
+          },
+          "delivery_point": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "indicative_price_per_kg": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Money",
+                "description": "INDICATIVE price per kg."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quality_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity_kg": {
+            "example": "5000.00",
+            "type": "string"
+          },
+          "status": {
+            "description": "`open`, `matched`, `closed` or `cancelled`.",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "verification": {
+            "description": "`unverified` on capture; never taken from a request.",
+            "type": "string"
+          },
+          "window_end": {
+            "format": "date",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "buyer",
+          "buyer_channel",
+          "crop",
+          "quantity_kg",
+          "quality_note",
+          "window_start",
+          "window_end",
+          "delivery_point",
+          "indicative_price_per_kg",
+          "status",
+          "verification",
+          "confidence",
+          "captured_at",
+          "captured_by",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "BuyerRequest": {
+        "description": "New buyer (ops or admin). A client `id` makes retries safe.",
+        "properties": {
+          "channel": {
+            "description": "`direct` (default), `afm` or `other`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contact_note": {
+            "maxLength": 500,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "BuyerResource": {
+        "description": "A buyer of the order book. `afm` is a channel label only.",
+        "properties": {
+          "channel": {
+            "description": "`direct`, `afm` or `other`.",
+            "type": "string"
+          },
+          "contact_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "channel",
+          "contact_note",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
       "CalculateRequest": {
         "description": "Lines to price. Unknown keys are ignored.",
         "properties": {
@@ -3057,6 +3322,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "crop": {
+            "$ref": "#/components/schemas/CropName",
+            "description": "The crop, named even when it is no longer active."
+          },
           "crop_id": {
             "format": "uuid",
             "type": "string"
@@ -3131,6 +3400,7 @@
           "village_id",
           "plot_id",
           "crop_id",
+          "crop",
           "season_label",
           "area_ha",
           "tree_count",
@@ -3155,6 +3425,10 @@
             "format": "uuid",
             "type": "string"
           },
+          "measured_by": {
+            "description": "`area`, `tree_count` or `unit_count`: which measure a cycle of this crop uses.",
+            "type": "string"
+          },
           "name_en": {
             "type": "string"
           },
@@ -3166,7 +3440,8 @@
           "id",
           "code",
           "name_en",
-          "name_sw"
+          "name_sw",
+          "measured_by"
         ],
         "type": "object"
       },
@@ -3761,6 +4036,80 @@
           "last_updated_at",
           "meta",
           "relationships"
+        ],
+        "type": "object"
+      },
+      "DemandMatchResource": {
+        "description": "A comparison, not a match: what one village could cover of one open demand. No allocation,\nranking or assignment.",
+        "properties": {
+          "available_kg": {
+            "type": "string"
+          },
+          "buyer": {
+            "$ref": "#/components/schemas/MarketBuyerRef"
+          },
+          "buyer_demand_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "buyer_name": {
+            "description": "Same as `buyer.name`, as the Tower lists it.",
+            "type": "string"
+          },
+          "committed_kg": {
+            "type": "string"
+          },
+          "coverable_kg": {
+            "type": "string"
+          },
+          "coverage_pct": {
+            "description": "Percent of the demand, 1 decimal.",
+            "example": "24.0",
+            "type": "string"
+          },
+          "crop_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "demand_kg": {
+            "type": "string"
+          },
+          "opportunity": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MatchOpportunityRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "village": {
+            "$ref": "#/components/schemas/MarketVillageRef"
+          },
+          "window_end": {
+            "format": "date",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "buyer_demand_id",
+          "buyer",
+          "buyer_name",
+          "crop_id",
+          "demand_kg",
+          "window_start",
+          "window_end",
+          "village",
+          "available_kg",
+          "committed_kg",
+          "coverable_kg",
+          "coverage_pct",
+          "opportunity"
         ],
         "type": "object"
       },
@@ -4462,6 +4811,30 @@
         ],
         "type": "object"
       },
+      "Envelope_BuyerDemandResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BuyerDemandResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_BuyerResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BuyerResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_CapacityResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -5128,6 +5501,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/OfferCreated"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_OpportunityResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/OpportunityResource"
           }
         },
         "required": [
@@ -6058,12 +6443,42 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_DemandMatchResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/DemandMatchResource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_LoginIssue": {
         "description": "Success body: the result under `data`.",
         "properties": {
           "data": {
             "items": {
               "$ref": "#/components/schemas/LoginIssue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Vec_LotFreeStock": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/LotFreeStock"
             },
             "type": "array"
           }
@@ -6184,6 +6599,21 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/VaultResource"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Vec_VillageSupplyResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/VillageSupplyResource"
             },
             "type": "array"
           }
@@ -7170,6 +7600,94 @@
         ],
         "type": "object"
       },
+      "HarvestAvailableResource": {
+        "description": "A current expected figure and what is already promised from it.",
+        "properties": {
+          "available_kg": {
+            "type": "string"
+          },
+          "committed_kg": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "crop_cycle_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "crop_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "farmer": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MarketFarmerRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "harvest_end": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "harvest_report_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "harvest_start": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plot_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "plot_label": {
+            "type": "string"
+          },
+          "quantity_kg": {
+            "example": "3200.00",
+            "type": "string"
+          },
+          "verification": {
+            "type": "string"
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "harvest_report_id",
+          "crop_cycle_id",
+          "village_id",
+          "crop_id",
+          "plot_id",
+          "plot_label",
+          "farmer",
+          "harvest_start",
+          "harvest_end",
+          "quantity_kg",
+          "confidence",
+          "verification",
+          "committed_kg",
+          "available_kg"
+        ],
+        "type": "object"
+      },
       "HarvestInput": {
         "properties": {
           "confidence": {
@@ -7307,16 +7825,6 @@
           },
           {
             "properties": {
-              "crop": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/CropName"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
               "harvests": {
                 "items": {
                   "$ref": "#/components/schemas/HarvestReportResource"
@@ -7325,13 +7833,12 @@
               }
             },
             "required": [
-              "crop",
               "harvests"
             ],
             "type": "object"
           }
         ],
-        "description": "A crop cycle with its crop and every harvest figure (newest first)."
+        "description": "A crop cycle (its crop included) and every harvest figure (newest first)."
       },
       "HoldingFarm": {
         "allOf": [
@@ -9606,6 +10113,36 @@
         ],
         "type": "object"
       },
+      "LotFreeStock": {
+        "description": "A lot's stock in one warehouse: on hand, held by orders, and free to sell or ship.",
+        "properties": {
+          "available": {
+            "description": "`level - reserved`.",
+            "example": "7.50",
+            "type": "string"
+          },
+          "level": {
+            "description": "2 decimals.",
+            "example": "10.00",
+            "type": "string"
+          },
+          "reserved": {
+            "example": "2.50",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id",
+          "level",
+          "reserved",
+          "available"
+        ],
+        "type": "object"
+      },
       "LotResource": {
         "description": "A batch of one stock-tracked product.",
         "properties": {
@@ -9899,6 +10436,99 @@
         "required": [
           "date",
           "payment_method"
+        ],
+        "type": "object"
+      },
+      "MarketBuyerRef": {
+        "description": "A buyer named on a demand or opportunity.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MarketCropRef": {
+        "description": "A crop named on a market row.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "name_sw": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name_en",
+          "name_sw"
+        ],
+        "type": "object"
+      },
+      "MarketFarmerRef": {
+        "description": "The farmer behind a harvest: the farm's primary manager.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "person_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MarketVillageRef": {
+        "description": "A village named on an opportunity.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MatchOpportunityRef": {
+        "description": "The opportunity a match already has.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
         ],
         "type": "object"
       },
@@ -10417,6 +11047,13 @@
               "string",
               "null"
             ]
+          },
+          "void_reason": {
+            "description": "Why ops voided it; null unless `status` is `void`.",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -10430,7 +11067,8 @@
           "expired",
           "issued_at",
           "expires_at",
-          "redeemed_at"
+          "redeemed_at",
+          "void_reason"
         ],
         "type": "object"
       },
@@ -10556,6 +11194,178 @@
         },
         "required": [
           "graph"
+        ],
+        "type": "object"
+      },
+      "OpportunityDemandRef": {
+        "description": "The demand an opportunity answers.",
+        "properties": {
+          "buyer": {
+            "$ref": "#/components/schemas/MarketBuyerRef"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity_kg": {
+            "type": "string"
+          },
+          "window_end": {
+            "format": "date",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "buyer",
+          "quantity_kg",
+          "window_start",
+          "window_end"
+        ],
+        "type": "object"
+      },
+      "OpportunityRequest": {
+        "description": "Propose a village against a demand (ops or admin). Born `proposed` with the demand's crop and nothing offered; the offered total is the server's. A client `id` makes retries safe.",
+        "properties": {
+          "crop_id": {
+            "description": "If sent, must be the demand's crop.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "note": {
+            "maxLength": 1000,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "description": "If sent, must be `proposed`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "village_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "village_id"
+        ],
+        "type": "object"
+      },
+      "OpportunityResource": {
+        "description": "A village that CAN supply a demand. Never a sale, delivery, payment or contract.",
+        "properties": {
+          "captured_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "captured_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "crop": {
+            "$ref": "#/components/schemas/MarketCropRef"
+          },
+          "demand": {
+            "$ref": "#/components/schemas/OpportunityDemandRef"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "my_contribution_kg": {
+            "description": "Kg from the caller's own farms; null for an account with no person record.",
+            "example": "2000.00",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offered_quantity_kg": {
+            "description": "The sum of its supply lines; only the server writes it.",
+            "example": "0.00",
+            "type": "string"
+          },
+          "status": {
+            "description": "`proposed`, `shared`, `accepted`, `declined` or `lapsed`.",
+            "type": "string"
+          },
+          "supply": {
+            "description": "Supply lines the caller may read: all of them for staff of the village, otherwise only\nlines from the caller's own farms.",
+            "items": {
+              "$ref": "#/components/schemas/SupplyLineResource"
+            },
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "village": {
+            "$ref": "#/components/schemas/MarketVillageRef"
+          }
+        },
+        "required": [
+          "id",
+          "demand",
+          "village",
+          "crop",
+          "offered_quantity_kg",
+          "status",
+          "note",
+          "captured_at",
+          "captured_by",
+          "supply",
+          "my_contribution_kg",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "OpportunityStatusRequest": {
+        "description": "proposed → shared|declined|lapsed, shared → accepted|declined|lapsed, accepted → declined|lapsed. Declined and lapsed are terminal.",
+        "properties": {
+          "status": {
+            "example": "shared",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
         ],
         "type": "object"
       },
@@ -11053,6 +11863,44 @@
         ],
         "type": "object"
       },
+      "Paginated_BuyerDemandResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BuyerDemandResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_BuyerResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BuyerResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_CategoryResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -11376,6 +12224,25 @@
         ],
         "type": "object"
       },
+      "Paginated_HarvestAvailableResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/HarvestAvailableResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_HarvestReportResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -11572,6 +12439,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/MyVoucher"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_OpportunityResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/OpportunityResource"
             },
             "type": "array"
           },
@@ -15812,7 +16698,7 @@
         "type": "object"
       },
       "PublisherRef": {
-        "description": "Who published a survey.",
+        "description": "Who published (or created) a survey.",
         "properties": {
           "id": {
             "format": "uuid",
@@ -20135,6 +21021,102 @@
         ],
         "type": "object"
       },
+      "SupplyLineRequest": {
+        "description": "Attach a current expected harvest figure of the opportunity's village and crop (ops or admin). The attacher is the caller. A client `id` makes retries safe.",
+        "properties": {
+          "contributed_kg": {
+            "description": "kg > 0, at most 2 decimals.",
+            "example": "2000",
+            "type": "string"
+          },
+          "harvest_report_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "harvest_report_id",
+          "contributed_kg"
+        ],
+        "type": "object"
+      },
+      "SupplyLineResource": {
+        "description": "Harvest kg promised to an opportunity. Never edited or detached.",
+        "properties": {
+          "captured_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "captured_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorRef",
+                "description": "Who attached it; null unless the caller is staff of the opportunity's village."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contributed_kg": {
+            "example": "2000.00",
+            "type": "string"
+          },
+          "crop_cycle_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "crop_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "farmer": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MarketFarmerRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "harvest_report_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "plot_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "plot_label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "harvest_report_id",
+          "crop_cycle_id",
+          "plot_id",
+          "plot_label",
+          "crop_id",
+          "farmer",
+          "contributed_kg",
+          "captured_by",
+          "captured_at"
+        ],
+        "type": "object"
+      },
       "SupplyTransferResource": {
         "description": "A transfer as one side sees it. No farmers, kg shares or prices.",
         "properties": {
@@ -20244,6 +21226,14 @@
               "null"
             ]
           },
+          "id": {
+            "description": "Create only: a client-made id, so a retried create returns the same survey (200).\nIgnored on PATCH.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "max_households": {
             "format": "int32",
             "type": [
@@ -20304,6 +21294,17 @@
             "format": "date-time",
             "type": "string"
           },
+          "created_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublisherRef",
+                "description": "Null for a survey made without a signed-in user."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "description_en": {
             "type": [
               "string",
@@ -20362,6 +21363,17 @@
             "description": "`draft`, `live` or `closed`.",
             "type": "string"
           },
+          "summary": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SurveySummary",
+                "description": "Voucher sums, the same as `/results`. Null for farmers."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "title_en": {
             "type": "string"
           },
@@ -20401,8 +21413,10 @@
           "closed_at",
           "responses",
           "questions",
+          "created_by",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "summary"
         ],
         "type": "object"
       },
@@ -20457,6 +21471,37 @@
           "void_count",
           "tally",
           "numbers"
+        ],
+        "type": "object"
+      },
+      "SurveySummary": {
+        "description": "A survey's voucher sums (money in minor units of the reward currency).",
+        "properties": {
+          "expired_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issued": {
+            "$ref": "#/components/schemas/CountMinor"
+          },
+          "outstanding": {
+            "$ref": "#/components/schemas/CountMinor",
+            "description": "Issued, not expired, not redeemed."
+          },
+          "redeemed": {
+            "$ref": "#/components/schemas/CountMinor"
+          },
+          "void_count": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "issued",
+          "redeemed",
+          "outstanding",
+          "expired_count",
+          "void_count"
         ],
         "type": "object"
       },
@@ -22566,6 +23611,66 @@
           "capacity",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "VillageSupplyResource": {
+        "description": "Expected, committed and available kg of one crop in one harvest month.",
+        "properties": {
+          "available_kg": {
+            "type": "string"
+          },
+          "committed_kg": {
+            "type": "string"
+          },
+          "crop_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "cycle_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expected_kg": {
+            "type": "string"
+          },
+          "verified_cycles": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "window_end": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "window_month": {
+            "description": "First day of the harvest month; null for cycles without a harvest window.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "window_start": {
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "crop_id",
+          "window_month",
+          "window_start",
+          "window_end",
+          "expected_kg",
+          "committed_kg",
+          "available_kg",
+          "cycle_count",
+          "verified_cycles"
         ],
         "type": "object"
       },
@@ -38012,6 +39117,1068 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/buyer-demands": {
+      "get": {
+        "description": "ops or admin. By window start. Count open demand with `?status=open` and `meta.total`.",
+        "operationId": "farm_market_demands_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Comma-separated: `open`, `matched`, `closed`, `cancelled`.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_BuyerDemandResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List buyer demand",
+        "tags": [
+          "farm_market"
+        ]
+      },
+      "post": {
+        "operationId": "farm_market_demands_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuyerDemandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BuyerDemandResource"
+                }
+              }
+            },
+            "description": "Replayed: same id, same body"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BuyerDemandResource"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id holds a different demand, or is used elsewhere"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, or unknown buyer, crop or currency"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record a buyer demand",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/buyer-demands/{demand}": {
+      "get": {
+        "operationId": "farm_market_demands_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Demand id",
+            "in": "path",
+            "name": "demand",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BuyerDemandResource"
+                }
+              }
+            },
+            "description": "The demand"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or demand"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a buyer demand",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/buyer-demands/{demand}/matches": {
+      "get": {
+        "description": "ops or admin. One row per village whose current expected harvests of the demand's crop overlap its window; each harvest counted once. A comparison, not an allocation.",
+        "operationId": "farm_market_demand_matches",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Demand id",
+            "in": "path",
+            "name": "demand",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_DemandMatchResource"
+                }
+              }
+            },
+            "description": "One row per village"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or demand"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Villages that could cover a demand",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/buyer-demands/{demand}/opportunities": {
+      "post": {
+        "description": "ops or admin (`only project ops or admin may write opportunities`, 403). Refused with `an opportunity must start as proposed` or `opportunity must match the demand crop and project` (422). One opportunity per demand and village.",
+        "operationId": "farm_market_opportunities_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Demand id",
+            "in": "path",
+            "name": "demand",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpportunityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OpportunityResource"
+                }
+              }
+            },
+            "description": "Replayed: same id, same body"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OpportunityResource"
+                }
+              }
+            },
+            "description": "Proposed"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or demand"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id holds a different opportunity, or is used elsewhere"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input, a RUAHA rule, or the village already has one"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Propose a village",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/buyers": {
+      "get": {
+        "description": "ops or admin: the order book is not a farmer or officer surface.",
+        "operationId": "farm_market_buyers_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`true` = active buyers only, `false` = retired only.",
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_BuyerResource"
+                }
+              }
+            },
+            "description": "One page, by name"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List buyers",
+        "tags": [
+          "farm_market"
+        ]
+      },
+      "post": {
+        "operationId": "farm_market_buyers_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuyerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BuyerResource"
+                }
+              }
+            },
+            "description": "Replayed: same id, same body"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BuyerResource"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id holds a different buyer, or is used elsewhere"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input or name taken"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a buyer",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/cash/movements": {
       "post": {
         "description": "ops or admin record `float_out` and `float_back`; an officer records their own `count` (ops and admin any). The staff user must be staff of the village.",
@@ -38364,6 +40531,16 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
               "type": "string"
             }
           },
@@ -40449,6 +42626,16 @@
             }
           },
           {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -40980,6 +43167,321 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/harvest-available": {
+      "get": {
+        "description": "Current expected figures with committed and available kg. Staff read their villages; a farmer reads their own cycles. Committed counts every figure of the cycle's expected series on live opportunities.",
+        "operationId": "farm_market_harvest_available",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "village_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "crop_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_HarvestAvailableResource"
+                }
+              }
+            },
+            "description": "One page, by harvest start"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Malformed filter id"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Harvest available to promise",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/harvest-reports": {
+      "get": {
+        "description": "The verify queue. Newest first. Same visibility as the cycles: ops and admin all, field officers their villages, a farmer the cycles on their own farms.",
+        "operationId": "farm_records_harvest_reports_all",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this village.",
+            "in": "query",
+            "name": "village_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated: `unverified`, `pending`, `verified`, `disputed`.",
+            "example": "unverified,pending",
+            "in": "query",
+            "name": "verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`true`: only the current figure of each kind.",
+            "in": "query",
+            "name": "current",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_HarvestReportResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown verification state"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List harvest figures across cycles",
+        "tags": [
+          "farm_records"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/harvest-reports/{report}/verification": {
       "post": {
         "operationId": "farm_records_harvest_reports_verify",
@@ -41166,6 +43668,16 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
               "type": "string"
             }
           },
@@ -42106,6 +44618,630 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/opportunities": {
+      "get": {
+        "description": "Staff: the opportunities of their villages (ops and admin: all), newest first.",
+        "operationId": "farm_market_opportunities_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "village_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "buyer_demand_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated statuses.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_OpportunityResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Malformed filter id"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List opportunities",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/opportunities/{opportunity}": {
+      "get": {
+        "operationId": "farm_market_opportunities_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opportunity id",
+            "in": "path",
+            "name": "opportunity",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OpportunityResource"
+                }
+              }
+            },
+            "description": "The opportunity"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown, or not the caller's to see"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get an opportunity",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/opportunities/{opportunity}/status": {
+      "post": {
+        "description": "ops or admin. Anything outside the machine is `illegal opportunity transition {from} -> {to}` (422).",
+        "operationId": "farm_market_opportunities_status",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opportunity id",
+            "in": "path",
+            "name": "opportunity",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpportunityStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OpportunityResource"
+                }
+              }
+            },
+            "description": "Moved"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Staff of the village who are not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown, or not the caller's to see"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Unknown status or illegal transition"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move an opportunity",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/opportunities/{opportunity}/supply": {
+      "post": {
+        "description": "ops or admin (`only project ops or admin may attach supply`, 403). Refused (422) with `supply must reference a current, undeleted expected harvest report`, `supply requires a live opportunity`, `supply must match the opportunity village, crop and harvest cycle`, or `over-commitment: {available} kg available, {committed} kg already committed, {requested} kg requested`. Returns the opportunity with its lines and re-summed offer.",
+        "operationId": "farm_market_supply_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opportunity id",
+            "in": "path",
+            "name": "opportunity",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplyLineRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OpportunityResource"
+                }
+              }
+            },
+            "description": "Replayed: same id, same line"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OpportunityResource"
+                }
+              }
+            },
+            "description": "Attached"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller sees it but is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown, or not the caller's to see"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id holds a different line, or is used elsewhere"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableBody"
+                }
+              }
+            },
+            "description": "Invalid input or a RUAHA supply rule"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Attach supply to an opportunity",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/passbook/mine": {
       "get": {
         "description": "The caller's own passbook lines, newest first, each with the balance in its currency after it.",
@@ -42633,6 +45769,16 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
               "type": "string"
             }
           },
@@ -43987,6 +47133,16 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
               "type": "string"
             }
           },
@@ -46621,6 +49777,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResource"
+                }
+              }
+            },
+            "description": "Retry with a known id: the stored survey"
+          },
           "201": {
             "content": {
               "application/json": {
@@ -46670,6 +49836,16 @@
               }
             },
             "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id is used outside this workspace"
           },
           "413": {
             "content": {
@@ -48964,6 +52140,130 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/villages/{village}/demand-matches": {
+      "get": {
+        "operationId": "farm_market_village_matches",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Village id",
+            "in": "path",
+            "name": "village",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_DemandMatchResource"
+                }
+              }
+            },
+            "description": "One row per open demand"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown village"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Open demand a village could cover",
+        "tags": [
+          "farm_market"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/villages/{village}/energy": {
       "get": {
         "description": "Staff of the village. Prospective (submitted, under review) and approved load are never summed; peak = raw × simultaneity; headroom = capacity − approved peak.",
@@ -49211,6 +52511,130 @@
         "summary": "Village PUE pipeline",
         "tags": [
           "farm_pue"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/villages/{village}/supply": {
+      "get": {
+        "operationId": "farm_market_village_supply",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Village id",
+            "in": "path",
+            "name": "village",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_VillageSupplyResource"
+                }
+              }
+            },
+            "description": "Rows by month"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not staff"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown village, or not one of the caller's"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Village supply by crop and month",
+        "tags": [
+          "farm_market"
         ]
       }
     },
@@ -55211,6 +58635,131 @@
         ]
       }
     },
+    "/workspace/{workspace}/lots/{lot}/stock": {
+      "get": {
+        "description": "One row per warehouse holding the lot, by warehouse name: `level`, `reserved` (held by orders) and `available`, as 2-decimal text. Same visibility as the lot.",
+        "operationId": "lots_stock",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_LotFreeStock"
+                }
+              }
+            },
+            "description": "Stock per warehouse; empty when none"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A lot's free stock per warehouse",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
     "/workspace/{workspace}/lots/{lot}/stock-mutations": {
       "post": {
         "operationId": "lots_stock_mutate",
@@ -55399,6 +58948,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -55420,7 +58981,7 @@
                 }
               }
             },
-            "description": "Dispatched"
+            "description": "Dispatched (or the first answer again, for a retried Idempotency-Key)"
           },
           "401": {
             "content": {
@@ -55440,7 +59001,7 @@
                 }
               }
             },
-            "description": "No `product.update`, or the link is not live"
+            "description": "Neither `product.update` nor farm ops/admin, or the link is not live"
           },
           "404": {
             "content": {
@@ -55480,7 +59041,7 @@
                 }
               }
             },
-            "description": "Invalid input, unknown link, not enough stock, or not a supply lot"
+            "description": "Invalid input or Idempotency-Key, key reused for another request, unknown link, not enough stock, or not a supply lot"
           },
           "429": {
             "content": {
@@ -70063,6 +73624,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -70084,7 +73657,7 @@
                 }
               }
             },
-            "description": "Granted, pending acceptance"
+            "description": "Granted, pending acceptance (or the first answer again, for a retried Idempotency-Key)"
           },
           "401": {
             "content": {
@@ -70154,7 +73727,7 @@
                 }
               }
             },
-            "description": "Unknown or gated field, or bad target workspace"
+            "description": "Unknown or gated field, bad target workspace, or Idempotency-Key reused for another request"
           },
           "429": {
             "content": {

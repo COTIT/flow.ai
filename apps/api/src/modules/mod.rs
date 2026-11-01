@@ -18,6 +18,7 @@ pub mod farm_catalogue;
 pub mod farm_crops;
 pub mod farm_documents;
 pub mod farm_logins;
+pub mod farm_market;
 pub mod farm_memberships;
 pub mod farm_passbook;
 pub mod farm_payouts;

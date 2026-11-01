@@ -612,8 +612,7 @@ pub async fn holdings(
     let (cycles, _) = repo::cycles(db, &seen, &cycle_pick).await?;
     let cycle_ids: Vec<Uuid> = cycles.iter().map(|c| c.id).collect();
     let harvests = repo::harvests_of_cycles(db, ws, &cycle_ids).await?;
-    let (crops, _) = crate::modules::farm_crops::repo::list(db, ws, 1000, 0).await?;
     Ok(Holdings::assemble(
-        households, members, farms, plots, cycles, harvests, crops,
+        households, members, farms, plots, cycles, harvests,
     ))
 }

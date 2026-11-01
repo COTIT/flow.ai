@@ -1,0 +1,96 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT h.village_id, h.crop_cycle_id, c.crop_id, h.kind, h.is_current,\n                  h.deleted_at IS NOT NULL AS \"deleted!\", h.quantity_kg\n           FROM farm_harvest_reports h\n           JOIN farm_crop_cycles c ON c.id = h.crop_cycle_id\n           WHERE h.workspace_id = $1 AND h.id = $2\n           FOR UPDATE OF h",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "crop_cycle_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "crop_cycle_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "crop_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_crop_cycles",
+            "name": "crop_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_current",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "is_current"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "deleted!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "quantity_kg",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "quantity_kg"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "eaf869011f42e34e524110c7738df1e78abd934a26bda955c33fa42a6d7c298e"
+}

@@ -14,7 +14,7 @@ All routes are for workspace admins (the owner or `workspace_admin`). Other memb
 - `fields`: at most 10, from `farmer_count`, `harvest_window`, `village`. An empty list is fine (the lot crosses, nothing about its farmers is shown). `farmer_names` and `farmer_photos` are refused with `{field} can't be shared until the data-protection gate opens.` until the user confirms Tanzania PDPC registration and the cross-border transfer permit.
 - At most one pending or live link per pair (`409`).
 
-`201` with the link, `status: "pending"`.
+`201` with the link, `status: "pending"`. Send an `Idempotency-Key` header (1 to 255 visible characters) to make a retry after a lost reply safe: the same key and body replay the first answer byte for byte, another request under the key is `422 Idempotency-Key reused with different request payload`, keys are per workspace and per caller, kept a day.
 
 ## `GET …/supply-links?page&page_size`
 
