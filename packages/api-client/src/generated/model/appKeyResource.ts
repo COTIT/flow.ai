@@ -5,6 +5,8 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { AppKeyKind } from './appKeyKind';
+import type { AppKeyScope } from './appKeyScope';
 
 /**
  * An app key. The secret itself is shown only once, when created.
@@ -12,8 +14,7 @@
 export interface AppKeyResource {
   created_at: string;
   id: string;
-  /** `shop`, `till`, `field` or `partner`. */
-  kind: string;
+  kind: AppKeyKind;
   /** @nullable */
   last_used_at: string | null;
   name: string;
@@ -24,5 +25,5 @@ export interface AppKeyResource {
      * @nullable
      */
   revoked_at: string | null;
-  scopes: string[];
+  scopes: AppKeyScope[];
 }

@@ -1880,3 +1880,69 @@ fn every_farm_market_operation_is_documented() {
         ),
     ]);
 }
+
+/// Closed lists (app-key kinds and scopes, webhook events) are named enums built from the
+/// Rust lists, so the generated client gets unions and no copy of the lists.
+#[test]
+fn key_and_webhook_lists_are_enums() {
+    let s = spec();
+    let values = |name: &str| -> Vec<&str> {
+        let mut v: Vec<&str> = s["components"]["schemas"][name]["enum"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{name} is not an enum"))
+            .iter()
+            .map(|x| x.as_str().unwrap())
+            .collect();
+        v.sort_unstable();
+        v
+    };
+    assert_eq!(values("AppKeyKind"), ["field", "partner", "shop", "till"]);
+    assert_eq!(
+        values("AppKeyScope"),
+        ["catalog:read", "checkout:write", "till:login"]
+    );
+    assert_eq!(
+        values("AppKeyIssuableScope"),
+        ["catalog:read", "checkout:write"]
+    );
+    assert_eq!(
+        values("WebhookEvent"),
+        [
+            "lot.created",
+            "order.created",
+            "passport.published",
+            "product.changed",
+            "sale.attributed",
+            "stock.changed"
+        ]
+    );
+
+    let to = |name: &str| json!({ "$ref": format!("#/components/schemas/{name}") });
+    let field = |schema: &str, f: &str| s["components"]["schemas"][schema]["properties"][f].clone();
+    for r in ["AppKeyResource", "AppKeyCreated", "CreateAppKeyRequest"] {
+        assert_eq!(field(r, "kind"), to("AppKeyKind"), "{r}.kind");
+    }
+    assert_eq!(
+        field("AppKeyResource", "scopes")["items"],
+        to("AppKeyScope")
+    );
+    assert_eq!(field("AppKeyCreated", "scopes")["items"], to("AppKeyScope"));
+    assert_eq!(
+        field("CreateAppKeyRequest", "scopes")["items"],
+        to("AppKeyIssuableScope")
+    );
+    for r in [
+        "WebhookEndpointResource",
+        "WebhookEndpointCreated",
+        "CreateEndpointRequest",
+        "UpdateEndpointRequest",
+    ] {
+        let f = field(r, "events");
+        let items = if f["items"].is_null() {
+            &f["oneOf"][0]["items"]
+        } else {
+            &f["items"]
+        };
+        assert_eq!(*items, to("WebhookEvent"), "{r}.events");
+    }
+}

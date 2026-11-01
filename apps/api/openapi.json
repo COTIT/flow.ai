@@ -289,7 +289,7 @@
             "type": "string"
           },
           "kind": {
-            "type": "string"
+            "$ref": "#/components/schemas/AppKeyKind"
           },
           "name": {
             "type": "string"
@@ -299,7 +299,7 @@
           },
           "scopes": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/AppKeyScope"
             },
             "type": "array"
           }
@@ -315,6 +315,24 @@
         ],
         "type": "object"
       },
+      "AppKeyIssuableScope": {
+        "description": "A scope `/app-keys` can issue.",
+        "enum": [
+          "catalog:read",
+          "checkout:write"
+        ],
+        "type": "string"
+      },
+      "AppKeyKind": {
+        "description": "App a key is issued to.",
+        "enum": [
+          "shop",
+          "till",
+          "field",
+          "partner"
+        ],
+        "type": "string"
+      },
       "AppKeyResource": {
         "description": "An app key. The secret itself is shown only once, when created.",
         "properties": {
@@ -327,8 +345,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`shop`, `till`, `field` or `partner`.",
-            "type": "string"
+            "$ref": "#/components/schemas/AppKeyKind"
           },
           "last_used_at": {
             "format": "date-time",
@@ -355,7 +372,7 @@
           },
           "scopes": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/AppKeyScope"
             },
             "type": "array"
           }
@@ -371,6 +388,15 @@
           "revoked_at"
         ],
         "type": "object"
+      },
+      "AppKeyScope": {
+        "description": "A scope a key holds.",
+        "enum": [
+          "catalog:read",
+          "checkout:write",
+          "till:login"
+        ],
+        "type": "string"
       },
       "AvailableFields": {
         "description": "Field and variable catalogue of one domain.",
@@ -2166,8 +2192,7 @@
         "description": "New app key for one app of this workspace.",
         "properties": {
           "kind": {
-            "example": "shop",
-            "type": "string"
+            "$ref": "#/components/schemas/AppKeyKind"
           },
           "name": {
             "example": "Web shop",
@@ -2175,12 +2200,12 @@
             "type": "string"
           },
           "scopes": {
-            "description": "At least one of: `catalog:read`.",
+            "description": "1 to 20 scopes.",
             "example": [
               "catalog:read"
             ],
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/AppKeyIssuableScope"
             },
             "type": "array"
           }
@@ -2543,7 +2568,7 @@
               "stock.changed"
             ],
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/WebhookEvent"
             },
             "type": "array"
           },
@@ -3297,6 +3322,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "crop": {
+            "$ref": "#/components/schemas/CropName",
+            "description": "The crop, named even when it is no longer active."
+          },
           "crop_id": {
             "format": "uuid",
             "type": "string"
@@ -3371,6 +3400,7 @@
           "village_id",
           "plot_id",
           "crop_id",
+          "crop",
           "season_label",
           "area_ha",
           "tree_count",
@@ -3395,6 +3425,10 @@
             "format": "uuid",
             "type": "string"
           },
+          "measured_by": {
+            "description": "`area`, `tree_count` or `unit_count`: which measure a cycle of this crop uses.",
+            "type": "string"
+          },
           "name_en": {
             "type": "string"
           },
@@ -3406,7 +3440,8 @@
           "id",
           "code",
           "name_en",
-          "name_sw"
+          "name_sw",
+          "measured_by"
         ],
         "type": "object"
       },
@@ -6426,6 +6461,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_LotFreeStock": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/LotFreeStock"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_ProductVariantResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -7763,16 +7813,6 @@
           },
           {
             "properties": {
-              "crop": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/CropName"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
               "harvests": {
                 "items": {
                   "$ref": "#/components/schemas/HarvestReportResource"
@@ -7781,13 +7821,12 @@
               }
             },
             "required": [
-              "crop",
               "harvests"
             ],
             "type": "object"
           }
         ],
-        "description": "A crop cycle with its crop and every harvest figure (newest first)."
+        "description": "A crop cycle (its crop included) and every harvest figure (newest first)."
       },
       "HoldingFarm": {
         "allOf": [
@@ -8419,6 +8458,14 @@
             "format": "date-time",
             "type": "string"
           },
+          "customer_name": {
+            "description": "Customer display name: company name, else alias, else first contact; null when none.",
+            "example": "Acme",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "due_date": {
             "format": "date-time",
             "type": [
@@ -8537,6 +8584,7 @@
           "has_collective_invoice",
           "import_id",
           "meta",
+          "customer_name",
           "relationships"
         ],
         "type": "object"
@@ -10053,6 +10101,36 @@
         ],
         "type": "object"
       },
+      "LotFreeStock": {
+        "description": "A lot's stock in one warehouse: on hand, held by orders, and free to sell or ship.",
+        "properties": {
+          "available": {
+            "description": "`level - reserved`.",
+            "example": "7.50",
+            "type": "string"
+          },
+          "level": {
+            "description": "2 decimals.",
+            "example": "10.00",
+            "type": "string"
+          },
+          "reserved": {
+            "example": "2.50",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "warehouse_id",
+          "level",
+          "reserved",
+          "available"
+        ],
+        "type": "object"
+      },
       "LotResource": {
         "description": "A batch of one stock-tracked product.",
         "properties": {
@@ -10957,6 +11035,13 @@
               "string",
               "null"
             ]
+          },
+          "void_reason": {
+            "description": "Why ops voided it; null unless `status` is `void`.",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -10970,7 +11055,8 @@
           "expired",
           "issued_at",
           "expires_at",
-          "redeemed_at"
+          "redeemed_at",
+          "void_reason"
         ],
         "type": "object"
       },
@@ -11271,6 +11357,19 @@
         ],
         "type": "object"
       },
+      "OrderAction": {
+        "description": "An office action on an order (`POST /orders/{order}/<action>`; `return` is `/returns`,\n`refund` is `/refunds`).",
+        "enum": [
+          "confirm",
+          "pick",
+          "complete",
+          "cancel",
+          "return",
+          "refund",
+          "invoice"
+        ],
+        "type": "string"
+      },
       "OrderCreated": {
         "description": "Create reply.",
         "properties": {
@@ -11375,6 +11474,13 @@
       "OrderResource": {
         "description": "An order with its lines. Totals in minor units of `currency`.",
         "properties": {
+          "allowed_actions": {
+            "description": "What the API would accept on this order now, from the rules its action routes enforce.\nStatus and payment rules only, not the caller's permissions.",
+            "items": {
+              "$ref": "#/components/schemas/OrderAction"
+            },
+            "type": "array"
+          },
           "cancelled_at": {
             "format": "date-time",
             "type": [
@@ -11522,6 +11628,7 @@
           "completed_at",
           "cancelled_at",
           "invoice_id",
+          "allowed_actions",
           "lines",
           "created_at",
           "updated_at"
@@ -14670,6 +14777,13 @@
               "null"
             ]
           },
+          "store_only": {
+            "description": "Sold at the till only; the web shop never lists it.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "supplier_discount_code": {
             "type": [
               "string",
@@ -15142,6 +15256,10 @@
             },
             "type": "array"
           },
+          "store_only": {
+            "description": "Sold at the till only; the web shop never lists it (Genesy addition).",
+            "type": "boolean"
+          },
           "supplier_discount_code": {
             "type": [
               "string",
@@ -15316,6 +15434,7 @@
           "relationships",
           "vat_group_id",
           "export_enabled",
+          "store_only",
           "export_price_sync",
           "export_product_data",
           "export_data"
@@ -16567,7 +16686,7 @@
         "type": "object"
       },
       "PublisherRef": {
-        "description": "Who published a survey.",
+        "description": "Who published (or created) a survey.",
         "properties": {
           "id": {
             "format": "uuid",
@@ -20907,6 +21026,14 @@
               "null"
             ]
           },
+          "id": {
+            "description": "Create only: a client-made id, so a retried create returns the same survey (200).\nIgnored on PATCH.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "max_households": {
             "format": "int32",
             "type": [
@@ -20967,6 +21094,17 @@
             "format": "date-time",
             "type": "string"
           },
+          "created_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublisherRef",
+                "description": "Null for a survey made without a signed-in user."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "description_en": {
             "type": [
               "string",
@@ -21025,6 +21163,17 @@
             "description": "`draft`, `live` or `closed`.",
             "type": "string"
           },
+          "summary": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SurveySummary",
+                "description": "Voucher sums, the same as `/results`. Null for farmers."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "title_en": {
             "type": "string"
           },
@@ -21064,8 +21213,10 @@
           "closed_at",
           "responses",
           "questions",
+          "created_by",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "summary"
         ],
         "type": "object"
       },
@@ -21120,6 +21271,37 @@
           "void_count",
           "tally",
           "numbers"
+        ],
+        "type": "object"
+      },
+      "SurveySummary": {
+        "description": "A survey's voucher sums (money in minor units of the reward currency).",
+        "properties": {
+          "expired_count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "issued": {
+            "$ref": "#/components/schemas/CountMinor"
+          },
+          "outstanding": {
+            "$ref": "#/components/schemas/CountMinor",
+            "description": "Issued, not expired, not redeemed."
+          },
+          "redeemed": {
+            "$ref": "#/components/schemas/CountMinor"
+          },
+          "void_count": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "issued",
+          "redeemed",
+          "outstanding",
+          "expired_count",
+          "void_count"
         ],
         "type": "object"
       },
@@ -21344,6 +21526,31 @@
         ],
         "type": "object"
       },
+      "TillCatalogPage": {
+        "description": "A catalog page plus where the next delta read starts.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TillProduct"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "next_since": {
+            "description": "Send as `updated_since` on the next sync. A minute before this read, so repeats are\npossible; upsert by id.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "next_since"
+        ],
+        "type": "object"
+      },
       "TillLoginRequest": {
         "description": "Till user and PIN, sent with the register's device key.",
         "properties": {
@@ -21413,6 +21620,92 @@
         ],
         "type": "object"
       },
+      "TillProduct": {
+        "description": "A product as the till sells it. `unit_price` is what `POST /till/sales` books (minor units excl VAT, the register's currency).",
+        "properties": {
+          "barcode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ean13": {
+            "example": "8712345678906",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_stock": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sellable": {
+            "description": "False once archived, disabled or deleted: only a delta read (`updated_since`) returns\nsuch a row, so the till drops it.",
+            "type": "boolean"
+          },
+          "stock": {
+            "description": "Units on hand minus reserved in the register's warehouse (usable lots only), as a\ndecimal string; may be negative; null when not stock-tracked.",
+            "example": "7.00",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "store_only": {
+            "description": "Sold at the till only; the web shop never lists it.",
+            "type": "boolean"
+          },
+          "type": {
+            "description": "physical, digital, service, giftcard, …",
+            "type": "string"
+          },
+          "unit_price": {
+            "description": "Minor units excl VAT in the register's currency.",
+            "example": 1250,
+            "format": "int64",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "variants": {
+            "description": "Default variant first.",
+            "items": {
+              "$ref": "#/components/schemas/TillVariant"
+            },
+            "type": "array"
+          },
+          "vat_rate": {
+            "description": "VAT percentage as a decimal string; `0` when the product has no VAT group.",
+            "example": "9",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "ean13",
+          "barcode",
+          "store_only",
+          "vat_rate",
+          "unit_price",
+          "has_stock",
+          "stock",
+          "sellable",
+          "variants",
+          "updated_at"
+        ],
+        "type": "object"
+      },
       "TillUserBrief": {
         "description": "A till user in the login picker or a session.",
         "properties": {
@@ -21467,6 +21760,57 @@
           "active",
           "locked",
           "created_at"
+        ],
+        "type": "object"
+      },
+      "TillVariant": {
+        "description": "A live variant of a till product.",
+        "properties": {
+          "barcode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ean13": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/VariantOption"
+            },
+            "type": "array"
+          },
+          "sku": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unit_price": {
+            "description": "Minor units excl VAT in the register's currency.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "sku",
+          "ean13",
+          "barcode",
+          "is_default",
+          "unit_price",
+          "options"
         ],
         "type": "object"
       },
@@ -21969,7 +22313,7 @@
           },
           "events": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/WebhookEvent"
             },
             "type": [
               "array",
@@ -24174,7 +24518,7 @@
           },
           "events": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/WebhookEvent"
             },
             "type": "array"
           },
@@ -24225,9 +24569,8 @@
             ]
           },
           "events": {
-            "description": "Subscribed events: `order.created`, `product.changed`, `stock.changed`.",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/WebhookEvent"
             },
             "type": "array"
           },
@@ -24254,6 +24597,18 @@
           "updated_at"
         ],
         "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An event an endpoint can subscribe to.",
+        "enum": [
+          "lot.created",
+          "order.created",
+          "passport.published",
+          "product.changed",
+          "sale.attributed",
+          "stock.changed"
+        ],
+        "type": "string"
       },
       "WorkspaceAccount": {
         "description": "Bank details. Unset values are null.",
@@ -39980,6 +40335,16 @@
             }
           },
           {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -42061,6 +42426,16 @@
             }
           },
           {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -42743,6 +43118,170 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/harvest-reports": {
+      "get": {
+        "description": "The verify queue. Newest first. Same visibility as the cycles: ops and admin all, field officers their villages, a farmer the cycles on their own farms.",
+        "operationId": "farm_records_harvest_reports_all",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this village.",
+            "in": "query",
+            "name": "village_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated: `unverified`, `pending`, `verified`, `disputed`.",
+            "example": "unverified,pending",
+            "in": "query",
+            "name": "verification",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`true`: only the current figure of each kind.",
+            "in": "query",
+            "name": "current",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_HarvestReportResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown verification state"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List harvest figures across cycles",
+        "tags": [
+          "farm_records"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/harvest-reports/{report}/verification": {
       "post": {
         "operationId": "farm_records_harvest_reports_verify",
@@ -42929,6 +43468,16 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
               "type": "string"
             }
           },
@@ -45024,6 +45573,16 @@
             }
           },
           {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -46374,6 +46933,16 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persons only: part of the name, any case, or of the phone number (`0712…`, `+255712…`;\nmatched only on persons of the caller's own staff villages). At most 100 characters.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
               "type": "string"
             }
           },
@@ -49008,6 +49577,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SurveyResource"
+                }
+              }
+            },
+            "description": "Retry with a known id: the stored survey"
+          },
           "201": {
             "content": {
               "application/json": {
@@ -49057,6 +49636,16 @@
               }
             },
             "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id is used outside this workspace"
           },
           "413": {
             "content": {
@@ -57846,6 +58435,131 @@
         ]
       }
     },
+    "/workspace/{workspace}/lots/{lot}/stock": {
+      "get": {
+        "description": "One row per warehouse holding the lot, by warehouse name: `level`, `reserved` (held by orders) and `available`, as 2-decimal text. Same visibility as the lot.",
+        "operationId": "lots_stock",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_LotFreeStock"
+                }
+              }
+            },
+            "description": "Stock per warehouse; empty when none"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A lot's free stock per warehouse",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
     "/workspace/{workspace}/lots/{lot}/stock-mutations": {
       "post": {
         "operationId": "lots_stock_mutate",
@@ -58034,6 +58748,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -58055,7 +58781,7 @@
                 }
               }
             },
-            "description": "Dispatched"
+            "description": "Dispatched (or the first answer again, for a retried Idempotency-Key)"
           },
           "401": {
             "content": {
@@ -58075,7 +58801,7 @@
                 }
               }
             },
-            "description": "No `product.update`, or the link is not live"
+            "description": "Neither `product.update` nor farm ops/admin, or the link is not live"
           },
           "404": {
             "content": {
@@ -58115,7 +58841,7 @@
                 }
               }
             },
-            "description": "Invalid input, unknown link, not enough stock, or not a supply lot"
+            "description": "Invalid input or Idempotency-Key, key reused for another request, unknown link, not enough stock, or not a supply lot"
           },
           "429": {
             "content": {
@@ -72698,6 +73424,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -72719,7 +73457,7 @@
                 }
               }
             },
-            "description": "Granted, pending acceptance"
+            "description": "Granted, pending acceptance (or the first answer again, for a retried Idempotency-Key)"
           },
           "401": {
             "content": {
@@ -72789,7 +73527,7 @@
                 }
               }
             },
-            "description": "Unknown or gated field, or bad target workspace"
+            "description": "Unknown or gated field, bad target workspace, or Idempotency-Key reused for another request"
           },
           "429": {
             "content": {
@@ -73399,6 +74137,160 @@
         "summary": "Receive a supply transfer",
         "tags": [
           "supply_chain"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/catalog": {
+      "get": {
+        "operationId": "till_catalog",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "RFC 3339. Only products changed after it (price, variants, VAT group, this register's\nstock or lots), including ones no longer sellable.",
+            "in": "query",
+            "name": "updated_since",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Exact product or variant EAN-13 or barcode, any case, at most 100 characters.",
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TillCatalogPage"
+                }
+              }
+            },
+            "description": "One page of the register's catalog"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live till session (ended, expired, key rotated or revoked, user inactive)"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Workspace is not the session's"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`updated_since` not RFC 3339, or `code` too long"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "till_session": []
+          }
+        ],
+        "summary": "What this register sells (paged, delta sync, barcode lookup)",
+        "tags": [
+          "till"
         ]
       }
     },

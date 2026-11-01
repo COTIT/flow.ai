@@ -145,6 +145,8 @@ export interface ProductResource {
      * and the first store when they have none.
      */
   stocks: ProductStock[];
+  /** Sold at the till only; the web shop never lists it (Genesy addition). */
+  store_only: boolean;
   /** @nullable */
   supplier_discount_code: string | null;
   /**

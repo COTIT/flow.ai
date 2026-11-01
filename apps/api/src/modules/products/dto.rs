@@ -80,6 +80,7 @@ pub struct Fields {
     pub import_id: Option<Option<String>>,
     pub import_source: Option<Option<String>>,
     pub export_enabled: Option<bool>,
+    pub store_only: Option<bool>,
     pub export_price_sync: Option<bool>,
     pub export_product_data: Option<bool>,
     pub export_data: Option<Option<Value>>,
@@ -335,6 +336,7 @@ fn fields(r: &mut Rules, m: &Map<String, Value>, create: bool) -> Fields {
         import_id: text(r, m, "import_id", 255),
         import_source: text(r, m, "import_source", 255),
         export_enabled: flag(r, m, "export_enabled"),
+        store_only: flag(r, m, "store_only"),
         export_price_sync: flag(r, m, "export_price_sync"),
         export_product_data: flag(r, m, "export_product_data"),
         export_data: key(m, "export_data").map(|v| v.and_then(|v| object(r, "export_data", v))),
@@ -561,6 +563,8 @@ pub struct ProductRequestDoc {
     import_id: Option<String>,
     import_source: Option<String>,
     export_enabled: Option<bool>,
+    /// Sold at the till only; the web shop never lists it.
+    store_only: Option<bool>,
     export_price_sync: Option<bool>,
     export_product_data: Option<bool>,
     #[schema(value_type = Option<Object>)]

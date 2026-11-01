@@ -116,6 +116,11 @@ export interface ProductRequest {
   status?: string | null;
   /** @nullable */
   stock_level_supplier?: number | null;
+  /**
+     * Sold at the till only; the web shop never lists it.
+     * @nullable
+     */
+  store_only?: boolean | null;
   /** @nullable */
   supplier_discount_code?: string | null;
   /** @nullable */

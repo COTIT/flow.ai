@@ -1,0 +1,160 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH page AS (\n               SELECT p.id, p.name, p.type, p.ean13, p.barcode, p.store_only, p.has_stock,\n                      p.price, p.vat_group_id, p.updated_at,\n                      (p.deleted_at IS NULL AND p.status = 'active' AND NOT p.archived)\n                        AS sellable,\n                      count(*) OVER () AS total\n               FROM products p\n               WHERE p.workspace_id = $1 AND p.currency_id = $2\n                 AND CASE WHEN $4::timestamptz IS NULL\n                          THEN p.deleted_at IS NULL AND p.status = 'active' AND NOT p.archived\n                          ELSE p.updated_at > $4\n                               OR EXISTS (SELECT 1 FROM product_variants v\n                                          WHERE v.workspace_id = $1 AND v.product_id = p.id\n                                            AND v.updated_at > $4)\n                               OR EXISTS (SELECT 1 FROM vat_groups g\n                                          WHERE g.workspace_id = $1 AND g.id = p.vat_group_id\n                                            AND g.updated_at > $4)\n                               OR EXISTS (SELECT 1 FROM stocks s\n                                          LEFT JOIN lots l ON l.id = s.lot_id\n                                          WHERE s.workspace_id = $1 AND s.product_id = p.id\n                                            AND s.warehouse_id = $3\n                                            AND (s.updated_at > $4 OR l.updated_at > $4))\n                     END\n                 AND ($5::text IS NULL OR lower(p.ean13) = lower($5)\n                      OR lower(p.barcode) = lower($5)\n                      OR EXISTS (SELECT 1 FROM product_variants v\n                                 WHERE v.workspace_id = $1 AND v.product_id = p.id\n                                   AND v.deleted_at IS NULL\n                                   AND (lower(v.ean13) = lower($5)\n                                        OR lower(v.barcode) = lower($5))))\n               ORDER BY p.id\n               LIMIT $6 OFFSET $7\n           )\n           SELECT pg.id, pg.name, pg.type, pg.ean13, pg.barcode, pg.store_only, pg.has_stock,\n                  pg.sellable AS \"sellable!\",\n                  trim_scale(coalesce(g.vat_amount, 0))::text AS \"vat_rate!\",\n                  round(pg.price * 10::numeric ^ c.decimals)::bigint AS \"unit_price!\",\n                  CASE WHEN pg.has_stock THEN (\n                      SELECT coalesce(sum(s.stock_lvl - s.reserved), 0.00::numeric(19, 2))::text\n                      FROM stocks s\n                      LEFT JOIN lots l ON l.id = s.lot_id\n                      WHERE s.workspace_id = $1 AND s.product_id = pg.id\n                        AND s.warehouse_id = $3 AND s.deleted_at IS NULL\n                        AND (s.lot_id IS NULL OR (l.status = 'released'\n                             AND (l.expires_on IS NULL OR l.expires_on >= current_date)))\n                  ) END AS stock,\n                  (SELECT coalesce(json_agg(json_build_object(\n                              'id', v.id, 'sku', v.sku, 'ean13', v.ean13, 'barcode', v.barcode,\n                              'is_default', v.is_default,\n                              'unit_price', round(v.price * 10::numeric ^ c.decimals)::bigint,\n                              'options', (\n                                  SELECT coalesce(json_agg(json_build_object(\n                                             'type', ot.display_name, 'value', ov.display_value)\n                                         ORDER BY ot.display_name, ov.sort_order, ov.id), '[]')\n                                  FROM variant_option_values vov\n                                  JOIN option_values ov ON ov.id = vov.option_value_id\n                                       AND ov.workspace_id = $1 AND ov.deleted_at IS NULL\n                                  JOIN option_types ot ON ot.id = ov.option_type_id\n                                       AND ot.workspace_id = $1 AND ot.deleted_at IS NULL\n                                  WHERE vov.workspace_id = $1 AND vov.product_variant_id = v.id))\n                          ORDER BY v.is_default DESC, v.id), '[]')\n                   FROM product_variants v\n                   WHERE v.workspace_id = $1 AND v.product_id = pg.id AND v.deleted_at IS NULL\n                  ) AS \"variants!: Json<Vec<VariantRow>>\",\n                  pg.updated_at,\n                  pg.total AS \"total!\"\n           FROM page pg\n           JOIN currencies c ON c.workspace_id = $1 AND c.id = $2\n           LEFT JOIN vat_groups g ON g.workspace_id = $1 AND g.id = pg.vat_group_id\n           ORDER BY pg.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "ean13",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "ean13"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "barcode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "barcode"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "store_only",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "store_only"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "has_stock",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "has_stock"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "sellable!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "vat_rate!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "unit_price!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "stock",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "variants!: Json<Vec<VariantRow>>",
+        "type_info": "Json",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      null
+    ]
+  },
+  "hash": "097d06b46094f8e64fa84f5be241a6c4f9f181662fed9fab7ee66f6a5998ffa2"
+}

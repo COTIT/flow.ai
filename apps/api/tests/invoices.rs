@@ -338,6 +338,57 @@ async fn list_filters_and_pages(pool: PgPool) {
 
 // --- errors --------------------------------------------------------------------------------
 
+/// List rows name the customer: company name, else alias, else the first contact, else null.
+#[sqlx::test]
+async fn list_names_the_customer(pool: PgPool) {
+    let api = api(pool).await;
+    let rels = api.with_base("/relations");
+    let (acme, _) = relation(&api, "Acme").await;
+    let alias = rels
+        .create(
+            json!({ "type": "personal", "alias": "Bobby" }),
+            "relation_id",
+        )
+        .await;
+    let person = rels
+        .create(json!({ "type": "personal" }), "relation_id")
+        .await;
+    let (s, b) = rels
+        .call(
+            Method::POST,
+            &format!("/{person}/contacts"),
+            Some(json!({ "first_name": "Grace", "last_name": "Hopper" })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{b}");
+    let nobody = rels
+        .create(json!({ "type": "personal" }), "relation_id")
+        .await;
+    let mut want = Vec::new();
+    for (rel, name) in [
+        (&acme, json!("Acme")),
+        (&alias, json!("Bobby")),
+        (&person, json!("Grace Hopper")),
+        (&nobody, Value::Null),
+    ] {
+        let id = api
+            .create(json!({ "relation_id": rel }), "invoice_id")
+            .await;
+        want.push((id, name));
+    }
+    let list = api.list("").await;
+    for (id, name) in want {
+        let row = list["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["id"] == id.as_str())
+            .unwrap();
+        assert_eq!(row["customer_name"], name, "{id}");
+    }
+}
+
 #[sqlx::test]
 async fn header_rules(pool: PgPool) {
     let api = api(pool).await;
