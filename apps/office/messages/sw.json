@@ -25,7 +25,8 @@
     "stock": "Akiba",
     "invoices": "Ankara",
     "orders": "Oda",
-    "till": "Kaunta"
+    "till": "Kaunta",
+    "supply": "Ugavi"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -302,5 +303,66 @@
     "catalog": "Kwa bei za katalogi",
     "mismatch": "Tofauti",
     "mismatchValue": "{amount} (mistari {lines})"
+  },
+  "supply": {
+    "title": "Ugavi",
+    "tabs": {
+      "links": "Viungo vya ugavi",
+      "transfers": "Uhamisho"
+    },
+    "linksHint": "Kiungo kinaruhusu shamba la mshirika kutuma mafungu hapa. Orodha inasema taarifa gani za wakulima zinaweza kuonekana kwenye kurasa zako za umma; majina na picha kamwe.",
+    "noLinks": "Bado hakuna viungo vya ugavi.",
+    "partner": "Mshirika",
+    "direction": "Mwelekeo",
+    "allowList": "Inaweza kuonyesha",
+    "granted": "Kimetolewa",
+    "noFields": "Hakuna taarifa za wakulima",
+    "directions": {
+      "incoming": "Kutoka kwa mshirika",
+      "outgoing": "Kwenda kwa mshirika"
+    },
+    "statuses": {
+      "pending": "Kinasubiri kukubaliwa",
+      "live": "Hai",
+      "revoked": "Kimefutwa"
+    },
+    "fields": {
+      "village": "Kijiji",
+      "farmer_count": "Idadi ya wakulima",
+      "harvest_window": "Tarehe za mavuno"
+    },
+    "accept": "Kubali",
+    "acceptTitle": "Kubali kiungo cha ugavi kutoka {partner}?",
+    "acceptText": "Baada ya hapo mafungu yanaweza kutumwa hapa. Kurasa zako za umma zinaweza kuonyesha: {fields}.",
+    "revoke": "Futa",
+    "revokeTitle": "Futa kiungo cha ugavi na {partner}?",
+    "revokeText": "Hakuna mafungu zaidi yatakayotumwa au kupokelewa kupitia kiungo hiki. Akiba iliyokwisha pokelewa inaendelea kuwalipa wakulima. Kuendelea, mshirika lazima atoe kiungo kipya.",
+    "noTransfers": "Bado hakuna uhamisho.",
+    "fromLot": "Kutoka fungu",
+    "quantity": "Kiasi",
+    "received": "Imepokelewa",
+    "receivedInto": "{quantity} kwenye {code}",
+    "transferDirections": {
+      "incoming": "Inayoingia",
+      "outgoing": "Inayotoka"
+    },
+    "transferStatuses": {
+      "dispatched": "Njiani",
+      "received": "Imepokelewa"
+    },
+    "receive": "Pokea",
+    "receiveFrom": "Pokea fungu {code}",
+    "receiveText": "Kiasi cha {quantity} kilitumwa. Kupokea kunaunda fungu jipya hapa na kunafanyika mara moja tu; kama kimefika kidogo, weka kilichofika na upungufu utabaki kwenye kumbukumbu.",
+    "newLotCode": "Namba ya fungu jipya"
+  },
+  "packing": {
+    "pack": "Fungasha kwenye chupa",
+    "title": "Fungasha fungu {code} kwenye chupa",
+    "text": "Inaunda fungu jipya la chupa kutoka kilo za fungu hili. Kilo zinatoka kwenye fungu hili na chupa zinaingia akibani mara moja. Ni fungu la ugavi tu linaloweza kufungashwa, mara moja.",
+    "product": "Bidhaa ya chupa",
+    "units": "Chupa zilizotengenezwa",
+    "rawKg": "Kilo zilizotumika",
+    "done": "Fungu {code} limetengenezwa: chupa {units} kutoka kilo {kg}.",
+    "open": "Fungua fungu {code}"
   }
 }
