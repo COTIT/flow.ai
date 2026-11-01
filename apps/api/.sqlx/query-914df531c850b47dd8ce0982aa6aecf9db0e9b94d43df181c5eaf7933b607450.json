@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM farm_loan_products\n           WHERE workspace_id = $1 AND ($2::uuid IS NULL OR id = $2)\n             AND ($3::bool IS NULL OR is_active = $3)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "914df531c850b47dd8ce0982aa6aecf9db0e9b94d43df181c5eaf7933b607450"
+}

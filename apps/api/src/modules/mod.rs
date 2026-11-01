@@ -14,6 +14,7 @@ pub mod discounts;
 pub mod email_profiles;
 pub mod email_templates;
 pub mod email_verification;
+pub mod farm_bug_reports;
 pub mod farm_catalogue;
 pub mod farm_crops;
 pub mod farm_documents;

@@ -16,4 +16,5 @@ pub fn private() -> OpenApiRouter<AppState> {
             handlers::create_equipment
         ))
         .routes(routes!(handlers::get_equipment))
+        .routes(routes!(handlers::list_loans, handlers::create_loan))
 }

@@ -44,7 +44,7 @@ fn is_heic(b: &[u8]) -> bool {
 }
 
 /// Content type from the bytes; the client's claim and the file name are ignored.
-fn content_type(bytes: &[u8]) -> Option<&'static str> {
+pub(crate) fn content_type(bytes: &[u8]) -> Option<&'static str> {
     if is_heic(bytes) {
         return Some("image/heic");
     }

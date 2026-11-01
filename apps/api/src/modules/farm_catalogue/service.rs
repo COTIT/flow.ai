@@ -8,7 +8,9 @@ use crate::{
     error::AppError,
     http::{farm::FarmAccess, workspace::NOT_ALLOWED},
     modules::{
-        farm_catalogue::repo::{self, CategoryRow, EquipmentRow, NewCategory, NewEquipment},
+        farm_catalogue::repo::{
+            self, CategoryRow, EquipmentRow, LoanRow, NewCategory, NewEquipment, NewLoan,
+        },
         farm_surveys::repo::currency_exists,
     },
 };
@@ -172,5 +174,75 @@ pub async fn create_equipment(
         .await?
         .ok_or(AppError::NotFound)?;
     tx.commit().await?;
+    Ok((row, true))
+}
+
+/// One page of loan listings: every farm member reads them.
+pub async fn list_loans(
+    state: &AppState,
+    access: &FarmAccess,
+    active: Option<bool>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<LoanRow>, i64), AppError> {
+    Ok(repo::loans(&state.db, access.workspace_id, None, active, limit, offset).await?)
+}
+
+/// Add a loan listing (ops, admin). False = replayed.
+pub async fn create_loan(
+    state: &AppState,
+    access: &FarmAccess,
+    l: NewLoan,
+) -> Result<(LoanRow, bool), AppError> {
+    require_manager(access)?;
+    let ws = access.workspace_id;
+    let find = |id| async move {
+        Ok::<_, AppError>(
+            repo::loans(&state.db, ws, Some(id), None, 1, 0)
+                .await?
+                .0
+                .pop(),
+        )
+    };
+    if let Some(id) = l.id
+        && let Some(row) = find(id).await?
+    {
+        let same = (
+            &row.code,
+            &row.name_en,
+            &row.name_sw,
+            &row.description_en,
+            &row.description_sw,
+            row.indicative_min_minor,
+            row.indicative_max_minor,
+            row.currency_id,
+        ) == (
+            &l.code,
+            &l.name_en,
+            &l.name_sw,
+            &l.description_en,
+            &l.description_sw,
+            l.indicative_min_minor,
+            l.indicative_max_minor,
+            l.currency_id,
+        );
+        return if same {
+            Ok((row, false))
+        } else {
+            Err(AppError::Conflict(ID_TAKEN))
+        };
+    }
+    if !currency_exists(&state.db, ws, l.currency_id).await? {
+        return Err(AppError::field(
+            "currency_id",
+            "The selected currency id is invalid.",
+        ));
+    }
+    let mut tx = access.begin(&state.db).await?;
+    let id = repo::insert_loan(&mut *tx, ws, &l)
+        .await
+        .map_err(|e| insert_error(e, "farm_loan_products_pkey", "farm_loan_products_code_key"))?;
+    tx.commit().await?;
+    let row = find(id).await?.ok_or(AppError::NotFound)?;
     Ok((row, true))
 }

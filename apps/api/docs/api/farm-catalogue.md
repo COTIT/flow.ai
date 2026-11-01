@@ -60,3 +60,15 @@ ops or admin; others `403`.
 | `currency_id` | required, a currency of this workspace (`422` "no such currency in this workspace") |
 
 `201 {"data": machine}`.
+
+## Loan listings
+
+Loan LISTINGS (RUAHA `loan_product`): a name, a description and an **indicative** amount range. No interest, deposit, term, schedule or repayment: research item C (BoT Tier 2 classification) is unresolved and nothing here models lending. A farmer cannot request a loan in the app; they ask at the office.
+
+### `GET /v1/workspace/{workspace}/farm/loan-products?active&page&page_size`
+
+Every farm member. By English name: `{id, code, name_en, name_sw, description_en, description_sw, indicative_min, indicative_max, is_active, created_at, updated_at}`, the two amounts as Money `{minor, currency, decimals, currency_id}`.
+
+### `POST /v1/workspace/{workspace}/farm/loan-products`
+
+ops or admin. Body `{id?, code, name_en, name_sw, description_en?, description_sw?, indicative_min_minor, indicative_max_minor, currency_id}`; `0 < min ≤ max` (`422` otherwise), code unique in the workspace. No route edits or deletes a listing.
