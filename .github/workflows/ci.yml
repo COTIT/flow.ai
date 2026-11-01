@@ -111,6 +111,8 @@ jobs:
       COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
       NEXT_TELEMETRY_DISABLED: "1"
       TURBO_TELEMETRY_DISABLED: "1"
+      # The field app's equipment and catalogue screens sit behind a build-time release flag; e2e checks them.
+      VITE_FEATURE_RESOURCES: "on"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: corepack enable

@@ -4,11 +4,14 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 const useSession = vi.fn()
 const useEquipmentItem = vi.fn()
 const mutateAsync = vi.fn()
+const flags = { pue: true }
+const tzs = (minor: number) => ({ minor, currency: 'TZS', decimals: 2, currency_id: 'c1' })
 
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useParams: () => ({ equipmentId: 'eq1' }) }),
   Link: ({ children }: { children: React.ReactNode }) => <a href="#x">{children}</a>,
 }))
+vi.mock('@/lib/ported', () => ({ get PUE_PORTED() { return flags.pue } }))
 vi.mock('@/app/session', () => ({ useSession: () => useSession() }))
 // In-memory in place of IndexedDB, so a stored draft can be inspected.
 vi.mock('@/lib/drafts', async (importOriginal) => {
@@ -36,6 +39,7 @@ await import('@/i18n')
 const VILLAGE = '30000000-0000-4000-8000-000000000001'
 
 beforeEach(() => {
+  flags.pue = true
   mutateAsync.mockReset()
   mutateAsync.mockResolvedValue({ id: 'r1' })
   useSubmitRequestState.isPending = false
@@ -59,8 +63,7 @@ beforeEach(() => {
       name: 'Mill',
       category_name: 'Processing',
       rated_power_kw: 15,
-      indicative_price: 1000,
-      currency: 'TZS',
+      indicative_price: tzs(100000),
       typical_hours_per_day: 6,
       typical_days_per_week: 5,
       can_rent: false,
@@ -73,6 +76,19 @@ beforeEach(() => {
 const set = (testId: string, value: string) =>
   fireEvent.change(screen.getByTestId(testId), { target: { value } })
 const submit = () => fireEvent.click(screen.getByTestId('request-submit'))
+
+// PUE requests are not on the API yet: the machine is shown, the request form is not.
+describe('while requests are not on the API', () => {
+  test('shows the machine and its indicative price, with no request form', () => {
+    flags.pue = false
+    render(<EquipmentDetailScreen />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Mill')
+    expect(screen.getByTestId('equipment-price')).toHaveTextContent('TZS 1,000.00')
+    expect(screen.queryByTestId('request-submit')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('estimate-panel')).not.toBeInTheDocument()
+  })
+})
 
 describe('the request form as it arrives', () => {
   // Prefilled from the equipment's typicals, so the common case is one click.
@@ -325,7 +341,7 @@ describe('rent or buy', () => {
       error: null,
       item: {
         id: 'eq1', name: 'Mill', category_name: 'Processing', rated_power_kw: 15,
-        indicative_price: 1000, indicative_rent_per_day: 50, currency: 'TZS',
+        indicative_price: tzs(100000), indicative_rent_per_day: tzs(5000),
         typical_hours_per_day: 6, typical_days_per_week: 5, ...over,
       },
     })

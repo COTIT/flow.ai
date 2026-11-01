@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { farmVillagesCapacityCreate, farmVillagesCreate, farmVillagesList } from '@genesy/api-client/endpoints/farm-villages'
+import type { CapacityRequest } from '@genesy/api-client/model'
+
+import { workspaceId } from '@/app/workspace'
+import { allPages } from '@/features/farmer/pages'
 import { queryKeys } from '@/lib/queryKeys'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/db.types'
@@ -23,7 +28,8 @@ export interface VillageCapacity {
   code: string
   capacity_kw: number | null
   basis: Enums['capacity_basis'] | null
-  simultaneity_factor: number | null
+  /** Decimal text as the API sends it (3 decimals). */
+  simultaneity_factor: string | null
   effective_from: string | null
   source_note: string | null
 }
@@ -92,44 +98,39 @@ export function useCreateBuyer() {
 }
 
 /**
- * Villages with their CURRENT capacity row — spec 7.9.
+ * Villages with their CURRENT capacity — spec 7.9.
  *
- * `village_capacity_one_current` permits one current row per village, so the
- * embed returns at most one. A village with no capacity row still appears,
- * with its figures absent rather than zeroed: absent capacity is not zero
- * capacity, and `v_village_energy` inner-joins capacity so such a village has
- * no energy figures at all.
+ * The API embeds the current capacity on each village, or `null` when there is none (or the caller
+ * is neither ops/admin nor staff of that village). Absent capacity is not zero capacity, so its
+ * figures stay absent.
  */
 export async function fetchVillageCapacity(): Promise<VillageCapacity[]> {
-  const { data, error } = await supabase
-    .from('village')
-    .select(
-      'id, name, code, village_capacity ( capacity_kw, basis, simultaneity_factor, effective_from, source_note, is_current )',
-    )
-    .order('name')
-
-  if (error) throw new Error(error.message)
-
-  return (data ?? []).map((row) => {
-    const raw = row as unknown as Record<string, unknown>
-    const rows = (raw.village_capacity ?? []) as Array<Record<string, unknown>>
-    const current = rows.find((c) => c.is_current) ?? null
-
-    return {
-      id: raw.id as string,
-      name: raw.name as string,
-      code: raw.code as string,
-      capacity_kw: (current?.capacity_kw ?? null) as number | null,
-      basis: (current?.basis ?? null) as VillageCapacity['basis'],
-      simultaneity_factor: (current?.simultaneity_factor ?? null) as number | null,
-      effective_from: (current?.effective_from ?? null) as string | null,
-      source_note: (current?.source_note ?? null) as string | null,
-    }
-  })
+  const workspace = workspaceId()
+  const rows = await allPages((params) => farmVillagesList(workspace, params))
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    code: row.code,
+    // kW for display only; the API keeps the exact figure.
+    capacity_kw: row.capacity ? Number(row.capacity.capacity_kw) : null,
+    basis: (row.capacity?.basis ?? null) as VillageCapacity['basis'],
+    simultaneity_factor: row.capacity?.simultaneity_factor ?? null,
+    effective_from: row.capacity?.effective_from ?? null,
+    source_note: row.capacity?.source_note ?? null,
+  }))
 }
 
 export function useVillageCapacity() {
   return useQuery({ queryKey: queryKeys.villageCapacity(), queryFn: fetchVillageCapacity })
+}
+
+/** A capacity as typed: decimal text, blanks allowed where the API has a default. */
+export interface CapacityInput {
+  capacity_kw: string
+  basis: string
+  simultaneity_factor: string
+  source_note: string
+  effective_from: string
 }
 
 export interface NewVillage {
@@ -139,37 +140,63 @@ export interface NewVillage {
   code: string
   latitude: string
   longitude: string
-  capacity: {
-    capacity_kw: string
-    basis: Enums['capacity_basis']
-    simultaneity_factor: string
-    source_note: string
-    effective_from: string
+  capacity: CapacityInput
+}
+
+const orNull = (text: string) => (text.trim() === '' ? null : text.trim())
+
+/** Typed text as the API's capacity body: figures stay decimal text, never floats. */
+const capacityBody = (c: CapacityInput): CapacityRequest => ({
+  capacity_kw: c.capacity_kw.trim(),
+  basis: orNull(c.basis),
+  simultaneity_factor: orNull(c.simultaneity_factor),
+  source_note: orNull(c.source_note),
+  effective_from: orNull(c.effective_from),
+})
+
+function useInvalidateVillages() {
+  const queryClient = useQueryClient()
+  return async () => {
+    await queryClient.invalidateQueries({ queryKey: queryKeys.villageCapacity() })
+    // The scope names, the Tower's village picker and its tiles all read villages.
+    await queryClient.invalidateQueries({ queryKey: queryKeys.villages() })
+    await queryClient.invalidateQueries({ queryKey: ['tower'] })
   }
 }
 
 /**
- * Create a village with its first capacity row — one RPC, one transaction.
- *
- * `app_create_village` is SECURITY INVOKER: `village_write` requires
- * `app_manages_project`, so RLS decides. The id is the draft's client ref, so
- * a retried submit replays rather than adding a second village. Range, code
- * and basis rules are the database's; its message is shown as written.
+ * Create a village with its first capacity — one call, one transaction on the API. The id is the
+ * draft's client ref, so a retried submit replays (200) rather than adding a second village.
+ * Range, code and basis rules are the API's; its message is shown as written.
  */
 export function useCreateVillage() {
-  const queryClient = useQueryClient()
-
+  const invalidate = useInvalidateVillages()
   return useMutation({
-    mutationFn: async (village: NewVillage) => {
-      const { data, error } = await supabase.rpc('app_create_village', { payload: { ...village } })
-      if (error) throw new Error(error.message)
-      return data as { village_id: string; replayed: boolean }
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.villageCapacity() })
-      // The scope names, the Tower's village picker and its tiles all read villages.
-      await queryClient.invalidateQueries({ queryKey: queryKeys.villages() })
-      await queryClient.invalidateQueries({ queryKey: ['tower'] })
-    },
+    mutationFn: async (village: NewVillage) =>
+      (
+        await farmVillagesCreate(workspaceId(), {
+          id: village.id,
+          name: village.name,
+          code: village.code,
+          latitude: orNull(village.latitude),
+          longitude: orNull(village.longitude),
+          capacity: capacityBody(village.capacity),
+        })
+      ).data,
+    onSuccess: invalidate,
+  })
+}
+
+/**
+ * Record a new current capacity for a village; the previous one stays as history on the API.
+ * shortcut: the capacity create takes no client id, so a retry after a lost reply records the same
+ * figure twice (harmless: the newest is current); send one when the API accepts it.
+ */
+export function useSetVillageCapacity() {
+  const invalidate = useInvalidateVillages()
+  return useMutation({
+    mutationFn: async ({ villageId, capacity }: { villageId: string; capacity: CapacityInput }) =>
+      (await farmVillagesCapacityCreate(workspaceId(), villageId, capacityBody(capacity))).data,
+    onSuccess: invalidate,
   })
 }

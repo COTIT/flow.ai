@@ -15,7 +15,8 @@ import { useEquipmentItem } from '@/features/farmer/useEquipment'
 import { requestSchema, type RequestForm } from '@/features/farmer/requestSchema'
 import { z } from 'zod'
 import { useSubmitRequest } from '@/features/farmer/useRequests'
-import { formatKw, formatMoney } from '@/lib/format'
+import { formatKw, formatPrice } from '@/lib/format'
+import { PUE_PORTED } from '@/lib/ported'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 import { FormDraftStatus } from '@/components/FormDraftStatus'
@@ -59,7 +60,7 @@ const isAcquisition = (value: string): value is Acquisition => value === 'rent' 
  */
 export function EquipmentDetailScreen() {
   const { equipmentId } = route.useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const session = useSession()
   const query = useEquipmentItem(equipmentId)
   const submit = useSubmitRequest()
@@ -231,7 +232,7 @@ export function EquipmentDetailScreen() {
                 <IndicativePill />
               </span>
               <span className="tabular font-semibold" style={{ fontSize: 17 }}>
-                {formatMoney(item.indicative_price, item.currency)}
+                {formatPrice(item.indicative_price, i18n.language)}
               </span>
             </span>
           )}
@@ -242,7 +243,7 @@ export function EquipmentDetailScreen() {
                 <IndicativePill />
               </span>
               <span className="tabular font-semibold" style={{ fontSize: 17 }}>
-                {formatMoney(item.indicative_rent_per_day, item.currency)}
+                {formatPrice(item.indicative_rent_per_day, i18n.language)}
               </span>
             </span>
           )}
@@ -252,6 +253,8 @@ export function EquipmentDetailScreen() {
         </p>
       </header>
 
+      {/* shortcut: PUE requests and their estimate are not on the API yet; the form shows once PUE_PORTED. */}
+      {PUE_PORTED && (<>
       <h2 className="type-section" style={{ color: 'var(--ink-3)' }}>
         {t('equipment.requestThis')}
       </h2>
@@ -437,6 +440,7 @@ export function EquipmentDetailScreen() {
             : t('equipment.submit')}
         </button>
       </form>
+      </>)}
     </section>
   )
 }

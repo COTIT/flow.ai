@@ -6,9 +6,11 @@ const useEquipmentList = vi.fn()
 const useLoanProducts = vi.fn()
 const search = { kind: undefined as string | undefined }
 const navigate = vi.fn()
+const flags = { pue: false }
 
 vi.mock('@/features/farmer/useEquipment', () => ({ useEquipmentList: () => useEquipmentList() }))
 vi.mock('@/features/farmer/useResources', () => ({ useLoanProducts: () => useLoanProducts() }))
+vi.mock('@/lib/ported', () => ({ get PUE_PORTED() { return flags.pue } }))
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useSearch: () => search, useNavigate: () => navigate }),
   Link: ({ children, ...props }: { children: React.ReactNode }) => <a href="#x" {...props}>{children}</a>,
@@ -17,16 +19,16 @@ vi.mock('@tanstack/react-router', () => ({
 const { EquipmentListScreen } = await import('@/features/farmer/EquipmentListScreen')
 await import('@/i18n')
 
+const tzs = (minor: number) => ({ minor, currency: 'TZS', decimals: 2, currency_id: 'c1' })
 const machine = (over: Record<string, unknown> = {}) => ({
   id: 'eq1',
   name: 'Maize mill',
   category_name: 'Milling',
   rated_power_kw: 15,
-  indicative_price: 22000000,
-  indicative_rent_per_day: 150000,
+  indicative_price: tzs(2200000000),
+  indicative_rent_per_day: tzs(15000000),
   can_rent: true,
   can_buy: true,
-  currency: 'TZS',
   ...over,
 })
 
@@ -41,14 +43,28 @@ const loan = {
 }
 
 beforeEach(() => {
+  flags.pue = false
   search.kind = undefined
   navigate.mockReset()
   useEquipmentList.mockReturnValue({ isLoading: false, error: null, items: [machine()] })
+  useLoanProducts.mockReset()
   useLoanProducts.mockReturnValue({ isLoading: false, error: null, items: [loan] })
 })
 
 describe('the Resources screen', () => {
+  // Loan listings are not on the API yet: equipment only, and no loan tab to land on.
+  test('lists equipment only while loans are not on the API', () => {
+    search.kind = 'loan'
+    render(<EquipmentListScreen />)
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Equipment')
+    expect(screen.queryByTestId('resources-tab-loan')).not.toBeInTheDocument()
+    expect(screen.getByTestId('equipment-item')).toBeInTheDocument()
+    expect(useLoanProducts).not.toHaveBeenCalled()
+  })
+
   test('offers equipment and loans', () => {
+    flags.pue = true
     render(<EquipmentListScreen />)
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Equipment and loans')
@@ -56,6 +72,7 @@ describe('the Resources screen', () => {
   })
 
   test('switching to loans is held in the URL', async () => {
+    flags.pue = true
     render(<EquipmentListScreen />)
     await userEvent.click(screen.getByTestId('resources-tab-loan'))
 
@@ -95,6 +112,7 @@ describe('the Resources screen', () => {
 /** Loans are listings: never an offer, never requested in the app. */
 describe('loans', () => {
   beforeEach(() => {
+    flags.pue = true
     search.kind = 'loan'
   })
 
