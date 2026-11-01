@@ -1,15 +1,17 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const useSupplyLinks = vi.fn()
 const useSupplyTransfers = vi.fn()
 const useDispatchOptions = vi.fn()
+const useLotStock = vi.fn()
 const dispatch = { mutate: vi.fn(), isPending: false, error: null as unknown, isSuccess: false, reset: vi.fn() }
 
 vi.mock('@/features/ops/supply/useSupply', () => ({
   useSupplyLinks: () => useSupplyLinks(),
   useSupplyTransfers: () => useSupplyTransfers(),
   useDispatchOptions: () => useDispatchOptions(),
+  useLotStock: (lotId: string) => useLotStock(lotId),
   useDispatch: () => dispatch,
 }))
 
@@ -39,6 +41,11 @@ beforeEach(() => {
     error: null,
     data: { lots: [{ id: 'lot1', code: 'ILU-H-2026-01' }], warehouses: [{ id: 'wh1', name: 'Iringa store' }] },
   })
+  useLotStock.mockImplementation((lotId: string) =>
+    lotId
+      ? { isLoading: false, error: null, data: [{ warehouse_id: 'wh1', level: '40.00', reserved: '5.00', available: '35.00' }] }
+      : { isLoading: false, error: null, data: undefined },
+  )
   useSupplyTransfers.mockReturnValue({
     isLoading: false,
     error: null,
@@ -105,7 +112,61 @@ describe('the form', () => {
       lotId: 'lot1',
       warehouseId: 'wh1',
       quantity: '12.50',
+      idempotencyKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
     })
+  })
+
+  // A resend of the same transfer after a lost reply replays the first answer (one transfer); a
+  // changed form or a sent transfer starts a new attempt.
+  test('the Idempotency-Key lasts until a transfer is sent, even across edits', () => {
+    render(<DispatchScreen />)
+    fill()
+    const send = () => {
+      fireEvent.click(screen.getByTestId('dispatch-send'))
+      fireEvent.click(screen.getByTestId('confirm-dialog-confirm'))
+    }
+    const settle = (call: number, ok = false) =>
+      act(() => {
+        if (ok) dispatch.mutate.mock.calls[call][1].onSuccess()
+        dispatch.mutate.mock.calls[call][1].onSettled()
+      })
+    const key = (call: number) => dispatch.mutate.mock.calls[call][0].idempotencyKey
+
+    send()
+    settle(0)
+    send()
+    expect(key(1)).toBe(key(0))
+
+    settle(1)
+    fireEvent.change(screen.getByTestId('dispatch-quantity'), { target: { value: '10' } })
+    send()
+    // The first send may have landed with its reply lost: the same key makes the API refuse a changed body
+    // instead of making a second transfer.
+    expect(key(2)).toBe(key(1))
+
+    settle(2, true)
+    fireEvent.change(screen.getByTestId('dispatch-quantity'), { target: { value: '10' } })
+    send()
+    expect(key(3)).not.toBe(key(2))
+  })
+
+  test("shows the picked lot's stock per warehouse, for reading only", () => {
+    render(<DispatchScreen />)
+    expect(screen.queryByTestId('dispatch-stock')).toBeNull()
+    fireEvent.change(screen.getByTestId('dispatch-lot'), { target: { value: 'lot1' } })
+
+    expect(useLotStock).toHaveBeenLastCalledWith('lot1')
+    const row = screen.getByTestId('dispatch-stock-row')
+    expect(row).toHaveTextContent('Iringa store')
+    expect(row).toHaveTextContent('35.00 available')
+    expect(row).toHaveTextContent('40.00 on hand, 5.00 held for orders')
+  })
+
+  test('a lot with no stock says so', () => {
+    useLotStock.mockReturnValue({ isLoading: false, error: null, data: [] })
+    render(<DispatchScreen />)
+    fireEvent.change(screen.getByTestId('dispatch-lot'), { target: { value: 'lot1' } })
+    expect(screen.getByTestId('dispatch-stock')).toHaveTextContent('This lot holds no stock.')
   })
 
   test("the API's refusal is shown as written", () => {

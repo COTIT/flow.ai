@@ -15,12 +15,13 @@ const provenance = (verification = "unverified", captured_at = "2026-09-01T08:00
   verified_by: null,
 })
 
-/** GET /workspace/w1/farm/crop-cycles/{cycle}. */
+/** GET /workspace/w1/farm/crop-cycles/{cycle}: its crop embedded, which names the screen. */
 export const cycle: MockReply = {
   body: {
     data: {
       id: CYCLE,
       crop_id: MAIZE,
+      crop: { id: MAIZE, code: "MZ", name_en: "Maize", name_sw: "Mahindi", measured_by: "area" },
       plot_id: PLOT,
       village_id: "v1",
       season_label: "Msimu 2026 A",

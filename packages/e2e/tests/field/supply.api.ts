@@ -42,6 +42,11 @@ export const batches = list([
 
 export const warehouses = list([{ id: "wh1", name: "Iringa store" }])
 
+/** GET /lots/lot1/stock: per warehouse, 2-decimal text; `available = level - reserved` is the API's. */
+export const lotStock: MockReply = {
+  body: { data: [{ warehouse_id: "wh1", level: "40.00", reserved: "5.00", available: "35.00" }] },
+}
+
 export const transfers = list([
   {
     id: "t1",
@@ -74,6 +79,9 @@ export const dispatched = {
     received_at: null,
   },
 }
+
+/** A reply lost on the way back: the app may resend under the same Idempotency-Key. */
+export const unavailable = { message: "service unavailable" }
 
 /** The API's refusal when the shop revoked the link after the screen loaded (supply-chain.md). */
 export const notLive = { message: "The supply link is not live." }

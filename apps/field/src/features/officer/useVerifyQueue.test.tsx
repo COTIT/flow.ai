@@ -8,6 +8,7 @@ const list = {
   farms: vi.fn(),
   plots: vi.fn(),
   cycles: vi.fn(),
+  harvests: vi.fn(),
 }
 
 const verify = {
@@ -24,6 +25,7 @@ vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
   farmRecordsFarmsList: (...args: unknown[]) => list.farms(...args),
   farmRecordsPlotsList: (...args: unknown[]) => list.plots(...args),
   farmRecordsCropCyclesList: (...args: unknown[]) => list.cycles(...args),
+  farmRecordsHarvestReportsAll: (...args: unknown[]) => list.harvests(...args),
   farmRecordsPersonsVerify: (...args: unknown[]) => verify.persons(...args),
   farmRecordsHouseholdsVerify: (...args: unknown[]) => verify.households(...args),
   farmRecordsFarmsVerify: (...args: unknown[]) => verify.farms(...args),
@@ -34,6 +36,7 @@ vi.mock('@genesy/api-client/endpoints/farm-records', () => ({
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
 const { fetchVerifyQueue, useVerifyQueue, useVerifyFromQueue } = await import('@/features/officer/useVerifyQueue')
+const { default: i18n } = await import('@/i18n')
 
 const id = '11111111-1111-4111-8111-111111111111'
 
@@ -49,23 +52,29 @@ function seed() {
   list.farms.mockResolvedValue(page([{ id: 'f1', label: 'Farm', village_id: 'v1', provenance: provenance('2026-09-19T00:00:00Z') }]))
   list.plots.mockResolvedValue(page([{ id: 'p1', farm_id: 'f1', label: 'Plot', village_id: 'v1', provenance: provenance('2026-09-21T00:00:00Z') }]))
   list.cycles.mockResolvedValue(page([
-    { id: 'c1', season_label: 'Masika', village_id: 'v1', provenance: provenance('2026-09-18T00:00:00Z') },
-    { id: 'c2', season_label: null, village_id: 'v1', provenance: provenance('2026-09-17T00:00:00Z') },
+    { id: 'c1', season_label: 'Masika', crop: maize, village_id: 'v1', provenance: provenance('2026-09-18T00:00:00Z') },
+    { id: 'c2', season_label: null, crop: maize, village_id: 'v1', provenance: provenance('2026-09-17T00:00:00Z') },
+  ]))
+  list.harvests.mockResolvedValue(page([
+    { id: 'h1', crop_cycle_id: 'c1', kind: 'expected', quantity_kg: '4100.00', is_current: true, village_id: 'v1', provenance: provenance('2026-09-16T00:00:00Z') },
   ]))
 }
+const maize = { id: 'crop-1', code: 'maize', name_en: 'Maize', name_sw: 'Mahindi', measured_by: 'area' }
 
 describe('verify queue data', () => {
   // ?verification=unverified,pending on each list, every page: the API's answer, nothing filtered here.
-  test('lists the outstanding records of five kinds, newest first, with their parents', async () => {
+  test('lists the outstanding records of six kinds, newest first, with their parents', async () => {
     seed()
     const rows = await fetchVerifyQueue()
     for (const fn of Object.values(list)) {
       expect(fn).toHaveBeenCalledWith('w1', { verification: 'unverified,pending', page: 1, page_size: 100 })
     }
     expect(rows.map((row) => `${row.table}:${row.label}`)).toEqual([
-      'household:Kaya', 'plot:Plot', 'person:A B', 'farm:Farm', 'crop_cycle:Masika', 'crop_cycle:',
+      'household:Kaya', 'plot:Plot', 'person:A B', 'farm:Farm', 'crop_cycle:Masika', 'crop_cycle:', 'harvest_report:4100.00 kg',
     ])
     expect(rows.find((row) => row.table === 'plot')?.farm_id).toBe('f1')
+    // The workspace-wide harvest list, role-scoped by the API; a figure opens its cycle.
+    expect(rows.find((row) => row.table === 'harvest_report')).toMatchObject({ id: 'h1', crop_cycle_id: 'c1', harvest_kind: 'expected' })
     expect(rows[2]).toEqual({
       table: 'person', id, label: 'A B', village_id: 'v1', source: 'farmer_reported', verification: 'unverified',
       confidence: null, captured_at: '2026-09-20T00:00:00Z',
@@ -94,7 +103,23 @@ describe('verify queue data', () => {
     const { result } = renderHook(() => useVerifyQueue(), {
       wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
     })
-    await waitFor(() => expect(result.current.data).toHaveLength(6))
+    await waitFor(() => expect(result.current.data).toHaveLength(7))
+  })
+
+  // Completed at render, in the language showing then: one cache entry serves both languages.
+  test("labels a cycle with its embedded crop and a figure with its kind, in the reader's language", async () => {
+    seed()
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { result, rerender } = renderHook(() => useVerifyQueue(), {
+      wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+    })
+    await waitFor(() => expect(result.current.data).toHaveLength(7))
+    const labels = () => result.current.data!.filter((row) => row.table !== 'person' && row.table !== 'household' && row.table !== 'farm' && row.table !== 'plot').map((row) => row.label)
+    expect(labels()).toEqual(['Maize · Masika', 'Maize', 'Expected · 4100.00 kg'])
+    await i18n.changeLanguage('sw')
+    rerender()
+    expect(labels()[0]).toBe('Mahindi · Masika')
+    await i18n.changeLanguage('en')
   })
 
   test('verify mutation calls the API and invalidates on success', async () => {

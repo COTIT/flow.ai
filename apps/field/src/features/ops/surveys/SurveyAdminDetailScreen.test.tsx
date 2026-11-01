@@ -64,6 +64,8 @@ const survey = (over: Record<string, unknown> = {}) => ({
   status: 'draft',
   published_at: null,
   published_by: null,
+  created_by: { id: 'u1', name: 'Amina Admin' },
+  summary: null,
   closed_at: null,
   created_at: '2026-09-19T08:00:00Z',
   updated_at: '2026-09-19T08:00:00Z',
@@ -139,8 +141,7 @@ describe('the header', () => {
     expect(screen.getByTestId('page-header')).toContainElement(screen.getAllByTestId('status-pill')[0])
     expect(screen.getByTestId('survey-fact-reward').textContent).toMatch(/TZS\s5,000\.00/)
     expect(screen.getByTestId('survey-fact-audit')).toHaveTextContent('15.0%')
-    // shortcut in the screen: the API's survey has no created_by yet.
-    expect(screen.queryByTestId('survey-created-by')).not.toBeInTheDocument()
+    expect(screen.getByTestId('survey-created-by')).toHaveTextContent('Created by Amina Admin')
   })
 
   test('a published survey says who published it and when', () => {

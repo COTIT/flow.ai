@@ -416,6 +416,11 @@
   "ops.noHeadroom": "0b2bd4f474",
   "ops.noHeadroomDetail": "edd669d903",
   "ops.colAcquisition": "35c18d23c6",
+  "ops.confirmApproveTitle": "292189b589",
+  "ops.confirmApproveDetail": "cf364ef717",
+  "ops.confirmRejectTitle": "6974586ef5",
+  "ops.confirmRejectDetail": "4138d52294",
+  "ops.confirmCancel": "e84712fbf4",
   "capacityBasis.planned": "9cbe42aaff",
   "capacityBasis.nameplate": "364462a891",
   "coverage.label": "80e13549b4",
@@ -1368,5 +1373,8 @@
   "supply.transfersTitle": "e7522c6357",
   "supply.noTransfersTitle": "4cb5f8fb68",
   "supply.noTransfersDetail": "f5faed81f6",
-  "supply.received": "70601b32dd"
+  "supply.received": "70601b32dd",
+  "supply.stockTitle": "997481c1e6",
+  "supply.stockRow": "df3a9fd75a",
+  "supply.noStock": "eb63388c6c"
 }
