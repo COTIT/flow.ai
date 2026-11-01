@@ -356,7 +356,7 @@ async fn a_client_id_of_another_plot_or_workspace_never_returns_that_document(po
     let (_, v) = call2(
         Method::POST,
         "/villages".into(),
-        json!({ "code": "X", "name": "X" }),
+        json!({ "code": "X", "name": "X", "capacity": { "capacity_kw": "1" } }),
     )
     .await;
     let (_, crop) = call2(

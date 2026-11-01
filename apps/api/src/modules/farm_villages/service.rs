@@ -1,5 +1,7 @@
 //! Village rules: every farm member reads them (names are not personal data); ops and admin
-//! write. A create with a known id replays instead of inserting twice.
+//! write. A village is born with a planned capacity in the same transaction (RUAHA: the energy
+//! view drops a village without one). Capacity is shown to managers and to the village's own
+//! members. A create with a known id replays instead of inserting twice.
 
 use uuid::Uuid;
 
@@ -9,7 +11,7 @@ use crate::{
     http::{farm::FarmAccess, workspace::NOT_ALLOWED},
     modules::farm_villages::{
         dto::NewVillageInput,
-        repo::{self, NewVillage, VillagePatch, VillageRow},
+        repo::{self, CapacityRow, NewCapacity, NewVillage, VillagePatch, VillageRow},
     },
 };
 
@@ -23,6 +25,15 @@ fn require_manager(access: &FarmAccess) -> Result<(), AppError> {
     }
 }
 
+/// The row as this caller may see it: capacity only for managers and the village's members.
+fn visible(access: &FarmAccess, row: VillageRow) -> VillageRow {
+    if access.manages() || access.member_villages().contains(&row.id) {
+        row
+    } else {
+        row.without_capacity()
+    }
+}
+
 /// One page of the workspace's villages.
 pub async fn list(
     state: &AppState,
@@ -30,10 +41,15 @@ pub async fn list(
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<VillageRow>, i64), AppError> {
-    Ok(repo::list(&state.db, access.workspace_id, limit, offset).await?)
+    let (rows, total) = repo::list(&state.db, access.workspace_id, limit, offset).await?;
+    Ok((
+        rows.into_iter().map(|r| visible(access, r)).collect(),
+        total,
+    ))
 }
 
-/// Create a village. False = replayed (the id already existed in this workspace).
+/// Create a village and its first capacity. False = replayed (the id already existed in this
+/// workspace).
 pub async fn create(
     state: &AppState,
     access: &FarmAccess,
@@ -55,13 +71,17 @@ pub async fn create(
         longitude: input.longitude,
         primary_language: &input.primary_language,
     };
-    let row = repo::insert(&mut *tx, ws, &new).await.map_err(|e| {
+    let id = repo::insert(&mut *tx, ws, &new).await.map_err(|e| {
         match e.as_database_error().and_then(|d| d.constraint()) {
             // Same id in another workspace: not ours to replay.
             Some("farm_villages_pkey") => AppError::Conflict("This id is already in use."),
             _ => AppError::unique(e, "farm_villages_code_key", "code", CODE_TAKEN),
         }
     })?;
+    repo::replace_capacity(&mut tx, ws, id, access.user_id, &input.capacity).await?;
+    let row = repo::find(&mut *tx, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
     tx.commit().await?;
     Ok((row, true))
 }
@@ -75,11 +95,34 @@ pub async fn update(
 ) -> Result<VillageRow, AppError> {
     require_manager(access)?;
     let id = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
+    let ws = access.workspace_id;
     let mut tx = access.begin(&state.db).await?;
-    let row = repo::update(&mut *tx, access.workspace_id, id, &patch)
+    repo::update(&mut *tx, ws, id, &patch)
         .await
         .map_err(|e| AppError::unique(e, "farm_villages_code_key", "code", CODE_TAKEN))?
         .ok_or(AppError::NotFound)?;
+    let row = repo::find(&mut *tx, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    tx.commit().await?;
+    Ok(row)
+}
+
+/// Record a new current capacity for a village; the previous one is kept as history.
+pub async fn add_capacity(
+    state: &AppState,
+    access: &FarmAccess,
+    village: &str,
+    capacity: NewCapacity,
+) -> Result<CapacityRow, AppError> {
+    require_manager(access)?;
+    let id = Uuid::parse_str(village).map_err(|_| AppError::NotFound)?;
+    let ws = access.workspace_id;
+    let mut tx = access.begin(&state.db).await?;
+    if !repo::lock(&mut *tx, ws, id).await? {
+        return Err(AppError::NotFound);
+    }
+    let row = repo::replace_capacity(&mut tx, ws, id, access.user_id, &capacity).await?;
     tx.commit().await?;
     Ok(row)
 }

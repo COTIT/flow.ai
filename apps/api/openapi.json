@@ -980,6 +980,87 @@
         },
         "type": "object"
       },
+      "CapacityRequest": {
+        "description": "A capacity figure. It becomes the village's current one; the previous one is kept as history.",
+        "properties": {
+          "basis": {
+            "description": "`planned` (default) or `nameplate`. Never `measured`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "capacity_kw": {
+            "description": "kW, at most 2 decimals.",
+            "example": "500",
+            "type": "string"
+          },
+          "effective_from": {
+            "description": "YYYY-MM-DD; default today.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "simultaneity_factor": {
+            "description": "0 < f ≤ 1, at most 3 decimals; default 1.",
+            "example": "0.600",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_note": {
+            "maxLength": 500,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "capacity_kw"
+        ],
+        "type": "object"
+      },
+      "CapacityResource": {
+        "description": "A village's current capacity: planned or nameplate, never measured.",
+        "properties": {
+          "basis": {
+            "description": "`planned` or `nameplate`.",
+            "type": "string"
+          },
+          "capacity_kw": {
+            "description": "kW as text, 2 decimals.",
+            "example": "500.00",
+            "type": "string"
+          },
+          "effective_from": {
+            "format": "date",
+            "type": "string"
+          },
+          "simultaneity_factor": {
+            "description": "Peak = rated power × this factor (0 < f ≤ 1), 3 decimals.",
+            "example": "0.600",
+            "type": "string"
+          },
+          "source_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "capacity_kw",
+          "basis",
+          "simultaneity_factor",
+          "source_note",
+          "effective_from"
+        ],
+        "type": "object"
+      },
       "CashDayResource": {
         "description": "expected = opening + floats - paid + voided - returned; variance = counted - expected.",
         "properties": {
@@ -2810,6 +2891,10 @@
       "CreateVillageRequest": {
         "description": "New village. Send a client-made `id` to make retries safe: a repeat with the same id returns the existing village.",
         "properties": {
+          "capacity": {
+            "$ref": "#/components/schemas/CapacityRequest",
+            "description": "Required: the village's first planned capacity."
+          },
           "code": {
             "example": "ILUNDO",
             "maxLength": 32,
@@ -2851,7 +2936,8 @@
         },
         "required": [
           "code",
-          "name"
+          "name",
+          "capacity"
         ],
         "type": "object"
       },
@@ -4300,6 +4386,18 @@
         ],
         "type": "object"
       },
+      "Envelope_CapacityResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CapacityResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_CashMovementResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -4557,6 +4655,30 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/EmailTemplateResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_EquipmentCategoryResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/EquipmentCategoryResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_EquipmentResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/EquipmentResource"
           }
         },
         "required": [
@@ -6040,6 +6162,294 @@
         },
         "required": [
           "data"
+        ],
+        "type": "object"
+      },
+      "EquipmentCategoryRef": {
+        "description": "The category a machine sits in.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "name_sw": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name_en",
+          "name_sw"
+        ],
+        "type": "object"
+      },
+      "EquipmentCategoryRequest": {
+        "description": "New category. A client `id` makes retries safe.",
+        "properties": {
+          "code": {
+            "example": "MILLING",
+            "maxLength": 32,
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name_en": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "name_sw": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name_en",
+          "name_sw"
+        ],
+        "type": "object"
+      },
+      "EquipmentCategoryResource": {
+        "description": "An equipment category.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "name_sw": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "name_en",
+          "name_sw",
+          "is_active",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "EquipmentRequest": {
+        "description": "New machine. Offered to rent, to buy, or both. A client `id` makes retries safe: the same body replays, a different one is refused (409).",
+        "properties": {
+          "can_buy": {
+            "description": "Default true.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "can_rent": {
+            "description": "Default false.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "category_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "code": {
+            "example": "MILL-500",
+            "maxLength": 32,
+            "type": "string"
+          },
+          "currency_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "indicative_price_minor": {
+            "description": "Minor units of `currency_id`.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "indicative_rent_per_day_minor": {
+            "description": "Minor units of `currency_id`.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name_en": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "name_sw": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "rated_power_kw": {
+            "description": "kW, at most 3 decimals.",
+            "example": "15",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "typical_days_per_week": {
+            "description": "0–7, at most 1 decimal.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "typical_hours_per_day": {
+            "description": "0–24, at most 2 decimals.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "category_id",
+          "code",
+          "name_en",
+          "name_sw",
+          "currency_id"
+        ],
+        "type": "object"
+      },
+      "EquipmentResource": {
+        "description": "A machine a farmer may ask to rent and/or buy. Prices are INDICATIVE, not a quotation.",
+        "properties": {
+          "can_buy": {
+            "type": "boolean"
+          },
+          "can_rent": {
+            "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/EquipmentCategoryRef"
+          },
+          "code": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "indicative_price": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Money",
+                "description": "Indicative purchase price."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "indicative_rent_per_day": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Money",
+                "description": "Indicative rent per day."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "name_en": {
+            "type": "string"
+          },
+          "name_sw": {
+            "type": "string"
+          },
+          "rated_power_kw": {
+            "description": "kW as text, 3 decimals; null = no energy estimate.",
+            "example": "15.000",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "typical_days_per_week": {
+            "example": "5.0",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "typical_hours_per_day": {
+            "example": "6.00",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "code",
+          "name_en",
+          "name_sw",
+          "rated_power_kw",
+          "typical_hours_per_day",
+          "typical_days_per_week",
+          "can_rent",
+          "can_buy",
+          "indicative_price",
+          "indicative_rent_per_day",
+          "is_active",
+          "created_at",
+          "updated_at"
         ],
         "type": "object"
       },
@@ -10750,6 +11160,44 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/EntryResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_EquipmentCategoryResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EquipmentCategoryResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_EquipmentResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EquipmentResource"
             },
             "type": "array"
           },
@@ -21173,6 +21621,17 @@
       "VillageResource": {
         "description": "A village inside this workspace.",
         "properties": {
+          "capacity": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CapacityResource",
+                "description": "Current capacity; null when the caller is neither a manager nor a member of this village."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "code": {
             "type": "string"
           },
@@ -21218,6 +21677,7 @@
           "latitude",
           "longitude",
           "primary_language",
+          "capacity",
           "created_at",
           "updated_at"
         ],
@@ -38321,6 +38781,732 @@
         ]
       }
     },
+    "/workspace/{workspace}/farm/equipment": {
+      "get": {
+        "operationId": "farm_equipment_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`true` = active rows only, `false` = retired only; absent = all.",
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_EquipmentResource"
+                }
+              }
+            },
+            "description": "One page, by English name"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List equipment",
+        "tags": [
+          "farm_equipment"
+        ]
+      },
+      "post": {
+        "description": "ops or admin. Refused with `equipment must be offered to rent or to buy` when both offers are false.",
+        "operationId": "farm_equipment_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_EquipmentResource"
+                }
+              }
+            },
+            "description": "Replayed: same id, same body"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_EquipmentResource"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id holds a different machine, or is used elsewhere"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input, unknown category or currency, or code taken"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a machine",
+        "tags": [
+          "farm_equipment"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/equipment-categories": {
+      "get": {
+        "operationId": "farm_equipment_categories_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`true` = active rows only, `false` = retired only; absent = all.",
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_EquipmentCategoryResource"
+                }
+              }
+            },
+            "description": "One page, by English name"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List equipment categories",
+        "tags": [
+          "farm_equipment"
+        ]
+      },
+      "post": {
+        "description": "ops or admin.",
+        "operationId": "farm_equipment_categories_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EquipmentCategoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_EquipmentCategoryResource"
+                }
+              }
+            },
+            "description": "Replayed: same id, same body"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_EquipmentCategoryResource"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The id holds a different category, or is used elsewhere"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input or code taken"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add an equipment category",
+        "tags": [
+          "farm_equipment"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/equipment/{equipment}": {
+      "get": {
+        "operationId": "farm_equipment_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Equipment id",
+            "in": "path",
+            "name": "equipment",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_EquipmentResource"
+                }
+              }
+            },
+            "description": "The machine"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or machine"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a machine",
+        "tags": [
+          "farm_equipment"
+        ]
+      }
+    },
     "/workspace/{workspace}/farm/farms": {
       "get": {
         "description": "Staff see their villages; a farmer sees what belongs to them and their household.",
@@ -45764,7 +46950,7 @@
         ]
       },
       "post": {
-        "description": "ops or admin. A repeat with the same `id` returns the village already made.",
+        "description": "ops or admin. The village is created with its first capacity in one transaction; a missing capacity is refused with `a planned capacity is required`. A repeat with the same `id` returns the village already made.",
         "operationId": "farm_villages_create",
         "parameters": [
           {
@@ -46096,6 +47282,171 @@
           }
         ],
         "summary": "Change a village",
+        "tags": [
+          "farm_villages"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/villages/{village}/capacity": {
+      "post": {
+        "description": "ops or admin. The new figure becomes current; the previous one is kept.",
+        "operationId": "farm_villages_capacity_create",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Village id",
+            "in": "path",
+            "name": "village",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CapacityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CapacityResource"
+                }
+              }
+            },
+            "description": "Recorded"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Caller is not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or village"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid figure (e.g. basis `measured`)"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record a new village capacity",
         "tags": [
           "farm_villages"
         ]

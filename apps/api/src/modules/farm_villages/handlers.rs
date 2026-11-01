@@ -16,7 +16,10 @@ use crate::{
         response::{Data, Envelope, MessageBody},
     },
     modules::farm_villages::{
-        dto::{CreateVillageRequest, ListQuery, UpdateVillageRequest, VillageResource},
+        dto::{
+            CapacityRequest, CapacityResource, CreateVillageRequest, ListQuery,
+            UpdateVillageRequest, VillageResource,
+        },
         service,
     },
 };
@@ -47,7 +50,9 @@ pub async fn list(
 #[utoipa::path(
     post, path = "/workspace/{workspace}/farm/villages", tag = "farm_villages",
     operation_id = "farm_villages_create", summary = "Create a village",
-    description = "ops or admin. A repeat with the same `id` returns the village already made.",
+    description = "ops or admin. The village is created with its first capacity in one \
+    transaction; a missing capacity is refused with `a planned capacity is required`. A repeat \
+    with the same `id` returns the village already made.",
     params(("workspace" = Uuid, Path, description = "Workspace id")),
     request_body = CreateVillageRequest,
     responses(
@@ -100,4 +105,32 @@ pub async fn update(
     Ok(Data(
         service::update(&state, &access, &id, patch).await?.into(),
     ))
+}
+
+/// POST /farm/villages/{village}/capacity -> 201.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/farm/villages/{village}/capacity", tag = "farm_villages",
+    operation_id = "farm_villages_capacity_create", summary = "Record a new village capacity",
+    description = "ops or admin. The new figure becomes current; the previous one is kept.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("village" = Uuid, Path, description = "Village id"),
+    ),
+    request_body = CapacityRequest,
+    responses(
+        (status = 201, body = Envelope<CapacityResource>, description = "Recorded"),
+        (status = 403, body = MessageBody, description = "Caller is not ops or admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or village"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid figure (e.g. basis `measured`)"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn add_capacity(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Path((_, village)): Path<(String, String)>,
+    ValidatedJson(input): ValidatedJson<CapacityRequest>,
+) -> Result<(StatusCode, Data<CapacityResource>), AppError> {
+    let row = service::add_capacity(&state, &access, &village, input).await?;
+    Ok((StatusCode::CREATED, Data(row.into())))
 }

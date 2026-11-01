@@ -25,7 +25,9 @@
     "tower": "Control Tower",
     "signingOut": "Inatoka…",
     "surveys": "Madodoso",
-    "redeem": "Kabidhi"
+    "redeem": "Kabidhi",
+    "supplyLinks": "Viungo vya usambazaji",
+    "dispatch": "Tuma mzigo"
   },
   "login": {
     "title": "Ingia",
@@ -735,7 +737,11 @@
     "notANumber": "Andika namba, ukitumia nukta kwa desimali.",
     "adding": "Inaongeza…",
     "addSubmit": "Ongeza kwenye orodha",
-    "colLoan": "Mkopo"
+    "colLoan": "Mkopo",
+    "categories": {
+      "title": "Aina za vifaa",
+      "add": "Ongeza aina"
+    }
   },
   "people": {
     "title": "Watu",
@@ -864,7 +870,9 @@
     "effectiveFrom": "Inatumika kuanzia",
     "required": "Hii ni lazima.",
     "notANumber": "Andika namba, ukitumia nukta kwa desimali.",
-    "officerNote": "Maafisa wa uwandani wataona kijiji kipya pale tu watakapopangiwa."
+    "officerNote": "Maafisa wa uwandani wataona kijiji kipya pale tu watakapopangiwa.",
+    "setCapacity": "Weka uwezo",
+    "capacityTitle": "Uwezo mpya uliopangwa wa {{name}}"
   },
   "farmerOpportunities": {
     "title": "Fursa",
@@ -1508,5 +1516,51 @@
   "notYet": {
     "title": "Bado haipatikani",
     "detail": "Skrini hii inahamia kwenye mfumo mpya wa Ruaha 360 na itarudi hivi karibuni."
+  },
+  "supply": {
+    "linksTitle": "Viungo vya usambazaji",
+    "linksIntro": "Viungo ambavyo mradi huu unatoa kwa duka. Duka linaona tu taarifa za wakulima unazoruhusu, na baada ya kukubali.",
+    "grantTitle": "Toa kiungo",
+    "grantTo": "Kitambulisho cha akaunti ya duka",
+    "grantToHint": "Uliza duka kitambulisho cha akaunti yake.",
+    "grantFields": "Taarifa ambazo duka linaweza kuonyesha",
+    "grantSubmit": "Toa kiungo",
+    "granting": "Inatoa…",
+    "noneTitle": "Hakuna viungo bado",
+    "noneDetail": "Toa kiungo kwa duka ili uanze kulisambazia.",
+    "grantedOn": "Kimetolewa {{date}}",
+    "noFields": "Hakuna taarifa za wakulima",
+    "revoke": "Batilisha",
+    "revokeTitle": "Batilisha kiungo hiki?",
+    "revokeDetail": "{{partner}} haitaweza tena kupokea mizigo kupitia kiungo hiki. Kiungo kilichobatilishwa kinabaki hivyo.",
+    "cancel": "Ghairi",
+    "field": {
+      "village": "Kijiji",
+      "farmer_count": "Idadi ya wakulima",
+      "harvest_window": "Kipindi cha mavuno"
+    },
+    "status": {
+      "pending": "Inasubiri",
+      "live": "Hai",
+      "revoked": "Kimebatilishwa",
+      "dispatched": "Kimetumwa",
+      "received": "Kimepokelewa"
+    },
+    "dispatchTitle": "Tuma mzigo",
+    "dispatchIntro": "Tuma akiba ya kundi kwa duka kupitia kiungo hai.",
+    "link": "Kiungo",
+    "lot": "Kundi",
+    "warehouse": "Kutoka ghala",
+    "quantity": "Kiasi",
+    "choose": "Chagua…",
+    "send": "Tuma",
+    "sending": "Inatuma…",
+    "sendTitle": "Tuma akiba hii?",
+    "sendDetail": "{{quantity}} ya kundi {{lot}} kwa {{partner}}. Inatoka kwenye kundi sasa.",
+    "sent": "Imetumwa.",
+    "transfersTitle": "Mizigo iliyotumwa",
+    "noTransfersTitle": "Hakuna kilichotumwa bado",
+    "noTransfersDetail": "Mizigo unayotuma itaonekana hapa.",
+    "received": "Imepokelewa {{quantity}}"
   }
 }

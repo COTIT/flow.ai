@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_village_capacities SET is_current = false\n         WHERE workspace_id = $1 AND village_id = $2 AND is_current",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b9a196d67bf58d88b2d65ead7dafc149cdff3ffe58e0202538c71a61e8a055a7"
+}

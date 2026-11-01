@@ -25,7 +25,8 @@
     "stock": "Voorraad",
     "invoices": "Facturen",
     "orders": "Orders",
-    "till": "Kassa"
+    "till": "Kassa",
+    "supply": "Aanvoer"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -302,5 +303,66 @@
     "catalog": "Tegen catalogusprijzen",
     "mismatch": "Verschil",
     "mismatchValue": "{amount} ({lines} regels)"
+  },
+  "supply": {
+    "title": "Aanvoer",
+    "tabs": {
+      "links": "Aanvoerkoppelingen",
+      "transfers": "Overdrachten"
+    },
+    "linksHint": "Met een koppeling kan de boerderij van een partner batches hierheen sturen. De lijst zegt welke boerengegevens op je publieke batchpagina's mogen staan; namen en foto's nooit.",
+    "noLinks": "Nog geen aanvoerkoppelingen.",
+    "partner": "Partner",
+    "direction": "Richting",
+    "allowList": "Mag tonen",
+    "granted": "Verleend",
+    "noFields": "Geen boerengegevens",
+    "directions": {
+      "incoming": "Van partner",
+      "outgoing": "Naar partner"
+    },
+    "statuses": {
+      "pending": "Wacht op acceptatie",
+      "live": "Actief",
+      "revoked": "Ingetrokken"
+    },
+    "fields": {
+      "village": "Dorp",
+      "farmer_count": "Aantal boeren",
+      "harvest_window": "Oogstdata"
+    },
+    "accept": "Accepteren",
+    "acceptTitle": "Aanvoerkoppeling van {partner} accepteren?",
+    "acceptText": "Daarna kunnen batches naar deze werkruimte worden gestuurd. Je publieke batchpagina's mogen tonen: {fields}.",
+    "revoke": "Intrekken",
+    "revokeTitle": "Aanvoerkoppeling met {partner} intrekken?",
+    "revokeText": "Er kunnen geen batches meer over worden gestuurd of ontvangen. Al ontvangen voorraad blijft boeren vergoeden. Om verder te gaan moet de partner een nieuwe koppeling verlenen.",
+    "noTransfers": "Nog geen overdrachten.",
+    "fromLot": "Van batch",
+    "quantity": "Hoeveelheid",
+    "received": "Ontvangen",
+    "receivedInto": "{quantity} in {code}",
+    "transferDirections": {
+      "incoming": "Inkomend",
+      "outgoing": "Uitgaand"
+    },
+    "transferStatuses": {
+      "dispatched": "Onderweg",
+      "received": "Ontvangen"
+    },
+    "receive": "Ontvangen",
+    "receiveFrom": "Batch {code} ontvangen",
+    "receiveText": "Er is {quantity} verstuurd. Ontvangen maakt hier een nieuwe batch en kan maar één keer; is er minder aangekomen, vul dan in wat aankwam en het tekort blijft geregistreerd.",
+    "newLotCode": "Nieuwe batchcode"
+  },
+  "packing": {
+    "pack": "In potten verpakken",
+    "title": "Batch {code} in potten verpakken",
+    "text": "Maakt een nieuwe batch potten van de kg van deze batch. De kg gaan meteen uit deze batch en de potten op voorraad. Alleen een batch uit aanvoer kan verpakt worden, één keer.",
+    "product": "Potproduct",
+    "units": "Potten gemaakt",
+    "rawKg": "Kg gebruikt",
+    "done": "Batch {code} gemaakt: {units} potten van {kg} kg.",
+    "open": "Batch {code} openen"
   }
 }

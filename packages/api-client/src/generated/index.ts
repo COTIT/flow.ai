@@ -12,6 +12,7 @@ export * from './email-profiles/email-profiles';
 export * from './email-templates/email-templates';
 export * from './farm-crops/farm-crops';
 export * from './farm-documents/farm-documents';
+export * from './farm-equipment/farm-equipment';
 export * from './farm-logins/farm-logins';
 export * from './farm-memberships/farm-memberships';
 export * from './farm-passbook/farm-passbook';

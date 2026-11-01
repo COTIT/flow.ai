@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import {
   useCreateVillage,
+  useSetVillageCapacity,
   useVillageCapacity,
   type VillageCapacity,
 } from '@/features/ops/useOpsReference'
@@ -40,6 +41,8 @@ export function VillagesScreen() {
   const { t } = useTranslation()
   const query = useVillageCapacity()
   const [createOpen, setCreateOpen] = useState(false)
+  // The village whose capacity is being set, or null.
+  const [capacityFor, setCapacityFor] = useState<VillageCapacity | null>(null)
 
   const columns = useMemo(() => {
     const col = createColumnHelper<VillageCapacity>()
@@ -86,6 +89,24 @@ export function VillagesScreen() {
         header: t('villages.colEffectiveFrom'),
         cell: (c) => (c.getValue() ? formatPlainDate(c.getValue() as string) : DASH),
       }),
+      col.display({
+        id: 'set-capacity',
+        header: () => <span className="sr-only">{t('villages.setCapacity')}</span>,
+        cell: (c) => (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            data-testid="village-set-capacity"
+            onClick={() => {
+              setCreateOpen(false)
+              setCapacityFor(c.row.original)
+            }}
+          >
+            {t('villages.setCapacity')}
+          </Button>
+        ),
+      }),
     ]
   }, [t])
 
@@ -103,7 +124,10 @@ export function VillagesScreen() {
             aria-expanded={createOpen}
             aria-controls="village-create-panel"
             variant={createOpen ? 'secondary' : 'primary'}
-            onClick={() => setCreateOpen((open) => !open)}
+            onClick={() => {
+              setCapacityFor(null)
+              setCreateOpen((open) => !open)
+            }}
           >
             {createOpen ? t('common.close') : t('villages.create')}
             {createOpen ? <ChevronUp aria-hidden size={16} /> : <ChevronDown aria-hidden size={16} />}
@@ -112,6 +136,9 @@ export function VillagesScreen() {
       />
 
       {createOpen && <VillageCreatePanel onClose={() => setCreateOpen(false)} />}
+      {capacityFor && (
+        <VillageCreatePanel key={capacityFor.id} village={capacityFor} onClose={() => setCapacityFor(null)} />
+      )}
 
       {query.isLoading ? (
         <Loading testId="villages-loading" />
@@ -156,16 +183,26 @@ function numberErrorKey(value: string, required: boolean): string | undefined {
 }
 
 /**
- * Ops adds a village together with its first PLANNED capacity row — one RPC,
- * because a village with no capacity row has no energy figures and is missing
+ * Ops adds a village together with its first PLANNED capacity — one call,
+ * because a village with no capacity has no energy figures and is missing
  * from the Tower. Capacity is planned or nameplate, never measured.
+ *
+ * Given a `village`, the same panel records a new current capacity for it
+ * (capacity fields only); the API keeps the previous one as history.
  */
-function VillageCreatePanel({ onClose }: { onClose: () => void }) {
+function VillageCreatePanel({ onClose, village }: { onClose: () => void; village?: VillageCapacity }) {
   const { t } = useTranslation()
-  const create = useCreateVillage()
+  const createVillage = useCreateVillage()
+  const setCapacity = useSetVillageCapacity()
+  const create = village ? setCapacity : createVillage
   const session = useSession()
   const projectId = session.data?.memberships.find((m) => m.role === 'ops' || m.role === 'admin')?.project_id
-  const draft = usePersistentForm('village-create', projectId ?? 'project', VILLAGE_DEFAULTS, zodResolver(villageSchema))
+  const draft = usePersistentForm(
+    village ? 'village-capacity' : 'village-create',
+    village?.id ?? projectId ?? 'project',
+    VILLAGE_DEFAULTS,
+    zodResolver(villageSchema),
+  )
 
   const [name, setName] = draft.field('name')
   const [code, setCode] = draft.field('code')
@@ -181,8 +218,8 @@ function VillageCreatePanel({ onClose }: { onClose: () => void }) {
   const inFlight = useRef(false)
 
   const errors = {
-    name: name.trim() === '' ? 'villages.required' : undefined,
-    code: code.trim() === '' ? 'villages.required' : undefined,
+    name: !village && name.trim() === '' ? 'villages.required' : undefined,
+    code: !village && code.trim() === '' ? 'villages.required' : undefined,
     latitude: numberErrorKey(latitude, false),
     longitude: numberErrorKey(longitude, false),
     capacity: numberErrorKey(capacityKw, true),
@@ -196,21 +233,25 @@ function VillageCreatePanel({ onClose }: { onClose: () => void }) {
     if (Object.values(errors).some(Boolean) || !projectId) return
 
     inFlight.current = true
-    void finishDraftWhenSaved(create.mutateAsync({
-      id: draft.clientRef,
-      project_id: projectId,
-      name: name.trim(),
-      code: code.trim(),
-      latitude: latitude.trim(),
-      longitude: longitude.trim(),
-      capacity: {
-        capacity_kw: capacityKw.trim(),
-        basis: basis as (typeof BASES)[number],
-        simultaneity_factor: simultaneity.trim(),
-        source_note: sourceNote.trim(),
-        effective_from: effectiveFrom,
-      },
-    }), draft.finish).finally(() => { inFlight.current = false })
+    const capacity = {
+      capacity_kw: capacityKw.trim(),
+      basis: basis as (typeof BASES)[number],
+      simultaneity_factor: simultaneity.trim(),
+      source_note: sourceNote.trim(),
+      effective_from: effectiveFrom,
+    }
+    const save = village
+      ? setCapacity.mutateAsync({ villageId: village.id, capacity }).then(onClose)
+      : createVillage.mutateAsync({
+          id: draft.clientRef,
+          project_id: projectId,
+          name: name.trim(),
+          code: code.trim(),
+          latitude: latitude.trim(),
+          longitude: longitude.trim(),
+          capacity,
+        })
+    void finishDraftWhenSaved(save, draft.finish).finally(() => { inFlight.current = false })
   }
 
   return (
@@ -221,7 +262,9 @@ function VillageCreatePanel({ onClose }: { onClose: () => void }) {
       style={{ border: '1px solid var(--rule)', borderRadius: 'var(--radius-card)', background: 'var(--paper)' }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="type-section" style={{ color: 'var(--ink-3)' }}>{t('villages.createTitle')}</h2>
+        <h2 className="type-section" style={{ color: 'var(--ink-3)' }}>
+          {village ? t('villages.capacityTitle', { name: village.name }) : t('villages.createTitle')}
+        </h2>
         <Button type="button" data-testid="village-create-close" variant="ghost" size="sm" onClick={onClose}>
           {t('common.close')}
         </Button>
@@ -237,6 +280,7 @@ function VillageCreatePanel({ onClose }: { onClose: () => void }) {
       >
         <FormDraftStatus dirty={draft.dirty} storageError={draft.storageError} />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {!village && (<>
           <Field label={t('villages.name')} id="village-name" error={shown('name')} errorTestId="village-name-error">
             <input id="village-name" data-testid="village-name" value={name} onChange={(e) => setName(e.target.value)} className="w-full" style={CONTROL} />
           </Field>
@@ -249,6 +293,7 @@ function VillageCreatePanel({ onClose }: { onClose: () => void }) {
           <Field label={t('villages.longitude')} id="village-longitude" error={shown('longitude')} errorTestId="village-longitude-error">
             <input id="village-longitude" data-testid="village-longitude" inputMode="decimal" value={longitude} onChange={(e) => setLongitude(e.target.value)} className="w-full" style={CONTROL} />
           </Field>
+          </>)}
 
           <Field label={t('villages.capacity')} id="village-capacity" error={shown('capacity')} errorTestId="village-capacity-error">
             <input id="village-capacity" data-testid="village-capacity" inputMode="decimal" value={capacityKw} onChange={(e) => setCapacityKw(e.target.value)} className="w-full" style={CONTROL} />
@@ -274,7 +319,7 @@ function VillageCreatePanel({ onClose }: { onClose: () => void }) {
           </Field>
         </div>
 
-        <p className="type-note" style={{ color: 'var(--ink-3)' }}>{t('villages.officerNote')}</p>
+        {!village && <p className="type-note" style={{ color: 'var(--ink-3)' }}>{t('villages.officerNote')}</p>}
 
         {create.isError && (
           <div data-testid="village-create-error">
@@ -283,7 +328,7 @@ function VillageCreatePanel({ onClose }: { onClose: () => void }) {
         )}
 
         <Button type="submit" data-testid="village-create-submit" disabled={!draft.ready || create.isPending} className="w-fit">
-          {create.isPending ? t('villages.creating') : t('villages.create')}
+          {create.isPending ? t('villages.creating') : t(village ? 'villages.setCapacity' : 'villages.create')}
         </Button>
       </form>
     </section>
