@@ -1408,6 +1408,12 @@ fn every_farm_pue_operation_is_documented() {
             "200",
         ),
         (
+            "/farm/pue-requests/estimate",
+            "post",
+            "farm_pue_requests_estimate",
+            "200",
+        ),
+        (
             "/farm/villages/{village}/energy",
             "get",
             "farm_pue_village_energy",

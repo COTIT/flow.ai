@@ -11,8 +11,8 @@ use crate::{
     modules::{
         farm_catalogue::repo::find_equipment,
         farm_pue::{
-            dto::NewRequest,
-            repo::{self, EnergyRow, NewRow, Pick, PipelineRow, RequestRow, Seen},
+            dto::{NewPreview, NewRequest},
+            repo::{self, EnergyRow, NewRow, Pick, PipelineRow, PreviewRow, RequestRow, Seen},
             rules::{self, CREATABLE, CREATE_REFUSED, REVIEW_ONLY, Refusal},
         },
     },
@@ -253,4 +253,29 @@ pub async fn pipeline(
 ) -> Result<Vec<PipelineRow>, AppError> {
     let village = staff_village(state, access, village).await?;
     Ok(repo::pipeline(&state.db, access.workspace_id, village).await?)
+}
+
+/// The estimate a request with these inputs would get, without writing anything. Any farm
+/// member may ask; unknown machines are a 422.
+pub async fn preview(
+    state: &AppState,
+    access: &FarmAccess,
+    p: NewPreview,
+) -> Result<Option<PreviewRow>, AppError> {
+    let ws = access.workspace_id;
+    if find_equipment(&state.db, ws, p.equipment_id)
+        .await?
+        .is_none()
+    {
+        return Err(invalid("equipment_id"));
+    }
+    Ok(repo::preview(
+        &state.db,
+        ws,
+        p.equipment_id,
+        p.quantity,
+        p.hours_per_day,
+        p.days_per_week,
+    )
+    .await?)
 }

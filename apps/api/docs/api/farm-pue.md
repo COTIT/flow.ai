@@ -23,7 +23,7 @@ Body `{id?, equipment_id, person_id?, farm_id?, acquisition?, quantity?, hours_p
 `201 {"data": request}`:
 
 ```json
-{ "id": "…", "village_id": "…", "person": { "id": "…", "name": "Neema Mwakalinga" }, "farm_id": null,
+{ "id": "…", "village_id": "…", "person": { "id": "…", "name": "Neema Mwakalinga" }, "farm_id": null, "farm": null,
   "equipment": { "id": "…", "code": "MILL", "name_en": "Maize mill", "name_sw": "Kinu" },
   "acquisition": "buy", "quantity": 1, "hours_per_day": null, "days_per_week": null, "purpose": "…",
   "status": "submitted", "submitted_at": "…", "decided_at": null, "decided_by": null, "decision_note": null,
@@ -36,7 +36,13 @@ Body `{id?, equipment_id, person_id?, farm_id?, acquisition?, quantity?, hours_p
 
 ### The energy estimate
 
-One per request, written only by the database (`farm_pue_recompute_estimate`): rated kW × quantity, × hours a day, × days a week. The inputs are copied when it is computed, so a later catalogue change does not move a stored estimate; changing a request's machine, quantity, hours or days recomputes it, a status change does not. A machine with no rated power has no estimate (`null`). No route writes an estimate.
+One per request, written only by the database (`farm_pue_recompute_estimate`): rated kW × quantity, × hours a day, × days a week. The formula lives once, in SQL functions (`farm_pue_estimate_inputs`, `farm_est_*`) that the stored estimate's generated columns and the preview both call. The inputs are copied when it is computed, so a later catalogue change does not move a stored estimate; changing a request's machine, quantity, hours or days recomputes it, a status change does not. A machine with no rated power has no estimate (`null`). No route writes an estimate.
+
+`farm` is `{id, label}` of the request's farm, or `null`.
+
+### `POST /v1/workspace/{workspace}/farm/pue-requests/estimate`
+
+A preview: body `{equipment_id, quantity?, hours_per_day?, days_per_week?}` (checked as on create). `200 {"data": {rated_power_kw, quantity, hours_per_day, days_per_week, est_power_kw, est_kwh_per_day, est_kwh_per_week, method}}`, exactly what a request with these inputs would store; `data` is `null` for a machine with no rated power; `422` on `equipment_id` for an unknown machine. Nothing is written. Any farm member.
 
 ### `GET /v1/workspace/{workspace}/farm/pue-requests?village_id&status&page&page_size`
 
@@ -56,7 +62,7 @@ Body `{action, note?}`. `200 {"data": request}`.
 | `approve` | under_review → approved (stamps `decided_at`, `decided_by`) | ops, admin |
 | `reject` | under_review → rejected (stamps `decided_at`, `decided_by`) | ops, admin |
 
-Any other move is `422 {"message": "illegal transition {from} -> {to}"}`; a legal review move by someone else is `403 {"message": "only ops or admin may review a request"}` (legality is checked first, as in RUAHA). `note` is kept as `decision_note`. There is no content edit route: a request keeps what it asked for.
+Any other move is `422 {"message": "illegal transition {from} -> {to}"}`; a legal review move by someone else is `403 {"message": "only ops or admin may review a request"}` (legality is checked first, as in RUAHA). `note` is kept as `decision_note`; `approve` and `reject` require one (`422` on `note`), as RUAHA's app did. There is no content edit route: a request keeps what it asked for.
 
 ## Village energy
 

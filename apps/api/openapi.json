@@ -4613,6 +4613,49 @@
         ],
         "type": "object"
       },
+      "EnergyEstimatePreview": {
+        "description": "What a request with these inputs would store as its estimate.",
+        "properties": {
+          "days_per_week": {
+            "type": "string"
+          },
+          "est_kwh_per_day": {
+            "type": "string"
+          },
+          "est_kwh_per_week": {
+            "type": "string"
+          },
+          "est_power_kw": {
+            "type": "string"
+          },
+          "hours_per_day": {
+            "type": "string"
+          },
+          "method": {
+            "description": "`level1_rated_x_hours`.",
+            "type": "string"
+          },
+          "quantity": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "rated_power_kw": {
+            "example": "1.500",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rated_power_kw",
+          "quantity",
+          "hours_per_day",
+          "days_per_week",
+          "est_power_kw",
+          "est_kwh_per_day",
+          "est_kwh_per_week",
+          "method"
+        ],
+        "type": "object"
+      },
       "EnergyEstimateResource": {
         "description": "Level 1 estimate: rated kW × quantity × hours × days, from inputs snapshotted when it was\ncomputed. Written only by the database.",
         "properties": {
@@ -5513,6 +5556,25 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/OpportunityResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_Option_EnergyEstimatePreview": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnergyEstimatePreview"
+              }
+            ]
           }
         },
         "required": [
@@ -16727,6 +16789,55 @@
         ],
         "type": "object"
       },
+      "PueEstimateRequest": {
+        "description": "The estimate inputs of a request; nothing is written.",
+        "properties": {
+          "days_per_week": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "equipment_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "hours_per_day": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "equipment_id"
+        ],
+        "type": "object"
+      },
+      "PueFarmRef": {
+        "description": "The farm a request is for.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "type": "object"
+      },
       "PuePipelineResource": {
         "description": "One status of a village's pipeline in one currency. INDICATIVE: not financed value, not a\nloan book.",
         "properties": {
@@ -16902,6 +17013,16 @@
               }
             ]
           },
+          "farm": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PueFarmRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "farm_id": {
             "format": "uuid",
             "type": [
@@ -16962,6 +17083,7 @@
           "village_id",
           "person",
           "farm_id",
+          "farm",
           "equipment",
           "acquisition",
           "quantity",
@@ -48232,6 +48354,151 @@
           }
         ],
         "summary": "Request a machine",
+        "tags": [
+          "farm_pue"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/pue-requests/estimate": {
+      "post": {
+        "description": "What a request with these inputs would store as its estimate, from the same SQL functions; `data` is null when the machine has no rated power. Nothing is written.",
+        "operationId": "farm_pue_requests_estimate",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PueEstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Option_EnergyEstimatePreview"
+                }
+              }
+            },
+            "description": "The estimate, or null"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid input or unknown machine"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Preview an energy estimate",
         "tags": [
           "farm_pue"
         ]

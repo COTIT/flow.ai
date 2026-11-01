@@ -1,0 +1,69 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.rated_power_kw AS \"rated_power_kw!\", i.quantity AS \"quantity!\",\n                  i.hours_per_day AS \"hours_per_day!\", i.days_per_week AS \"days_per_week!\",\n                  farm_est_power_kw(i.rated_power_kw, i.quantity)::numeric(12,3) AS \"est_power_kw!\",\n                  farm_est_kwh_per_day(i.rated_power_kw, i.quantity, i.hours_per_day)::numeric(12,3)\n                      AS \"est_kwh_per_day!\",\n                  farm_est_kwh_per_week(i.rated_power_kw, i.quantity, i.hours_per_day, i.days_per_week)::numeric(12,3)\n                      AS \"est_kwh_per_week!\"\n           FROM farm_pue_estimate_inputs($1, $2, $3, $4, $5) i",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rated_power_kw!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "quantity!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "hours_per_day!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "days_per_week!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "est_power_kw!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "est_kwh_per_day!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "est_kwh_per_week!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Numeric",
+        "Numeric"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "833b0592613aacf14c4fdf0574b5ad22546603da12ee21ed280998960b62071c"
+}

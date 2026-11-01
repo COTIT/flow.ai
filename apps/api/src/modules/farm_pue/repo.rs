@@ -32,6 +32,7 @@ pub struct RequestRow {
     /// `{id, name}`.
     pub person: Value,
     pub farm_id: Option<Uuid>,
+    pub farm_label: Option<String>,
     pub equipment_id: Uuid,
     pub equipment_code: String,
     pub equipment_name_en: String,
@@ -89,7 +90,7 @@ pub async fn requests(
         RequestRow,
         r#"SELECT r.id, r.village_id,
                   jsonb_build_object('id', p.id, 'name', concat_ws(' ', p.given_name, p.family_name)) AS "person!",
-                  r.farm_id, r.equipment_id, eq.code AS equipment_code,
+                  r.farm_id, fa.label AS "farm_label?", r.equipment_id, eq.code AS equipment_code,
                   eq.name_en AS equipment_name_en, eq.name_sw AS equipment_name_sw,
                   r.acquisition, r.quantity, r.hours_per_day, r.days_per_week, r.purpose, r.status,
                   r.submitted_at, r.decided_at,
@@ -108,6 +109,7 @@ pub async fn requests(
            FROM farm_pue_requests r
            JOIN farm_persons p ON p.id = r.person_id
            JOIN farm_equipment eq ON eq.id = r.equipment_id
+           LEFT JOIN farms fa ON fa.id = r.farm_id
            LEFT JOIN farm_energy_estimates e ON e.pue_request_id = r.id
            WHERE r.workspace_id = $1 AND r.deleted_at IS NULL
              AND ($2 OR r.village_id = ANY($3) OR r.person_id = $4)
@@ -348,5 +350,45 @@ pub async fn pipeline(
         village,
     )
     .fetch_all(db)
+    .await
+}
+
+/// What a request with these inputs would store as its estimate (the same SQL functions).
+pub struct PreviewRow {
+    pub rated_power_kw: Decimal,
+    pub quantity: i32,
+    pub hours_per_day: Decimal,
+    pub days_per_week: Decimal,
+    pub est_power_kw: Decimal,
+    pub est_kwh_per_day: Decimal,
+    pub est_kwh_per_week: Decimal,
+}
+
+/// The estimate a request would get; None when the machine has no rated power.
+pub async fn preview(
+    db: &sqlx::PgPool,
+    ws: Uuid,
+    equipment: Uuid,
+    quantity: i32,
+    hours: Option<Decimal>,
+    days: Option<Decimal>,
+) -> Result<Option<PreviewRow>, sqlx::Error> {
+    sqlx::query_as!(
+        PreviewRow,
+        r#"SELECT i.rated_power_kw AS "rated_power_kw!", i.quantity AS "quantity!",
+                  i.hours_per_day AS "hours_per_day!", i.days_per_week AS "days_per_week!",
+                  farm_est_power_kw(i.rated_power_kw, i.quantity)::numeric(12,3) AS "est_power_kw!",
+                  farm_est_kwh_per_day(i.rated_power_kw, i.quantity, i.hours_per_day)::numeric(12,3)
+                      AS "est_kwh_per_day!",
+                  farm_est_kwh_per_week(i.rated_power_kw, i.quantity, i.hours_per_day, i.days_per_week)::numeric(12,3)
+                      AS "est_kwh_per_week!"
+           FROM farm_pue_estimate_inputs($1, $2, $3, $4, $5) i"#,
+        ws,
+        equipment,
+        quantity,
+        hours,
+        days,
+    )
+    .fetch_optional(db)
     .await
 }

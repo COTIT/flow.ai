@@ -8,7 +8,7 @@ use axum::{
 
 use crate::{
     AppState,
-    error::{AppError, UnprocessableBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         farm::FarmAccess,
         json::ValidatedJson,
@@ -17,8 +17,8 @@ use crate::{
     },
     modules::farm_pue::{
         dto::{
-            ListQuery, PuePipelineResource, PueRequestCreate, PueRequestResource,
-            PueTransitionRequest, VillageEnergyResource,
+            EnergyEstimatePreview, ListQuery, PueEstimateRequest, PuePipelineResource,
+            PueRequestCreate, PueRequestResource, PueTransitionRequest, VillageEnergyResource,
         },
         service,
     },
@@ -185,4 +185,28 @@ pub async fn pipeline(
 ) -> Result<Data<Vec<PuePipelineResource>>, AppError> {
     let rows = service::pipeline(&state, &access, &village).await?;
     Ok(Data(rows.into_iter().map(Into::into).collect()))
+}
+
+/// POST /farm/pue-requests/estimate: a preview, nothing written.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/farm/pue-requests/estimate", tag = "farm_pue",
+    operation_id = "farm_pue_requests_estimate", summary = "Preview an energy estimate",
+    description = "What a request with these inputs would store as its estimate, from the same \
+    SQL functions; `data` is null when the machine has no rated power. Nothing is written.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = PueEstimateRequest,
+    responses(
+        (status = 200, body = Envelope<Option<EnergyEstimatePreview>>, description = "The estimate, or null"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input or unknown machine"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn estimate(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    ValidatedJson(input): ValidatedJson<PueEstimateRequest>,
+) -> Result<Data<Option<EnergyEstimatePreview>>, AppError> {
+    let row = service::preview(&state, &access, input).await?;
+    Ok(Data(row.map(Into::into)))
 }

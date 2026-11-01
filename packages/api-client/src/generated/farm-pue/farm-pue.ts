@@ -25,15 +25,18 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  EnvelopeOptionEnergyEstimatePreview,
   EnvelopePueRequestResource,
   EnvelopeVecPuePipelineResource,
   EnvelopeVillageEnergyResource,
   FarmPueRequestsListParams,
   MessageBody,
   PaginatedPueRequestResource,
+  PueEstimateRequest,
   PueRequestCreate,
   PueTransitionRequest,
-  UnprocessableBody
+  UnprocessableBody,
+  ValidationErrorBody
 } from '../model';
 
 import { apiRequest } from '../../mutator';
@@ -228,6 +231,75 @@ export const useFarmPueRequestsCreate = <TError = ErrorType<MessageBody | Unproc
         TContext
       > => {
       return useMutation(getFarmPueRequestsCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * What a request with these inputs would store as its estimate, from the same SQL functions; `data` is null when the machine has no rated power. Nothing is written.
+ * @summary Preview an energy estimate
+ */
+export const farmPueRequestsEstimate = (
+    workspace: string,
+    pueEstimateRequest: BodyType<PueEstimateRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeOptionEnergyEstimatePreview>(
+      {url: `/workspace/${workspace}/farm/pue-requests/estimate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: pueEstimateRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmPueRequestsEstimateMutationKey = () => ['farmPueRequestsEstimate'] as const;
+
+export const getFarmPueRequestsEstimateMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmPueRequestsEstimate>>, TError,FarmPueRequestsEstimateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof farmPueRequestsEstimate>>, TError,FarmPueRequestsEstimateMutationVariables, TContext> => {
+
+const mutationKey = getFarmPueRequestsEstimateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof farmPueRequestsEstimate>>, FarmPueRequestsEstimateMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  farmPueRequestsEstimate(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FarmPueRequestsEstimateMutationResult = NonNullable<Awaited<ReturnType<typeof farmPueRequestsEstimate>>>
+    export type FarmPueRequestsEstimateMutationBody = BodyType<PueEstimateRequest>
+    export type FarmPueRequestsEstimateMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmPueRequestsEstimateMutationVariables = {workspace: string;data: BodyType<PueEstimateRequest>}
+
+    /**
+ * @summary Preview an energy estimate
+ */
+export const useFarmPueRequestsEstimate = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmPueRequestsEstimate>>, TError,FarmPueRequestsEstimateMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof farmPueRequestsEstimate>>,
+        TError,
+        FarmPueRequestsEstimateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFarmPueRequestsEstimateMutationOptions(options), queryClient);
     }
     /**
  * @summary Get a PUE request
