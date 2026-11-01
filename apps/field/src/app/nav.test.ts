@@ -101,6 +101,8 @@ describe('navItemsFor', () => {
       '/ops/buyers',
       '/ops/villages',
       '/ops/surveys',
+      '/ops/supply-links',
+      '/ops/dispatch',
       '/ops/tower',
     ])
   })

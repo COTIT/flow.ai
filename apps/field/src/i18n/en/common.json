@@ -25,7 +25,9 @@
     "tower": "Control Tower",
     "signingOut": "Signing out…",
     "surveys": "Surveys",
-    "redeem": "Redeem"
+    "redeem": "Redeem",
+    "supplyLinks": "Supply links",
+    "dispatch": "Dispatch"
   },
   "login": {
     "title": "Sign in",
@@ -735,7 +737,11 @@
     "notANumber": "Enter a number, using a point for decimals.",
     "adding": "Adding…",
     "addSubmit": "Add to the catalogue",
-    "colLoan": "Loan"
+    "colLoan": "Loan",
+    "categories": {
+      "title": "Equipment categories",
+      "add": "Add category"
+    }
   },
   "people": {
     "title": "People",
@@ -864,7 +870,9 @@
     "effectiveFrom": "Effective from",
     "required": "Required.",
     "notANumber": "Enter a number, using a point for decimals.",
-    "officerNote": "Field officers see a new village only once they are assigned to it."
+    "officerNote": "Field officers see a new village only once they are assigned to it.",
+    "setCapacity": "Set capacity",
+    "capacityTitle": "New planned capacity for {{name}}"
   },
   "farmerOpportunities": {
     "title": "Opportunities",
@@ -1508,5 +1516,51 @@
   "notYet": {
     "title": "Not available yet",
     "detail": "This screen is moving to the new Ruaha 360 system and will be back soon."
+  },
+  "supply": {
+    "linksTitle": "Supply links",
+    "linksIntro": "Links this project grants to a shop. The shop sees only the farmer fields you allow, and only once it accepts.",
+    "grantTitle": "Grant a link",
+    "grantTo": "Shop workspace id",
+    "grantToHint": "Ask the shop for its workspace id.",
+    "grantFields": "Fields the shop may show",
+    "grantSubmit": "Grant link",
+    "granting": "Granting…",
+    "noneTitle": "No links yet",
+    "noneDetail": "Grant a link to a shop to start supplying it.",
+    "grantedOn": "Granted {{date}}",
+    "noFields": "No farmer fields",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke this link?",
+    "revokeDetail": "{{partner}} can no longer receive lots over it. A revoked link stays revoked.",
+    "cancel": "Cancel",
+    "field": {
+      "village": "Village",
+      "farmer_count": "Number of farmers",
+      "harvest_window": "Harvest window"
+    },
+    "status": {
+      "pending": "Pending",
+      "live": "Live",
+      "revoked": "Revoked",
+      "dispatched": "Dispatched",
+      "received": "Received"
+    },
+    "dispatchTitle": "Dispatch",
+    "dispatchIntro": "Send lot stock to a shop over a live link.",
+    "link": "Link",
+    "lot": "Lot",
+    "warehouse": "From warehouse",
+    "quantity": "Quantity",
+    "choose": "Choose…",
+    "send": "Send",
+    "sending": "Sending…",
+    "sendTitle": "Send this stock?",
+    "sendDetail": "{{quantity}} of lot {{lot}} to {{partner}}. It leaves the lot now.",
+    "sent": "Sent.",
+    "transfersTitle": "Sent transfers",
+    "noTransfersTitle": "Nothing sent yet",
+    "noTransfersDetail": "Transfers you send show here.",
+    "received": "Received {{quantity}}"
   }
 }
