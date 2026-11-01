@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, code, name, latitude, longitude, primary_language, created_at, updated_at\n         FROM farm_villages WHERE workspace_id = $1\n         ORDER BY code, id LIMIT $2 OFFSET $3",
+  "query": "SELECT id, code, name_en, name_sw, is_active, created_at, updated_at\n         FROM farm_equipment_categories\n         WHERE workspace_id = $1 AND ($2::bool IS NULL OR is_active = $2)\n         ORDER BY name_en, id LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "farm_villages",
+            "table": "farm_equipment_categories",
             "name": "id"
           }
         }
@@ -20,73 +20,62 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "farm_villages",
+            "table": "farm_equipment_categories",
             "name": "code"
           }
         }
       },
       {
         "ordinal": 2,
-        "name": "name",
+        "name": "name_en",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "farm_villages",
-            "name": "name"
+            "table": "farm_equipment_categories",
+            "name": "name_en"
           }
         }
       },
       {
         "ordinal": 3,
-        "name": "latitude",
-        "type_info": "Numeric",
+        "name": "name_sw",
+        "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "farm_villages",
-            "name": "latitude"
+            "table": "farm_equipment_categories",
+            "name": "name_sw"
           }
         }
       },
       {
         "ordinal": 4,
-        "name": "longitude",
-        "type_info": "Numeric",
+        "name": "is_active",
+        "type_info": "Bool",
         "origin": {
           "Table": {
-            "table": "farm_villages",
-            "name": "longitude"
+            "table": "farm_equipment_categories",
+            "name": "is_active"
           }
         }
       },
       {
         "ordinal": 5,
-        "name": "primary_language",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "farm_villages",
-            "name": "primary_language"
-          }
-        }
-      },
-      {
-        "ordinal": 6,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "farm_villages",
+            "table": "farm_equipment_categories",
             "name": "created_at"
           }
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "farm_villages",
+            "table": "farm_equipment_categories",
             "name": "updated_at"
           }
         }
@@ -95,6 +84,7 @@
     "parameters": {
       "Left": [
         "Uuid",
+        "Bool",
         "Int8",
         "Int8"
       ]
@@ -103,12 +93,11 @@
       false,
       false,
       false,
-      true,
-      true,
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "678f8d4f107f92bd180c47e75babf01a0477f0f938719aee2881790195e7b3f5"
+  "hash": "cfe724fe10a45dfbfd0fec5317184ed279587ce59fb954a46f52cf7037714ce0"
 }

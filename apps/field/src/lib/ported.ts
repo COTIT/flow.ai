@@ -20,6 +20,12 @@ export const PORTED: readonly string[] = [
   '/officer/people/*',
   '/officer/farms/*',
   '/officer/verify',
+  '/ops/supply-links',
+  '/ops/dispatch',
+  '/ops/catalogue',
+  '/farm/equipment',
+  '/farm/equipment/*',
+  '/ops/villages',
 ]
 
 export function isPorted(pathname: string, ported: readonly string[] = PORTED): boolean {
@@ -29,3 +35,9 @@ export function isPorted(pathname: string, ported: readonly string[] = PORTED): 
 
 /** The bug-report button writes to Supabase storage until the API has bug reports (port step 7). */
 export const BUG_REPORTS_PORTED = false
+
+/**
+ * Loan listings, PUE requests and their energy estimate are not on the API yet (a later domain):
+ * the equipment screens hide their loan tab and request form until then.
+ */
+export const PUE_PORTED = false

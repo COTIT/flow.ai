@@ -47,6 +47,20 @@ describe("createApiClient", () => {
     expect(data.authorization).toBe("Bearer abc123")
   })
 
+  it("keeps an Authorization header the call set itself", async () => {
+    const api = createApiClient({
+      baseURL: "http://api.test",
+      getToken: () => "session-token",
+    })
+    api.defaults.adapter = echo
+
+    const { data } = await api.get("/storefront/products", {
+      headers: { Authorization: "Bearer device-key" },
+    })
+
+    expect(data.authorization).toBe("Bearer device-key")
+  })
+
   it("sends no Authorization header when logged out", async () => {
     const api = createApiClient({
       baseURL: "http://api.test",

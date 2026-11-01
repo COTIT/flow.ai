@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE farm_villages SET\n             code = coalesce($3, code),\n             name = coalesce($4, name),\n             latitude = CASE WHEN $5 THEN $6 ELSE latitude END,\n             longitude = CASE WHEN $7 THEN $8 ELSE longitude END,\n             primary_language = coalesce($9, primary_language),\n             updated_at = now()\n         WHERE workspace_id = $1 AND id = $2\n         RETURNING id, code, name, latitude, longitude, primary_language, created_at, updated_at",
+  "query": "SELECT v.id, v.code, v.name, v.latitude, v.longitude, v.primary_language,\n                  v.created_at, v.updated_at, c.capacity_kw AS \"capacity_kw?\", c.basis AS \"basis?\",\n                  c.simultaneity_factor AS \"simultaneity_factor?\", c.source_note,\n                  c.effective_from AS \"effective_from?\"\n           FROM farm_villages v\n           LEFT JOIN farm_village_capacities c ON c.village_id = v.id AND c.is_current\n           WHERE v.workspace_id = $1 AND v.id = $2",
   "describe": {
     "columns": [
       {
@@ -90,19 +90,67 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "capacity_kw?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "capacity_kw"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "basis?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "basis"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "simultaneity_factor?",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "simultaneity_factor"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "source_note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "source_note"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "effective_from?",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "effective_from"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid",
-        "Text",
-        "Text",
-        "Bool",
-        "Numeric",
-        "Bool",
-        "Numeric",
-        "Text"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -113,8 +161,13 @@
       true,
       false,
       false,
-      false
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "34315ed7d1dfc5fda33c53e50537416723771b07c3b3139c3087542fd437b2cd"
+  "hash": "5fccf728a7bf254df79f47fd070f1b0a7d7f3847158e2a24e2232bbee4e0348f"
 }

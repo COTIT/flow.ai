@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO farm_village_capacities (workspace_id, village_id, capacity_kw, basis,\n             simultaneity_factor, source_note, effective_from, created_by)\n         VALUES ($1, $2, $3, coalesce($4, 'planned'), coalesce($5, 1.000), $6,\n                 coalesce($7, current_date), $8)\n         RETURNING capacity_kw, basis, simultaneity_factor, source_note, effective_from",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "capacity_kw",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "capacity_kw"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "basis",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "basis"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "simultaneity_factor",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "simultaneity_factor"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "source_note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "source_note"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "effective_from",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "farm_village_capacities",
+            "name": "effective_from"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Text",
+        "Numeric",
+        "Text",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "98e004a938b8c87154c8e910e1971642a555263386c04ae3f33a2469048a5911"
+}

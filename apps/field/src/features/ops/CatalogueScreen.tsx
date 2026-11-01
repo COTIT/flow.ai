@@ -18,8 +18,10 @@ import { Button } from '@/components/ui/button'
 import { useEquipmentList, type EquipmentItem } from '@/features/farmer/useEquipment'
 import { useLoanProducts, type LoanItem } from '@/features/farmer/useResources'
 import { kindOf, type ResourceKind } from '@/features/farmer/resourceKind'
+import { CatalogueCategories } from '@/features/ops/CatalogueCategories'
 import { CatalogueCreatePanel } from '@/features/ops/CatalogueCreatePanel'
-import { formatKw, formatMoney } from '@/lib/format'
+import { formatKw, formatMoney, formatPrice } from '@/lib/format'
+import { PUE_PORTED } from '@/lib/ported'
 
 /** A figure that is genuinely absent reads as absent, never as zero. */
 const DASH = '—'
@@ -42,7 +44,8 @@ export function CatalogueScreen() {
   const { t } = useTranslation()
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const kind = kindOf(search)
+  // shortcut: loan listings are not on the API yet, so the loan tab is hidden until PUE_PORTED.
+  const kind = PUE_PORTED ? kindOf(search) : 'equipment'
   const [createOpen, setCreateOpen] = useState(false)
 
   const setKind = (next: ResourceKind) => {
@@ -54,7 +57,7 @@ export function CatalogueScreen() {
     <section className="flex flex-col gap-4">
       <PageHeader
         title={t('catalogue.title')}
-        description={<span data-testid="catalogue-note">{t('catalogue.note')}</span>}
+        description={<span data-testid="catalogue-note">{t(PUE_PORTED ? 'catalogue.note' : 'equipment.notAQuotation')}</span>}
         actions={
           <Button
             type="button"
@@ -71,31 +74,35 @@ export function CatalogueScreen() {
       />
 
       {/* A literal anchor for the guided tour, which cannot point at a templated id. */}
-      <div data-testid="catalogue-kinds" className="w-fit">
-        <ResourceTabs value={kind} onChange={setKind} testIdPrefix="catalogue" />
-      </div>
+      {PUE_PORTED && (
+        <div data-testid="catalogue-kinds" className="w-fit">
+          <ResourceTabs value={kind} onChange={setKind} testIdPrefix="catalogue" />
+        </div>
+      )}
 
       {createOpen && <CatalogueCreatePanel kind={kind} onClose={() => setCreateOpen(false)} />}
 
       {kind === 'equipment' ? <EquipmentTable /> : <LoanTable />}
+
+      {kind === 'equipment' && <CatalogueCategories />}
     </section>
   )
 }
 
 function EquipmentTable() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const query = useEquipmentList()
 
   const columns = useMemo(() => {
     const col = createColumnHelper<EquipmentItem>()
-    const money = (value: number | null, currency: string, testId: string) => (
+    const money = (value: EquipmentItem['indicative_price'], testId: string) => (
       /* The tag travels with the number, and absent stays absent. */
       <span data-testid={testId} className="inline-flex flex-wrap items-baseline justify-end gap-2">
         {value === null ? (
           <span className="tabular">{DASH}</span>
         ) : (
           <>
-            <span className="tabular font-semibold">{formatMoney(value, currency)}</span>
+            <span className="tabular font-semibold">{formatPrice(value, i18n.language)}</span>
             <IndicativePill />
           </>
         )}
@@ -124,18 +131,22 @@ function EquipmentTable() {
         header: t('catalogue.colDays'),
         cell: (c) => <span className="tabular">{c.getValue() ?? DASH}</span>,
       }),
-      col.accessor('indicative_price', {
+      // Sorted by minor units; shown as Money.
+      col.accessor((r) => r.indicative_price?.minor ?? null, {
+        id: 'indicative_price',
         header: t('catalogue.colPrice'),
         meta: { numeric: true },
-        cell: (c) => money(c.getValue(), c.row.original.currency, 'catalogue-price'),
+        cell: (c) => money(c.row.original.indicative_price, 'catalogue-price'),
       }),
-      col.accessor('indicative_rent_per_day', {
+      // Sorted by minor units; shown as Money.
+      col.accessor((r) => r.indicative_rent_per_day?.minor ?? null, {
+        id: 'indicative_rent_per_day',
         header: t('catalogue.colRent'),
         meta: { numeric: true },
-        cell: (c) => money(c.getValue(), c.row.original.currency, 'catalogue-rent'),
+        cell: (c) => money(c.row.original.indicative_rent_per_day, 'catalogue-rent'),
       }),
     ]
-  }, [t])
+  }, [t, i18n.language])
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
   if (query.isLoading) return <Loading testId="catalogue-loading" />

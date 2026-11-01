@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const useVillageCapacity = vi.fn()
 const mutateAsync = vi.fn()
+const setCapacity = vi.fn()
 const createState = { isPending: false, isError: false, error: null as Error | null }
 vi.mock('@/features/ops/useOpsReference', () => ({
   useVillageCapacity: () => useVillageCapacity(),
   useCreateVillage: () => ({ mutateAsync, reset: vi.fn(), ...createState }),
+  useSetVillageCapacity: () => ({ mutateAsync: setCapacity, reset: vi.fn(), isPending: false, isError: false, error: null }),
 }))
 vi.mock('@/app/session', () => ({
   useSession: () => ({
@@ -30,7 +32,9 @@ await import('@/i18n')
 beforeEach(() => {
   useVillageCapacity.mockReset()
   mutateAsync.mockReset()
-  mutateAsync.mockResolvedValue({ village_id: 'v1', replayed: false })
+  mutateAsync.mockResolvedValue({ id: 'v1' })
+  setCapacity.mockReset()
+  setCapacity.mockResolvedValue({ capacity_kw: '600.00' })
   createState.isPending = false
   createState.isError = false
   createState.error = null
@@ -42,7 +46,7 @@ const village = (over: Record<string, unknown> = {}) => ({
   code: 'ILU',
   capacity_kw: 500,
   basis: 'planned',
-  simultaneity_factor: 0.6,
+  simultaneity_factor: '0.600',
   effective_from: '2026-01-01',
   source_note: null,
   ...over,
@@ -240,14 +244,53 @@ describe('the village create form', () => {
     expect(mutateAsync).toHaveBeenCalledTimes(1)
   })
 
-  test("the database's refusal names the collision", async () => {
+  test("the API's refusal is shown as written", async () => {
     ready()
     createState.isError = true
-    createState.error = new Error('duplicate key value violates unique constraint "village_project_id_code_key"')
+    createState.error = {
+      isAxiosError: true,
+      response: { status: 422, data: { message: 'invalid', errors: { 'capacity.simultaneity_factor': ['must be more than 0 and at most 1'] } } },
+    } as unknown as Error
     render(<VillagesScreen />)
     await open()
 
-    // The constraint name is machine noise; the app names the collision.
-    expect(screen.getByTestId('village-create-error')).toHaveTextContent(/village with that code/i)
+    expect(screen.getByTestId('village-create-error')).toHaveTextContent('must be more than 0 and at most 1')
+  })
+})
+
+/** A new capacity becomes the village's current one; the API keeps the old one as history. */
+describe('setting a village capacity', () => {
+  const set = (testId: string, value: string) =>
+    fireEvent.change(screen.getByTestId(testId), { target: { value } })
+  const submit = () =>
+    fireEvent.submit(screen.getByTestId('village-create-submit').closest('form')!)
+
+  test('asks for the capacity only, and sends it for that village', async () => {
+    useVillageCapacity.mockReturnValue({ isLoading: false, error: null, data: [village()] })
+    render(<VillagesScreen />)
+    await userEvent.click(screen.getByTestId('village-set-capacity'))
+
+    expect(screen.getByTestId('village-create-panel')).toHaveTextContent('Ilundo')
+    expect(screen.queryByTestId('village-name')).not.toBeInTheDocument()
+    set('village-capacity', '600')
+    set('village-effective-from', '2026-11-01')
+    submit()
+
+    expect(mutateAsync).not.toHaveBeenCalled()
+    expect(setCapacity).toHaveBeenCalledTimes(1)
+    expect(setCapacity.mock.calls[0][0]).toEqual({
+      villageId: '30000000-0000-4000-8000-000000000001',
+      capacity: { capacity_kw: '600', basis: 'planned', simultaneity_factor: '1.000', source_note: '', effective_from: '2026-11-01' },
+    })
+  })
+
+  test('a blank capacity is asked for and nothing is sent', async () => {
+    useVillageCapacity.mockReturnValue({ isLoading: false, error: null, data: [village()] })
+    render(<VillagesScreen />)
+    await userEvent.click(screen.getByTestId('village-set-capacity'))
+    submit()
+
+    expect(screen.getByTestId('village-capacity-error')).toBeInTheDocument()
+    expect(setCapacity).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, code, name, latitude, longitude, primary_language, created_at, updated_at\n         FROM farm_villages WHERE workspace_id = $1 AND id = $2",
+  "query": "SELECT id, code, name_en, name_sw, is_active, created_at, updated_at\n         FROM farm_equipment_categories WHERE workspace_id = $1 AND id = $2",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "farm_villages",
+            "table": "farm_equipment_categories",
             "name": "id"
           }
         }
@@ -20,73 +20,62 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "farm_villages",
+            "table": "farm_equipment_categories",
             "name": "code"
           }
         }
       },
       {
         "ordinal": 2,
-        "name": "name",
+        "name": "name_en",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "farm_villages",
-            "name": "name"
+            "table": "farm_equipment_categories",
+            "name": "name_en"
           }
         }
       },
       {
         "ordinal": 3,
-        "name": "latitude",
-        "type_info": "Numeric",
+        "name": "name_sw",
+        "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "farm_villages",
-            "name": "latitude"
+            "table": "farm_equipment_categories",
+            "name": "name_sw"
           }
         }
       },
       {
         "ordinal": 4,
-        "name": "longitude",
-        "type_info": "Numeric",
+        "name": "is_active",
+        "type_info": "Bool",
         "origin": {
           "Table": {
-            "table": "farm_villages",
-            "name": "longitude"
+            "table": "farm_equipment_categories",
+            "name": "is_active"
           }
         }
       },
       {
         "ordinal": 5,
-        "name": "primary_language",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "farm_villages",
-            "name": "primary_language"
-          }
-        }
-      },
-      {
-        "ordinal": 6,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "farm_villages",
+            "table": "farm_equipment_categories",
             "name": "created_at"
           }
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "farm_villages",
+            "table": "farm_equipment_categories",
             "name": "updated_at"
           }
         }
@@ -102,12 +91,11 @@
       false,
       false,
       false,
-      true,
-      true,
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "854040e6f0f341199b50cb11a5929047c339adccda70ac268744b25d2822ea0b"
+  "hash": "2e3efdb69116c83a9a877642cf19a16f0e26646f6d031f0ab9f2a5556e2620ef"
 }

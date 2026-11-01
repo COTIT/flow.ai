@@ -80,7 +80,7 @@ async fn registration_creates_the_chain_with_server_provenance(pool: PgPool) {
     }
     let unstamped: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM farm_audit_log WHERE actor_id IS DISTINCT FROM $1::uuid
-         AND table_name LIKE 'farm%' AND table_name NOT IN ('farm_villages', 'farm_memberships', 'farm_crops')",
+         AND table_name LIKE 'farm%' AND table_name NOT IN ('farm_villages', 'farm_village_capacities', 'farm_memberships', 'farm_crops')",
     )
     .bind(&salima)
     .fetch_one(&pool)
