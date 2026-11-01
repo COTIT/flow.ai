@@ -21872,6 +21872,15 @@
             "format": "int64",
             "type": "integer"
           },
+          "unit_price_gross": {
+            "description": "One unit incl VAT, minor units: what a sale of quantity 1 totals. Null only when out of\nrange.",
+            "example": 1363,
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "updated_at": {
             "format": "date-time",
             "type": "string"
@@ -21898,6 +21907,7 @@
           "store_only",
           "vat_rate",
           "unit_price",
+          "unit_price_gross",
           "has_stock",
           "stock",
           "sellable",
@@ -22001,6 +22011,14 @@
             "description": "Minor units excl VAT in the register's currency.",
             "format": "int64",
             "type": "integer"
+          },
+          "unit_price_gross": {
+            "description": "One unit incl VAT, minor units; null only when out of range.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
@@ -22010,6 +22028,7 @@
           "barcode",
           "is_default",
           "unit_price",
+          "unit_price_gross",
           "options"
         ],
         "type": "object"

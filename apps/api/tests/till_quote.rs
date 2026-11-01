@@ -331,3 +331,50 @@ async fn login_and_me_show_the_currency_and_accepted_cash(pool: PgPool) {
         "sorted; a value that is not a whole cent is left out"
     );
 }
+
+#[sqlx::test]
+async fn the_catalog_gross_price_is_the_quote_for_one(pool: PgPool) {
+    let w = world(pool).await;
+    // A variant at a price whose VAT rounds: €3.33 at 21 % = 333 + 69.93 → 403.
+    let (status, v) = w
+        .api
+        .with_base("/products")
+        .call(
+            Method::POST,
+            &format!("/{}/variants", w.wax),
+            Some(json!({ "sku": "WAX-S", "price": "3.33" })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{v}");
+    let (_, catalog) = w.api.call(Method::GET, "/catalog", None, &w.t1).await;
+    let mut checked = 0;
+    for p in catalog["data"].as_array().unwrap() {
+        for v in p["variants"].as_array().unwrap() {
+            let body = json!({
+                "lines": [{ "product_id": p["id"], "product_variant_id": v["id"],
+                            "quantity": "1", "unit_price": v["unit_price"] }],
+                "payment": { "method": "card" },
+            });
+            let (status, q) = quote(&w, &w.t1, body).await;
+            assert_eq!(status, StatusCode::OK, "{q}");
+            assert_eq!(v["unit_price_gross"], q["data"]["total"], "{}", v["sku"]);
+            if v["is_default"] == true {
+                assert_eq!(
+                    p["unit_price_gross"], v["unit_price_gross"],
+                    "{}",
+                    p["name"]
+                );
+            }
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 3);
+    let honey = catalog["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == w.honey.as_str())
+        .unwrap();
+    assert_eq!(honey["unit_price_gross"], 1363, "€12.50 + 9 %");
+}
