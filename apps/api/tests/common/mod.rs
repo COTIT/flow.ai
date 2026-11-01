@@ -73,6 +73,7 @@ pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
         pdf: None,
         payments: None,
         checkout_hold_max: 500,
+        signup_enabled: true,
     }
 }
 

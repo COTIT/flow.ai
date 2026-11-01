@@ -2,10 +2,12 @@
 // The product resource is one large `json!` literal.
 #![recursion_limit = "512"]
 
+pub mod bootstrap;
 pub mod cleanup;
 pub mod config;
 mod crypto;
 pub mod db;
+pub mod demo;
 mod error;
 pub mod farm_demo;
 mod health;
@@ -82,6 +84,8 @@ pub struct AppState {
     pub payments: Option<payments::Provider>,
     /// Most web orders one workspace may have awaiting payment (`CHECKOUT_HOLD_MAX`).
     pub checkout_hold_max: i64,
+    /// `SIGNUP_ENABLED`: `POST /v1/create-workspace` answers; off = 404.
+    pub signup_enabled: bool,
 }
 
 /// One-off boot work before serving (precomputes the login timing-equalizer hash).

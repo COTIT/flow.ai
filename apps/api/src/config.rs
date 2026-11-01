@@ -78,6 +78,11 @@ pub struct Config {
     /// `CHECKOUT_HOLD_MAX`: web orders awaiting payment per workspace (default 500), so fake
     /// checkouts can't hold all the stock.
     pub checkout_hold_max: i64,
+    /// `SIGNUP_ENABLED`: `POST /v1/create-workspace` is open. Off by default, so production
+    /// is closed unless someone opens it; the first owner comes from `create-owner`.
+    pub signup_enabled: bool,
+    /// `GENESY_ALLOW_DEMO_SEED`: `seed-demo` may run. Only the staging compose sets it.
+    pub allow_demo_seed: bool,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -214,6 +219,8 @@ impl Config {
             ));
         }
         let checkout_hold_max: i64 = positive(&get, "CHECKOUT_HOLD_MAX", 500)?;
+        let signup_enabled = flag(&get, "SIGNUP_ENABLED")?;
+        let allow_demo_seed = flag(&get, "GENESY_ALLOW_DEMO_SEED")?;
         let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
         crate::payments::select(payments_provider.as_deref(), !cfg!(debug_assertions))?;
         let credentials_key = get("CREDENTIALS_KEY")
@@ -270,6 +277,8 @@ impl Config {
             graph_api_url,
             payments_provider,
             checkout_hold_max,
+            signup_enabled,
+            allow_demo_seed,
         })
     }
 }
@@ -364,9 +373,9 @@ fn query_has(url: &str, pair: &str) -> bool {
 /// Optional `true|false` env var, default false.
 fn flag(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<bool, String> {
     match get(key).as_deref() {
-        None | Some("false") => Ok(false),
-        Some("true") => Ok(true),
-        Some(other) => Err(format!("{key} must be true|false, got {other:?}")),
+        None | Some("false" | "0") => Ok(false),
+        Some("true" | "1") => Ok(true),
+        Some(other) => Err(format!("{key} must be true|false|1|0, got {other:?}")),
     }
 }
 
@@ -589,6 +598,23 @@ mod tests {
         ]))
         .unwrap_err();
         assert!(err.starts_with("API_PUBLIC_URL must start"), "{err}");
+    }
+
+    #[test]
+    fn signup_and_demo_seed_are_off_unless_set() {
+        let with = |extra: &'static [(&'static str, &'static str)]| {
+            let mut pairs = vec![
+                ("DATABASE_URL", "postgres://x"),
+                ("SMTP_URL", "smtps://user:secret@smtp.test:465"),
+            ];
+            pairs.extend_from_slice(extra);
+            Config::from_lookup(lookup(Box::leak(pairs.into_boxed_slice())))
+        };
+        let off = with(&[]).unwrap();
+        assert!(!off.signup_enabled && !off.allow_demo_seed);
+        let on = with(&[("SIGNUP_ENABLED", "true"), ("GENESY_ALLOW_DEMO_SEED", "1")]).unwrap();
+        assert!(on.signup_enabled && on.allow_demo_seed);
+        assert!(with(&[("SIGNUP_ENABLED", "maybe")]).is_err());
     }
 
     #[test]
