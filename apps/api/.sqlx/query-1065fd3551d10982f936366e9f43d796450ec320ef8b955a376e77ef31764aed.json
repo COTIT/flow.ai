@@ -1,0 +1,154 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.opportunity_id, s.id, s.harvest_report_id, s.crop_cycle_id, c.plot_id,\n                  pl.label AS plot_label, c.crop_id, mp.id AS \"farmer_person_id?\",\n                  concat_ws(' ', mp.given_name, mp.family_name) AS farmer_name, s.contributed_kg,\n                  CASE WHEN $2 OR s.village_id = ANY($3) THEN\n                      (SELECT jsonb_build_object('id', u.id, 'name', concat_ws(' ', u.first_name, u.last_name))\n                       FROM users u WHERE u.id = s.captured_by)\n                  END AS captured_by,\n                  s.captured_at\n           FROM farm_opportunity_supply s\n           JOIN farm_crop_cycles c ON c.id = s.crop_cycle_id\n           JOIN farm_plots pl ON pl.id = c.plot_id\n           LEFT JOIN farm_managers m ON m.farm_id = pl.farm_id AND m.is_primary\n           LEFT JOIN farm_persons mp ON mp.id = m.person_id\n           WHERE s.workspace_id = $1 AND s.opportunity_id = ANY($5)\n             AND ($2 OR s.village_id = ANY($3) OR pl.farm_id IN (SELECT farm_person_farms($4)))\n           ORDER BY s.captured_at, s.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "opportunity_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunity_supply",
+            "name": "opportunity_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunity_supply",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "harvest_report_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunity_supply",
+            "name": "harvest_report_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "crop_cycle_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunity_supply",
+            "name": "crop_cycle_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "plot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_crop_cycles",
+            "name": "plot_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "plot_label",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_plots",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "crop_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_crop_cycles",
+            "name": "crop_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "farmer_person_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_persons",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "farmer_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "contributed_kg",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunity_supply",
+            "name": "contributed_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "captured_by",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "captured_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_opportunity_supply",
+            "name": "captured_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "1065fd3551d10982f936366e9f43d796450ec320ef8b955a376e77ef31764aed"
+}
