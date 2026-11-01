@@ -1,0 +1,17 @@
+# Context for deploy/staging web images (repo root). apps/api builds from its own folder.
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+**/playwright-report
+**/test-results
+.git
+.claude
+apps/api
+deploy
+!deploy/staging/field.nginx.conf

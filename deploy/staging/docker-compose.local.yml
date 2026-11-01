@@ -1,0 +1,12 @@
+# Local smoke override (deploy/staging/smoke.sh): no Traefik. The edge network is created here
+# instead of joined, and each service is published on 127.0.0.1 ports away from the dev ones.
+services:
+  api: { ports: ["127.0.0.1:18080:8080"] }
+  shop: { ports: ["127.0.0.1:18100:3000"] }
+  office: { ports: ["127.0.0.1:18101:3000"] }
+  field: { ports: ["127.0.0.1:18102:8080"] }
+  till: { ports: ["127.0.0.1:18103:3000"] }
+
+networks:
+  edge:
+    external: false
