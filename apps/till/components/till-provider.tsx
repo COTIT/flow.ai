@@ -4,6 +4,7 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { configureApi } from "@genesy/api-client/mutator"
+import { catalogStore } from "@/lib/use-catalog"
 import { queueStore } from "@/lib/sale-queue"
 import { tillStore } from "@/lib/till-store"
 
@@ -25,6 +26,7 @@ export function TillProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     void tillStore.persist.rehydrate()
     void queueStore.persist.rehydrate()
+    void catalogStore.persist.rehydrate()
   }, [])
   React.useEffect(
     () =>

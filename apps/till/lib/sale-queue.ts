@@ -2,7 +2,10 @@ import { createJSONStorage, persist } from "zustand/middleware"
 import { createStore } from "zustand/vanilla"
 import { useStore } from "zustand"
 
-import { tillSalesCreate, tillSalesGet } from "@genesy/api-client/endpoints/till"
+import {
+  tillSalesCreate,
+  tillSalesGet,
+} from "@genesy/api-client/endpoints/till"
 import type { SaleRequest, SaleResource } from "@genesy/api-client/model"
 import type { CartLine } from "@/lib/cart-store"
 
@@ -58,7 +61,9 @@ type HttpError = { response?: { status: number; data?: { message?: string } } }
 
 function settle(ref: string, patch: Partial<QueuedSale>) {
   queueStore.setState((s) => ({
-    items: s.items.map((i) => (i.body.client_ref === ref ? { ...i, ...patch } : i)),
+    items: s.items.map((i) =>
+      i.body.client_ref === ref ? { ...i, ...patch } : i
+    ),
   }))
 }
 
@@ -100,8 +105,10 @@ export async function replay() {
   queueStore.setState({ syncing: true })
   try {
     if (navigator.locks)
-      await navigator.locks.request("genesy.till.queue", { ifAvailable: true }, (lock) =>
-        lock ? replayAll() : undefined
+      await navigator.locks.request(
+        "genesy.till.queue",
+        { ifAvailable: true },
+        (lock) => (lock ? replayAll() : undefined)
       )
     else await replayAll()
   } finally {

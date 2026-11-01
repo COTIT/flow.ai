@@ -1,13 +1,5 @@
 import { expectNoHorizontalScroll } from "../../src/test"
-import {
-  expect,
-  honey,
-  paged,
-  seedTill,
-  test,
-  type FakeApi,
-  WS,
-} from "./fake-till"
+import { expect, seedTill, test, type FakeApi, WS } from "./fake-till"
 
 const openShift = {
   id: "sh-1",
@@ -25,7 +17,6 @@ const openShift = {
 function drawerApi(api: FakeApi, start: typeof openShift | null) {
   let shift = start
   api
-    .on("GET", "/storefront/products", () => paged([honey]))
     .on("GET", "/workspace/:ws/till/shift", () => ({ data: shift }))
     .on("POST", "/workspace/:ws/till/shift/open", () => {
       shift = { ...openShift, expected: 4515 }
@@ -109,12 +100,10 @@ test("a row without a valid value is refused before sending", async ({
   await page.getByLabel("Pieces of row 1").fill("1")
   await page.getByRole("button", { name: "Open shift" }).click()
   await expect(
-    page
-      .getByRole("alert")
-      .filter({
-        hasText:
-          "Each row needs a value (e.g. 5.00) and a whole number of pieces.",
-      })
+    page.getByRole("alert").filter({
+      hasText:
+        "Each row needs a value (e.g. 5.00) and a whole number of pieces.",
+    })
   ).toBeVisible()
   expect(api.callsTo("POST", `/workspace/${WS}/till/shift/open`)).toHaveLength(
     0
