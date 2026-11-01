@@ -1,9 +1,25 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { farmMarketVillageMatches } from '@genesy/api-client/endpoints/farm-market'
+import {
+  farmPueRequestsList,
+  farmPueVillageEnergy,
+  farmPueVillagePipeline,
+} from '@genesy/api-client/endpoints/farm-pue'
+import {
+  farmRecordsCropCyclesList,
+  farmRecordsFarmsList,
+  farmRecordsHarvestReportsAll,
+  farmRecordsPersonsList,
+  farmRecordsPlotsList,
+} from '@genesy/api-client/endpoints/farm-records'
+import { farmTowerDataQuality, farmTowerProduction } from '@genesy/api-client/endpoints/farm-tower'
 
-import { supabase } from '@/lib/supabase'
-import { localisedName, type LocalisedNames } from '@/lib/names'
+import { workspaceId } from '@/app/workspace'
+import { allPages } from '@/features/farmer/pages'
+import { useCrops } from '@/features/officer/useCrops'
+import { localisedName } from '@/lib/names'
 import { queryKeys } from '@/lib/queryKeys'
 import type { Database } from '@/lib/db.types'
 import type { QualityMetric } from '@/features/tower/towerSearch'
@@ -11,73 +27,55 @@ import type { QualityMetric } from '@/features/tower/towerSearch'
 type Enums = Database['public']['Enums']
 
 /**
- * The Tower reads views and nothing else.
+ * The Tower reads the API's village figures and nothing else.
  *
- * All aggregation lives in SQL (business-rules §7): the client never sums,
- * never derives coverage, and never combines prospective with approved. If a
- * figure is not in a view, it does not belong on this screen.
- *
- * Crop names are looked up separately rather than embedded: the views declare
- * no foreign-key relationships, so PostgREST cannot embed through them.
+ * Every aggregate is the API's (`farm/villages/{v}/production|energy|pue-pipeline|data-quality|
+ * demand-matches`): the client never sums, never derives coverage, and never combines prospective
+ * with approved. Decimal strings become numbers for display only, as the other ported screens do.
+ * Crop names are chosen at render, so a cached row is never served in the wrong language.
  */
-/**
- * Both names per crop — QA #31.
- *
- * The choice between them belongs at render: these rows are cached under keys
- * about the VILLAGE, so a name chosen here would be served in whichever locale
- * resolved first, for good.
- */
-/** The active language, for the render-time name selection below. */
 function useLanguage(): string | undefined {
   return useTranslation().i18n.resolvedLanguage
 }
 
-async function cropNames(): Promise<Map<string, LocalisedNames>> {
-  const { data, error } = await supabase.from('crop').select('id, name_en, name_sw')
-  if (error) throw new Error(error.message)
-  return new Map((data ?? []).map((c) => [c.id, { name_en: c.name_en, name_sw: c.name_sw }]))
+const num = (value: string | null | undefined) => (value == null ? null : Number(value))
+
+/** Crop id → name in the active language, from the workspace's crops. */
+function useCropNames() {
+  const { crops } = useCrops()
+  return useMemo(() => new Map(crops.map((c) => [c.id, c.name])), [crops])
 }
 
 export function useTowerProduction(villageId: string | undefined) {
-  const language = useLanguage()
-
+  const names = useCropNames()
   const query = useQuery({
     queryKey: queryKeys.tower.production(villageId ?? ''),
     enabled: Boolean(villageId),
-    queryFn: async () => {
-      const [rows, names] = await Promise.all([
-        supabase.from('v_village_production').select('*').eq('village_id', villageId!),
-        cropNames(),
-      ])
-      if (rows.error) throw new Error(rows.error.message)
-      return (rows.data ?? []).map((r) => ({ ...r, crop: names.get(r.crop_id ?? '') ?? null }))
-    },
+    queryFn: async () => (await farmTowerProduction(workspaceId(), villageId!)).data,
   })
 
   const data = useMemo(
     () =>
       query.data?.map((r) => ({
         ...r,
-        crop_name: localisedName(r.crop, language) || (r.crop_id ?? ''),
+        crop_name: names.get(r.crop_id) || r.crop_id,
+        // The sum of cycle areas, not land area: intercropped cycles share a plot.
+        cycle_area_ha: num(r.cycle_area_ha),
+        expected_kg: num(r.expected_kg),
+        actual_kg: num(r.actual_kg),
       })),
-    [query.data, language],
+    [query.data, names],
   )
 
   return { ...query, data }
 }
 
+/** One row per status and currency; values are Money (indicative, never financed value). */
 export function useTowerPipeline(villageId: string | undefined) {
   return useQuery({
     queryKey: [...queryKeys.tower.market(villageId ?? ''), 'pue'],
     enabled: Boolean(villageId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('v_village_pue_pipeline')
-        .select('*')
-        .eq('village_id', villageId!)
-      if (error) throw new Error(error.message)
-      return data ?? []
-    },
+    queryFn: async () => (await farmPueVillagePipeline(workspaceId(), villageId!)).data,
   })
 }
 
@@ -86,76 +84,51 @@ export function useTowerEnergy(villageId: string | undefined) {
     queryKey: queryKeys.tower.energy(villageId ?? ''),
     enabled: Boolean(villageId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('v_village_energy')
-        .select('*')
-        .eq('village_id', villageId!)
-        .maybeSingle()
-      if (error) throw new Error(error.message)
-      // A village with no CURRENT capacity row does not appear in this view at
-      // all, because it inner-joins village_capacity. That is a legitimate
-      // empty answer rather than an error.
-      return data
+      const e = (await farmPueVillageEnergy(workspaceId(), villageId!)).data
+      return {
+        ...e,
+        capacity_kw: num(e.capacity_kw),
+        simultaneity_factor: num(e.simultaneity_factor),
+        prospective_kw_raw: num(e.prospective_kw_raw),
+        approved_kw_raw: num(e.approved_kw_raw),
+        prospective_peak_kw: num(e.prospective_peak_kw),
+        approved_peak_kw: num(e.approved_peak_kw),
+        headroom_kw: num(e.headroom_kw),
+        approved_kwh_per_week: num(e.approved_kwh_per_week),
+      }
     },
   })
 }
 
 export function useTowerMarket(villageId: string | undefined) {
-  const language = useLanguage()
-
+  const names = useCropNames()
   const query = useQuery({
     queryKey: queryKeys.tower.market(villageId ?? ''),
     enabled: Boolean(villageId),
-    queryFn: async () => {
-      const [supply, matches, names] = await Promise.all([
-        supabase.from('v_village_supply').select('*').eq('village_id', villageId!),
-        supabase.from('v_demand_match').select('*').eq('village_id', villageId!),
-        cropNames(),
-      ])
-      if (supply.error) throw new Error(supply.error.message)
-      if (matches.error) throw new Error(matches.error.message)
-
-      const demandIds = [
-        ...new Set((matches.data ?? []).map((m) => m.buyer_demand_id).filter(Boolean)),
-      ] as string[]
-
-      const buyers = demandIds.length
-        ? await supabase
-            .from('buyer_demand')
-            .select('id, buyer ( name )')
-            .in('id', demandIds)
-        : { data: [], error: null }
-      if (buyers.error) throw new Error(buyers.error.message)
-
-      const buyerByDemand = new Map(
-        (buyers.data ?? []).map((d) => {
-          const buyer = (d as unknown as { buyer?: { name: string } | null }).buyer
-          return [d.id, buyer?.name ?? '']
-        }),
-      )
-
-      return {
-        supply: (supply.data ?? []).map((s) => ({ ...s, crop: names.get(s.crop_id ?? '') ?? null })),
-        matches: (matches.data ?? []).map((m) => ({
-          ...m,
-          crop: names.get(m.crop_id ?? '') ?? null,
-          buyer_name: buyerByDemand.get(m.buyer_demand_id ?? '') ?? '',
-        })),
-      }
-    },
+    queryFn: async () => (await farmMarketVillageMatches(workspaceId(), villageId!)).data,
   })
 
-  const data = useMemo(() => {
-    if (!query.data) return query.data
-    const named = <T extends { crop: LocalisedNames | null; crop_id: string | null }>(row: T) => ({
-      ...row,
-      crop_name: localisedName(row.crop, language) || (row.crop_id ?? ''),
-    })
-    return {
-      supply: query.data.supply.map(named),
-      matches: query.data.matches.map(named),
-    }
-  }, [query.data, language])
+  const data = useMemo(
+    () =>
+      query.data && {
+        matches: query.data.map((m) => ({
+          buyer_demand_id: m.buyer_demand_id,
+          village_id: m.village.id,
+          buyer_name: m.buyer_name,
+          crop_id: m.crop_id,
+          crop_name: names.get(m.crop_id) || m.crop_id,
+          window_start: m.window_start,
+          window_end: m.window_end,
+          demand_kg: num(m.demand_kg),
+          available_kg: num(m.available_kg),
+          committed_kg: num(m.committed_kg),
+          coverage_pct: num(m.coverage_pct),
+          opportunity_id: m.opportunity?.id ?? null,
+          opportunity_status: m.opportunity?.status ?? null,
+        })),
+      },
+    [query.data, names],
+  )
 
   return { ...query, data }
 }
@@ -164,16 +137,20 @@ export function useTowerQuality(villageId: string | undefined) {
   return useQuery({
     queryKey: queryKeys.tower.quality(villageId ?? ''),
     enabled: Boolean(villageId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('v_village_data_quality')
-        .select('*')
-        .eq('village_id', villageId!)
-        .maybeSingle()
-      if (error) throw new Error(error.message)
-      return data
-    },
+    queryFn: async () => (await farmTowerDataQuality(workspaceId(), villageId!)).data,
   })
+}
+
+/** A village's live crop cycles with their current expected and actual figures (display join). */
+async function cyclesWithFigures(villageId: string) {
+  const workspace = workspaceId()
+  const [cycles, reports] = await Promise.all([
+    allPages((p) => farmRecordsCropCyclesList(workspace, { village_id: villageId, ...p })),
+    allPages((p) => farmRecordsHarvestReportsAll(workspace, { village_id: villageId, current: true, ...p })),
+  ])
+  const figure = (cycleId: string, kind: string) =>
+    reports.find((r) => r.crop_cycle_id === cycleId && r.kind === kind && r.is_current) ?? null
+  return cycles.map((c) => ({ cycle: c, expected: figure(c.id, 'expected'), actual: figure(c.id, 'actual') }))
 }
 
 export interface QualityRecord {
@@ -184,128 +161,64 @@ export interface QualityRecord {
   kind: 'person' | 'farm' | 'cycle'
 }
 
-/** Uses the same village, soft-delete and numerator predicates as the SQL view. */
+/** The records behind one data-quality ratio; the ratio itself is the API's. */
 export function useTowerQualityRows(villageId: string | undefined, metric: QualityMetric) {
   const language = useLanguage()
-  const query = useQuery({
+  return useQuery({
     queryKey: [...queryKeys.tower.quality(villageId ?? ''), 'rows', metric, language],
     enabled: Boolean(villageId),
-    queryFn: async () => {
+    queryFn: async (): Promise<QualityRecord[]> => {
+      const workspace = workspaceId()
+      const village = { village_id: villageId! }
       if (metric === 'persons') {
-        const { data, error } = await supabase
-          .from('person')
-          .select('id, given_name, family_name, verification')
-          .eq('village_id', villageId!)
-          .is('deleted_at', null)
-          .order('given_name')
-        if (error) throw new Error(error.message)
-        return (data ?? []).map((row) => ({
+        const rows = await allPages((p) => farmRecordsPersonsList(workspace, { ...village, ...p }))
+        return rows.map((row) => ({
           id: row.id,
           label: `${row.given_name} ${row.family_name}`,
-          detail: row.verification,
-          qualifies: row.verification === 'verified',
-          kind: 'person' as const,
+          detail: row.provenance.verification,
+          qualifies: row.provenance.verification === 'verified',
+          kind: 'person',
         }))
       }
       if (metric === 'farms') {
-        const { data, error } = await supabase
-          .from('farm')
-          .select('id, label, latitude, longitude')
-          .eq('village_id', villageId!)
-          .is('deleted_at', null)
-          .order('label')
-        if (error) throw new Error(error.message)
-        return (data ?? []).map((row) => ({
+        const rows = await allPages((p) => farmRecordsFarmsList(workspace, { ...village, ...p }))
+        return rows.map((row) => ({
           id: row.id,
           label: row.label,
           detail: row.latitude === null ? '' : `${row.latitude}, ${row.longitude ?? '—'}`,
           qualifies: row.latitude !== null,
-          kind: 'farm' as const,
+          kind: 'farm',
         }))
       }
-      const { data, error } = await supabase
-        .from('crop_cycle')
-        .select(`id, season_label, crop (name_en, name_sw),
-          harvest_report!harvest_report_crop_cycle_id_fkey (id, kind, is_current, deleted_at)`)
-        .eq('village_id', villageId!)
-        .is('deleted_at', null)
-        .order('harvest_start')
-      if (error) throw new Error(error.message)
-      return (data ?? []).map((row) => {
-        const raw = row as unknown as {
-          id: string
-          season_label: string | null
-          crop: LocalisedNames | null
-          harvest_report: Array<{
-            kind: string
-            is_current: boolean
-            deleted_at: string | null
-          }>
-        }
-        return {
-          id: raw.id,
-          label: localisedName(raw.crop, language) || raw.season_label || raw.id,
-          detail: raw.season_label ?? '',
-          qualifies: raw.harvest_report.some(
-            (report) => report.kind === 'expected' && report.is_current && report.deleted_at === null,
-          ),
-          kind: 'cycle' as const,
-        }
-      })
+      return (await cyclesWithFigures(villageId!)).map(({ cycle, expected }) => ({
+        id: cycle.id,
+        label: localisedName(cycle.crop, language) || cycle.season_label || cycle.id,
+        detail: cycle.season_label ?? '',
+        qualifies: expected !== null,
+        kind: 'cycle',
+      }))
     },
   })
-  return query
 }
 
 /** The requests behind the energy figures, for the drill-down. */
 export function useTowerEnergyRows(villageId: string | undefined) {
   const language = useLanguage()
-
   const query = useQuery({
     queryKey: [...queryKeys.tower.energy(villageId ?? ''), 'rows'],
     enabled: Boolean(villageId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('pue_request')
-        .select(
-          `id, status, quantity,
-           person ( id, given_name, family_name ),
-           equipment ( name_en, name_sw ),
-           energy_estimate ( est_power_kw, est_kwh_per_week )`,
-        )
-        .eq('village_id', villageId!)
-        .is('deleted_at', null)
-        .order('status')
-
-      if (error) throw new Error(error.message)
-
-      return (data ?? []).map((row) => {
-        const raw = row as unknown as Record<string, unknown>
-        const person = raw.person as { id: string; given_name: string; family_name: string } | null
-        const equipment = raw.equipment as { name_en: string; name_sw: string } | null
-        const estimates = raw.energy_estimate as
-          | Array<{ est_power_kw: number | null }>
-          | { est_power_kw: number | null }
-          | null
-        const estimate = Array.isArray(estimates) ? (estimates[0] ?? null) : estimates
-
-        return {
-          id: raw.id as string,
-          status: raw.status as Enums['pue_status'],
-          applicant: person ? `${person.given_name} ${person.family_name}` : '',
-          person_id: person?.id ?? null,
-          equipment,
-          est_power_kw: estimate?.est_power_kw ?? null,
-        }
-      })
-    },
+    queryFn: () => allPages((p) => farmPueRequestsList(workspaceId(), { village_id: villageId!, ...p })),
   })
 
   const data = useMemo(
     () =>
       query.data?.map((row) => ({
-        ...row,
+        id: row.id,
+        status: row.status as Enums['pue_status'],
+        applicant: row.person.name,
+        person_id: row.person.id,
         equipment_name: localisedName(row.equipment, language),
+        est_power_kw: num(row.estimate?.est_power_kw),
       })),
     [query.data, language],
   )
@@ -314,73 +227,41 @@ export function useTowerEnergyRows(villageId: string | undefined) {
 }
 
 /**
- * The crop cycles behind the production figures.
- *
- * v_village_production is grouped by crop and window, so it has no single
- * cycle to point at. Spec 8.2 requires the drill-down to end in a link to an
- * actual row, so the rows here are the cycles themselves — each one reachable
- * on the officer surface.
+ * The crop cycles behind the production figures, each reachable on the officer surface (spec 8.2).
+ * Plot label and farmer (the farm's primary manager) are joined from the village's lists, display only.
  */
 export function useTowerProductionRows(villageId: string | undefined) {
   const language = useLanguage()
-
   const query = useQuery({
     queryKey: [...queryKeys.tower.production(villageId ?? ''), 'cycles'],
     enabled: Boolean(villageId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('crop_cycle')
-        .select(
-          `id, season_label, area_ha, tree_count, unit_count, harvest_start, harvest_end,
-           status, verification,
-           crop ( name_en, name_sw ),
-           plot!crop_cycle_plot_id_fkey (
-             id, label,
-             farm!plot_farm_id_fkey (
-               id, label,
-               farm_manager ( person ( id, given_name, family_name ) )
-             )
-           ),
-           harvest_report!harvest_report_crop_cycle_id_fkey ( kind, quantity_kg, is_current )`,
-        )
-        .eq('village_id', villageId!)
-        .is('deleted_at', null)
-        .order('harvest_start')
-
-      if (error) throw new Error(error.message)
-
-      return (data ?? []).map((row) => {
-        const raw = row as unknown as Record<string, unknown>
-        const crop = raw.crop as { name_en: string; name_sw: string } | null
-        const plot = raw.plot as Record<string, unknown> | null
-        const farm = plot?.farm as Record<string, unknown> | null
-        const managers = (farm?.farm_manager ?? []) as Array<{
-          person: { id: string; given_name: string; family_name: string } | null
-        }>
-        const person = managers[0]?.person ?? null
-        const reports = (raw.harvest_report ?? []) as Array<{
-          kind: string
-          quantity_kg: number
-          is_current: boolean
-        }>
-
-        // Current figures only. A superseded estimate never reaches a total.
-        const expected = reports.find((r) => r.kind === 'expected' && r.is_current) ?? null
-        const actual = reports.find((r) => r.kind === 'actual' && r.is_current) ?? null
-
+      const workspace = workspaceId()
+      const village = { village_id: villageId! }
+      const [cycles, plots, farms, persons] = await Promise.all([
+        cyclesWithFigures(villageId!),
+        allPages((p) => farmRecordsPlotsList(workspace, { ...village, ...p })),
+        allPages((p) => farmRecordsFarmsList(workspace, { ...village, ...p })),
+        allPages((p) => farmRecordsPersonsList(workspace, { ...village, ...p })),
+      ])
+      return cycles.map(({ cycle, expected, actual }) => {
+        const plot = plots.find((p) => p.id === cycle.plot_id)
+        const farm = farms.find((f) => f.id === plot?.farm_id)
+        const manager = farm?.managers.find((m) => m.is_primary) ?? farm?.managers[0]
+        const person = persons.find((p) => p.id === manager?.person_id)
         return {
-          id: raw.id as string,
-          crop,
-          season_label: (raw.season_label as string) ?? null,
-          area_ha: (raw.area_ha as number) ?? null,
-          harvest_start: (raw.harvest_start as string) ?? null,
-          harvest_end: (raw.harvest_end as string) ?? null,
-          verification: raw.verification as Enums['verification_status'],
-          plot_label: (plot?.label as string) ?? null,
+          id: cycle.id,
+          crop: cycle.crop,
+          season_label: cycle.season_label,
+          area_ha: num(cycle.area_ha),
+          harvest_start: cycle.harvest_start,
+          harvest_end: cycle.harvest_end,
+          verification: cycle.provenance.verification as Enums['verification_status'],
+          plot_label: plot?.label ?? null,
           farmer: person ? `${person.given_name} ${person.family_name}` : null,
           person_id: person?.id ?? null,
-          expected_kg: expected?.quantity_kg ?? null,
-          actual_kg: actual?.quantity_kg ?? null,
+          expected_kg: num(expected?.quantity_kg),
+          actual_kg: num(actual?.quantity_kg),
         }
       })
     },
