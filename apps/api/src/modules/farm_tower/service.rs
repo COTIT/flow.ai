@@ -6,7 +6,7 @@ use crate::{
     AppState,
     error::AppError,
     http::{farm::FarmAccess, workspace::NOT_ALLOWED},
-    modules::farm_tower::repo::{self, ProductionRow, QualityRow},
+    modules::farm_tower::repo::{self, ProductionRow, QualityRow, QueueRow},
 };
 
 /// The village id for a staff read of one village: farmers 403, villages the caller is not
@@ -47,4 +47,17 @@ pub async fn data_quality(
         village,
         repo::data_quality(&state.db, access.workspace_id, village).await?,
     ))
+}
+
+/// Outstanding records the caller's verify lists hold, per kind. Any farm role.
+pub async fn verify_queue(state: &AppState, access: &FarmAccess) -> Result<QueueRow, AppError> {
+    let scope = access.staff_scope();
+    Ok(repo::verify_queue(
+        &state.db,
+        access.workspace_id,
+        scope.all,
+        &scope.villages,
+        access.person_id,
+    )
+    .await?)
 }

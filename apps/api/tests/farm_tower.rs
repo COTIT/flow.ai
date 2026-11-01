@@ -84,3 +84,79 @@ async fn tower_reads_are_for_staff_of_the_village(pool: PgPool) {
         assert_eq!(status, StatusCode::NOT_FOUND, "{kind}");
     }
 }
+
+// ---- verify queue summary ----
+
+#[sqlx::test]
+async fn the_verify_queue_summary_counts_what_the_verify_lists_hold(pool: PgPool) {
+    let f = Farm::new(pool).await;
+    let c = f.cast().await;
+    let get = |token: String| {
+        let f = &f;
+        async move {
+            let (status, res) = f
+                .call(Method::GET, "/verify-queue/summary", None, &token)
+                .await;
+            assert_eq!(status, StatusCode::OK, "{res}");
+            res["data"].clone()
+        }
+    };
+    // Each kind must equal its list with ?verification=unverified,pending.
+    for token in [f.ops.clone(), f.officer_ilu.clone(), f.officer_mga.clone()] {
+        let s = get(token.clone()).await;
+        let mut total = 0;
+        for (kind, tail) in [
+            ("persons", "/persons"),
+            ("households", "/households"),
+            ("farms", "/farms"),
+            ("plots", "/plots"),
+            ("crop_cycles", "/crop-cycles"),
+            ("harvest_reports", "/harvest-reports"),
+        ] {
+            let list = f
+                .list(&format!("{tail}?verification=unverified,pending"), &token)
+                .await;
+            assert_eq!(s[kind], list["meta"]["total"], "{kind}: {s}");
+            total += list["meta"]["total"].as_i64().unwrap();
+        }
+        assert_eq!(s["total"], total, "{s}");
+    }
+    let all = get(f.ops.clone()).await;
+    assert_eq!(all["persons"], 4, "{all}");
+    // Verifying a record takes it out of the queue.
+    f.verify("persons", &c.asha.person, &f.owner).await;
+    assert_eq!(get(f.ops.clone()).await["persons"], 3);
+    let mga = get(f.officer_mga.clone()).await;
+    assert_eq!(mga["persons"], 1, "only Joseph: {mga}");
+}
+
+#[sqlx::test]
+async fn the_verify_queue_summary_of_another_workspace_is_never_ours(pool: PgPool) {
+    let f = Farm::new(pool).await;
+    f.cast().await;
+    let other = Farm::new_named(f.pool.clone(), "else.test", "elsewhere").await;
+    let (status, res) = other
+        .call(Method::GET, "/verify-queue/summary", None, &other.ops)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["total"], 0, "{res}");
+    // Their ops aims at our workspace: no farm role there.
+    let (status, _) = common::send(
+        &f.app,
+        Method::GET,
+        &f.url("/verify-queue/summary"),
+        None,
+        Some(&other.ops),
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (status, _) = common::send(
+        &f.app,
+        Method::GET,
+        &f.url("/verify-queue/summary"),
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+}

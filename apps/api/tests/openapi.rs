@@ -1968,6 +1968,12 @@ fn every_farm_tower_operation_is_documented() {
             "farm_tower_data_quality",
             "200",
         ),
+        (
+            "/farm/verify-queue/summary",
+            "get",
+            "farm_tower_verify_summary",
+            "200",
+        ),
     ]);
 }
 
