@@ -98,6 +98,8 @@ pub struct CycleRow {
     pub village_id: Uuid,
     pub plot_id: Uuid,
     pub crop_id: Uuid,
+    /// `{id, code, name_en, name_sw, measured_by}`.
+    pub crop: Value,
     pub season_label: Option<String>,
     pub area_ha: Option<String>,
     pub tree_count: Option<i32>,
@@ -365,7 +367,11 @@ pub async fn cycles(
 ) -> Result<(Vec<CycleRow>, i64), sqlx::Error> {
     let rows = sqlx::query_as!(
         CycleRow,
-        r#"SELECT t.id, t.village_id, t.plot_id, t.crop_id, t.season_label,
+        r#"SELECT t.id, t.village_id, t.plot_id, t.crop_id,
+                  (SELECT jsonb_build_object('id', cr.id, 'code', cr.code, 'name_en', cr.name_en,
+                                             'name_sw', cr.name_sw, 'measured_by', cr.measured_by)
+                   FROM farm_crops cr WHERE cr.workspace_id = t.workspace_id AND cr.id = t.crop_id) AS "crop!",
+                  t.season_label,
                   t.area_ha::text AS area_ha, t.tree_count, t.unit_count, t.planted_on,
                   t.harvest_start, t.harvest_end, t.status,
                   farm_provenance(t.source, t.captured_at, t.captured_by, t.verification,

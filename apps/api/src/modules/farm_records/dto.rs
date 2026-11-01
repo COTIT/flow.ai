@@ -217,6 +217,9 @@ pub struct CropCycleResource {
     village_id: Uuid,
     plot_id: Uuid,
     crop_id: Uuid,
+    /// The crop, named even when it is no longer active.
+    #[schema(value_type = CropName)]
+    crop: Value,
     #[schema(required = true)]
     season_label: Option<String>,
     /// Hectares as decimal text, for crops measured by area.
@@ -247,6 +250,7 @@ impl From<CycleRow> for CropCycleResource {
             village_id: r.village_id,
             plot_id: r.plot_id,
             crop_id: r.crop_id,
+            crop: r.crop,
             season_label: r.season_label,
             area_ha: r.area_ha,
             tree_count: r.tree_count,
@@ -1201,15 +1205,15 @@ pub struct CropName {
     code: String,
     name_en: String,
     name_sw: String,
+    /// `area`, `tree_count` or `unit_count`: which measure a cycle of this crop uses.
+    measured_by: String,
 }
 
-/// A crop cycle with its crop and every harvest figure (newest first).
+/// A crop cycle (its crop included) and every harvest figure (newest first).
 #[derive(Serialize, ToSchema)]
 pub struct HoldingCycle {
     #[serde(flatten)]
     cycle: CropCycleResource,
-    #[schema(required = true)]
-    crop: Option<CropName>,
     harvests: Vec<HarvestReportResource>,
 }
 
@@ -1242,7 +1246,6 @@ pub struct Holdings {
 
 impl Holdings {
     /// Nest the flat reads: plots under farms, cycles under plots, figures under cycles.
-    #[allow(clippy::too_many_arguments)]
     pub fn assemble(
         households: Vec<HouseholdRow>,
         members: Vec<crate::modules::farm_records::repo::NamedMember>,
@@ -1250,19 +1253,10 @@ impl Holdings {
         plots: Vec<PlotRow>,
         cycles: Vec<CycleRow>,
         harvests: Vec<HarvestRow>,
-        crops: Vec<crate::modules::farm_crops::repo::CropRow>,
     ) -> Self {
         let mut harvests: Vec<HarvestRow> = harvests;
         let mut cycles: Vec<CycleRow> = cycles;
         let mut plots: Vec<PlotRow> = plots;
-        let crop = |id: Uuid| {
-            crops.iter().find(|c| c.id == id).map(|c| CropName {
-                id: c.id,
-                code: c.code.clone(),
-                name_en: c.name_en.clone(),
-                name_sw: c.name_sw.clone(),
-            })
-        };
         let farms = farms
             .into_iter()
             .map(|f| {
@@ -1282,7 +1276,6 @@ impl Holdings {
                                     harvests.drain(..).partition(|h| h.crop_cycle_id == c.id);
                                 harvests = rest;
                                 HoldingCycle {
-                                    crop: crop(c.crop_id),
                                     cycle: c.into(),
                                     harvests: mine.into_iter().map(Into::into).collect(),
                                 }

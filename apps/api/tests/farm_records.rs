@@ -860,3 +860,60 @@ async fn the_harvest_report_list_follows_the_cycle_rules(pool: PgPool) {
         "another workspace is refused"
     );
 }
+
+// ---- crop on cycles ----
+
+#[sqlx::test]
+async fn every_crop_cycle_names_its_crop(pool: PgPool) {
+    let (f, c, neema) = setup(pool).await;
+    let (status, res) = f
+        .call(
+            Method::PATCH,
+            &format!("/crops/{}", c.banana),
+            Some(json!({ "is_active": false })),
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let maize = json!({ "id": c.maize, "code": "MAIZE", "name_en": "MAIZE", "name_sw": "MAIZE", "measured_by": "area" });
+    let banana = json!({ "id": c.banana, "code": "BANANA", "name_en": "BANANA", "name_sw": "BANANA", "measured_by": "tree_count" });
+
+    let list = f
+        .list(&format!("/crop-cycles?plot_id={}", c.neema.plot), &neema)
+        .await;
+    let crops: Vec<Value> = list["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|cy| cy["crop"].clone())
+        .collect();
+    assert!(crops.contains(&maize), "{crops:?}");
+    assert!(
+        crops.contains(&banana),
+        "an inactive crop is still named: {crops:?}"
+    );
+
+    let one = f
+        .list(
+            &format!("/crop-cycles/{}", c.joseph.cycles[0]),
+            &f.officer_mga,
+        )
+        .await;
+    assert_eq!(one["data"]["crop"], maize);
+
+    let holdings = f
+        .list(&format!("/persons/{}/holdings", c.neema.person), &neema)
+        .await;
+    let cycles: Vec<&Value> = holdings["data"]["farms"][0]["plots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|p| p["cycles"].as_array().unwrap())
+        .collect();
+    assert!(cycles.iter().any(|cy| cy["crop"] == maize), "{cycles:?}");
+    assert_eq!(
+        holdings.to_string().matches("\"crop\":").count(),
+        cycles.len(),
+        "one crop key per cycle"
+    );
+}

@@ -2933,6 +2933,10 @@
             "format": "date-time",
             "type": "string"
           },
+          "crop": {
+            "$ref": "#/components/schemas/CropName",
+            "description": "The crop, named even when it is no longer active."
+          },
           "crop_id": {
             "format": "uuid",
             "type": "string"
@@ -3007,6 +3011,7 @@
           "village_id",
           "plot_id",
           "crop_id",
+          "crop",
           "season_label",
           "area_ha",
           "tree_count",
@@ -3031,6 +3036,10 @@
             "format": "uuid",
             "type": "string"
           },
+          "measured_by": {
+            "description": "`area`, `tree_count` or `unit_count`: which measure a cycle of this crop uses.",
+            "type": "string"
+          },
           "name_en": {
             "type": "string"
           },
@@ -3042,7 +3051,8 @@
           "id",
           "code",
           "name_en",
-          "name_sw"
+          "name_sw",
+          "measured_by"
         ],
         "type": "object"
       },
@@ -6745,16 +6755,6 @@
           },
           {
             "properties": {
-              "crop": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/CropName"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
               "harvests": {
                 "items": {
                   "$ref": "#/components/schemas/HarvestReportResource"
@@ -6763,13 +6763,12 @@
               }
             },
             "required": [
-              "crop",
               "harvests"
             ],
             "type": "object"
           }
         ],
-        "description": "A crop cycle with its crop and every harvest figure (newest first)."
+        "description": "A crop cycle (its crop included) and every harvest figure (newest first)."
       },
       "HoldingFarm": {
         "allOf": [

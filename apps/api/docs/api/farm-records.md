@@ -27,7 +27,7 @@ Records are never deleted through the API. A soft-deleted row (`deleted_at`) dis
 - Anything else is `404`, including another workspace.
 - **Phone and GPS** (`phone`, farm and plot `latitude`/`longitude`) are filled only for staff of the record's village. Everyone else gets `null`.
 
-Lists come oldest first: `GET /v1/workspace/{workspace}/farm/{persons|households|farms|plots|crop-cycles}`. Each has `GET …/{id}`. Households embed `members [{person_id, is_head}]`; farms embed `managers [{person_id, is_primary}]`.
+Lists come oldest first: `GET /v1/workspace/{workspace}/farm/{persons|households|farms|plots|crop-cycles}`. Each has `GET …/{id}`. Households embed `members [{person_id, is_head}]`; farms embed `managers [{person_id, is_primary}]`; crop cycles embed `crop {id, code, name_en, name_sw, measured_by}` (always present, also for a crop since made inactive).
 
 | Query | Applies to | Meaning |
 |---|---|---|
@@ -48,7 +48,7 @@ One read for a person page. Visible to whoever may see the person: village staff
 { "data": {
   "households": [ { …household, "people": [ { "person_id", "given_name", "family_name", "is_head" } ] } ],
   "farms": [ { …farm, "plots": [ { …plot, "cycles": [ { …cycle,
-      "crop": { "id", "code", "name_en", "name_sw" },
+      "crop": { "id", "code", "name_en", "name_sw", "measured_by" },
       "harvests": [ …harvest reports, newest first ] } ] } ] } ]
 } }
 ```
