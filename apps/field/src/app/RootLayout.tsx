@@ -8,7 +8,6 @@ import { SignOutButton } from '@/app/SignOutButton'
 import { SurfaceNav } from '@/app/SurfaceNav'
 import { UserMenu } from '@/app/UserMenu'
 import { BugReportButton } from '@/components/BugReport'
-import { BUG_REPORTS_PORTED } from '@/lib/ported'
 import { TourButton } from '@/app/tour/TourButton'
 import { TourProvider } from '@/app/tour/TourProvider'
 import { activeMemberships } from '@/app/membership'
@@ -127,7 +126,7 @@ export function RootLayout() {
         {layout === 'tabs' && <SurfaceNav layout={layout} items={items} />}
 
         {/* Every signed-in screen, every site: testers report from where it broke. */}
-        {BUG_REPORTS_PORTED && session?.appUser && <BugReportButton reporterId={session.appUser.id} />}
+        {session?.appUser && <BugReportButton />}
       </div>
     </TourProvider>
   )

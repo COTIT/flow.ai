@@ -44,12 +44,3 @@ export function isPorted(pathname: string, ported: readonly string[] = PORTED): 
   const path = pathname.replace(/\/+$/, '') || '/'
   return ported.some((p) => (p.endsWith('/*') ? path.startsWith(p.slice(0, -1)) : path === p))
 }
-
-/** The bug-report button writes to Supabase storage until the API has bug reports (port step 7). */
-export const BUG_REPORTS_PORTED = false
-
-/**
- * shortcut: loan products are not on the API yet, so the equipment and catalogue screens hide their
- * loan tab; set true (then delete) when `farm/loan-products` exists.
- */
-export const LOANS_PORTED = false

@@ -213,6 +213,13 @@ const LOAN_DEFAULTS = { code: '', nameEn: '', nameSw: '', descriptionEn: '', des
 function LoanForm({ projectId }: { projectId: string | undefined }) {
   const { t } = useTranslation()
   const create = useCreateLoanProduct()
+  // shortcut: amounts are in the account's default currency, as for equipment; add a currency
+  // picker when an account lists loans in more than one.
+  const currencies = useCurrencies().data ?? []
+  const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
+  const minor = (text: string) => amountToMinor(text.trim(), currency?.decimals ?? 0)
+  const amountError = (text: string) =>
+    numberError(text, true) ?? (minor(text) === null ? 'catalogue.notANumber' : undefined)
   const draft = usePersistentForm('catalogue-loan-create', projectId ?? 'project', LOAN_DEFAULTS, zodResolver(loanSchema))
   const [code, setCode] = draft.field('code')
   const [nameEn, setNameEn] = draft.field('nameEn')
@@ -228,27 +235,28 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
     code: textError(code),
     'name-en': textError(nameEn),
     'name-sw': textError(nameSw),
-    min: numberError(min, true),
-    max: numberError(max, true),
+    min: amountError(min),
+    max: amountError(max),
   }
   const shown = (key: keyof typeof errors) => (touched && errors[key] ? t(errors[key]!) : undefined)
 
   const submit = () => {
     if (inFlight.current || create.isPending || !draft.ready) return
     setTouched(true)
-    if (Object.values(errors).some(Boolean) || !projectId) return
+    if (Object.values(errors).some(Boolean) || !currency) return
 
     inFlight.current = true
+    // Amounts as integer minor units by string maths: no floats. The range rule is the API's.
     void finishDraftWhenSaved(create.mutateAsync({
       id: draft.clientRef,
-      project_id: projectId,
       code: code.trim(),
       name_en: nameEn.trim(),
       name_sw: nameSw.trim(),
       description_en: textOrNull(descriptionEn),
       description_sw: textOrNull(descriptionSw),
-      indicative_min_amount: Number(min.trim()),
-      indicative_max_amount: Number(max.trim()),
+      indicative_min_minor: minor(min)!,
+      indicative_max_minor: minor(max)!,
+      currency_id: currency.id,
     }), draft.finish).finally(() => { inFlight.current = false })
   }
 
@@ -265,8 +273,8 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
   )
 
   return (
-    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} ready={draft.ready}
-      note={t('resources.loanNote')}
+    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create}
+      ready={draft.ready && Boolean(currency)} note={t('resources.loanNote')}
     >
       <Field label={t('catalogue.code')} id="catalogue-code" error={shown('code')} errorTestId="catalogue-code-error">
         {input('code', code, setCode)}

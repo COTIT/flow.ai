@@ -11,7 +11,7 @@ const pathname = vi.fn()
 vi.mock('@/app/session', () => ({ useSession: () => useSession(), signOut: vi.fn() }))
 vi.mock('@/app/LanguageSwitch', () => ({ LanguageSwitch: () => <div data-testid="language-switch" /> }))
 // The shell as it is once every screen is on the Genesy API (the port gates are tested in ported.test.ts).
-vi.mock('@/lib/ported', () => ({ BUG_REPORTS_PORTED: true, isPorted: () => true }))
+vi.mock('@/lib/ported', () => ({ isPorted: () => true }))
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
   Outlet: () => <div data-testid="outlet" />,

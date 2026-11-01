@@ -56,8 +56,6 @@ test("ops sees the catalogue: machines with indicative prices, and their categor
   await expect(row.getByTestId("catalogue-price")).toContainText("TZS 22,000,000.00")
   await expect(row.getByTestId("catalogue-price")).toContainText(/indicative/i)
   await expect(page.getByTestId("category-row")).toContainText(["Milling"])
-  // Loan listings are not on the API yet: no tab leads to them.
-  await expect(page.getByTestId("catalogue-tab-loan")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 })
 

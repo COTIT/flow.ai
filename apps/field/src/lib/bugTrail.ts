@@ -1,12 +1,14 @@
 import type { AnyRouter } from '@tanstack/react-router'
 
+import { api } from '@/lib/api'
+
 /**
  * The last 30 things the user did, attached to a bug report (migration
  * 20261025090001_bug_reports).
  *
  * Clicks, navigations, API calls and uncaught errors. Never a typed value, a
  * request body or a query value: URLs keep their path and query keys only,
- * because a filter or a PostgREST query can carry a name or a phone number.
+ * because a filter or a query can carry a name or a phone number.
  */
 export type TrailKind = 'click' | 'nav' | 'api' | 'error'
 
@@ -62,28 +64,38 @@ export function installClickTrail(): () => void {
   return () => document.removeEventListener('click', onClick, true)
 }
 
-/** The Supabase client's fetch: every API call lands on the trail. */
-export const trailFetch: typeof fetch = async (input, init) => {
-  const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase()
-  const url = redactUrl(input instanceof Request ? input.url : String(input))
-  const started = performance.now()
-  try {
-    const response = await fetch(input, init)
-    recordTrail('api', `${method} ${url} → ${response.status} (${Math.round(performance.now() - started)}ms)`)
-    return response
-  } catch (error) {
-    recordTrail('api', `${method} ${url} → ${error instanceof Error ? error.message : String(error)}`)
-    throw error
+/** Every Genesy API call lands on the trail: method, redacted path, status, time. Never a body or a token. */
+export function trailApi(instance: typeof api) {
+  const started = new WeakMap<object, number>()
+  const record = (config: { method?: string } | undefined, outcome: string) => {
+    const url = config ? redactUrl(instance.getUri(config)) : '(unknown)'
+    const ms = config && started.has(config) ? ` (${Math.round(performance.now() - started.get(config)!)}ms)` : ''
+    recordTrail('api', `${(config?.method ?? 'get').toUpperCase()} ${url} → ${outcome}${ms}`)
   }
+  instance.interceptors.request.use((config) => {
+    started.set(config, performance.now())
+    return config
+  })
+  instance.interceptors.response.use(
+    (response) => {
+      record(response.config, String(response.status))
+      return response
+    },
+    (error: { config?: { method?: string }; response?: { status?: number }; message?: string }) => {
+      record(error?.config, error?.response?.status ? String(error.response.status) : String(error?.message))
+      return Promise.reject(error)
+    },
+  )
 }
 
 let installed = false
 
-/** Once, at start-up: clicks, navigations and uncaught errors. */
+/** Once, at start-up: clicks, navigations, API calls and uncaught errors. */
 export function installBugTrail(router: AnyRouter) {
   if (installed) return
   installed = true
   installClickTrail()
+  trailApi(api)
   router.subscribe('onResolved', ({ fromLocation, toLocation }) => {
     recordTrail('nav', `${fromLocation ? redactUrl(fromLocation.href) : '(start)'} → ${redactUrl(toLocation.href)}`)
   })

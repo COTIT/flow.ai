@@ -34,7 +34,6 @@ test("a farmer lists equipment and opens one, at indicative prices", async ({ pa
   await expect(card).toContainText("15.000 kW")
   await expect(card.getByTestId("equipment-price")).toContainText("TZS 22,000,000.00")
   await expect(card.getByTestId("equipment-rent")).toContainText("TZS 50,000.00")
-  await expect(page.getByTestId("resources-tab-loan")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 
   await card.getByRole("link").click()
