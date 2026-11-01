@@ -58,9 +58,9 @@ pub struct SaleRequest {
     payment: Option<Value>,
 }
 
-/// How the sale was paid.
+/// How the sale was paid. `tendered` is always set on a sale; a quote may leave it out.
 pub enum Payment {
-    Cash { tendered: i64 },
+    Cash { tendered: Option<i64> },
     Card { reference: Option<String> },
 }
 
@@ -74,7 +74,8 @@ pub struct NewSale {
     pub hash: [u8; 32],
 }
 
-fn payment(r: &mut Rules, v: Option<Value>) -> Option<Payment> {
+/// The payment; `need_tendered` makes cash's `tendered` required (a sale, not a quote).
+fn payment(r: &mut Rules, v: Option<Value>, need_tendered: bool) -> Option<Payment> {
     let v = r.required_value("payment", v)?;
     let method = r.one_of(
         "payment.method",
@@ -83,16 +84,16 @@ fn payment(r: &mut Rules, v: Option<Value>) -> Option<Payment> {
         None,
     );
     match method.as_deref() {
-        Some("cash") => {
-            let tendered = match &v["tendered"] {
-                Value::Null => {
-                    r.missing("payment.tendered");
-                    None
-                }
-                t => r.integer("payment.tendered", t, 0, MONEY_MAX),
-            };
-            tendered.map(|tendered| Payment::Cash { tendered })
-        }
+        Some("cash") => match &v["tendered"] {
+            Value::Null if need_tendered => {
+                r.missing("payment.tendered");
+                None
+            }
+            Value::Null => Some(Payment::Cash { tendered: None }),
+            t => r
+                .integer("payment.tendered", t, 0, MONEY_MAX)
+                .map(|t| Payment::Cash { tendered: Some(t) }),
+        },
         Some(_) => {
             let reference = r.opt_text(
                 "payment.reference",
@@ -125,24 +126,27 @@ fn sold_at(r: &mut Rules, v: Option<String>) -> Option<DateTime<Utc>> {
     Some(at)
 }
 
+/// Till lines: catalog lines that carry only the unit price the till charged.
+fn till_lines(r: &mut Rules, rows: Option<Vec<LineRequest>>) -> Vec<LineInput> {
+    for (n, l) in rows.iter().flatten().enumerate() {
+        if l.unit_price.as_ref().is_none_or(Value::is_null) {
+            r.add(&format!("lines.{n}.unit_price"), NEEDS_PRICE);
+        }
+        if l.discount_percentage.is_some() || l.title.is_some() {
+            r.add(&format!("lines.{n}.unit_price"), TILL_ONLY_PRICE);
+        }
+    }
+    lines(r, rows, true)
+}
+
 impl Validate for SaleRequest {
     type Valid = NewSale;
 
     fn validate(self, r: &mut Rules) -> Option<NewSale> {
         let client_ref = r.text("client_ref", self.client_ref, REF_MAX);
         let sold_at = sold_at(r, self.sold_at);
-        if let Some(rows) = &self.lines {
-            for (n, l) in rows.iter().enumerate() {
-                if l.unit_price.as_ref().is_none_or(Value::is_null) {
-                    r.add(&format!("lines.{n}.unit_price"), NEEDS_PRICE);
-                }
-                if l.discount_percentage.is_some() || l.title.is_some() {
-                    r.add(&format!("lines.{n}.unit_price"), TILL_ONLY_PRICE);
-                }
-            }
-        }
-        let lines = lines(r, self.lines, true);
-        let payment = payment(r, self.payment)?;
+        let lines = till_lines(r, self.lines);
+        let payment = payment(r, self.payment, true)?;
         let canonical = json!({
             "client_ref": client_ref,
             // The instant, not its spelling: `Z` and `+00:00` are one sale.
@@ -164,6 +168,76 @@ impl Validate for SaleRequest {
             hash,
         })
     }
+}
+
+/// POST /till/sales/quote.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "A basket to price as `POST /till/sales` would, without booking it. Same lines \
+    and payment; cash `tendered` is optional (gives `change`)."
+)]
+pub struct QuoteRequest {
+    /// 1 to 50 lines; `unit_price` is required, `discount_percentage` and `title` are not taken.
+    lines: Option<Vec<LineRequest>>,
+    #[schema(value_type = TillPayment)]
+    payment: Option<Value>,
+}
+
+/// A validated quote.
+pub struct NewQuote {
+    pub lines: Vec<LineInput>,
+    pub payment: Payment,
+}
+
+impl Validate for QuoteRequest {
+    type Valid = NewQuote;
+
+    fn validate(self, r: &mut Rules) -> Option<NewQuote> {
+        let lines = till_lines(r, self.lines);
+        let payment = payment(r, self.payment, false)?;
+        Some(NewQuote { lines, payment })
+    }
+}
+
+/// One quoted line, as the sale would book it.
+#[derive(Serialize, ToSchema)]
+pub struct QuoteLine {
+    pub product_id: Uuid,
+    #[schema(required = true)]
+    pub product_variant_id: Option<Uuid>,
+    /// Decimal string.
+    #[schema(example = "2.00")]
+    pub quantity: String,
+    /// Minor units excl VAT.
+    pub unit_price: i64,
+    pub line_excl: i64,
+    pub line_vat: i64,
+    /// line_excl + line_vat.
+    pub line_total: i64,
+}
+
+/// What `POST /till/sales` would book for this basket now. Minor units.
+#[derive(Serialize, ToSchema)]
+pub struct QuoteResource {
+    pub lines: Vec<QuoteLine>,
+    /// Excl VAT.
+    pub subtotal: i64,
+    pub vat: i64,
+    /// Incl VAT: the order total.
+    pub total: i64,
+    /// The same lines at today's catalog prices.
+    pub server_total: i64,
+    /// total − server_total.
+    pub price_mismatch: i64,
+    /// Lines at another unit price than the catalog's.
+    pub mismatched_lines: i32,
+    /// To pay: cash rounded to the currency's step, card = total.
+    pub due: i64,
+    /// due − total.
+    pub rounding: i64,
+    /// tendered − due; null for card or without `tendered`.
+    #[schema(required = true)]
+    pub change: Option<i64>,
 }
 
 /// A till sale as booked.

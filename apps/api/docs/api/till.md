@@ -91,6 +91,7 @@ Active till users for the login picker: `{data: [{id, name}]}`.
 `Authorization: Bearer <token>`. A session stops working when it is ended or expired, when the register's key is rotated or revoked, when the till user is set inactive, or when the workspace is deleted. Then: 401.
 
 - `GET /till/me` → `{data: {register, user, expires_at}}`
+- `register` (on `/till/me` and the `/till/login` reply): `id`, `name`, `warehouse_id`, `currency_id`, `currency {code, decimals}`, and `accepted_cash`: the drawer's notes and coins from settings `cash_register.accepted_cash` (stored as major-unit numbers or strings; the euro list when unset), converted exactly to minor units of the register's currency, sorted and distinct. A value that isn't a whole minor unit is left out.
 - `POST /till/logout` → 204
 
 ## Catalog (till token)
@@ -186,6 +187,12 @@ What happens, in one transaction:
 ```
 
 The drawer's expected cash uses `due`, the amount actually taken, so it balances even when `price_mismatch` is not 0.
+
+### `POST /till/sales/quote`
+
+`{lines, payment}` as `POST /till/sales`, without `client_ref` or `sold_at`; cash `tendered` is optional. Priced by the same code as the sale (`till_sales::service::price_sale`: the till's prices, the catalog's, cash rounding, the tendered check) inside a transaction that is rolled back. Writes nothing: no order, stock, drawer or replay row, and no open shift is needed.
+
+200 `{data: {lines: [{product_id, product_variant_id, quantity, unit_price, line_excl, line_vat, line_total}], subtotal, vat, total, server_total, price_mismatch, mismatched_lines, due, rounding, change}}` in minor units; `change` is null for card or without `tendered`. The same 422s as the sale (lines, payment, tendered below due); 401 without a till session, 404 on another workspace's path.
 
 ### `GET /till/sales/{client_ref}`
 
