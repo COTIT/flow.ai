@@ -74,6 +74,7 @@ export default function InvoicesPage({
             <TableHeader>
               <TableRow>
                 <TableHead>{t("invoices.number")}</TableHead>
+                <TableHead>{t("invoices.customer")}</TableHead>
                 <TableHead>{t("invoices.status")}</TableHead>
                 <TableHead>{t("invoices.date")}</TableHead>
                 <TableHead>{t("invoices.due")}</TableHead>
@@ -97,6 +98,7 @@ export default function InvoicesPage({
                     </Link>
                     {inv.is_credit ? ` · ${t("invoices.credit")}` : ""}
                   </TableCell>
+                  <TableCell>{inv.customer_name ?? "—"}</TableCell>
                   <TableCell>
                     <StatusBadge status={inv.status} />
                   </TableCell>

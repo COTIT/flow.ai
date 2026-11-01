@@ -418,5 +418,13 @@
   "catalogue.categories.title": "Drafter: Claude, Genesy port step 7; unreviewed.",
   "catalogue.categories.add": "Drafter: Claude, Genesy port step 7; unreviewed.",
   "villages.setCapacity": "Drafter: Claude, Genesy port step 7; unreviewed.",
-  "villages.capacityTitle": "Drafter: Claude, Genesy port step 7; unreviewed."
+  "villages.capacityTitle": "Drafter: Claude, Genesy port step 7; unreviewed.",
+  "ops.confirmApproveTitle": "Drafter: Claude, Genesy port step 7c; unreviewed.",
+  "ops.confirmApproveDetail": "Drafter: Claude, Genesy port step 7c; unreviewed.",
+  "ops.confirmRejectTitle": "Drafter: Claude, Genesy port step 7c; unreviewed.",
+  "ops.confirmRejectDetail": "Drafter: Claude, Genesy port step 7c; unreviewed.",
+  "ops.confirmCancel": "Drafter: Claude, Genesy port step 7c; unreviewed.",
+  "supply.stockTitle": "Drafter: Claude, Genesy port step 7; unreviewed.",
+  "supply.stockRow": "Drafter: Claude, Genesy port step 7; unreviewed.",
+  "supply.noStock": "Drafter: Claude, Genesy port step 7; unreviewed."
 }

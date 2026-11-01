@@ -13,10 +13,12 @@ import {
   type DispatchInput,
   useDispatch,
   useDispatchOptions,
+  useLotStock,
   useSupplyLinks,
   useSupplyTransfers,
 } from '@/features/ops/supply/useSupply'
 import { formatTimestamp } from '@/lib/format'
+import { newUuid } from '@/lib/ids'
 
 /** `/ops/dispatch`: send lot stock to a shop over a live link, and the transfers sent so far. */
 export function DispatchScreen() {
@@ -30,17 +32,28 @@ export function DispatchScreen() {
   const [confirming, setConfirming] = useState(false)
   /** Set on the tap itself: a second tap before React re-renders the button disabled must not send twice. */
   const sending = useRef(false)
+  /**
+   * Kept until a transfer is sent, edits included: if a send landed but its reply was lost, a resend with a
+   * changed body is refused (422) instead of moving the stock twice.
+   */
+  const idempotencyKey = useRef(newUuid())
+  const stock = useLotStock(input.lotId)
 
   const live = (links.data ?? []).filter((l) => l.status === 'live')
-  const set = (key: keyof DispatchInput) => (e: { target: { value: string } }) =>
+  const warehouseName = (id: string) => options.data?.warehouses.find((w) => w.id === id)?.name ?? id
+  const set = (key: keyof DispatchInput) => (e: { target: { value: string } }) => {
     setInput((now) => ({ ...now, [key]: e.target.value }))
+  }
   const ready = Object.values(input).every((v) => v.trim() !== '')
 
   const confirm = () => {
     if (sending.current) return
     sending.current = true
-    dispatch.mutate(input, {
-      onSuccess: () => setInput((now) => ({ ...now, quantity: '' })),
+    dispatch.mutate({ ...input, idempotencyKey: idempotencyKey.current }, {
+      onSuccess: () => {
+        idempotencyKey.current = newUuid()
+        setInput((now) => ({ ...now, quantity: '' }))
+      },
       onSettled: () => {
         sending.current = false
         setConfirming(false)
@@ -94,6 +107,31 @@ export function DispatchScreen() {
               'dispatch-warehouse',
               t('supply.warehouse'),
               (options.data?.warehouses ?? []).map((w) => ({ id: w.id, label: w.name })),
+            )}
+            {input.lotId !== '' && (
+              // Display only: the API still refuses a quantity above what is free.
+              <div data-testid="dispatch-stock" className="flex flex-col gap-1 sm:col-span-2">
+                <p className="type-note" style={{ color: 'var(--ink-2)' }}>
+                  {t('supply.stockTitle')}
+                </p>
+                {stock.error ? (
+                  <ErrorState error={stock.error} />
+                ) : stock.isLoading ? (
+                  <Loading testId="dispatch-stock-loading" />
+                ) : !stock.data?.length ? (
+                  <p className="type-note">{t('supply.noStock')}</p>
+                ) : (
+                  <ul className="flex flex-col gap-0.5">
+                    {stock.data.map((row) => (
+                      <li key={row.warehouse_id} data-testid="dispatch-stock-row" className="type-note tabular">
+                        <b>{warehouseName(row.warehouse_id)}</b>
+                        {': '}
+                        {t('supply.stockRow', { available: row.available, level: row.level, reserved: row.reserved })}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
             <FormField label={t('supply.quantity')} id="dispatch-quantity">
               <input

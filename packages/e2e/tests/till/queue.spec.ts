@@ -29,7 +29,8 @@ const sale = {
 /** Every sale this page rings up gets REF as its client_ref. */
 async function fixedRef(page: Page) {
   await page.addInitScript((ref) => {
-    crypto.randomUUID = () => ref as `${string}-${string}-${string}-${string}-${string}`
+    crypto.randomUUID = () =>
+      ref as `${string}-${string}-${string}-${string}-${string}`
   }, REF)
 }
 
@@ -49,7 +50,9 @@ function serverApi(api: FakeApi) {
 async function ringUpCash(page: Page) {
   await page.getByLabel("Search products").fill("honey")
   await page.getByRole("button", { name: /Ilundo honey 500 g/ }).click()
-  await page.getByRole("button", { name: "One more Ilundo honey 500 g" }).click()
+  await page
+    .getByRole("button", { name: "One more Ilundo honey 500 g" })
+    .click()
   await page.getByLabel("Cash received").fill("30")
 }
 
@@ -70,8 +73,7 @@ test.describe("offline", () => {
     await context.setOffline(true)
     await page.getByRole("button", { name: "Charge" }).click()
     const saved = page.getByRole("region", { name: "Saved offline" })
-    await expect(saved.getByText("≈ €25.00")).toBeVisible()
-    await expect(saved.getByText("≈ €5.00")).toBeVisible()
+    await expect(saved.getByText("≈ €22.94")).toBeVisible()
     await expect(page.getByText("1 sale to sync")).toBeVisible()
     await expectNoHorizontalScroll(page)
     expect(api.callsTo("POST", `/workspace/${WS}/till/sales`)).toHaveLength(0)
@@ -85,7 +87,9 @@ test.describe("offline", () => {
     expect(body.sold_at).toEqual(expect.any(String))
     expect(body.payment).toEqual({ method: "cash", tendered: 3000 })
     // Reconcile first: the replay asked whether the server already had the sale.
-    expect(api.callsTo("GET", `/workspace/${WS}/till/sales/${REF}`)).toHaveLength(1)
+    expect(
+      api.callsTo("GET", `/workspace/${WS}/till/sales/${REF}`)
+    ).toHaveLength(1)
 
     await page.getByText("Offline sales synced").click()
     await expect(page).toHaveURL("/queue")
@@ -116,9 +120,13 @@ test.describe("lost answer", () => {
     await ringUpCash(page)
     await page.getByRole("button", { name: "Charge" }).click()
 
-    await expect(page.getByRole("region", { name: "Saved offline" })).toBeVisible()
+    await expect(
+      page.getByRole("region", { name: "Saved offline" })
+    ).toBeVisible()
     await expect(page.getByText("Offline sales synced")).toBeVisible()
-    expect(api.callsTo("GET", `/workspace/${WS}/till/sales/${REF}`)).toHaveLength(1)
+    expect(
+      api.callsTo("GET", `/workspace/${WS}/till/sales/${REF}`)
+    ).toHaveLength(1)
     expect(api.callsTo("POST", `/workspace/${WS}/till/sales`)).toHaveLength(0)
   })
 })
@@ -130,7 +138,9 @@ async function seedQueue(page: Page) {
     body: {
       client_ref: REF,
       sold_at: "2026-11-01T09:00:00Z",
-      lines: [{ product_id: honey.id, quantity: "1", unit_price: honey.price_net }],
+      lines: [
+        { product_id: honey.id, quantity: "1", unit_price: honey.unit_price },
+      ],
       payment: { method: "card", reference: null },
     },
     lines: [
@@ -138,8 +148,7 @@ async function seedQueue(page: Page) {
         productId: honey.id,
         variantId: null,
         name: honey.name,
-        unitNet: honey.price_net,
-        unitGross: honey.price_gross,
+        unitNet: honey.unit_price,
         quantity: 1,
       },
     ],
@@ -168,14 +177,18 @@ test.describe("refused replay", () => {
     serverApi(api)
     api.on("POST", "/workspace/:ws/till/sales", () => ({
       status: 409,
-      body: { message: "This client_ref was used for another sale on this register." },
+      body: {
+        message: "This client_ref was used for another sale on this register.",
+      },
     }))
     await seedQueue(page)
     await seedTill(page)
     await page.goto("/queue")
     await expect(page.getByText("Conflict")).toBeVisible()
     await expect(
-      page.getByText("This client_ref was used for another sale on this register.")
+      page.getByText(
+        "This client_ref was used for another sale on this register."
+      )
     ).toBeVisible()
     await page.getByRole("button", { name: "Dismiss" }).click()
     await expect(page.getByText("No offline sales.")).toBeVisible()
@@ -216,7 +229,9 @@ test.describe("server down", () => {
         hasText: "1 offline sale still to sync. Sync before closing the shift.",
       })
     ).toBeVisible()
-    await expect(page.getByRole("button", { name: "Close shift" })).toBeDisabled()
+    await expect(
+      page.getByRole("button", { name: "Close shift" })
+    ).toBeDisabled()
     await expect(page.getByText("1 sale to sync")).toBeVisible()
   })
 })

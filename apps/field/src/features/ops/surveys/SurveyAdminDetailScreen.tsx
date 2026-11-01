@@ -175,7 +175,7 @@ function SurveyFacts({ survey }: { survey: Survey }) {
         )}
       </dl>
       <p className="type-note flex flex-wrap gap-x-4 gap-y-1" style={{ color: 'var(--ink-2)' }}>
-        {/* shortcut: "Created by" is hidden — the API's survey has no created_by; show it when it does. */}
+        <span data-testid="survey-created-by">{t('surveyAdmin.createdBy', { name: survey.created_by?.name ?? UNKNOWN })}</span>
         {survey.published_at && (
           <span data-testid="survey-published-by">
             {t('surveyAdmin.publishedBy', {

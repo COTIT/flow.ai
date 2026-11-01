@@ -130,11 +130,7 @@ async function invalidateSurvey(queryClient: QueryClient, surveyId?: string) {
   ])
 }
 
-/**
- * A new survey is a draft.
- * shortcut: the API takes no client `id` on create, so a retry after a lost reply makes a
- * second draft (the screen's in-flight guard stops double taps only); send one when the API accepts it.
- */
+/** A new survey is a draft. The body's client `id` makes a retry return the same survey (200). */
 export function useCreateSurvey() {
   const queryClient = useQueryClient()
   return useMutation({

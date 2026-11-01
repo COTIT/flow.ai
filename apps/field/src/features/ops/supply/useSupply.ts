@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { farmSupplyList } from '@genesy/api-client/endpoints/farm-supply'
+import { lotsStock } from '@genesy/api-client/endpoints/lots'
 import { supplyChainDispatch, supplyChainList } from '@genesy/api-client/endpoints/supply-chain'
 import { supplyLinksGrant, supplyLinksList, supplyLinksRevoke } from '@genesy/api-client/endpoints/supply-links'
 import { warehousesList } from '@genesy/api-client/endpoints/warehouses'
@@ -11,6 +12,9 @@ import { workspaceId } from '@/app/workspace'
  * The farm side of supply: links this workspace grants, and lot stock it sends over a live one.
  * Every rule (who may grant, which fields, live link, enough free stock) is the API's; its refusal
  * is what the screen shows. The shop side (accept, receive, packing) is the office app's.
+ *
+ * Grant and dispatch carry the form's `Idempotency-Key`: a retry after a lost reply replays the
+ * first answer instead of granting or sending twice.
  */
 
 export type SupplyLink = LinkResource
@@ -23,7 +27,11 @@ const KEYS = {
   links: ['supplyLinks'],
   transfers: ['supplyTransfers'],
   dispatchOptions: ['supplyDispatchOptions'],
+  lotStock: (lotId: string) => ['supplyLotStock', lotId],
 } as const
+
+/** One key per form attempt, made by the screen; sent as the `Idempotency-Key` header. */
+const idempotent = (key: string) => ({ headers: { 'Idempotency-Key': key } })
 
 async function readAll<T>(
   read: (params: { page: number; page_size: number }) => Promise<{ data: T[]; meta: { last_page: number } }>,
@@ -48,8 +56,8 @@ export function useSupplyLinks() {
 export function useGrantLink() {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: async ({ toWorkspaceId, fields }: { toWorkspaceId: string; fields: string[] }) =>
-      (await supplyLinksGrant(workspaceId(), { to_workspace_id: toWorkspaceId, fields })).data,
+    mutationFn: async ({ toWorkspaceId, fields, idempotencyKey }: { toWorkspaceId: string; fields: string[]; idempotencyKey: string }) =>
+      (await supplyLinksGrant(workspaceId(), { to_workspace_id: toWorkspaceId, fields }, idempotent(idempotencyKey))).data,
     onSuccess: () => client.invalidateQueries({ queryKey: KEYS.links }),
   })
 }
@@ -70,11 +78,7 @@ export function useSupplyTransfers() {
   })
 }
 
-/**
- * Lots that can be sent are the raw lots of supply batches (the API refuses any other).
- * shortcut: no free stock per lot or warehouse is shown, the API has no read for it; add it when
- * `GET /lots/{lot}/stock` (or lot rows in `GET /products/stocks` for farm staff) is documented.
- */
+/** Lots that can be sent are the raw lots of supply batches (the API refuses any other). */
 export function useDispatchOptions() {
   return useQuery({
     queryKey: KEYS.dispatchOptions,
@@ -100,11 +104,31 @@ export interface DispatchInput {
   quantity: string
 }
 
+/** A lot's stock per warehouse (level, reserved, available): display only, the API still refuses an over-send. */
+export function useLotStock(lotId: string) {
+  return useQuery({
+    queryKey: KEYS.lotStock(lotId),
+    enabled: lotId !== '',
+    queryFn: async () => (await lotsStock(workspaceId(), lotId)).data,
+  })
+}
+
 export function useDispatch() {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: async ({ lotId, linkId, warehouseId, quantity }: DispatchInput) =>
-      (await supplyChainDispatch(workspaceId(), lotId, { link_id: linkId, warehouse_id: warehouseId, quantity })).data,
-    onSuccess: () => client.invalidateQueries({ queryKey: KEYS.transfers }),
+    mutationFn: async ({ lotId, linkId, warehouseId, quantity, idempotencyKey }: DispatchInput & { idempotencyKey: string }) =>
+      (
+        await supplyChainDispatch(
+          workspaceId(),
+          lotId,
+          { link_id: linkId, warehouse_id: warehouseId, quantity },
+          idempotent(idempotencyKey),
+        )
+      ).data,
+    onSuccess: (_data, { lotId }) =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: KEYS.transfers }),
+        client.invalidateQueries({ queryKey: KEYS.lotStock(lotId) }),
+      ]),
   })
 }

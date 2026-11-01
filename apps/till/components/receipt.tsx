@@ -25,7 +25,9 @@ export function Receipt({
 
   const rows: [string, string][] = [
     [t("total"), money(sale.total)],
-    ...(sale.rounding ? [[t("rounding"), money(sale.rounding)] as [string, string]] : []),
+    ...(sale.rounding
+      ? [[t("rounding"), money(sale.rounding)] as [string, string]]
+      : []),
     [t("due"), money(sale.due)],
     ...(sale.method === "cash"
       ? [

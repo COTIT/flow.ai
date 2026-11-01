@@ -22,22 +22,50 @@ export const session = {
   user: amina,
 }
 
-/** A catalog product (storefront shape), in EUR. */
+/** A till catalog product (`GET /till/catalog` row); prices excl VAT in the register's EUR. */
 export const honey = {
   id: "p-honey",
   name: "Ilundo honey 500 g",
-  brand: null,
   type: "physical",
-  short_description: null,
-  description: null,
-  ean13: "8712345678906",
-  barcode: null,
-  price_gross: 1250,
-  price_net: 1147,
-  currency: "EUR",
-  currency_decimals: 2,
-  available_stock: "7.00",
-  variants: [],
+  ean13: "8712345678906" as string | null,
+  barcode: null as string | null,
+  store_only: false,
+  vat_rate: "9",
+  unit_price: 1147,
+  has_stock: true,
+  stock: "7.00",
+  sellable: true,
+  variants: [] as unknown[],
+  updated_at: "2026-11-01T07:00:00Z",
+}
+export type TillRow = typeof honey
+
+export const NEXT_SINCE = "2026-11-01T09:00:00Z"
+
+/** A till catalog page: paged rows plus the next delta mark. */
+export function catalogPage(rows: unknown[], page = 1, perPage = 100) {
+  return { ...paged(rows, page, perPage), next_since: NEXT_SINCE }
+}
+
+/** Rows carrying exactly `code` (product or variant EAN/barcode), as `?code=` answers. */
+export function byCode(rows: TillRow[], code: string) {
+  const has = (x: { ean13: string | null; barcode: string | null }) =>
+    [x.ean13, x.barcode].some((c) => c?.toLowerCase() === code.toLowerCase())
+  return rows.filter(
+    (r) =>
+      has(r) ||
+      (r.variants as { ean13: string | null; barcode: string | null }[]).some(
+        has
+      )
+  )
+}
+
+/** Answers `GET /till/catalog`: the whole list, one page, or the `?code=` match. */
+export function serveCatalog(api: FakeApi, rows: TillRow[]) {
+  api.on("GET", "/workspace/:ws/till/catalog", ({ query }) => {
+    const code = query.get("code")
+    return catalogPage(code ? byCode(rows, code) : rows)
+  })
 }
 
 /** Starts the page paired (and logged in unless `loggedIn: false`), via the till's localStorage entry. */
@@ -52,15 +80,19 @@ export async function seedTill(page: Page, { loggedIn = true } = {}) {
   await page.addInitScript((v) => localStorage.setItem("genesy.till", v), value)
 }
 
-/** A FakeApi with the device-key routes (login, catalog); specs add the rest. */
+/** A FakeApi with the login routes, the catalog and the currency; specs add the rest. */
 export async function fakeTill(page: Page) {
   const api = new FakeApi()
-    .on("GET", "/storefront/products", () => paged([honey]))
+    // The till reads the register's currency off one storefront row (device key) for now.
+    .on("GET", "/storefront/products", () =>
+      paged([{ id: "p-honey", currency: "EUR", currency_decimals: 2 }])
+    )
     .on("GET", "/workspace/:ws/till/login/users", () => ({
       data: [amina, { id: "tu-2", name: "Baraka" }],
     }))
     .on("POST", "/workspace/:ws/till/login", () => ({ data: session }))
     .on("POST", "/workspace/:ws/till/logout", () => ({ status: 204 }))
+  serveCatalog(api, [honey])
   await page.route("**/v1/**", (route) => api.handle(route))
   return api
 }

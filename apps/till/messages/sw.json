@@ -34,8 +34,8 @@
     "more": "Ongeza {name} moja",
     "quantityOf": "Idadi ya {name}",
     "remove": "Ondoa {name}",
-    "estimate": "Makadirio",
-    "estimateHint": "Bei za katalogi; jumla, ukokotoaji na chenji vinatoka kwa seva unapotoza.",
+    "estimate": "Makadirio bila VAT",
+    "estimateHint": "Bei za katalogi bila VAT; jumla pamoja na VAT, ukokotoaji na chenji vinatoka kwa seva unapotoza.",
     "method": "Njia ya malipo",
     "cash": "Taslimu",
     "card": "Kadi",
@@ -46,7 +46,6 @@
     "charge": "Toza",
     "savedTitle": "Imehifadhiwa nje ya mtandao",
     "savedHint": "Kituo hakiko mtandaoni. Mauzo haya yamehifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
-    "estimatedChange": "Chenji",
     "newSale": "Mauzo mapya"
   },
   "nav": {

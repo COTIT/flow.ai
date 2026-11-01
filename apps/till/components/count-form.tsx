@@ -40,7 +40,10 @@ export function CountForm({
   const valid = lines.every((l) => l.denomination != null && l.count != null)
   // Counting the notes, not pricing: the API's own figures come back after submit.
   const total = valid
-    ? lines.reduce((sum, l) => sum + BigInt(l.denomination!) * BigInt(l.count!), 0n)
+    ? lines.reduce(
+        (sum, l) => sum + BigInt(l.denomination!) * BigInt(l.count!),
+        0n
+      )
     : null
 
   const set = (i: number, patch: Partial<Row>) =>

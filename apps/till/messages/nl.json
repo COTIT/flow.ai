@@ -34,8 +34,8 @@
     "more": "Eén {name} meer",
     "quantityOf": "Aantal {name}",
     "remove": "{name} verwijderen",
-    "estimate": "Schatting",
-    "estimateHint": "Catalogusprijzen; totaal, afronding en wisselgeld komen van de server bij het afrekenen.",
+    "estimate": "Schatting excl. btw",
+    "estimateHint": "Catalogusprijzen excl. btw; het totaal met btw, afronding en wisselgeld komen van de server bij het afrekenen.",
     "method": "Betaalwijze",
     "cash": "Contant",
     "card": "Pin",
@@ -46,7 +46,6 @@
     "charge": "Afrekenen",
     "savedTitle": "Offline bewaard",
     "savedHint": "De kassa is offline. Deze verkoop blijft op dit apparaat en wordt verstuurd zodra er weer verbinding is.",
-    "estimatedChange": "Wisselgeld",
     "newSale": "Nieuwe verkoop"
   },
   "nav": {

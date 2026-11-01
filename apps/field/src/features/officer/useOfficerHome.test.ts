@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 
-const list = { persons: vi.fn(), households: vi.fn(), farms: vi.fn(), plots: vi.fn(), cycles: vi.fn() }
+const list = { persons: vi.fn(), households: vi.fn(), farms: vi.fn(), plots: vi.fn(), cycles: vi.fn(), harvests: vi.fn() }
 vi.mock('@genesy/api-client/endpoints/farm-records', async (original) => ({
   ...(await original<object>()),
   farmRecordsPersonsList: (...args: unknown[]) => list.persons(...args),
@@ -8,6 +8,7 @@ vi.mock('@genesy/api-client/endpoints/farm-records', async (original) => ({
   farmRecordsFarmsList: (...args: unknown[]) => list.farms(...args),
   farmRecordsPlotsList: (...args: unknown[]) => list.plots(...args),
   farmRecordsCropCyclesList: (...args: unknown[]) => list.cycles(...args),
+  farmRecordsHarvestReportsAll: (...args: unknown[]) => list.harvests(...args),
 }))
 vi.mock('@/app/workspace', () => ({ workspaceId: () => 'w1' }))
 
@@ -24,10 +25,12 @@ describe('fetchOfficerHome', () => {
     list.households.mockResolvedValue(total(3))
     list.plots.mockResolvedValue(total(0))
     list.cycles.mockResolvedValue(total(5))
+    list.harvests.mockResolvedValue(total(2))
 
-    expect(await fetchOfficerHome(['v1'])).toEqual([{ villageId: 'v1', persons: 6, farms: 4, unverified: 11 }])
+    expect(await fetchOfficerHome(['v1'])).toEqual([{ villageId: 'v1', persons: 6, farms: 4, unverified: 13 }])
     expect(list.persons).toHaveBeenCalledWith('w1', { village_id: 'v1', page_size: 1 })
     expect(list.cycles).toHaveBeenCalledWith('w1', { village_id: 'v1', page_size: 1, verification: 'unverified,pending' })
+    expect(list.harvests).toHaveBeenCalledWith('w1', { village_id: 'v1', page_size: 1, verification: 'unverified,pending' })
   })
 
   test('a failed count is an error, not zero', async () => {
