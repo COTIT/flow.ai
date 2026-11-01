@@ -1373,5 +1373,8 @@
   "supply.transfersTitle": "e7522c6357",
   "supply.noTransfersTitle": "4cb5f8fb68",
   "supply.noTransfersDetail": "f5faed81f6",
-  "supply.received": "70601b32dd"
+  "supply.received": "70601b32dd",
+  "supply.stockTitle": "997481c1e6",
+  "supply.stockRow": "df3a9fd75a",
+  "supply.noStock": "eb63388c6c"
 }

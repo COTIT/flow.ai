@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const useSupplyLinks = vi.fn()
@@ -70,7 +70,37 @@ describe('granting', () => {
     fireEvent.click(screen.getByTestId('supply-grant-submit'))
 
     expect(grant.mutate).toHaveBeenCalledTimes(1)
-    expect(grant.mutate.mock.calls[0][0]).toEqual({ toWorkspaceId: 'w-shop', fields: ['village', 'harvest_window'] })
+    expect(grant.mutate.mock.calls[0][0]).toEqual({
+      toWorkspaceId: 'w-shop',
+      fields: ['village', 'harvest_window'],
+      idempotencyKey: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    })
+  })
+
+  // A retry of the same grant after a lost reply replays the first answer; a changed form or a
+  // granted link starts a new attempt (the API refuses one key over two different bodies).
+  test('the Idempotency-Key lasts until a link is granted, even across edits', () => {
+    render(<SupplyLinksScreen />)
+    fireEvent.change(screen.getByTestId('supply-grant-to'), { target: { value: 'w-shop' } })
+    fireEvent.click(screen.getByTestId('supply-grant-submit'))
+    grant.mutate.mock.calls[0][1].onSettled()
+    fireEvent.click(screen.getByTestId('supply-grant-submit'))
+    const key = (call: number) => grant.mutate.mock.calls[call][0].idempotencyKey
+    expect(key(1)).toBe(key(0))
+
+    grant.mutate.mock.calls[1][1].onSettled()
+    fireEvent.click(screen.getByTestId('supply-grant-field-village'))
+    fireEvent.click(screen.getByTestId('supply-grant-submit'))
+    // A lost reply may hide a granted link: keeping the key makes the API refuse the changed body, not grant twice.
+    expect(key(2)).toBe(key(1))
+
+    act(() => {
+      grant.mutate.mock.calls[2][1].onSuccess()
+      grant.mutate.mock.calls[2][1].onSettled()
+    })
+    fireEvent.change(screen.getByTestId('supply-grant-to'), { target: { value: 'w-shop' } })
+    fireEvent.click(screen.getByTestId('supply-grant-submit'))
+    expect(key(3)).not.toBe(key(2))
   })
 
   test('a second tap while the first is in flight sends nothing more', () => {

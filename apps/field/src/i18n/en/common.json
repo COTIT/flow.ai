@@ -1566,6 +1566,9 @@
     "transfersTitle": "Sent transfers",
     "noTransfersTitle": "Nothing sent yet",
     "noTransfersDetail": "Transfers you send show here.",
-    "received": "Received {{quantity}}"
+    "received": "Received {{quantity}}",
+    "stockTitle": "Stock of this lot",
+    "stockRow": "{{available}} available · {{level}} on hand, {{reserved}} held for orders",
+    "noStock": "This lot holds no stock."
   }
 }

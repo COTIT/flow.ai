@@ -1566,6 +1566,9 @@
     "transfersTitle": "Mizigo iliyotumwa",
     "noTransfersTitle": "Hakuna kilichotumwa bado",
     "noTransfersDetail": "Mizigo unayotuma itaonekana hapa.",
-    "received": "Imepokelewa {{quantity}}"
+    "received": "Imepokelewa {{quantity}}",
+    "stockTitle": "Akiba ya loti hii",
+    "stockRow": "{{available}} zinapatikana · {{level}} zipo, {{reserved}} zimeshikiliwa kwa oda",
+    "noStock": "Loti hii haina akiba."
   }
 }
