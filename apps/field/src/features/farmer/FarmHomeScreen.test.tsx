@@ -5,7 +5,7 @@ const useMyFarm = vi.fn()
 const useMyRequests = vi.fn()
 const useFarmerOpportunities = vi.fn()
 const useSurveyBadgeCount = vi.fn()
-const flags = vi.hoisted(() => ({ resources: true, ported: true }))
+const flags = vi.hoisted(() => ({ resources: true }))
 
 vi.mock('@/features/farmer/useMyFarm', () => ({ useMyFarm: () => useMyFarm() }))
 vi.mock('@/features/farmer/useRequests', () => ({ useMyRequests: () => useMyRequests() }))
@@ -20,8 +20,6 @@ vi.mock('@/lib/features', () => ({
     return flags.resources
   },
 }))
-// The opportunity and request cards wait for their screens' port; most tests show them as ported.
-vi.mock('@/lib/ported', () => ({ isPorted: () => flags.ported }))
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to, ...rest }: { children: React.ReactNode; to: string }) => (
     <a href={to} {...rest}>
@@ -72,7 +70,6 @@ beforeEach(() => {
   useFarmerOpportunities.mockReset()
   useSurveyBadgeCount.mockReset()
   flags.resources = true
-  flags.ported = true
 })
 
 /**
@@ -111,21 +108,6 @@ describe('FarmHomeScreen states', () => {
     expect(screen.getByTestId('empty-state')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
-})
-
-// Port step 4: the API has no opportunities or PUE requests yet, so the home page must not read them.
-test('before opportunities and requests are ported, their cards are hidden and never read', () => {
-  flags.ported = false
-  ready()
-  render(<FarmHomeScreen />)
-
-  expect(screen.getByTestId('farm-home-summary')).toBeInTheDocument()
-  expect(screen.getByTestId('farm-home-surveys')).toBeInTheDocument()
-  expect(screen.queryByTestId('farm-home-opportunities')).not.toBeInTheDocument()
-  expect(screen.queryByTestId('farm-home-latest-request')).not.toBeInTheDocument()
-  expect(screen.queryByTestId('farm-home-no-requests')).not.toBeInTheDocument()
-  expect(useFarmerOpportunities).not.toHaveBeenCalled()
-  expect(useMyRequests).not.toHaveBeenCalled()
 })
 
 describe('FarmHomeScreen content', () => {

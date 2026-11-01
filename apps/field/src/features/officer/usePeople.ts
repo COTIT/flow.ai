@@ -6,10 +6,10 @@ import { allPages } from '@/features/farmer/pages'
 import type { PeopleSearch, VerificationStatus } from '@/features/officer/peopleSearch'
 import { provenanceOf } from '@/features/officer/useOfficerRecords'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type SourceType = Database['public']['Enums']['source_type']
-type ConfidenceLevel = Database['public']['Enums']['confidence_level']
+type SourceType = Enums['source_type']
+type ConfidenceLevel = Enums['confidence_level']
 
 export interface PersonRow {
   id: string

@@ -16,9 +16,8 @@ import { apiStatus } from '@/lib/apiError'
 import { queryKeys } from '@/lib/queryKeys'
 import { isUuid } from '@/lib/ids'
 import { localisedName, type LocalisedNames } from '@/lib/names'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type Enums = Database['public']['Enums']
 
 interface Provenance {
   source: Enums['source_type']

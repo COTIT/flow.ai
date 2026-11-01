@@ -7,7 +7,7 @@ import { usePersistentForm } from '@/lib/usePersistentForm'
 
 import { apiErrorMessage } from '@/lib/apiError'
 import { validateEdit, type CropMeasure, type EditableTable, type EditValues } from '@/features/officer/officerEdit'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
 export interface EditField {
   name: string
@@ -38,7 +38,7 @@ export function OfficerEditDialog({
   title: string
   fields: EditField[]
   initialValues: EditValues
-  measure?: Database['public']['Enums']['crop_measure']
+  measure?: Enums['crop_measure']
   measureByCrop?: Readonly<Record<string, CropMeasure>>
   /** The record's captured_at: a draft typed against an older one is discarded. */
   version?: string | null

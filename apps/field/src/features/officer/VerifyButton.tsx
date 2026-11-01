@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { VerifiableTable } from '@/features/officer/personDetail'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type Verification = Database['public']['Enums']['verification_status']
+type Verification = Enums['verification_status']
 
 /**
  * Verify one record. Officer-only, and the only route to verification is

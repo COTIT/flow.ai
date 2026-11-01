@@ -1,6 +1,6 @@
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-export type RequestStatus = Database['public']['Enums']['pue_status']
+export type RequestStatus = Enums['pue_status']
 
 /**
  * pue_request_guard's machine, mirrored (business-rules §2).

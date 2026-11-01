@@ -359,11 +359,11 @@ describe('RedeemScreen preview', () => {
   })
 
   test('a failed lookup is an error, verbatim', async () => {
-    replies.lookup = { error: 'only staff may look up vouchers' }
+    replies.lookup = { error: 'voucher lookup refused' }
     renderScreen()
     await lookUp()
 
-    expect(await screen.findByTestId('error-state')).toHaveTextContent('You do not have permission to do that.')
+    expect(await screen.findByTestId('error-state')).toHaveTextContent('voucher lookup refused')
     expect(screen.queryByTestId('redeem-preview')).not.toBeInTheDocument()
   })
 

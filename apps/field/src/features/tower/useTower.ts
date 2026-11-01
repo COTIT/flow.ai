@@ -21,10 +21,9 @@ import { allPages } from '@/features/farmer/pages'
 import { useCrops } from '@/features/officer/useCrops'
 import { localisedName } from '@/lib/names'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 import type { QualityMetric } from '@/features/tower/towerSearch'
 
-type Enums = Database['public']['Enums']
 
 /**
  * The Tower reads the API's village figures and nothing else.

@@ -1,8 +1,8 @@
 import type { CSSProperties } from 'react'
 
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type VerificationStatus = Database['public']['Enums']['verification_status']
+type VerificationStatus = Enums['verification_status']
 
 /**
  * The shared control surface.

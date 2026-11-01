@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
 import type { CycleForm, RegisterForm } from '@/features/officer/registerPayload'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-export type CropMeasure = Database['public']['Enums']['crop_measure']
+export type CropMeasure = Enums['crop_measure']
 
 /**
  * The register form's validation — spec 5.2, QA #16, #19, #21, #27.

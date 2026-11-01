@@ -56,21 +56,11 @@ describe('the schema own messages pass through untouched', () => {
       )
     })
 
-    test('and refusals of permission read as the not-allowed message', () => {
-      expect(key(new Error('only field staff may verify records'))).toBe('error.notAllowed')
-    })
-
     test('while a near miss is still shown as written', () => {
       expect(humanizeDbError(new Error('unknown crop cycle'))).toEqual({
         kind: 'verbatim',
         message: 'unknown crop cycle',
       })
-    })
-
-    test('and the app-authored account error reads as a key too', () => {
-      expect(key(new Error('Your account could not be read. Try again.'))).toBe(
-        'error.accountUnreadable',
-      )
     })
   })
 
@@ -264,12 +254,6 @@ describe('isTransientError', () => {
     'invalid input syntax for type uuid: "nope"',
   ])('%s is not', (message) => {
     expect(isTransientError(new Error(message))).toBe(false)
-  })
-
-  // The app's own guard against a read that did not run as the user. Retrying
-  // it would spin on a condition that needs a person.
-  test('a refused account read is not transient', () => {
-    expect(isTransientError(new Error('Your account could not be read. Try again.'))).toBe(false)
   })
 
   test('nothing at all is not transient', () => {

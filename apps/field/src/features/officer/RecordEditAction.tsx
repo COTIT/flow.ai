@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { OfficerEditDialog, type EditField } from '@/features/officer/OfficerEditDialog'
 import { useOfficerEdit } from '@/features/officer/useOfficerEdit'
 import { selectedEditMeasure, type CropMeasure, type EditContext, type EditableTable, type EditValues } from '@/features/officer/officerEdit'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
 export function RecordEditAction({
   table,
@@ -23,7 +23,7 @@ export function RecordEditAction({
   fields: EditField[]
   initialValues: EditValues
   context: EditContext
-  measure?: Database['public']['Enums']['crop_measure']
+  measure?: Enums['crop_measure']
   measureByCrop?: Readonly<Record<string, CropMeasure>>
   /** The record's captured_at; see OfficerEditDialog. */
   version?: string | null

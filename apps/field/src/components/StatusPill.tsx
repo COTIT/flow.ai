@@ -1,14 +1,14 @@
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type RequestStatus = Database['public']['Enums']['pue_status']
-type DemandStatus = Database['public']['Enums']['demand_status']
-type OpportunityStatus = Database['public']['Enums']['opportunity_status']
-type SurveyStatus = Database['public']['Enums']['survey_status']
+type RequestStatus = Enums['pue_status']
+type DemandStatus = Enums['demand_status']
+type OpportunityStatus = Enums['opportunity_status']
+type SurveyStatus = Enums['survey_status']
 /** `expired` is derived from `expires_at`; the database never stores it. */
-export type VoucherDisplayStatus = Database['public']['Enums']['voucher_status'] | 'expired'
+export type VoucherDisplayStatus = Enums['voucher_status'] | 'expired'
 
 export type StatusPillProps =
   | { kind: 'request'; status: RequestStatus }
