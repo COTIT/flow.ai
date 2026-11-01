@@ -487,6 +487,7 @@ export * from './offerCreated';
 export * from './office365Answer';
 export * from './office365Reply';
 export * from './office365Request';
+export * from './orderAction';
 export * from './orderCreated';
 export * from './orderLineResource';
 export * from './orderResource';

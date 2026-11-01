@@ -10022,6 +10022,19 @@
         ],
         "type": "object"
       },
+      "OrderAction": {
+        "description": "An office action on an order (`POST /orders/{order}/<action>`; `return` is `/returns`,\n`refund` is `/refunds`).",
+        "enum": [
+          "confirm",
+          "pick",
+          "complete",
+          "cancel",
+          "return",
+          "refund",
+          "invoice"
+        ],
+        "type": "string"
+      },
       "OrderCreated": {
         "description": "Create reply.",
         "properties": {
@@ -10126,6 +10139,13 @@
       "OrderResource": {
         "description": "An order with its lines. Totals in minor units of `currency`.",
         "properties": {
+          "allowed_actions": {
+            "description": "What the API would accept on this order now, from the rules its action routes enforce.\nStatus and payment rules only, not the caller's permissions.",
+            "items": {
+              "$ref": "#/components/schemas/OrderAction"
+            },
+            "type": "array"
+          },
           "cancelled_at": {
             "format": "date-time",
             "type": [
@@ -10273,6 +10293,7 @@
           "completed_at",
           "cancelled_at",
           "invoice_id",
+          "allowed_actions",
           "lines",
           "created_at",
           "updated_at"

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Commerce follow-up 3, `allowed_actions` on orders (contract `docs/api/orders.md`): the order resource lists `OrderAction`s the API would accept now. One `orders::service::check(action, order, lines, paid)` holds every action's state rules; the action routes call it under the order lock and the resource lists the actions it passes. Payment totals come from `payments::paid_totals` (one statement per page). A refund on an order with nothing left to refund is now 409 `Nothing paid on this order is left to refund.` (was 422 on `amount` once fully refunded).
 - Commerce follow-up 2: invoice list rows gain `customer_name` (company name → alias → first contact's full name → null), from the relation the list already embeds.
 - Commerce follow-up 1, closed lists as spec enums: `AppKeyKind`, `AppKeyScope` (scopes a key holds, `till:login` included), `AppKeyIssuableScope` (what `/app-keys` issues) and `WebhookEvent`, built from `KINDS`, `SCOPES` and `EVENTS` by `openapi::string_enum`. Wire format, storage and 422 texts unchanged; the TS client gets unions.
 - Phase 4b step 7, returns go back into their lots:

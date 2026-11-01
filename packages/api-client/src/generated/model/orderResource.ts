@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { OrderAction } from './orderAction';
 import type { OrderLineResource } from './orderLineResource';
 import type { OrderResourceCustomer } from './orderResourceCustomer';
 import type { OrderResourceSummary } from './orderResourceSummary';
@@ -13,6 +14,11 @@ import type { OrderResourceSummary } from './orderResourceSummary';
  * An order with its lines. Totals in minor units of `currency`.
  */
 export interface OrderResource {
+  /**
+     * What the API would accept on this order now, from the rules its action routes enforce.
+     * Status and payment rules only, not the caller's permissions.
+     */
+  allowed_actions: OrderAction[];
   /** @nullable */
   cancelled_at: string | null;
   /** @nullable */

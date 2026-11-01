@@ -19,6 +19,20 @@ Every other move is a 409. A paid order can't be cancelled until it is fully ref
 
 Holds come from the warehouse-level stock row of the order's warehouse (default: the main warehouse) and are all or nothing: a short line is a 422 on `lines.N.quantity` (`Not enough stock: 2 available.`) and holds nothing. Only lines of products with `has_stock` hold stock (`tracked`).
 
+### `allowed_actions`
+
+Every order resource (get, list, each action's answer) lists the actions the API would accept now, in this order: `confirm`, `pick`, `complete`, `cancel`, `return`, `refund`, `invoice` (enum `OrderAction`). Each action route runs the same check under the order lock, so a listed action passes its state rules and an unlisted one is refused with the 409/422 that check gives. It covers status and payment rules only, not the caller's permissions, and not a request body's own validation (e.g. a pick quantity above the line).
+
+| Action | Allowed when |
+|---|---|
+| `confirm` | `draft` |
+| `pick` | `open` |
+| `complete` | `open` and every stock line picked in full |
+| `cancel` | `draft`, `awaiting_payment` or `open`, and nothing net paid (paid − refunded) |
+| `return` | `completed` or `partially_returned` |
+| `refund` | the first paid payment has an amount left after refunds not failed or canceled |
+| `invoice` | `open`, `completed`, `partially_returned` or `returned`; no invoice yet; a relation set (else 422 on `relation_id`) |
+
 ## Routes (`/v1/workspace/{workspace}`)
 
 | Method | Path | Permission | Success |
@@ -33,7 +47,7 @@ Holds come from the warehouse-level stock row of the order's warehouse (default:
 | POST | `/orders/{order}/complete` | `order.update` | 200; every stock line picked in full, else 409 |
 | POST | `/orders/{order}/cancel` | `order.update` | 200 |
 | POST | `/orders/{order}/returns` | `order.update` | 200; `{lines:[{line_id, quantity}], restock}`: quantity returned now, more than 0 and at most taken − returned; `restock` (default true) puts it back on the order's warehouse |
-| POST | `/orders/{order}/refunds` | `order.delete` | 201 `{data:{refund_id, amount, status}}`; `{amount}` in minor units, 1 to paid − refunds not failed (422 above); 409 when nothing was paid. See `payments.md`. |
+| POST | `/orders/{order}/refunds` | `order.delete` | 201 `{data:{refund_id, amount, status}}`; `{amount}` in minor units, 1 to paid − refunds not failed (422 above); 409 when nothing paid is left to refund (`Nothing paid on this order is left to refund.`). See `payments.md`. |
 | POST | `/orders/{order}/invoice` | `order.update` | 200; one draft invoice of every line (open, completed or returned orders; 409 when already invoiced; 422 `relation_id` until the order has a relation). The invoice's lines move no stock: the order did. |
 
 Every write takes an optional `Idempotency-Key` (1–255 visible characters): a retry of the same request replays the first answer, another request under the key is a 422, another member's key is never theirs.
