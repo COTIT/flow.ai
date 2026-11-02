@@ -66,6 +66,35 @@ describe("sessionStore", () => {
     })
   })
 
+  it("marks only a token refused by the backend as expired", async () => {
+    const store = await load()
+    expect(store.getState().expired).toBe(false)
+
+    store.getState().signIn(login)
+    store.getState().signOut()
+    expect(store.getState().expired).toBe(false)
+
+    store.getState().signIn(login)
+    store.getState().signOut("expired")
+    expect(store.getState().expired).toBe(true)
+
+    // Nothing to expire when nobody was logged in.
+    store.getState().signOut("expired")
+    expect(store.getState().expired).toBe(true)
+    store.getState().signIn(login)
+    expect(store.getState().expired).toBe(false)
+    store.getState().signOut()
+    store.getState().signOut("expired")
+    expect(store.getState().expired).toBe(false)
+  })
+
+  it("does not keep the expired mark across a reload", async () => {
+    const store = await load()
+    store.getState().signIn(login)
+    store.getState().signOut("expired")
+    expect((await load()).getState().expired).toBe(false)
+  })
+
   it("survives a page reload", async () => {
     ;(await load()).getState().signIn(login)
     const reloaded = await load()
