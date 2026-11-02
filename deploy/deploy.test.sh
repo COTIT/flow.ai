@@ -23,16 +23,18 @@ cat > "$t/bin/docker" << 'EOF'
 #!/usr/bin/env bash
 echo "docker $*" >> "$CALLS"
 if [[ "$1" == compose ]]; then
-  while (( $# )) && [[ "$1" != config && "$1" != exec && "$1" != run && "$1" != pull ]]; do
+  while (( $# )) && [[ "$1" != config && "$1" != exec && "$1" != run && "$1" != pull && "$1" != ps ]]; do
     [[ "$1" == --env-file ]] && env_file="$2"
     shift
   done
   case "${1:-}" in
-    config) ref="$(sed -n 's/^GENESY_REF=//p' "$env_file")"
+    config) [[ "$2" == --services ]] && { printf 'api\ndb\nshop\n'; exit 0; }
+      ref="$(sed -n 's/^GENESY_REF=//p' "$env_file")"
       printf 'postgres:18@sha256:abc\nghcr.io/cotit/genesy-api:%s\nghcr.io/cotit/genesy-shop:%s\n' "$ref" "$ref" ;;
     pull) [[ -z "${STUB_PULL_FAIL:-}" ]] || exit 1 ;;
     exec) [[ "$*" == *to_regclass* ]] && echo t || cat "$T/schema" ;;
     run) [[ -n "${STUB_MIGRATE_TO:-}" ]] && echo "$STUB_MIGRATE_TO" > "$T/schema" ;;
+    ps) cat "$T/ps" 2> /dev/null ;;
   esac
   exit 0
 fi
@@ -167,5 +169,21 @@ touch "$d/secrets/b2_uploads_key"
 run compose ps || fail "compose with uploads: $(cat "$t/out")"
 grep -q "^docker compose -f $d/docker-compose.production.yml -f $d/docker-compose.stripe.yml -f $d/docker-compose.uploads.yml --env-file" "$CALLS" \
   || fail "uploads overlay not added with its key: $(cat "$CALLS")"
+
+# No DNS yet (VPS-only nodns overlay sets traefik.enable=false): every host would answer 404, so
+# health is the containers' own state and no Traefik probe runs. Rollback uses the same check.
+touch "$d/docker-compose.nodns.yml"
+printf 'api running healthy\ndb running healthy\nshop running \n' > "$t/ps"
+run "$B" || fail "nodns deploy: $(cat "$t/out")"
+grep -q "health: Traefik routes off (no DNS yet); checked container health only" "$t/out" || fail "no routes-off line: $(cat "$t/out")"
+if grep -q "^curl" "$CALLS"; then fail "probed Traefik under nodns"; fi
+printf 'api running unhealthy\ndb exited \n' > "$t/ps"
+if run "$B"; then fail "unhealthy containers passed under nodns"; fi
+grep -q "health: failing: api=running/unhealthy db=exited shop=missing" "$t/out" || fail "nodns failure: $(cat "$t/out")"
+if run rollback; then fail "unhealthy rollback passed under nodns"; fi
+printf 'api running healthy\ndb running healthy\nshop running healthy\n' > "$t/ps"
+run rollback || fail "nodns rollback: $(cat "$t/out")"
+grep -q "routes off" "$t/out" || fail "rollback probed Traefik under nodns"
+if grep -q "^curl" "$CALLS"; then fail "rollback probed Traefik under nodns"; fi
 
 echo "deploy.test.sh: all passed"

@@ -16,7 +16,7 @@ die() {
 }
 
 # env_setup <staging|production>: sets ROOT (checkout), DIR (deploy/<env>), ENV_FILE, COMPOSE
-# (the full command with every -f the stack needs), MIGRATE_SVC and PUBLIC_HOSTS.
+# (the full command with every -f the stack needs), MIGRATE_SVC, PUBLIC_HOSTS and ROUTES_OFF.
 env_setup() {
   case "${1:-}" in
     production) ROOT="${GENESY_ROOT:-/srv/genesy-prod}" MIGRATE_SVC=cli
@@ -31,7 +31,9 @@ env_setup() {
   [[ -f "$ENV_FILE" ]] || die "missing $ENV_FILE"
   COMPOSE=(docker compose -f "$DIR/docker-compose.$1.yml")
   # Untracked until DNS is live (README "Turning on Stripe"); sits between main and Stripe.
-  [[ -f "$DIR/docker-compose.nodns.yml" ]] && COMPOSE+=(-f "$DIR/docker-compose.nodns.yml")
+  # It sets traefik.enable=false, so no host answers through Traefik: ROUTES_OFF=1.
+  ROUTES_OFF=""
+  [[ -f "$DIR/docker-compose.nodns.yml" ]] && COMPOSE+=(-f "$DIR/docker-compose.nodns.yml") && ROUTES_OFF=1
   # Stripe is on exactly when its key file exists, so no command can forget the overlay.
   [[ -f "$DIR/secrets/stripe_secret_key" ]] && COMPOSE+=(-f "$DIR/docker-compose.stripe.yml")
   # File uploads likewise, production only (staging has no overlay: demo files stay out of B2).
@@ -68,14 +70,28 @@ schema_version() {
 # hosts_down: prints " host=code" for every public host of the env that answers wrong: API
 # /healthz must be 200, apps 2xx/3xx (the shop 503 too, until its app key is set). Asks the
 # local Traefik (--resolve), so DNS and certificates don't matter here.
+# With ROUTES_OFF (no DNS yet) Traefik has no routes, so it checks containers_down instead.
 hosts_down() {
   local host path want code
+  [[ -z "${ROUTES_OFF:-}" ]] || { containers_down; return; }
   for host in $PUBLIC_HOSTS; do
     path=/ want='2..|3..'
     [[ "$host" == *api.* ]] && path=/healthz want=200
     [[ "$host" == *shop.* ]] && want='2..|3..|503'
     code="$(curl -sk -o /dev/null -m 10 -w '%{http_code}' --resolve "$host:443:127.0.0.1" "https://$host$path" || true)"
     [[ "$code" =~ ^($want)$ ]] || printf ' %s=%s' "$host" "${code:-none}"
+  done
+}
+
+# containers_down: prints " service=state[/health]" for every service of the stack (profile
+# services aside) that is not running, or whose healthcheck is not healthy.
+containers_down() {
+  local ps svc state health
+  ps="$("${COMPOSE[@]}" ps -a --format '{{.Service}} {{.State}} {{.Health}}')"
+  for svc in $("${COMPOSE[@]}" config --services); do
+    read -r state health < <(awk -v s="$svc" '$1 == s { print $2, $3; exit }' <<< "$ps")
+    [[ "$state" == running && "${health:-healthy}" == healthy ]] \
+      || printf ' %s=%s' "$svc" "${state:-missing}${health:+/$health}"
   done
 }
 

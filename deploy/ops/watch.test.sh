@@ -35,6 +35,8 @@ cat > "$t/bin/docker" << 'STUB'
 case "$1" in
   ps) [[ "$*" == *project=genesy-prod* ]] && echo c1 ;;
   inspect) cat "$T/inspect" ;;
+  compose) [[ "$*" == *"config --services"* ]] && printf 'api\ndb\n'
+    [[ "$*" == *" ps "* ]] && cat "$T/ps" ;;
 esac
 STUB
 cat > "$t/bin/df" << 'STUB'
@@ -73,6 +75,21 @@ echo "/genesy-prod-api-1 4 running unhealthy" > "$t/inspect"
 if run; then fail "unhealthy passed"; fi
 expect "genesy-prod-api-1 is unhealthy"
 echo "/genesy-prod-api-1 4 running healthy" > "$t/inspect"
+
+# No DNS yet (nodns overlay): Traefik serves no route and no certificate, so hosts and
+# certificates are not checked; one info line instead of an alert every 5 minutes. A stopped or
+# unhealthy service still alerts.
+touch "$t/root/deploy/production/docker-compose.nodns.yml"
+printf 'api running healthy\ndb running \n' > "$t/ps"
+STUB_DOWN=office.genesy.app STUB_EXPIRING=till.genesy.app run || fail "routes off alerted: $(cat "$t/out")"
+[[ "$(grep -c "production: Traefik routes off (no DNS yet); host and certificate checks skipped" "$t/out")" == 1 ]] \
+  || fail "no single routes-off line: $(cat "$t/out")"
+if grep -q "curl .*--resolve\|curl .*https://.*genesy.app" "$CALLS"; then fail "probed hosts under nodns"; fi
+printf 'api exited \ndb running healthy\n' > "$t/ps"
+if run; then fail "stopped service passed under nodns"; fi
+expect "production: down: api=exited"
+rm "$t/root/deploy/production/docker-compose.nodns.yml"
+
 touch -t 202001010000 "$t/backups/production/genesy-production-20261102T000000Z.dump"
 if run; then fail "stale backup passed"; fi
 expect "production: no dump in the last 26 h"

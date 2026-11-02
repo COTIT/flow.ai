@@ -63,13 +63,14 @@ images() {
   esac
 }
 
-# health: every host answers (ops/lib.sh hosts_down). Traefik needs a moment to see new
-# containers: up to 12 tries, 5 s apart.
+# health: every host answers (ops/lib.sh hosts_down; without DNS, every container is healthy).
+# Traefik needs a moment to see new containers: up to 12 tries, 5 s apart.
 health() {
-  local bad
+  local bad ok="all ${PUBLIC_HOSTS// /, } answer"
+  [[ -z "${ROUTES_OFF:-}" ]] || ok="Traefik routes off (no DNS yet); checked container health only"
   for _ in $(seq 12); do
     bad="$(hosts_down)"
-    [[ -z "$bad" ]] && { echo "health: all ${PUBLIC_HOSTS// /, } answer"; return 0; }
+    [[ -z "$bad" ]] && { echo "health: $ok"; return 0; }
     sleep "${HEALTH_WAIT:-5}"
   done
   echo "health: failing:$bad" >&2

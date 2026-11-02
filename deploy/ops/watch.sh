@@ -3,6 +3,7 @@
 # listing everything wrong, each line prefixed with its env:
 #   - every public host answers through Traefik (lib.sh hosts_down);
 #   - every certificate verifies and is valid 14 more days (Let's Encrypt renews at 30: 14 = stuck);
+#     both replaced by "every service running and healthy" while the nodns overlay is on;
 #   - no container restart-looping (restart count up 3+ since the last run), restarting or unhealthy;
 #   - disk use under DISK_ALERT_PCT (80) on / and the backups disk;
 #   - the newest production dump is under 26 h old.
@@ -22,7 +23,13 @@ for env in production staging; do
   down="$(hosts_down)"
   [[ -z "$down" ]] || problems+=("$env: down:$down")
 
-  for host in $PUBLIC_HOSTS; do
+  # No DNS yet: Traefik serves neither routes nor Let's Encrypt certificates, nothing to check.
+  hosts="$PUBLIC_HOSTS"
+  if [[ -n "$ROUTES_OFF" ]]; then
+    hosts=""
+    echo "$env: Traefik routes off (no DNS yet); host and certificate checks skipped"
+  fi
+  for host in $hosts; do
     # Verified chain and name: Traefik's own default certificate (no Let's Encrypt one) fails here.
     if ! openssl s_client -connect 127.0.0.1:443 -servername "$host" -verify_hostname "$host" \
       -verify_return_error < /dev/null 2> /dev/null \
