@@ -418,6 +418,18 @@
     "deactivated": "{name} kan niet meer inloggen op de kassa.",
     "activated": "{name} kan weer inloggen op de kassa.",
     "vaultAdded": "Kluis toegevoegd.",
-    "pdfReady": "De PDF is klaar."
+    "pdfReady": "De PDF is klaar.",
+    "imagesSaved": "Afbeeldingen opgeslagen."
+  },
+  "images": {
+    "title": "Afbeeldingen",
+    "empty": "Nog geen afbeeldingen.",
+    "unnamed": "Afbeelding",
+    "variant": "variantafbeelding",
+    "pick": "Afbeeldingsbestand",
+    "add": "Afbeelding toevoegen",
+    "removeOne": "Afbeelding {position} verwijderen",
+    "save": "Afbeeldingen opslaan",
+    "discard": "Wijzigingen weggooien"
   }
 }

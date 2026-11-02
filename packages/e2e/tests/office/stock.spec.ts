@@ -49,6 +49,8 @@ function stockApi(api: FakeApi) {
       paged(movements)
     )
     .on("GET", "/workspace/:ws/warehouses", () => paged([warehouse]))
+    .on("GET", "/workspace/:ws/products/:id/images", () => ({ data: [] }))
+    .on("GET", "/workspace/:ws/files", () => paged([]))
     .on("POST", "/workspace/:ws/products/:id/stocks", ({ body }) => {
       const b = body as { mutation_value: string; reason: string | null }
       if (b.mutation_value === "-500")

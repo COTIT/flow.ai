@@ -418,6 +418,18 @@
     "deactivated": "{name} hawezi tena kuingia kwenye kaunta.",
     "activated": "{name} anaweza kuingia kwenye kaunta tena.",
     "vaultAdded": "Sefu imeongezwa.",
-    "pdfReady": "PDF iko tayari."
+    "pdfReady": "PDF iko tayari.",
+    "imagesSaved": "Picha zimehifadhiwa."
+  },
+  "images": {
+    "title": "Picha",
+    "empty": "Bado hakuna picha.",
+    "unnamed": "Picha",
+    "variant": "picha ya aina",
+    "pick": "Faili ya picha",
+    "add": "Ongeza picha",
+    "removeOne": "Ondoa picha {position}",
+    "save": "Hifadhi picha",
+    "discard": "Acha mabadiliko"
   }
 }

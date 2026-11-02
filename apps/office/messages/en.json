@@ -418,6 +418,18 @@
     "deactivated": "{name} can no longer log in at the till.",
     "activated": "{name} can log in at the till again.",
     "vaultAdded": "Vault added.",
-    "pdfReady": "The PDF is ready."
+    "pdfReady": "The PDF is ready.",
+    "imagesSaved": "Images saved."
+  },
+  "images": {
+    "title": "Images",
+    "empty": "No images yet.",
+    "unnamed": "Image",
+    "variant": "variant image",
+    "pick": "Image file",
+    "add": "Add image",
+    "removeOne": "Remove image {position}",
+    "save": "Save images",
+    "discard": "Discard changes"
   }
 }
