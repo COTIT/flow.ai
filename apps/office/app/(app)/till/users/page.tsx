@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Field } from "@/components/field"
+import { CardState, ListCard, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
 
@@ -53,115 +54,133 @@ export default function TillUsersPage() {
     mutation: { onMutate: done.clear, onSuccess: refresh },
   })
 
+  const columns = [{ label: t("appKeys.name") }, { label: t("webhooks.state") }]
+
   return (
     <>
       <Done message={done.message} />
-      <div className="flex justify-end">
-        <PinDialog
-          onDone={() => {
-            done.show(t("done.tillUserAdded"))
-            void refresh()
-          }}
-        />
-      </div>
       <ApiError error={update.error} fallback={t("common.error")} />
-      {users.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : users.isError ? (
-        <LoadError error={users.error} onRetry={() => void users.refetch()} />
-      ) : users.data.data.length === 0 ? (
-        <Empty title={t("till.noUsers")} />
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("appKeys.name")}</TableHead>
-              <TableHead>{t("webhooks.state")}</TableHead>
-              <TableHead>
-                <span className="sr-only">{t("appKeys.actions")}</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.data.data.map((u) => (
-              <TableRow key={u.id}>
-                <TableCell className="font-medium">{u.name}</TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <StatusBadge
-                      status={u.active ? "active" : "inactive"}
-                      label={
-                        u.active ? t("webhooks.active") : t("till.inactive")
-                      }
-                    />
-                    {u.locked ? (
-                      <StatusBadge status="recalled" label={t("till.locked")} />
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-2">
-                    <PinDialog
-                      user={u}
-                      onDone={() => {
-                        done.show(t("done.pinChanged", { name: u.name }))
-                        void refresh()
-                      }}
-                    />
-                    {u.active ? (
-                      <ConfirmDialog
-                        trigger={t("till.deactivate")}
-                        title={t("till.deactivateTitle", { name: u.name })}
-                        description={t("till.deactivateText")}
-                        confirm={t("till.deactivate")}
-                        cancel={t("actions.cancel")}
-                        disabled={update.isPending}
-                        onConfirm={() =>
-                          update.mutate(
-                            {
-                              workspace: workspaceId,
-                              user: u.id,
-                              data: { active: false },
-                            },
-                            {
-                              onSuccess: () =>
-                                done.show(
-                                  t("done.deactivated", { name: u.name })
-                                ),
-                            }
-                          )
+      <ListCard
+        filters={
+          <div className="ml-auto">
+            <PinDialog
+              onDone={() => {
+                done.show(t("done.tillUserAdded"))
+                void refresh()
+              }}
+            />
+          </div>
+        }
+      >
+        {users.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : users.isError ? (
+          <CardState>
+            <LoadError
+              error={users.error}
+              onRetry={() => void users.refetch()}
+            />
+          </CardState>
+        ) : users.data.data.length === 0 ? (
+          <CardState>
+            <Empty title={t("till.noUsers")} />
+          </CardState>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {columns.map((c) => (
+                  <TableHead key={c.label}>{c.label}</TableHead>
+                ))}
+                <TableHead>
+                  <span className="sr-only">{t("appKeys.actions")}</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.data.data.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell className="font-semibold">{u.name}</TableCell>
+                  <TableCell data-m="right">
+                    <div className="flex flex-wrap gap-1 max-md:justify-end">
+                      <StatusBadge
+                        status={u.active ? "active" : "inactive"}
+                        label={
+                          u.active ? t("webhooks.active") : t("till.inactive")
                         }
                       />
-                    ) : (
-                      <Button
-                        variant="outline"
-                        disabled={update.isPending}
-                        onClick={() =>
-                          update.mutate(
-                            {
-                              workspace: workspaceId,
-                              user: u.id,
-                              data: { active: true },
-                            },
-                            {
-                              onSuccess: () =>
-                                done.show(
-                                  t("done.activated", { name: u.name })
-                                ),
-                            }
-                          )
-                        }
-                      >
-                        {t("till.activate")}
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+                      {u.locked ? (
+                        <StatusBadge
+                          status="recalled"
+                          label={t("till.locked")}
+                        />
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  <TableCell data-m="badge">
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <PinDialog
+                        user={u}
+                        onDone={() => {
+                          done.show(t("done.pinChanged", { name: u.name }))
+                          void refresh()
+                        }}
+                      />
+                      {u.active ? (
+                        <ConfirmDialog
+                          trigger={t("till.deactivate")}
+                          title={t("till.deactivateTitle", { name: u.name })}
+                          description={t("till.deactivateText")}
+                          confirm={t("till.deactivate")}
+                          cancel={t("actions.cancel")}
+                          disabled={update.isPending}
+                          onConfirm={() =>
+                            update.mutate(
+                              {
+                                workspace: workspaceId,
+                                user: u.id,
+                                data: { active: false },
+                              },
+                              {
+                                onSuccess: () =>
+                                  done.show(
+                                    t("done.deactivated", { name: u.name })
+                                  ),
+                              }
+                            )
+                          }
+                        />
+                      ) : (
+                        <Button
+                          variant="outline"
+                          disabled={update.isPending}
+                          onClick={() =>
+                            update.mutate(
+                              {
+                                workspace: workspaceId,
+                                user: u.id,
+                                data: { active: true },
+                              },
+                              {
+                                onSuccess: () =>
+                                  done.show(
+                                    t("done.activated", { name: u.name })
+                                  ),
+                              }
+                            )
+                          }
+                        >
+                          {t("till.activate")}
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </ListCard>
     </>
   )
 }

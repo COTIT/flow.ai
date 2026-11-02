@@ -1,4 +1,4 @@
-import { expect, paged, test } from "./fake-api"
+import { expect, openMenu, paged, test } from "./fake-api"
 
 test.describe(() => {
   test.use({
@@ -29,6 +29,7 @@ test("a normal logout does not say the session ended", async ({
 }) => {
   api.on("GET", "/workspace/:ws/products", () => paged([]))
   await page.goto("/products")
+  await openMenu(page)
   await page.getByRole("button", { name: "Log out" }).click()
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByText("Your session ended.")).toHaveCount(0)

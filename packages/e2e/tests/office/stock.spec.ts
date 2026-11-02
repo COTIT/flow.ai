@@ -203,6 +203,10 @@ test("all stock and below-zero lists", async ({ page, api }) => {
   await page.getByRole("link", { name: "Below zero" }).click()
   await expect(page).toHaveURL(/\/stock\/negative$/)
   await expect(page.getByRole("cell", { name: "-3.00" })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Below zero" })).toHaveAttribute(
+    "aria-current",
+    "page"
+  )
   await page.getByRole("link", { name: "AFM Honey 500g" }).click()
   await expect(page).toHaveURL(/\/products\/prod-honey$/)
   await expect(

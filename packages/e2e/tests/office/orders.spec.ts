@@ -1,4 +1,4 @@
-import { expect, paged, test, type FakeApi } from "./fake-api"
+import { choose, expect, paged, test, type FakeApi } from "./fake-api"
 
 type Order = {
   id: string
@@ -145,7 +145,7 @@ test("list shows money from minor units and filters by status", async ({
   await page.goto("/orders")
   await expect(page.getByRole("cell", { name: "$121.00" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "Kim Lee" })).toBeVisible()
-  await page.getByRole("combobox", { name: "Status" }).selectOption("open")
+  await choose(page, "Status", "Open")
   await expect(page).toHaveURL(/status=open/)
   await page.getByRole("link", { name: "SO-1001" }).click()
   await expect(page.getByRole("heading", { name: "SO-1001" })).toBeVisible()

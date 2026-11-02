@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
+import { CardState, ListCard, ListSkeleton } from "@/components/list"
 import { useTillMoney } from "@/lib/till-money"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
 
@@ -56,96 +57,121 @@ export default function VaultsPage() {
     },
   })
   const errors = fieldErrors(create.error)
+  const columns = [
+    { label: t("appKeys.name") },
+    { label: t("till.balance"), right: true },
+  ]
 
   return (
     <>
       <Done message={done.message} />
-      <div className="flex justify-end">
-        <Dialog
-          open={open}
-          onOpenChange={(o) => {
-            setOpen(o)
-            if (!o) create.reset()
-          }}
-        >
-          <DialogTrigger render={<Button />}>
-            {t("till.newVault")}
-          </DialogTrigger>
-          <DialogContent>
-            <form
-              className="flex flex-col gap-3"
-              onSubmit={(e) => {
-                e.preventDefault()
-                const f = new FormData(e.currentTarget)
-                create.mutate({
-                  workspace: workspaceId,
-                  data: {
-                    name: String(f.get("name") ?? ""),
-                    currency_id: String(f.get("currency_id") ?? "") || null,
-                  },
-                })
+      <ListCard
+        filters={
+          <div className="ml-auto">
+            <Dialog
+              open={open}
+              onOpenChange={(o) => {
+                setOpen(o)
+                if (!o) create.reset()
               }}
             >
-              <DialogHeader>
-                <DialogTitle>{t("till.newVault")}</DialogTitle>
-              </DialogHeader>
-              <Field
-                id="vault-name"
-                label={t("appKeys.name")}
-                errors={errors.name}
-              >
-                <Input name="name" required />
-              </Field>
-              <Field
-                id="vault-currency"
-                label={t("till.currency")}
-                errors={errors.currency_id}
-              >
-                <select name="currency_id" className={selectClass}>
-                  <option value="">{t("till.mainCurrency")}</option>
-                  {currencies.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.asset_type}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <ApiError error={create.error} fallback={t("common.error")} />
-              <DialogFooter>
-                <Button type="submit" disabled={create.isPending}>
-                  {t("actions.save")}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-      {vaults.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : vaults.isError ? (
-        <LoadError error={vaults.error} onRetry={() => void vaults.refetch()} />
-      ) : vaults.data.data.length === 0 ? (
-        <Empty title={t("till.noVaults")} />
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("appKeys.name")}</TableHead>
-              <TableHead className="text-right">{t("till.balance")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vaults.data.data.map((v) => (
-              <TableRow key={v.id}>
-                <TableCell className="font-medium">{v.name}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {money(v.balance, v.currency_id)}
-                </TableCell>
+              <DialogTrigger render={<Button />}>
+                {t("till.newVault")}
+              </DialogTrigger>
+              <DialogContent>
+                <form
+                  className="flex flex-col gap-3"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const f = new FormData(e.currentTarget)
+                    create.mutate({
+                      workspace: workspaceId,
+                      data: {
+                        name: String(f.get("name") ?? ""),
+                        currency_id: String(f.get("currency_id") ?? "") || null,
+                      },
+                    })
+                  }}
+                >
+                  <DialogHeader>
+                    <DialogTitle>{t("till.newVault")}</DialogTitle>
+                  </DialogHeader>
+                  <Field
+                    id="vault-name"
+                    label={t("appKeys.name")}
+                    errors={errors.name}
+                  >
+                    <Input name="name" required />
+                  </Field>
+                  <Field
+                    id="vault-currency"
+                    label={t("till.currency")}
+                    errors={errors.currency_id}
+                  >
+                    <select name="currency_id" className={selectClass}>
+                      <option value="">{t("till.mainCurrency")}</option>
+                      {currencies.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.asset_type}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <ApiError error={create.error} fallback={t("common.error")} />
+                  <DialogFooter>
+                    <Button type="submit" disabled={create.isPending}>
+                      {t("actions.save")}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        }
+      >
+        {vaults.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : vaults.isError ? (
+          <CardState>
+            <LoadError
+              error={vaults.error}
+              onRetry={() => void vaults.refetch()}
+            />
+          </CardState>
+        ) : vaults.data.data.length === 0 ? (
+          <CardState>
+            <Empty title={t("till.noVaults")} />
+          </CardState>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {columns.map((c) => (
+                  <TableHead
+                    key={c.label}
+                    className={c.right ? "text-right" : undefined}
+                  >
+                    {c.label}
+                  </TableHead>
+                ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+            </TableHeader>
+            <TableBody>
+              {vaults.data.data.map((v) => (
+                <TableRow key={v.id}>
+                  <TableCell className="font-semibold">{v.name}</TableCell>
+                  <TableCell
+                    data-m="right"
+                    className="text-right font-semibold tabular-nums"
+                  >
+                    {money(v.balance, v.currency_id)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </ListCard>
     </>
   )
 }

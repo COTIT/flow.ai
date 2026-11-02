@@ -317,6 +317,10 @@ test("vault balances and shift differences in the register's currency", async ({
   await expect(page.getByRole("cell", { name: "$1,250.00" })).toBeVisible()
   await page.getByRole("link", { name: "Shifts" }).click()
   await expect(page.getByRole("cell", { name: "-$5.00" })).toBeVisible()
+  // Short or over is gold; the API's own difference decides it.
+  await expect(
+    page.getByRole("cell", { name: "-$5.00" }).locator("[data-slot=badge]")
+  ).toHaveAttribute("data-variant", "gold")
   await expect(page.getByRole("cell", { name: "$145.00" })).toBeVisible()
   await expect(page.getByText("Open", { exact: true })).toBeVisible()
 })
@@ -328,13 +332,18 @@ test("till sales: the mismatch filter goes to the API", async ({
   const { salesQueries } = tillApi(api)
   await page.goto("/till/sales")
   await expect(page.getByRole("link", { name: "POS-0008" })).toBeVisible()
-  await page.getByLabel("Only sales with other prices than the catalog").check()
+  const only = page.getByRole("switch", {
+    name: "Only sales with other prices than the catalog",
+  })
+  await expect(only).not.toBeChecked()
+  await only.click()
   await expect(page).toHaveURL(/mismatch=true/)
   await expect(page.getByRole("link", { name: "POS-0008" })).toHaveCount(0)
   await expect(
     page.getByRole("cell", { name: "-$1.00 (1 lines)" })
   ).toBeVisible()
   expect(salesQueries.at(-1)).toBe("mismatch=true")
+  await expect(only).toBeChecked()
   await expect(page.getByRole("link", { name: "POS-0007" })).toHaveAttribute(
     "href",
     "/orders/ord-7"

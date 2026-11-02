@@ -1,8 +1,9 @@
 "use client"
 
-import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
+
+import { PageHead, PillLinks } from "@/components/list"
 
 const tabs = ["registers", "users", "vaults", "shifts", "sales"] as const
 
@@ -12,26 +13,25 @@ export default function TillLayout({
 }: {
   children: React.ReactNode
 }) {
-  const t = useTranslations("till")
+  const t = useTranslations()
   const pathname = usePathname()
   return (
-    <section className="flex flex-col gap-3">
-      <h1 className="heading-2 text-lg">{t("title")}</h1>
-      <nav aria-label={t("title")} className="-mx-1 flex gap-1 overflow-x-auto">
-        {tabs.map((tab) => (
-          <Link
-            key={tab}
-            href={`/till/${tab}`}
-            aria-current={
-              pathname.startsWith(`/till/${tab}`) ? "page" : undefined
-            }
-            className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted aria-[current=page]:bg-secondary aria-[current=page]:font-medium aria-[current=page]:text-foreground"
-          >
-            {t(`tabs.${tab}`)}
-          </Link>
-        ))}
-      </nav>
+    <>
+      <PageHead
+        eyebrow={t("shell.store")}
+        title={t("till.title")}
+        tabs={
+          <PillLinks
+            label={t("till.title")}
+            links={tabs.map((tab) => ({
+              href: `/till/${tab}`,
+              label: t(`till.tabs.${tab}`),
+              active: pathname.startsWith(`/till/${tab}`),
+            }))}
+          />
+        }
+      />
       {children}
-    </section>
+    </>
   )
 }

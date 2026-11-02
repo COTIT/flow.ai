@@ -35,6 +35,6 @@ export function Field({
   )
 }
 
-/** Native `<select>` styled like the house inputs. */
+/** Native `<select>` styled like the glass inputs (glass.css `.input.select`, 44 px). */
 export const selectClass =
-  "h-8 rounded-lg border border-input bg-background px-2 text-sm aria-invalid:border-destructive"
+  "h-11 rounded-xl border border-(--field-border) bg-(--field) px-3.5 text-sm aria-invalid:border-destructive"

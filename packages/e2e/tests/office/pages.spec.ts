@@ -131,5 +131,12 @@ test.describe(() => {
         .filter({ hasText: "Something went wrong on this page." })
     ).toBeVisible()
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible()
+    // Inside the signed-in shell: the menu is still there to leave the broken screen.
+    const phone = (page.viewportSize()?.width ?? 0) < 768
+    await expect(
+      phone
+        ? page.getByRole("button", { name: "Open menu" })
+        : page.getByRole("navigation", { name: "Main menu" })
+    ).toBeVisible()
   })
 })

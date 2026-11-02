@@ -15,7 +15,13 @@
     "netPrice": "Bei bila VAT",
     "shortDescription": "Maelezo mafupi",
     "description": "Maelezo",
-    "storeOnly": "Inauzwa kaunta tu (si kwenye duka la mtandaoni)"
+    "storeOnly": "Inauzwa kaunta tu (si kwenye duka la mtandaoni)",
+    "statuses": {
+      "active": "Inatumika",
+      "disabled": "Imezimwa",
+      "nla": "Haiuzwi tena"
+    },
+    "count": "{total, plural, one {bidhaa #} other {bidhaa #}}"
   },
   "nav": {
     "label": "Menyu kuu",
@@ -66,13 +72,16 @@
     "recallText": "Fungu {code} litaonyeshwa kuwa limerudishwa kwenye ukurasa wake wa umma na kwenye kiungo cha QR cha kila chupa.",
     "recallConfirm": "Rudisha fungu",
     "passport": "Pasipoti",
-    "noEvents": "Bado hakuna historia."
+    "noEvents": "Bado hakuna historia.",
+    "count": "{total, plural, one {kundi #} other {makundi #}}",
+    "allProducts": "Bidhaa zote"
   },
   "secret": {
     "once": "Nakili siri hii sasa. Inaonyeshwa mara moja tu.",
     "label": "Siri",
     "copy": "Nakili",
-    "copied": "Imenakiliwa"
+    "copied": "Imenakiliwa",
+    "saved": "Nimeihifadhi"
   },
   "appKeys": {
     "title": "Funguo za programu",
@@ -87,7 +96,10 @@
     "revoked": "Umefutwa",
     "revoke": "Futa ufunguo",
     "revokeTitle": "Futa {name}?",
-    "revokeText": "Programu zinazotumia ufunguo huu zitaacha kufanya kazi mara moja. Hili haliwezi kutenduliwa."
+    "revokeText": "Programu zinazotumia ufunguo huu zitaacha kufanya kazi mara moja. Hili haliwezi kutenduliwa.",
+    "intro": "Funguo huruhusu duka la mtandaoni na kaunta kuwasiliana na Genesy. Kila akaunti ina funguo zake.",
+    "created": "Ufunguo umeundwa",
+    "secretHint": "Uhifadhi mahali ambapo seva ya duka inaweza kuusoma."
   },
   "webhooks": {
     "title": "Webhooks",
@@ -102,7 +114,10 @@
     "inactive": "Imesimamishwa",
     "delete": "Futa",
     "deleteTitle": "Futa endpoint hii?",
-    "deleteText": "{url} haitapokea matukio tena. Hili haliwezi kutenduliwa."
+    "deleteText": "{url} haitapokea matukio tena. Hili haliwezi kutenduliwa.",
+    "intro": "Webhooks huarifu mifumo yako mingine kitu kinapobadilika katika akaunti hii.",
+    "created": "Endpoint imeundwa",
+    "secretHint": "Uitumie kuthibitisha kwamba matukio yanatoka kweli kwa Genesy."
   },
   "passport": {
     "title": "Pasipoti · {code}",
@@ -188,7 +203,8 @@
     "after": "Baada",
     "reason": "Sababu",
     "changeHint": "Mabadiliko (k.m. 10 au -3)",
-    "quantityChange": "Mabadiliko"
+    "quantityChange": "Mabadiliko",
+    "count": "{total, plural, one {safu # ya hisa} other {safu # za hisa}}"
   },
   "invoices": {
     "title": "Ankara",
@@ -214,7 +230,8 @@
     "noPayments": "Bado hakuna malipo.",
     "method": "Njia",
     "amount": "Kiasi",
-    "customer": "Mteja"
+    "customer": "Mteja",
+    "count": "{total, plural, one {ankara #} other {ankara #}}"
   },
   "orders": {
     "title": "Oda",
@@ -262,7 +279,8 @@
     "cancel": "Ghairi oda",
     "cancelTitle": "Ghairi oda {number}?",
     "cancelText": "Akiba iliyohifadhiwa itaachiliwa. Oda iliyolipwa inahitaji kurejeshewa pesa kwanza; mfumo utasema.",
-    "nothingToDo": "Hakuna zaidi cha kufanya kwenye oda hii."
+    "nothingToDo": "Hakuna zaidi cha kufanya kwenye oda hii.",
+    "count": "{total, plural, one {oda #} other {oda #}}"
   },
   "till": {
     "title": "Kaunta",
@@ -319,7 +337,10 @@
     "revoke": "Tenganisha kasha",
     "revokeTitle": "Tenganisha kasha kwenye {name}?",
     "revokeText": "Kasha linasimama mara moja na kutoka. Liunganishe tena kwa msimbo mpya.",
-    "revoked": "Kasha kwenye {name} limetenganishwa."
+    "revoked": "Kasha kwenye {name} limetenganishwa.",
+    "registersCount": "{total, plural, one {kaunta #} other {kaunta #}}",
+    "shiftsCount": "{total, plural, one {zamu #} other {zamu #}}",
+    "salesCount": "{total, plural, one {mauzo #} other {mauzo #}}"
   },
   "supply": {
     "title": "Ugavi",
@@ -370,7 +391,9 @@
     "receive": "Pokea",
     "receiveFrom": "Pokea fungu {code}",
     "receiveText": "Kiasi cha {quantity} kilitumwa. Kupokea kunaunda fungu jipya hapa na kunafanyika mara moja tu; kama kimefika kidogo, weka kilichofika na upungufu utabaki kwenye kumbukumbu.",
-    "newLotCode": "Namba ya fungu jipya"
+    "newLotCode": "Namba ya fungu jipya",
+    "linksCount": "{total, plural, one {kiungo #} other {viungo #}}",
+    "transfersCount": "{total, plural, one {uhamisho #} other {uhamisho #}}"
   },
   "packing": {
     "pack": "Fungasha kwenye chupa",
@@ -460,5 +483,19 @@
     "pack": "vipande {units} kutoka kilo {kg}",
     "receivedFrom": "Imepokelewa kutoka fungu {code} la mshirika ({publicCode}).",
     "transfers": "Angalia uhamisho"
+  },
+  "shell": {
+    "openMenu": "Fungua menyu",
+    "search": "Tafuta haraka",
+    "searchPlaceholder": "Tafuta bidhaa…",
+    "searchProducts": "Tafuta bidhaa",
+    "sell": "Uza",
+    "trace": "Fuatilia",
+    "store": "Duka",
+    "settings": "Mipangilio"
+  },
+  "login": {
+    "subtitle": "Bidhaa, akiba, oda, mafungu na kaunta — kwa akaunti yako.",
+    "theme": "Mandhari"
   }
 }

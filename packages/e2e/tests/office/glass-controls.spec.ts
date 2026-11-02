@@ -49,9 +49,9 @@ test("buttons and fields take the glass sizes", async ({ page }) => {
 
   expect(emailBox.height).toBe(44)
   expect(await email.evaluate((el) => getComputedStyle(el).borderRadius)).toBe("12px")
-  expect(await submit.evaluate((el) => getComputedStyle(el).borderRadius)).toBe("12px")
-  // A phone gets 44 px controls (tap targets); the desktop keeps the drawn 40 px.
-  expect(submitBox.height).toBe(isPhone(page) ? 44 : 40)
+  // The login submit is the large button (OfficeLogin `.btn-lg`), on a phone too.
+  expect(await submit.evaluate((el) => getComputedStyle(el).borderRadius)).toBe("14px")
+  expect(submitBox.height).toBe(52)
 
   const sm = await probe(
     page,
@@ -160,7 +160,12 @@ test("badge tones, table cells and skeleton follow the mockup", async ({ page })
     `<table><tbody><tr><td data-slot="table-cell" data-probe class="p-2">#1042</td></tr></tbody></table>`,
     ["font-size", "padding-left", "padding-top"]
   )
-  expect(td).toMatchObject({ "font-size": "14px", "padding-left": "16px", "padding-top": "14px" })
+  // On a phone the office lays rows out as cards (office.css), so cells lose their padding.
+  expect(td).toMatchObject(
+    isPhone(page)
+      ? { "font-size": "14px", "padding-left": "0px" }
+      : { "font-size": "14px", "padding-left": "16px", "padding-top": "14px" }
+  )
 
   const skel = await probe(
     page,

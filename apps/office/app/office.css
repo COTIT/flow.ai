@@ -1,0 +1,54 @@
+/* Office-only glass rules (docs/design/web-redesign/canvas/glass.css). Unlayered like the
+   shared glass rules in @genesy/ui, so they win over the components' utility classes. */
+
+/* The top bar's workspace picker is drawn as a 40 px outline button, not a 44 px field. */
+.theme-glass [data-topbar] [data-slot="select-trigger"] {
+  height: 40px;
+}
+
+/* Phones: table rows become cards (glass.css `.tbl` at max-width 760). Cells say where they go:
+   no data-m = the title (left, first line), "sub" = second line, "right" = top right,
+   "badge" = bottom right, "hide" = not shown. */
+@media (max-width: 767px) {
+  .theme-glass [data-slot="table-header"] {
+    display: none;
+  }
+  .theme-glass [data-slot="table-row"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+    align-items: center;
+    padding: 12px 16px;
+  }
+  .theme-glass [data-slot="table-cell"] {
+    padding: 0;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  /* The row's title link is a 44 px tap target without making the card taller. */
+  .theme-glass [data-slot="table-cell"]:not([data-m]) a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -12px;
+  }
+  .theme-glass [data-slot="table-cell"][data-m="hide"] {
+    display: none;
+  }
+  .theme-glass [data-slot="table-cell"][data-m="sub"] {
+    grid-column: 1;
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+  .theme-glass [data-slot="table-cell"][data-m="right"] {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+  .theme-glass [data-slot="table-cell"][data-m="badge"] {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+  }
+}

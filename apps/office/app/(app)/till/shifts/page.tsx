@@ -5,8 +5,6 @@ import { useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useTillShiftsList } from "@genesy/api-client/endpoints/till"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Pager } from "@genesy/ui/components/pager"
 import {
   Table,
   TableBody,
@@ -15,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"
 import { Empty, LoadError } from "@/components/states"
@@ -30,75 +29,101 @@ export default function ShiftsPage() {
     { query: { enabled: Boolean(workspaceId) } }
   )
   const when = (s: string | null) => (s ? new Date(s).toLocaleString() : "—")
+  const columns = [
+    { label: t("till.register") },
+    { label: t("till.openedAt") },
+    { label: t("till.closedAt") },
+    { label: t("till.opening"), right: true },
+    { label: t("till.expected"), right: true },
+    { label: t("till.counted"), right: true },
+    { label: t("till.difference"), right: true },
+  ]
 
-  if (shifts.isPending)
-    return (
-      <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-    )
-  if (shifts.isError)
-    return (
-      <LoadError error={shifts.error} onRetry={() => void shifts.refetch()} />
-    )
-  if (shifts.data.data.length === 0) return <Empty title={t("till.noShifts")} />
   return (
-    <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("till.register")}</TableHead>
-            <TableHead>{t("till.openedAt")}</TableHead>
-            <TableHead>{t("till.closedAt")}</TableHead>
-            <TableHead className="text-right">{t("till.opening")}</TableHead>
-            <TableHead className="text-right">{t("till.expected")}</TableHead>
-            <TableHead className="text-right">{t("till.counted")}</TableHead>
-            <TableHead className="text-right">{t("till.difference")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {shifts.data.data.map((s) => (
-            <TableRow key={s.id}>
-              <TableCell>{register(s.register_id)?.name}</TableCell>
-              <TableCell className="tabular-nums">
-                {when(s.opened_at)}
-              </TableCell>
-              <TableCell className="tabular-nums">
-                {s.closed_at ? (
-                  when(s.closed_at)
-                ) : (
-                  <StatusBadge status="active" label={t("till.openShift")} />
-                )}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {registerMoney(s.opening, s.register_id)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {registerMoney(s.expected, s.register_id)}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {registerMoney(s.counted, s.register_id)}
-              </TableCell>
-              {/* The API's own counted − expected; negative = short. */}
-              <TableCell
-                className={`text-right tabular-nums ${s.difference && s.difference < 0 ? "text-destructive" : ""}`}
-              >
-                {registerMoney(s.difference, s.register_id)}
-              </TableCell>
+    <ListCard
+      count={
+        shifts.data
+          ? t("till.shiftsCount", { total: shifts.data.meta.total })
+          : null
+      }
+      pager={
+        shifts.data?.data.length ? (
+          <ListPager meta={shifts.data.meta} onPage={setPage} />
+        ) : null
+      }
+    >
+      {shifts.isPending ? (
+        <ListSkeleton columns={columns} />
+      ) : shifts.isError ? (
+        <CardState>
+          <LoadError
+            error={shifts.error}
+            onRetry={() => void shifts.refetch()}
+          />
+        </CardState>
+      ) : shifts.data.data.length === 0 ? (
+        <CardState>
+          <Empty title={t("till.noShifts")} />
+        </CardState>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((c) => (
+                <TableHead
+                  key={c.label}
+                  className={c.right ? "text-right" : undefined}
+                >
+                  {c.label}
+                </TableHead>
+              ))}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Pager
-        page={shifts.data.meta.current_page}
-        lastPage={shifts.data.meta.last_page}
-        summary={t("pager.summary", {
-          from: shifts.data.meta.from ?? 0,
-          to: shifts.data.meta.to ?? 0,
-          total: shifts.data.meta.total,
-        })}
-        previous={t("pager.previous")}
-        next={t("pager.next")}
-        onPage={setPage}
-      />
-    </>
+          </TableHeader>
+          <TableBody>
+            {shifts.data.data.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell className="font-semibold">
+                  {register(s.register_id)?.name}
+                </TableCell>
+                <TableCell data-m="sub" className="tabular-nums">
+                  {when(s.opened_at)}
+                </TableCell>
+                <TableCell data-m="sub" className="tabular-nums">
+                  {s.closed_at ? (
+                    when(s.closed_at)
+                  ) : (
+                    <StatusBadge status="active" label={t("till.openShift")} />
+                  )}
+                </TableCell>
+                <TableCell data-m="hide" className="text-right tabular-nums">
+                  {registerMoney(s.opening, s.register_id)}
+                </TableCell>
+                <TableCell data-m="hide" className="text-right tabular-nums">
+                  {registerMoney(s.expected, s.register_id)}
+                </TableCell>
+                <TableCell
+                  data-m="right"
+                  className="text-right font-semibold tabular-nums"
+                >
+                  {registerMoney(s.counted, s.register_id)}
+                </TableCell>
+                {/* The API's own counted − expected: zero = balanced (teal), else short/over (gold). */}
+                <TableCell data-m="badge" className="text-right tabular-nums">
+                  {s.difference == null ? (
+                    "—"
+                  ) : (
+                    <StatusBadge
+                      status=""
+                      tone={s.difference === 0 ? "teal" : "gold"}
+                      label={registerMoney(s.difference, s.register_id)}
+                    />
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </ListCard>
   )
 }
