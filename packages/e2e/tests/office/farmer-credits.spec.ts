@@ -1,0 +1,79 @@
+import { expect, paged, test } from "./fake-api"
+
+const lot = {
+  id: "lot-jar",
+  product_id: "prod-jar",
+  code: "ILU-J-2026-01",
+  public_code: "JR12JR34JR",
+  status: "released",
+  produced_on: null,
+  best_before: null,
+  expires_on: null,
+  origin: null,
+  parent_lot: null,
+  pack: null,
+  received_from: null,
+  created_at: "2026-11-01T08:00:00Z",
+  updated_at: "2026-11-01T08:00:00Z",
+}
+
+test.beforeEach(({ api }) => {
+  api
+    .on("GET", "/workspace/:ws/lots/:id", () => ({ data: lot }))
+    .on("GET", "/workspace/:ws/lots/:id/events", () => paged([]))
+})
+
+test("sales and returns that credited farmers, by group only", async ({
+  page,
+  api,
+}) => {
+  api.on("GET", "/workspace/:ws/lots/:id/farmer-credits", () => ({
+    ...paged([
+      {
+        order_id: "ord-7",
+        order_number: "POS-0007",
+        till_ref: "c-7",
+        kind: "sale",
+        jars: "3",
+        at: "2026-11-01T09:00:00Z",
+      },
+      {
+        order_id: "ord-8",
+        order_number: "WEB-0008",
+        till_ref: null,
+        kind: "return",
+        jars: "1",
+        at: "2026-11-02T09:00:00Z",
+      },
+    ]),
+    farmer_groups: 2,
+  }))
+  await page.goto("/lots/lot-jar")
+  await expect(
+    page.getByRole("status").filter({ hasText: "Sales credit 2 farmer groups" })
+  ).toBeVisible()
+  await expect(
+    page.getByRole("row", { name: /POS-0007/ }).getByText("Sale")
+  ).toBeVisible()
+  await expect(
+    page.getByRole("row", { name: /WEB-0008/ }).getByText("Return")
+  ).toBeVisible()
+  await expect(page.getByRole("link", { name: "POS-0007" })).toHaveAttribute(
+    "href",
+    "/orders/ord-7"
+  )
+})
+
+test("no lineage or village not shared: no groups, and no sales yet", async ({
+  page,
+}) => {
+  await page.goto("/lots/lot-jar")
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "The public page shows no farmer groups for this batch.",
+    })
+  ).toBeVisible()
+  await expect(
+    page.getByText("No sales or returns of this batch yet.")
+  ).toBeVisible()
+})

@@ -431,5 +431,20 @@
     "removeOne": "Afbeelding {position} verwijderen",
     "save": "Afbeeldingen opslaan",
     "discard": "Wijzigingen weggooien"
+  },
+  "credits": {
+    "title": "Vergoedingen aan boeren",
+    "groups": "{count, plural, one {Verkopen vergoeden # boerengroep, getoond op de publieke pagina.} other {Verkopen vergoeden # boerengroepen, getoond op de publieke pagina.}}",
+    "noGroups": "De publieke pagina toont geen boerengroepen voor deze batch.",
+    "empty": "Nog geen verkopen of retouren van deze batch.",
+    "at": "Wanneer",
+    "kind": "Wat",
+    "order": "Order",
+    "jars": "Potten",
+    "till": "kassa",
+    "kinds": {
+      "sale": "Verkoop",
+      "return": "Retour"
+    }
   }
 }

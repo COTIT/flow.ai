@@ -31,6 +31,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 import { LotFields } from "../lot-fields"
+import { FarmerCredits } from "./farmer-credits"
 import { PackDialog } from "./pack-dialog"
 
 export default function LotPage({
@@ -157,6 +158,8 @@ export default function LotPage({
           onConfirm={() => pending && save(pending)}
         />
       </section>
+
+      <FarmerCredits lotId={id} />
 
       <section className="flex flex-col gap-3">
         <h2 className="heading-2 text-base">{t("lots.events")}</h2>

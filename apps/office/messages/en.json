@@ -431,5 +431,20 @@
     "removeOne": "Remove image {position}",
     "save": "Save images",
     "discard": "Discard changes"
+  },
+  "credits": {
+    "title": "Farmer credits",
+    "groups": "{count, plural, one {Sales credit # farmer group, shown on the public page.} other {Sales credit # farmer groups, shown on the public page.}}",
+    "noGroups": "The public page shows no farmer groups for this batch.",
+    "empty": "No sales or returns of this batch yet.",
+    "at": "When",
+    "kind": "What",
+    "order": "Order",
+    "jars": "Jars",
+    "till": "till",
+    "kinds": {
+      "sale": "Sale",
+      "return": "Return"
+    }
   }
 }

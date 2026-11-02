@@ -431,5 +431,20 @@
     "removeOne": "Ondoa picha {position}",
     "save": "Hifadhi picha",
     "discard": "Acha mabadiliko"
+  },
+  "credits": {
+    "title": "Malipo kwa wakulima",
+    "groups": "{count, plural, one {Mauzo yanamlipa kikundi # cha wakulima, kinachoonyeshwa kwenye ukurasa wa umma.} other {Mauzo yanalipa vikundi # vya wakulima, vinavyoonyeshwa kwenye ukurasa wa umma.}}",
+    "noGroups": "Ukurasa wa umma hauonyeshi vikundi vya wakulima kwa fungu hili.",
+    "empty": "Bado hakuna mauzo au marejesho ya fungu hili.",
+    "at": "Lini",
+    "kind": "Nini",
+    "order": "Oda",
+    "jars": "Chupa",
+    "till": "kaunta",
+    "kinds": {
+      "sale": "Mauzo",
+      "return": "Marejesho"
+    }
   }
 }
