@@ -210,8 +210,8 @@ jobs:
             packages/e2e/playwright-report/
             packages/e2e/test-results/
           retention-days: 7
-      - if: github.ref == 'refs/heads/main' && steps.store.outputs.cache-hit != 'true'
-        run: pnpm store prune --store-dir /pnpm-store
+      # No `pnpm store prune`: the store and the checkout sit on different filesystems, so the
+      # install copies instead of hard-linking and prune would count every file as unused.
       - if: github.ref == 'refs/heads/main' && steps.store.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
