@@ -4,23 +4,22 @@
     "tagline": "Point of sale and cash payouts."
   },
   "setup": {
-    "title": "Set up this till",
-    "hint": "Ask the office for a pairing code for this till, then type the shop name and the code.",
-    "workspace": "Shop name",
+    "title": "Pair this till",
+    "hint": "In Office, open Till › Registers and press “Pair a till”. Type the code shown there.",
+    "workspace": "Account",
     "submit": "Pair this till",
     "code": "Pairing code",
     "wrong": "The shop name and code don't match. Check both and try again.",
     "used": "This code has expired or was already used. Ask the office for a new one.",
     "locked": "Too many tries. Wait 15 minutes, then try again.",
     "failed": "Couldn't reach the server. Check the connection and try again.",
-    "paired": "Paired. Opening the login…"
+    "paired": "Paired. Opening the login…",
+    "codeHint": "Valid for 10 minutes, works once."
   },
   "login": {
-    "title": "Who is selling?",
+    "title": "Who’s at the till?",
     "who": "Till users",
-    "pin": "PIN",
     "submit": "Log in",
-    "back": "Back",
     "wrongPin": "Wrong PIN.",
     "locked": "Too many wrong PINs. Try again later.",
     "pinFormat": "The PIN is 4 to 8 digits.",
@@ -28,7 +27,13 @@
     "setupAgain": "Pair again",
     "expired": "Your session ended. Log in again to continue.",
     "usersFailed": "Couldn't load the till users. Check the connection and reload.",
-    "noUsers": "No till users yet. Ask the office to add one."
+    "noUsers": "No till users yet. Ask the office to add one.",
+    "tap": "Tap your name.",
+    "pickFirst": "Tap your name first.",
+    "missing": "Missing? Ask the office to add you under Till › Users.",
+    "enterPin": "Enter your PIN",
+    "notYou": "Not you?",
+    "dots": "{count} of {total} digits entered"
   },
   "sale": {
     "title": "Sale",
@@ -142,5 +147,9 @@
   "offline": {
     "title": "Offline. Sales are kept on this device and sent when the connection is back.",
     "waiting": "{count, plural, one {# sale} other {# sales}} waiting to sync"
+  },
+  "keypad": {
+    "clear": "Clear",
+    "delete": "Delete"
   }
 }

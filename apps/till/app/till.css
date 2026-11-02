@@ -1,0 +1,108 @@
+/* The till's own pieces of the glass design: docs/design/web-redesign/canvas/glass.css, section
+   "Till (iPad POS)", copied 1:1 onto the real tokens of packages/ui (theme-glass). Shared pieces
+   (cards' glass, Notice, EmptyState, Button, Input, Badge) come from packages/ui. */
+
+.till-app {
+  --fg: var(--foreground);
+  --muted: var(--muted-foreground);
+  --hl: var(--glass-highlight);
+  --shadow: var(--glass-shadow);
+  --hair: rgb(10 24 58 / 8%);
+  --hair-2: rgb(10 24 58 / 14%);
+  --field: rgb(255 255 255 / 78%);
+  --field-border: rgb(10 24 58 / 16%);
+  --c-teal: rgb(1 144 155 / 13%);
+  --c-gold: rgb(208 165 95 / 22%);
+  --c-red: rgb(180 35 24 / 10%);
+  --c-slate: rgb(69 96 135 / 12%);
+  --t-teal: var(--tone-success);
+  --t-gold: var(--tone-warning);
+  --t-red: var(--tone-error);
+  --t-slate: var(--tone-info);
+  --scrim: rgb(10 24 58 / 28%);
+  --r-card: 20px;
+  --r-tile: 16px;
+  --r-key: 20px;
+  font-size: 15px;
+}
+.dark .till-app {
+  --hair: rgb(255 255 255 / 8%);
+  --hair-2: rgb(255 255 255 / 16%);
+  --field: rgb(255 255 255 / 6%);
+  --field-border: rgb(255 255 255 / 18%);
+  --c-teal: rgb(1 144 155 / 22%);
+  --c-gold: rgb(239 201 119 / 16%);
+  --c-red: rgb(249 112 102 / 16%);
+  --c-slate: rgb(143 166 200 / 16%);
+  --scrim: rgb(3 8 22 / 55%);
+}
+
+/* In the components layer, so a Tailwind utility on the element (p-8, gap-4) still wins. */
+@layer components {
+  /* ---------- Frame ---------- */
+  .till { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  .till-top { height: 64px; flex: none; margin: 12px 12px 0; border-radius: 20px; display: flex; align-items: center; gap: 12px; padding: 0 10px 0 18px; }
+  .till-top .who { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .till-tab { height: 44px; padding: 0 16px; border-radius: 14px; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+  .till-tab[aria-current="page"] { background: var(--primary); color: var(--primary-foreground); }
+  .till-card { background: var(--glass); border: 1px solid var(--glass-border); box-shadow: var(--hl), var(--shadow); border-radius: var(--r-card); padding: 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%); backdrop-filter: blur(var(--glass-blur)) saturate(150%); }
+  .till-card.strong { background: var(--glass-strong); }
+  .till-card.tight { padding: 16px; gap: 12px; }
+  @supports not (backdrop-filter: blur(1px)) { .till-card { background: var(--glass-solid); } }
+  @media (prefers-reduced-transparency: reduce) { .till-card { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+  .till-tile { background: var(--glass-subtle); border: 1px solid var(--hair); border-radius: var(--r-tile); padding: 16px; min-width: 0; }
+  .till-center { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  @media (max-width: 760px) { .till-top .who { display: none; } }
+  @media (max-width: 760px) { .till-card { padding: 16px; gap: 12px; border-radius: 18px; } }
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; flex: 1 1 auto; min-height: 0; padding: 12px; overflow-y: auto; }
+  .split-wide { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+  @media (orientation: portrait), (max-width: 760px) { .split, .split-wide { grid-template-columns: 1fr; align-content: start; } }
+
+  /* ---------- Type ---------- */
+  .till-h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .till-h2 { font-size: 22px; font-weight: 500; line-height: 1.3; }
+  .card-title { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; }
+  .grand { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+  .chip-ic { width: 36px; height: 36px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+  .chip-ic.gold { background: var(--c-gold); color: var(--t-gold); }
+  .chip-ic.xl { width: 56px; height: 56px; border-radius: 18px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; background: var(--c-slate); color: var(--t-slate); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+
+  /* ---------- Keypad, PIN, user tiles ---------- */
+  .pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .key { height: 72px; border-radius: var(--r-key); border: 1px solid var(--glass-border); background: var(--glass-strong); box-shadow: var(--hl), 0 2px 6px -3px rgb(10 24 58 / 25%); font-size: 28px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-variant-numeric: tabular-nums; color: var(--fg); }
+  .key.fn { font-size: 16px; background: var(--glass-subtle); }
+  .key:disabled { opacity: 0.5; cursor: default; }
+  .charge:active, .key:active, .ptile:active, .utile:active { filter: brightness(0.92); }
+  .dots { display: flex; gap: 16px; justify-content: center; }
+  .dots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--hair-2); }
+  .dots i.on { background: var(--fg); border-color: var(--fg); }
+  .utile { min-height: 96px; width: 100%; border-radius: 20px; padding: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-weight: 600; border: 1px solid var(--glass-border); background: var(--glass); box-shadow: var(--hl); cursor: pointer; color: var(--fg); }
+  .utile .avatar { width: 52px; height: 52px; font-size: 18px; }
+  .avatar.md { width: 48px; height: 48px; font-size: 16px; }
+  .utile[aria-pressed="true"] { outline: 3px solid var(--ring); outline-offset: 2px; }
+  .users { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 760px) { .users { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  /* ---------- Big buttons (mockup inline sizes) ---------- */
+  .charge { height: 76px; border-radius: 22px; border: 0; background: var(--primary); color: var(--primary-foreground); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-size: 20px; font-weight: 600; cursor: pointer; box-shadow: 0 12px 24px -12px rgb(10 24 58 / 60%); flex: none; }
+  .charge:disabled { opacity: 0.5; cursor: default; }
+
+  /* ---------- iPad portrait ---------- */
+  @media (orientation: portrait) and (min-width: 761px) {
+    .key { height: 84px; }
+  }
+}
+
+/* Mockup sizes for shadcn Buttons: unlayered, so they beat the Button's own height utilities. */
+.btn-64 { height: 64px; border-radius: 18px; font-size: 18px; }
+.btn-44 { height: 44px; min-width: 44px; }
+
+/* The till never animates (README §3): no transition or animation on anything, sale actions
+   included. Keep this the last rule; scripts/no-motion.mjs looks for it in the build. */
+.till-app *,
+.till-app ::before,
+.till-app ::after {
+  transition: none !important;
+  animation: none !important;
+}
