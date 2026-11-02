@@ -2,10 +2,15 @@ import Link from "next/link"
 
 import type { StorefrontProduct } from "@genesy/api-client/model"
 import { formatMoney } from "@genesy/ui/lib/money"
+import { cn } from "@genesy/ui/lib/utils"
 
+import { card, tag } from "@/lib/look"
+
+import { Glare } from "./motion"
 import { ProductImage } from "./product-image"
 import { StockBadge } from "./stock-badge"
 
+/** Mock `ShopCatalogue` .pcard: photo 4:3 on top, then brand, name, line, price and stock. */
 export function ProductCard({
   product,
   locale,
@@ -18,21 +23,36 @@ export function ProductCard({
   return (
     <Link
       href={`/products/${product.id}`}
-      className="group flex w-full flex-col overflow-hidden rounded-lg border bg-card text-card-foreground transition-colors outline-none hover:border-gold focus-visible:ring-3 focus-visible:ring-ring/50"
+      className={cn(
+        card,
+        "group w-full gap-0 overflow-hidden p-0 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:gap-0 md:p-0"
+      )}
     >
-      <ProductImage label={labels.imageSoon} />
-      <div className="flex flex-1 flex-col gap-2 p-4">
+      <Glare radius="0">
+        {/* The card's link names the product: the photo is decorative here. */}
+        <ProductImage
+          image={product.images?.[0]}
+          alt=""
+          label={labels.imageSoon}
+          className="aspect-[4/3] w-full"
+        />
+      </Glare>
+      <span className="flex flex-col gap-1.5 p-3 md:px-[18px] md:pt-4 md:pb-[18px]">
         {product.brand ? (
-          <p className="tag text-muted-foreground">{product.brand}</p>
+          <span className={cn(tag, "text-muted-foreground")}>
+            {product.brand}
+          </span>
         ) : null}
-        <h2 className="font-medium group-hover:underline">{product.name}</h2>
+        <span className="text-base font-semibold group-hover:underline">
+          {product.name}
+        </span>
         {product.short_description ? (
-          <p className="line-clamp-2 text-sm text-muted-foreground">
+          <span className="text-[13px] text-muted-foreground">
             {product.short_description}
-          </p>
+          </span>
         ) : null}
-        <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-          <span className="font-semibold tabular-nums">
+        <span className="mt-1.5 flex flex-wrap items-center justify-between gap-3">
+          <span className="text-base font-semibold tabular-nums md:text-lg">
             {formatMoney(
               product.price_gross,
               product.currency_decimals,
@@ -41,8 +61,8 @@ export function ProductCard({
             )}
           </span>
           <StockBadge stock={product.available_stock} labels={labels} />
-        </div>
-      </div>
+        </span>
+      </span>
     </Link>
   )
 }

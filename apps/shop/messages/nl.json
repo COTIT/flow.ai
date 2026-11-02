@@ -8,7 +8,8 @@
     "home": "Genesy Shop startpagina"
   },
   "footer": {
-    "note": "Elke pot heeft een code. Scan hem en zie waar je honing vandaan komt."
+    "title": "Te volgen van korf tot keuken",
+    "shipping": "Verzending naar de Verenigde Staten. Prijzen inclusief btw."
   },
   "catalog": {
     "title": "Winkel",
@@ -19,17 +20,26 @@
     "emptyWhy": "Er komen regelmatig nieuwe oogsten bij. Kom snel terug.",
     "pastEnd": "Niets op deze pagina",
     "pastEndWhy": "Deze pagina ligt voorbij het einde van de catalogus.",
-    "firstPage": "Naar de eerste pagina"
+    "firstPage": "Naar de eerste pagina",
+    "tag": "AFM Honey · Iringa, Tanzania",
+    "headline": "Honing en koffie die je tot de boer kunt volgen",
+    "scanTitle": "Scan de QR op elke pot",
+    "scanBody": "Maak kennis met de boeren erachter.",
+    "all": "Alle producten",
+    "count": "{shown} van {total}",
+    "pages": "Cataloguspagina's"
   },
   "product": {
     "inStock": "Op voorraad",
     "soldOut": "Uitverkocht",
-    "variants": "Maten en opties",
     "back": "Terug naar de winkel",
     "noDescription": "Binnenkort meer over dit product.",
     "imageSoon": "Foto volgt",
     "soldOutTitle": "Tijdelijk uitverkocht",
-    "soldOutBody": "Dit product is niet op voorraad. Kom snel terug."
+    "soldOutBody": "Dit product is niet op voorraad. Kom snel terug.",
+    "photo": "Foto {n} van {total}",
+    "shipping": "Verzendkosten en btw worden bij het afrekenen berekend.",
+    "about": "Over dit product"
   },
   "errors": {
     "unavailableTitle": "De winkel neemt even pauze",
@@ -57,7 +67,8 @@
     "totalAtCheckout": "Het totaal wordt bij het afrekenen berekend: prijzen, btw en voorraad worden bevestigd als je bestelt.",
     "checkout": "Naar afrekenen",
     "emptyWhy": "Voeg iets toe uit de winkel, dan zie je het hier.",
-    "browse": "Naar de winkel"
+    "browse": "Naar de winkel",
+    "short": "Winkelwagen"
   },
   "checkout": {
     "title": "Afrekenen",

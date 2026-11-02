@@ -52,8 +52,10 @@ test("add to cart from the product page, then adjust it in the cart", async ({
 }) => {
   await page.goto(`/products/${PRODUCT.honey}`)
   // Enabled only once hydrated (see AddToCart), so these never act on inert server HTML.
-  await page.getByLabel("Size or option").selectOption({ label: "Size: 500 g" })
-  await page.getByLabel("Quantity").fill("2")
+  await page.getByRole("button", { name: "500 g $24.99" }).click()
+  await page
+    .getByRole("button", { name: "One more Ilundo Wild Forest Honey" })
+    .click()
   await page.getByRole("button", { name: "Add to cart" }).click()
   await expect(
     page.getByRole("status").filter({ hasText: "Added to your cart." })

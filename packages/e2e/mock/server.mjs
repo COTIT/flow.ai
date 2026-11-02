@@ -36,6 +36,7 @@ const variant = (id, sku, gross, size, isDefault) => ({
   price_gross: gross,
   price_net: gross,
   options: [{ type: "Size", value: size }],
+  images: [],
 })
 
 const products = [
@@ -55,6 +56,7 @@ const products = [
     currency: "USD",
     currency_decimals: 2,
     available_stock: "42.000",
+    images: [link("honey-1"), link("honey-2")],
     variants: [
       variant(VARIANT.honey250, "ILU-250", 1499, "250 g", true),
       variant(VARIANT.honey500, "ILU-500", 2499, "500 g", false),
@@ -74,6 +76,7 @@ const products = [
     currency: "USD",
     currency_decimals: 2,
     available_stock: "0.000",
+    images: [],
     variants: [variant(VARIANT.wax, "WAX-1", 900, "200 g", true)],
   },
 ]

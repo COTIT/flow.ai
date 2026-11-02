@@ -8,7 +8,8 @@
     "home": "Ukurasa wa mwanzo wa Genesy Shop"
   },
   "footer": {
-    "note": "Kila chupa ina msimbo. Uchanganue uone asali yako inatoka wapi."
+    "title": "Inafuatilika kutoka mzinga hadi jikoni",
+    "shipping": "Tunasafirisha hadi Marekani. Bei zinajumuisha VAT."
   },
   "catalog": {
     "title": "Duka",
@@ -19,17 +20,26 @@
     "emptyWhy": "Mavuno mapya huongezwa mara kwa mara. Tafadhali rudi hivi karibuni.",
     "pastEnd": "Hakuna kitu kwenye ukurasa huu",
     "pastEndWhy": "Ukurasa huu uko baada ya mwisho wa orodha.",
-    "firstPage": "Nenda ukurasa wa kwanza"
+    "firstPage": "Nenda ukurasa wa kwanza",
+    "tag": "AFM Honey · Iringa, Tanzania",
+    "headline": "Asali na kahawa unayoweza kufuatilia hadi kwa mkulima",
+    "scanTitle": "Changanua QR kwenye chupa yoyote",
+    "scanBody": "Wafahamu wakulima walio nyuma yake.",
+    "all": "Bidhaa zote",
+    "count": "{shown} kati ya {total}",
+    "pages": "Kurasa za orodha"
   },
   "product": {
     "inStock": "Ipo stoo",
     "soldOut": "Imeisha",
-    "variants": "Ukubwa na chaguo",
     "back": "Rudi dukani",
     "noDescription": "Maelezo zaidi yanakuja hivi karibuni.",
     "imageSoon": "Picha inakuja hivi karibuni",
     "soldOutTitle": "Imeisha kwa sasa",
-    "soldOutBody": "Bidhaa hii haipo stoo. Rudi hivi karibuni."
+    "soldOutBody": "Bidhaa hii haipo stoo. Rudi hivi karibuni.",
+    "photo": "Picha {n} kati ya {total}",
+    "shipping": "Gharama za usafirishaji na VAT zinahesabiwa wakati wa kulipa.",
+    "about": "Kuhusu bidhaa hii"
   },
   "errors": {
     "unavailableTitle": "Duka limepumzika kidogo",
@@ -57,7 +67,8 @@
     "totalAtCheckout": "Jumla inahesabiwa wakati wa kulipa: bei, VAT na stoo zinathibitishwa unapoweka oda.",
     "checkout": "Nenda kulipa",
     "emptyWhy": "Ongeza kitu kutoka dukani na kitaonekana hapa.",
-    "browse": "Nenda dukani"
+    "browse": "Nenda dukani",
+    "short": "Kikapu"
   },
   "checkout": {
     "title": "Kulipa",

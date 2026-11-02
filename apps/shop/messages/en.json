@@ -8,7 +8,8 @@
     "home": "Genesy Shop home"
   },
   "footer": {
-    "note": "Every jar carries a code. Scan it to see where your honey comes from."
+    "title": "Traceable from hive to kitchen",
+    "shipping": "Shipping to the United States. Prices include VAT."
   },
   "catalog": {
     "title": "Shop",
@@ -19,17 +20,26 @@
     "emptyWhy": "New harvests are added regularly. Please check back soon.",
     "pastEnd": "Nothing on this page",
     "pastEndWhy": "This page is past the end of the catalog.",
-    "firstPage": "Go to the first page"
+    "firstPage": "Go to the first page",
+    "tag": "AFM Honey · Iringa, Tanzania",
+    "headline": "Honey and coffee you can trace to the farmer",
+    "scanTitle": "Scan the QR on any jar",
+    "scanBody": "Meet the farmers behind it.",
+    "all": "All products",
+    "count": "{shown} of {total}",
+    "pages": "Catalog pages"
   },
   "product": {
     "inStock": "In stock",
     "soldOut": "Sold out",
-    "variants": "Sizes and options",
     "back": "Back to the shop",
     "noDescription": "More about this product soon.",
     "imageSoon": "Photo coming soon",
     "soldOutTitle": "Sold out for now",
-    "soldOutBody": "This product is out of stock. Check back soon."
+    "soldOutBody": "This product is out of stock. Check back soon.",
+    "photo": "Photo {n} of {total}",
+    "shipping": "Shipping and VAT are worked out at checkout.",
+    "about": "About this product"
   },
   "errors": {
     "unavailableTitle": "The shop is taking a break",
@@ -57,7 +67,8 @@
     "totalAtCheckout": "Total calculated at checkout: prices, VAT and stock are confirmed when you place the order.",
     "checkout": "Go to checkout",
     "emptyWhy": "Add something from the shop and it will show up here.",
-    "browse": "Browse the shop"
+    "browse": "Browse the shop",
+    "short": "Cart"
   },
   "checkout": {
     "title": "Checkout",
