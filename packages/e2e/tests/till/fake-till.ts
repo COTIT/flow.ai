@@ -43,6 +43,20 @@ export const honey = {
 }
 export type TillRow = typeof honey
 
+/** The register's drawer, open since this morning. */
+export const openShift = {
+  id: "sh-1",
+  register_id: "reg-1",
+  opened_by: "tu-1",
+  opened_at: "2026-11-01T08:00:00Z",
+  opening: 4515,
+  expected: 6515,
+  closed_by: null,
+  closed_at: null,
+  counted: null,
+  difference: null,
+}
+
 export const NEXT_SINCE = "2026-11-01T09:00:00Z"
 
 /** A till catalog page: paged rows plus the next delta mark. */
@@ -134,6 +148,7 @@ export async function fakeTill(page: Page) {
     }))
     .on("POST", "/workspace/:ws/till/login", () => ({ data: session }))
     .on("POST", "/workspace/:ws/till/logout", () => ({ status: 204 }))
+    .on("GET", "/workspace/:ws/till/shift", () => ({ data: openShift }))
     .on("GET", "/workspace/:ws/till/me", () => ({
       data: { expires_at: session.expires_at, register, user: amina },
     }))

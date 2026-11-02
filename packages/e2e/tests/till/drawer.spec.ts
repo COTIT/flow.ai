@@ -42,7 +42,7 @@ test("opening a shift sends the counted float and shows the API's figures", asyn
   drawerApi(api, null)
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByRole("link", { name: "Drawer" }).click()
+  await page.getByRole("link", { name: "Drawer", exact: true }).click()
   await expect(
     page.getByText("No shift is open on this register.")
   ).toBeVisible()

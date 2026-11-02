@@ -50,7 +50,14 @@
     "savedTitle": "Offline bewaard",
     "savedHint": "De kassa is offline. Deze verkoop blijft op dit apparaat en wordt verstuurd zodra er weer verbinding is.",
     "newSale": "Nieuwe verkoop",
-    "quote": "Prijsopgave"
+    "quote": "Prijsopgave",
+    "noShift": "Er is geen dienst open op deze kassa. Contante verkopen hebben een open dienst nodig.",
+    "catalogLoading": "Productlijst laden…",
+    "catalogEmpty": "Deze kassa heeft nog geen producten. Vraag het kantoor.",
+    "catalogFailed": "De productlijst kon niet geladen worden. Controleer de verbinding.",
+    "catalogStale": "De productlijst kon niet ververst worden. De kopie op dit apparaat wordt getoond.",
+    "noMatch": "Geen producten voor “{query}”.",
+    "mismatch": "Sommige prijzen wijken af van de huidige catalogus. Het kantoor ziet dit."
   },
   "nav": {
     "label": "Kassamenu",
@@ -95,7 +102,9 @@
     "change": "Wisselgeld",
     "card": "Pinbon",
     "print": "Afdrukken",
-    "newSale": "Nieuwe verkoop"
+    "newSale": "Nieuwe verkoop",
+    "booked": "Verkoop {number} is geboekt.",
+    "mismatch": "Deze verkoop is afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit."
   },
   "queue": {
     "title": "Offline verkopen",

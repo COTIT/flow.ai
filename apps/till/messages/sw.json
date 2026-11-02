@@ -50,7 +50,14 @@
     "savedTitle": "Imehifadhiwa nje ya mtandao",
     "savedHint": "Kituo hakiko mtandaoni. Mauzo haya yamehifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
     "newSale": "Mauzo mapya",
-    "quote": "Bei ya sasa"
+    "quote": "Bei ya sasa",
+    "noShift": "Hakuna zamu iliyo wazi kwenye rejista hii. Mauzo ya taslimu yanahitaji zamu iliyo wazi.",
+    "catalogLoading": "Inapakia orodha ya bidhaa…",
+    "catalogEmpty": "Rejista hii bado haina bidhaa za kuuza. Uliza ofisi.",
+    "catalogFailed": "Imeshindwa kupakia orodha ya bidhaa. Angalia mtandao.",
+    "catalogStale": "Imeshindwa kusasisha orodha ya bidhaa. Inaonyesha nakala iliyo kwenye kifaa hiki.",
+    "noMatch": "Hakuna bidhaa inayolingana na “{query}”.",
+    "mismatch": "Baadhi ya bei zinatofautiana na katalogi ya sasa. Ofisi itaona hili."
   },
   "nav": {
     "label": "Menyu ya kituo",
@@ -95,7 +102,9 @@
     "change": "Chenji",
     "card": "Risiti ya kadi",
     "print": "Chapisha",
-    "newSale": "Mauzo mapya"
+    "newSale": "Mauzo mapya",
+    "booked": "Mauzo {number} yamerekodiwa.",
+    "mismatch": "Mauzo haya yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili."
   },
   "queue": {
     "title": "Mauzo ya nje ya mtandao",

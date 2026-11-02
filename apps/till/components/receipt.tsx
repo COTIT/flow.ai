@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl"
 
 import type { SaleResource } from "@genesy/api-client/model"
 import { Button } from "@genesy/ui/components/button"
+import { Notice } from "@/components/state"
 import type { CartLine } from "@/lib/cart-store"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
@@ -45,6 +46,14 @@ export function Receipt({
       <h1 className="text-xl font-medium">
         {t("title")} {sale.number}
       </h1>
+      <Notice kind="success" className="print:hidden">
+        {t("booked", { number: sale.number })}
+      </Notice>
+      {sale.price_mismatch ? (
+        <Notice kind="warning" className="print:hidden">
+          {t("mismatch")}
+        </Notice>
+      ) : null}
       <p className="text-sm text-muted-foreground">
         {new Intl.DateTimeFormat(locale, {
           dateStyle: "medium",

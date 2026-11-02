@@ -5,7 +5,10 @@ import Link from "next/link"
 import { Minus, Plus, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 
-import { useTillSalesCreate } from "@genesy/api-client/endpoints/till"
+import {
+  useTillSalesCreate,
+  useTillShiftCurrent,
+} from "@genesy/api-client/endpoints/till"
 import type { SaleRequest, SaleResource } from "@genesy/api-client/model"
 import { ApiError } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
@@ -13,6 +16,7 @@ import { Input } from "@genesy/ui/components/input"
 import { Label } from "@genesy/ui/components/label"
 import { toMinor } from "@genesy/ui/lib/money"
 import { Receipt } from "@/components/receipt"
+import { Empty, Loading, Notice } from "@/components/state"
 import {
   cartStore,
   estimate,
@@ -50,6 +54,9 @@ export default function SalePage() {
   const cash =
     method === "cash" && decimals != null ? toMinor(tendered, decimals) : null
   const { online, quote, error: quoteError } = useQuote(lines, method, cash)
+  // Read up front so the cashier knows before charging; a 409 at charge still covers a late close.
+  const shift = useTillShiftCurrent(workspace, { query: { enabled: online } })
+  const noShift = shift.isSuccess && !shift.data.data
 
   const sale = useTillSalesCreate({
     mutation: {
@@ -89,7 +96,7 @@ export default function SalePage() {
         className="flex max-w-md flex-col gap-3 rounded-lg border p-4"
       >
         <h1 className="text-xl font-medium">{t("savedTitle")}</h1>
-        <p className="text-sm text-muted-foreground">{t("savedHint")}</p>
+        <Notice kind="warning">{t("savedHint")}</Notice>
         <dl className="grid grid-cols-2 gap-1 text-sm">
           <dt>{t("estimate")}</dt>
           <dd className="text-right tabular-nums">≈ {money(total)}</dd>
@@ -121,6 +128,14 @@ export default function SalePage() {
     <div className="grid gap-6 md:grid-cols-2">
       <section className="flex flex-col gap-3">
         <h1 className="text-xl font-medium">{t("title")}</h1>
+        {noShift ? (
+          <Notice kind="warning">
+            <p>{t("noShift")}</p>
+            <Link href="/drawer" className="underline">
+              {t("toDrawer")}
+            </Link>
+          </Notice>
+        ) : null}
         <form
           className="flex flex-col gap-2"
           onSubmit={async (e) => {
@@ -139,9 +154,7 @@ export default function SalePage() {
             onChange={(e) => setCode(e.target.value)}
           />
           {notFound != null ? (
-            <p role="alert" className="text-sm text-destructive">
-              {t("notFound", { code: notFound })}
-            </p>
+            <Notice kind="error">{t("notFound", { code: notFound })}</Notice>
           ) : null}
         </form>
         <div className="flex flex-col gap-2">
@@ -152,7 +165,18 @@ export default function SalePage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <ApiError error={catalog.error} fallback={tc("error")} />
+          {catalog.error ? (
+            <Notice kind={catalog.count ? "warning" : "error"}>
+              {catalog.count ? t("catalogStale") : t("catalogFailed")}
+            </Notice>
+          ) : null}
+          {catalog.loading ? (
+            <Loading>{t("catalogLoading")}</Loading>
+          ) : catalog.empty ? (
+            <Empty>{t("catalogEmpty")}</Empty>
+          ) : query.trim() && !results.length ? (
+            <Empty>{t("noMatch", { query: query.trim() })}</Empty>
+          ) : null}
           <ul aria-label={t("results")} className="flex flex-col gap-1">
             {results.map((item) => (
               <li key={`${item.productId}-${item.variantId}`}>
@@ -173,7 +197,7 @@ export default function SalePage() {
       <section aria-label={t("cart")} className="flex flex-col gap-3">
         <h2 className="font-medium">{t("cart")}</h2>
         {lines.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("empty")}</p>
+          <Empty>{t("empty")}</Empty>
         ) : (
           <ul className="flex flex-col gap-2">
             {lines.map((l, i) => (
@@ -260,6 +284,9 @@ export default function SalePage() {
           </>
         )}
         <ApiError error={quoteError} fallback={tc("error")} />
+        {quote?.mismatched_lines ? (
+          <Notice kind="warning">{t("mismatch")}</Notice>
+        ) : null}
 
         <form
           className="flex flex-col gap-3"
@@ -278,7 +305,12 @@ export default function SalePage() {
             if (!navigator.onLine) return keep(body)
             sale.mutate(
               { workspace, data: body },
-              { onError: (e) => (e.response ? undefined : keep(body)) }
+              {
+                onError: (e) => {
+                  if (!e.response) keep(body)
+                  else if (e.response.status === 409) void shift.refetch()
+                },
+              }
             )
           }}
         >
@@ -320,15 +352,10 @@ export default function SalePage() {
             </div>
           )}
           {badTendered ? (
-            <p role="alert" className="text-sm text-destructive">
-              {t("badTendered")}
-            </p>
+            <Notice kind="error">{t("badTendered")}</Notice>
           ) : null}
           {sale.error ? (
-            <div
-              role="alert"
-              className="flex flex-col gap-1 text-sm text-destructive"
-            >
+            <Notice kind="error">
               <p>
                 {(sale.error.response?.data as { message?: string } | undefined)
                   ?.message ?? tc("error")}
@@ -341,7 +368,7 @@ export default function SalePage() {
                   {t("toDrawer")}
                 </Link>
               ) : null}
-            </div>
+            </Notice>
           ) : null}
           <Button
             type="submit"
