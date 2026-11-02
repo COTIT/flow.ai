@@ -2,7 +2,12 @@ import type { Page, Route } from "@playwright/test"
 
 import type { MockReply } from "../../src/api-mock"
 import { seedSession } from "../../src/session"
-import { test as base, expect } from "../../src/test"
+import {
+  test as base,
+  expect,
+  expectNoHorizontalScroll,
+  expectTapTargets,
+} from "../../src/test"
 
 type Handler = (req: {
   params: string[]
@@ -131,6 +136,14 @@ export async function openMenu(page: Page) {
 export async function choose(page: Page, name: string, option: string) {
   await page.getByRole("combobox", { name }).click()
   await page.getByRole("option", { name: option, exact: true }).click()
+}
+
+/** The page fits the screen (no sideways scroll) and, on a phone, every control is a 44 px target. */
+export async function expectFits(page: Page) {
+  // Measure the settled page, not a dialog half way through closing.
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)))
+  await expectNoHorizontalScroll(page)
+  if ((page.viewportSize()?.width ?? 0) < 768) await expectTapTargets(page)
 }
 
 export { expect }

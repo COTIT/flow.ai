@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
+import { ChevronRight } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import {
@@ -20,7 +21,9 @@ import {
 } from "@genesy/api-client/endpoints/orders"
 import type { OrderAction, OrderResource } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
+import { Badge } from "@genesy/ui/components/badge"
 import { Button } from "@genesy/ui/components/button"
+import { Card } from "@genesy/ui/components/card"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import {
   Dialog,
@@ -43,13 +46,27 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { formatMoney, toMinor } from "@genesy/ui/lib/money"
+import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { Field } from "@/components/field"
+import { PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { useIdempotencyKey } from "@/lib/idempotency"
 import { Done, LoadError, useDone } from "@/components/states"
 
-import { customerName } from "../shared"
+import { customerName, initials } from "../shared"
 
+// Display order of the actions; which of them show comes only from the API's `allowed_actions`.
+const actionOrder: OrderAction[] = [
+  "confirm",
+  "pick",
+  "complete",
+  "invoice",
+  "return",
+  "refund",
+  "cancel",
+]
+
+/** The order detail (OfficeOrder): lines with the server's totals, next step, customer, timeline. */
 export default function OrderPage({
   params,
 }: {
@@ -76,6 +93,8 @@ export default function OrderPage({
     onSuccess()
   }
   const vars = { workspace: workspaceId, order: id }
+  // Complete and cancel ask first; the button that opens the question sits in the Next step card.
+  const [ask, setAsk] = React.useState<"complete" | "cancel" | null>(null)
   const confirmKey = useIdempotencyKey()
   const completeKey = useIdempotencyKey()
   const cancelKey = useIdempotencyKey()
@@ -115,10 +134,7 @@ export default function OrderPage({
   const actionError =
     confirm.error ?? complete.error ?? cancel.error ?? invoice.error
 
-  if (order.isPending)
-    return (
-      <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-    )
+  if (order.isPending) return <DetailSkeleton />
   if (order.isError)
     return (
       <LoadError
@@ -130,153 +146,389 @@ export default function OrderPage({
   const o = order.data.data
   const money = (minor: number) =>
     formatMoney(minor, o.decimals, o.currency, locale)
+  const when = (iso: string) =>
+    new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(iso))
   const statusLabel = (s: string) =>
     t.has(`orders.statuses.${s}`) ? t(`orders.statuses.${s}`) : s
+  const source = t.has(`orders.sources.${o.source}`)
+    ? t(`orders.sources.${o.source}`)
+    : o.source
+
   // The API lists what this order's status and payments allow; anything else would be a 409.
-  const can = (action: OrderAction) => o.allowed_actions.includes(action)
+  const allowed = actionOrder.filter((a) => o.allowed_actions.includes(a))
+  // Refund and cancel undo things, so they never get the big button.
+  const main = allowed.find((a) => a !== "refund" && a !== "cancel")
+  const rest = allowed.filter((a) => a !== main)
+  const actionButton = (a: OrderAction, big: boolean) => {
+    const look = big
+      ? ({ size: "lg", className: "w-full" } as const)
+      : ({ variant: "outline", className: "w-full" } as const)
+    switch (a) {
+      case "confirm":
+        return (
+          <Button
+            key={a}
+            {...look}
+            disabled={confirm.isPending}
+            onClick={() => confirm.mutate(vars)}
+          >
+            {t("orders.confirm")}
+          </Button>
+        )
+      case "pick":
+        return (
+          <PickDialog
+            key={a}
+            order={o}
+            button={<Button {...look} />}
+            onDone={ok(t("done.order.picked"))}
+          />
+        )
+      case "complete":
+        return (
+          <Button
+            key={a}
+            {...look}
+            disabled={complete.isPending}
+            onClick={() => setAsk("complete")}
+          >
+            {t("orders.complete")}
+          </Button>
+        )
+      case "invoice":
+        return (
+          <Button
+            key={a}
+            {...look}
+            disabled={invoice.isPending}
+            onClick={() => invoice.mutate(vars)}
+          >
+            {t("orders.makeInvoice")}
+          </Button>
+        )
+      case "return":
+        return (
+          <ReturnsDialog
+            key={a}
+            order={o}
+            button={<Button {...look} />}
+            onDone={ok(t("done.order.returned"))}
+          />
+        )
+      case "refund":
+        return (
+          <RefundDialog
+            key={a}
+            order={o}
+            button={<Button {...look} />}
+            onDone={onSuccess}
+          />
+        )
+      case "cancel":
+        return (
+          <Button
+            key={a}
+            {...look}
+            className="w-full text-(--tone-error)"
+            disabled={cancel.isPending}
+            onClick={() => setAsk("cancel")}
+          >
+            {t("orders.cancel")}
+          </Button>
+        )
+    }
+  }
+
+  const c = (o.customer ?? {}) as {
+    email?: string | null
+    shipping_address?: Record<string, unknown> | null
+  }
+  const name = customerName(o.customer)
+  const address = Object.values(c.shipping_address ?? {}).filter(
+    (v): v is string => typeof v === "string" && v.trim() !== ""
+  )
+  const events = [
+    { at: o.created_at, label: t("orders.placedEvent"), status: "placed" },
+    ...(o.paid_at
+      ? [{ at: o.paid_at, label: t("invoices.paid"), status: "paid" }]
+      : []),
+    ...(o.completed_at
+      ? [
+          {
+            at: o.completed_at,
+            label: statusLabel("completed"),
+            status: "completed",
+          },
+        ]
+      : []),
+    ...(o.cancelled_at
+      ? [
+          {
+            at: o.cancelled_at,
+            label: statusLabel("cancelled"),
+            status: "cancelled",
+          },
+        ]
+      : []),
+  ]
 
   return (
     <>
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="heading-2 text-lg">{o.number}</h1>
+      <PageHead
+        back={{ href: "/orders", label: t("orders.title") }}
+        title={t("orders.detailTitle", { number: o.number })}
+        description={t("orders.placed", { source, date: when(o.created_at) })}
+        actions={
           <StatusBadge status={o.status} label={statusLabel(o.status)} />
-          <span className="text-sm text-muted-foreground">{o.source}</span>
-        </div>
-        <Done message={done.message} />
-        <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-muted-foreground">{t("orders.customer")}</dt>
-          <dd>{customerName(o.customer) || "—"}</dd>
-          <dt className="text-muted-foreground">{t("orders.reference")}</dt>
-          <dd>{o.reference ?? "—"}</dd>
-          <dt className="text-muted-foreground">{t("invoices.date")}</dt>
-          <dd>{o.created_at.slice(0, 10)}</dd>
-          <dt className="text-muted-foreground">{t("orders.paidAt")}</dt>
-          <dd>{o.paid_at?.slice(0, 10) ?? "—"}</dd>
-          {o.invoice_id ? (
+        }
+      />
+      <Bento>
+        <Tile
+          id="order-lines"
+          title={t("invoices.lines")}
+          action={
+            <span className="text-[13px] text-muted-foreground">
+              {t("orders.items", { count: o.lines.length })}
+            </span>
+          }
+          span="col-span-8 row-span-2 max-md:row-span-1"
+          flush
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("invoices.item")}</TableHead>
+                <TableHead className="text-right">
+                  {t("invoices.quantity")}
+                </TableHead>
+                <TableHead className="text-right">
+                  {t("orders.picked")}
+                </TableHead>
+                <TableHead className="text-right">
+                  {t("orders.unitPrice")}
+                </TableHead>
+                <TableHead className="text-right">
+                  {t("orders.lineTotal")}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {o.lines.map((l) => (
+                <TableRow key={l.id}>
+                  <TableCell>
+                    <span className="font-semibold">{l.title}</span>
+                    {Number(l.returned) ? (
+                      <span className="block text-xs text-muted-foreground">
+                        {t("orders.returned")} {l.returned}
+                      </span>
+                    ) : null}
+                  </TableCell>
+                  <TableCell data-m="sub" className="text-right tabular-nums">
+                    {l.quantity}
+                  </TableCell>
+                  <TableCell data-m="hide" className="text-right tabular-nums">
+                    {l.picked}
+                  </TableCell>
+                  <TableCell data-m="hide" className="text-right tabular-nums">
+                    {money(l.unit_price)}
+                  </TableCell>
+                  <TableCell
+                    data-m="right"
+                    className="text-right font-semibold tabular-nums"
+                  >
+                    {money(l.line_excl)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {/* The server's totals in minor units: formatted, never summed here. */}
+          <div className="mt-auto flex flex-col gap-1 border-t border-(--hair) px-5 py-4">
+            <p className="flex justify-between text-[13px]">
+              <span className="text-muted-foreground">
+                {t("orders.subtotal")}
+              </span>
+              <span className="tabular-nums">{money(o.subtotal)}</span>
+            </p>
+            <p className="flex justify-between text-[13px]">
+              <span className="text-muted-foreground">{t("orders.vat")}</span>
+              <span className="tabular-nums">{money(o.vat)}</span>
+            </p>
+            <p className="flex items-center justify-between">
+              <span className="font-semibold">{t("invoices.total")}</span>
+              <span className="text-lg font-semibold tabular-nums max-md:text-base">
+                {money(o.total)}
+              </span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("orders.serverAmounts")}
+            </p>
+          </div>
+        </Tile>
+
+        <SideCard id="order-next" title={t("orders.nextStep")}>
+          <Done message={done.message} />
+          {allowed.length === 0 ? (
+            <Notice title={t("orders.nothingToDo")} />
+          ) : null}
+          {main ? (
             <>
-              <dt className="text-muted-foreground">{t("orders.invoice")}</dt>
-              <dd>
-                <Link
-                  className="underline-offset-4 hover:underline"
-                  href={`/invoices/${o.invoice_id}`}
-                >
-                  {t("orders.openInvoice")}
-                </Link>
-              </dd>
+              <p className="text-[13px]">{t(`orders.next.${main}`)}</p>
+              {actionButton(main, true)}
             </>
           ) : null}
-        </dl>
+          {rest.length ? (
+            <div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
+              {rest.map((a) => actionButton(a, false))}
+            </div>
+          ) : null}
+          <ApiError error={actionError} fallback={t("common.error")} />
+        </SideCard>
 
-        {o.allowed_actions.length === 0 ? (
-          <Notice title={t("orders.nothingToDo")} />
-        ) : null}
-        <div className="flex flex-wrap gap-2">
-          {can("confirm") ? (
-            <Button
-              disabled={confirm.isPending}
-              onClick={() => confirm.mutate(vars)}
-            >
-              {t("orders.confirm")}
-            </Button>
+        <SideCard id="order-customer" title={t("orders.customer")}>
+          {name ? (
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] text-[13px] font-semibold text-[#0a183a]"
+              >
+                {initials(name)}
+              </span>
+              <div className="min-w-0">
+                <p className="font-semibold break-words">{name}</p>
+                {c.email && c.email !== name ? (
+                  <p className="text-xs break-words text-muted-foreground">
+                    {c.email}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">
+              {t("orders.noCustomer")}
+            </p>
+          )}
+          {address.length ? (
+            <SubTile className="text-[13px]">
+              {address.map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </SubTile>
           ) : null}
-          {can("pick") ? (
-            <PickDialog order={o} onDone={ok(t("done.order.picked"))} />
+          <p className="flex items-center justify-between gap-3 text-[13px]">
+            <span className="text-muted-foreground">{t("orders.payment")}</span>
+            {o.paid_at ? (
+              <Badge variant="teal">
+                {t("orders.paidOn", { date: when(o.paid_at) })}
+              </Badge>
+            ) : (
+              <Badge variant="slate">{t("orders.notPaid")}</Badge>
+            )}
+          </p>
+          {o.reference ? (
+            <p className="flex items-center justify-between gap-3 text-[13px]">
+              <span className="text-muted-foreground">
+                {t("orders.reference")}
+              </span>
+              <span className="break-words">{o.reference}</span>
+            </p>
           ) : null}
-          {can("complete") ? (
-            <ConfirmDialog
-              trigger={t("orders.complete")}
-              destructive={false}
-              title={t("orders.completeTitle", { number: o.number })}
-              description={t("orders.completeText")}
-              confirm={t("orders.complete")}
-              cancel={t("actions.cancel")}
-              disabled={complete.isPending}
-              onConfirm={() => complete.mutate(vars)}
-            />
+          {o.invoice_id ? (
+            <p className="flex items-center justify-between gap-3 text-[13px]">
+              <span className="text-muted-foreground">
+                {t("orders.invoice")}
+              </span>
+              <Link
+                className="inline-flex items-center font-medium underline-offset-4 hover:underline max-md:min-h-11"
+                href={`/invoices/${o.invoice_id}`}
+              >
+                {t("orders.openInvoice")}
+              </Link>
+            </p>
           ) : null}
-          {can("invoice") ? (
-            <Button
-              variant="outline"
-              disabled={invoice.isPending}
-              onClick={() => invoice.mutate(vars)}
-            >
-              {t("orders.makeInvoice")}
-            </Button>
-          ) : null}
-          {can("return") ? (
-            <ReturnsDialog order={o} onDone={ok(t("done.order.returned"))} />
-          ) : null}
-          {can("refund") ? <RefundDialog order={o} onDone={onSuccess} /> : null}
-          {can("cancel") ? (
-            <ConfirmDialog
-              trigger={t("orders.cancel")}
-              title={t("orders.cancelTitle", { number: o.number })}
-              description={t("orders.cancelText")}
-              confirm={t("orders.cancel")}
-              cancel={t("actions.cancel")}
-              disabled={cancel.isPending}
-              onConfirm={() => cancel.mutate(vars)}
-            />
-          ) : null}
-        </div>
-        <ApiError error={actionError} fallback={t("common.error")} />
-      </section>
+        </SideCard>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="heading-2 text-base">{t("invoices.lines")}</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("invoices.item")}</TableHead>
-              <TableHead className="text-right">
-                {t("invoices.quantity")}
-              </TableHead>
-              <TableHead className="text-right">{t("orders.picked")}</TableHead>
-              <TableHead className="text-right">
-                {t("orders.returned")}
-              </TableHead>
-              <TableHead className="text-right">
-                {t("orders.unitPrice")}
-              </TableHead>
-              <TableHead className="text-right">
-                {t("orders.lineTotal")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {o.lines.map((l) => (
-              <TableRow key={l.id}>
-                <TableCell>{l.title}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {l.quantity}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {l.picked}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {l.returned}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {money(l.unit_price)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {money(l.line_excl)}
-                </TableCell>
-              </TableRow>
+        <Tile
+          id="order-timeline"
+          title={t("orders.timeline")}
+          span="col-span-12"
+        >
+          <ol className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px]">
+            {events.map((e, i) => (
+              <li key={e.status} className="flex items-center gap-6">
+                {i > 0 ? (
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-4 text-muted-foreground"
+                    strokeWidth={1.75}
+                  />
+                ) : null}
+                <span className="flex items-center gap-2">
+                  <StatusBadge
+                    status={e.status}
+                    label={e.label}
+                    tone={e.status === "placed" ? "slate" : undefined}
+                  />
+                  <span className="text-muted-foreground">{when(e.at)}</span>
+                </span>
+              </li>
             ))}
-          </TableBody>
-        </Table>
-        <dl className="ml-auto grid grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums">
-          <dt className="text-muted-foreground">{t("orders.subtotal")}</dt>
-          <dd className="text-right">{money(o.subtotal)}</dd>
-          <dt className="text-muted-foreground">{t("orders.vat")}</dt>
-          <dd className="text-right">{money(o.vat)}</dd>
-          <dt className="font-medium">{t("invoices.total")}</dt>
-          <dd className="text-right font-medium">{money(o.total)}</dd>
-        </dl>
-      </section>
+          </ol>
+        </Tile>
+      </Bento>
+
+      <ConfirmDialog
+        open={ask === "complete"}
+        onOpenChange={(open) => setAsk(open ? "complete" : null)}
+        destructive={false}
+        title={t("orders.completeTitle", { number: o.number })}
+        description={t("orders.completeText")}
+        confirm={t("orders.complete")}
+        cancel={t("actions.cancel")}
+        disabled={complete.isPending}
+        onConfirm={() => complete.mutate(vars)}
+      />
+      <ConfirmDialog
+        open={ask === "cancel"}
+        onOpenChange={(open) => setAsk(open ? "cancel" : null)}
+        title={t("orders.cancelTitle", { number: o.number })}
+        description={t("orders.cancelText")}
+        confirm={t("orders.cancel")}
+        cancel={t("actions.cancel")}
+        disabled={cancel.isPending}
+        onConfirm={() => cancel.mutate(vars)}
+      />
     </>
+  )
+}
+
+/** A card with the small caps title of OfficeOrder's "Next step" and "Customer". */
+function SideCard({
+  id,
+  title,
+  children,
+}: {
+  id: string
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <Card
+      role="region"
+      aria-labelledby={id}
+      className="col-span-4 gap-4 px-6 py-6 max-md:col-span-12 max-md:gap-3 max-md:p-4"
+    >
+      <h2
+        id={id}
+        className="text-xs font-bold tracking-[0.08em] text-muted-foreground uppercase"
+      >
+        {title}
+      </h2>
+      {children}
+    </Card>
   )
 }
 
@@ -284,6 +536,7 @@ export default function OrderPage({
 function LinesDialog({
   order,
   trigger,
+  button,
   title,
   description,
   initial,
@@ -296,6 +549,8 @@ function LinesDialog({
 }: {
   order: OrderResource
   trigger: string
+  /** The Button that opens it, sized by where it sits. */
+  button: React.ReactElement
   title: string
   description: string
   initial: (line: OrderResource["lines"][number]) => string
@@ -313,9 +568,7 @@ function LinesDialog({
   const errors = fieldErrors(error)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" />}>
-        {trigger}
-      </DialogTrigger>
+      <DialogTrigger render={button}>{trigger}</DialogTrigger>
       <DialogContent>
         <form
           className="flex flex-col gap-3"
@@ -367,9 +620,11 @@ function LinesDialog({
 
 function PickDialog({
   order,
+  button,
   onDone,
 }: {
   order: OrderResource
+  button: React.ReactElement
   onDone: () => void
 }) {
   const t = useTranslations()
@@ -389,6 +644,7 @@ function PickDialog({
   return (
     <LinesDialog
       order={order}
+      button={button}
       trigger={t("orders.pick")}
       title={t("orders.pickTitle", { number: order.number })}
       description={t("orders.pickText")}
@@ -415,9 +671,11 @@ function PickDialog({
 
 function ReturnsDialog({
   order,
+  button,
   onDone,
 }: {
   order: OrderResource
+  button: React.ReactElement
   onDone: () => void
 }) {
   const t = useTranslations()
@@ -437,6 +695,7 @@ function ReturnsDialog({
   return (
     <LinesDialog
       order={order}
+      button={button}
       trigger={t("orders.returns")}
       title={t("orders.returnsTitle", { number: order.number })}
       description={t("orders.returnsText")}
@@ -472,9 +731,11 @@ function ReturnsDialog({
 
 function RefundDialog({
   order,
+  button,
   onDone,
 }: {
   order: OrderResource
+  button: React.ReactElement
   onDone: () => void
 }) {
   const t = useTranslations()
@@ -500,9 +761,7 @@ function RefundDialog({
         }
       }}
     >
-      <DialogTrigger render={<Button variant="destructive" />}>
-        {t("orders.refund")}
-      </DialogTrigger>
+      <DialogTrigger render={button}>{t("orders.refund")}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>

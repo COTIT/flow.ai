@@ -1,4 +1,4 @@
-import { expect, paged, test, type FakeApi } from "./fake-api"
+import { expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 const invoice = {
   id: "inv-1",
@@ -76,9 +76,18 @@ test("invoice list to detail; amounts shown as the API gives them", async ({
   await expect(page.getByRole("heading", { name: "2026-0001" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "AFM Honey 500g" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "100.00000000" })).toBeVisible()
+  await expect(page.getByRole("region", { name: "Lines" })).toContainText(
+    "Amounts as calculated by the server."
+  )
+  await expect(
+    page
+      .getByRole("region", { name: "Payments" })
+      .getByRole("cell", { name: "bank" })
+  ).toBeVisible()
   expect(
     api.callsTo("GET", "/workspace/:ws/invoices/:id/preview")
   ).toHaveLength(0)
+  await expectFits(page)
 })
 
 test("PDF is made only on request", async ({ page, api }) => {

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
+import { ExternalLinkIcon, PlusIcon } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -24,23 +24,56 @@ import type {
   PassportResource,
 } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
-import { Button } from "@genesy/ui/components/button"
+import { Badge } from "@genesy/ui/components/badge"
+import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { Card } from "@genesy/ui/components/card"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import { Input } from "@genesy/ui/components/input"
+import { Notice } from "@genesy/ui/components/notice"
 import { PassportView } from "@genesy/ui/components/passport-view"
+import { Tabs, TabsList, TabsTrigger } from "@genesy/ui/components/tabs"
 import { Textarea } from "@genesy/ui/components/textarea"
+import { cn } from "@genesy/ui/lib/utils"
+import { Bento, DetailSkeleton, Tile, type Tone } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
+import { PageHead } from "@/components/list"
 import { Capped, Done, LoadError, useDone } from "@/components/states"
 
 import { ListEditor } from "./list-editor"
 import { bpToPercent, percentToBp, toPublic } from "./to-public"
+
+const blockTone: Record<Block["kind"], Tone> = {
+  text: "slate",
+  image: "slate",
+  facts: "gold",
+  quote: "teal",
+}
+
+/** One line per story block for its row, like the mockup's "The harvest starts in June…". */
+function blockSummary(b: Block) {
+  switch (b.kind) {
+    case "text":
+      return b.title || b.body
+    case "image":
+      return b.caption ?? ""
+    case "quote":
+      return b.text
+    default:
+      return b.items
+        .map((f) => [f.label, f.value].filter(Boolean).join(" "))
+        .filter(Boolean)
+        .join(" · ")
+  }
+}
+
+const gold =
+  "bg-[image:var(--gold-gradient)] font-semibold text-[#0a183a] hover:opacity-90"
 
 export default function PassportPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
-  const t = useTranslations()
   const { id } = React.use(params)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const enabled = { query: { enabled: Boolean(workspaceId) } }
@@ -51,10 +84,7 @@ export default function PassportPage({
   // Lives here, not in Editor: Editor remounts after each save, which would wipe the notice.
   const done = useDone()
 
-  if (lot.isPending || passport.isPending)
-    return (
-      <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-    )
+  if (lot.isPending || passport.isPending) return <DetailSkeleton />
   if (lot.isError || passport.isError)
     return (
       <LoadError
@@ -107,6 +137,11 @@ function Editor({
     lat: draft.map ? String(draft.map.lat) : "",
     lng: draft.map ? String(draft.map.lng) : "",
   })
+  // Phones show one side at a time; md and up show both and hide the tabs.
+  const [view, setView] = React.useState<"edit" | "preview">("edit")
+  const [confirm, setConfirm] = React.useState<"publish" | "unpublish" | null>(
+    null
+  )
   const refresh = () =>
     queryClient.invalidateQueries({
       queryKey: getLotsPassportGetQueryKey(workspaceId, lot.id),
@@ -150,216 +185,294 @@ function Editor({
     </select>
   )
 
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <section className="flex min-w-0 flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="mr-auto heading-2 text-lg">
-            {tp("title", { code: lot.code })}
-          </h1>
-          <Link
-            className="text-sm underline-offset-4 hover:underline"
-            href={`/lots/${lot.id}`}
-          >
-            {tp("backToBatch")}
-          </Link>
-        </div>
-        <Done message={done.message} />
-        <p role="status" className="text-sm text-muted-foreground">
-          {resource.published_at
-            ? tp("publishedState", {
-                version: resource.version,
-                date: new Date(resource.published_at).toLocaleString(locale),
-              })
-            : tp("notPublished")}
-          {resource.published && unpublished ? ` ${tp("draftDiffers")}` : ""}
-        </p>
-        {resource.published && shopUrl ? (
-          <a
-            className="font-mono text-xs break-all underline-offset-4 hover:underline"
-            href={`${shopUrl}/b/${lot.public_code}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {`${shopUrl}/b/${lot.public_code}`}
-          </a>
-        ) : null}
+  const originField = (k: "country" | "region" | "place") => (
+    <Field
+      key={k}
+      id={`pp-origin-${k}`}
+      label={tp(`fields.${k}`)}
+      errors={errors[`origin.${k}`]}
+    >
+      <Input
+        value={draft.origin?.[k] ?? ""}
+        onChange={(e) => {
+          const origin = {
+            country: "",
+            ...draft.origin,
+            [k]: e.target.value,
+          }
+          // All three empty means no origin at all.
+          set({
+            origin:
+              origin.country || origin.region || origin.place
+                ? {
+                    ...origin,
+                    region: origin.region || null,
+                    place: origin.place || null,
+                  }
+                : null,
+          })
+        }}
+      />
+    </Field>
+  )
 
+  const coordField = (k: "lat" | "lng") => (
+    <Field
+      key={k}
+      id={`pp-map-${k}`}
+      label={tp(`fields.${k}`)}
+      errors={errors[`map.${k}`]}
+    >
+      <Input
+        type="number"
+        step="any"
+        className="tabular-nums"
+        value={coords[k]}
+        onChange={(e) => {
+          const next = { ...coords, [k]: e.target.value }
+          setCoords(next)
+          set({
+            map:
+              next.lat && next.lng
+                ? {
+                    lat: Number(next.lat),
+                    lng: Number(next.lng),
+                    label: draft.map?.label ?? null,
+                  }
+                : null,
+          })
+        }}
+      />
+    </Field>
+  )
+
+  const addButton = (label: string, onClick: () => void) => (
+    <Button
+      key={label}
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+    >
+      <PlusIcon />
+      {label}
+    </Button>
+  )
+
+  return (
+    <>
+      <PageHead
+        back={{ href: `/lots/${lot.id}`, label: tp("back", { code: lot.code }) }}
+        title={t("lots.passport")}
+        description={unsaved ? tp("saveFirst") : undefined}
+        actions={
+          <>
+            {resource.published ? (
+              <Badge
+                title={
+                  resource.published_at
+                    ? tp("publishedState", {
+                        version: resource.version,
+                        date: new Date(resource.published_at).toLocaleString(
+                          locale
+                        ),
+                      })
+                    : undefined
+                }
+              >
+                {tp("publishedBadge", { version: resource.version })}
+              </Badge>
+            ) : (
+              <Badge variant="slate" data-dot="false">
+                {tp("draftBadge")}
+              </Badge>
+            )}
+            {resource.published ? (
+              <Button
+                variant="outline"
+                disabled={unpublish.isPending}
+                onClick={() => setConfirm("unpublish")}
+              >
+                {tp("unpublish")}
+              </Button>
+            ) : null}
+            <Button
+              type="submit"
+              form="passport-form"
+              variant="outline"
+              disabled={save.isPending || !unsaved}
+            >
+              {tp("saveDraft")}
+            </Button>
+            <Button
+              className={gold}
+              disabled={unsaved || publish.isPending}
+              onClick={() => setConfirm("publish")}
+            >
+              {tp("publishVersion", { version: resource.version + 1 })}
+            </Button>
+          </>
+        }
+      />
+      <ConfirmDialog
+        open={confirm === "publish"}
+        onOpenChange={(open) => !open && setConfirm(null)}
+        destructive={false}
+        title={tp("publishTitle")}
+        description={tp("publishText", { code: lot.public_code })}
+        confirm={tp("publish")}
+        cancel={t("actions.cancel")}
+        onConfirm={() => publish.mutate(vars)}
+      />
+      <ConfirmDialog
+        open={confirm === "unpublish"}
+        onOpenChange={(open) => !open && setConfirm(null)}
+        title={tp("unpublishTitle")}
+        description={tp("unpublishText", { code: lot.public_code })}
+        confirm={tp("unpublish")}
+        cancel={t("actions.cancel")}
+        onConfirm={() => unpublish.mutate(vars)}
+      />
+      <Done message={done.message} />
+      {resource.published && unpublished ? (
+        <Notice variant="info" title={tp("draftDiffersTitle")}>
+          {tp("draftDiffersBody", { version: resource.version })}
+        </Notice>
+      ) : null}
+      <ApiError
+        error={save.error ?? publish.error ?? unpublish.error}
+        fallback={t("common.error")}
+      />
+
+      <Tabs
+        className="md:hidden"
+        value={view}
+        onValueChange={(v) => setView(v as "edit" | "preview")}
+      >
+        <TabsList
+          aria-label={tp("view")}
+          className="gap-1 rounded-[14px] border border-(--hair) bg-(--glass-subtle) p-1"
+        >
+          {(["edit", "preview"] as const).map((v) => (
+            <TabsTrigger
+              key={v}
+              value={v}
+              className="h-11 rounded-[10px] px-3.5 text-[13px] data-active:border-(--glass-border) data-active:bg-(--glass-strong) dark:data-active:border-(--glass-border) dark:data-active:bg-(--glass-strong)"
+            >
+              {tp(`tabs.${v}`)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      <Bento>
         <form
-          className="flex flex-col gap-4"
+          id="passport-form"
+          className={cn(
+            "col-span-7 flex min-w-0 flex-col gap-4",
+            view === "preview" && "max-md:hidden"
+          )}
           onSubmit={(e) => {
             e.preventDefault()
             save.mutate({ ...vars, data: draft })
           }}
         >
-          <Field id="pp-title" label={tp("fields.title")} errors={errors.title}>
-            <Input
-              value={draft.title ?? ""}
-              onChange={(e) => set({ title: e.target.value || null })}
-            />
-          </Field>
-          <Field id="pp-intro" label={tp("fields.intro")} errors={errors.intro}>
-            <Textarea
-              value={draft.intro ?? ""}
-              onChange={(e) => set({ intro: e.target.value || null })}
-            />
-          </Field>
-          <Capped meta={filesMeta} />
-          <Field
-            id="pp-banner"
-            label={tp("fields.banner")}
-            errors={errors.banner_file_id}
-          >
-            {fileSelect(
-              draft.banner_file_id,
-              (v) => set({ banner_file_id: v }),
-              "pp-banner"
-            )}
-          </Field>
-
-          <fieldset className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-3">
-            <legend className="px-1 text-sm font-medium">
-              {tp("fields.origin")}
-            </legend>
-            {(["country", "region", "place"] as const).map((k) => (
-              <Field
-                key={k}
-                id={`pp-origin-${k}`}
-                label={tp(`fields.${k}`)}
-                errors={errors[`origin.${k}`]}
-              >
-                <Input
-                  value={draft.origin?.[k] ?? ""}
-                  onChange={(e) => {
-                    const origin = {
-                      country: "",
-                      ...draft.origin,
-                      [k]: e.target.value,
-                    }
-                    // All three empty means no origin at all.
-                    set({
-                      origin:
-                        origin.country || origin.region || origin.place
-                          ? {
-                              ...origin,
-                              region: origin.region || null,
-                              place: origin.place || null,
-                            }
-                          : null,
-                    })
-                  }}
-                />
-              </Field>
-            ))}
-          </fieldset>
-
-          <fieldset className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-3">
-            <legend className="px-1 text-sm font-medium">
-              {tp("fields.map")}
-            </legend>
-            {(["lat", "lng"] as const).map((k) => (
-              <Field
-                key={k}
-                id={`pp-map-${k}`}
-                label={tp(`fields.${k}`)}
-                errors={errors[`map.${k}`]}
-              >
-                <Input
-                  type="number"
-                  step="any"
-                  value={coords[k]}
-                  onChange={(e) => {
-                    const next = { ...coords, [k]: e.target.value }
-                    setCoords(next)
-                    set({
-                      map:
-                        next.lat && next.lng
-                          ? {
-                              lat: Number(next.lat),
-                              lng: Number(next.lng),
-                              label: draft.map?.label ?? null,
-                            }
-                          : null,
-                    })
-                  }}
-                />
-              </Field>
-            ))}
-            <Field
-              id="pp-map-label"
-              label={tp("fields.mapLabel")}
-              errors={errors["map.label"]}
-            >
+          <Tile id="pp-story-card" title={tp("fields.story")} span="">
+            <Field id="pp-title" label={tp("fields.title")} errors={errors.title}>
               <Input
-                disabled={!draft.map}
-                value={draft.map?.label ?? ""}
-                onChange={(e) =>
-                  draft.map &&
-                  set({ map: { ...draft.map, label: e.target.value || null } })
-                }
+                value={draft.title ?? ""}
+                onChange={(e) => set({ title: e.target.value || null })}
               />
             </Field>
-          </fieldset>
+            <Field id="pp-intro" label={tp("fields.intro")} errors={errors.intro}>
+              <Textarea
+                value={draft.intro ?? ""}
+                onChange={(e) => set({ intro: e.target.value || null })}
+              />
+            </Field>
+            <Capped meta={filesMeta} />
+            <Field
+              id="pp-banner"
+              label={tp("fields.banner")}
+              errors={errors.banner_file_id}
+            >
+              {fileSelect(
+                draft.banner_file_id,
+                (v) => set({ banner_file_id: v }),
+                "pp-banner"
+              )}
+            </Field>
+          </Tile>
 
-          <ListEditor
-            label={tp("fields.materials")}
-            items={draft.materials ?? []}
-            onChange={(materials) => set({ materials })}
-            render={(m, setM, i) => (
-              <div className="grid gap-2 sm:grid-cols-3">
-                <Field
-                  id={`pp-mat-${i}-name`}
-                  label={tp("fields.name")}
-                  errors={errors[`materials.${i}.name`]}
-                >
-                  <Input
-                    value={m.name}
-                    onChange={(e) => setM({ ...m, name: e.target.value })}
-                  />
-                </Field>
-                <Field
-                  id={`pp-mat-${i}-origin`}
-                  label={tp("fields.materialOrigin")}
-                  errors={errors[`materials.${i}.origin`]}
-                >
-                  <Input
-                    value={m.origin ?? ""}
-                    onChange={(e) =>
-                      setM({ ...m, origin: e.target.value || null })
-                    }
-                  />
-                </Field>
-                <Field
-                  id={`pp-mat-${i}-share`}
-                  label={tp("fields.share")}
-                  errors={errors[`materials.${i}.share_bp`]}
-                >
-                  <PercentInput
-                    bp={m.share_bp}
-                    onChange={(share_bp) => setM({ ...m, share_bp })}
-                  />
-                </Field>
-              </div>
-            )}
-            add={
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  set({ materials: [...(draft.materials ?? []), { name: "" }] })
-                }
+          <Tile id="pp-origin-card" title={tp("originMap")} span="">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {originField("place")}
+              {originField("country")}
+              {coordField("lat")}
+              {coordField("lng")}
+              {originField("region")}
+              <Field
+                id="pp-map-label"
+                label={tp("fields.mapLabel")}
+                errors={errors["map.label"]}
               >
-                {tp("addMaterial")}
-              </Button>
-            }
+                <Input
+                  disabled={!draft.map}
+                  value={draft.map?.label ?? ""}
+                  onChange={(e) =>
+                    draft.map &&
+                    set({ map: { ...draft.map, label: e.target.value || null } })
+                  }
+                />
+              </Field>
+            </div>
+          </Tile>
+
+          <ListEditor<Block>
+            id="pp-blocks-card"
+            title={tp("storyBlocks")}
+            label={tp("fields.story")}
+            items={draft.story ?? []}
+            onChange={(story) => set({ story })}
+            kind={(b) => ({ label: tp(`add.${b.kind}`), tone: blockTone[b.kind] })}
+            summary={blockSummary}
+            render={(b, setB, i) => (
+              <StoryBlock
+                block={b}
+                onChange={setB}
+                index={i}
+                errors={errors}
+                fileSelect={fileSelect}
+              />
+            )}
+            add={(["text", "image", "facts", "quote"] as const).map((kind) =>
+              addButton(tp(`add.${kind}`), () =>
+                set({
+                  story: [
+                    ...(draft.story ?? []),
+                    kind === "text"
+                      ? { kind, body: "" }
+                      : kind === "image"
+                        ? { kind, file_id: files[0]?.id ?? "" }
+                        : kind === "facts"
+                          ? { kind, items: [{ label: "", value: "" }] }
+                          : { kind, text: "" },
+                  ],
+                })
+              )
+            )}
           />
 
           <ListEditor
+            id="pp-certs-card"
+            title={tp("fields.certificates")}
             label={tp("fields.certificates")}
             items={draft.certificates ?? []}
             onChange={(certificates) => set({ certificates })}
+            kind={(_, i) => ({ label: String(i + 1), tone: "slate" })}
+            summary={(c) => c.name}
             render={(c, setC, i) => (
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Field
                   id={`pp-cert-${i}-name`}
                   label={tp("fields.name")}
@@ -420,131 +533,121 @@ function Editor({
                 </Field>
               </div>
             )}
-            add={
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  set({
-                    certificates: [...(draft.certificates ?? []), { name: "" }],
-                  })
-                }
-              >
-                {tp("addCertificate")}
-              </Button>
-            }
-          />
-
-          <ListEditor<Block>
-            label={tp("fields.story")}
-            items={draft.story ?? []}
-            onChange={(story) => set({ story })}
-            render={(b, setB, i) => (
-              <StoryBlock
-                block={b}
-                onChange={setB}
-                index={i}
-                errors={errors}
-                fileSelect={fileSelect}
-              />
+            add={addButton(tp("addCertificate"), () =>
+              set({
+                certificates: [...(draft.certificates ?? []), { name: "" }],
+              })
             )}
-            add={(["text", "image", "facts", "quote"] as const).map((kind) => (
-              <Button
-                key={kind}
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  set({
-                    story: [
-                      ...(draft.story ?? []),
-                      kind === "text"
-                        ? { kind, body: "" }
-                        : kind === "image"
-                          ? { kind, file_id: files[0]?.id ?? "" }
-                          : kind === "facts"
-                            ? { kind, items: [{ label: "", value: "" }] }
-                            : { kind, text: "" },
-                    ],
-                  })
-                }
-              >
-                {tp(`add.${kind}`)}
-              </Button>
-            ))}
           />
 
-          <ApiError error={save.error} fallback={t("common.error")} />
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={save.isPending || !unsaved}>
-              {t("actions.save")}
-            </Button>
-            <ConfirmDialog
-              trigger={tp("publish")}
-              destructive={false}
-              title={tp("publishTitle")}
-              description={tp("publishText", { code: lot.public_code })}
-              confirm={tp("publish")}
-              cancel={t("actions.cancel")}
-              disabled={unsaved || publish.isPending}
-              onConfirm={() => publish.mutate(vars)}
-            />
-            {resource.published ? (
-              <ConfirmDialog
-                trigger={tp("unpublish")}
-                title={tp("unpublishTitle")}
-                description={tp("unpublishText", { code: lot.public_code })}
-                confirm={tp("unpublish")}
-                cancel={t("actions.cancel")}
-                disabled={unpublish.isPending}
-                onConfirm={() => unpublish.mutate(vars)}
-              />
-            ) : null}
-          </div>
-          {unsaved ? (
-            <p className="text-sm text-muted-foreground">{tp("saveFirst")}</p>
-          ) : null}
-          <ApiError
-            error={publish.error ?? unpublish.error}
-            fallback={t("common.error")}
+          <ListEditor
+            id="pp-materials-card"
+            title={tp("fields.materials")}
+            label={tp("fields.materials")}
+            items={draft.materials ?? []}
+            onChange={(materials) => set({ materials })}
+            kind={(_, i) => ({ label: String(i + 1), tone: "slate" })}
+            summary={(m) => m.name}
+            render={(m, setM, i) => (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field
+                  id={`pp-mat-${i}-name`}
+                  label={tp("fields.name")}
+                  errors={errors[`materials.${i}.name`]}
+                >
+                  <Input
+                    value={m.name}
+                    onChange={(e) => setM({ ...m, name: e.target.value })}
+                  />
+                </Field>
+                <Field
+                  id={`pp-mat-${i}-origin`}
+                  label={tp("fields.materialOrigin")}
+                  errors={errors[`materials.${i}.origin`]}
+                >
+                  <Input
+                    value={m.origin ?? ""}
+                    onChange={(e) =>
+                      setM({ ...m, origin: e.target.value || null })
+                    }
+                  />
+                </Field>
+                <Field
+                  id={`pp-mat-${i}-share`}
+                  label={tp("fields.share")}
+                  errors={errors[`materials.${i}.share_bp`]}
+                >
+                  <PercentInput
+                    bp={m.share_bp}
+                    onChange={(share_bp) => setM({ ...m, share_bp })}
+                  />
+                </Field>
+              </div>
+            )}
+            add={addButton(tp("addMaterial"), () =>
+              set({ materials: [...(draft.materials ?? []), { name: "" }] })
+            )}
           />
         </form>
-      </section>
 
-      <section
-        aria-label={tp("preview")}
-        className="flex min-w-0 flex-col gap-3"
-      >
-        <h2 className="heading-3 text-muted-foreground">{tp("preview")}</h2>
-        <div className="rounded-lg border border-border p-4">
-          <PassportView
-            passport={toPublic(
-              draft,
-              files,
-              resource.version,
-              resource.published_at ?? new Date().toISOString()
-            )}
-            lot={{
-              public_code: lot.public_code,
-              status: lot.status,
-              produced_on: lot.produced_on,
-              best_before: lot.best_before,
-              expires_on: lot.expires_on,
-              origin: lot.origin,
-              product: {
-                name: product.data?.data.name ?? "",
-                brand: product.data?.data.brand ?? null,
-                short_description: product.data?.data.short_description ?? null,
-              },
-              farmers: [],
-            }}
-            locale={locale}
-            t={tb}
-          />
-        </div>
-      </section>
-    </div>
+        <section
+          aria-labelledby="pp-preview"
+          className={cn(
+            "col-span-5 flex min-w-0 flex-col gap-3",
+            view === "edit" && "max-md:hidden"
+          )}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2
+              id="pp-preview"
+              className="text-xs font-bold tracking-[0.08em] text-muted-foreground uppercase"
+            >
+              {tp("livePreview")}
+            </h2>
+            {resource.published && shopUrl ? (
+              <a
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+                href={`${shopUrl}/b/${lot.public_code}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {tp("open", { code: lot.public_code })}
+                <ExternalLinkIcon aria-hidden="true" />
+              </a>
+            ) : null}
+          </div>
+          <Card className="gap-0 overflow-hidden p-5">
+            <PassportView
+              passport={toPublic(
+                draft,
+                files,
+                resource.version,
+                resource.published_at ?? new Date().toISOString()
+              )}
+              lot={{
+                public_code: lot.public_code,
+                status: lot.status,
+                produced_on: lot.produced_on,
+                best_before: lot.best_before,
+                expires_on: lot.expires_on,
+                origin: lot.origin,
+                product: {
+                  name: product.data?.data.name ?? "",
+                  brand: product.data?.data.brand ?? null,
+                  short_description: product.data?.data.short_description ?? null,
+                },
+                farmers: [],
+              }}
+              locale={locale}
+              t={tb}
+            />
+          </Card>
+        </section>
+      </Bento>
+    </>
   )
 }
+
 
 /** Percent typed by a person, stored as integer basis points; bad input is flagged, not guessed. */
 function PercentInput({
@@ -594,7 +697,6 @@ function StoryBlock({
   const err = (k: string) => errors[`story.${index}.${k}`]
   return (
     <div className="flex flex-col gap-2">
-      <p className="tag text-muted-foreground">{tp(`add.${block.kind}`)}</p>
       {block.kind === "text" ? (
         <>
           <Field

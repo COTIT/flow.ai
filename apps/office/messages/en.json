@@ -21,7 +21,10 @@
       "disabled": "Disabled",
       "nla": "No longer sold"
     },
-    "count": "{total, plural, one {# product} other {# products}}"
+    "count": "{total, plural, one {# product} other {# products}}",
+    "details": "Details",
+    "serverChecked": "Prices and status are checked by the server when you save.",
+    "priceInclHint": "Shown as {price} with VAT in the shop."
   },
   "nav": {
     "label": "Main menu",
@@ -44,7 +47,9 @@
   "actions": {
     "save": "Save",
     "saved": "Saved.",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "discard": "Discard",
+    "saveChanges": "Save changes"
   },
   "lots": {
     "title": "Batches",
@@ -75,7 +80,24 @@
     "passport": "Passport",
     "noEvents": "No history yet.",
     "count": "{total, plural, one {# batch} other {# batches}}",
-    "allProducts": "All products"
+    "allProducts": "All products",
+    "statusText": {
+      "released": "Released batches can be sold and show their passport. A recall stops sales and puts a warning on the passport.",
+      "quarantine": "Batches in quarantine are held back from sale until you release them.",
+      "recalled": "This batch is recalled: its public page and every jar's QR link show a recall warning."
+    },
+    "recallAction": "Recall this batch…",
+    "recallAsk": "Recall batch {code}?",
+    "recallKeep": "Keep selling",
+    "recallYes": "Recall",
+    "passportPublished": "Published v{version}",
+    "passportDraft": "Draft",
+    "draftMatches": "Draft matches what customers see",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
+    "editPassport": "Edit passport",
+    "lineage": "Lineage",
+    "details": "Batch details"
   },
   "secret": {
     "once": "Copy this secret now. It is shown only once.",
@@ -182,6 +204,22 @@
       "saved": "Draft saved.",
       "published": "Published: the public page shows this version.",
       "unpublished": "Taken offline: the public page no longer shows."
+    },
+    "back": "Batch {code}",
+    "publishedBadge": "Published v{version}",
+    "draftBadge": "Not published",
+    "saveDraft": "Save draft",
+    "publishVersion": "Publish v{version}",
+    "draftDiffersTitle": "Draft differs from the published passport",
+    "draftDiffersBody": "Customers still see v{version} until you publish.",
+    "originMap": "Origin & map area",
+    "storyBlocks": "Story blocks",
+    "livePreview": "Live preview · what customers see",
+    "open": "Open /b/{code}",
+    "view": "Edit or preview",
+    "tabs": {
+      "edit": "Edit",
+      "preview": "Preview"
     }
   },
   "stock": {
@@ -205,7 +243,8 @@
     "reason": "Reason",
     "changeHint": "Change (e.g. 10 or -3)",
     "quantityChange": "Change",
-    "count": "{total, plural, one {# stock row} other {# stock rows}}"
+    "count": "{total, plural, one {# stock row} other {# stock rows}}",
+    "onHand": "On hand"
   },
   "invoices": {
     "title": "Invoices",
@@ -232,7 +271,9 @@
     "method": "Method",
     "amount": "Amount",
     "customer": "Customer",
-    "count": "{total, plural, one {# invoice} other {# invoices}}"
+    "count": "{total, plural, one {# invoice} other {# invoices}}",
+    "detailTitle": "Invoice {number}",
+    "details": "Details"
   },
   "orders": {
     "title": "Orders",
@@ -281,7 +322,29 @@
     "cancelTitle": "Cancel order {number}?",
     "cancelText": "Reserved stock is released. A paid order needs a refund first; the system will say so.",
     "nothingToDo": "Nothing more to do on this order.",
-    "count": "{total, plural, one {# order} other {# orders}}"
+    "count": "{total, plural, one {# order} other {# orders}}",
+    "detailTitle": "Order {number}",
+    "placed": "{source} · placed {date}",
+    "sources": {
+      "office": "Office",
+      "storefront": "Web shop"
+    },
+    "items": "{count, plural, one {# item} other {# items}}",
+    "serverAmounts": "Amounts as calculated by the server.",
+    "nextStep": "Next step",
+    "next": {
+      "confirm": "Confirm the order to reserve its stock.",
+      "pick": "Record what has been picked so far.",
+      "complete": "Complete the order to take its stock out of the warehouse.",
+      "invoice": "Make an invoice for this order.",
+      "return": "Take back goods the customer sent back."
+    },
+    "payment": "Payment",
+    "paidOn": "Paid · {date}",
+    "notPaid": "Not paid",
+    "noCustomer": "No customer details on this order.",
+    "timeline": "Timeline",
+    "placedEvent": "Placed"
   },
   "till": {
     "title": "Till",
@@ -462,7 +525,8 @@
     "add": "Add image",
     "removeOne": "Remove image {position}",
     "save": "Save images",
-    "discard": "Discard changes"
+    "discard": "Discard changes",
+    "hint": "First image is the shop cover. Use the arrows to reorder."
   },
   "credits": {
     "title": "Farmer credits",
@@ -477,13 +541,16 @@
     "kinds": {
       "sale": "Sale",
       "return": "Return"
-    }
+    },
+    "sub": "From jars sold",
+    "jarCount": "{jars} jars"
   },
   "lineage": {
     "packedFrom": "Packed from batch",
     "pack": "{units} units from {kg} kg",
     "receivedFrom": "Received from the partner's batch {code} ({publicCode}).",
-    "transfers": "See transfers"
+    "transfers": "See transfers",
+    "none": "Made here: no earlier batch."
   },
   "shell": {
     "openMenu": "Open menu",

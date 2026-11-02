@@ -14,3 +14,13 @@ export function customerName(customer: object | null): string {
   const c = customer as { name?: string | null; email?: string | null } | null
   return c?.name || c?.email || ""
 }
+
+/** Up to two capital letters from a name (or e-mail) for the avatar. */
+export function initials(name: string): string {
+  return name
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join("")
+}

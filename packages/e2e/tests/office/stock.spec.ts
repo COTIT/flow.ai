@@ -1,4 +1,4 @@
-import { expect, paged, test, type FakeApi } from "./fake-api"
+import { expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 const product = {
   id: "prod-honey",
@@ -9,6 +9,8 @@ const product = {
   short_description: null,
   description: null,
   store_only: false,
+  total_available_stock: 120,
+  total_reserved_stock: 0,
   last_updated_at: "2026-10-01T08:00:00Z",
 }
 const warehouse = { id: "wh-1", name: "Dar es Salaam" }
@@ -94,7 +96,7 @@ test("edit product: only the form's keys are sent", async ({ page, api }) => {
 test("store only: ticking it sends store_only true", async ({ page, api }) => {
   stockApi(api)
   await page.goto("/products/prod-honey")
-  await page.getByLabel("Sold at the till only (not in the web shop)").check()
+  await page.getByRole("checkbox", { name: "Sold at the till only (not in the web shop)" }).check()
   await page.getByRole("button", { name: "Save" }).click()
   await expect(
     page.getByRole("status").filter({ hasText: "Product saved." })
@@ -105,7 +107,7 @@ test("store only: ticking it sends store_only true", async ({ page, api }) => {
     store_only: true,
   })
   await expect(
-    page.getByLabel("Sold at the till only (not in the web shop)")
+    page.getByRole("checkbox", { name: "Sold at the till only (not in the web shop)" })
   ).toBeChecked()
 })
 
@@ -131,15 +133,19 @@ test("stock per warehouse; a change shows as a movement", async ({
 }) => {
   stockApi(api)
   await page.goto("/products/prod-honey")
-  await expect(page.getByRole("cell", { name: "120.00" })).toBeVisible()
+  const stock = page.getByRole("region", { name: "Stock", exact: true })
+  await expect(stock.getByText("120.00")).toBeVisible()
+  await expect(stock.getByText("120", { exact: true })).toBeVisible()
   await page.getByRole("button", { name: "Change stock" }).click()
   const dialog = page.getByRole("dialog")
   await expect(dialog.getByLabel("Warehouse")).toHaveValue("wh-1")
   await dialog.getByLabel("Change (e.g. 10 or -3)").fill("10")
   await dialog.getByLabel("Reason").fill("Harvest intake")
   await dialog.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("cell", { name: "130.00" }).first()).toBeVisible()
-  await expect(page.getByRole("cell", { name: "Harvest intake" })).toBeVisible()
+  await expect(stock.getByText("130.00")).toBeVisible()
+  // The movement: its change shows on a phone card too; the reason only on wider screens.
+  await expect(page.getByRole("cell", { name: "10", exact: true })).toBeVisible()
+  await expect(page.getByText("Harvest intake")).toBeAttached()
   await expect(
     page.getByRole("status").filter({ hasText: "Stock changed" })
   ).toBeVisible()
@@ -150,6 +156,7 @@ test("stock per warehouse; a change shows as a movement", async ({
     mutation_value: "10",
     reason: "Harvest intake",
   })
+  await expectFits(page)
 })
 
 test.describe(() => {
