@@ -28,9 +28,11 @@ export async function Landing({ locale }: { locale: Locale }) {
   setRequestLocale(locale)
   const t = await getTranslations("landing")
   const home = HOME[locale]
-  // Read at request time (the page renders per request for the CSP nonce), so staging needs no rebuild.
-  const links = appLinks(process.env)
-  const contact = contactHref(process.env.NEXT_PUBLIC_CONTACT_EMAIL)
+  // Read at request time through an alias: Next inlines `process.env.NEXT_PUBLIC_*` at build time,
+  // and this page renders per request (CSP nonce), so compose can set them without a rebuild.
+  const env = process.env
+  const links = appLinks(env)
+  const contact = contactHref(env.NEXT_PUBLIC_CONTACT_EMAIL)
   const email = contact.slice("mailto:".length, contact.indexOf("?"))
   return (
     <div className="landing">

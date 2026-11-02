@@ -1,6 +1,6 @@
 # Staging
 
-A full Genesy stack on the VPS, next to the existing services. It runs the API with its own Postgres, Mailpit (a mail catcher), and the five apps, all served through the VPS's existing Traefik.
+A full Genesy stack on the VPS, next to the existing services. It runs the API with its own Postgres, Mailpit (a mail catcher), the five apps and the landing page, all served through the VPS's existing Traefik.
 
 Think of it as a dress rehearsal stage: same sets as opening night, fake money in the till, and every letter lands in a box backstage.
 
@@ -11,6 +11,7 @@ Think of it as a dress rehearsal stage: same sets as opening night, fake money i
 | `staging-office.genesy.app` | office  | 3000           |
 | `staging-till.genesy.app`   | till    | 3000           |
 | `staging-field.genesy.app`  | field   | 8080           |
+| `staging.genesy.app`        | landing | 3000           |
 
 **What staging is not:**
 
@@ -79,6 +80,12 @@ Staging and production, one A and one AAAA record per host:
 | AAAA | `till`           | `2a02:4780:d:ca37::1` | 3600 |
 | A    | `field`          | `185.77.96.44`        | 3600 |
 | AAAA | `field`          | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `staging`        | `185.77.96.44`        | 3600 |
+| AAAA | `staging`        | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `@` (apex)       | `185.77.96.44`        | 3600 |
+| AAAA | `@` (apex)       | `2a02:4780:d:ca37::1` | 3600 |
+| A    | `www`            | `185.77.96.44`        | 3600 |
+| AAAA | `www`            | `2a02:4780:d:ca37::1` | 3600 |
 
 Traefik answers on IPv6 (checked 2026-11-01: HTTP 301 on `[2a02:4780:d:ca37::1]`), so the AAAA records are safe.
 

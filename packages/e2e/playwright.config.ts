@@ -77,11 +77,12 @@ export default defineConfig({
       env: { API_URL: "http://127.0.0.1:9/v1" },
     },
     {
-      // The landing page calls no API; it only needs its own canonical origin for links.
+      // The landing page calls no API. A contact address set at start (not build) time proves
+      // compose can change it without a rebuild.
       command: `pnpm --filter @genesy/landing exec next start --port ${landingPort} --hostname 127.0.0.1`,
       url: landing,
       reuseExistingServer: false,
-      env: { SITE_URL: landing },
+      env: { SITE_URL: landing, NEXT_PUBLIC_CONTACT_EMAIL: "team@genesy.test" },
     },
   ],
 })

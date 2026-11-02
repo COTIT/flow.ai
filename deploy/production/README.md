@@ -1,6 +1,6 @@
 # Production
 
-The live Genesy stack on the VPS. It runs the API with its own Postgres and the five apps, all served through the existing Traefik.
+The live Genesy stack on the VPS. It runs the API with its own Postgres, the five apps and the landing page, all served through the existing Traefik.
 
 It is a separate compose project, `genesy-prod`. It never touches the `control360` or `genesy-prod-green` projects, and its router names (`genesy-production-*`) don't clash with theirs.
 
@@ -11,6 +11,8 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 | `office.genesy.app` | office  | 3000           |
 | `till.genesy.app`   | till    | 3000           |
 | `field.genesy.app`  | field   | 8080           |
+| `genesy.app`        | landing | 3000           |
+| `www.genesy.app`    | landing (301 to `https://genesy.app`) | 3000 |
 
 **How it differs from staging** (`../staging/README.md`):
 
@@ -22,7 +24,7 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 - **Field release flag off.** `VITE_FEATURE_RESOURCES=off` hides equipment, loans and requests; no demo banner.
 - **No uploads bucket, no PDF renderer yet.** Those routes answer 503, as designed.
 
-Every step below is for the user to run on the VPS, or for the coordinator once the user says go. VPS facts and DNS records: `../staging/README.md` ("The VPS", "DNS records"). Production needs the `api`, `shop`, `office`, `till` and `field` records.
+Every step below is for the user to run on the VPS, or for the coordinator once the user says go. VPS facts and DNS records: `../staging/README.md` ("The VPS", "DNS records"). Production needs the `api`, `shop`, `office`, `till` and `field` records, plus the apex (`@`) and `www` for the landing page. The landing page's contact address is `CONTACT_EMAIL` in `.env.production` (default `hello@genesy.app`, a placeholder).
 
 ## Files
 

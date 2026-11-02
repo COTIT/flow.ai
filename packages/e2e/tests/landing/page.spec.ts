@@ -28,14 +28,14 @@ test("the page tells who it is for, shows the passport and the promise", async (
   await expectNoHorizontalScroll(page)
 })
 
-test("the one call to action opens an email", async ({ page }) => {
+test("the one call to action opens an email to the configured address", async ({ page }) => {
   await page.goto("/")
   await expect(page.getByRole("link", { name: "Email us" })).toHaveAttribute(
     "href",
-    "mailto:hello@genesy.app?subject=Genesy%20for%20my%20organisation"
+    "mailto:team@genesy.test?subject=Genesy%20for%20my%20organisation"
   )
   await expect(
-    page.getByRole("link", { name: "hello@genesy.app" })
+    page.getByRole("link", { name: "team@genesy.test" })
   ).toBeVisible()
 })
 

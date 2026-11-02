@@ -20,8 +20,8 @@ printf 'postgres://genesy:%s@db:5432/genesy' "$pw" >"$secrets/database_url"
 openssl rand -hex 32 | tr -d '\n' >"$secrets/credentials_key"
 chmod 444 "$secrets"/*
 
-# Images this run may add: its own five plus the pinned ones compose pulls.
-ours=(genesy-staging/{api,shop,office,till,field}:smoke)
+# Images this run may add: its own six plus the pinned ones compose pulls.
+ours=(genesy-staging/{api,shop,office,till,field,landing}:smoke)
 pulled=($(sed -n 's/^ *image: \([^$]*@sha256:[0-9a-f]*\)$/\1/p' "$here/docker-compose.staging.yml"))
 before="$(docker images -q --no-trunc | sort -u)"
 
@@ -52,6 +52,14 @@ for app in shop:18100 office:18101 field:18102 till:18103; do
   # The same-origin /v1 forward reaches the API: /v1/me without a token is the API's 401.
   expect "${app%%:*}" "http://127.0.0.1:${app##*:}/v1/me" 401
 done
+# The landing page answers and, on staging, tells search engines to stay away.
+expect landing "http://127.0.0.1:18104/" 200
+expect landing "http://127.0.0.1:18104/nl" 200
+if curl -s --max-time 15 "http://127.0.0.1:18104/robots.txt" | grep -q "Disallow: /"; then
+  echo "ok   landing robots.txt disallows"
+else
+  echo "FAIL landing robots.txt does not disallow"; fail=1
+fi
 # Fake payments booted (the API refuses PAYMENTS_PROVIDER=fake otherwise) and nothing restarted.
 "${compose[@]}" ps --format '{{.Service}} {{.Status}}'
 if "${compose[@]}" logs api | grep -q 'PAYMENTS_PROVIDER not set'; then echo "FAIL api: no payments provider"; fail=1; fi

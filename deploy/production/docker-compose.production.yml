@@ -129,6 +129,34 @@ services:
       traefik.http.routers.genesy-production-till.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
       traefik.http.services.genesy-production-till.loadbalancer.server.port: "3000"
 
+  # genesy.app: the public landing page. It calls no API; www.genesy.app answers with a 301 to it.
+  landing:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: deploy/images/next.Dockerfile
+      args: { APP: landing }
+    image: genesy-prod/landing:${GENESY_REF}
+    environment:
+      SITE_URL: https://genesy.app
+      # Read at runtime; hello@genesy.app is a placeholder until the real address is chosen.
+      NEXT_PUBLIC_CONTACT_EMAIL: ${CONTACT_EMAIL:-hello@genesy.app}
+    networks: [edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-production-landing.rule: Host(`genesy.app`)
+      traefik.http.routers.genesy-production-landing.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-production-landing.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.services.genesy-production-landing.loadbalancer.server.port: "3000"
+      traefik.http.routers.genesy-production-www.rule: Host(`www.genesy.app`)
+      traefik.http.routers.genesy-production-www.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-production-www.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.routers.genesy-production-www.service: genesy-production-landing
+      traefik.http.routers.genesy-production-www.middlewares: genesy-production-www-to-apex
+      traefik.http.middlewares.genesy-production-www-to-apex.redirectregex.regex: ^https?://www\.genesy\.app/(.*)
+      traefik.http.middlewares.genesy-production-www-to-apex.redirectregex.replacement: https://genesy.app/$${1}
+      traefik.http.middlewares.genesy-production-www-to-apex.redirectregex.permanent: "true"
+
   field:
     <<: *hardening
     build:
