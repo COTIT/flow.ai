@@ -22,6 +22,10 @@ RUN pnpm --filter @genesy/field build
 FROM nginxinc/nginx-unprivileged:1.31.6-alpine3.24@sha256:884e0b7f42f303641b0f4e78755aea647521dca0b89ca3be7992ad78b5c07434 AS runtime
 # Links the GHCR package to the repo (Actions push access) and marks our images on the VPS.
 LABEL org.opencontainers.image.source="https://github.com/COTIT/genesy"
+# Patched Alpine packages on every build: the base tag often lags fixes Trivy already knows.
+USER root
+RUN apk upgrade --no-cache
+USER 101
 COPY deploy/images/field.nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /repo/apps/field/dist /usr/share/nginx/html
 EXPOSE 8080

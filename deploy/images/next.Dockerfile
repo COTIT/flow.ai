@@ -22,6 +22,9 @@ RUN pnpm --filter "@genesy/${APP}" build && mkdir -p "apps/${APP}/public"
 FROM ${NODE_IMAGE} AS runtime
 # Links the GHCR package to the repo (Actions push access) and marks our images on the VPS.
 LABEL org.opencontainers.image.source="https://github.com/COTIT/genesy"
+# The server needs only node: drop the package managers the base image ships (and their CVEs).
+RUN rm -rf /usr/local/lib/node_modules /opt/yarn-* \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
 ARG APP
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 WORKDIR /app
