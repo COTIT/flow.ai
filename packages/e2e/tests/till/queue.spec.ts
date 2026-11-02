@@ -98,7 +98,12 @@ test.describe("offline", () => {
     await page.getByText("Offline sales synced").click()
     await expect(page).toHaveURL("/queue")
     await expect(page.getByText("Sale 1042: €25.00")).toBeVisible()
-    await expect(page.getByText("Booked")).toBeVisible()
+    await expect(page.getByText("Booked", { exact: true })).toBeVisible()
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: "All offline sales are booked." })
+    ).toBeVisible()
   })
 })
 
@@ -189,7 +194,12 @@ test.describe("refused replay", () => {
     await seedQueue(page)
     await seedTill(page)
     await page.goto("/queue")
-    await expect(page.getByText("Conflict")).toBeVisible()
+    await expect(page.getByText("Conflict", { exact: true })).toBeVisible()
+    await expect(
+      page
+        .getByRole("alert")
+        .filter({ hasText: "Show it to the office before dismissing it." })
+    ).toBeVisible()
     await expect(
       page.getByText(
         "This client_ref was used for another sale on this register."
@@ -239,4 +249,38 @@ test.describe("server down", () => {
     ).toBeDisabled()
     await expect(page.getByText("1 sale to sync")).toBeVisible()
   })
+})
+
+test("an empty queue says what it is for", async ({ page }) => {
+  await seedTill(page)
+  await page.goto("/queue")
+  await expect(page.getByText("No offline sales.")).toBeVisible()
+  await expect(
+    page.getByText("Sales rung up without a connection wait here")
+  ).toBeVisible()
+  await expectNoHorizontalScroll(page)
+})
+
+test("a replayed sale booked at other prices is flagged", async ({
+  page,
+  api,
+}) => {
+  api.on("GET", "/workspace/:ws/till/sales/:ref", () => ({
+    data: { ...sale, price_mismatch: -100, mismatched_lines: 1 },
+  }))
+  await seedQueue(page)
+  await seedTill(page)
+  await page.goto("/queue")
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "All offline sales are booked." })
+  ).toBeVisible()
+  await expect(
+    page
+      .getByRole("status")
+      .filter({
+        hasText: "Charged at prices that differ from the current catalog.",
+      })
+  ).toBeVisible()
 })

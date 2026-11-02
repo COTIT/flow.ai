@@ -119,7 +119,12 @@
     "conflict": "Mgongano",
     "review": "Yanahitaji ukaguzi",
     "booked": "Mauzo {number}: {due}",
-    "dismiss": "Ondoa"
+    "dismiss": "Ondoa",
+    "syncing": "Inatuma mauzo ya nje ya mtandao…",
+    "allBooked": "Mauzo yote ya nje ya mtandao yamerekodiwa.",
+    "emptyHint": "Mauzo yaliyofanywa bila mtandao yanasubiri hapa hadi yatumwe.",
+    "showOffice": "Mauzo haya hayajarekodiwa. Yaonyeshe ofisi kabla ya kuyaondoa.",
+    "mismatch": "Yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili."
   },
   "errors": {
     "crashTitle": "Skrini hii imeacha kufanya kazi.",

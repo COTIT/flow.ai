@@ -119,7 +119,12 @@
     "conflict": "Conflict",
     "review": "Needs review",
     "booked": "Sale {number}: {due}",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "syncing": "Sending offline sales…",
+    "allBooked": "All offline sales are booked.",
+    "emptyHint": "Sales rung up without a connection wait here until they are sent.",
+    "showOffice": "This sale was not booked. Show it to the office before dismissing it.",
+    "mismatch": "Charged at prices that differ from the current catalog. The office will see it."
   },
   "errors": {
     "crashTitle": "This screen stopped working.",

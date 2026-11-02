@@ -119,7 +119,12 @@
     "conflict": "Conflict",
     "review": "Nakijken",
     "booked": "Verkoop {number}: {due}",
-    "dismiss": "Verbergen"
+    "dismiss": "Verbergen",
+    "syncing": "Offline verkopen versturen…",
+    "allBooked": "Alle offline verkopen zijn geboekt.",
+    "emptyHint": "Verkopen zonder verbinding wachten hier tot ze verstuurd zijn.",
+    "showOffice": "Deze verkoop is niet geboekt. Laat hem aan het kantoor zien voor je hem verbergt.",
+    "mismatch": "Afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit."
   },
   "errors": {
     "crashTitle": "Dit scherm werkt niet meer.",
