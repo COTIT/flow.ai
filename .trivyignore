@@ -1,0 +1,2 @@
+# Findings accepted by the `images` job in .github/workflows/ci.yml.
+# One CVE id per line, each with a comment above it: why it is accepted and when to look again.
