@@ -151,3 +151,32 @@ test("no sideways scroll, no layout shift, big enough targets", async ({ page })
   await expectNoLayoutShift(page)
   if (isPhone(page.viewportSize()?.width)) await expectTapTargets(page)
 })
+
+// Tablet and small-laptop widths sit between the 375 and 1280 projects: the top bar must fit
+// beside the sidebar with nothing overlapping (the breadcrumb used to spill over the search).
+for (const width of [800, 1024]) {
+  test(`top bar fits at ${width} px: no overlap, no sideways scroll`, async ({ page }, info) => {
+    test.skip(isPhone(info.project.use.viewport?.width), "tablet widths run on the desktop project")
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto("/products")
+    const search = page.locator("[data-topbar]").getByRole("search")
+    await expect(search).toBeVisible()
+    const bar = await page.locator("[data-topbar]").boundingBox()
+    const boxes = await page
+      .locator("[data-topbar] > *")
+      .evaluateAll((els) =>
+        els
+          .filter((el) => el.getAttribute("aria-hidden") !== "true" && el.getBoundingClientRect().width > 0)
+          .map((el) => {
+            const r = el.getBoundingClientRect()
+            return { left: r.left, right: r.right, scroll: el.scrollWidth - el.clientWidth }
+          })
+      )
+    boxes.slice(1).forEach((box, i) =>
+      expect(box.left, `item ${i + 1} starts after item ${i} ends`).toBeGreaterThanOrEqual(boxes[i]!.right)
+    )
+    for (const b of boxes) expect(b.scroll, "no item overflows its own box").toBeLessThanOrEqual(1)
+    expect(boxes.at(-1)!.right).toBeLessThanOrEqual(bar!.x + bar!.width + 1)
+    await expectNoHorizontalScroll(page)
+  })
+}

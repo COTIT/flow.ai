@@ -141,7 +141,10 @@ export async function choose(page: Page, name: string, option: string) {
 /** The page fits the screen (no sideways scroll) and, on a phone, every control is a 44 px target. */
 export async function expectFits(page: Page) {
   // Measure the settled page, not a dialog half way through closing.
-  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)))
+  // A cancelled animation rejects `finished` with AbortError; it has settled all the same.
+  await page.evaluate(() =>
+    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined)))
+  )
   await expectNoHorizontalScroll(page)
   if ((page.viewportSize()?.width ?? 0) < 768) await expectTapTargets(page)
 }

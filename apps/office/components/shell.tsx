@@ -259,7 +259,8 @@ function TopBar() {
       className="glass-strong hidden items-center gap-3 rounded-[20px] py-2.5 pr-3 pl-[18px] md:flex"
     >
       {/* Drawn once the workspace name is known, so the page name never slides along. */}
-      <p className="flex min-w-0 flex-1 items-center gap-1.5 text-[13px] text-muted-foreground">
+      {/* Below xl the sidebar already marks the page, and the bar has no room for the crumb. */}
+      <p className="flex min-w-0 flex-1 items-center gap-1.5 text-[13px] text-muted-foreground max-xl:hidden">
         {workspace ? (
           <>
             <span className="min-w-0 truncate">{workspace.workspace_name}</span>
@@ -273,7 +274,7 @@ function TopBar() {
       {/* Anchored right with a fixed width, so names loading on the left never move it. */}
       <form
         role="search"
-        className="relative w-[340px] shrink-0 max-lg:w-[260px] min-[1400px]:w-[420px]"
+        className="relative w-[340px] shrink-0 max-xl:w-auto max-xl:min-w-0 max-xl:flex-1 min-[1400px]:w-[420px]"
         onSubmit={(e) => {
           e.preventDefault()
           const q = String(new FormData(e.currentTarget).get("q") ?? "")
@@ -293,7 +294,7 @@ function TopBar() {
           className="h-10 pl-10"
         />
       </form>
-      <WorkspacePicker className="w-[200px]" />
+      <WorkspacePicker className="w-[200px] max-lg:w-[160px]" />
       <LocaleMenu />
       <ThemeToggle label={t("common.theme")} />
     </div>
