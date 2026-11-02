@@ -8,7 +8,7 @@ import { useTillLogout } from "@genesy/api-client/endpoints/till"
 import { Button } from "@genesy/ui/components/button"
 import { Logo } from "@genesy/ui/components/logo"
 import { QueueRunner } from "@/components/queue-runner"
-import { ThemeButton } from "@/components/theme-button"
+import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { tillStore, useTill } from "@/lib/till-store"
 
 const nav = [
@@ -56,7 +56,7 @@ export function TillTop() {
       <span className="who no-phone">
         {session?.register.name} · {session?.user.name}
       </span>
-      <ThemeButton label={t("common.theme")} />
+      <ThemeToggle label={t("common.theme")} className="size-11" />
       <Button
         variant="outline"
         className="btn-44"
