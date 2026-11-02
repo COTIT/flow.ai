@@ -99,12 +99,7 @@ docker compose -f deploy/production/docker-compose.production.yml --env-file dep
 
 `--no-build` means the VPS never builds by accident: if an image is missing, `up` stops with an error.
 
-```bash
-# Keep Docker lean: drop Genesy images no container uses (any old sha can be pulled again)
-docker image prune -af --filter label=org.opencontainers.image.source=https://github.com/COTIT/genesy
-```
-
-The first time after switching to pulled images, also run `docker image prune -af --filter label=com.docker.compose.project=genesy-prod` once: it removes the images that were built here.
+Old images stay on the VPS on purpose: rollback needs the previous sha. Pruning them is tag-aware and belongs to `deploy/deploy.sh` (coming); don't run `docker image prune -a` here.
 
 The API runs its migrations when it boots. Check the deploy:
 
