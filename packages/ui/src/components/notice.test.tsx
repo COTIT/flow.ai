@@ -48,6 +48,19 @@ describe("Notice", () => {
   it("defaults to info", () => {
     expect(html(<Notice title="Hi" />)).toContain('data-variant="info"')
   })
+
+  // globals.css restyles [data-slot] only under .theme-glass; landing and field keep today's look.
+  it("is marked for the glass theme", () => {
+    expect(html(<Notice title="Hi" />)).toContain('data-slot="notice"')
+  })
+})
+
+describe("EmptyState marker", () => {
+  it("is marked for the glass theme", () => {
+    expect(html(<EmptyState title="Nothing" />)).toContain(
+      'data-slot="empty-state"'
+    )
+  })
 })
 
 describe("EmptyState", () => {

@@ -162,6 +162,163 @@
   --sidebar-ring: #efc977;
 }
 
+/* Glass look (design "A · Frosted mist", docs/design/web-redesign). Office, shop and till put
+   `theme-glass` on <body>; landing and field never do, so they keep the plain look above.
+   Contrast of text on --glass-solid and --ground-base is checked in tokens.test.ts. */
+.theme-glass {
+  --radius: 0.75rem;
+  --ground-base: #eef3f5;
+  --ground:
+    radial-gradient(1100px 640px at 4% -8%, rgb(1 144 155 / 13%), transparent 62%),
+    radial-gradient(900px 560px at 102% 2%, rgb(208 165 95 / 17%), transparent 58%),
+    radial-gradient(1000px 760px at 55% 112%, rgb(69 96 135 / 12%), transparent 62%),
+    #eef3f5;
+  --glass: rgb(255 255 255 / 64%);
+  --glass-strong: rgb(255 255 255 / 80%);
+  --glass-subtle: rgb(255 255 255 / 50%);
+  --glass-solid: #f8fafb;
+  --glass-border: rgb(255 255 255 / 85%);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 95%);
+  --glass-shadow: 0 1px 2px rgb(10 24 58 / 4%), 0 10px 30px -12px rgb(10 24 58 / 16%);
+  --glass-blur: 12px;
+  /* State icons: darker than --info/--success/--warning so they stay visible on their tint. */
+  --tone-info: #3a5378;
+  --tone-success: #016a73;
+  --tone-warning: #7a5a1e;
+  --tone-error: #b42318;
+}
+
+.dark .theme-glass {
+  --ground-base: #0a183a;
+  --ground:
+    radial-gradient(1100px 640px at 0% -10%, rgb(1 144 155 / 22%), transparent 60%),
+    radial-gradient(900px 600px at 100% 0%, rgb(69 96 135 / 30%), transparent 60%),
+    radial-gradient(900px 700px at 60% 115%, rgb(208 165 95 / 10%), transparent 60%),
+    #0a183a;
+  --glass: rgb(27 44 87 / 56%);
+  --glass-strong: rgb(19 35 77 / 78%);
+  --glass-subtle: rgb(255 255 255 / 4.5%);
+  --glass-solid: #13234d;
+  --glass-border: rgb(255 255 255 / 10%);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 8%);
+  --glass-shadow: 0 1px 2px rgb(0 0 0 / 20%), 0 14px 36px -14px rgb(0 0 0 / 55%);
+  --tone-info: #b4c3d3;
+  --tone-success: #6fd6dd;
+  --tone-warning: #efc977;
+  --tone-error: #fda29b;
+}
+
+/* Glass surfaces. Blur is dropped (solid fill instead) where the browser can't blur or the
+   user asks for less transparency. Keep at most ~3 blurred layers on screen; never blur rows
+   or tiles inside a scrolling list (use glass-subtle there). */
+@utility glass {
+  background-color: var(--glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: var(--glass-solid);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@utility glass-strong {
+  background-color: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  @supports not (backdrop-filter: blur(1px)) {
+    background-color: var(--glass-solid);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+/* Tinted, never blurred: tiles inside a card, table headers, list rows. */
+@utility glass-subtle {
+  background-color: var(--glass-subtle);
+  border: 1px solid var(--color-border);
+}
+
+/* Shared components in the glass look. Unlayered on purpose so they win over the components'
+   own utility classes; shape, fill, icon and card padding change, never layout. */
+.theme-glass [data-slot="card"] {
+  --card-spacing: 1.5rem;
+  border-radius: calc(var(--radius) * 1.6);
+  background-color: var(--glass);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), var(--glass-shadow);
+  --tw-ring-shadow: 0 0 #0000;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+}
+.theme-glass [data-slot="card"][data-size="sm"] {
+  --card-spacing: 1rem;
+}
+@media (max-width: 767px) {
+  .theme-glass [data-slot="card"] {
+    --card-spacing: 1rem;
+  }
+}
+/* Sheets, dialogs and menus float above glass cards: the stronger glass. */
+.theme-glass :is(
+    [data-slot="dialog-content"],
+    [data-slot="alert-dialog-content"],
+    [data-slot="sheet-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="dropdown-menu-sub-content"],
+    [data-slot="select-content"]
+  ) {
+  background-color: var(--glass-strong);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .theme-glass :is([data-slot="card"], [data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="select-content"]) {
+    background-color: var(--glass-solid);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .theme-glass :is([data-slot="card"], [data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="select-content"]) {
+    background-color: var(--glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+.theme-glass [data-slot="notice"] {
+  border-width: 1px;
+  border-radius: calc(var(--radius) * 1.4);
+}
+.theme-glass [data-slot="notice"] > svg {
+  box-sizing: content-box;
+  padding: 6px;
+  margin: -4px 0;
+  border-radius: 10px;
+  color: var(--tone, currentColor);
+  background-color: color-mix(in srgb, var(--tone, currentColor) 14%, transparent);
+}
+.theme-glass [data-slot="notice"][data-variant="info"] { --tone: var(--tone-info); }
+.theme-glass [data-slot="notice"][data-variant="success"] { --tone: var(--tone-success); }
+.theme-glass [data-slot="notice"][data-variant="warning"] { --tone: var(--tone-warning); }
+.theme-glass [data-slot="notice"][data-variant="error"] { --tone: var(--tone-error); }
+.theme-glass [data-slot="empty-state"] {
+  border-radius: calc(var(--radius) * 1.6);
+}
+.theme-glass [data-slot="empty-state"] > span:first-child {
+  padding: 12px;
+  border-radius: 16px;
+  background-color: var(--glass-subtle);
+  border: 1px solid var(--color-border);
+}
+
 /* Type scale from the style guide's hierarchy page (sizes there are proportions only). */
 @utility heading-1 {
   @apply text-2xl font-medium tracking-[0.04em] uppercase md:text-3xl;
@@ -188,5 +345,10 @@
   body {
     /* Style guide: Poppins with +20 tracking. */
     @apply bg-background tracking-[0.02em] text-foreground;
+  }
+  /* Static, never animated: the glass needs something soft behind it. */
+  body.theme-glass {
+    background: var(--ground);
+    min-height: 100dvh;
   }
 }

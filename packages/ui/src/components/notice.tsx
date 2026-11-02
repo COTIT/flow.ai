@@ -52,6 +52,7 @@ function Notice({
   return (
     <div
       role={live ? (variant === "error" ? "alert" : "status") : undefined}
+      data-slot="notice"
       data-variant={variant}
       className={cn(
         "flex gap-3 rounded-lg border border-l-4 p-4 text-foreground",

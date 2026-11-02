@@ -75,3 +75,60 @@ export async function expectNoHorizontalScroll(page: Page) {
   }))
   expect(scroll, "page scrolls sideways").toBeLessThanOrEqual(width)
 }
+
+/**
+ * Every visible control is at least `min` px wide and tall (touch screens; the till asks for 44).
+ * `within` limits the check to part of the page, e.g. `{ within: "main" }`.
+ */
+export async function expectTapTargets(
+  page: Page,
+  { min = 44, within = "body" }: { min?: number; within?: string } = {}
+) {
+  const small = await page.locator(within).first().evaluate((root, min) => {
+    const controls = root.querySelectorAll<HTMLElement>(
+      'a[href], button, input:not([type="hidden"]), select, textarea, summary, [role="button"], [role="tab"], [role="checkbox"], [role="switch"], [role="menuitem"]'
+    )
+    return [...controls].flatMap((el) => {
+      const box = el.getBoundingClientRect()
+      const shown = box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== "hidden"
+      if (!shown || (box.width >= min && box.height >= min)) return []
+      const name = el.getAttribute("aria-label") || el.textContent?.trim() || el.tagName.toLowerCase()
+      return [`${name} (${Math.round(box.width)}×${Math.round(box.height)})`]
+    })
+  }, min)
+  expect(small, `tap targets under ${min}px`).toEqual([])
+}
+
+/**
+ * Nothing on the page moved after it first drew (cumulative layout shift, shifts right after
+ * a tap or key press excluded). Call once the page has settled.
+ */
+export async function expectNoLayoutShift(page: Page, max = 0.01) {
+  const shift = await page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        let sum = 0
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries() as (PerformanceEntry & {
+            value: number
+            hadRecentInput: boolean
+          })[])
+            if (!entry.hadRecentInput) sum += entry.value
+        })
+        observer.observe({ type: "layout-shift", buffered: true })
+        setTimeout(() => {
+          observer.disconnect()
+          resolve(sum)
+        }, 50)
+      })
+  )
+  expect(shift, "layout shift (CLS)").toBeLessThanOrEqual(max)
+}
+
+/**
+ * No animated island is on the page (see `island` in @genesy/ui). Use with
+ * `test.use({ reducedMotion: "reduce" })` to prove nothing animates, or is fetched, there.
+ */
+export async function expectNoMotion(page: Page) {
+  await expect(page.locator("[data-motion]"), "animated islands").toHaveCount(0)
+}

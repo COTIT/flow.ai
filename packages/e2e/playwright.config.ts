@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test"
 
 import { APP_KEY, MOCK_ORIGIN, PORT_OFFSET } from "./mock/fixtures.mjs"
-import { projectsFor } from "./src/projects"
+import { projectsFor, viewports } from "./src/projects"
 
 const ci = Boolean(process.env.CI)
 const shopPort = 3200 + PORT_OFFSET
@@ -33,8 +33,10 @@ export default defineConfig({
       ...p,
       use: { ...p.use, serviceWorkers: "block" as const },
     })),
-    ...projectsFor("till", { testDir: "tests/till", baseURL: till }),
+    ...projectsFor("till", { testDir: "tests/till", baseURL: till, tablets: true }),
     ...projectsFor("landing", { testDir: "tests/landing", baseURL: landing }),
+    // The shared checks themselves (tap targets, layout shift, motion), on inline pages.
+    { name: "helpers", testDir: "tests/helpers", use: viewports.desktop },
   ],
   webServer: [
     {

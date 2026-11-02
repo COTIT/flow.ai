@@ -15,6 +15,9 @@ function tokens(selector: string): Record<string, string> {
 
 const light = tokens(":root")
 const dark = tokens("\\.dark")
+// Office, shop and till put `theme-glass` on <body>; landing and field never do.
+const glassLight = tokens("\\.theme-glass")
+const glassDark = tokens("\\.dark \\.theme-glass")
 
 /** WCAG 2.2 contrast ratio of two `#rrggbb` colours. */
 function contrast(a: string, b: string): number {
@@ -65,5 +68,59 @@ describe("theme tokens", () => {
     it.each(pairs)("%s on %s meets WCAG AA", (fg, bg) => {
       expect(contrast(theme[fg]!, theme[bg]!)).toBeGreaterThanOrEqual(4.5)
     })
+  })
+})
+
+describe("glass theme tokens", () => {
+  const names = [
+    "radius",
+    "ground",
+    "ground-base",
+    "glass",
+    "glass-strong",
+    "glass-subtle",
+    "glass-solid",
+    "glass-border",
+    "glass-highlight",
+    "glass-shadow",
+    "glass-blur",
+  ]
+
+  it("light sets every glass token", () => {
+    expect(names.filter((n) => !(n in glassLight))).toEqual([])
+  })
+
+  it("dark sets every colour light sets", () => {
+    const colours = Object.keys(glassLight).filter(
+      (k) => !["radius", "glass-blur"].includes(k)
+    )
+    expect(colours.filter((k) => !(k in glassDark))).toEqual([])
+  })
+
+  it("rounds corners more than the base theme", () => {
+    expect(glassLight.radius).toBe("0.75rem")
+  })
+
+  it("keeps blur within the speed budget (16px max)", () => {
+    expect(parseFloat(glassLight["glass-blur"]!)).toBeLessThanOrEqual(16)
+  })
+
+  // Text must stay readable where blur is off (no support, or "reduce transparency").
+  describe.each([
+    ["light", light, glassLight],
+    ["dark", dark, glassDark],
+  ])("%s", (_, base, glass) => {
+    it.each(["foreground", "muted-foreground", "card-foreground"])(
+      "%s on the solid glass fallback meets WCAG AA",
+      (fg) => {
+        expect(contrast(base[fg]!, glass["glass-solid"]!)).toBeGreaterThanOrEqual(4.5)
+      }
+    )
+    it.each(["foreground", "muted-foreground"])(
+      "%s on the ground colour meets WCAG AA",
+      (fg) => {
+        expect(contrast(base[fg]!, glass["ground-base"]!)).toBeGreaterThanOrEqual(4.5)
+      }
+    )
   })
 })
