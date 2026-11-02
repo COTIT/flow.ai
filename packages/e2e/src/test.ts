@@ -90,10 +90,18 @@ export async function expectTapTargets(
     )
     return [...controls].flatMap((el) => {
       const box = el.getBoundingClientRect()
+      // Hidden from users (e.g. a Select's form input behind its trigger): not a target.
+      if (el.closest('[aria-hidden="true"], [inert]')) return []
       const shown = box.width > 0 && box.height > 0 && getComputedStyle(el).visibility !== "hidden"
-      if (!shown || (box.width >= min && box.height >= min)) return []
+      // A control may widen its hit area with an absolutely placed ::after (switch, checkbox).
+      const after = getComputedStyle(el, "::after")
+      const grow = (a: string, b: string) =>
+        after.content !== "none" && after.position === "absolute" ? -(parseFloat(a) || 0) - (parseFloat(b) || 0) : 0
+      const width = Math.max(box.width, box.width + grow(after.left, after.right))
+      const height = Math.max(box.height, box.height + grow(after.top, after.bottom))
+      if (!shown || (width >= min && height >= min)) return []
       const name = el.getAttribute("aria-label") || el.textContent?.trim() || el.tagName.toLowerCase()
-      return [`${name} (${Math.round(box.width)}×${Math.round(box.height)})`]
+      return [`${name} (${Math.round(width)}×${Math.round(height)})`]
     })
   }, min)
   expect(small, `tap targets under ${min}px`).toEqual([])

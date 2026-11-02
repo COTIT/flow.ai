@@ -338,51 +338,53 @@
 
 /* Controls at the mockup's sizes (glass.css .btn, .input, .badge, .tbl, .skel, .dialog).
    Each size is matched on the component's own size class, so a caller's explicit size wins.
+   Buttons are found by `group/button` (every buttonVariants element has it, also when a menu
+   or dialog trigger renders one and replaces its data-slot).
    Colours skip :hover, :focus-visible and aria-invalid so the components' states still show. */
-.theme-glass [data-slot="button"]:is(.h-8) {
+.theme-glass .group\/button:is(.h-8) {
   height: 40px;
   padding-inline: 16px;
   gap: 8px;
   border-radius: 12px;
   font-size: 14px;
 }
-.theme-glass [data-slot="button"]:is(.h-7, .h-6) {
+.theme-glass .group\/button:is(.h-7, .h-6) {
   height: 34px;
   padding-inline: 12px;
   gap: 6px;
   border-radius: 10px;
   font-size: 13px;
 }
-.theme-glass [data-slot="button"]:is(.h-9) {
+.theme-glass .group\/button:is(.h-9) {
   height: 52px;
   padding-inline: 22px;
   gap: 8px;
   border-radius: 14px;
   font-size: 16px;
 }
-.theme-glass [data-slot="button"]:is(.size-8) {
+.theme-glass .group\/button:is(.size-8) {
   width: 40px;
   height: 40px;
   border-radius: 12px;
 }
-.theme-glass [data-slot="button"]:is(.size-7, .size-6) {
+.theme-glass .group\/button:is(.size-7, .size-6) {
   width: 34px;
   height: 34px;
   border-radius: 10px;
 }
-.theme-glass [data-slot="button"]:is(.size-9) {
+.theme-glass .group\/button:is(.size-9) {
   width: 52px;
   height: 52px;
   border-radius: 14px;
 }
-.theme-glass [data-slot="button"]:is(.h-8, .h-9, .size-8, .size-9) svg:not([class*="size-"]) {
+.theme-glass .group\/button:is(.h-8, .h-9, .size-8, .size-9) svg:not([class*="size-"]) {
   width: 18px;
   height: 18px;
 }
-.theme-glass [data-slot="button"].bg-primary {
+.theme-glass .group\/button.bg-primary {
   box-shadow: 0 6px 16px -8px rgb(10 24 58 / 50%);
 }
-.theme-glass [data-slot="button"].border-border:not(:hover, :focus-visible, [aria-expanded="true"]) {
+.theme-glass .group\/button.border-border:not(:hover, :focus-visible, [aria-expanded="true"]) {
   background-color: var(--field);
   border-color: var(--field-border);
 }
@@ -393,9 +395,15 @@
   height: 34px;
   border-radius: 10px;
 }
-.theme-glass :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="textarea"]) {
+/* Only where the caller kept the default padding, so a field with an icon can pad for it. */
+.theme-glass :is([data-slot="input"], [data-slot="textarea"]):not([class*="pl-"], [class*="pr-"]) {
   padding-inline: 14px;
+}
+.theme-glass :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="textarea"]) {
   border-radius: 12px;
+}
+.theme-glass [data-slot="select-trigger"].pl-2\.5.pr-2 {
+  padding-inline: 14px;
 }
 .theme-glass [data-slot="textarea"] {
   min-height: 96px;
@@ -405,13 +413,22 @@
   background-color: var(--field);
   border-color: var(--field-border);
 }
-/* Phones: every button is a 44 px tap target, even where the mockup draws 34 or 40. */
+/* Phones: every control is a 44 px tap target, even where the mockup draws 34 or 40
+   (md and up keep the drawn sizes). */
 @media (max-width: 767px) {
-  .theme-glass :is([data-slot="button"], [data-slot="select-trigger"]) {
+  .theme-glass :is(.group\/button, .group\/toggle, [data-slot="tabs-trigger"], [data-slot="select-trigger"], [data-slot="input"]) {
     min-height: 44px;
   }
-  .theme-glass [data-slot="button"]:is(.size-6, .size-7, .size-8, .size-9) {
+  .theme-glass :is(.group\/button:is(.size-6, .size-7, .size-8, .size-9), .group\/toggle, [data-slot="tabs-trigger"]) {
     min-width: 44px;
+  }
+  .theme-glass [data-slot="tabs-list"] {
+    height: auto;
+  }
+  /* Switches and checkboxes keep their drawn size; their invisible hit area (::after) grows. */
+  .theme-glass :is([data-slot="switch"], [data-slot="checkbox"])::after {
+    inset-inline: min(-0.75rem, calc((100% - 44px) / 2));
+    inset-block: min(-0.5rem, calc((100% - 44px) / 2));
   }
 }
 

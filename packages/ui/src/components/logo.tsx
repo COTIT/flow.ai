@@ -10,7 +10,14 @@ type LogoProps = React.ComponentProps<"svg"> & {
 }
 
 /** Full Genesy logo. Keep clear space of 20% of its height around it. */
+/** A prefix unique to this copy: the gradients are referenced by id, and a copy hidden with
+    `display: none` (a sidebar on a phone) would otherwise blank the visible ones. */
+function useGradientId(name: string) {
+  return `${name}-${React.useId().replace(/[^a-zA-Z0-9_-]/g, "")}`
+}
+
 function Logo({ tone = "auto", className, ...props }: LogoProps) {
+  const g = useGradientId("genesy-logo")
   const text =
     tone === "onDark" ? "fill-white" : "fill-[#0a183a] dark:fill-white"
   return (
@@ -23,7 +30,7 @@ function Logo({ tone = "auto", className, ...props }: LogoProps) {
     >
       <defs>
         <linearGradient
-          id="genesy-logo-linear-gradient"
+          id={`${g}`}
           x1="222.7"
           y1="146.12"
           x2="291.38"
@@ -50,34 +57,34 @@ function Logo({ tone = "auto", className, ...props }: LogoProps) {
           <stop offset="1" stopColor="#956e46" />
         </linearGradient>
         <linearGradient
-          id="genesy-logo-linear-gradient-2"
+          id={`${g}-2`}
           x1="708.48"
           x2="777.15"
-          href="#genesy-logo-linear-gradient"
+          href={`#${g}`}
         />
         <linearGradient
-          id="genesy-logo-linear-gradient-3"
+          id={`${g}-3`}
           x1="61.07"
           y1="15.34"
           x2="210.17"
           y2="15.34"
-          href="#genesy-logo-linear-gradient"
+          href={`#${g}`}
         />
         <linearGradient
-          id="genesy-logo-linear-gradient-4"
+          id={`${g}-4`}
           x1="32.32"
           y1="80.25"
           x2="181.42"
           y2="80.25"
-          href="#genesy-logo-linear-gradient"
+          href={`#${g}`}
         />
         <linearGradient
-          id="genesy-logo-linear-gradient-5"
+          id={`${g}-5`}
           x1="0"
           y1="143.29"
           x2="149.1"
           y2="143.29"
-          href="#genesy-logo-linear-gradient"
+          href={`#${g}`}
         />
       </defs>
       <path
@@ -158,29 +165,29 @@ function Logo({ tone = "auto", className, ...props }: LogoProps) {
         d="m683.36,159.15c-1.82,0-3.53-.32-5.14-.97-1.6-.65-2.97-1.53-4.11-2.64-1.14-1.12-2.04-2.46-2.7-4.02-.66-1.57-.99-3.23-.99-5s.33-3.43.99-5c.66-1.56,1.56-2.91,2.7-4.02,1.14-1.12,2.51-2,4.11-2.64,1.6-.65,3.31-.97,5.14-.97s3.52.32,5.11.96c1.59.64,2.96,1.52,4.09,2.64,1.13,1.12,2.02,2.46,2.68,4.02.65,1.56.98,3.23.98,5.01s-.33,3.45-.98,5.01c-.66,1.56-1.55,2.9-2.68,4.02-1.13,1.12-2.49,2-4.09,2.64-1.6.64-3.3.96-5.11.96Zm-5.42-7.16c1.46,1.48,3.27,2.22,5.42,2.22s3.95-.73,5.39-2.2c1.44-1.47,2.16-3.3,2.16-5.5s-.72-4.02-2.16-5.49c-1.44-1.46-3.24-2.2-5.39-2.2s-3.96.74-5.42,2.21c-1.46,1.47-2.2,3.3-2.2,5.47s.73,4,2.2,5.48Z"
       />
       <rect
-        fill="url(#genesy-logo-linear-gradient)"
+        fill={`url(#${g})`}
         x="222.7"
         y="143.64"
         width="68.68"
         height="4.97"
       />
       <rect
-        fill="url(#genesy-logo-linear-gradient-2)"
+        fill={`url(#${g}-2)`}
         x="708.48"
         y="143.64"
         width="68.68"
         height="4.97"
       />
       <polygon
-        fill="url(#genesy-logo-linear-gradient-3)"
+        fill={`url(#${g}-3)`}
         points="61.07 30.68 61.07 14.12 72.13 0 210.17 0 210.17 16.56 199.11 30.68 61.07 30.68"
       />
       <polygon
-        fill="url(#genesy-logo-linear-gradient-4)"
+        fill={`url(#${g}-4)`}
         points="32.32 95.59 32.32 79.03 43.38 64.91 181.42 64.91 181.42 81.47 170.36 95.59 32.32 95.59"
       />
       <polygon
-        fill="url(#genesy-logo-linear-gradient-5)"
+        fill={`url(#${g}-5)`}
         points="0 158.63 0 142.07 11.06 127.95 149.1 127.95 149.1 144.51 138.04 158.63 0 158.63"
       />
     </svg>
@@ -189,6 +196,7 @@ function Logo({ tone = "auto", className, ...props }: LogoProps) {
 
 /** The gold mark alone: icon, favicon or design element. */
 function LogoIcon({ className, ...props }: React.ComponentProps<"svg">) {
+  const g = useGradientId("genesy-icon")
   return (
     <svg
       viewBox="0 0 385.51 290.97"
@@ -199,7 +207,7 @@ function LogoIcon({ className, ...props }: React.ComponentProps<"svg">) {
     >
       <defs>
         <linearGradient
-          id="genesy-icon-linear-gradient"
+          id={`${g}`}
           x1="112.02"
           y1="28.14"
           x2="385.51"
@@ -226,32 +234,32 @@ function LogoIcon({ className, ...props }: React.ComponentProps<"svg">) {
           <stop offset="1" stopColor="#956e46" />
         </linearGradient>
         <linearGradient
-          id="genesy-icon-linear-gradient-2"
+          id={`${g}-2`}
           x1="59.29"
           y1="147.21"
           x2="332.78"
           y2="147.21"
-          href="#genesy-icon-linear-gradient"
+          href={`#${g}`}
         />
         <linearGradient
-          id="genesy-icon-linear-gradient-3"
+          id={`${g}-3`}
           x1="0"
           y1="262.83"
           x2="273.5"
           y2="262.83"
-          href="#genesy-icon-linear-gradient"
+          href={`#${g}`}
         />
       </defs>
       <polygon
-        fill="url(#genesy-icon-linear-gradient)"
+        fill={`url(#${g})`}
         points="112.02 56.28 112.02 25.9 132.31 0 385.51 0 385.51 30.38 365.22 56.28 112.02 56.28"
       />
       <polygon
-        fill="url(#genesy-icon-linear-gradient-2)"
+        fill={`url(#${g}-2)`}
         points="59.29 175.34 59.29 144.97 79.58 119.07 332.78 119.07 332.78 149.44 312.49 175.34 59.29 175.34"
       />
       <polygon
-        fill="url(#genesy-icon-linear-gradient-3)"
+        fill={`url(#${g}-3)`}
         points="0 290.97 0 260.6 20.29 234.7 273.5 234.7 273.5 265.07 253.2 290.97 0 290.97"
       />
     </svg>
