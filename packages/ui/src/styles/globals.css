@@ -339,50 +339,50 @@
 /* Controls at the mockup's sizes (glass.css .btn, .input, .badge, .tbl, .skel, .dialog).
    Each size is matched on the component's own size class, so a caller's explicit size wins.
    Colours skip :hover, :focus-visible and aria-invalid so the components' states still show. */
-.theme-glass [data-slot="button"]:is(.h-8) {
+.theme-glass :is([data-slot="button"], [class~="group/button"]):is(.h-8) {
   height: 40px;
   padding-inline: 16px;
   gap: 8px;
   border-radius: 12px;
   font-size: 14px;
 }
-.theme-glass [data-slot="button"]:is(.h-7, .h-6) {
+.theme-glass :is([data-slot="button"], [class~="group/button"]):is(.h-7, .h-6) {
   height: 34px;
   padding-inline: 12px;
   gap: 6px;
   border-radius: 10px;
   font-size: 13px;
 }
-.theme-glass [data-slot="button"]:is(.h-9) {
+.theme-glass :is([data-slot="button"], [class~="group/button"]):is(.h-9) {
   height: 52px;
   padding-inline: 22px;
   gap: 8px;
   border-radius: 14px;
   font-size: 16px;
 }
-.theme-glass [data-slot="button"]:is(.size-8) {
+.theme-glass :is([data-slot="button"], [class~="group/button"]):is(.size-8) {
   width: 40px;
   height: 40px;
   border-radius: 12px;
 }
-.theme-glass [data-slot="button"]:is(.size-7, .size-6) {
+.theme-glass :is([data-slot="button"], [class~="group/button"]):is(.size-7, .size-6) {
   width: 34px;
   height: 34px;
   border-radius: 10px;
 }
-.theme-glass [data-slot="button"]:is(.size-9) {
+.theme-glass :is([data-slot="button"], [class~="group/button"]):is(.size-9) {
   width: 52px;
   height: 52px;
   border-radius: 14px;
 }
-.theme-glass [data-slot="button"]:is(.h-8, .h-9, .size-8, .size-9) svg:not([class*="size-"]) {
+.theme-glass :is([data-slot="button"], [class~="group/button"]):is(.h-8, .h-9, .size-8, .size-9) svg:not([class*="size-"]) {
   width: 18px;
   height: 18px;
 }
-.theme-glass [data-slot="button"].bg-primary {
+.theme-glass :is([data-slot="button"], [class~="group/button"]).bg-primary {
   box-shadow: 0 6px 16px -8px rgb(10 24 58 / 50%);
 }
-.theme-glass [data-slot="button"].border-border:not(:hover, :focus-visible, [aria-expanded="true"]) {
+.theme-glass :is([data-slot="button"], [class~="group/button"]).border-border:not(:hover, :focus-visible, [aria-expanded="true"]) {
   background-color: var(--field);
   border-color: var(--field-border);
 }
@@ -407,10 +407,10 @@
 }
 /* Phones: every button is a 44 px tap target, even where the mockup draws 34 or 40. */
 @media (max-width: 767px) {
-  .theme-glass :is([data-slot="button"], [data-slot="select-trigger"]) {
+  .theme-glass :is(:is([data-slot="button"], [class~="group/button"]), [data-slot="select-trigger"]) {
     min-height: 44px;
   }
-  .theme-glass [data-slot="button"]:is(.size-6, .size-7, .size-8, .size-9) {
+  .theme-glass :is([data-slot="button"], [class~="group/button"]):is(.size-6, .size-7, .size-8, .size-9) {
     min-width: 44px;
   }
 }

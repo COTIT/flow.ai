@@ -132,3 +132,12 @@ describe("glass theme tokens", () => {
     )
   })
 })
+
+describe("glass button sizes reach links styled with buttonVariants()", () => {
+  // `<Link className={buttonVariants()}>` has no data-slot, only the `group/button` class.
+  it("every [data-slot=button] rule also matches the group/button class", () => {
+    const rules = [...css.matchAll(/^[^\n{]*\[data-slot="button"\][^\n{]*\{/gm)].map((m) => m[0])
+    expect(rules.length).toBeGreaterThan(0)
+    for (const rule of rules) expect(rule, rule).toContain('[class~="group/button"]')
+  })
+})
