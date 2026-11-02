@@ -134,10 +134,10 @@ describe("glass theme tokens", () => {
 })
 
 describe("glass button sizes reach links styled with buttonVariants()", () => {
-  // `<Link className={buttonVariants()}>` has no data-slot, only the `group/button` class.
-  it("every [data-slot=button] rule also matches the group/button class", () => {
-    const rules = [...css.matchAll(/^[^\n{]*\[data-slot="button"\][^\n{]*\{/gm)].map((m) => m[0])
-    expect(rules.length).toBeGreaterThan(0)
-    for (const rule of rules) expect(rule, rule).toContain('[class~="group/button"]')
+  // `<Link className={buttonVariants()}>` and base-ui `render` triggers have no data-slot,
+  // only the `group/button` class, so the sizes must key on that class.
+  it("button size rules key on the group/button class, never on data-slot alone", () => {
+    expect(css).not.toMatch(/\.theme-glass[^{]*\[data-slot="button"\]/)
+    expect(css.match(/\.theme-glass [^{]*\.group\\\/button/g)?.length ?? 0).toBeGreaterThan(5)
   })
 })

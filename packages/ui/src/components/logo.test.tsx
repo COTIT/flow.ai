@@ -17,6 +17,21 @@ describe("Logo", () => {
     )
   })
 
+  it("gives every copy its own gradients, so a hidden copy cannot blank a visible one", () => {
+    const html = renderToStaticMarkup(
+      <>
+        <Logo />
+        <Logo />
+        <LogoIcon />
+      </>
+    )
+    const ids = [...html.matchAll(/ id="([^"]+)"/g)].map((m) => m[1])
+    expect(ids.length).toBeGreaterThan(0)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const [, ref] of html.matchAll(/(?:url\(#|href="#)([^)"]+)/g))
+      expect(ids).toContain(ref)
+  })
+
   it("never renders below the style guide's 100 px minimum", () => {
     expect(renderToStaticMarkup(<Logo />)).toContain("min-w-[100px]")
   })

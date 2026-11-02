@@ -20,6 +20,22 @@ test("tap targets: passes 44 px controls, names the small ones", async ({ page }
   await expect(expectTapTargets(page)).rejects.toThrow(/Tiny/)
 })
 
+test("tap targets: skips controls hidden from users", async ({ page }) => {
+  await page.setContent(
+    `<button style="width:48px;height:48px">Pick</button><input aria-hidden="true" tabindex="-1" style="width:1px;height:1px">`
+  )
+  await expectTapTargets(page)
+})
+
+test("tap targets: counts a hit area widened by ::after", async ({ page }) => {
+  await page.setContent(
+    `<style>.hit{position:relative;width:32px;height:18px}.hit::after{content:"";position:absolute;inset:-13px -6px}</style><button class="hit">On</button>`
+  )
+  await expectTapTargets(page)
+  await page.setContent(`<button style="width:32px;height:18px">Off</button>`)
+  await expect(expectTapTargets(page)).rejects.toThrow(/Off/)
+})
+
 test("tap targets: can be limited to part of the page", async ({ page }) => {
   await page.setContent(
     `<nav><button style="width:20px;height:20px">x</button></nav><main><button style="width:64px;height:64px">Pay</button></main>`

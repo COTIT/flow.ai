@@ -3,8 +3,8 @@ import type { Page } from "@playwright/test"
 import { expect, expectTapTargets, test } from "../../src/test"
 
 // The glass sizes from docs/design/web-redesign (glass.css), measured in the real office CSS
-// bundle. Shared parts are found by `data-slot`, so a probe with the same slot and classes as
-// the component exercises exactly the shipped rule.
+// bundle. Shared parts are found by `data-slot` (buttons by `group/button`), so a probe with the
+// same slot and classes as the component exercises exactly the shipped rule.
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 768
 
@@ -55,7 +55,7 @@ test("buttons and fields take the glass sizes", async ({ page }) => {
 
   const sm = await probe(
     page,
-    `<button data-slot="button" data-probe class="h-7 px-2.5">Small</button>`,
+    `<button data-probe class="group/button h-7 px-2.5">Small</button>`,
     ["border-radius", "font-size"]
   )
   expect(sm.height).toBe(isPhone(page) ? 44 : 34)
@@ -64,7 +64,7 @@ test("buttons and fields take the glass sizes", async ({ page }) => {
 
   const lg = await probe(
     page,
-    `<button data-slot="button" data-probe class="h-9 px-2.5">Large</button>`,
+    `<button data-probe class="group/button h-9 px-2.5">Large</button>`,
     ["border-radius", "font-size"]
   )
   expect(lg.height).toBe(52)
@@ -73,7 +73,7 @@ test("buttons and fields take the glass sizes", async ({ page }) => {
 
   const icon = await probe(
     page,
-    `<button data-slot="button" data-probe class="size-8">x</button>`,
+    `<button data-probe class="group/button size-8">x</button>`,
     []
   )
   expect([icon.width, icon.height]).toEqual(isPhone(page) ? [44, 44] : [40, 40])
@@ -91,6 +91,15 @@ test("buttons and fields take the glass sizes", async ({ page }) => {
     "border-radius",
   ])
   expect(area["min-height"]).toBe("96px")
+  // A field padded for its icon keeps that padding.
+  const search = await probe(
+    page,
+    `<input data-slot="input" data-probe class="h-10 pl-2.5">`,
+    ["padding-left", "padding-right"]
+  )
+  // 10 px is its own pl-2.5; the default-field rule would have made it 14 px.
+  expect(search["padding-left"]).toBe("10px")
+  expect(search.height).toBe(isPhone(page) ? 44 : 40)
   expect(area["border-radius"]).toBe("12px")
 })
 
@@ -180,6 +189,37 @@ test("a dialog is centred on a desktop and a bottom sheet on a phone", async ({ 
     expect(Math.round(dialog.top + dialog.height / 2)).toBe(view.height / 2)
     expect(dialog["border-bottom-left-radius"]).toBe("26px")
   }
+})
+
+test("phone: fields, toggles, tabs, switches and checkboxes are 44 px targets; desktop keeps the drawn sizes", async ({ page }) => {
+  await glassLogin(page)
+  const phone = isPhone(page)
+  const field = await probe(page, `<input data-slot="input" data-probe class="h-10 pl-2.5">`, [])
+  expect(field.height).toBe(phone ? 44 : 40)
+  const toggle = await probe(page, `<button data-probe class="group/toggle h-7 min-w-7 px-2.5">B</button>`, [])
+  expect(toggle.height).toBe(phone ? 44 : 28)
+  const tab = await probe(
+    page,
+    `<div data-slot="tabs-list" class="inline-flex h-8"><button data-slot="tabs-trigger" data-probe class="h-[calc(100%-1px)] px-1.5">Edit</button></div>`,
+    []
+  )
+  expect(tab.height).toBe(phone ? 44 : 31)
+  // The switch keeps its drawn track; only its invisible hit area grows.
+  const hit = await page.evaluate(() => {
+    const el = document.createElement("button")
+    el.dataset.slot = "switch"
+    el.className = "relative inline-flex after:absolute after:-inset-x-3 after:-inset-y-2"
+    el.style.cssText = "width:32px;height:18.4px;padding:0"
+    document.body.append(el)
+    const box = el.getBoundingClientRect()
+    const after = getComputedStyle(el, "::after")
+    const out = { width: box.width, top: after.top, left: after.left }
+    el.remove()
+    return out
+  })
+  expect(hit.width).toBe(32)
+  expect(hit.left).toBe("-12px")
+  expect(parseFloat(hit.top)).toBeCloseTo(phone ? -12.8 : -8, 1)
 })
 
 test.describe("phone", () => {
