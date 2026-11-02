@@ -94,9 +94,10 @@
   }
 }
 
-/* Mockup sizes for shadcn Buttons: unlayered, so they beat the Button's own height utilities. */
-.btn-64 { height: 64px; border-radius: 18px; font-size: 18px; }
-.btn-44 { height: 44px; min-width: 44px; }
+/* Mockup sizes for shadcn Buttons: unlayered, and specific enough to beat both the Button's own
+   height utilities and the shared `.theme-glass [data-slot="button"]` sizes (40 px). */
+.till-app.theme-glass [data-slot="button"].btn-64 { height: 64px; border-radius: 18px; font-size: 18px; }
+.till-app.theme-glass [data-slot="button"].btn-44 { height: 44px; min-width: 44px; }
 
 /* The till never animates (README §3): no transition or animation on anything, sale actions
    included. Keep this the last rule; scripts/no-motion.mjs looks for it in the build. */
