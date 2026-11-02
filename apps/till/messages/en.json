@@ -5,10 +5,15 @@
   },
   "setup": {
     "title": "Set up this till",
-    "hint": "Enter the workspace id and the device key shown once in office when the register was created.",
-    "workspace": "Workspace id",
-    "key": "Device key",
-    "submit": "Save"
+    "hint": "Ask the office for a pairing code for this till, then type the shop name and the code.",
+    "workspace": "Shop name",
+    "submit": "Pair this till",
+    "code": "Pairing code",
+    "wrong": "The shop name and code don't match. Check both and try again.",
+    "used": "This code has expired or was already used. Ask the office for a new one.",
+    "locked": "Too many tries. Wait 15 minutes, then try again.",
+    "failed": "Couldn't reach the server. Check the connection and try again.",
+    "paired": "Paired. Opening the login…"
   },
   "login": {
     "title": "Who is selling?",
@@ -19,8 +24,8 @@
     "wrongPin": "Wrong PIN.",
     "locked": "Too many wrong PINs. Try again later.",
     "pinFormat": "The PIN is 4 to 8 digits.",
-    "keyRefused": "This device's key is no longer accepted. Set up the till again.",
-    "setupAgain": "Set up again",
+    "keyRefused": "This till was disconnected or paired elsewhere. Pair it again with a new code from the office.",
+    "setupAgain": "Pair again",
     "expired": "Your session ended. Log in again to continue.",
     "usersFailed": "Couldn't load the till users. Check the connection and reload.",
     "noUsers": "No till users yet. Ask the office to add one."

@@ -4,12 +4,18 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{AppState, modules::till::handlers};
 
+/// Pairing a till: no token, behind the IP rate limit.
+pub fn public() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(handlers::pair))
+}
+
 /// Office routes (member bearer + `cashregister.*`), device routes (register device key) and
 /// till routes (till session token).
 pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::list_registers, handlers::create_register))
         .routes(routes!(handlers::rotate_key))
+        .routes(routes!(handlers::pairing))
         .routes(routes!(handlers::list_users, handlers::create_user))
         .routes(routes!(handlers::update_user))
         .routes(routes!(handlers::login_users))

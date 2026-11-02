@@ -15,6 +15,7 @@ use crate::{
         app_key::AppKey,
         json::ValidatedJson,
         list::{Page, Paginated},
+        rate_limit::ClientAddr,
         response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
@@ -22,9 +23,9 @@ use crate::{
         app_keys::dto::ListQuery,
         till::{
             dto::{
-                CreateRegisterRequest, CreateTillUserRequest, RegisterKeyed, RegisterResource,
-                SessionResource, TillLoginRequest, TillLoginResource, TillUserBrief,
-                TillUserResource, UpdateTillUserRequest,
+                CreateRegisterRequest, CreateTillUserRequest, PairRequest, PairedResource,
+                PairingCode, RegisterKeyed, RegisterResource, SessionResource, TillLoginRequest,
+                TillLoginResource, TillUserBrief, TillUserResource, UpdateTillUserRequest,
             },
             service,
             session::TillSession,
@@ -271,4 +272,50 @@ pub async fn me(
     session: TillSession,
 ) -> Result<Data<SessionResource>, AppError> {
     Ok(Data(service::session(&state, &session.row).await?))
+}
+
+/// POST /till/registers/{register}/pairing -> 201 `{data:{code, workspace, expires_at}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/till/registers/{register}/pairing", tag = "till",
+    operation_id = "till_registers_pairing", summary = "Make a one-time pairing code",
+    description = "Valid 10 minutes, single use. A newer code voids this one. The working till keeps its key until a till redeems the code at `POST /till/pair`.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("register" = Uuid, Path, description = "Register id"),
+    ),
+    responses(
+        (status = 201, body = Envelope<PairingCode>, description = "The code to type on the till, with the shop name"),
+        (status = 403, body = MessageBody, description = "Inactive membership, or no `cashregister.update`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or register, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn pairing(
+    State(state): State<AppState>,
+    access: Can<RegisterUpdate>,
+    Path((_, register)): Path<(String, String)>,
+) -> Result<(StatusCode, Data<PairingCode>), AppError> {
+    let body = service::pairing_code(&state, &access, &register).await?;
+    Ok((StatusCode::CREATED, Data(body)))
+}
+
+/// POST /till/pair -> `{data:{workspace_id, device_key, register}}`.
+#[utoipa::path(
+    post, path = "/till/pair", tag = "till",
+    operation_id = "till_pair", summary = "Pair a till with shop name and code",
+    description = "No token. Swaps the shop name and the office's one-time code for the register's new device key; the old key and its sessions end. 10 failed tries in 15 minutes lock that shop name (429).",
+    request_body = PairRequest,
+    responses(
+        (status = 200, body = Envelope<PairedResource>, description = "Paired: store the key, never show it"),
+        (status = 401, body = MessageBody, description = "Shop name and code don't match (unknown shop included)"),
+        (status = 410, body = MessageBody, description = "The code expired, was used or was replaced"),
+        (status = 422, body = ValidationErrorBody, description = "Shop name or code missing"),
+    )
+)]
+pub async fn pair(
+    State(state): State<AppState>,
+    ClientAddr(ip): ClientAddr,
+    ValidatedJson(input): ValidatedJson<PairRequest>,
+) -> Result<Data<PairedResource>, AppError> {
+    Ok(Data(service::pair(&state, input, ip).await?))
 }

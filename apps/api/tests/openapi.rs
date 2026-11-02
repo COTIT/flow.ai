@@ -1250,6 +1250,12 @@ fn every_till_operation_is_documented() {
         ),
         ("/till/users", "get", "till_users_list", "200"),
         ("/till/users", "post", "till_users_create", "201"),
+        (
+            "/till/registers/{register}/pairing",
+            "post",
+            "till_registers_pairing",
+            "201",
+        ),
         ("/till/users/{user}", "patch", "till_users_update", "200"),
         ("/till/vaults", "get", "till_vaults_list", "200"),
         ("/till/vaults", "post", "till_vaults_create", "201"),
@@ -1996,4 +2002,15 @@ fn every_farm_loans_and_bug_reports_operation_is_documented() {
             "200",
         ),
     ]);
+}
+
+#[test]
+fn till_pair_is_public_and_documented() {
+    let s = spec();
+    let op = &s["paths"]["/till/pair"]["post"];
+    assert_eq!(op["operationId"], "till_pair");
+    for code in ["200", "401", "410", "422", "429"] {
+        assert!(op["responses"][code].is_object(), "no {code}");
+    }
+    assert!(op.get("security").is_none(), "no token");
 }

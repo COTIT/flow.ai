@@ -5828,6 +5828,30 @@
         ],
         "type": "object"
       },
+      "Envelope_PairedResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PairedResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_PairingCode": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PairingCode"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_PassportResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -13749,6 +13773,90 @@
         ],
         "type": "object"
       },
+      "PairRequest": {
+        "description": "Shop name and the one-time code from the office. Case, spaces and dashes don't matter.",
+        "properties": {
+          "code": {
+            "example": "K7Q4-MZPX",
+            "type": "string"
+          },
+          "workspace": {
+            "example": "afm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "code"
+        ],
+        "type": "object"
+      },
+      "PairedRegister": {
+        "description": "The register a till paired with.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "PairedResource": {
+        "description": "POST /till/pair reply: the till stores it and never shows it.",
+        "properties": {
+          "device_key": {
+            "description": "Send as `Authorization: Bearer <key>` to log till users in.",
+            "example": "gsk_3f9a…",
+            "type": "string"
+          },
+          "register": {
+            "$ref": "#/components/schemas/PairedRegister"
+          },
+          "workspace_id": {
+            "description": "Path segment of every till call.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "device_key",
+          "register"
+        ],
+        "type": "object"
+      },
+      "PairingCode": {
+        "description": "POST /till/registers/{register}/pairing reply: what the cashier types on the till.",
+        "properties": {
+          "code": {
+            "description": "One-time code, valid 10 minutes.",
+            "example": "K7Q4-MZPX",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "workspace": {
+            "description": "The shop name to type with it (the workspace name).",
+            "example": "afm",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "workspace",
+          "expires_at"
+        ],
+        "type": "object"
+      },
       "Partner": {
         "description": "The other workspace.",
         "properties": {
@@ -18413,6 +18521,14 @@
           "name": {
             "type": "string"
           },
+          "paired_at": {
+            "description": "Last time a till paired with a code.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "warehouse_id": {
             "format": "uuid",
             "type": "string"
@@ -18424,6 +18540,7 @@
           "warehouse_id",
           "currency_id",
           "key_prefix",
+          "paired_at",
           "created_at"
         ],
         "type": "object"
@@ -28891,6 +29008,134 @@
         "summary": "Get a sellable product",
         "tags": [
           "storefront"
+        ]
+      }
+    },
+    "/till/pair": {
+      "post": {
+        "description": "No token. Swaps the shop name and the office's one-time code for the register's new device key; the old key and its sessions end. 10 failed tries in 15 minutes lock that shop name (429).",
+        "operationId": "till_pair",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PairedResource"
+                }
+              }
+            },
+            "description": "Paired: store the key, never show it"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Shop name and code don't match (unknown shop included)"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "The code expired, was used or was replaced"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Shop name or code missing"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Pair a till with shop name and code",
+        "tags": [
+          "till"
         ]
       }
     },
@@ -78123,6 +78368,131 @@
           }
         ],
         "summary": "Issue a new device key",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/registers/{register}/pairing": {
+      "post": {
+        "description": "Valid 10 minutes, single use. A newer code voids this one. The working till keeps its key until a till redeems the code at `POST /till/pair`.",
+        "operationId": "till_registers_pairing",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Register id",
+            "in": "path",
+            "name": "register",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PairingCode"
+                }
+              }
+            },
+            "description": "The code to type on the till, with the shop name"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership, or no `cashregister.update`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or register, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make a one-time pairing code",
         "tags": [
           "till"
         ]

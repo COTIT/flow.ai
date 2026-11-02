@@ -63,6 +63,9 @@ pub enum AppError {
     /// 409 with a client-safe message (Laravel exceptions with `statusCode` 409).
     #[error("{0}")]
     Conflict(&'static str),
+    /// 410 with a client-safe message: a one-time thing (a code) that was valid once.
+    #[error("{0}")]
+    Gone(&'static str),
     /// 422 with only a message (Laravel exceptions with `statusCode` 422, no field errors).
     #[error("{0}")]
     Unprocessable(String),
@@ -103,6 +106,7 @@ impl AppError {
             | Self::InvalidCredentials
             | Self::Forbidden(_)
             | Self::BadRequest(_)
+            | Self::Gone(_)
             | Self::Unprocessable(_)
             | Self::NotFound
             | Self::PayloadTooLarge => true,
@@ -222,6 +226,9 @@ impl IntoResponse for AppError {
             }
             Self::Conflict(message) => {
                 (StatusCode::CONFLICT, Json(json!({ "message": message }))).into_response()
+            }
+            Self::Gone(message) => {
+                (StatusCode::GONE, Json(json!({ "message": message }))).into_response()
             }
             Self::Unprocessable(message) => (
                 StatusCode::UNPROCESSABLE_ENTITY,

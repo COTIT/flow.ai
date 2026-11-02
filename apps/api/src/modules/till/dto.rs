@@ -48,6 +48,9 @@ pub struct RegisterResource {
     /// First 8 characters of the live device key; null when it was revoked.
     #[schema(required = true, example = "gsk_3f9a")]
     key_prefix: Option<String>,
+    /// Last time a till paired with a code.
+    #[schema(required = true)]
+    paired_at: Option<DateTime<Utc>>,
     created_at: DateTime<Utc>,
 }
 
@@ -59,6 +62,7 @@ impl From<RegisterRow> for RegisterResource {
             warehouse_id: r.warehouse_id,
             currency_id: r.currency_id,
             key_prefix: r.key_prefix,
+            paired_at: r.paired_at,
             created_at: r.created_at,
         }
     }
@@ -319,4 +323,63 @@ pub struct TillLoginResource {
     pub token: String,
     #[serde(flatten)]
     pub session: SessionResource,
+}
+
+/// POST /till/registers/{register}/pairing reply: what the cashier types on the till.
+#[derive(Serialize, ToSchema)]
+pub struct PairingCode {
+    /// One-time code, valid 10 minutes.
+    #[schema(example = "K7Q4-MZPX")]
+    pub code: String,
+    /// The shop name to type with it (the workspace name).
+    #[schema(example = "afm")]
+    pub workspace: String,
+    pub expires_at: DateTime<Utc>,
+}
+
+/// POST /till/pair.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "Shop name and the one-time code from the office. Case, spaces and dashes don't matter."
+)]
+pub struct PairRequest {
+    #[schema(value_type = String, example = "afm")]
+    workspace: Option<String>,
+    #[schema(value_type = String, example = "K7Q4-MZPX")]
+    code: Option<String>,
+}
+
+/// Validated pairing input.
+pub struct Pair {
+    pub workspace: String,
+    pub code: String,
+}
+
+impl Validate for PairRequest {
+    type Valid = Pair;
+
+    fn validate(self, r: &mut Rules) -> Option<Pair> {
+        Some(Pair {
+            workspace: r.text("workspace", self.workspace, NAME_MAX),
+            code: r.text("code", self.code, 32),
+        })
+    }
+}
+
+/// POST /till/pair reply: the till stores it and never shows it.
+#[derive(Serialize, ToSchema)]
+pub struct PairedResource {
+    /// Path segment of every till call.
+    pub workspace_id: Uuid,
+    /// Send as `Authorization: Bearer <key>` to log till users in.
+    #[schema(example = "gsk_3f9a…")]
+    pub device_key: String,
+    pub register: PairedRegister,
+}
+
+/// The register a till paired with.
+#[derive(Serialize, ToSchema)]
+pub struct PairedRegister {
+    pub id: Uuid,
+    pub name: String,
 }

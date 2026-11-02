@@ -108,6 +108,7 @@ pub(crate) fn public() -> OpenApiRouter<AppState> {
         .merge(invoices::routes::public())
         .merge(lots::routes::public())
         .merge(farm_logins::routes::public())
+        .merge(till::routes::public())
         .merge(orders::routes::public())
 }
 
