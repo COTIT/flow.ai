@@ -13,8 +13,9 @@
   line-height: 1.5;
 }
 .g *, .g *::before, .g *::after { box-sizing: border-box; }
-.g button, .g input, .g select, .g textarea { font: inherit; letter-spacing: inherit; color: inherit; }
-.g a { color: inherit; text-decoration: none; }
+/* :where() keeps these resets at zero weight so button/link variants (.btn-primary, .charge…) win. */
+:where(.g) :where(button, input, select, textarea) { font: inherit; letter-spacing: inherit; color: inherit; }
+:where(.g) :where(a) { color: inherit; text-decoration: none; }
 .g p, .g h1, .g h2, .g h3, .g h4, .g ul, .g ol, .g dl, .g dd, .g figure { margin: 0; padding: 0; }
 .g ul, .g ol { list-style: none; }
 .t-light .logo-d, .t-dark .logo-l { display: none !important; }
