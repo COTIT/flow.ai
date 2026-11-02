@@ -103,6 +103,7 @@ services:
     image: genesy-prod/office:${GENESY_REF}
     environment:
       API_URL: http://api:8080/v1
+      FILES_ORIGIN: ${FILES_ORIGIN:-}
     networks: [internal, edge]
     labels:
       <<: *edge-labels
