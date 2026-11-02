@@ -221,6 +221,36 @@ jobs:
             docker compose -f deploy/production/docker-compose.production.yml config --images
           } | grep '^ghcr.io/cotit/' | sort -u > images.txt
           cat images.txt
+      # Before the scan: the web images start (their own HEALTHCHECK turns healthy), and the Next
+      # images carry no package managers (deploy/images/next.Dockerfile drops them).
+      - name: Web images start, Next images have no package managers
+        run: |
+          fail=0
+          grep -E '/genesy-(shop|office|till|landing|field):' images.txt > web.txt
+          while read -r img; do
+            case "$img" in
+              */genesy-field:*) ;;
+              *)
+                docker run --rm --entrypoint sh "$img" -c '
+                  found=0
+                  for t in npm npx corepack yarn yarnpkg; do command -v "$t" && found=1; done
+                  for d in /usr/local/lib/node_modules /opt/yarn-*; do [ -e "$d" ] && echo "$d" && found=1; done
+                  exit "$found"' || { echo "FAIL $img: package manager left (above)"; fail=1; }
+                ;;
+            esac
+            c="$(docker run -d "$img")"
+            status=starting
+            for _ in $(seq 18); do
+              status="$(docker inspect -f '{{.State.Health.Status}}' "$c")"
+              [ "$status" = starting ] || break
+              sleep 5
+            done
+            if [ "$status" = healthy ]; then echo "ok   $img healthy"; else
+              echo "FAIL $img: $status"; docker logs --tail 30 "$c"; fail=1
+            fi
+            docker rm -f "$c" > /dev/null
+          done < web.txt
+          exit "$fail"
       - name: Install Trivy
         run: |
           bin="/opt/ci-tools/trivy-$TRIVY_VERSION"
