@@ -19,7 +19,18 @@
       "title": "Every jar has a story. Every farmer gets their share.",
       "lead": "Genesy records the harvest, follows the batch, prints a passport for every jar and pays the farmer when it sells. One system, from the field to the till.",
       "how": "How it works",
-      "scene": "Illustration: a beehive in hills, a dotted route leading to a honey jar"
+      "scene": "Illustration: a beehive in hills, a dotted route leading to a honey jar",
+      "rotating": {
+        "prefix": "Traced from the",
+        "words": [
+          "hive",
+          "harvest",
+          "batch",
+          "passport",
+          "shop",
+          "passbook"
+        ]
+      }
     },
     "journey": {
       "tag": "How it works",
@@ -142,6 +153,18 @@
       "contact": "Contact",
       "copyright": "© {year} Genesy",
       "languages": "Languages"
+    },
+    "features": {
+      "label": "What Genesy does",
+      "items": [
+        "Works offline in the field",
+        "Kiswahili · English · Nederlands",
+        "A QR passport per batch",
+        "Web shop and till, one stock",
+        "Farmer passbook",
+        "Sharing only with consent",
+        "Money exact to the cent"
+      ]
     }
   }
 }

@@ -1066,4 +1066,46 @@
     border: 1px solid var(--line);
     border-radius: 8px;
   }
+  /* Hand-written: islands (React Bits) sit on top of the mockup without moving it. */
+  .hero {
+    position: relative;
+    overflow: hidden;
+  }
+  .hero > .wrap {
+    position: relative;
+    z-index: 1;
+  }
+  .rb-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.7;
+  }
+  .rotating {
+    display: inline-flex;
+    gap: 0.4em;
+    align-items: baseline;
+  }
+  .loop-wrap {
+    padding-block: 8px 24px;
+  }
+  .loop-plain {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .loop-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    font-size: 14px;
+    white-space: nowrap;
+  }
 }

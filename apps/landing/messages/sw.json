@@ -19,7 +19,18 @@
       "title": "Kila chupa ina hadithi. Kila mkulima anapata sehemu yake.",
       "lead": "Genesy inarekodi mavuno, inafuatilia kundi, inachapisha pasipoti kwa kila chupa na inamlipa mkulima bidhaa inapouzwa. Mfumo mmoja, kutoka shambani hadi kaunta.",
       "how": "Jinsi inavyofanya kazi",
-      "scene": "Mchoro: mzinga wa nyuki milimani, njia ya nukta inayoelekea chupa ya asali"
+      "scene": "Mchoro: mzinga wa nyuki milimani, njia ya nukta inayoelekea chupa ya asali",
+      "rotating": {
+        "prefix": "Inafuatiliwa kutoka",
+        "words": [
+          "mzinga",
+          "mavuno",
+          "kundi",
+          "pasipoti",
+          "duka",
+          "kitabu cha akiba"
+        ]
+      }
     },
     "journey": {
       "tag": "Jinsi inavyofanya kazi",
@@ -142,6 +153,18 @@
       "contact": "Wasiliana",
       "copyright": "© {year} Genesy",
       "languages": "Lugha"
+    },
+    "features": {
+      "label": "Genesy inafanya nini",
+      "items": [
+        "Inafanya kazi bila mtandao shambani",
+        "Kiswahili · English · Nederlands",
+        "Pasipoti ya QR kwa kila kundi",
+        "Duka la mtandaoni na kaunta, hisa moja",
+        "Kitabu cha akiba cha mkulima",
+        "Kushiriki kwa ridhaa tu",
+        "Pesa sahihi hadi senti"
+      ]
     }
   }
 }

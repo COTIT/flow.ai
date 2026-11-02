@@ -4,6 +4,14 @@ import { getTranslations, setRequestLocale } from "next-intl/server"
 import type { Locale } from "@genesy/i18n/locales"
 import { Logo, LogoIcon } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import {
+  Count,
+  FeatureLoop,
+  Glare,
+  Headline,
+  HeroPollen,
+  RotatingTag,
+} from "@/components/islands"
 import { Journey } from "@/components/journey"
 import { LanguageLinks } from "@/components/language-links"
 import { appLinks, contactHref } from "@/lib/site"
@@ -51,10 +59,19 @@ export async function Landing({ locale }: { locale: Locale }) {
       </header>
       <main id="main">
         <div className="hero">
+          <HeroPollen />
           <div className="wrap hero-grid">
             <div className="copy">
-              <span className="tag">{t("hero.tag")}</span>
-              <h1 className="h1">{t("hero.title")}</h1>
+              <span className="tag">
+                <RotatingTag
+                  plain={t("hero.tag")}
+                  prefix={t("hero.rotating.prefix")}
+                  words={t.raw("hero.rotating.words") as string[]}
+                />
+              </span>
+              <h1 className="h1">
+                <Headline text={t("hero.title")} />
+              </h1>
               <p className="lead muted">{t("hero.lead")}</p>
               <div className="actions">
                 <a className="btn btn-primary gold-shine" href="#contact">
@@ -179,6 +196,12 @@ export async function Landing({ locale }: { locale: Locale }) {
             </svg>
           </div>
         </div>
+        <div className="wrap loop-wrap">
+          <FeatureLoop
+            label={t("features.label")}
+            items={t.raw("features.items") as string[]}
+          />
+        </div>
         <Journey />
         <section id="who" style={{ paddingTop: "0" }}>
           <div className="wrap">
@@ -188,66 +211,72 @@ export async function Landing({ locale }: { locale: Locale }) {
             </div>
             <div className="cards">
               <article data-reveal className="card featured">
-                <span className="icon">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  >
-                    <path d="M12 22c4-4 7-7.5 7-11a7 7 0 0 0-14 0c0 3.5 3 7 7 11z" />
-                    <circle cx="12" cy="11" r="2.5" />
-                  </svg>
-                </span>
-                <h3 className="h3">{t("who.programmes.title")}</h3>
-                <p className="muted">{t("who.programmes.text")}</p>
-                <ul>
-                  <li>{t("who.programmes.p1")}</li>
-                  <li>{t("who.programmes.p2")}</li>
-                  <li>{t("who.programmes.p3")}</li>
-                </ul>
-                <a href="#contact">{t("who.programmes.link")}</a>
+                <Glare>
+                  <span className="icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <path d="M12 22c4-4 7-7.5 7-11a7 7 0 0 0-14 0c0 3.5 3 7 7 11z" />
+                      <circle cx="12" cy="11" r="2.5" />
+                    </svg>
+                  </span>
+                  <h3 className="h3">{t("who.programmes.title")}</h3>
+                  <p className="muted">{t("who.programmes.text")}</p>
+                  <ul>
+                    <li>{t("who.programmes.p1")}</li>
+                    <li>{t("who.programmes.p2")}</li>
+                    <li>{t("who.programmes.p3")}</li>
+                  </ul>
+                  <a href="#contact">{t("who.programmes.link")}</a>
+                </Glare>
               </article>
               <article data-reveal className="card">
-                <span className="icon">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  >
-                    <path d="M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" />
-                  </svg>
-                </span>
-                <h3 className="h3">{t("who.brands.title")}</h3>
-                <p className="muted">{t("who.brands.text")}</p>
-                <ul>
-                  <li>{t("who.brands.p1")}</li>
-                  <li>{t("who.brands.p2")}</li>
-                  <li>{t("who.brands.p3")}</li>
-                </ul>
-                <a href="#contact">{t("who.brands.link")}</a>
+                <Glare>
+                  <span className="icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <path d="M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6" />
+                    </svg>
+                  </span>
+                  <h3 className="h3">{t("who.brands.title")}</h3>
+                  <p className="muted">{t("who.brands.text")}</p>
+                  <ul>
+                    <li>{t("who.brands.p1")}</li>
+                    <li>{t("who.brands.p2")}</li>
+                    <li>{t("who.brands.p3")}</li>
+                  </ul>
+                  <a href="#contact">{t("who.brands.link")}</a>
+                </Glare>
               </article>
               <article data-reveal className="card">
-                <span className="icon">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  >
-                    <rect x="6" y="2" width="12" height="20" rx="2" />
-                    <path d="M10 18h4" />
-                  </svg>
-                </span>
-                <h3 className="h3">{t("who.buyers.title")}</h3>
-                <p className="muted">{t("who.buyers.text")}</p>
-                <ul>
-                  <li>{t("who.buyers.p1")}</li>
-                  <li>{t("who.buyers.p2")}</li>
-                  <li>{t("who.buyers.p3")}</li>
-                </ul>
-                <a href={links.shop}>{t("who.buyers.link")}</a>
+                <Glare>
+                  <span className="icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <rect x="6" y="2" width="12" height="20" rx="2" />
+                      <path d="M10 18h4" />
+                    </svg>
+                  </span>
+                  <h3 className="h3">{t("who.buyers.title")}</h3>
+                  <p className="muted">{t("who.buyers.text")}</p>
+                  <ul>
+                    <li>{t("who.buyers.p1")}</li>
+                    <li>{t("who.buyers.p2")}</li>
+                    <li>{t("who.buyers.p3")}</li>
+                  </ul>
+                  <a href={links.shop}>{t("who.buyers.link")}</a>
+                </Glare>
               </article>
             </div>
           </div>
@@ -352,11 +381,11 @@ export async function Landing({ locale }: { locale: Locale }) {
                   </div>
                   <div className="kv">
                     <span>{t("passport.beekeepers")}</span>
-                    <span data-count="38">38</span>
+                    <Count to={38} plain="38" />
                   </div>
                   <div className="kv">
                     <span>{t("passport.jars")}</span>
-                    <span data-count="1240">1,240</span>
+                    <Count to={1240} plain="1,240" />
                   </div>
                   <div className="ok">
                     <svg

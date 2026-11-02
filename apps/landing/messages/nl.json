@@ -19,7 +19,18 @@
       "title": "Elke pot heeft een verhaal. Elke boer krijgt zijn deel.",
       "lead": "Genesy legt de oogst vast, volgt de partij, drukt een paspoort voor elke pot en betaalt de boer zodra die verkocht is. Eén systeem, van het veld tot de kassa.",
       "how": "Hoe het werkt",
-      "scene": "Illustratie: een bijenkorf in de heuvels, een stippelroute naar een pot honing"
+      "scene": "Illustratie: een bijenkorf in de heuvels, een stippelroute naar een pot honing",
+      "rotating": {
+        "prefix": "Gevolgd vanaf de",
+        "words": [
+          "korf",
+          "oogst",
+          "partij",
+          "paspoort",
+          "winkel",
+          "spaarboekje"
+        ]
+      }
     },
     "journey": {
       "tag": "Hoe het werkt",
@@ -142,6 +153,18 @@
       "contact": "Contact",
       "copyright": "© {year} Genesy",
       "languages": "Talen"
+    },
+    "features": {
+      "label": "Wat Genesy doet",
+      "items": [
+        "Werkt offline in het veld",
+        "Kiswahili · English · Nederlands",
+        "Een QR-paspoort per partij",
+        "Webshop en kassa, één voorraad",
+        "Spaarboekje voor de boer",
+        "Delen alleen met toestemming",
+        "Geld tot op de cent"
+      ]
     }
   }
 }
