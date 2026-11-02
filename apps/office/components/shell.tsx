@@ -10,6 +10,7 @@ import {
   ChevronRight,
   FileText,
   Globe,
+  LayoutGrid,
   KeyRound,
   Layers,
   LogOut,
@@ -63,6 +64,7 @@ type Item = {
 }
 
 const items: Item[] = [
+  { href: "/", match: "/", label: "nav.overview", icon: LayoutGrid },
   { href: "/products", match: "/products", label: "nav.products", icon: Package, group: "shell.sell" },
   { href: "/stock", match: "/stock", label: "nav.stock", icon: Archive },
   { href: "/orders", match: "/orders", label: "nav.orders", icon: ShoppingBag, count: true },
@@ -75,7 +77,11 @@ const items: Item[] = [
 ]
 
 const current = (pathname: string) =>
-  items.find((i) => pathname === i.match || pathname.startsWith(`${i.match}/`))
+  items.find(
+    (i) =>
+      pathname === i.match ||
+      (i.match !== "/" && pathname.startsWith(`${i.match}/`))
+  )
 
 /** Initials on the gold disc (sidebar foot, phone bar). */
 export function Avatar({ initials }: { initials?: string }) {
@@ -150,8 +156,9 @@ function UserTile() {
     <div className="mt-auto flex items-center gap-2.5 rounded-2xl border border-(--hair) bg-(--glass-subtle) p-3">
       <Avatar initials={user?.initials} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[13px] font-semibold">{user?.name}</p>
-        <p className="truncate text-xs text-muted-foreground">
+        {/* min-h: the lines keep their height while the name loads. */}
+        <p className="min-h-[1lh] truncate text-[13px] font-semibold">{user?.name}</p>
+        <p className="min-h-[1lh] truncate text-xs text-muted-foreground">
           {workspace?.workspace_name}
         </p>
       </div>
@@ -251,17 +258,22 @@ function TopBar() {
       data-topbar=""
       className="glass-strong hidden items-center gap-3 rounded-[20px] py-2.5 pr-3 pl-[18px] md:flex"
     >
-      <p className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground">
-        <span className="max-w-40 truncate">{workspace?.workspace_name}</span>
-        <ChevronRight aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
-        <b className="font-semibold whitespace-nowrap text-foreground">
-          {active ? t(active.label) : null}
-        </b>
+      {/* Drawn once the workspace name is known, so the page name never slides along. */}
+      <p className="flex min-w-0 flex-1 items-center gap-1.5 text-[13px] text-muted-foreground">
+        {workspace ? (
+          <>
+            <span className="min-w-0 truncate">{workspace.workspace_name}</span>
+            <ChevronRight aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
+            <b className="font-semibold whitespace-nowrap text-foreground">
+              {active ? t(active.label) : null}
+            </b>
+          </>
+        ) : null}
       </p>
-      <span className="flex-1" />
+      {/* Anchored right with a fixed width, so names loading on the left never move it. */}
       <form
         role="search"
-        className="relative max-w-[420px] flex-1"
+        className="relative w-[340px] shrink-0 max-lg:w-[260px] min-[1400px]:w-[420px]"
         onSubmit={(e) => {
           e.preventDefault()
           const q = String(new FormData(e.currentTarget).get("q") ?? "")

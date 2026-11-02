@@ -24,7 +24,7 @@ export default function LoginPage() {
   const errorId = React.useId()
 
   React.useEffect(() => {
-    if (token) router.replace("/products")
+    if (token) router.replace("/")
   }, [token, router])
 
   const status = login.error?.response?.status

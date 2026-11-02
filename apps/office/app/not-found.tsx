@@ -16,7 +16,7 @@ export default async function NotFound() {
             action={
               <Link
                 className="text-sm font-medium underline-offset-4 hover:underline"
-                href="/products"
+                href="/"
               >
                 {t("goHome")}
               </Link>

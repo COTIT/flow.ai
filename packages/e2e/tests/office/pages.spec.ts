@@ -9,8 +9,8 @@ test.describe(() => {
     await page.goto("/no-such-page")
     await expect(page.getByText("This page does not exist")).toBeVisible()
     await expect(
-      page.getByRole("link", { name: "Go to products" })
-    ).toHaveAttribute("href", "/products")
+      page.getByRole("link", { name: "Go to the overview" })
+    ).toHaveAttribute("href", "/")
   })
 })
 

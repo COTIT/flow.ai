@@ -164,9 +164,12 @@ export function CardState({ children }: { children: React.ReactNode }) {
 export function ListSkeleton({
   columns,
   rows = 5,
+  rowHeight = "h-5",
 }: {
   columns: { label: string; right?: boolean }[]
   rows?: number
+  /** Height of a real row's content (a text line; `h-10` with a thumbnail), so nothing moves when data arrives. */
+  rowHeight?: string
 }) {
   const widths = ["w-36", "w-16", "w-24", "w-14", "w-20", "w-12"]
   return (
@@ -185,9 +188,11 @@ export function ListSkeleton({
           <TableRow key={r}>
             {columns.map((c, i) => (
               <TableCell key={c.label} data-m={i === 0 ? undefined : "hide"}>
-                <Skeleton
-                  className={cn("h-3.5", widths[(i + r) % widths.length], c.right && "ml-auto")}
-                />
+                <div className={cn("flex items-center", rowHeight)}>
+                  <Skeleton
+                    className={cn("h-3.5", widths[(i + r) % widths.length], c.right && "ml-auto")}
+                  />
+                </div>
               </TableCell>
             ))}
           </TableRow>
