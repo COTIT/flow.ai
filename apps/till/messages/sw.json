@@ -4,23 +4,22 @@
     "tagline": "Mauzo ya dukani na malipo ya pesa taslimu."
   },
   "setup": {
-    "title": "Sanidi kituo hiki cha mauzo",
-    "hint": "Omba ofisi msimbo wa kuunganisha kasha hili, kisha andika jina la duka na msimbo.",
-    "workspace": "Jina la duka",
+    "title": "Unganisha kasha hili",
+    "hint": "Katika Office, fungua Kaunta › Kaunta na ubonyeze “Unganisha kasha”. Andika msimbo unaoonyeshwa hapo.",
+    "workspace": "Akaunti",
     "submit": "Unganisha kasha hili",
     "code": "Msimbo wa kuunganisha",
     "wrong": "Jina la duka na msimbo havilingani. Kagua vyote viwili ujaribu tena.",
     "used": "Msimbo huu umeisha muda au umeshatumika. Omba ofisi msimbo mpya.",
     "locked": "Majaribio mengi mno. Subiri dakika 15, kisha ujaribu tena.",
     "failed": "Imeshindwa kufikia seva. Kagua muunganisho ujaribu tena.",
-    "paired": "Imeunganishwa. Inafungua kuingia…"
+    "paired": "Imeunganishwa. Inafungua kuingia…",
+    "codeHint": "Unafaa kwa dakika 10, mara moja tu."
   },
   "login": {
-    "title": "Nani anauza?",
+    "title": "Nani yuko kwenye kaunta?",
     "who": "Watumiaji wa kituo",
-    "pin": "PIN",
     "submit": "Ingia",
-    "back": "Rudi",
     "wrongPin": "PIN si sahihi.",
     "locked": "PIN zisizo sahihi zimezidi. Jaribu tena baadaye.",
     "pinFormat": "PIN ni tarakimu 4 hadi 8.",
@@ -28,7 +27,13 @@
     "setupAgain": "Unganisha tena",
     "expired": "Muda wa kuingia umeisha. Ingia tena ili uendelee.",
     "usersFailed": "Imeshindwa kupakia watumiaji wa kituo. Angalia mtandao kisha pakia upya.",
-    "noUsers": "Bado hakuna watumiaji wa kituo. Omba ofisi iongeze mmoja."
+    "noUsers": "Bado hakuna watumiaji wa kituo. Omba ofisi iongeze mmoja.",
+    "tap": "Gusa jina lako.",
+    "pickFirst": "Gusa jina lako kwanza.",
+    "missing": "Hupo? Omba ofisi ikuongeze chini ya Kaunta › Watumiaji wa kaunta.",
+    "enterPin": "Weka PIN yako",
+    "notYou": "Si wewe?",
+    "dots": "Tarakimu {count} kati ya {total} zimewekwa"
   },
   "sale": {
     "title": "Mauzo",
@@ -142,5 +147,9 @@
   "offline": {
     "title": "Nje ya mtandao. Mauzo yanahifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
     "waiting": "Mauzo {count} yanasubiri kutumwa"
+  },
+  "keypad": {
+    "clear": "Futa yote",
+    "delete": "Futa"
   }
 }

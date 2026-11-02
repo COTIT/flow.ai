@@ -4,6 +4,7 @@ import { getLocale } from "next-intl/server"
 import { headers } from "next/headers"
 
 import "@genesy/ui/globals.css"
+import "./till.css"
 import { QueryProvider } from "@genesy/api-client/query-provider"
 import { fontSans } from "@genesy/ui/lib/fonts"
 import { cn } from "@genesy/ui/lib/utils"
@@ -28,7 +29,7 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={cn("font-sans antialiased", fontSans.variable)}
     >
-      <body>
+      <body className="theme-glass till-app">
         <NextIntlClientProvider>
           <ThemeProvider nonce={nonce}>
             <QueryProvider>

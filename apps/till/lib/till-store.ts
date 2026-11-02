@@ -5,7 +5,12 @@ import { useStore } from "zustand"
 import type { TillLoginResource } from "@genesy/api-client/model"
 
 /** This device's pairing: the workspace and the register's device key, from `POST /till/pair`. */
-export type Device = { workspaceId: string; deviceKey: string }
+export type Device = {
+  workspaceId: string
+  deviceKey: string
+  /** The register's name at pairing time: shown in the login bar, nothing else. */
+  registerName?: string
+}
 
 export type TillState = {
   device: Device | null
