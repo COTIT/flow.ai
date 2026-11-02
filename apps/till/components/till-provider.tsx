@@ -20,7 +20,7 @@ export function TillProvider({ children }: { children: React.ReactNode }) {
       baseURL: "/v1",
       getToken: () => tillStore.getState().session?.token ?? null,
       // A 401 ends the till session; the device stays paired (a bad device key is handled on /login).
-      onUnauthorized: () => tillStore.getState().signOut(),
+      onUnauthorized: () => tillStore.getState().signOut("expired"),
     })
   )
   React.useEffect(() => {

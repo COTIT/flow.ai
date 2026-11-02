@@ -119,6 +119,12 @@ export function useTillCatalog() {
   )
   return {
     error: query.error,
+    /** First sync still running and nothing on the device yet. */
+    loading: query.isPending && items.length === 0,
+    /** Synced, and the register sells nothing. */
+    empty: query.isSuccess && items.length === 0,
+    /** Products on the device (the copy works offline too). */
+    count: items.length,
     /** Scanned or typed code: the API's exact EAN/barcode match, else the device copy (offline). */
     lookup: async (code: string): Promise<Sellable | null> => {
       if (!navigator.onLine) return match(items, code)
