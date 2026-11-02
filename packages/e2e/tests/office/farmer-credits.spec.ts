@@ -77,3 +77,53 @@ test("no lineage or village not shared: no groups, and no sales yet", async ({
     page.getByText("No sales or returns of this batch yet.")
   ).toBeVisible()
 })
+
+test("lineage: packed from its parent batch, with the pack numbers as given", async ({
+  page,
+  api,
+}) => {
+  api.on("GET", "/workspace/:ws/lots/:id", () => ({
+    data: {
+      ...lot,
+      parent_lot: { id: "lot-raw", code: "AFM-RAW-01" },
+      pack: { units: "10", raw_kg: "7.50" },
+    },
+  }))
+  await page.goto("/lots/lot-jar")
+  await expect(page.getByRole("link", { name: "AFM-RAW-01" })).toHaveAttribute(
+    "href",
+    "/lots/lot-raw"
+  )
+  await expect(page.getByText("10 units from 7.50 kg")).toBeVisible()
+})
+
+test("lineage: received from a partner's batch over a transfer", async ({
+  page,
+  api,
+}) => {
+  api.on("GET", "/workspace/:ws/lots/:id", () => ({
+    data: {
+      ...lot,
+      received_from: {
+        transfer_id: "tr-1",
+        from_lot_code: "ILU-H-2026-01",
+        from_lot_public_code: "7K3M9Q2XRT",
+      },
+    },
+  }))
+  await page.goto("/lots/lot-jar")
+  await expect(
+    page.getByText(
+      "Received from the partner's batch ILU-H-2026-01 (7K3M9Q2XRT)."
+    )
+  ).toBeVisible()
+  await expect(
+    page.getByRole("link", { name: "See transfers" })
+  ).toHaveAttribute("href", "/supply/transfers")
+})
+
+test("lineage: a batch made here shows no lineage line", async ({ page }) => {
+  await page.goto("/lots/lot-jar")
+  await expect(page.getByText("Packed from batch")).toHaveCount(0)
+  await expect(page.getByText(/Received from the partner/)).toHaveCount(0)
+})

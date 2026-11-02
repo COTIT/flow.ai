@@ -446,5 +446,11 @@
       "sale": "Mauzo",
       "return": "Marejesho"
     }
+  },
+  "lineage": {
+    "packedFrom": "Imefungashwa kutoka fungu",
+    "pack": "vipande {units} kutoka kilo {kg}",
+    "receivedFrom": "Imepokelewa kutoka fungu {code} la mshirika ({publicCode}).",
+    "transfers": "Angalia uhamisho"
   }
 }

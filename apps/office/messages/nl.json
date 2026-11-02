@@ -446,5 +446,11 @@
       "sale": "Verkoop",
       "return": "Retour"
     }
+  },
+  "lineage": {
+    "packedFrom": "Verpakt uit batch",
+    "pack": "{units} stuks uit {kg} kg",
+    "receivedFrom": "Ontvangen uit batch {code} van de partner ({publicCode}).",
+    "transfers": "Bekijk overdrachten"
   }
 }

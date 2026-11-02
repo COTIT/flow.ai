@@ -446,5 +446,11 @@
       "sale": "Sale",
       "return": "Return"
     }
+  },
+  "lineage": {
+    "packedFrom": "Packed from batch",
+    "pack": "{units} units from {kg} kg",
+    "receivedFrom": "Received from the partner's batch {code} ({publicCode}).",
+    "transfers": "See transfers"
   }
 }
