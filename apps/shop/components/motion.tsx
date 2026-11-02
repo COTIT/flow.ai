@@ -1,12 +1,14 @@
 "use client"
 
-import { useSyncExternalStore, type ReactNode } from "react"
+import { createElement, useSyncExternalStore, type ReactNode } from "react"
 
 import { island } from "@genesy/ui/components/island"
 
-// React Bits pieces, each in its own chunk; nothing on the server or under reduced motion.
+// Animated pieces (React Bits copies, our tile fade), each in its own chunk; nothing on the
+// server or under reduced motion.
 const BlurText = island(() => import("./rb/BlurText"))
 const GlareHover = island(() => import("./rb/GlareHover"))
+const FadeTile = island(() => import("./fade-tile"))
 
 const FINE = "(pointer: fine)"
 
@@ -60,5 +62,23 @@ export function Glare({
     >
       {children}
     </GlareHover>
+  )
+}
+
+/** A passport tile that fades in as it scrolls into view; drawn as is everywhere else. */
+export function FadeIn({
+  as = "section",
+  children,
+  ...props
+}: {
+  as?: "section" | "div"
+  className?: string
+  "aria-labelledby"?: string
+  children: ReactNode
+}) {
+  return (
+    <FadeTile plain={createElement(as, props, children)} as={as} {...props}>
+      {children}
+    </FadeTile>
   )
 }

@@ -135,6 +135,7 @@ const lot = (code, status, farmers) => ({
 
 const lots = {
   [LOT.released]: () => lot(LOT.released, "released", []),
+  [LOT.quarantine]: () => lot(LOT.quarantine, "quarantine", []),
   [LOT.recalled]: () =>
     // Farmer groups per village; the API sends null instead of a count below 3.
     lot(LOT.recalled, "recalled", [

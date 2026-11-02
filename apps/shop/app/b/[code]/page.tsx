@@ -1,8 +1,7 @@
 import type { Metadata } from "next"
 import { getLocale, getTranslations } from "next-intl/server"
 
-import { PassportView } from "@genesy/ui/components/passport-view"
-
+import { Passport } from "@/components/passport"
 import { getLot } from "@/lib/storefront"
 
 type Props = { params: Promise<{ code: string }> }
@@ -27,12 +26,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** What a jar's QR code opens. Unknown or unpublished codes get a real 404 from getLot. */
 export default async function BatchPage({ params }: Props) {
   const { code } = await params
-  const [t, locale, lot] = await Promise.all([
+  const [t, tp, locale, lot] = await Promise.all([
     getTranslations("batch"),
+    getTranslations("passport"),
     getLocale(),
     getLot(code),
   ])
-  return (
-    <PassportView passport={lot.passport} lot={lot} locale={locale} t={t} />
-  )
+  return <Passport lot={lot} locale={locale} t={t} tp={tp} />
 }

@@ -155,5 +155,15 @@
       "paid": "Imelipwa",
       "cancelled": "Imeghairiwa"
     }
+  },
+  "passport": {
+    "recalledTitle": "Fungu hili limerudishwa",
+    "recalledBody": "Tafadhali usile, na wasiliana nasi kwa kurejeshewa pesa au kubadilishiwa.",
+    "status": {
+      "released": "Limetolewa",
+      "recalled": "Limerudishwa",
+      "quarantine": "Limesimamishwa"
+    },
+    "inTheirWords": "Kwa maneno yao"
   }
 }

@@ -21,6 +21,7 @@ export const PRODUCT = {
 export const LOT = {
   released: "7K3M9QX2WD",
   recalled: "RECA11ED01",
+  quarantine: "HQ1DHQ1D00",
   /** Valid shape, never published: the API's 404. */
   unknown: "ZZZZZZZZZZ",
   /** The mock answers 503 for this one. */

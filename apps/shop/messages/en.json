@@ -155,5 +155,15 @@
       "paid": "Paid",
       "cancelled": "Cancelled"
     }
+  },
+  "passport": {
+    "recalledTitle": "This batch has been recalled",
+    "recalledBody": "Please don't eat it, and contact us for a refund or replacement.",
+    "status": {
+      "released": "Released",
+      "recalled": "Recalled",
+      "quarantine": "On hold"
+    },
+    "inTheirWords": "In their words"
   }
 }

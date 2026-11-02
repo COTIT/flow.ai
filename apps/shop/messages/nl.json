@@ -155,5 +155,15 @@
       "paid": "Betaald",
       "cancelled": "Geannuleerd"
     }
+  },
+  "passport": {
+    "recalledTitle": "Deze batch is teruggeroepen",
+    "recalledBody": "Eet hem niet en neem contact met ons op voor terugbetaling of vervanging.",
+    "status": {
+      "released": "Vrijgegeven",
+      "recalled": "Teruggeroepen",
+      "quarantine": "Geblokkeerd"
+    },
+    "inTheirWords": "In hun woorden"
   }
 }
