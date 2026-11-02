@@ -24,6 +24,7 @@ import {
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
 import { Field, selectClass } from "@/components/field"
+import { Capped } from "@/components/states"
 
 /**
  * Pack this lot's kg into a new lot of jars. Offered on every lot: the API says which lots
@@ -104,6 +105,7 @@ export function PackDialog({ lotId, code }: { lotId: string; code: string }) {
               })
             }}
           >
+            <Capped meta={products.data?.meta} />
             <Field
               id="pk-product"
               label={t("packing.product")}
@@ -140,6 +142,7 @@ export function PackDialog({ lotId, code }: { lotId: string; code: string }) {
                 <Input name="raw_kg" inputMode="decimal" required />
               </Field>
             </div>
+            <Capped meta={warehouses.data?.meta} />
             <Field
               id="pk-warehouse"
               label={t("stock.warehouse")}

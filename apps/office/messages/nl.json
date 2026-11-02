@@ -261,7 +261,8 @@
     "refundQueued": "Terugbetaling van {amount} naar de provider gestuurd (status: {status}).",
     "cancel": "Order annuleren",
     "cancelTitle": "Order {number} annuleren?",
-    "cancelText": "Gereserveerde voorraad komt vrij. Een betaalde order moet eerst terugbetaald worden; het systeem meldt dat."
+    "cancelText": "Gereserveerde voorraad komt vrij. Een betaalde order moet eerst terugbetaald worden; het systeem meldt dat.",
+    "nothingToDo": "Er is niets meer te doen voor deze order."
   },
   "till": {
     "title": "Kassa",
@@ -380,7 +381,15 @@
     "retry": "Opnieuw proberen",
     "noMatches": "Geen resultaten",
     "noMatchesText": "Niets past bij deze filters.",
-    "clearFilters": "Filters wissen"
+    "clearFilters": "Filters wissen",
+    "notFound": "Niet gevonden",
+    "notFoundText": "Het is misschien verwijderd, of de link klopt niet.",
+    "back": "Terug naar de lijst",
+    "capped": "De eerste {shown} van {total} worden getoond. Zoeken kan hier nog niet.",
+    "pageNotFound": "Deze pagina bestaat niet",
+    "goHome": "Naar producten",
+    "crashed": "Er ging iets mis op deze pagina.",
+    "crashedText": "Probeer het opnieuw. Blijft het gebeuren, vertel ons wat je deed."
   },
   "done": {
     "productSaved": "Product opgeslagen.",

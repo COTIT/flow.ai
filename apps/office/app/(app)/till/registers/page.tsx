@@ -37,7 +37,7 @@ import { Field, selectClass } from "@/components/field"
 import { SecretReveal } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"
-import { Empty, LoadError } from "@/components/states"
+import { Capped, Empty, LoadError } from "@/components/states"
 
 export default function RegistersPage() {
   const t = useTranslations()
@@ -72,6 +72,7 @@ export default function RegistersPage() {
       <div className="flex justify-end">
         <CreateRegister
           warehouses={warehouses.data?.data ?? []}
+          warehousesMeta={warehouses.data?.meta}
           onCreated={refresh}
         />
       </div>
@@ -169,9 +170,11 @@ export default function RegistersPage() {
 
 function CreateRegister({
   warehouses,
+  warehousesMeta,
   onCreated,
 }: {
   warehouses: { id: string; name: string }[]
+  warehousesMeta?: { total: number; per_page: number }
   onCreated: () => void
 }) {
   const t = useTranslations()
@@ -215,6 +218,7 @@ function CreateRegister({
             <Field id="reg-name" label={t("appKeys.name")} errors={errors.name}>
               <Input name="name" required />
             </Field>
+            <Capped meta={warehousesMeta} />
             <Field
               id="reg-warehouse"
               label={t("till.storeWarehouse")}

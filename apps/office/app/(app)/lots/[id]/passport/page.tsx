@@ -30,7 +30,7 @@ import { Input } from "@genesy/ui/components/input"
 import { PassportView } from "@genesy/ui/components/passport-view"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
-import { Done, LoadError, useDone } from "@/components/states"
+import { Capped, Done, LoadError, useDone } from "@/components/states"
 
 import { ListEditor } from "./list-editor"
 import { bpToPercent, percentToBp, toPublic } from "./to-public"
@@ -48,6 +48,8 @@ export default function PassportPage({
   const passport = useLotsPassportGet(workspaceId, id, enabled)
   // shortcut: pickers and preview see the first 100 files; add file search when workspaces hold more.
   const files = useFilesList(workspaceId, { page_size: 100 }, enabled)
+  // Lives here, not in Editor: Editor remounts after each save, which would wipe the notice.
+  const done = useDone()
 
   if (lot.isPending || passport.isPending)
     return (
@@ -56,6 +58,7 @@ export default function PassportPage({
   if (lot.isError || passport.isError)
     return (
       <LoadError
+        backHref="/lots"
         error={lot.error ?? passport.error}
         onRetry={() => {
           void lot.refetch()
@@ -65,11 +68,13 @@ export default function PassportPage({
     )
   return (
     <Editor
+      done={done}
       // A fresh copy of the server's draft after every save, publish or unpublish.
       key={passport.dataUpdatedAt}
       lot={lot.data.data}
       resource={passport.data.data}
       files={files.data?.data ?? []}
+      filesMeta={files.data?.meta}
     />
   )
 }
@@ -78,10 +83,14 @@ function Editor({
   lot,
   resource,
   files,
+  filesMeta,
+  done,
 }: {
   lot: LotResource
   resource: PassportResource
   files: FileResource[]
+  filesMeta?: { total: number; per_page: number }
+  done: ReturnType<typeof useDone>
 }) {
   const t = useTranslations()
   const tp = useTranslations("passport")
@@ -103,7 +112,6 @@ function Editor({
       queryKey: getLotsPassportGetQueryKey(workspaceId, lot.id),
     })
   const vars = { workspace: workspaceId, lot: lot.id }
-  const done = useDone()
   const ok = (message: string) => ({
     onMutate: done.clear,
     onSuccess: () => {
@@ -196,6 +204,7 @@ function Editor({
               onChange={(e) => set({ intro: e.target.value || null })}
             />
           </Field>
+          <Capped meta={filesMeta} />
           <Field
             id="pp-banner"
             label={tp("fields.banner")}

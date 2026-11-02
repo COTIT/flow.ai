@@ -45,7 +45,11 @@ export default function InvoicePage({
     )
   if (invoice.isError)
     return (
-      <LoadError error={invoice.error} onRetry={() => void invoice.refetch()} />
+      <LoadError
+        error={invoice.error}
+        onRetry={() => void invoice.refetch()}
+        backHref="/invoices"
+      />
     )
   const inv = invoice.data.data
   const payments = inv.relationships.payments ?? []

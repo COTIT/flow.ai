@@ -39,7 +39,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
-import { Empty, LoadError } from "@/components/states"
+import { Capped, Empty, LoadError } from "@/components/states"
 
 export default function SupplyTransfersPage() {
   const t = useTranslations()
@@ -206,6 +206,7 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
               {t("supply.receiveText", { quantity: transfer.quantity })}
             </DialogDescription>
           </DialogHeader>
+          <Capped meta={products.data?.meta} />
           <Field
             id="rcv-product"
             label={t("lots.product")}
@@ -226,6 +227,7 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
           >
             <Input name="code" required />
           </Field>
+          <Capped meta={warehouses.data?.meta} />
           <Field
             id="rcv-warehouse"
             label={t("stock.warehouse")}

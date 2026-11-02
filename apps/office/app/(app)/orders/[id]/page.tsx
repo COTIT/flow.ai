@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
+import { Notice } from "@genesy/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -120,7 +121,11 @@ export default function OrderPage({
     )
   if (order.isError)
     return (
-      <LoadError error={order.error} onRetry={() => void order.refetch()} />
+      <LoadError
+        error={order.error}
+        onRetry={() => void order.refetch()}
+        backHref="/orders"
+      />
     )
   const o = order.data.data
   const money = (minor: number) =>
@@ -163,6 +168,9 @@ export default function OrderPage({
           ) : null}
         </dl>
 
+        {o.allowed_actions.length === 0 ? (
+          <Notice title={t("orders.nothingToDo")} />
+        ) : null}
         <div className="flex flex-wrap gap-2">
           {can("confirm") ? (
             <Button

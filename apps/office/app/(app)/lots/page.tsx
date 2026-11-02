@@ -35,7 +35,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
-import { Empty, LoadError } from "@/components/states"
+import { Capped, Empty, LoadError } from "@/components/states"
 
 import { LotFields, lotStatuses } from "./lot-fields"
 
@@ -81,6 +81,7 @@ export default function LotsPage({
         <h1 className="mr-auto heading-2 text-lg">{t("lots.title")}</h1>
         <CreateLot
           products={products.data?.data ?? []}
+          productsMeta={products.data?.meta}
           onCreated={(id) => router.push(`/lots/${id}?done=created`)}
         />
       </div>
@@ -188,9 +189,11 @@ export default function LotsPage({
 
 function CreateLot({
   products,
+  productsMeta,
   onCreated,
 }: {
   products: { id: string; name: string }[]
+  productsMeta?: { total: number; per_page: number }
   onCreated: (id: string) => void
 }) {
   const t = useTranslations()
@@ -243,6 +246,7 @@ function CreateLot({
           <DialogHeader>
             <DialogTitle>{t("lots.new")}</DialogTitle>
           </DialogHeader>
+          <Capped meta={productsMeta} />
           <Field
             id="lot-product"
             label={t("lots.product")}

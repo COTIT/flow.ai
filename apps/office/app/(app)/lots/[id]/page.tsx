@@ -86,7 +86,13 @@ export default function LotPage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (lot.isError)
-    return <LoadError error={lot.error} onRetry={() => void lot.refetch()} />
+    return (
+      <LoadError
+        error={lot.error}
+        onRetry={() => void lot.refetch()}
+        backHref="/lots"
+      />
+    )
   const current = lot.data.data
 
   return (

@@ -40,7 +40,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
-import { Done, Empty, LoadError, useDone } from "@/components/states"
+import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
 
 type Named = { name?: string; bin_code?: string; bin_name?: string } | null
 
@@ -78,7 +78,11 @@ export default function ProductPage({
     )
   if (product.isError)
     return (
-      <LoadError error={product.error} onRetry={() => void product.refetch()} />
+      <LoadError
+        error={product.error}
+        onRetry={() => void product.refetch()}
+        backHref="/products"
+      />
     )
   const p = product.data.data
 
@@ -359,6 +363,7 @@ function MutateStock({
           <DialogHeader>
             <DialogTitle>{t("stock.change")}</DialogTitle>
           </DialogHeader>
+          <Capped meta={warehouses.data?.meta} />
           <Field
             id="m-warehouse"
             label={t("stock.warehouse")}

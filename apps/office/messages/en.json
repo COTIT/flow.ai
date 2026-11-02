@@ -261,7 +261,8 @@
     "refundQueued": "Refund of {amount} sent to the provider (status: {status}).",
     "cancel": "Cancel order",
     "cancelTitle": "Cancel order {number}?",
-    "cancelText": "Reserved stock is released. A paid order needs a refund first; the system will say so."
+    "cancelText": "Reserved stock is released. A paid order needs a refund first; the system will say so.",
+    "nothingToDo": "Nothing more to do on this order."
   },
   "till": {
     "title": "Till",
@@ -380,7 +381,15 @@
     "retry": "Try again",
     "noMatches": "No matches",
     "noMatchesText": "Nothing fits these filters.",
-    "clearFilters": "Clear filters"
+    "clearFilters": "Clear filters",
+    "notFound": "Not found",
+    "notFoundText": "It may have been removed, or the link is wrong.",
+    "back": "Back to the list",
+    "capped": "Showing the first {shown} of {total}. Search is not available here yet.",
+    "pageNotFound": "This page does not exist",
+    "goHome": "Go to products",
+    "crashed": "Something went wrong on this page.",
+    "crashedText": "Try again. If it keeps happening, tell us what you were doing."
   },
   "done": {
     "productSaved": "Product saved.",
