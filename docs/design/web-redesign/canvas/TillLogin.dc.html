@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Till login</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./glass.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{rootClass}}">
+  <header class="till-top glass-strong">
+    <img class="logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy">
+    <img class="logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy">
+    <span class="grow"></span>
+    <span class="who">AFM counter</span>
+    <button class="btn btn-ghost" type="button" style="height: 44px">EN</button>
+    <button class="btn btn-ghost btn-icon" type="button" aria-label="Switch theme" style="width: 44px; height: 44px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></button>
+  </header>
+
+  <sc-if value="{{isLogin}}" hint-placeholder-val="{{ true }}">
+  <div class="split">
+    <section class="card" style="gap: 14px">
+      <div><p class="h3">Who’s at the till?</p><p class="small muted">Tap your name.</p></div>
+      <div class="grid-3" style="gap: 10px">
+        <sc-for list="{{users}}" as="u" hint-placeholder-count="6">
+          <button class="{{u.cls}}" type="button"><span class="avatar">{{u.ini}}</span><span>{{u.name}}</span></button>
+        </sc-for>
+      </div>
+      <p class="xs muted" style="margin-top: auto">Missing? Ask the office to add you under Till › Users.</p>
+    </section>
+    <section class="card glass-strong" style="gap: 16px; align-items: stretch">
+      <div class="row"><span class="avatar" style="width: 48px; height: 48px; font-size: 16px">AM</span><div class="grow"><p style="font-weight: 600; font-size: 18px">Amina</p><p class="small muted">Enter your PIN</p></div><button class="btn btn-outline" type="button" style="height: 44px">Not you?</button></div>
+      <div class="dots" aria-label="2 of 4 digits entered"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+      <div class="notice n-error" style="padding: 10px 14px"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg></span><div><p class="n-title">Wrong PIN</p><p class="n-body">2 tries left before the till locks for 5 minutes.</p></div></div>
+      <div class="pad">
+        <button class="key" type="button">1</button><button class="key" type="button">2</button><button class="key" type="button">3</button>
+        <button class="key" type="button">4</button><button class="key" type="button">5</button><button class="key" type="button">6</button>
+        <button class="key" type="button">7</button><button class="key" type="button">8</button><button class="key" type="button">9</button>
+        <button class="key fn" type="button">Clear</button><button class="key" type="button">0</button><button class="key fn" type="button" aria-label="Delete"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM18 9l-6 6M12 9l6 6"></path></svg></button>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isSetup}}" hint-placeholder-val="{{ false }}">
+  <div style="flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 24px">
+    <section class="card glass-strong" style="width: min(560px, 100%); padding: 32px; gap: 18px">
+      <span class="chip-ic gold" style="width: 56px; height: 56px; border-radius: 18px"><svg class="i xl" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path></svg></span>
+      <div><h1 class="h2">Pair this till</h1><p class="muted">In Office, open Till › Registers and press “Pair”. Type the code shown there.</p></div>
+      <label class="field"><span class="label">Account</span><span class="input" style="height: 56px; font-size: 16px">afm-honey</span></label>
+      <label class="field"><span class="label">Pairing code</span><span class="input mono" style="height: 64px; font-size: 26px; letter-spacing: 0.2em; justify-content: center">K7Q4-MZPX</span><span class="hint">Valid for 10 minutes, works once.</span></label>
+      <button class="btn btn-primary btn-lg btn-block" type="button" style="height: 64px; font-size: 18px; border-radius: 18px">Pair this till</button>
+    </section>
+  </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"direction":{"editor":"enum","options":["a","b"],"default":"a"},"step":{"editor":"enum","options":["login","setup"],"default":"login"},"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const step = this.props.step ?? 'login';
+    const users = [['AM', 'Amina', true], ['JO', 'Joseph', false], ['NE', 'Neema', false], ['DA', 'David', false], ['GR', 'Grace', false], ['PE', 'Peter', false]]
+      .map(([ini, name, on]) => ({ ini, name, cls: on ? 'utile on' : 'utile' }));
+    return {
+      rootClass: 'g till t-' + (this.props.mode ?? 'light') + ' dir-' + (this.props.direction ?? 'a'),
+      users, isLogin: step === 'login', isSetup: step === 'setup'
+    };
+  }
+}
+</script>
+</body>
+</html>

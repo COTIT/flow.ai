@@ -14,12 +14,34 @@ export const viewports = {
   },
 }
 
-/** Desktop and 375 px projects for one app, e.g. `...projectsFor("office", { testDir, baseURL })`. */
+/** iPad sizes for the till (it runs on an iPad at the counter): landscape and portrait, touch. */
+export const tablets = {
+  "ipad-landscape": {
+    ...devices["Desktop Chrome"],
+    viewport: { width: 1024, height: 768 },
+    hasTouch: true,
+  },
+  "ipad-portrait": {
+    ...devices["Desktop Chrome"],
+    viewport: { width: 834, height: 1194 },
+    hasTouch: true,
+  },
+}
+
+/**
+ * Desktop and 375 px projects for one app, e.g. `...projectsFor("office", { testDir, baseURL })`.
+ * `tablets: true` adds the two iPad projects.
+ */
 export function projectsFor(
   app: string,
-  { testDir, baseURL }: { testDir: string; baseURL: string }
+  {
+    testDir,
+    baseURL,
+    tablets: withTablets = false,
+  }: { testDir: string; baseURL: string; tablets?: boolean }
 ): Project[] {
-  return Object.entries(viewports).map(([name, use]) => ({
+  const sizes = withTablets ? { ...viewports, ...tablets } : viewports
+  return Object.entries(sizes).map(([name, use]) => ({
     name: `${app}-${name}`,
     testDir,
     use: { ...use, baseURL },

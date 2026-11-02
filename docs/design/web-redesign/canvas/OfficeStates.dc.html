@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Office States</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./glass.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{rootClass}}">
+<div class="app">
+  <aside class="side glass-strong">
+    <div class="brand">
+      <img class="logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy">
+      <img class="logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy">
+    </div>
+    <nav class="nav" aria-label="Main">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="10">
+        <sc-if value="{{n.grp}}" hint-placeholder-val="{{ false }}"><p class="grp">{{n.grp}}</p></sc-if>
+        <a href="#" class="{{n.cls}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.d}}"></path></svg>{{n.label}}<sc-if value="{{n.count}}" hint-placeholder-val="{{ false }}"><span class="count">{{n.count}}</span></sc-if></a>
+      </sc-for>
+    </nav>
+    <div class="side-foot">
+      <span class="avatar">RT</span>
+      <div class="who grow"><p class="small" style="font-weight: 600">Romeo T.</p><p class="xs muted">AFM Honey · Owner</p></div>
+      <button class="btn btn-ghost btn-icon btn-sm" type="button" aria-label="Sign out"><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="mbar glass-strong">
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Open menu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+      <img class="logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy">
+      <img class="logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy">
+      <span class="grow"></span>
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Search"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></button>
+      <span class="avatar">RT</span>
+    </div>
+
+    <div class="topbar glass-strong">
+      <div class="crumbs"><span>AFM Honey</span><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><b>States</b></div>
+      <span class="grow"></span>
+      <span class="input search"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span class="ph">Search products, orders, lots…</span></span>
+      <button class="btn btn-outline" type="button">AFM Honey <svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Language">EN</button>
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Switch theme"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></button>
+    </div>
+
+    <div class="page-head">
+      <div><p class="h3">Every screen handles these</p><h1 class="h2">States</h1></div>
+    </div>
+    <section class="bento">
+      <div class="card flush s-6">
+        <div class="card-head pad"><p class="card-title">Loading · list</p><span class="xs muted">Skeleton rows, same height as real rows</span></div>
+        <table class="tbl"><thead><tr><th>Order</th><th>Customer</th><th class="r">Total</th></tr></thead>
+          <tbody>
+            <tr><td><div class="skel" style="width: 60px"></div></td><td><div class="skel" style="width: 140px"></div></td><td><div class="skel" style="width: 56px; margin-left: auto"></div></td></tr>
+            <tr><td><div class="skel" style="width: 60px"></div></td><td><div class="skel" style="width: 110px"></div></td><td><div class="skel" style="width: 56px; margin-left: auto"></div></td></tr>
+            <tr><td><div class="skel" style="width: 60px"></div></td><td><div class="skel" style="width: 160px"></div></td><td><div class="skel" style="width: 56px; margin-left: auto"></div></td></tr>
+          </tbody></table>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Loading · bento detail</p>
+        <div class="bento" style="gap: 10px">
+          <div class="tile s-8" style="height: 120px"><div class="skel" style="width: 40%"></div></div>
+          <div class="tile s-4" style="height: 120px"><div class="skel" style="width: 60%"></div></div>
+          <div class="tile s-4" style="height: 70px"><div class="skel" style="width: 50%"></div></div>
+          <div class="tile s-4" style="height: 70px"><div class="skel" style="width: 50%"></div></div>
+          <div class="tile s-4" style="height: 70px"><div class="skel" style="width: 50%"></div></div>
+        </div>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Empty · nothing yet</p>
+        <div class="empty"><span class="chip-ic"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"></path></svg></span><p style="font-weight: 600">No orders yet</p><p class="small muted">Orders from the web shop show up here as soon as they are paid.</p></div>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Empty · filters match nothing</p>
+        <div class="empty"><span class="chip-ic"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span><p style="font-weight: 600">No lots match “CF-2025”</p><p class="small muted">Try another code or clear the filters.</p><button class="btn btn-outline btn-sm" type="button">Clear filters</button></div>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Error · load failed / validation</p>
+        <div class="notice n-error"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg></span><div class="col gap-8" style="align-items: flex-start"><div><p class="n-title">Could not load stock</p><p class="n-body">The server did not answer. Nothing was changed.</p></div><button class="btn btn-outline btn-sm" type="button">Try again</button></div></div>
+        <div class="notice n-error"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg></span><div><p class="n-title">Lot code already used</p><p class="n-body">“CF-2026-01” exists in this account. Pick another code.</p></div></div>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Warning · success · info</p>
+        <div class="notice n-warning"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg></span><div><p class="n-title">Recalling stops all sales of this lot</p><p class="n-body">The passport will show a recall warning to customers.</p></div></div>
+        <div class="notice n-success"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span><div><p class="n-title">Passport v4 published</p><p class="n-body">Customers now see it at /b/7K3M9QX2WD.</p></div></div>
+        <div class="notice n-info"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg></span><div><p class="n-title">Your session ended</p><p class="n-body">Sign in again to continue.</p></div></div>
+      </div>
+      <div class="card s-12">
+        <p class="card-title">Confirm before anything that can’t be undone</p>
+        <div class="dialog glass-strong" style="margin: 0 auto">
+          <h2 class="card-title" style="font-size: 18px">Recall lot CF-2026-01?</h2>
+          <p class="small muted">Sales stop at once in the shop and the till. 480 jars are affected. The passport shows a recall notice.</p>
+          <div class="row" style="justify-content: flex-end"><button class="btn btn-outline" type="button">Keep selling</button><button class="btn btn-danger" type="button">Recall lot</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"direction":{"editor":"enum","options":["a","b"],"default":"a"},"nav":{"editor":"enum","options":["side","top"],"default":"side"},"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'light';
+    const dir = this.props.direction ?? 'a';
+    const navMode = this.props.nav ?? 'side';
+    const active = 'Overview';
+    const items = [
+      ['Overview', 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z', '', ''],
+      ['Products', 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12', 'Sell', ''],
+      ['Stock', 'M2 3h20v5H2zM4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4', '', ''],
+      ['Orders', 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0', '', '12'],
+      ['Invoices', 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8', '', ''],
+      ['Lots', 'm12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5', 'Trace', ''],
+      ['Supply', 'M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62L18.3 9.38a1 1 0 0 0-.78-.38H14M5 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0M15 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0', '', '1'],
+      ['Till', 'M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01', 'Store', ''],
+      ['App keys', 'M2 15.5a5.5 5.5 0 1 0 11 0 5.5 5.5 0 1 0-11 0M21 2l-9.6 9.6M15.5 7.5l3 3L22 7l-3-3', 'Settings', ''],
+      ['Webhooks', 'M13 2 3 14h9l-1 8 10-12h-9l1-8z', '', '']
+    ];
+    const nav = items.map(([label, d, grp, count]) => ({ label, d, grp, count, cls: label === active ? 'on' : '' }));
+    const orders = [
+      { no: '#1042', who: 'Dana Whitfield', status: 'Paid', badge: 'badge b-teal', when: 'Today 09:12', total: '$48.50' },
+      { no: '#1041', who: 'Marcus Lee', status: 'Picked', badge: 'badge b-slate', when: 'Today 08:40', total: '$126.00' },
+      { no: '#1040', who: 'Priya Nair', status: 'Awaiting payment', badge: 'badge b-gold', when: 'Yesterday', total: '$32.75' },
+      { no: '#1039', who: 'Demo Buyer Ltd', status: 'Confirmed', badge: 'badge b-slate', when: 'Yesterday', total: '$1,240.00' },
+      { no: '#1038', who: 'Hannah Brooks', status: 'Cancelled', badge: 'badge b-red', when: '1 Nov', total: '$18.00' }
+    ];
+    return { rootClass: 'g t-' + mode + ' dir-' + dir + (navMode === 'top' ? ' nav-top' : ''), nav, orders };
+  }
+}
+</script>
+</body>
+</html>

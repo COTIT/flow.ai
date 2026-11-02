@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Till offline queue</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./glass.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{rootClass}}">
+  <header class="till-top glass-strong">
+    <img class="logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy">
+    <img class="logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy">
+    <nav class="row gap-4" aria-label="Till"><a href="#" class="till-tab">Sale</a><a href="#" class="till-tab">Drawer</a></nav>
+    <span class="grow"></span>
+    <span class="badge b-gold">Offline · 3 to sync</span>
+    <button class="btn btn-outline" type="button" style="height: 44px">Lock</button>
+  </header>
+  <div style="padding: 12px; display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-height: 0">
+    <div class="notice n-warning"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M2 8.82a15 15 0 0 1 4.17-2.65M10.66 5c4.01-.36 8.14.9 11.34 3.76M16.85 11.25a10 10 0 0 1 2.22 1.68M5 13a10 10 0 0 1 5.24-2.76M2 2l20 20"></path></svg></span><div class="grow"><p class="n-title">Offline — sales are kept on this iPad</p><p class="n-body">They are sent as soon as the connection is back. Totals below are estimates until then.</p></div><button class="btn btn-primary" type="button" style="height: 48px">Sync now</button></div>
+    <section class="card" style="gap: 10px; overflow: hidden">
+      <div class="row between"><p class="card-title" style="font-size: 18px">Offline sales</p><span class="small muted">3 waiting · 1 needs the office</span></div>
+      <div class="tile col gap-8">
+        <div class="row between"><div><p style="font-weight: 600">11:42 · 3 items</p><p class="small muted">Cash · ≈ $60.00 estimate</p></div><span class="badge b-gold">Waiting</span></div>
+      </div>
+      <div class="tile col gap-8">
+        <div class="row between"><div><p style="font-weight: 600">11:31 · 1 item</p><p class="small muted">Card 4821 · ≈ $26.00 estimate</p></div><span class="badge b-gold">Waiting</span></div>
+      </div>
+      <div class="tile col gap-8" style="border-color: rgba(180,35,24,0.3)">
+        <div class="row between"><div><p style="font-weight: 600">10:58 · 2 items</p><p class="small muted">Cash · ≈ $23.25 estimate</p></div><span class="badge b-red">Needs review</span></div>
+        <div class="notice n-error" style="padding: 10px 14px"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg></span><div><p class="n-title">The shift was already closed when this sale arrived</p><p class="n-body">Show this to the office — they can book it by hand.</p></div></div>
+        <div class="row" style="justify-content: flex-end"><button class="btn btn-outline" type="button" style="height: 48px">Dismiss</button></div>
+      </div>
+      <div class="tile col gap-8">
+        <div class="row between"><div><p style="font-weight: 600">10:40 · 4 items</p><p class="small muted">Booked as sale 1185 · $52.00</p></div><span class="badge b-teal">Booked</span></div>
+        <div class="notice n-warning" style="padding: 10px 14px"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg></span><div><p class="n-title">Charged at older prices</p><p class="n-body">The customer paid $1.50 less than today’s price. The office sees it.</p></div></div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"direction":{"editor":"enum","options":["a","b"],"default":"a"},"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: 'g till t-' + (this.props.mode ?? 'light') + ' dir-' + (this.props.direction ?? 'a') };
+  }
+}
+</script>
+</body>
+</html>

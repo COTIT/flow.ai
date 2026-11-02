@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Office overview</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./glass.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{rootClass}}">
+<div class="app">
+  <aside class="side glass-strong">
+    <div class="brand">
+      <img class="logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy">
+      <img class="logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy">
+    </div>
+    <nav class="nav" aria-label="Main">
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="10">
+        <sc-if value="{{n.grp}}" hint-placeholder-val="{{ false }}"><p class="grp">{{n.grp}}</p></sc-if>
+        <a href="#" class="{{n.cls}}"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="{{n.d}}"></path></svg>{{n.label}}<sc-if value="{{n.count}}" hint-placeholder-val="{{ false }}"><span class="count">{{n.count}}</span></sc-if></a>
+      </sc-for>
+    </nav>
+    <div class="side-foot">
+      <span class="avatar">RT</span>
+      <div class="who grow"><p class="small" style="font-weight: 600">Romeo T.</p><p class="xs muted">AFM Honey · Owner</p></div>
+      <button class="btn btn-ghost btn-icon btn-sm" type="button" aria-label="Sign out"><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg></button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="mbar glass-strong">
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Open menu"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+      <img class="logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy">
+      <img class="logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy">
+      <span class="grow"></span>
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Search"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></button>
+      <span class="avatar">RT</span>
+    </div>
+
+    <div class="topbar glass-strong">
+      <div class="crumbs"><span>AFM Honey</span><svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg><b>Overview</b></div>
+      <span class="grow"></span>
+      <span class="input search"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span class="ph">Search products, orders, lots…</span></span>
+      <button class="btn btn-outline" type="button">AFM Honey <svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Language">EN</button>
+      <button class="btn btn-ghost btn-icon" type="button" aria-label="Switch theme"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></button>
+    </div>
+
+    <div class="page-head">
+      <div><p class="h3">Tuesday 3 November</p><h1 class="h2">Overview</h1></div>
+      <div class="row wrap"><button class="btn btn-outline" type="button">Receive transfer</button><button class="btn btn-primary" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"></path></svg>New lot</button></div>
+    </div>
+
+    <section class="bento">
+      <a href="#" class="card kpi s-3 ph-6">
+        <div class="row between"><span class="chip-ic teal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"></path></svg></span><svg class="i sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <p class="big-num">12</p><p class="k-label">Orders to pick</p>
+      </a>
+      <a href="#" class="card kpi s-3 ph-6">
+        <div class="row between"><span class="chip-ic gold"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg></span><svg class="i sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <p class="big-num">3</p><p class="k-label">Lots in quarantine</p>
+      </a>
+      <a href="#" class="card kpi s-3 ph-6">
+        <div class="row between"><span class="chip-ic red"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 3h20v5H2zM4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"></path></svg></span><svg class="i sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <p class="big-num">4</p><p class="k-label">Products below zero</p>
+      </a>
+      <a href="#" class="card kpi s-3 ph-6">
+        <div class="row between"><span class="chip-ic slate"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"></path></svg></span><svg class="i sm muted" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></div>
+        <p class="big-num">2</p><p class="k-label">Till sales at old prices</p>
+      </a>
+
+      <div class="card flush s-8">
+        <div class="card-head pad"><div><p class="card-title">Recent orders</p><p class="card-sub">Web shop and invoices</p></div><a href="#" class="btn btn-ghost btn-sm">All orders <svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+        <table class="tbl">
+          <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th>Placed</th><th class="r">Total</th></tr></thead>
+          <tbody>
+            <sc-for list="{{orders}}" as="o" hint-placeholder-count="5">
+              <tr><td class="strong">{{o.no}}</td><td class="m-sub">{{o.who}}</td><td class="m-badge"><span class="{{o.badge}}">{{o.status}}</span></td><td class="m-hide muted">{{o.when}}</td><td class="r m-right strong">{{o.total}}</td></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card s-4">
+        <div class="card-head"><p class="card-title">Needs attention</p><span class="badge b-gold nodot">4</span></div>
+        <ul class="col" style="gap: 10px">
+          <li class="tile row" style="padding: 12px"><span class="chip-ic gold"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg></span><div class="grow"><p class="small" style="font-weight: 600">Lot CF-2026-03 in quarantine</p><p class="xs muted">Since 28 Oct · lab result pending</p></div></li>
+          <li class="tile row" style="padding: 12px"><span class="chip-ic teal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span><div class="grow"><p class="small" style="font-weight: 600">Supply link from RUAHA</p><p class="xs muted">Waiting for you to accept</p></div></li>
+          <li class="tile row" style="padding: 12px"><span class="chip-ic slate"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62L18.3 9.38a1 1 0 0 0-.78-.38H14"></path></svg></span><div class="grow"><p class="small" style="font-weight: 600">Transfer of 120 kg arriving</p><p class="xs muted">From Ilundo store · receive it</p></div></li>
+          <li class="tile row" style="padding: 12px"><span class="chip-ic red"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM8 6h8"></path></svg></span><div class="grow"><p class="small" style="font-weight: 600">Shift open since yesterday</p><p class="xs muted">AFM counter · count and close</p></div></li>
+        </ul>
+      </div>
+
+      <div class="card s-4">
+        <div class="card-head"><p class="card-title">Till today</p><a href="#" class="btn btn-ghost btn-sm">Shifts</a></div>
+        <div class="grid-2" style="gap: 10px">
+          <div class="tile"><p class="xs muted">Open shifts</p><p class="h2 num">1</p></div>
+          <div class="tile"><p class="xs muted">Sales booked</p><p class="h2 num">38</p></div>
+        </div>
+        <p class="xs muted">Counts come from the till lists; money totals stay on the shift pages.</p>
+      </div>
+      <div class="card s-4">
+        <div class="card-head"><p class="card-title">Lots by status</p><a href="#" class="btn btn-ghost btn-sm">Lots</a></div>
+        <div class="col gap-8">
+          <div class="row between small"><span class="badge b-teal">Released</span><span class="num" style="font-weight: 600">18</span></div>
+          <div class="row between small"><span class="badge b-gold">Quarantine</span><span class="num" style="font-weight: 600">3</span></div>
+          <div class="row between small"><span class="badge b-red">Recalled</span><span class="num" style="font-weight: 600">1</span></div>
+        </div>
+      </div>
+      <div class="empty s-4" style="padding: 24px">
+        <span class="chip-ic"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"></path></svg></span>
+        <p style="font-weight: 600">Sales this week</p>
+        <p class="xs muted" style="max-width: 260px">Later: needs a sales summary from the API. Not built in this round.</p>
+      </div>
+    </section>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"direction":{"editor":"enum","options":["a","b"],"default":"a"},"nav":{"editor":"enum","options":["side","top"],"default":"side"},"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'light';
+    const dir = this.props.direction ?? 'a';
+    const navMode = this.props.nav ?? 'side';
+    const active = 'Overview';
+    const items = [
+      ['Overview', 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z', '', ''],
+      ['Products', 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12', 'Sell', ''],
+      ['Stock', 'M2 3h20v5H2zM4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4', '', ''],
+      ['Orders', 'M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0', '', '12'],
+      ['Invoices', 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8', '', ''],
+      ['Lots', 'm12 2 10 5-10 5L2 7zM2 17l10 5 10-5M2 12l10 5 10-5', 'Trace', ''],
+      ['Supply', 'M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2M15 18H9M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62L18.3 9.38a1 1 0 0 0-.78-.38H14M5 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0M15 18a2 2 0 1 0 4 0 2 2 0 1 0-4 0', '', '1'],
+      ['Till', 'M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM8 6h8M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01', 'Store', ''],
+      ['App keys', 'M2 15.5a5.5 5.5 0 1 0 11 0 5.5 5.5 0 1 0-11 0M21 2l-9.6 9.6M15.5 7.5l3 3L22 7l-3-3', 'Settings', ''],
+      ['Webhooks', 'M13 2 3 14h9l-1 8 10-12h-9l1-8z', '', '']
+    ];
+    const nav = items.map(([label, d, grp, count]) => ({ label, d, grp, count, cls: label === active ? 'on' : '' }));
+    const orders = [
+      { no: '#1042', who: 'Dana Whitfield', status: 'Paid', badge: 'badge b-teal', when: 'Today 09:12', total: '$48.50' },
+      { no: '#1041', who: 'Marcus Lee', status: 'Picked', badge: 'badge b-slate', when: 'Today 08:40', total: '$126.00' },
+      { no: '#1040', who: 'Priya Nair', status: 'Awaiting payment', badge: 'badge b-gold', when: 'Yesterday', total: '$32.75' },
+      { no: '#1039', who: 'Demo Buyer Ltd', status: 'Confirmed', badge: 'badge b-slate', when: 'Yesterday', total: '$1,240.00' },
+      { no: '#1038', who: 'Hannah Brooks', status: 'Cancelled', badge: 'badge b-red', when: '1 Nov', total: '$18.00' }
+    ];
+    return { rootClass: 'g t-' + mode + ' dir-' + dir + (navMode === 'top' ? ' nav-top' : ''), nav, orders };
+  }
+}
+</script>
+</body>
+</html>

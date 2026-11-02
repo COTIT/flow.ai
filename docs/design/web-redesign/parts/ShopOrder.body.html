@@ -1,0 +1,30 @@
+  <section class="bento" style="max-width: 920px; margin: 0 auto; width: 100%">
+    <div class="card s-12" style="gap: 18px">
+      <div class="row between wrap"><div><p class="h3">Order</p><h1 class="h2">#1042</h1></div>
+        <sc-if value="{{isAwaiting}}" hint-placeholder-val="{{ true }}"><span class="badge b-gold">Awaiting payment</span></sc-if>
+        <sc-if value="{{isPaid}}" hint-placeholder-val="{{ false }}"><span class="badge b-teal">Paid</span></sc-if>
+        <sc-if value="{{isCancelled}}" hint-placeholder-val="{{ false }}"><span class="badge b-red">Cancelled</span></sc-if>
+      </div>
+      <sc-if value="{{isAwaiting}}" hint-placeholder-val="{{ true }}">
+        <div class="notice n-info"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span><div class="col gap-8 grow" style="align-items: flex-start"><div><p class="n-title">We’re holding your items until 10:42</p><p class="n-body">Pay now to finish. This page updates by itself once the payment is through.</p></div><button class="btn btn-primary btn-lg" type="button">Pay $48.50</button></div></div>
+      </sc-if>
+      <sc-if value="{{isPaid}}" hint-placeholder-val="{{ false }}">
+        <div class="notice n-success"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span><div><p class="n-title">Thank you — your order is paid</p><p class="n-body">A receipt is on its way to dana.whitfield@example.com. We’ll email you when it ships.</p></div></div>
+      </sc-if>
+      <sc-if value="{{isCancelled}}" hint-placeholder-val="{{ false }}">
+        <div class="notice n-warning"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg></span><div class="col gap-8" style="align-items: flex-start"><div><p class="n-title">This order was cancelled</p><p class="n-body">The payment time ran out. You haven’t been charged.</p></div><a href="#" class="btn btn-outline btn-sm">Shop again</a></div></div>
+      </sc-if>
+      <div class="grid-2">
+        <div class="tile col gap-8">
+          <div class="row"><span class="ph-img ph-honey" style="width: 44px; height: 44px; border-radius: 12px"></span><div class="grow"><p class="small" style="font-weight: 600">Wildflower honey · 500 g</p><p class="xs muted">2 × $14.50</p></div><span class="num small" style="font-weight: 600">$29.00</span></div>
+          <div class="row"><span class="ph-img ph-coffee" style="width: 44px; height: 44px; border-radius: 12px"></span><div class="grow"><p class="small" style="font-weight: 600">Ruaha coffee 250 g</p><p class="xs muted">1 × $12.00</p></div><span class="num small" style="font-weight: 600">$12.00</span></div>
+        </div>
+        <div class="tile col gap-8">
+          <div class="row between small"><span class="muted">Subtotal</span><span class="num">$41.00</span></div>
+          <div class="row between small"><span class="muted">VAT</span><span class="num">$7.50</span></div>
+          <div class="sep"></div>
+          <div class="row between"><span style="font-weight: 600">Total</span><span class="price">$48.50</span></div>
+        </div>
+      </div>
+    </div>
+  </section>

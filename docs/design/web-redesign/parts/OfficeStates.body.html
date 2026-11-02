@@ -1,0 +1,51 @@
+    <div class="page-head">
+      <div><p class="h3">Every screen handles these</p><h1 class="h2">States</h1></div>
+    </div>
+    <section class="bento">
+      <div class="card flush s-6">
+        <div class="card-head pad"><p class="card-title">Loading · list</p><span class="xs muted">Skeleton rows, same height as real rows</span></div>
+        <table class="tbl"><thead><tr><th>Order</th><th>Customer</th><th class="r">Total</th></tr></thead>
+          <tbody>
+            <tr><td><div class="skel" style="width: 60px"></div></td><td><div class="skel" style="width: 140px"></div></td><td><div class="skel" style="width: 56px; margin-left: auto"></div></td></tr>
+            <tr><td><div class="skel" style="width: 60px"></div></td><td><div class="skel" style="width: 110px"></div></td><td><div class="skel" style="width: 56px; margin-left: auto"></div></td></tr>
+            <tr><td><div class="skel" style="width: 60px"></div></td><td><div class="skel" style="width: 160px"></div></td><td><div class="skel" style="width: 56px; margin-left: auto"></div></td></tr>
+          </tbody></table>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Loading · bento detail</p>
+        <div class="bento" style="gap: 10px">
+          <div class="tile s-8" style="height: 120px"><div class="skel" style="width: 40%"></div></div>
+          <div class="tile s-4" style="height: 120px"><div class="skel" style="width: 60%"></div></div>
+          <div class="tile s-4" style="height: 70px"><div class="skel" style="width: 50%"></div></div>
+          <div class="tile s-4" style="height: 70px"><div class="skel" style="width: 50%"></div></div>
+          <div class="tile s-4" style="height: 70px"><div class="skel" style="width: 50%"></div></div>
+        </div>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Empty · nothing yet</p>
+        <div class="empty"><span class="chip-ic"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"></path></svg></span><p style="font-weight: 600">No orders yet</p><p class="small muted">Orders from the web shop show up here as soon as they are paid.</p></div>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Empty · filters match nothing</p>
+        <div class="empty"><span class="chip-ic"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span><p style="font-weight: 600">No lots match “CF-2025”</p><p class="small muted">Try another code or clear the filters.</p><button class="btn btn-outline btn-sm" type="button">Clear filters</button></div>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Error · load failed / validation</p>
+        <div class="notice n-error"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg></span><div class="col gap-8" style="align-items: flex-start"><div><p class="n-title">Could not load stock</p><p class="n-body">The server did not answer. Nothing was changed.</p></div><button class="btn btn-outline btn-sm" type="button">Try again</button></div></div>
+        <div class="notice n-error"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg></span><div><p class="n-title">Lot code already used</p><p class="n-body">“CF-2026-01” exists in this account. Pick another code.</p></div></div>
+      </div>
+      <div class="card s-6">
+        <p class="card-title">Warning · success · info</p>
+        <div class="notice n-warning"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg></span><div><p class="n-title">Recalling stops all sales of this lot</p><p class="n-body">The passport will show a recall warning to customers.</p></div></div>
+        <div class="notice n-success"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span><div><p class="n-title">Passport v4 published</p><p class="n-body">Customers now see it at /b/7K3M9QX2WD.</p></div></div>
+        <div class="notice n-info"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg></span><div><p class="n-title">Your session ended</p><p class="n-body">Sign in again to continue.</p></div></div>
+      </div>
+      <div class="card s-12">
+        <p class="card-title">Confirm before anything that can’t be undone</p>
+        <div class="dialog glass-strong" style="margin: 0 auto">
+          <h2 class="card-title" style="font-size: 18px">Recall lot CF-2026-01?</h2>
+          <p class="small muted">Sales stop at once in the shop and the till. 480 jars are affected. The passport shows a recall notice.</p>
+          <div class="row" style="justify-content: flex-end"><button class="btn btn-outline" type="button">Keep selling</button><button class="btn btn-danger" type="button">Recall lot</button></div>
+        </div>
+      </div>
+    </section>

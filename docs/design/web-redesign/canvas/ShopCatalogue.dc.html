@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop catalogue</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./glass.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{rootClass}}">
+<div class="wrap-shop">
+  <header class="shop-head glass-strong">
+    <a href="#" aria-label="Genesy shop home"><img class="logo-img logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy"><img class="logo-img logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy"></a>
+    <nav class="shop-nav" aria-label="Shop"><a href="#" class="on">Shop</a></nav>
+    <span class="grow"></span>
+    <button class="btn btn-ghost btn-icon no-phone" type="button" aria-label="Language">EN</button>
+    <button class="btn btn-ghost btn-icon" type="button" aria-label="Switch theme"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></button>
+    <a href="#" class="btn btn-outline" aria-label="Cart, 2 items"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"></path></svg><span class="no-phone">Cart</span><span class="count">2</span></a>
+  </header>
+<!--BODY-->
+  <section class="card" style="padding: 32px; gap: 20px; flex-direction: row; flex-wrap: wrap; align-items: center">
+    <div class="col grow" style="gap: 12px; flex: 1 1 420px">
+      <p class="tag" style="color: var(--t-gold)">AFM Honey · Iringa, Tanzania</p>
+      <h1 class="h1" style="font-size: 34px; max-width: 640px">Honey and coffee you can trace to the farmer</h1>
+      <p class="muted" style="max-width: 560px">Every jar has a passport: where it was made, who made it, and how much of your money reached them.</p>
+    </div>
+    <div class="tile row" style="flex: 0 1 320px; padding: 16px; gap: 14px">
+      <span class="chip-ic gold" style="width: 52px; height: 52px; border-radius: 16px"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h3v3h-3zM20 20h1M17 20h1"></path></svg></span>
+      <div><p style="font-weight: 600">Scan the QR on any jar</p><p class="small muted">Meet the farmers behind it.</p></div>
+    </div>
+  </section>
+
+  <section class="col gap-16">
+    <div class="row between wrap"><h2 class="h2">All products</h2><p class="small muted">6 of 14</p></div>
+    <div class="grid-3">
+      <sc-for list="{{products}}" as="p" hint-placeholder-count="6">
+        <a href="#" class="card pcard">
+          <span class="{{p.img}}"><img src="/_blob/88da5df3172b71ae006beea04a534220" alt=""><span class="ph-label">Product photo</span></span>
+          <span class="body">
+            <span class="tag muted">{{p.brand}}</span>
+            <span style="font-weight: 600; font-size: 16px">{{p.name}}</span>
+            <span class="small muted">{{p.desc}}</span>
+            <span class="row between" style="margin-top: 6px"><span class="price">{{p.price}}</span><span class="{{p.badge}}">{{p.stock}}</span></span>
+          </span>
+        </a>
+      </sc-for>
+    </div>
+    <div class="row between"><button class="btn btn-outline" type="button" disabled>Previous</button><span class="small muted">Page 1 of 3</span><button class="btn btn-outline" type="button">Next</button></div>
+  </section>
+<!--/BODY-->
+  <footer class="foot">
+    <div class="row gap-16"><img src="/_blob/88da5df3172b71ae006beea04a534220" alt="" style="width: 42px; height: auto"><div><p style="font-weight: 600">Traceable from hive to kitchen</p><p class="small" style="opacity: 0.8">Shipping to the United States. Prices include VAT.</p></div></div>
+    <div class="row gap-16 small"><a href="#">Privacy</a><a href="#">Contact</a><a href="#">English</a></div>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"direction":{"editor":"enum","options":["a","b"],"default":"a"},"status":{"editor":"enum","options":["normal","paid","cancelled","recalled"],"default":"normal"},"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'light';
+    const dir = this.props.direction ?? 'a';
+    const status = this.props.status ?? 'normal';
+    const products = [
+      { img: 'ph-img ph-honey', brand: 'AFM', name: 'Wildflower honey 500 g', desc: 'Raw, unblended, from miombo woodland near Ilundo.', price: '$14.50', stock: 'In stock', badge: 'badge b-teal' },
+      { img: 'ph-img ph-amber', brand: 'AFM', name: 'Miombo forest honey 1 kg', desc: 'Dark and rich. Harvested twice a year.', price: '$26.00', stock: 'In stock', badge: 'badge b-teal' },
+      { img: 'ph-img ph-coffee', brand: 'AFM · RUAHA', name: 'Ruaha coffee 250 g', desc: 'Arabica from Ilundo, sun-dried on raised beds.', price: '$12.00', stock: 'Few left', badge: 'badge b-gold' },
+      { img: 'ph-img ph-honey', brand: 'AFM', name: 'Acacia honey 250 g', desc: 'Light and floral, stays runny.', price: '$8.75', stock: 'In stock', badge: 'badge b-teal' },
+      { img: 'ph-img ph-wax', brand: 'AFM', name: 'Beeswax candle, tall', desc: 'Pure beeswax from the same hives.', price: '$9.50', stock: 'In stock', badge: 'badge b-teal' },
+      { img: 'ph-img ph-comb', brand: 'AFM', name: 'Raw honeycomb 400 g', desc: 'Cut straight from the frame.', price: '$18.00', stock: 'Sold out', badge: 'badge b-slate' }
+    ];
+    return {
+      rootClass: 'g t-' + mode + ' dir-' + dir,
+      products,
+      isPaid: status === 'paid', isCancelled: status === 'cancelled', isAwaiting: status === 'normal',
+      isRecalled: status === 'recalled', notRecalled: status !== 'recalled'
+    };
+  }
+}
+</script>
+</body>
+</html>
