@@ -11,7 +11,7 @@ import { formatMoney } from "@genesy/ui/lib/money"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { cartCount } from "@/lib/cart"
-import { btnLg, card, cardTitle, honey, tile } from "@/lib/look"
+import { card, cardTitle, honey, tile } from "@/lib/look"
 import { useCart } from "@/lib/use-cart"
 
 import { Stepper } from "./stepper"
@@ -29,7 +29,11 @@ export function EmptyCart() {
         title={t("empty")}
         description={t("emptyWhy")}
         action={
-          <Link href="/" className={buttonVariants({ size: "sm" })}>
+          <Link
+            href="/"
+            data-slot="button"
+            className={buttonVariants({ size: "sm" })}
+          >
             {t("browse")}
           </Link>
         }
@@ -62,7 +66,7 @@ export function CartView() {
             {lines.map((l) => (
               <li
                 key={`${l.productId}:${l.variantId}`}
-                className={cn(row, "border-b border-border last:border-b-0")}
+                className={cn(row, "border-b border-(--hair) last:border-b-0")}
               >
                 <span aria-hidden className={thumb} />
                 <div className="min-w-0 flex-auto max-md:basis-[calc(100%-88px)]">
@@ -110,7 +114,7 @@ export function CartView() {
               <Skeleton className="h-3.5 w-1/4" />
             </div>
             <Skeleton className="h-[46px] w-[122px] rounded-[12px] md:h-11" />
-            <Skeleton className="size-10 rounded-[12px]" />
+            <Skeleton className="size-10 rounded-[12px] max-md:size-11" />
           </div>
         )}
       </div>
@@ -135,7 +139,8 @@ export function CartView() {
         </p>
         <Link
           href="/checkout"
-          className={buttonVariants({ className: cn(btnLg, "w-full") })}
+          data-slot="button"
+          className={buttonVariants({ size: "lg", className: "w-full" })}
         >
           {t("checkout")}
         </Link>

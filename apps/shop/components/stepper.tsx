@@ -24,7 +24,7 @@ export function Stepper({
   const button =
     "inline-flex h-11 w-11 items-center justify-center disabled:opacity-50 md:h-[42px] [&_svg]:size-[18px]"
   return (
-    <span className="inline-flex h-[46px] shrink-0 items-center rounded-[12px] border border-[#0a183a]/16 bg-white/78 md:h-11 dark:border-white/18 dark:bg-white/6">
+    <span className="inline-flex h-[46px] shrink-0 items-center rounded-[12px] border border-(--field-border) bg-(--field) md:h-11">
       <button
         type="button"
         className={button}

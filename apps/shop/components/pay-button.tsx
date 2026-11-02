@@ -7,7 +7,6 @@ import { Button } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 
 import { payOrder, type PayState } from "@/app/actions"
-import { btnLg } from "@/lib/look"
 
 /** Starts the payment. Sits inside the awaiting notice, as drawn; its own problems show above it. */
 export function PayButton({
@@ -42,7 +41,7 @@ export function PayButton({
       <Button
         type="submit"
         disabled={pending || state.problem === "no_provider"}
-        className={btnLg}
+        size="lg"
       >
         {failed ? t("retry") : label}
       </Button>

@@ -82,7 +82,11 @@ export default async function CatalogPage({
                 title={t("catalog.pastEnd")}
                 description={t("catalog.pastEndWhy")}
                 action={
-                  <Link href="/" className={buttonVariants()}>
+                  <Link
+                    href="/"
+                    data-slot="button"
+                    className={buttonVariants()}
+                  >
                     {t("catalog.firstPage")}
                   </Link>
                 }
@@ -115,6 +119,7 @@ export default async function CatalogPage({
             {current_page > 1 ? (
               <Link
                 href={`/?page=${current_page - 1}`}
+                data-slot="button"
                 className={buttonVariants({ variant: "outline" })}
               >
                 {t("catalog.previous")}
@@ -130,6 +135,7 @@ export default async function CatalogPage({
             {current_page < last_page ? (
               <Link
                 href={`/?page=${current_page + 1}`}
+                data-slot="button"
                 className={buttonVariants({ variant: "outline" })}
               >
                 {t("catalog.next")}

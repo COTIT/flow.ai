@@ -39,15 +39,17 @@ export default async function CheckoutPage() {
                   : "text-muted-foreground"
               )}
             >
-              {i ? <span aria-hidden className="h-px w-7 bg-border" /> : null}
+              {i ? (
+                <span aria-hidden className="h-px w-7 bg-(--hair-2)" />
+              ) : null}
               <b
                 className={cn(
                   "inline-flex size-6 items-center justify-center rounded-full border-[1.5px] text-xs",
                   i < CURRENT &&
-                    "border-transparent bg-teal/13 text-(--tone-success) dark:bg-teal/22",
+                    "border-transparent bg-(--tint-success) text-(--tone-success)",
                   i === CURRENT &&
                     "border-primary bg-primary text-primary-foreground",
-                  i > CURRENT && "border-border"
+                  i > CURRENT && "border-(--hair-2)"
                 )}
               >
                 {i < CURRENT ? "✓" : i + 1}

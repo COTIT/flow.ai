@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { getLocale, getTranslations } from "next-intl/server"
 
+import { Badge } from "@genesy/ui/components/badge"
 import { buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatMoney } from "@genesy/ui/lib/money"
@@ -12,7 +13,7 @@ import { OrderCard } from "@/components/order-card"
 import { LocalTime } from "@/components/local-time"
 import { PayButton } from "@/components/pay-button"
 import { PaymentWatcher } from "@/components/payment-watcher"
-import { badgeTone, h2, tile } from "@/lib/look"
+import { h2, tile } from "@/lib/look"
 import { getOrder } from "@/lib/storefront"
 
 type Props = { params: Promise<{ id: string }> }
@@ -39,11 +40,11 @@ export default async function OrderPage({ params }: Props) {
     formatMoney(minor, order.decimals, order.currency, locale)
   const paid = order.status === "open" || order.status === "completed"
   const badge = paid
-    ? { tone: badgeTone.teal, label: t("badge.paid") }
+    ? { variant: "teal" as const, label: t("badge.paid") }
     : order.status === "cancelled"
-      ? { tone: badgeTone.red, label: t("badge.cancelled") }
+      ? { variant: "red" as const, label: t("badge.cancelled") }
       : order.status === "awaiting_payment"
-        ? { tone: badgeTone.gold, label: t("badge.awaiting") }
+        ? { variant: "gold" as const, label: t("badge.awaiting") }
         : null
 
   return (
@@ -55,7 +56,7 @@ export default async function OrderPage({ params }: Props) {
           </span>
           <span className={h2}>{order.number}</span>
         </h1>
-        {badge ? <span className={badge.tone}>{badge.label}</span> : null}
+        {badge ? <Badge variant={badge.variant}>{badge.label}</Badge> : null}
       </div>
 
       {/* One live region for every status, so a change (e.g. to paid) is announced. */}
@@ -70,6 +71,7 @@ export default async function OrderPage({ params }: Props) {
             action={
               <Link
                 href="/"
+                data-slot="button"
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 {t("again")}
@@ -114,10 +116,10 @@ export default async function OrderPage({ params }: Props) {
         <dd className="text-right">{money(order.subtotal)}</dd>
         <dt className="text-muted-foreground">{t("vat")}</dt>
         <dd className="text-right">{money(order.vat)}</dd>
-        <dt className="border-t border-border pt-2 text-sm font-semibold">
+        <dt className="border-t border-(--hair) pt-2 text-sm font-semibold">
           {t("total")}
         </dt>
-        <dd className="border-t border-border pt-2 text-right text-lg font-semibold max-md:text-base">
+        <dd className="border-t border-(--hair) pt-2 text-right text-lg font-semibold max-md:text-base">
           {money(order.total)}
         </dd>
       </dl>

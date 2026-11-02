@@ -31,6 +31,7 @@ export function NotFoundCard({
         action={
           <Link
             href="/"
+            data-slot="button"
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             {action}

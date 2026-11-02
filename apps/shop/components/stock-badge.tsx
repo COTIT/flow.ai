@@ -1,4 +1,4 @@
-import { cn } from "@genesy/ui/lib/utils"
+import { Badge } from "@genesy/ui/components/badge"
 
 /** Display only, from the API's (up to a minute old) number; checkout's reply decides. */
 export const isSoldOut = (stock: string | null) =>
@@ -17,16 +17,8 @@ export function StockBadge({
   if (stock === null) return null
   const soldOut = isSoldOut(stock)
   return (
-    <span
-      className={cn(
-        "inline-flex w-fit rounded-sm px-2 py-1 tag",
-        soldOut
-          ? "bg-muted text-muted-foreground"
-          : "bg-teal text-teal-foreground",
-        className
-      )}
-    >
+    <Badge variant={soldOut ? "slate" : "teal"} className={className}>
       {soldOut ? labels.soldOut : labels.inStock}
-    </span>
+    </Badge>
   )
 }

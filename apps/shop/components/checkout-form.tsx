@@ -12,7 +12,7 @@ import { formatMoney } from "@genesy/ui/lib/money"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { placeOrder, type CheckoutState } from "@/app/actions"
-import { btnLg, card, cardTitle, honey } from "@/lib/look"
+import { card, cardTitle, honey } from "@/lib/look"
 import { useCart } from "@/lib/use-cart"
 
 import { EmptyCart } from "./cart-view"
@@ -207,12 +207,13 @@ export function CheckoutForm() {
             </div>
           </div>
         )}
-        <div className="h-px bg-border" />
+        <div className="h-px bg-(--hair)" />
         <p className="text-xs text-muted-foreground">{t("totalNext")}</p>
         <Button
           type="submit"
           disabled={!ready || pending}
-          className={cn(btnLg, "w-full")}
+          size="lg"
+          className="w-full"
         >
           {t("place")}
         </Button>

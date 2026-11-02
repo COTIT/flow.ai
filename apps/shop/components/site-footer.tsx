@@ -7,7 +7,7 @@ import { LogoIcon } from "@genesy/ui/components/logo"
 export async function SiteFooter() {
   const t = await getTranslations("footer")
   return (
-    <footer className="flex flex-wrap items-center justify-between gap-6 rounded-[24px] bg-primary p-7 text-primary-foreground dark:border dark:border-border dark:bg-white/4 dark:text-foreground">
+    <footer className="flex flex-wrap items-center justify-between gap-6 rounded-[24px] bg-primary p-7 text-primary-foreground dark:border dark:border-(--hair) dark:bg-white/4 dark:text-foreground">
       <div className="flex items-center gap-4">
         <LogoIcon aria-hidden className="h-auto w-[42px]" />
         <div>

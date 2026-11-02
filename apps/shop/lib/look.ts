@@ -7,7 +7,7 @@ export const card =
 
 /** `.tile`: a tinted block inside a card, never blurred. */
 export const tile =
-  "min-w-0 rounded-[16px] border border-border bg-(--glass-subtle) p-4"
+  "min-w-0 rounded-[16px] border border-(--hair) bg-(--glass-subtle) p-4"
 
 /** `.tag`: small capitals over a title. */
 export const tag = "text-[11px] font-extrabold tracking-[0.08em] uppercase"
@@ -20,21 +20,8 @@ export const cardTitle = "text-[15px] font-semibold tracking-[0.01em]"
 
 /** `.chip-ic.gold`: an icon on a gold tint (gold text only on its own tint). */
 export const goldChip =
-  "inline-flex shrink-0 items-center justify-center bg-gold/22 text-(--tone-warning) dark:bg-gold/16"
+  "inline-flex shrink-0 items-center justify-center bg-(--tint-warning) text-(--tone-warning)"
 
 /** `.ph-honey`: the warm photo placeholder. */
 export const honey =
   "bg-[radial-gradient(120%_90%_at_30%_20%,#fbe7b4_0%,#e9bf6b_45%,#b98336_100%)]"
-
-/** `.badge` tones (24 px pill with a dot). shortcut: local until the shared Badge has tones. */
-const badge =
-  "inline-flex h-6 w-fit items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold tracking-[0.02em] whitespace-nowrap before:size-1.5 before:rounded-full before:bg-current"
-export const badgeTone = {
-  teal: `${badge} bg-teal/13 text-(--tone-success) dark:bg-teal/22`,
-  gold: `${badge} bg-gold/22 text-(--tone-warning) dark:bg-gold/16`,
-  red: `${badge} bg-[#b42318]/10 text-(--tone-error) dark:bg-[#f97066]/16`,
-  slate: `${badge} bg-[#456087]/12 text-(--tone-info) dark:bg-[#8fa6c8]/16`,
-}
-
-/** `.btn-lg`: the big call to action. */
-export const btnLg = "h-[52px] gap-2 rounded-[14px] px-[22px] text-base"

@@ -23,6 +23,7 @@ export default async function CartPage() {
         <h1 className={h2}>{t("title")}</h1>
         <Link
           href="/"
+          data-slot="button"
           className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           {t("keepShopping")}

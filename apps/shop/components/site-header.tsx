@@ -22,17 +22,14 @@ export async function SiteHeader() {
       <nav aria-label={t("nav.shop")} className="hidden gap-1 md:flex">
         <Link
           href="/"
-          className="inline-flex h-[38px] items-center rounded-[12px] border border-border bg-(--glass-subtle) px-3.5 font-medium"
+          className="inline-flex h-[38px] items-center rounded-[12px] border border-(--hair) bg-(--glass-subtle) px-3.5 font-medium"
         >
           {t("nav.shop")}
         </Link>
       </nav>
       <span className="flex-1" />
       <LocaleSwitcher className="hidden h-10 border-transparent bg-transparent md:block" />
-      <ThemeToggle
-        label={t("common.theme")}
-        className="size-10 rounded-[12px]"
-      />
+      <ThemeToggle label={t("common.theme")} />
       <CartLink />
     </header>
   )

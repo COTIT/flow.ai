@@ -6,12 +6,13 @@ import {
 } from "lucide-react"
 
 import type { PublicBlock, PublicLot } from "@genesy/api-client/model"
+import { Badge } from "@genesy/ui/components/badge"
 import { buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatDay, formatShare } from "@genesy/ui/lib/format"
 import { cn } from "@genesy/ui/lib/utils"
 
-import { badgeTone, card, cardTitle, h2, tag, tile } from "@/lib/look"
+import { card, cardTitle, h2, tag, tile } from "@/lib/look"
 
 import { FadeIn } from "./motion"
 
@@ -60,10 +61,10 @@ export function Passport({
   )
   const status =
     lot.status === "recalled"
-      ? { tone: badgeTone.red, label: tp("status.recalled") }
+      ? { variant: "red" as const, label: tp("status.recalled") }
       : lot.status === "quarantine"
-        ? { tone: badgeTone.gold, label: tp("status.quarantine") }
-        : { tone: badgeTone.teal, label: tp("status.released") }
+        ? { variant: "gold" as const, label: tp("status.quarantine") }
+        : { variant: "teal" as const, label: tp("status.released") }
 
   const hasWhere = Boolean(place || passport.map)
   const hasInside = passport.materials.length > 0 || facts.length > 0
@@ -122,7 +123,7 @@ export function Passport({
               ) : null}
             </div>
             <div className="flex flex-col items-end gap-2">
-              <span className={status.tone}>{status.label}</span>
+              <Badge variant={status.variant}>{status.label}</Badge>
               {dates.length ? (
                 <p className="text-xs text-muted-foreground">
                   {dates.join(" · ")}
@@ -146,6 +147,7 @@ export function Passport({
                   href={`https://www.openstreetmap.org/#map=11/${passport.map.lat}/${passport.map.lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-slot="button"
                   className={buttonVariants({ variant: "ghost", size: "sm" })}
                 >
                   {t("mapLink")}
@@ -185,7 +187,7 @@ export function Passport({
                   ) : null}
                 </div>
                 {m.share_bp != null ? (
-                  <div className="h-2 overflow-hidden rounded-full bg-border">
+                  <div className="h-2 overflow-hidden rounded-full bg-(--hair)">
                     <i
                       className="block h-full rounded-full bg-teal"
                       style={{ width: `${m.share_bp / 100}%` }}
@@ -311,7 +313,7 @@ export function Passport({
                   key={c.name}
                   className={cn(tile, "flex items-center gap-3")}
                 >
-                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[12px] bg-teal/13 text-(--tone-success) dark:bg-teal/22">
+                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[12px] bg-(--tint-success) text-(--tone-success)">
                     <ShieldCheckIcon aria-hidden className="size-[18px]" />
                   </span>
                   <div className="min-w-0 flex-auto">
@@ -332,6 +334,7 @@ export function Passport({
                       href={c.file.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      data-slot="button"
                       className={buttonVariants({
                         variant: "outline",
                         size: "sm",
@@ -393,7 +396,7 @@ function StoryBlock({ block }: { block: PublicBlock }) {
  */
 function MapArea({ label }: { label?: string | null }) {
   return (
-    <div className="relative min-h-[260px] overflow-hidden rounded-[16px] bg-(--glass-subtle) bg-[radial-gradient(circle_at_58%_46%,rgb(1_144_155/30%)_0_60px,rgb(1_144_155/12%)_61px_96px,transparent_97px),repeating-linear-gradient(0deg,var(--color-border)_0_1px,transparent_1px_28px),repeating-linear-gradient(90deg,var(--color-border)_0_1px,transparent_1px_28px)]">
+    <div className="relative min-h-[260px] overflow-hidden rounded-[16px] bg-(--glass-subtle) bg-[radial-gradient(circle_at_58%_46%,rgb(1_144_155/30%)_0_60px,rgb(1_144_155/12%)_61px_96px,transparent_97px),repeating-linear-gradient(0deg,var(--hair)_0_1px,transparent_1px_28px),repeating-linear-gradient(90deg,var(--hair)_0_1px,transparent_1px_28px)]">
       {label ? (
         <span className="absolute top-[46%] left-[58%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-(--glass-border) bg-(--glass-strong) px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
           {label}

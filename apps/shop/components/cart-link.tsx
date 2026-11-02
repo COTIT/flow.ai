@@ -17,10 +17,8 @@ export function CartLink() {
     <Link
       href="/cart"
       aria-label={t("link", { count })}
-      className={buttonVariants({
-        variant: "outline",
-        className: "gap-2 [&_svg:not([class*='size-'])]:size-[18px]",
-      })}
+      data-slot="button"
+      className={buttonVariants({ variant: "outline" })}
     >
       <ShoppingBagIcon aria-hidden />
       <span className="hidden md:inline">{t("short")}</span>

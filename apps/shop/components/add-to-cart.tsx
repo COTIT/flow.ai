@@ -143,7 +143,8 @@ export function AddToCart({
         <Button
           type="submit"
           disabled={!ready || soldOut}
-          className="h-[52px] flex-1 gap-2 rounded-[14px] px-[22px] text-base"
+          size="lg"
+          className="flex-1"
         >
           <ShoppingBagIcon aria-hidden className="size-[18px]" />
           {t("cart.add")}
@@ -160,6 +161,7 @@ export function AddToCart({
             action={
               <Link
                 href="/cart"
+                data-slot="button"
                 className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 {t("cart.view")}
