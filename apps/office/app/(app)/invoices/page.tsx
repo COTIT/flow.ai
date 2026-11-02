@@ -4,12 +4,11 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { Search } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useInvoicesList } from "@genesy/api-client/endpoints/invoices"
-import { ApiError } from "@genesy/ui/components/api-error"
 import { Input } from "@genesy/ui/components/input"
-import { Pager } from "@genesy/ui/components/pager"
 import {
   Table,
   TableBody,
@@ -18,6 +17,13 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import {
+  CardState,
+  ListCard,
+  ListPager,
+  ListSkeleton,
+  PageHead,
+} from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Empty, LoadError } from "@/components/states"
 
@@ -44,53 +50,80 @@ export default function InvoicesPage({
     router.push(`?${params}`)
   }
 
+  const columns = [
+    { label: t("invoices.number") },
+    { label: t("invoices.customer") },
+    { label: t("invoices.status") },
+    { label: t("invoices.date") },
+    { label: t("invoices.due") },
+    { label: t("invoices.total"), right: true },
+    { label: t("invoices.open"), right: true },
+  ]
+
   return (
-    <section className="flex flex-col gap-3">
-      <h1 className="heading-2 text-lg">{t("invoices.title")}</h1>
-      <form
-        role="search"
-        onSubmit={(e) => {
-          e.preventDefault()
-          go({ q: String(new FormData(e.currentTarget).get("q") ?? "") })
-        }}
+    <>
+      <PageHead eyebrow={t("shell.sell")} title={t("invoices.title")} />
+      <ListCard
+        filters={
+          <form
+            role="search"
+            className="relative w-full max-w-[360px]"
+            onSubmit={(e) => {
+              e.preventDefault()
+              go({ q: String(new FormData(e.currentTarget).get("q") ?? "") })
+            }}
+          >
+            <Search
+              aria-hidden="true"
+              strokeWidth={1.75}
+              className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              name="q"
+              type="search"
+              defaultValue={q}
+              aria-label={t("invoices.search")}
+              placeholder={t("invoices.search")}
+              className="pl-10"
+            />
+          </form>
+        }
+        count={meta ? t("invoices.count", { total: meta.total }) : null}
+        // No meta when the API answers a `limit` query; we never send one.
+        pager={
+          meta && invoices.data?.data.length ? (
+            <ListPager meta={meta} onPage={(p) => go({ page: p })} />
+          ) : null
+        }
       >
-        <Input
-          name="q"
-          type="search"
-          defaultValue={q}
-          aria-label={t("invoices.search")}
-          placeholder={t("invoices.search")}
-          className="max-w-sm"
-        />
-      </form>
-      {invoices.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : invoices.isError ? (
-        <LoadError
-          error={invoices.error}
-          onRetry={() => void invoices.refetch()}
-        />
-      ) : invoices.data.data.length === 0 ? (
-        <Empty
-          title={t("invoices.empty")}
-          onClear={q ? () => router.push("?") : undefined}
-        />
-      ) : (
-        <>
+        {invoices.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : invoices.isError ? (
+          <CardState>
+            <LoadError
+              error={invoices.error}
+              onRetry={() => void invoices.refetch()}
+            />
+          </CardState>
+        ) : invoices.data.data.length === 0 ? (
+          <CardState>
+            <Empty
+              title={t("invoices.empty")}
+              onClear={q ? () => router.push("?") : undefined}
+            />
+          </CardState>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("invoices.number")}</TableHead>
-                <TableHead>{t("invoices.customer")}</TableHead>
-                <TableHead>{t("invoices.status")}</TableHead>
-                <TableHead>{t("invoices.date")}</TableHead>
-                <TableHead>{t("invoices.due")}</TableHead>
-                <TableHead className="text-right">
-                  {t("invoices.total")}
-                </TableHead>
-                <TableHead className="text-right">
-                  {t("invoices.open")}
-                </TableHead>
+                {columns.map((c) => (
+                  <TableHead
+                    key={c.label}
+                    className={c.right ? "text-right" : undefined}
+                  >
+                    {c.label}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -98,47 +131,39 @@ export default function InvoicesPage({
                 <TableRow key={inv.id}>
                   <TableCell>
                     <Link
-                      className="font-medium underline-offset-4 hover:underline"
+                      className="font-mono font-semibold tracking-[0.04em] underline-offset-4 hover:underline"
                       href={`/invoices/${inv.id}`}
                     >
                       {inv.invoice_nr ?? t("invoices.draft")}
                     </Link>
                     {inv.is_credit ? ` · ${t("invoices.credit")}` : ""}
                   </TableCell>
-                  <TableCell>{inv.customer_name ?? "—"}</TableCell>
-                  <TableCell>
+                  <TableCell data-m="sub">{inv.customer_name ?? "—"}</TableCell>
+                  <TableCell data-m="badge">
                     <StatusBadge status={inv.status} />
                   </TableCell>
-                  <TableCell>{inv.created_at.slice(0, 10)}</TableCell>
-                  <TableCell>{inv.due_date?.slice(0, 10)}</TableCell>
+                  <TableCell data-m="hide" className="text-muted-foreground">
+                    {inv.created_at.slice(0, 10)}
+                  </TableCell>
+                  <TableCell data-m="hide" className="text-muted-foreground">
+                    {inv.due_date?.slice(0, 10)}
+                  </TableCell>
                   {/* Amounts exactly as the API prints them; never added up here. */}
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell
+                    data-m="right"
+                    className="text-right font-semibold tabular-nums"
+                  >
                     {inv.total_amount}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell data-m="hide" className="text-right tabular-nums">
                     {String(inv.balance.open)}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          {/* No meta when the API answers a `limit` query; we never send one. */}
-          {meta ? (
-            <Pager
-              page={meta.current_page}
-              lastPage={meta.last_page}
-              summary={t("pager.summary", {
-                from: meta.from ?? 0,
-                to: meta.to ?? 0,
-                total: meta.total,
-              })}
-              previous={t("pager.previous")}
-              next={t("pager.next")}
-              onPage={(p) => go({ page: p })}
-            />
-          ) : null}
-        </>
-      )}
-    </section>
+        )}
+      </ListCard>
+    </>
   )
 }

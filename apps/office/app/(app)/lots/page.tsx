@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { Search } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -24,7 +25,13 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
-import { Pager } from "@genesy/ui/components/pager"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@genesy/ui/components/select"
 import {
   Table,
   TableBody,
@@ -34,6 +41,13 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
+import {
+  CardState,
+  ListCard,
+  ListPager,
+  ListSkeleton,
+  PageHead,
+} from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Capped, Empty, LoadError } from "@/components/states"
 
@@ -42,17 +56,23 @@ import { LotFields, lotStatuses } from "./lot-fields"
 export default function LotsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; page?: string }>
+  searchParams: Promise<{
+    q?: string
+    status?: string
+    product?: string
+    page?: string
+  }>
 }) {
   const t = useTranslations()
   const router = useRouter()
-  const { q, status, page } = React.use(searchParams)
+  const { q, status, product, page } = React.use(searchParams)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const lots = useLotsList(
     workspaceId,
     {
       q: q || undefined,
       status: status || undefined,
+      product_id: product || undefined,
       page: Number(page) || undefined,
     },
     { query: { enabled: Boolean(workspaceId) } }
@@ -65,77 +85,127 @@ export default function LotsPage({
   )
   const productName = (id: string) =>
     products.data?.data.find((p) => p.id === id)?.name ?? ""
-  const go = (next: { q?: string; status?: string; page?: number }) => {
+  const go = (next: {
+    q?: string
+    status?: string
+    product?: string
+    page?: number
+  }) => {
     const params = new URLSearchParams()
     const query = next.q ?? q
     const st = next.status ?? status
+    const pr = next.product ?? product
     if (query) params.set("q", query)
     if (st) params.set("status", st)
+    if (pr) params.set("product", pr)
     if (next.page && next.page > 1) params.set("page", String(next.page))
     router.push(`?${params}`)
   }
 
+  const columns = [
+    { label: t("lots.code") },
+    { label: t("lots.product") },
+    { label: t("lots.status") },
+    { label: t("lots.producedOn") },
+    { label: t("lots.bestBefore") },
+    { label: t("lots.publicCode") },
+  ]
+
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto heading-2 text-lg">{t("lots.title")}</h1>
-        <CreateLot
-          products={products.data?.data ?? []}
-          productsMeta={products.data?.meta}
-          onCreated={(id) => router.push(`/lots/${id}?done=created`)}
-        />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <form
-          role="search"
-          onSubmit={(e) => {
-            e.preventDefault()
-            go({ q: String(new FormData(e.currentTarget).get("q") ?? "") })
-          }}
-        >
-          <Input
-            name="q"
-            type="search"
-            defaultValue={q}
-            aria-label={t("lots.search")}
-            placeholder={t("lots.search")}
-            className="max-w-sm"
+    <>
+      <PageHead
+        eyebrow={t("shell.trace")}
+        title={t("lots.title")}
+        actions={
+          <CreateLot
+            products={products.data?.data ?? []}
+            productsMeta={products.data?.meta}
+            onCreated={(id) => router.push(`/lots/${id}?done=created`)}
           />
-        </form>
-        <select
-          aria-label={t("lots.status")}
-          className={selectClass}
-          value={status ?? ""}
-          onChange={(e) => go({ status: e.target.value })}
-        >
-          <option value="">{t("lots.allStatuses")}</option>
-          {lotStatuses.map((s) => (
-            <option key={s} value={s}>
-              {t(`lots.statuses.${s}`)}
-            </option>
-          ))}
-        </select>
-      </div>
-      {lots.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : lots.isError ? (
-        <LoadError error={lots.error} onRetry={() => void lots.refetch()} />
-      ) : lots.data.data.length === 0 ? (
-        <Empty
-          title={t("lots.empty")}
-          onClear={q || status ? () => router.push("?") : undefined}
-        />
-      ) : (
-        <>
+        }
+      />
+      <ListCard
+        filters={
+          <>
+            <form
+              role="search"
+              className="relative w-full max-w-[360px]"
+              onSubmit={(e) => {
+                e.preventDefault()
+                go({ q: String(new FormData(e.currentTarget).get("q") ?? "") })
+              }}
+            >
+              <Search
+                aria-hidden="true"
+                strokeWidth={1.75}
+                className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                name="q"
+                type="search"
+                defaultValue={q}
+                aria-label={t("lots.search")}
+                placeholder={t("lots.search")}
+                className="pl-10"
+              />
+            </form>
+            <FilterSelect
+              label={t("lots.status")}
+              value={status}
+              items={[
+                { value: "", label: t("lots.allStatuses") },
+                ...lotStatuses.map((s) => ({
+                  value: s,
+                  label: t(`lots.statuses.${s}`),
+                })),
+              ]}
+              onChange={(v) => go({ status: v })}
+            />
+            <FilterSelect
+              label={t("lots.product")}
+              value={product}
+              items={[
+                { value: "", label: t("lots.allProducts") },
+                ...(products.data?.data ?? []).map((p) => ({
+                  value: p.id,
+                  label: p.name,
+                })),
+              ]}
+              onChange={(v) => go({ product: v })}
+            />
+          </>
+        }
+        count={
+          lots.data ? t("lots.count", { total: lots.data.meta.total }) : null
+        }
+        pager={
+          lots.data?.data.length ? (
+            <ListPager meta={lots.data.meta} onPage={(p) => go({ page: p })} />
+          ) : null
+        }
+      >
+        {lots.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : lots.isError ? (
+          <CardState>
+            <LoadError error={lots.error} onRetry={() => void lots.refetch()} />
+          </CardState>
+        ) : lots.data.data.length === 0 ? (
+          <CardState>
+            <Empty
+              title={t("lots.empty")}
+              onClear={
+                q || status || product ? () => router.push("?") : undefined
+              }
+            />
+          </CardState>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("lots.code")}</TableHead>
-                <TableHead>{t("lots.product")}</TableHead>
-                <TableHead>{t("lots.status")}</TableHead>
-                <TableHead>{t("lots.producedOn")}</TableHead>
-                <TableHead>{t("lots.bestBefore")}</TableHead>
-                <TableHead>{t("lots.publicCode")}</TableHead>
+                {columns.map((c) => (
+                  <TableHead key={c.label}>{c.label}</TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -143,14 +213,14 @@ export default function LotsPage({
                 <TableRow key={lot.id}>
                   <TableCell>
                     <Link
-                      className="font-medium underline-offset-4 hover:underline"
+                      className="font-mono font-semibold tracking-[0.04em] underline-offset-4 hover:underline"
                       href={`/lots/${lot.id}`}
                     >
                       {lot.code}
                     </Link>
                   </TableCell>
-                  <TableCell>{productName(lot.product_id)}</TableCell>
-                  <TableCell>
+                  <TableCell data-m="sub">{productName(lot.product_id)}</TableCell>
+                  <TableCell data-m="badge">
                     <StatusBadge
                       status={lot.status}
                       label={
@@ -160,30 +230,57 @@ export default function LotsPage({
                       }
                     />
                   </TableCell>
-                  <TableCell>{lot.produced_on}</TableCell>
-                  <TableCell>{lot.best_before}</TableCell>
-                  <TableCell className="font-mono text-xs">
+                  <TableCell data-m="hide" className="text-muted-foreground">
+                    {lot.produced_on}
+                  </TableCell>
+                  <TableCell data-m="hide" className="text-muted-foreground">
+                    {lot.best_before}
+                  </TableCell>
+                  <TableCell
+                    data-m="hide"
+                    className="font-mono tracking-[0.04em] text-muted-foreground"
+                  >
                     {lot.public_code}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <Pager
-            page={lots.data.meta.current_page}
-            lastPage={lots.data.meta.last_page}
-            summary={t("pager.summary", {
-              from: lots.data.meta.from ?? 0,
-              to: lots.data.meta.to ?? 0,
-              total: lots.data.meta.total,
-            })}
-            previous={t("pager.previous")}
-            next={t("pager.next")}
-            onPage={(p) => go({ page: p })}
-          />
-        </>
-      )}
-    </section>
+        )}
+      </ListCard>
+    </>
+  )
+}
+
+/** A card-head filter; "" is its "all" option. */
+function FilterSelect({
+  label,
+  value,
+  items,
+  onChange,
+}: {
+  label: string
+  value?: string
+  items: { value: string; label: string }[]
+  onChange: (value: string) => void
+}) {
+  return (
+    <Select
+      items={items}
+      value={value ?? ""}
+      onValueChange={(v) => onChange(v ?? "")}
+    >
+      <SelectTrigger aria-label={label} className="w-[200px] max-md:w-full">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {items.map((o) => (
+          <SelectItem key={o.value} value={o.value}>
+            {o.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }
 

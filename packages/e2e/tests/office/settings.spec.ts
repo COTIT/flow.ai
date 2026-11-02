@@ -96,7 +96,9 @@ test("app key: secret shown once, gone after closing", async ({
     kind: "till",
     scopes: ["catalog:read"],
   })
-  await page.keyboard.press("Escape")
+  await expect(dialog.getByRole("button", { name: "Copy" })).toBeVisible()
+  await dialog.getByRole("button", { name: "I saved it" }).click()
+  await expect(dialog).toBeHidden()
   await expect(
     page.getByRole("cell", { name: "Till", exact: true })
   ).toBeVisible()
@@ -142,6 +144,7 @@ test("revoke: cancelling sends nothing; confirming revokes", async ({
     .getByRole("button", { name: "Revoke" })
     .click()
   await expect(page.getByText("Revoked", { exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Revoke" })).toHaveCount(0)
   await expect(
     page.getByRole("status").filter({ hasText: "App key revoked." })
   ).toBeVisible()

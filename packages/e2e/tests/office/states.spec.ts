@@ -1,4 +1,4 @@
-import { expect, paged, test } from "./fake-api"
+import { expect, openMenu, paged, test } from "./fake-api"
 
 const product = {
   id: "p1",
@@ -91,8 +91,9 @@ test.describe(() => {
     fail = false
     await alert.getByRole("button", { name: "Try again" }).click()
     await expect(alert).toHaveCount(0)
-    await expect(page.getByRole("combobox", { name: "Workspace" })).toHaveValue(
-      "w1"
+    await openMenu(page)
+    await expect(page.getByRole("combobox", { name: "Workspace" })).toHaveText(
+      /Ilundo Honey Co\./
     )
   })
 })

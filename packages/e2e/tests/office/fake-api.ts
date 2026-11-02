@@ -71,6 +71,9 @@ export class FakeApi {
 export const WS = "w1"
 export const WS2 = "w2"
 
+/** The signed-in user the shell shows. */
+export const me = { id: "u1", name: "Romeo Tester", initials: "RT" }
+
 /** Installs a FakeApi on the page with the calls every signed-in screen makes. */
 export async function fakeApi(page: Page) {
   const api = new FakeApi()
@@ -81,6 +84,9 @@ export async function fakeApi(page: Page) {
       ],
     }))
     .on("POST", "/logout", () => ({ status: 204 }))
+    // The shell: the signed-in user's tile and the open-orders count in the menu.
+    .on("GET", "/me", () => ({ data: { user: me } }))
+    .on("GET", "/workspace/:ws/orders", () => paged([]))
     // Every batch page reads its farmer credits; specs that care override this.
     .on("GET", "/workspace/:ws/lots/:lot/farmer-credits", () => ({
       ...paged([]),
@@ -114,5 +120,17 @@ export const test = base.extend<{ api: FakeApi }>({
     await use(await fakeApi(page))
   },
 })
+
+/** On a phone the menu is a sheet behind "Open menu"; this opens it (no-op on a desktop). */
+export async function openMenu(page: Page) {
+  const button = page.getByRole("button", { name: "Open menu" })
+  if (await button.isVisible()) await button.click()
+}
+
+/** Picks `option` in the shadcn Select named `name` (a combobox button, not a native select). */
+export async function choose(page: Page, name: string, option: string) {
+  await page.getByRole("combobox", { name }).click()
+  await page.getByRole("option", { name: option, exact: true }).click()
+}
 
 export { expect }

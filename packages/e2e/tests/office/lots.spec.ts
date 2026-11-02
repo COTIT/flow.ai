@@ -1,4 +1,4 @@
-import { expect, paged, test, type FakeApi } from "./fake-api"
+import { choose, expect, paged, test, type FakeApi } from "./fake-api"
 
 const product = { id: "prod-honey", name: "AFM Honey 500g" }
 
@@ -137,12 +137,26 @@ test.describe(() => {
 test("status filter goes to the API", async ({ page, api }) => {
   lotsApi(api)
   await page.goto("/lots")
-  await page.getByRole("combobox", { name: "Status" }).selectOption("recalled")
+  await choose(page, "Status", "Recalled")
   // A filter that finds nothing says so, and offers the way back.
   await expect(page.getByText("No matches")).toBeVisible()
   await page.getByRole("button", { name: "Clear filters" }).click()
   await expect(page.getByRole("link", { name: "ILU-2026-01" })).toBeVisible()
   expect(api.calls.at(-1)?.path).toMatch(/\/lots$/)
+})
+
+test("product filter goes to the API", async ({ page, api }) => {
+  lotsApi(api)
+  await page.goto("/lots")
+  const sent = page.waitForRequest(
+    (r) =>
+      new URL(r.url()).pathname.endsWith("/lots") &&
+      new URL(r.url()).searchParams.get("product_id") === product.id
+  )
+  await choose(page, "Product", "AFM Honey 500g")
+  await sent
+  await expect(page).toHaveURL(/product=prod-honey/)
+  await expect(page.getByRole("link", { name: "ILU-2026-01" })).toBeVisible()
 })
 
 test.describe(() => {

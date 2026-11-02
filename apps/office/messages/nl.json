@@ -15,7 +15,13 @@
     "netPrice": "Prijs excl. btw",
     "shortDescription": "Korte omschrijving",
     "description": "Omschrijving",
-    "storeOnly": "Alleen aan de kassa verkocht (niet in de webshop)"
+    "storeOnly": "Alleen aan de kassa verkocht (niet in de webshop)",
+    "statuses": {
+      "active": "Actief",
+      "disabled": "Uitgeschakeld",
+      "nla": "Niet meer leverbaar"
+    },
+    "count": "{total, plural, one {# product} other {# producten}}"
   },
   "nav": {
     "label": "Hoofdmenu",
@@ -66,13 +72,16 @@
     "recallText": "Batch {code} wordt als teruggeroepen getoond op de publieke pagina en via de QR-link van elke pot.",
     "recallConfirm": "Batch terugroepen",
     "passport": "Paspoort",
-    "noEvents": "Nog geen geschiedenis."
+    "noEvents": "Nog geen geschiedenis.",
+    "count": "{total, plural, one {# partij} other {# partijen}}",
+    "allProducts": "Alle producten"
   },
   "secret": {
     "once": "Kopieer dit geheim nu. Het wordt maar één keer getoond.",
     "label": "Geheim",
     "copy": "Kopiëren",
-    "copied": "Gekopieerd"
+    "copied": "Gekopieerd",
+    "saved": "Ik heb het bewaard"
   },
   "appKeys": {
     "title": "App-sleutels",
@@ -87,7 +96,10 @@
     "revoked": "Ingetrokken",
     "revoke": "Intrekken",
     "revokeTitle": "{name} intrekken?",
-    "revokeText": "Apps met deze sleutel stoppen meteen. Dit kan niet ongedaan worden gemaakt."
+    "revokeText": "Apps met deze sleutel stoppen meteen. Dit kan niet ongedaan worden gemaakt.",
+    "intro": "Met sleutels praten de webshop en de kassa met Genesy. Elk account heeft eigen sleutels.",
+    "created": "Sleutel aangemaakt",
+    "secretHint": "Bewaar hem waar de server van de shop hem kan lezen."
   },
   "webhooks": {
     "title": "Webhooks",
@@ -102,7 +114,10 @@
     "inactive": "Gepauzeerd",
     "delete": "Verwijderen",
     "deleteTitle": "Dit endpoint verwijderen?",
-    "deleteText": "{url} krijgt geen gebeurtenissen meer. Dit kan niet ongedaan worden gemaakt."
+    "deleteText": "{url} krijgt geen gebeurtenissen meer. Dit kan niet ongedaan worden gemaakt.",
+    "intro": "Webhooks laten je andere systemen weten wanneer er iets verandert in dit account.",
+    "created": "Endpoint aangemaakt",
+    "secretHint": "Gebruik het om te controleren dat events echt van Genesy komen."
   },
   "passport": {
     "title": "Paspoort · {code}",
@@ -188,7 +203,8 @@
     "after": "Daarna",
     "reason": "Reden",
     "changeHint": "Wijziging (bv. 10 of -3)",
-    "quantityChange": "Wijziging"
+    "quantityChange": "Wijziging",
+    "count": "{total, plural, one {# voorraadregel} other {# voorraadregels}}"
   },
   "invoices": {
     "title": "Facturen",
@@ -214,7 +230,8 @@
     "noPayments": "Nog geen betalingen.",
     "method": "Methode",
     "amount": "Bedrag",
-    "customer": "Klant"
+    "customer": "Klant",
+    "count": "{total, plural, one {# factuur} other {# facturen}}"
   },
   "orders": {
     "title": "Orders",
@@ -262,7 +279,8 @@
     "cancel": "Order annuleren",
     "cancelTitle": "Order {number} annuleren?",
     "cancelText": "Gereserveerde voorraad komt vrij. Een betaalde order moet eerst terugbetaald worden; het systeem meldt dat.",
-    "nothingToDo": "Er is niets meer te doen voor deze order."
+    "nothingToDo": "Er is niets meer te doen voor deze order.",
+    "count": "{total, plural, one {# bestelling} other {# bestellingen}}"
   },
   "till": {
     "title": "Kassa",
@@ -319,7 +337,10 @@
     "revoke": "Kassa ontkoppelen",
     "revokeTitle": "De kassa op {name} ontkoppelen?",
     "revokeText": "De kassa stopt meteen en logt uit. Koppel hem opnieuw met een nieuwe code.",
-    "revoked": "De kassa op {name} is ontkoppeld."
+    "revoked": "De kassa op {name} is ontkoppeld.",
+    "registersCount": "{total, plural, one {# kassa} other {# kassa's}}",
+    "shiftsCount": "{total, plural, one {# dienst} other {# diensten}}",
+    "salesCount": "{total, plural, one {# verkoop} other {# verkopen}}"
   },
   "supply": {
     "title": "Aanvoer",
@@ -370,7 +391,9 @@
     "receive": "Ontvangen",
     "receiveFrom": "Batch {code} ontvangen",
     "receiveText": "Er is {quantity} verstuurd. Ontvangen maakt hier een nieuwe batch en kan maar één keer; is er minder aangekomen, vul dan in wat aankwam en het tekort blijft geregistreerd.",
-    "newLotCode": "Nieuwe batchcode"
+    "newLotCode": "Nieuwe batchcode",
+    "linksCount": "{total, plural, one {# koppeling} other {# koppelingen}}",
+    "transfersCount": "{total, plural, one {# overdracht} other {# overdrachten}}"
   },
   "packing": {
     "pack": "In potten verpakken",
@@ -460,5 +483,19 @@
     "pack": "{units} stuks uit {kg} kg",
     "receivedFrom": "Ontvangen uit batch {code} van de partner ({publicCode}).",
     "transfers": "Bekijk overdrachten"
+  },
+  "shell": {
+    "openMenu": "Menu openen",
+    "search": "Snel zoeken",
+    "searchPlaceholder": "Zoek producten…",
+    "searchProducts": "Producten zoeken",
+    "sell": "Verkoop",
+    "trace": "Herkomst",
+    "store": "Winkel",
+    "settings": "Instellingen"
+  },
+  "login": {
+    "subtitle": "Producten, voorraad, orders, batches en de kassa — voor je account.",
+    "theme": "Thema"
   }
 }

@@ -25,7 +25,6 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
-import { Pager } from "@genesy/ui/components/pager"
 import {
   Table,
   TableBody,
@@ -35,6 +34,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
+import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"
 import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
@@ -60,23 +60,23 @@ export default function RegistersPage() {
       queryKey: getTillRegistersListQueryKey(workspaceId),
     })
   const done = useDone()
-  const [pairing, setPairing] = React.useState<{ id: string; name: string } | null>(
-    null
-  )
+  const [pairing, setPairing] = React.useState<{
+    id: string
+    name: string
+  } | null>(null)
   // Revoking = a new key nobody sees: the till stops and must be paired again.
   const revoke = useTillRegistersRotateKey({ mutation: { onSuccess: refresh } })
   const warehouseName = (id: string) =>
     warehouses.data?.data.find((w) => w.id === id)?.name ?? ""
 
+  const columns = [
+    { label: t("appKeys.name") },
+    { label: t("stock.warehouse") },
+    { label: t("till.paired") },
+  ]
+
   return (
     <>
-      <div className="flex justify-end">
-        <CreateRegister
-          warehouses={warehouses.data?.data ?? []}
-          warehousesMeta={warehouses.data?.meta}
-          onCreated={refresh}
-        />
-      </div>
       <ApiError error={revoke.error} fallback={t("common.error")} />
       <Done message={done.message} />
       <Dialog
@@ -97,23 +97,47 @@ export default function RegistersPage() {
           {pairing ? <PairCode register={pairing.id} /> : null}
         </DialogContent>
       </Dialog>
-      {registers.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : registers.isError ? (
-        <LoadError
-          error={registers.error}
-          onRetry={() => void registers.refetch()}
-        />
-      ) : registers.data.data.length === 0 ? (
-        <Empty title={t("till.noRegisters")} />
-      ) : (
-        <>
+      <ListCard
+        filters={
+          <div className="ml-auto">
+            <CreateRegister
+              warehouses={warehouses.data?.data ?? []}
+              warehousesMeta={warehouses.data?.meta}
+              onCreated={refresh}
+            />
+          </div>
+        }
+        count={
+          registers.data
+            ? t("till.registersCount", { total: registers.data.meta.total })
+            : null
+        }
+        pager={
+          registers.data?.data.length ? (
+            <ListPager meta={registers.data.meta} onPage={setPage} />
+          ) : null
+        }
+      >
+        {registers.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : registers.isError ? (
+          <CardState>
+            <LoadError
+              error={registers.error}
+              onRetry={() => void registers.refetch()}
+            />
+          </CardState>
+        ) : registers.data.data.length === 0 ? (
+          <CardState>
+            <Empty title={t("till.noRegisters")} />
+          </CardState>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("appKeys.name")}</TableHead>
-                <TableHead>{t("stock.warehouse")}</TableHead>
-                <TableHead>{t("till.paired")}</TableHead>
+                {columns.map((c) => (
+                  <TableHead key={c.label}>{c.label}</TableHead>
+                ))}
                 <TableHead>
                   <span className="sr-only">{t("appKeys.actions")}</span>
                 </TableHead>
@@ -122,16 +146,18 @@ export default function RegistersPage() {
             <TableBody>
               {registers.data.data.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell>{warehouseName(r.warehouse_id)}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-semibold">{r.name}</TableCell>
+                  <TableCell data-m="sub">
+                    {warehouseName(r.warehouse_id)}
+                  </TableCell>
+                  <TableCell data-m="right" className="tabular-nums">
                     {r.paired_at ? (
                       new Date(r.paired_at).toLocaleString()
                     ) : (
                       <StatusBadge status="draft" label={t("till.notPaired")} />
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell data-m="badge" className="text-right">
                     <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         variant="outline"
@@ -163,20 +189,8 @@ export default function RegistersPage() {
               ))}
             </TableBody>
           </Table>
-          <Pager
-            page={registers.data.meta.current_page}
-            lastPage={registers.data.meta.last_page}
-            summary={t("pager.summary", {
-              from: registers.data.meta.from ?? 0,
-              to: registers.data.meta.to ?? 0,
-              total: registers.data.meta.total,
-            })}
-            previous={t("pager.previous")}
-            next={t("pager.next")}
-            onPage={setPage}
-          />
-        </>
-      )}
+        )}
+      </ListCard>
     </>
   )
 }
@@ -289,12 +303,16 @@ function PairCode({ register }: { register: string }) {
         <>
           <p className="text-sm text-muted-foreground">{t("till.pairHint")}</p>
           <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-4 gap-y-2">
-            <dt className="text-sm text-muted-foreground">{t("till.shopName")}</dt>
+            <dt className="text-sm text-muted-foreground">
+              {t("till.shopName")}
+            </dt>
             <dd className="font-mono text-lg">{code.workspace}</dd>
-            <dt className="text-sm text-muted-foreground">{t("till.pairCode")}</dt>
+            <dt className="text-sm text-muted-foreground">
+              {t("till.pairCode")}
+            </dt>
             <dd
               aria-label={t("till.pairCode")}
-              className="font-mono text-3xl font-semibold tracking-widest"
+              className="rounded-[14px] border-[1.5px] border-dashed border-gold bg-(--tint-warning) px-3.5 py-3 font-mono text-3xl font-semibold tracking-widest break-all"
             >
               {code.code}
             </dd>

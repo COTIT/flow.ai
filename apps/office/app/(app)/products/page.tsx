@@ -4,11 +4,12 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { Package, Search } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useProductsList } from "@genesy/api-client/endpoints/products"
+import { buttonVariants } from "@genesy/ui/components/button"
 import { Input } from "@genesy/ui/components/input"
-import { Pager } from "@genesy/ui/components/pager"
 import {
   Table,
   TableBody,
@@ -17,111 +18,203 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import {
+  CardState,
+  ListCard,
+  ListPager,
+  ListSkeleton,
+  PageHead,
+  PillLinks,
+} from "@/components/list"
 import { Empty, LoadError } from "@/components/states"
+import { StatusBadge } from "@/components/status-badge"
+
+// The API's product statuses; with none asked it lists `active`.
+const statuses = ["active", "disabled", "nla"] as const
 
 export default function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string }>
+  searchParams: Promise<{ q?: string; page?: string; status?: string }>
 }) {
   const t = useTranslations()
   const router = useRouter()
-  const { q, page } = React.use(searchParams)
+  const { q, page, status } = React.use(searchParams)
   const workspaceId = useSession((s) => s.workspaceId)
   const products = useProductsList(
     workspaceId ?? "",
-    { q: q || undefined, page: Number(page) || undefined },
+    {
+      q: q || undefined,
+      status: status || undefined,
+      page: Number(page) || undefined,
+    },
     { query: { enabled: Boolean(workspaceId) } }
   )
-  const go = (next: { q?: string; page?: number }) => {
+  const href = (next: { q?: string; page?: number; status?: string }) => {
     const params = new URLSearchParams()
     const query = next.q ?? q
+    const st = next.status ?? status
     if (query) params.set("q", query)
+    if (st && st !== "active") params.set("status", st)
     if (next.page && next.page > 1) params.set("page", String(next.page))
-    router.push(`?${params}`)
+    return `?${params}`
   }
+  const columns = [
+    { label: t("products.name") },
+    { label: t("products.number") },
+    { label: t("products.reference") },
+    { label: t("products.status") },
+    { label: t("products.price"), right: true },
+  ]
 
   return (
-    <section className="flex flex-col gap-3">
-      <h1 className="heading-2 text-lg">{t("products.title")}</h1>
-      <form
-        role="search"
-        onSubmit={(e) => {
-          e.preventDefault()
-          go({ q: String(new FormData(e.currentTarget).get("q") ?? "") })
-        }}
+    <>
+      <PageHead
+        eyebrow={t("shell.sell")}
+        title={t("products.title")}
+        actions={
+          <Link
+            href="/stock"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            {t("nav.stock")}
+          </Link>
+        }
+      />
+      <ListCard
+        filters={
+          <>
+            <form
+              role="search"
+              className="relative w-full max-w-[360px]"
+              onSubmit={(e) => {
+                e.preventDefault()
+                router.push(
+                  href({
+                    q: String(new FormData(e.currentTarget).get("q") ?? ""),
+                    page: 1,
+                  })
+                )
+              }}
+            >
+              <Search
+                aria-hidden="true"
+                strokeWidth={1.75}
+                className="pointer-events-none absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                name="q"
+                type="search"
+                defaultValue={q}
+                aria-label={t("products.search")}
+                placeholder={t("products.search")}
+                className="pl-10"
+              />
+            </form>
+            <div className="max-md:hidden">
+              <PillLinks
+                label={t("products.status")}
+                links={statuses.map((s) => ({
+                  href: href({ status: s, page: 1 }),
+                  label: t(`products.statuses.${s}`),
+                  active: (status || "active") === s,
+                }))}
+              />
+            </div>
+          </>
+        }
+        count={
+          products.data
+            ? t("products.count", { total: products.data.meta.total })
+            : null
+        }
+        pager={
+          products.data?.data.length ? (
+            <ListPager
+              meta={products.data.meta}
+              onPage={(p) => router.push(href({ page: p }))}
+            />
+          ) : null
+        }
       >
-        <Input
-          name="q"
-          type="search"
-          defaultValue={q}
-          aria-label={t("products.search")}
-          placeholder={t("products.search")}
-          className="max-w-sm"
-        />
-      </form>
-      {products.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : products.isError ? (
-        <LoadError
-          error={products.error}
-          onRetry={() => void products.refetch()}
-        />
-      ) : products.data.data.length === 0 ? (
-        <Empty
-          title={t("products.empty")}
-          onClear={q ? () => router.push("?") : undefined}
-        />
-      ) : (
-        <>
+        {products.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : products.isError ? (
+          <CardState>
+            <LoadError
+              error={products.error}
+              onRetry={() => void products.refetch()}
+            />
+          </CardState>
+        ) : products.data.data.length === 0 ? (
+          <CardState>
+            <Empty
+              title={t("products.empty")}
+              onClear={q || status ? () => router.push("?") : undefined}
+            />
+          </CardState>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("products.name")}</TableHead>
-                <TableHead>{t("products.number")}</TableHead>
-                <TableHead>{t("products.reference")}</TableHead>
-                <TableHead className="text-right">
-                  {t("products.price")}
-                </TableHead>
-                <TableHead>{t("products.status")}</TableHead>
+                {columns.map((c) => (
+                  <TableHead
+                    key={c.label}
+                    className={c.right ? "text-right" : undefined}
+                  >
+                    {c.label}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {products.data.data.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>
-                    <Link
-                      className="font-medium underline-offset-4 hover:underline"
-                      href={`/products/${p.id}`}
-                    >
-                      {p.name}
-                    </Link>
+                    <span className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] border border-(--hair) bg-(--glass-subtle) text-muted-foreground max-md:hidden"
+                      >
+                        <Package className="size-[18px]" strokeWidth={1.75} />
+                      </span>
+                      <Link
+                        className="font-semibold underline-offset-4 hover:underline"
+                        href={`/products/${p.id}`}
+                      >
+                        {p.name}
+                      </Link>
+                    </span>
                   </TableCell>
-                  <TableCell>{p.product_nr}</TableCell>
-                  <TableCell>{p.reference}</TableCell>
+                  <TableCell data-m="sub" className="font-mono tracking-[0.04em]">
+                    {p.product_nr}
+                  </TableCell>
+                  <TableCell data-m="hide" className="text-muted-foreground">
+                    {p.reference}
+                  </TableCell>
+                  <TableCell data-m="badge">
+                    <StatusBadge
+                      status={p.status}
+                      label={
+                        t.has(`products.statuses.${p.status}`)
+                          ? t(`products.statuses.${p.status}`)
+                          : p.status
+                      }
+                    />
+                  </TableCell>
                   {/* The API prints prices as exact strings; shown as-is, never parsed. */}
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell
+                    data-m="right"
+                    className="text-right font-semibold tabular-nums"
+                  >
                     {p.price_incl}
                   </TableCell>
-                  <TableCell>{p.status}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <Pager
-            page={products.data.meta.current_page}
-            lastPage={products.data.meta.last_page}
-            summary={t("pager.summary", {
-              from: products.data.meta.from ?? 0,
-              to: products.data.meta.to ?? 0,
-              total: products.data.meta.total,
-            })}
-            previous={t("pager.previous")}
-            next={t("pager.next")}
-            onPage={(p) => go({ page: p })}
-          />
-        </>
-      )}
-    </section>
+        )}
+      </ListCard>
+    </>
   )
 }

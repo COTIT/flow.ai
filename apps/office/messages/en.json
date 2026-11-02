@@ -15,7 +15,13 @@
     "netPrice": "Price excl. VAT",
     "shortDescription": "Short description",
     "description": "Description",
-    "storeOnly": "Sold at the till only (not in the web shop)"
+    "storeOnly": "Sold at the till only (not in the web shop)",
+    "statuses": {
+      "active": "Active",
+      "disabled": "Disabled",
+      "nla": "No longer sold"
+    },
+    "count": "{total, plural, one {# product} other {# products}}"
   },
   "nav": {
     "label": "Main menu",
@@ -66,13 +72,16 @@
     "recallText": "Batch {code} will show as recalled on its public page and on every jar's QR link.",
     "recallConfirm": "Recall batch",
     "passport": "Passport",
-    "noEvents": "No history yet."
+    "noEvents": "No history yet.",
+    "count": "{total, plural, one {# batch} other {# batches}}",
+    "allProducts": "All products"
   },
   "secret": {
     "once": "Copy this secret now. It is shown only once.",
     "label": "Secret",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "saved": "I saved it"
   },
   "appKeys": {
     "title": "App keys",
@@ -87,7 +96,10 @@
     "revoked": "Revoked",
     "revoke": "Revoke",
     "revokeTitle": "Revoke {name}?",
-    "revokeText": "Apps using this key stop working at once. This cannot be undone."
+    "revokeText": "Apps using this key stop working at once. This cannot be undone.",
+    "intro": "Keys let the web shop and the till talk to Genesy. Each account has its own.",
+    "created": "Key created",
+    "secretHint": "Store it where the shop server can read it."
   },
   "webhooks": {
     "title": "Webhooks",
@@ -102,7 +114,10 @@
     "inactive": "Paused",
     "delete": "Delete",
     "deleteTitle": "Delete this endpoint?",
-    "deleteText": "{url} will get no more events. This cannot be undone."
+    "deleteText": "{url} will get no more events. This cannot be undone.",
+    "intro": "Webhooks tell your other systems when something changes in this account.",
+    "created": "Endpoint created",
+    "secretHint": "Use it to check that events really come from Genesy."
   },
   "passport": {
     "title": "Passport · {code}",
@@ -188,7 +203,8 @@
     "after": "After",
     "reason": "Reason",
     "changeHint": "Change (e.g. 10 or -3)",
-    "quantityChange": "Change"
+    "quantityChange": "Change",
+    "count": "{total, plural, one {# stock row} other {# stock rows}}"
   },
   "invoices": {
     "title": "Invoices",
@@ -214,7 +230,8 @@
     "noPayments": "No payments yet.",
     "method": "Method",
     "amount": "Amount",
-    "customer": "Customer"
+    "customer": "Customer",
+    "count": "{total, plural, one {# invoice} other {# invoices}}"
   },
   "orders": {
     "title": "Orders",
@@ -262,7 +279,8 @@
     "cancel": "Cancel order",
     "cancelTitle": "Cancel order {number}?",
     "cancelText": "Reserved stock is released. A paid order needs a refund first; the system will say so.",
-    "nothingToDo": "Nothing more to do on this order."
+    "nothingToDo": "Nothing more to do on this order.",
+    "count": "{total, plural, one {# order} other {# orders}}"
   },
   "till": {
     "title": "Till",
@@ -319,7 +337,10 @@
     "revoke": "Disconnect till",
     "revokeTitle": "Disconnect the till on {name}?",
     "revokeText": "The till stops at once and logs out. Pair it again with a new code to use it.",
-    "revoked": "The till on {name} is disconnected."
+    "revoked": "The till on {name} is disconnected.",
+    "registersCount": "{total, plural, one {# register} other {# registers}}",
+    "shiftsCount": "{total, plural, one {# shift} other {# shifts}}",
+    "salesCount": "{total, plural, one {# sale} other {# sales}}"
   },
   "supply": {
     "title": "Supply",
@@ -370,7 +391,9 @@
     "receive": "Receive",
     "receiveFrom": "Receive batch {code}",
     "receiveText": "{quantity} were sent. Receiving makes a new batch here and can be done only once; if less arrived, enter what arrived and the shortfall stays on record.",
-    "newLotCode": "New batch code"
+    "newLotCode": "New batch code",
+    "linksCount": "{total, plural, one {# link} other {# links}}",
+    "transfersCount": "{total, plural, one {# transfer} other {# transfers}}"
   },
   "packing": {
     "pack": "Pack into jars",
@@ -460,5 +483,19 @@
     "pack": "{units} units from {kg} kg",
     "receivedFrom": "Received from the partner's batch {code} ({publicCode}).",
     "transfers": "See transfers"
+  },
+  "shell": {
+    "openMenu": "Open menu",
+    "search": "Quick search",
+    "searchPlaceholder": "Search products…",
+    "searchProducts": "Search products",
+    "sell": "Sell",
+    "trace": "Trace",
+    "store": "Store",
+    "settings": "Settings"
+  },
+  "login": {
+    "subtitle": "Products, stock, orders, batches and the till — for your account.",
+    "theme": "Theme"
   }
 }

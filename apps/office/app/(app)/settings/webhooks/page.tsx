@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
+import { Plus } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import {
@@ -28,7 +29,6 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
-import { Pager } from "@genesy/ui/components/pager"
 import {
   Table,
   TableBody,
@@ -38,6 +38,13 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Field } from "@/components/field"
+import {
+  CardState,
+  ListCard,
+  ListPager,
+  ListSkeleton,
+  PageHead,
+} from "@/components/list"
 import { SecretReveal, splitList } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
@@ -66,47 +73,80 @@ export default function WebhooksPage() {
       },
     },
   })
+  // The endpoint being confirmed; kept while the dialog closes so its text does not blank.
+  const [deleting, setDeleting] = React.useState<{
+    id: string
+    url: string
+    open: boolean
+  }>()
+  const columns = [
+    { label: t("webhooks.url") },
+    { label: t("webhooks.events") },
+    { label: t("webhooks.state") },
+    { label: t("appKeys.actions"), right: true },
+  ]
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto heading-2 text-lg">{t("webhooks.title")}</h1>
-        <EndpointDialog
-          onDone={() => {
-            done.show(t("done.endpointAdded"))
-            void refresh()
-          }}
-        />
-      </div>
+    <>
+      <PageHead
+        eyebrow={t("shell.settings")}
+        title={t("webhooks.title")}
+        description={t("webhooks.intro")}
+        actions={
+          <EndpointDialog
+            onDone={() => {
+              done.show(t("done.endpointAdded"))
+              void refresh()
+            }}
+          />
+        }
+      />
       <Done message={done.message} />
       <ApiError error={remove.error} fallback={t("common.error")} />
-      {hooks.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : hooks.isError ? (
-        <LoadError error={hooks.error} onRetry={() => void hooks.refetch()} />
-      ) : hooks.data.data.length === 0 ? (
-        <Empty title={t("webhooks.empty")} />
-      ) : (
-        <>
+      <ListCard
+        pager={
+          hooks.data?.data.length ? (
+            <ListPager meta={hooks.data.meta} onPage={setPage} />
+          ) : null
+        }
+      >
+        {hooks.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : hooks.isError ? (
+          <CardState>
+            <LoadError
+              error={hooks.error}
+              onRetry={() => void hooks.refetch()}
+            />
+          </CardState>
+        ) : hooks.data.data.length === 0 ? (
+          <CardState>
+            <Empty title={t("webhooks.empty")} />
+          </CardState>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("webhooks.url")}</TableHead>
-                <TableHead>{t("webhooks.events")}</TableHead>
-                <TableHead>{t("webhooks.state")}</TableHead>
-                <TableHead>
-                  <span className="sr-only">{t("appKeys.actions")}</span>
-                </TableHead>
+                {columns.map((c) => (
+                  <TableHead
+                    key={c.label}
+                    className={c.right ? "text-right" : undefined}
+                  >
+                    {c.label}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {hooks.data.data.map((h) => (
                 <TableRow key={h.id}>
-                  <TableCell className="max-w-64 truncate font-mono text-xs">
+                  <TableCell className="max-w-64 truncate font-mono font-semibold tracking-[0.04em]">
                     {h.url}
                   </TableCell>
-                  <TableCell>{h.events.join(", ")}</TableCell>
-                  <TableCell>
+                  <TableCell data-m="sub" className="text-muted-foreground">
+                    {h.events.join(", ")}
+                  </TableCell>
+                  <TableCell data-m="badge">
                     <StatusBadge
                       status={h.active ? "active" : "inactive"}
                       label={
@@ -114,7 +154,7 @@ export default function WebhooksPage() {
                       }
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-m="right">
                     <div className="flex justify-end gap-2">
                       <EndpointDialog
                         endpoint={h}
@@ -123,41 +163,38 @@ export default function WebhooksPage() {
                           void refresh()
                         }}
                       />
-                      <ConfirmDialog
-                        trigger={t("webhooks.delete")}
-                        title={t("webhooks.deleteTitle")}
-                        description={t("webhooks.deleteText", { url: h.url })}
-                        confirm={t("webhooks.delete")}
-                        cancel={t("actions.cancel")}
+                      <Button
+                        variant="outline"
+                        size="sm"
                         disabled={remove.isPending}
-                        onConfirm={() =>
-                          remove.mutate({
-                            workspace: workspaceId,
-                            endpoint: h.id,
-                          })
+                        onClick={() =>
+                          setDeleting({ id: h.id, url: h.url, open: true })
                         }
-                      />
+                      >
+                        {t("webhooks.delete")}
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <Pager
-            page={hooks.data.meta.current_page}
-            lastPage={hooks.data.meta.last_page}
-            summary={t("pager.summary", {
-              from: hooks.data.meta.from ?? 0,
-              to: hooks.data.meta.to ?? 0,
-              total: hooks.data.meta.total,
-            })}
-            previous={t("pager.previous")}
-            next={t("pager.next")}
-            onPage={setPage}
-          />
-        </>
-      )}
-    </section>
+        )}
+      </ListCard>
+      <ConfirmDialog
+        open={deleting?.open ?? false}
+        onOpenChange={(open) => setDeleting((d) => d && { ...d, open })}
+        title={t("webhooks.deleteTitle")}
+        description={t("webhooks.deleteText", { url: deleting?.url ?? "" })}
+        confirm={t("webhooks.delete")}
+        cancel={t("actions.cancel")}
+        disabled={remove.isPending}
+        onConfirm={() =>
+          deleting &&
+          remove.mutate({ workspace: workspaceId, endpoint: deleting.id })
+        }
+      />
+    </>
   )
 }
 
@@ -184,27 +221,34 @@ function EndpointDialog({
   const mutation = endpoint ? update : create
   const errors = fieldErrors(mutation.error)
   const title = endpoint ? t("webhooks.edit") : t("webhooks.new")
+  const onOpenChange = (o: boolean) => {
+    setOpen(o)
+    if (!o) mutation.reset()
+  }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o)
-        if (!o) mutation.reset()
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger
-        render={<Button variant={endpoint ? "outline" : "default"} />}
+        render={
+          endpoint ? <Button variant="outline" size="sm" /> : <Button />
+        }
         aria-label={endpoint ? `${title}: ${endpoint.url}` : undefined}
       >
+        {endpoint ? null : <Plus aria-hidden="true" strokeWidth={1.75} />}
         {title}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle>
+            {create.data ? t("webhooks.created") : title}
+          </DialogTitle>
         </DialogHeader>
         {create.data ? (
-          <SecretReveal secret={create.data.data.secret} />
+          <SecretReveal
+            secret={create.data.data.secret}
+            hint={t("webhooks.secretHint")}
+            onSaved={() => onOpenChange(false)}
+          />
         ) : (
           <form
             className="flex flex-col gap-3"

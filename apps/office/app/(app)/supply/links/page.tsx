@@ -13,7 +13,6 @@ import {
 } from "@genesy/api-client/endpoints/supply-links"
 import { ApiError } from "@genesy/ui/components/api-error"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
-import { Pager } from "@genesy/ui/components/pager"
 import {
   Table,
   TableBody,
@@ -22,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
 
@@ -58,14 +58,14 @@ export default function SupplyLinksPage() {
       : t("supply.noFields")
   const day = (s: string | null) => s?.slice(0, 10) ?? "—"
 
-  if (links.isPending)
-    return (
-      <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-    )
-  if (links.isError)
-    return (
-      <LoadError error={links.error} onRetry={() => void links.refetch()} />
-    )
+  const columns = [
+    { label: t("supply.partner") },
+    { label: t("supply.direction") },
+    { label: t("lots.status") },
+    { label: t("supply.allowList") },
+    { label: t("supply.granted") },
+  ]
+
   return (
     <>
       <p className="text-sm text-muted-foreground">{t("supply.linksHint")}</p>
@@ -74,10 +74,32 @@ export default function SupplyLinksPage() {
         error={accept.error ?? revoke.error}
         fallback={t("common.error")}
       />
-      {links.data.data.length === 0 ? (
-        <Empty title={t("supply.noLinks")} />
-      ) : (
-        <>
+      <ListCard
+        count={
+          links.data
+            ? t("supply.linksCount", { total: links.data.meta.total })
+            : null
+        }
+        pager={
+          links.data?.data.length ? (
+            <ListPager meta={links.data.meta} onPage={setPage} />
+          ) : null
+        }
+      >
+        {links.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : links.isError ? (
+          <CardState>
+            <LoadError
+              error={links.error}
+              onRetry={() => void links.refetch()}
+            />
+          </CardState>
+        ) : links.data.data.length === 0 ? (
+          <CardState>
+            <Empty title={t("supply.noLinks")} />
+          </CardState>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -94,11 +116,13 @@ export default function SupplyLinksPage() {
             <TableBody>
               {links.data.data.map((l) => (
                 <TableRow key={l.id}>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-semibold">
                     {l.partner.name}
                   </TableCell>
-                  <TableCell>{label("directions", l.direction)}</TableCell>
-                  <TableCell>
+                  <TableCell data-m="sub">
+                    {label("directions", l.direction)}
+                  </TableCell>
+                  <TableCell data-m="right">
                     <StatusBadge
                       status={
                         l.status === "live"
@@ -110,13 +134,19 @@ export default function SupplyLinksPage() {
                       label={label("statuses", l.status)}
                     />
                   </TableCell>
-                  <TableCell className="whitespace-normal">
+                  <TableCell
+                    data-m="sub"
+                    className="whitespace-normal text-muted-foreground"
+                  >
                     {allowList(l.fields)}
                   </TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell
+                    data-m="hide"
+                    className="text-muted-foreground tabular-nums"
+                  >
                     {day(l.granted_at)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-m="badge">
                     <div className="flex justify-end gap-2">
                       {l.direction === "incoming" && l.status === "pending" ? (
                         <ConfirmDialog
@@ -163,20 +193,8 @@ export default function SupplyLinksPage() {
               ))}
             </TableBody>
           </Table>
-          <Pager
-            page={links.data.meta.current_page}
-            lastPage={links.data.meta.last_page}
-            summary={t("pager.summary", {
-              from: links.data.meta.from ?? 0,
-              to: links.data.meta.to ?? 0,
-              total: links.data.meta.total,
-            })}
-            previous={t("pager.previous")}
-            next={t("pager.next")}
-            onPage={setPage}
-          />
-        </>
-      )}
+        )}
+      </ListCard>
     </>
   )
 }

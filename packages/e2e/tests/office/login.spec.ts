@@ -19,6 +19,9 @@ test("logging in opens the product list", async ({ page }) => {
   await page.goto("/login")
   await expect(page.getByRole("img", { name: "Genesy" })).toBeVisible()
   await expectNoHorizontalScroll(page)
+  await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Language" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Theme" })).toBeVisible()
 
   await page.getByLabel("Email").fill("e2e@genesy.test")
   await page.getByLabel("Password").fill("e2e-password-only")

@@ -7,8 +7,13 @@ import { useLocale, useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useOrdersList } from "@genesy/api-client/endpoints/orders"
-import { ApiError } from "@genesy/ui/components/api-error"
-import { Pager } from "@genesy/ui/components/pager"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@genesy/ui/components/select"
 import {
   Table,
   TableBody,
@@ -18,7 +23,13 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { formatMoney } from "@genesy/ui/lib/money"
-import { selectClass } from "@/components/field"
+import {
+  CardState,
+  ListCard,
+  ListPager,
+  ListSkeleton,
+  PageHead,
+} from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Empty, LoadError } from "@/components/states"
 
@@ -49,43 +60,85 @@ export default function OrdersPage({
     router.push(`?${params}`)
   }
 
+  const columns = [
+    { label: t("orders.number") },
+    { label: t("orders.customer") },
+    { label: t("orders.status") },
+    { label: t("invoices.date") },
+    { label: t("invoices.total"), right: true },
+  ]
+  const statusItems = [
+    { value: "", label: t("lots.allStatuses") },
+    ...orderStatuses.map((s) => ({ value: s, label: statusLabel(s) })),
+  ]
+
   return (
-    <section className="flex flex-col gap-3">
-      <h1 className="heading-2 text-lg">{t("orders.title")}</h1>
-      <select
-        aria-label={t("orders.status")}
-        className={`${selectClass} self-start`}
-        value={status ?? ""}
-        onChange={(e) => go({ status: e.target.value })}
+    <>
+      <PageHead eyebrow={t("shell.sell")} title={t("orders.title")} />
+      <ListCard
+        filters={
+          <Select
+            items={statusItems}
+            value={status ?? ""}
+            onValueChange={(v) => go({ status: v ?? "" })}
+          >
+            <SelectTrigger
+              aria-label={t("orders.status")}
+              className="w-[200px] max-md:w-full"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {statusItems.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        }
+        count={
+          orders.data
+            ? t("orders.count", { total: orders.data.meta.total })
+            : null
+        }
+        pager={
+          orders.data?.data.length ? (
+            <ListPager
+              meta={orders.data.meta}
+              onPage={(p) => go({ page: p })}
+            />
+          ) : null
+        }
       >
-        <option value="">{t("lots.allStatuses")}</option>
-        {orderStatuses.map((s) => (
-          <option key={s} value={s}>
-            {statusLabel(s)}
-          </option>
-        ))}
-      </select>
-      {orders.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-      ) : orders.isError ? (
-        <LoadError error={orders.error} onRetry={() => void orders.refetch()} />
-      ) : orders.data.data.length === 0 ? (
-        <Empty
-          title={t("orders.empty")}
-          onClear={status ? () => router.push("?") : undefined}
-        />
-      ) : (
-        <>
+        {orders.isPending ? (
+          <ListSkeleton columns={columns} />
+        ) : orders.isError ? (
+          <CardState>
+            <LoadError
+              error={orders.error}
+              onRetry={() => void orders.refetch()}
+            />
+          </CardState>
+        ) : orders.data.data.length === 0 ? (
+          <CardState>
+            <Empty
+              title={t("orders.empty")}
+              onClear={status ? () => router.push("?") : undefined}
+            />
+          </CardState>
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("orders.number")}</TableHead>
-                <TableHead>{t("orders.status")}</TableHead>
-                <TableHead>{t("orders.customer")}</TableHead>
-                <TableHead>{t("invoices.date")}</TableHead>
-                <TableHead className="text-right">
-                  {t("invoices.total")}
-                </TableHead>
+                {columns.map((c) => (
+                  <TableHead
+                    key={c.label}
+                    className={c.right ? "text-right" : undefined}
+                  >
+                    {c.label}
+                  </TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -93,41 +146,34 @@ export default function OrdersPage({
                 <TableRow key={o.id}>
                   <TableCell>
                     <Link
-                      className="font-medium underline-offset-4 hover:underline"
+                      className="font-semibold underline-offset-4 hover:underline"
                       href={`/orders/${o.id}`}
                     >
                       {o.number}
                     </Link>
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-m="sub">{customerName(o.customer)}</TableCell>
+                  <TableCell data-m="badge">
                     <StatusBadge
                       status={o.status}
                       label={statusLabel(o.status)}
                     />
                   </TableCell>
-                  <TableCell>{customerName(o.customer)}</TableCell>
-                  <TableCell>{o.created_at.slice(0, 10)}</TableCell>
-                  <TableCell className="text-right tabular-nums">
+                  <TableCell data-m="hide" className="text-muted-foreground">
+                    {o.created_at.slice(0, 10)}
+                  </TableCell>
+                  <TableCell
+                    data-m="right"
+                    className="text-right font-semibold tabular-nums"
+                  >
                     {formatMoney(o.total, o.decimals, o.currency, locale)}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          <Pager
-            page={orders.data.meta.current_page}
-            lastPage={orders.data.meta.last_page}
-            summary={t("pager.summary", {
-              from: orders.data.meta.from ?? 0,
-              to: orders.data.meta.to ?? 0,
-              total: orders.data.meta.total,
-            })}
-            previous={t("pager.previous")}
-            next={t("pager.next")}
-            onPage={(p) => go({ page: p })}
-          />
-        </>
-      )}
-    </section>
+        )}
+      </ListCard>
+    </>
   )
 }

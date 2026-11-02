@@ -28,7 +28,6 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
-import { Pager } from "@genesy/ui/components/pager"
 import {
   Table,
   TableBody,
@@ -38,6 +37,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
+import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Capped, Empty, LoadError } from "@/components/states"
 
@@ -53,92 +53,108 @@ export default function SupplyTransfersPage() {
   const label = (group: string, key: string) =>
     t.has(`supply.${group}.${key}`) ? t(`supply.${group}.${key}`) : key
 
-  if (transfers.isPending)
-    return (
-      <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-    )
-  if (transfers.isError)
-    return (
-      <LoadError
-        error={transfers.error}
-        onRetry={() => void transfers.refetch()}
-      />
-    )
-  if (transfers.data.data.length === 0)
-    return <Empty title={t("supply.noTransfers")} />
+  const columns = [
+    { label: t("supply.partner") },
+    { label: t("supply.direction") },
+    { label: t("supply.fromLot") },
+    { label: t("supply.quantity"), right: true },
+    { label: t("lots.status") },
+    { label: t("supply.received") },
+  ]
+
   return (
-    <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("supply.partner")}</TableHead>
-            <TableHead>{t("supply.direction")}</TableHead>
-            <TableHead>{t("supply.fromLot")}</TableHead>
-            <TableHead className="text-right">{t("supply.quantity")}</TableHead>
-            <TableHead>{t("lots.status")}</TableHead>
-            <TableHead>{t("supply.received")}</TableHead>
-            <TableHead>
-              <span className="sr-only">{t("appKeys.actions")}</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transfers.data.data.map((tr) => (
-            <TableRow key={tr.id}>
-              <TableCell className="font-medium">{tr.partner.name}</TableCell>
-              <TableCell>{label("transferDirections", tr.direction)}</TableCell>
-              <TableCell>
-                {tr.from_lot.code}{" "}
-                <span className="font-mono text-xs text-muted-foreground">
-                  {tr.from_lot.public_code}
-                </span>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {tr.quantity}
-              </TableCell>
-              <TableCell>
-                <StatusBadge
-                  status={tr.status === "received" ? "active" : tr.status}
-                  label={label("transferStatuses", tr.status)}
-                />
-              </TableCell>
-              <TableCell>
-                {tr.to_lot ? (
-                  <Link
-                    className="underline-offset-4 hover:underline"
-                    href={`/lots/${tr.to_lot.id}`}
-                  >
-                    {t("supply.receivedInto", {
-                      quantity: tr.received_quantity ?? "",
-                      code: tr.to_lot.code,
-                    })}
-                  </Link>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                {tr.direction === "incoming" && tr.status === "dispatched" ? (
-                  <ReceiveDialog transfer={tr} />
-                ) : null}
-              </TableCell>
+    <ListCard
+      count={
+        transfers.data
+          ? t("supply.transfersCount", { total: transfers.data.meta.total })
+          : null
+      }
+      pager={
+        transfers.data?.data.length ? (
+          <ListPager meta={transfers.data.meta} onPage={setPage} />
+        ) : null
+      }
+    >
+      {transfers.isPending ? (
+        <ListSkeleton columns={columns} />
+      ) : transfers.isError ? (
+        <CardState>
+          <LoadError
+            error={transfers.error}
+            onRetry={() => void transfers.refetch()}
+          />
+        </CardState>
+      ) : transfers.data.data.length === 0 ? (
+        <CardState>
+          <Empty title={t("supply.noTransfers")} />
+        </CardState>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((c) => (
+                <TableHead
+                  key={c.label}
+                  className={c.right ? "text-right" : undefined}
+                >
+                  {c.label}
+                </TableHead>
+              ))}
+              <TableHead>
+                <span className="sr-only">{t("appKeys.actions")}</span>
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Pager
-        page={transfers.data.meta.current_page}
-        lastPage={transfers.data.meta.last_page}
-        summary={t("pager.summary", {
-          from: transfers.data.meta.from ?? 0,
-          to: transfers.data.meta.to ?? 0,
-          total: transfers.data.meta.total,
-        })}
-        previous={t("pager.previous")}
-        next={t("pager.next")}
-        onPage={setPage}
-      />
-    </>
+          </TableHeader>
+          <TableBody>
+            {transfers.data.data.map((tr) => (
+              <TableRow key={tr.id}>
+                <TableCell className="font-semibold">
+                  {tr.partner.name}
+                </TableCell>
+                <TableCell data-m="hide" className="text-muted-foreground">
+                  {label("transferDirections", tr.direction)}
+                </TableCell>
+                <TableCell data-m="sub">
+                  {tr.from_lot.code}{" "}
+                  <span className="font-mono text-xs tracking-[0.04em] text-muted-foreground">
+                    {tr.from_lot.public_code}
+                  </span>
+                </TableCell>
+                <TableCell data-m="right" className="text-right tabular-nums">
+                  {tr.quantity}
+                </TableCell>
+                <TableCell data-m="badge">
+                  <StatusBadge
+                    status={tr.status === "received" ? "active" : tr.status}
+                    label={label("transferStatuses", tr.status)}
+                  />
+                </TableCell>
+                <TableCell data-m="sub">
+                  {tr.to_lot ? (
+                    <Link
+                      className="underline-offset-4 hover:underline"
+                      href={`/lots/${tr.to_lot.id}`}
+                    >
+                      {t("supply.receivedInto", {
+                        quantity: tr.received_quantity ?? "",
+                        code: tr.to_lot.code,
+                      })}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+                <TableCell data-m="sub" className="text-right">
+                  {tr.direction === "incoming" && tr.status === "dispatched" ? (
+                    <ReceiveDialog transfer={tr} />
+                  ) : null}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </ListCard>
   )
 }
 
