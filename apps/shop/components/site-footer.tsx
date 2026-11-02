@@ -1,16 +1,21 @@
 import { getTranslations } from "next-intl/server"
 
+import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { LogoIcon } from "@genesy/ui/components/logo"
 
+/** Mock `ShopCatalogue` .foot: navy card (a quiet glass edge in dark mode). */
 export async function SiteFooter() {
-  const t = await getTranslations()
+  const t = await getTranslations("footer")
   return (
-    <footer className="bg-primary text-primary-foreground dark:bg-card dark:text-card-foreground">
-      <div className="gold-rule" />
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-8 md:px-6">
-        <LogoIcon aria-hidden />
-        <p className="text-sm">{t("footer.note")}</p>
+    <footer className="flex flex-wrap items-center justify-between gap-6 rounded-[24px] bg-primary p-7 text-primary-foreground dark:border dark:border-(--hair) dark:bg-white/4 dark:text-foreground">
+      <div className="flex items-center gap-4">
+        <LogoIcon aria-hidden className="h-auto w-[42px]" />
+        <div>
+          <p className="font-semibold">{t("title")}</p>
+          <p className="text-[13px] opacity-80">{t("shipping")}</p>
+        </div>
       </div>
+      <LocaleSwitcher className="h-11 border-white/30 bg-transparent text-[13px] text-inherit md:h-10 [&>option]:text-[#0a183a]" />
     </footer>
   )
 }

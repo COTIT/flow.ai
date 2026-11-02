@@ -5,9 +5,9 @@ test("catalog lists products with prices and stock, and opens a product", async 
   page,
 }) => {
   await page.goto("/")
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Shop" })
-  ).toBeVisible()
+  await expect(page.getByRole("heading", { level: 1 })).toHaveAccessibleName(
+    "Honey and coffee you can trace to the farmer"
+  )
 
   const honey = page.getByRole("link", { name: /Ilundo Wild Forest Honey/ })
   await expect(honey).toContainText("$14.99")
@@ -22,9 +22,10 @@ test("catalog lists products with prices and stock, and opens a product", async 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Ilundo Wild Forest Honey"
   )
-  const sizes = page.getByRole("list").filter({ hasText: "Size: 250 g" })
-  await expect(sizes.getByText("Size: 500 g")).toBeVisible()
-  await expect(sizes.getByText("$24.99")).toBeVisible()
+  const sizes = page.getByRole("group", { name: "Size" })
+  await expect(
+    sizes.getByRole("button", { name: "500 g $24.99" })
+  ).toBeVisible()
   await expect(page).toHaveTitle("Ilundo Wild Forest Honey · Genesy Shop")
   await expectNoHorizontalScroll(page)
 

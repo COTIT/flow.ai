@@ -7,28 +7,30 @@ import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 
 import { CartLink } from "./cart-link"
 
+/** Mock `ShopCatalogue` .shop-head: one glass bar, logo, Shop, language, theme, cart. */
 export async function SiteHeader() {
   const t = await getTranslations()
   return (
-    <header>
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3 sm:gap-x-4 md:px-6">
+    <header className="relative flex items-center gap-2 rounded-[22px] glass-strong py-2 pr-2 pl-3.5 md:gap-5 md:py-3 md:pr-4 md:pl-[22px]">
+      <Link
+        href="/"
+        aria-label={t("nav.home")}
+        className="inline-flex min-h-11 items-center rounded-sm md:min-h-0"
+      >
+        <Logo aria-hidden className="h-auto w-[108px] min-w-0 md:w-[132px]" />
+      </Link>
+      <nav aria-label={t("nav.shop")} className="hidden gap-1 md:flex">
         <Link
           href="/"
-          aria-label={t("nav.home")}
-          className="mr-auto rounded-sm"
+          className="inline-flex h-[38px] items-center rounded-[12px] border border-(--hair) bg-(--glass-subtle) px-3.5 font-medium"
         >
-          <Logo aria-hidden className="h-6 md:h-9" />
+          {t("nav.shop")}
         </Link>
-        <nav className="hidden sm:block">
-          <Link href="/" className="text-sm uppercase hover:underline">
-            {t("nav.shop")}
-          </Link>
-        </nav>
-        <LocaleSwitcher />
-        <ThemeToggle label={t("common.theme")} />
-        <CartLink />
-      </div>
-      <div className="gold-rule" />
+      </nav>
+      <span className="flex-1" />
+      <LocaleSwitcher className="hidden h-10 border-transparent bg-transparent md:block" />
+      <ThemeToggle label={t("common.theme")} />
+      <CartLink />
     </header>
   )
 }

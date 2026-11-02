@@ -1,14 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { getLocale, getTranslations } from "next-intl/server"
+import { getTranslations } from "next-intl/server"
 import { ArrowLeftIcon } from "lucide-react"
 
-import { Notice } from "@genesy/ui/components/notice"
-import { formatMoney } from "@genesy/ui/lib/money"
+import { cn } from "@genesy/ui/lib/utils"
 
 import { AddToCart } from "@/components/add-to-cart"
-import { ProductImage } from "@/components/product-image"
-import { isSoldOut, StockBadge } from "@/components/stock-badge"
+import { ProductGallery } from "@/components/product-gallery"
+import { isSoldOut } from "@/components/stock-badge"
+import { card, h2, tag } from "@/lib/look"
 import { getProduct } from "@/lib/storefront"
 
 type Props = { params: Promise<{ id: string }> }
@@ -30,91 +30,63 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+/**
+ * Mock `ShopProduct` (bento). Its "This jar's passport" card and the property chips are left
+ * out: the storefront product links no lot and has no such fields. So the photo tile spans
+ * one row, not two.
+ */
 export default async function ProductPage({ params }: Props) {
   const { id } = await params
-  const [t, locale, product] = await Promise.all([
-    getTranslations(),
-    getLocale(),
-    getProduct(id),
-  ])
-  const money = (minor: number) =>
-    formatMoney(minor, product.currency_decimals, product.currency, locale)
+  const [t, product] = await Promise.all([getTranslations(), getProduct(id)])
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <Link
         href="/"
-        className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground hover:underline"
+        className="flex min-h-11 w-fit items-center gap-1 text-[13px] text-muted-foreground hover:text-foreground md:min-h-0"
       >
         <ArrowLeftIcon className="size-4" aria-hidden />
         {t("product.back")}
       </Link>
 
-      <article className="grid gap-6 md:grid-cols-2 md:gap-10">
-        <ProductImage label={t("product.imageSoon")} className="rounded-lg" />
-
-        <div className="flex flex-col gap-4">
-          {product.brand ? (
-            <p className="tag text-muted-foreground">{product.brand}</p>
-          ) : null}
-          <h1 className="heading-1">{product.name}</h1>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-2xl font-semibold tabular-nums">
-              {money(product.price_gross)}
-            </span>
-            <StockBadge
-              stock={product.available_stock}
-              labels={{
-                inStock: t("product.inStock"),
-                soldOut: t("product.soldOut"),
-              }}
-            />
+      <section className="grid grid-cols-12 gap-3 md:gap-4">
+        <div className={cn(card, "col-span-12 p-3 md:col-span-7 md:p-3")}>
+          <ProductGallery images={product.images ?? []} alt={product.name} />
+        </div>
+        <div
+          className={cn(
+            card,
+            "col-span-12 gap-[18px] md:col-span-5 md:gap-[18px]"
+          )}
+        >
+          <div>
+            {product.brand ? (
+              <p className={cn(tag, "text-(--tone-warning)")}>
+                {product.brand}
+              </p>
+            ) : null}
+            <h1 className="text-[28px] leading-[1.3] font-medium">
+              {product.name}
+            </h1>
+            {product.short_description ? (
+              <p className="text-[13px] text-muted-foreground">
+                {product.short_description}
+              </p>
+            ) : null}
           </div>
-          {product.short_description ? (
-            <p className="text-lg text-muted-foreground">
-              {product.short_description}
-            </p>
-          ) : null}
-
-          {product.variants.length > 1 ? (
-            <section className="flex flex-col gap-2">
-              <h2 className="heading-3">{t("product.variants")}</h2>
-              <ul className="divide-y rounded-lg border">
-                {product.variants.map((v) => (
-                  <li
-                    key={v.id}
-                    className="flex items-center justify-between gap-4 px-4 py-3"
-                  >
-                    <span>
-                      {v.options
-                        .map((o) => `${o.type}: ${o.value}`)
-                        .join(", ") || v.sku}
-                    </span>
-                    <span className="font-medium tabular-nums">
-                      {money(v.price_gross)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {isSoldOut(product.available_stock) ? (
-            <Notice variant="warning" title={t("product.soldOutTitle")}>
-              {t("product.soldOutBody")}
-            </Notice>
-          ) : null}
           <AddToCart
             product={product}
             soldOut={isSoldOut(product.available_stock)}
           />
-
-          <div className="gold-rule" />
-          <p className="whitespace-pre-line">
+        </div>
+        <div className={cn(card, "col-span-12")}>
+          <div className="gold-rule w-12" />
+          <h2 className={h2}>{t("product.about")}</h2>
+          <p className="max-w-[760px] whitespace-pre-line text-muted-foreground">
             {product.description ?? t("product.noDescription")}
           </p>
         </div>
-      </article>
-    </div>
+      </section>
+    </>
   )
 }

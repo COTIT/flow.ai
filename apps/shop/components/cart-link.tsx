@@ -17,17 +17,15 @@ export function CartLink() {
     <Link
       href="/cart"
       aria-label={t("link", { count })}
-      className={buttonVariants({
-        variant: "ghost",
-        size: "icon",
-        className: "relative",
-      })}
+      data-slot="button"
+      className={buttonVariants({ variant: "outline" })}
     >
       <ShoppingBagIcon aria-hidden />
+      <span className="hidden md:inline">{t("short")}</span>
       {count ? (
         <span
           aria-hidden
-          className="absolute -top-1 -right-1 grid min-w-4 place-items-center rounded-full bg-gold px-1 text-[10px] font-bold text-gold-foreground"
+          className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-(image:--gold-gradient) px-1.5 text-[11px] font-bold text-[#0a183a]"
         >
           {count}
         </span>

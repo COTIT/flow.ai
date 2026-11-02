@@ -49,8 +49,9 @@ test("the API's field error appears under that field, with a general error on to
   ).toBeVisible()
   const email = page.getByLabel("Email")
   await expect(email).toHaveAttribute("aria-invalid", "true")
+  // The error first, then the field's hint.
   await expect(email).toHaveAccessibleDescription(
-    "The email must be a valid email address."
+    /^The email must be a valid email address\./
   )
   await expectNoHorizontalScroll(page)
 })

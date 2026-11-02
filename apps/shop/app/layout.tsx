@@ -36,13 +36,14 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={cn("font-sans antialiased", fontSans.variable)}
     >
-      <body>
+      <body className="theme-glass">
         <NextIntlClientProvider>
           <ThemeProvider nonce={nonce}>
             <QueryProvider>
-              <div className="flex min-h-svh flex-col">
+              {/* Mock `ShopCatalogue` .wrap-shop: header, page and footer in one 1200 px column. */}
+              <div className="mx-auto flex min-h-svh w-full max-w-[1200px] flex-col gap-5 px-3 pt-3 pb-8 text-[14px] leading-normal md:gap-7 md:px-6 md:pt-5 md:pb-12">
                 <SiteHeader />
-                <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-6 md:py-10">
+                <main className="flex flex-1 flex-col gap-5 md:gap-7">
                   {children}
                 </main>
                 <SiteFooter />

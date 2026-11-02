@@ -2,14 +2,18 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { getLocale, getTranslations } from "next-intl/server"
 
+import { Badge } from "@genesy/ui/components/badge"
 import { buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatMoney } from "@genesy/ui/lib/money"
+import { cn } from "@genesy/ui/lib/utils"
 
 import { ClearCart } from "@/components/clear-cart"
+import { OrderCard } from "@/components/order-card"
 import { LocalTime } from "@/components/local-time"
 import { PayButton } from "@/components/pay-button"
 import { PaymentWatcher } from "@/components/payment-watcher"
+import { h2, tile } from "@/lib/look"
 import { getOrder } from "@/lib/storefront"
 
 type Props = { params: Promise<{ id: string }> }
@@ -21,7 +25,10 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-/** The server's view of a web order: its totals and status are the only ones shown. */
+/**
+ * The server's view of a web order: its totals and status are the only ones shown. The
+ * mockup's line items are left out: the order reply carries totals only.
+ */
 export default async function OrderPage({ params }: Props) {
   const { id } = await params
   const [t, locale, order] = await Promise.all([
@@ -32,13 +39,28 @@ export default async function OrderPage({ params }: Props) {
   const money = (minor: number) =>
     formatMoney(minor, order.decimals, order.currency, locale)
   const paid = order.status === "open" || order.status === "completed"
+  const badge = paid
+    ? { variant: "teal" as const, label: t("badge.paid") }
+    : order.status === "cancelled"
+      ? { variant: "red" as const, label: t("badge.cancelled") }
+      : order.status === "awaiting_payment"
+        ? { variant: "gold" as const, label: t("badge.awaiting") }
+        : null
 
   return (
-    <div className="flex max-w-xl flex-col gap-6">
-      <h1 className="heading-1">{t("heading", { number: order.number })}</h1>
+    <OrderCard>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="flex flex-col">
+          <span className="text-xs font-bold tracking-[0.08em] text-muted-foreground uppercase">
+            {t("label")}{" "}
+          </span>
+          <span className={h2}>{order.number}</span>
+        </h1>
+        {badge ? <Badge variant={badge.variant}>{badge.label}</Badge> : null}
+      </div>
 
       {/* One live region for every status, so a change (e.g. to paid) is announced. */}
-      <div role="status">
+      <div role="status" className="flex flex-col gap-[18px]">
         {paid ? (
           <Notice live={false} variant="success" title={t("paid")} />
         ) : order.status === "cancelled" ? (
@@ -47,7 +69,11 @@ export default async function OrderPage({ params }: Props) {
             variant="warning"
             title={t("cancelled")}
             action={
-              <Link href="/" className={buttonVariants({ variant: "outline" })}>
+              <Link
+                href="/"
+                data-slot="button"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
                 {t("again")}
               </Link>
             }
@@ -56,7 +82,17 @@ export default async function OrderPage({ params }: Props) {
           </Notice>
         ) : order.status === "awaiting_payment" ? (
           <PaymentWatcher>
-            <Notice live={false} variant="info" title={t("awaiting")}>
+            <Notice
+              live={false}
+              variant="info"
+              title={t("awaiting")}
+              action={
+                <PayButton
+                  orderId={order.id}
+                  label={t("payAmount", { amount: money(order.total) })}
+                />
+              }
+            >
               {order.expires_at
                 ? t.rich("heldUntil", {
                     time: () => <LocalTime iso={order.expires_at!} />,
@@ -70,18 +106,23 @@ export default async function OrderPage({ params }: Props) {
       </div>
       {paid ? <ClearCart /> : null}
 
-      <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 rounded-lg border p-4 tabular-nums">
-        <dt>{t("subtotal")}</dt>
+      <dl
+        className={cn(
+          tile,
+          "grid grid-cols-[1fr_auto] items-baseline gap-y-2 text-[13px] tabular-nums [&_dd]:pl-6"
+        )}
+      >
+        <dt className="text-muted-foreground">{t("subtotal")}</dt>
         <dd className="text-right">{money(order.subtotal)}</dd>
-        <dt>{t("vat")}</dt>
+        <dt className="text-muted-foreground">{t("vat")}</dt>
         <dd className="text-right">{money(order.vat)}</dd>
-        <dt className="font-semibold">{t("total")}</dt>
-        <dd className="text-right font-semibold">{money(order.total)}</dd>
+        <dt className="border-t border-(--hair) pt-2 text-sm font-semibold">
+          {t("total")}
+        </dt>
+        <dd className="border-t border-(--hair) pt-2 text-right text-lg font-semibold max-md:text-base">
+          {money(order.total)}
+        </dd>
       </dl>
-
-      {order.status === "awaiting_payment" ? (
-        <PayButton orderId={order.id} />
-      ) : null}
-    </div>
+    </OrderCard>
   )
 }
