@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invoices i SET\n            created_at = d.at,\n            send_date = CASE WHEN i.send_date IS NOT NULL THEN d.at + interval '1 day' END,\n            due_date = CASE WHEN i.send_date IS NOT NULL THEN d.at + interval '31 days' END\n         FROM (SELECT id, date_trunc('day', now() - make_interval(days => n)) + interval '11 hours' AS at\n               FROM unnest($2::uuid[], $3::int[]) AS t(id, n)) d\n         WHERE i.workspace_id = $1 AND i.id = d.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f1be73f30162c5489c365802a7b765e4fd3deb06245341a0a4fe982112d2342f"
+}

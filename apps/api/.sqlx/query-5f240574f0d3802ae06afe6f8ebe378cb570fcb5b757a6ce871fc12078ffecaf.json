@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE orders SET expires_at = now() + interval '30 days'\n         WHERE workspace_id = $1 AND id = ANY($2) AND status = 'awaiting_payment'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5f240574f0d3802ae06afe6f8ebe378cb570fcb5b757a6ce871fc12078ffecaf"
+}

@@ -139,7 +139,7 @@ impl Api {
         text(&res["data"], "access_token")
     }
 
-    async fn farmer(
+    pub(crate) async fn farmer(
         &self,
         ws: &str,
         person: &str,

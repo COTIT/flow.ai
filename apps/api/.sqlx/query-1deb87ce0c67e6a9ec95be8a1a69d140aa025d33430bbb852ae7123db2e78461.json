@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT provider_id AS \"provider_id!\" FROM order_payments WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "provider_id!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "order_payments",
+            "name": "provider_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "1deb87ce0c67e6a9ec95be8a1a69d140aa025d33430bbb852ae7123db2e78461"
+}

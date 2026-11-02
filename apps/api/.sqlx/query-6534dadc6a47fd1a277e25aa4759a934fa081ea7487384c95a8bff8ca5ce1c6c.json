@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE drawer_shifts s SET\n            opened_at = date_trunc('day', now() - make_interval(days => d.n)) + interval '8 hours 30 minutes',\n            closed_at = least(date_trunc('day', now() - make_interval(days => d.n)) + interval '18 hours 15 minutes', now())\n         FROM unnest($2::uuid[], $3::int[]) AS d(id, n)\n         WHERE s.workspace_id = $1 AND s.id = d.id AND d.n > 0",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6534dadc6a47fd1a277e25aa4759a934fa081ea7487384c95a8bff8ca5ce1c6c"
+}

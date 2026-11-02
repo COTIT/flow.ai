@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE stock_movements m SET created_at = o.created_at\n         FROM orders o WHERE m.workspace_id = $1 AND o.workspace_id = $1 AND m.related_id = o.id\n           AND o.id = ANY($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7eaa4fb2ab909154df8ce54ddb2308cd5a8340e86004c5c983473efa68bc4e9f"
+}

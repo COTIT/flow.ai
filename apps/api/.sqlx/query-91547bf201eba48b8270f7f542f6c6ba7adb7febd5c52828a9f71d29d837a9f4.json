@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE order_payments p SET created_at = o.created_at + interval '5 minutes'\n         FROM orders o WHERE p.workspace_id = $1 AND o.workspace_id = $1 AND p.order_id = o.id\n           AND o.id = ANY($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "91547bf201eba48b8270f7f542f6c6ba7adb7febd5c52828a9f71d29d837a9f4"
+}

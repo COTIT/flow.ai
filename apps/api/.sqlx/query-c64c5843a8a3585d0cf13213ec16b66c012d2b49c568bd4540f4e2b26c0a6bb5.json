@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM farm_persons WHERE workspace_id = $1 AND given_name = 'Asha'",
+  "query": "SELECT DISTINCT person_id FROM farm_passbook_entries WHERE workspace_id = $1 ORDER BY person_id",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "person_id",
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "farm_persons",
-            "name": "id"
+            "table": "farm_passbook_entries",
+            "name": "person_id"
           }
         }
       }
@@ -24,5 +24,5 @@
       false
     ]
   },
-  "hash": "0f232b1000c37ca37ab08953d992b119bbb3e0a224873f1a88efc56f519cbc47"
+  "hash": "c64c5843a8a3585d0cf13213ec16b66c012d2b49c568bd4540f4e2b26c0a6bb5"
 }

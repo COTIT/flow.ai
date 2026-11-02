@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE stock_movements SET created_at = now() - interval '95 days'\n         WHERE workspace_id = $1 AND reason = 'DEMO opening count'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6a81ade028c2e7eba60509db1562d5e5a5c7979206757d95be98260ffa95de18"
+}
