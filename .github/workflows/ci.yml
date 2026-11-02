@@ -93,6 +93,8 @@ jobs:
       - name: Generated API client matches openapi.json
         run: pnpm turbo run generate:check --filter=@genesy/api-client --only
       - run: pnpm turbo run typecheck lint test build --filter='!@genesy/api' --concurrency=2
+      - name: Shell tests (deploy/)
+        run: for t in deploy/*.test.sh deploy/*/*.test.sh; do bash "$t"; done
 
   e2e:
     # Headless browser tests (packages/e2e) against production builds and a mock API.
@@ -143,7 +145,8 @@ jobs:
       image: docker:29.9.1-cli@sha256:6fae2214c3121a28d5aa639d09032f61310b7c9c75ffbad1025f261a1b621800
       volumes:
         # The CI user's own rootless Docker, never prod's: its build cache stays warm between runs.
-        - /run/user/__CI_RUNNER_UID__/docker.sock:/run/ci-docker.sock
+        # 1001 = `id -u ci-runner` on the VPS (2026-11-02); check it again if that user is re-created.
+        - /run/user/1001/docker.sock:/run/ci-docker.sock
         - genesy-ci-tools:/opt/ci-tools
         - genesy-ci-trivy-cache:/trivy-cache
     env:
