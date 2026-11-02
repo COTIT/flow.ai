@@ -21,7 +21,9 @@
     "pinFormat": "The PIN is 4 to 8 digits.",
     "keyRefused": "This device's key is no longer accepted. Set up the till again.",
     "setupAgain": "Set up again",
-    "expired": "Your session ended. Log in again to continue."
+    "expired": "Your session ended. Log in again to continue.",
+    "usersFailed": "Couldn't load the till users. Check the connection and reload.",
+    "noUsers": "No till users yet. Ask the office to add one."
   },
   "sale": {
     "title": "Sale",

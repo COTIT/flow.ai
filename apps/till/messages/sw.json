@@ -21,7 +21,9 @@
     "pinFormat": "PIN ni tarakimu 4 hadi 8.",
     "keyRefused": "Ufunguo wa kifaa hiki haukubaliki tena. Sanidi kituo upya.",
     "setupAgain": "Sanidi upya",
-    "expired": "Muda wa kuingia umeisha. Ingia tena ili uendelee."
+    "expired": "Muda wa kuingia umeisha. Ingia tena ili uendelee.",
+    "usersFailed": "Imeshindwa kupakia watumiaji wa kituo. Angalia mtandao kisha pakia upya.",
+    "noUsers": "Bado hakuna watumiaji wa kituo. Omba ofisi iongeze mmoja."
   },
   "sale": {
     "title": "Mauzo",
