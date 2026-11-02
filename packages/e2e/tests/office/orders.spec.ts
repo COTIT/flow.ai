@@ -160,6 +160,11 @@ test("confirm a draft, pick it (cancel sends nothing), complete it", async ({
   await page.goto("/orders/ord-1")
   await page.getByRole("button", { name: "Confirm order" }).click()
   await expect(page.getByText("Open", { exact: true })).toBeVisible()
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Order confirmed; stock is reserved." })
+  ).toBeVisible()
   const confirmCall = api.callsTo(
     "POST",
     "/workspace/:ws/orders/:id/confirm"

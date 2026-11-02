@@ -1,5 +1,7 @@
 "use client"
 
+import * as React from "react"
+
 import { useTranslations } from "next-intl"
 
 import { Button } from "@genesy/ui/components/button"
@@ -52,5 +54,22 @@ export function Empty({
     />
   ) : (
     <EmptyState title={title} />
+  )
+}
+
+/** The latest action's outcome on a page; `clear` it when the next one starts. */
+export function useDone(initial: string | null = null) {
+  const [message, setMessage] = React.useState<string | null>(initial)
+  return { message, show: setMessage, clear: () => setMessage(null) }
+}
+
+/** One persistent live region per page, so each new outcome is announced. */
+export function Done({ message }: { message: string | null }) {
+  return (
+    <div role="status">
+      {message ? (
+        <Notice live={false} variant="success" title={message} />
+      ) : null}
+    </div>
   )
 }

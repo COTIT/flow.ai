@@ -75,7 +75,9 @@ test("edit product: only the form's keys are sent", async ({ page, api }) => {
   await page.goto("/products/prod-honey")
   await page.getByLabel("Short description").fill("Raw forest honey")
   await page.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("status")).toHaveText("Saved.")
+  await expect(
+    page.getByRole("status").filter({ hasText: "Product saved." })
+  ).toBeVisible()
   expect(api.callsTo("POST", "/workspace/:ws/products/:id")[0]?.body).toEqual({
     name: "AFM Honey 500g",
     reference: "AFM-500",
@@ -92,7 +94,9 @@ test("store only: ticking it sends store_only true", async ({ page, api }) => {
   await page.goto("/products/prod-honey")
   await page.getByLabel("Sold at the till only (not in the web shop)").check()
   await page.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("status")).toHaveText("Saved.")
+  await expect(
+    page.getByRole("status").filter({ hasText: "Product saved." })
+  ).toBeVisible()
   expect(
     api.callsTo("POST", "/workspace/:ws/products/:id")[0]?.body
   ).toMatchObject({
@@ -134,6 +138,9 @@ test("stock per warehouse; a change shows as a movement", async ({
   await dialog.getByRole("button", { name: "Save" }).click()
   await expect(page.getByRole("cell", { name: "130.00" }).first()).toBeVisible()
   await expect(page.getByRole("cell", { name: "Harvest intake" })).toBeVisible()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Stock changed" })
+  ).toBeVisible()
   expect(
     api.callsTo("POST", "/workspace/:ws/products/:id/stocks")[0]?.body
   ).toEqual({

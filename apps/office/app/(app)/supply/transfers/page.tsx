@@ -160,7 +160,7 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
           queryKey: getSupplyChainListQueryKey(workspaceId),
         })
         setOpen(false)
-        if (data.to_lot) router.push(`/lots/${data.to_lot.id}`)
+        if (data.to_lot) router.push(`/lots/${data.to_lot.id}?done=received`)
       },
     },
   })

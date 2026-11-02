@@ -81,7 +81,7 @@ export default function LotsPage({
         <h1 className="mr-auto heading-2 text-lg">{t("lots.title")}</h1>
         <CreateLot
           products={products.data?.data ?? []}
-          onCreated={(id) => router.push(`/lots/${id}`)}
+          onCreated={(id) => router.push(`/lots/${id}?done=created`)}
         />
       </div>
       <div className="flex flex-wrap gap-2">

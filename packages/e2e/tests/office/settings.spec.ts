@@ -141,7 +141,10 @@ test("revoke: cancelling sends nothing; confirming revokes", async ({
     .getByRole("alertdialog")
     .getByRole("button", { name: "Revoke" })
     .click()
-  await expect(page.getByText("Revoked")).toBeVisible()
+  await expect(page.getByText("Revoked", { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("status").filter({ hasText: "App key revoked." })
+  ).toBeVisible()
   expect(api.callsTo("DELETE", "/workspace/:ws/app-keys/:key")).toHaveLength(1)
 })
 

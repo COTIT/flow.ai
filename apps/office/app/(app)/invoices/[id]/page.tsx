@@ -10,6 +10,7 @@ import {
 } from "@genesy/api-client/endpoints/invoices"
 import { ApiError } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
+import { Notice } from "@genesy/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -61,16 +62,7 @@ export default function InvoicePage({
             <StatusBadge status="credit" label={t("invoices.credit")} />
           ) : null}
           <div className="ml-auto flex items-center gap-2">
-            {pdf.data ? (
-              <a
-                className="text-sm font-medium underline-offset-4 hover:underline"
-                href={pdf.data.data.file_path}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {t("invoices.openPdf")}
-              </a>
-            ) : (
+            {pdf.data ? null : (
               <Button
                 variant="outline"
                 disabled={pdf.isFetching}
@@ -80,6 +72,25 @@ export default function InvoicePage({
               </Button>
             )}
           </div>
+        </div>
+        <div role="status">
+          {pdf.data ? (
+            <Notice
+              live={false}
+              variant="success"
+              title={t("done.pdfReady")}
+              action={
+                <a
+                  className="text-sm font-medium underline-offset-4 hover:underline"
+                  href={pdf.data.data.file_path}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t("invoices.openPdf")}
+                </a>
+              }
+            />
+          ) : null}
         </div>
         <ApiError error={pdf.error} fallback={t("common.error")} />
         <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm">

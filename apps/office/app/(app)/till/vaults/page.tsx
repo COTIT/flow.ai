@@ -31,7 +31,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { useTillMoney } from "@/lib/till-money"
-import { Empty, LoadError } from "@/components/states"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 export default function VaultsPage() {
   const t = useTranslations()
@@ -42,9 +42,12 @@ export default function VaultsPage() {
     query: { enabled: Boolean(workspaceId) },
   })
   const [open, setOpen] = React.useState(false)
+  const done = useDone()
   const create = useTillVaultsCreate({
     mutation: {
+      onMutate: done.clear,
       onSuccess: () => {
+        done.show(t("done.vaultAdded"))
         void queryClient.invalidateQueries({
           queryKey: getTillVaultsListQueryKey(workspaceId),
         })
@@ -56,6 +59,7 @@ export default function VaultsPage() {
 
   return (
     <>
+      <Done message={done.message} />
       <div className="flex justify-end">
         <Dialog
           open={open}

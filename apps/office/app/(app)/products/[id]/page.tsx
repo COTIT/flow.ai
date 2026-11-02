@@ -40,7 +40,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
-import { Empty, LoadError } from "@/components/states"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 type Named = { name?: string; bin_code?: string; bin_name?: string } | null
 
@@ -58,12 +58,16 @@ export default function ProductPage({
   const stock = useStockWithBins(workspaceId, id, enabled)
   const [page, setPage] = React.useState(1)
   const movements = useStockMovements(workspaceId, id, { page }, enabled)
+  const done = useDone()
   const update = useProductsUpdate({
     mutation: {
-      onSuccess: () =>
-        queryClient.invalidateQueries({
+      onMutate: done.clear,
+      onSuccess: () => {
+        done.show(t("done.productSaved"))
+        return queryClient.invalidateQueries({
           queryKey: getProductsGetQueryKey(workspaceId, id),
-        }),
+        })
+      },
     },
   })
   const errors = fieldErrors(update.error)
@@ -82,6 +86,7 @@ export default function ProductPage({
     <>
       <section className="flex flex-col gap-3">
         <h1 className="heading-2 text-lg">{p.name}</h1>
+        <Done message={done.message} />
         <form
           key={p.last_updated_at}
           className="flex max-w-2xl flex-col gap-3"
@@ -162,11 +167,6 @@ export default function ProductPage({
             {t("products.storeOnly")}
           </label>
           <ApiError error={update.error} fallback={t("common.error")} />
-          {update.isSuccess ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              {t("actions.saved")}
-            </p>
-          ) : null}
           <Button
             type="submit"
             className="self-start"
@@ -185,6 +185,7 @@ export default function ProductPage({
           <MutateStock
             productId={id}
             onDone={() => {
+              done.show(t("done.stockChanged"))
               for (const queryKey of [
                 getStockWithBinsQueryKey(workspaceId, id),
                 getStockMovementsQueryKey(workspaceId, id),

@@ -28,18 +28,27 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
-import { Empty, LoadError } from "@/components/states"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 import { LotFields } from "../lot-fields"
 import { PackDialog } from "./pack-dialog"
 
 export default function LotPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  // Set by the page that sent us here (create, receive) so its outcome shows on arrival.
+  searchParams: Promise<{ done?: string }>
 }) {
   const t = useTranslations()
   const { id } = React.use(params)
+  const arrived = React.use(searchParams).done
+  const done = useDone(
+    arrived === "created" || arrived === "received"
+      ? t(`done.lot.${arrived}`)
+      : null
+  )
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
   const lot = useLotsGet(workspaceId, id, {
@@ -55,7 +64,9 @@ export default function LotPage({
   const [pending, setPending] = React.useState<UpdateLotRequest | null>(null)
   const update = useLotsUpdate({
     mutation: {
+      onMutate: done.clear,
       onSuccess: () => {
+        done.show(t("done.lotSaved"))
         for (const queryKey of [
           getLotsGetQueryKey(workspaceId, id),
           getLotsEventsQueryKey(workspaceId, id),
@@ -98,6 +109,7 @@ export default function LotPage({
           </Link>
           <PackDialog lotId={id} code={current.code} />
         </div>
+        <Done message={done.message} />
         <form
           key={current.updated_at}
           className="flex max-w-2xl flex-col gap-3"
@@ -121,11 +133,6 @@ export default function LotPage({
         >
           <LotFields lot={current} errors={fieldErrors(update.error)} />
           <ApiError error={update.error} fallback={t("common.error")} />
-          {update.isSuccess && !update.isPending ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              {t("actions.saved")}
-            </p>
-          ) : null}
           <Button
             type="submit"
             className="self-start"

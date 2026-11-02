@@ -161,6 +161,11 @@
       "by": "By",
       "factLabel": "Label",
       "factValue": "Value"
+    },
+    "done": {
+      "saved": "Draft saved.",
+      "published": "Published: the public page shows this version.",
+      "unpublished": "Taken offline: the public page no longer shows."
     }
   },
   "stock": {
@@ -376,5 +381,34 @@
     "noMatches": "No matches",
     "noMatchesText": "Nothing fits these filters.",
     "clearFilters": "Clear filters"
+  },
+  "done": {
+    "productSaved": "Product saved.",
+    "stockChanged": "Stock changed; the movement is listed below.",
+    "lot": {
+      "created": "Batch created.",
+      "received": "Transfer received into this new batch."
+    },
+    "lotSaved": "Batch saved.",
+    "order": {
+      "confirmed": "Order confirmed; stock is reserved.",
+      "completed": "Order completed; stock taken.",
+      "cancelled": "Order cancelled.",
+      "invoiced": "Invoice made.",
+      "picked": "Picking saved.",
+      "returned": "Returns taken back."
+    },
+    "keyRevoked": "App key revoked.",
+    "endpointAdded": "Endpoint added.",
+    "endpointSaved": "Endpoint saved.",
+    "endpointDeleted": "Endpoint deleted.",
+    "linkAccepted": "Supply link accepted.",
+    "linkRevoked": "Supply link revoked.",
+    "tillUserAdded": "Till user added.",
+    "pinChanged": "New PIN set for {name}.",
+    "deactivated": "{name} can no longer log in at the till.",
+    "activated": "{name} can log in at the till again.",
+    "vaultAdded": "Vault added.",
+    "pdfReady": "The PDF is ready."
   }
 }

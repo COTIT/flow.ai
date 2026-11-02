@@ -30,7 +30,7 @@ import { Input } from "@genesy/ui/components/input"
 import { PassportView } from "@genesy/ui/components/passport-view"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
-import { LoadError } from "@/components/states"
+import { Done, LoadError, useDone } from "@/components/states"
 
 import { ListEditor } from "./list-editor"
 import { bpToPercent, percentToBp, toPublic } from "./to-public"
@@ -103,10 +103,18 @@ function Editor({
       queryKey: getLotsPassportGetQueryKey(workspaceId, lot.id),
     })
   const vars = { workspace: workspaceId, lot: lot.id }
-  const save = useLotsPassportSave({ mutation: { onSuccess: refresh } })
-  const publish = useLotsPassportPublish({ mutation: { onSuccess: refresh } })
+  const done = useDone()
+  const ok = (message: string) => ({
+    onMutate: done.clear,
+    onSuccess: () => {
+      done.show(message)
+      return refresh()
+    },
+  })
+  const save = useLotsPassportSave({ mutation: ok(tp("done.saved")) })
+  const publish = useLotsPassportPublish({ mutation: ok(tp("done.published")) })
   const unpublish = useLotsPassportUnpublish({
-    mutation: { onSuccess: refresh },
+    mutation: ok(tp("done.unpublished")),
   })
   const errors = fieldErrors(save.error ?? publish.error)
   const unsaved = JSON.stringify(draft) !== JSON.stringify(resource.draft)
@@ -148,6 +156,7 @@ function Editor({
             {tp("backToBatch")}
           </Link>
         </div>
+        <Done message={done.message} />
         <p role="status" className="text-sm text-muted-foreground">
           {resource.published_at
             ? tp("publishedState", {

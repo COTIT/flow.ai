@@ -161,6 +161,11 @@
       "by": "Na",
       "factLabel": "Jina",
       "factValue": "Thamani"
+    },
+    "done": {
+      "saved": "Rasimu imehifadhiwa.",
+      "published": "Imechapishwa: ukurasa wa umma unaonyesha toleo hili.",
+      "unpublished": "Imeondolewa: ukurasa wa umma hauonekani tena."
     }
   },
   "stock": {
@@ -376,5 +381,34 @@
     "noMatches": "Hakuna kinacholingana",
     "noMatchesText": "Hakuna kinacholingana na vichujio hivi.",
     "clearFilters": "Futa vichujio"
+  },
+  "done": {
+    "productSaved": "Bidhaa imehifadhiwa.",
+    "stockChanged": "Akiba imebadilishwa; mabadiliko yako hapa chini.",
+    "lot": {
+      "created": "Fungu limeundwa.",
+      "received": "Uhamisho umepokelewa kwenye fungu hili jipya."
+    },
+    "lotSaved": "Fungu limehifadhiwa.",
+    "order": {
+      "confirmed": "Oda imethibitishwa; akiba imehifadhiwa.",
+      "completed": "Oda imekamilika; akiba imetolewa.",
+      "cancelled": "Oda imeghairiwa.",
+      "invoiced": "Ankara imetengenezwa.",
+      "picked": "Uchukuaji umehifadhiwa.",
+      "returned": "Marejesho yamepokelewa."
+    },
+    "keyRevoked": "Ufunguo umefutwa.",
+    "endpointAdded": "Endpoint imeongezwa.",
+    "endpointSaved": "Endpoint imehifadhiwa.",
+    "endpointDeleted": "Endpoint imefutwa.",
+    "linkAccepted": "Kiungo cha ugavi kimekubaliwa.",
+    "linkRevoked": "Kiungo cha ugavi kimefutwa.",
+    "tillUserAdded": "Mtumiaji wa kaunta ameongezwa.",
+    "pinChanged": "PIN mpya imewekwa kwa {name}.",
+    "deactivated": "{name} hawezi tena kuingia kwenye kaunta.",
+    "activated": "{name} anaweza kuingia kwenye kaunta tena.",
+    "vaultAdded": "Sefu imeongezwa.",
+    "pdfReady": "PDF iko tayari."
   }
 }

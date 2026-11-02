@@ -161,6 +161,11 @@
       "by": "Door",
       "factLabel": "Label",
       "factValue": "Waarde"
+    },
+    "done": {
+      "saved": "Concept opgeslagen.",
+      "published": "Gepubliceerd: de publieke pagina toont deze versie.",
+      "unpublished": "Offline gehaald: de publieke pagina is niet meer zichtbaar."
     }
   },
   "stock": {
@@ -376,5 +381,34 @@
     "noMatches": "Geen resultaten",
     "noMatchesText": "Niets past bij deze filters.",
     "clearFilters": "Filters wissen"
+  },
+  "done": {
+    "productSaved": "Product opgeslagen.",
+    "stockChanged": "Voorraad gewijzigd; de mutatie staat hieronder.",
+    "lot": {
+      "created": "Batch aangemaakt.",
+      "received": "Overdracht ontvangen in deze nieuwe batch."
+    },
+    "lotSaved": "Batch opgeslagen.",
+    "order": {
+      "confirmed": "Order bevestigd; voorraad gereserveerd.",
+      "completed": "Order afgerond; voorraad afgeboekt.",
+      "cancelled": "Order geannuleerd.",
+      "invoiced": "Factuur gemaakt.",
+      "picked": "Picken opgeslagen.",
+      "returned": "Retouren ingenomen."
+    },
+    "keyRevoked": "App-sleutel ingetrokken.",
+    "endpointAdded": "Endpoint toegevoegd.",
+    "endpointSaved": "Endpoint opgeslagen.",
+    "endpointDeleted": "Endpoint verwijderd.",
+    "linkAccepted": "Aanvoerkoppeling geaccepteerd.",
+    "linkRevoked": "Aanvoerkoppeling ingetrokken.",
+    "tillUserAdded": "Kassagebruiker toegevoegd.",
+    "pinChanged": "Nieuwe pincode ingesteld voor {name}.",
+    "deactivated": "{name} kan niet meer inloggen op de kassa.",
+    "activated": "{name} kan weer inloggen op de kassa.",
+    "vaultAdded": "Kluis toegevoegd.",
+    "pdfReady": "De PDF is klaar."
   }
 }
