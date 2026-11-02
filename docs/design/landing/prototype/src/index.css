@@ -1,0 +1,11 @@
+/* Tailwind for the React Bits components (their TS + Tailwind variants). Preflight off: the mockup CSS owns the base. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@source "./rb";
+
+.design-bar { position: fixed; left: 12px; bottom: 12px; z-index: 50; display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgb(10 24 58 / 90%); font: 600 12px Poppins, sans-serif; }
+.design-bar a { color: #f2f6f7; text-decoration: none; padding: 6px 10px; border-radius: 999px; }
+.design-bar a[aria-current] { background: #efc977; color: #0a183a; }
+.loop-wrap { padding-block: 8px 24px; }
+.loop-chip { display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 14px; white-space: nowrap; }

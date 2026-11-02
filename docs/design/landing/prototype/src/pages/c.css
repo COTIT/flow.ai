@@ -1,0 +1,125 @@
+
+  :root { --bg: #fff; --fg: var(--navy); --muted: var(--slate); --line: #c4cfd9; --soft: var(--mist); --ring: var(--teal); }
+  html.dark { --bg: var(--navy); --fg: var(--mist); --muted: #b4c3d3; --line: rgb(255 255 255 / 16%); --soft: var(--navy-2); --ring: var(--gold-hi); }
+
+  .h1 { font-weight: 500; text-transform: uppercase; letter-spacing: .03em; font-size: clamp(30px, 5vw, 64px); line-height: 1.05; }
+  .h2 { font-weight: 500; font-size: clamp(22px, 2.8vw, 32px); line-height: 1.25; }
+  .h3 { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 14px; }
+  .muted { color: var(--muted); }
+  .quote { font-style: italic; font-size: clamp(18px, 2vw, 22px); line-height: 1.5; }
+
+  /* Header copies the guide's page header: gold rule, three cells, hairlines. */
+  header { position: sticky; top: 0; z-index: 10; background: var(--bg); }
+  .meta { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; height: 68px; border-bottom: 1px solid var(--line); }
+  .meta nav { display: none; gap: 28px; justify-content: center; font-size: 14px; }
+  .meta nav a { text-decoration: none; white-space: nowrap; }
+  .meta nav a:hover { text-decoration: underline; text-underline-offset: 6px; text-decoration-color: var(--gold); }
+  .tools { display: flex; gap: 8px; align-items: center; grid-column: 3; }
+  .tools > * { flex: none; }
+  .tools select { height: 40px; border: 1px solid var(--line); background: var(--bg); padding: 0 8px; }
+  .link-cta { display: none; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; padding: 10px 16px; border: 1px solid var(--fg); text-decoration: none; }
+  .link-cta:hover { background: var(--fg); color: var(--bg); }
+  @media (min-width: 1040px) { .meta nav { display: flex; } .link-cta { display: inline-block; } }
+
+  /* Hero: the passport itself, big, beside the promise. */
+  .hero { display: grid; gap: 40px; padding: 40px 0 56px; border-bottom: 1px solid var(--line); }
+  @media (min-width: 960px) { .hero { grid-template-columns: 5fr 6fr; gap: 72px; padding: 80px 0 96px; align-items: center; } }
+  .hero .copy { display: grid; gap: 24px; align-content: start; }
+  @media (min-width: 960px) { .hero .copy { order: 2; } }
+  .hero .label { display: flex; gap: 12px; align-items: center; font-size: 13px; color: var(--muted); }
+  .hero .label::before { content: ""; width: 40px; height: 2px; background: var(--gold-gradient); }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0 24px; font-weight: 600; text-decoration: none; background: var(--navy); color: #fff; }
+  .btn:hover { background: var(--slate); }
+  html.dark .btn { background: var(--gold-hi); color: var(--navy); }
+  .text-link { font-weight: 600; text-underline-offset: 6px; text-decoration-color: var(--gold); }
+
+  .passport { background: var(--soft); border: 1px solid var(--line); display: grid; position: relative; }
+  .passport .p-top { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--line); gap: 12px; }
+  .passport .p-top img { height: 30px; }
+  .ex { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; background: var(--gold-hi); color: var(--navy); }
+  .passport .p-main { display: grid; gap: 24px; padding: 24px; }
+  @media (min-width: 560px) { .passport .p-main { grid-template-columns: 1fr 140px; } }
+  .passport .qr { width: 140px; padding: 10px; background: #fff; color: var(--navy); }
+  .passport .name { font-size: 22px; font-weight: 500; }
+  .passport .code { font-size: 13px; color: var(--muted); }
+  .p-rows { display: grid; }
+  .p-rows div { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 12px 24px; border-top: 1px solid var(--line); font-size: 14px; }
+  .p-rows dt { color: var(--muted); }
+  .p-rows dd { margin: 0; font-weight: 500; text-align: right; }
+  .p-paid { padding: 16px 24px; background: var(--navy); color: var(--mist); font-size: 14px; display: flex; gap: 10px; align-items: center; }
+  html.dark .p-paid { background: #07112a; }
+  .p-paid svg { width: 20px; height: 20px; color: var(--gold-hi); flex: none; }
+
+  /* Numbered sections like the guide's contents page. */
+  .sec { display: grid; gap: 24px; padding: 56px 0; border-bottom: 1px solid var(--line); }
+  @media (min-width: 960px) { .sec { grid-template-columns: 5fr 6fr; gap: 72px; padding: 88px 0; } }
+  .sec-label { display: grid; gap: 12px; align-content: start; }
+  .num { font-size: 14px; color: var(--muted); }
+  .num b { color: var(--fg); font-weight: 500; }
+
+  .list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); counter-reset: s; }
+  .list li { display: grid; grid-template-columns: 48px 1fr; gap: 8px 16px; padding: 20px 0; border-bottom: 1px solid var(--line); counter-increment: s; }
+  .list li::before { content: counter(s) ".0"; color: var(--muted); font-size: 14px; padding-top: 1px; }
+  .list p { grid-column: 2; }
+  @media (min-width: 700px) { .list li { grid-template-columns: 48px 200px 1fr; } .list p { grid-column: 3; } }
+
+  .two { display: grid; gap: 0; border-top: 1px solid var(--line); }
+  @media (min-width: 700px) { .two { grid-template-columns: 1fr 1fr; } .two > div + div { border-left: 1px solid var(--line); padding-left: 32px; } .two > div:first-child { padding-right: 32px; } }
+  .two > div { padding: 24px 0; display: grid; gap: 12px; align-content: start; }
+  .two ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+  .two li::marker { color: var(--gold); }
+  .callout { font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: clamp(18px, 2vw, 22px); color: #956e46; border-top: 1px solid var(--slate); border-bottom: 1px solid var(--slate); padding: 12px 0; }
+  html.dark .callout { color: var(--gold-hi); }
+
+  .contact { padding: 72px 0; display: grid; gap: 24px; }
+  @media (min-width: 960px) { .contact { grid-template-columns: 5fr 6fr; gap: 72px; padding: 112px 0; } }
+  .mail { font-size: clamp(26px, 4.6vw, 52px); font-weight: 500; text-decoration: none; border-bottom: 2px solid; border-image: var(--gold-gradient) 1; word-break: break-all; justify-self: start; }
+
+  footer { background: var(--navy); color: var(--mist); }
+  html.dark footer { background: #07112a; }
+  .f-row { display: grid; gap: 24px; padding: 40px 0; }
+  @media (min-width: 768px) { .f-row { grid-template-columns: 1.4fr 1fr 1fr 1fr; } }
+  footer h3 { color: var(--gold-hi); margin-bottom: 10px; }
+  footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+  footer a { text-decoration: none; opacity: .85; }
+  footer a:hover { opacity: 1; text-decoration: underline; }
+  .legal { border-top: 1px solid rgb(255 255 255 / 14%); padding: 16px 0 28px; font-size: 12px; opacity: .7; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+  /* Journey: the passport cover, then six panels unfolding from it like a leaflet. */
+  .journey { border-bottom: 1px solid var(--line); }
+  .unfold { display: grid; gap: 20px; width: 100%; }
+  .leaflet { display: grid; grid-template-columns: 1fr; gap: 0; perspective: 1600px; }
+  @media (min-width: 900px) { .leaflet { grid-template-columns: 180px 1fr; } }
+  .cover { display: none; background: var(--navy); color: var(--mist); padding: 20px; gap: 14px; align-content: start; border: 1px solid var(--line); }
+  html.dark .cover { background: #07112a; }
+  .cover img { height: 24px; min-width: 0; }
+  .cover .qr { width: 100%; background: #fff; color: var(--navy); padding: 8px; }
+  .cover span { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 800; color: var(--gold-hi); }
+  @media (min-width: 900px) { .cover { display: grid; } }
+  .leaves { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); transform-style: preserve-3d; }
+  @media (min-width: 900px) { .leaves { grid-template-columns: repeat(6, 1fr); } }
+  .leaf { display: grid; gap: 4px; align-content: start; padding: 12px; border: 1px solid var(--line); margin: -1px 0 0 -1px; background: var(--soft); color: var(--fg);
+          transform-origin: 0 50%; transform: rotateY(-95deg); opacity: 0; transition: transform .9s cubic-bezier(.2, .8, .2, 1), opacity .4s; }
+  @media (max-width: 899px) { .leaf { transform-origin: 50% 0; transform: rotateX(-95deg); } }
+  .leaf svg { width: 64px; height: 64px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  @media (min-width: 900px) { .leaf { padding: 20px 16px; min-height: 280px; } .leaf svg { width: 96px; height: 96px; margin-bottom: 8px; } }
+  .leaf .f, .leaf .label, .leaf .tagcard, .leaf .screen { fill: var(--bg); }
+  .leaf .honey, .leaf .awning, .leaf .lid { fill: var(--gold); }
+  .leaf .bee-body, .leaf .door, .leaf .qr { fill: currentColor; }
+  .leaf .plus { fill: var(--teal); stroke: none; } .leaf .plus-sign { stroke: #fff; }
+  .leaf .newline { transform: none; }
+  .leaf b { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 13px; }
+  .leaf span { font-size: 12px; color: var(--muted); line-height: 1.45; }
+  @media (min-width: 900px) { .leaf span { font-size: 13px; } }
+  .st1 .p1, .st2 .p2, .st3 .p3, .st4 .p4, .st5 .p5, .st6 .p6 { transform: none; opacity: 1; }
+  .leaf[aria-current] { background: var(--bg); box-shadow: inset 0 3px 0 var(--gold); }
+  .rail { position: relative; height: 22px; container-type: inline-size; }
+  .thread { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: var(--gold-gradient); transform-origin: 100% 50%; transform: scaleX(var(--lp, 0)); }
+  .rail-coin { position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--gold-gradient); box-shadow: 0 0 0 2px var(--navy) inset;
+               transform: translateX(calc((1 - var(--lp, 0)) * (100cqw - 22px))); opacity: 0; transition: opacity .3s; }
+  .st6 .rail-coin { opacity: 1; }
+  html.reduce .leaf { transform: none; opacity: 1; }
+
+  .rb-bg { position: absolute; inset: 0; z-index: 0; pointer-events: auto; }
+  .hero > .wrap, .hero > .hero-grid, .hero .copy, .hero .passport { position: relative; z-index: 1; }
