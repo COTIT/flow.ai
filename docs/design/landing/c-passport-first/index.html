@@ -7,7 +7,9 @@
 <meta name="description" content="Genesy follows every jar from the farm to the shelf and pays the farmer along the way.">
 <link rel="icon" href="../assets/Icon.svg">
 <link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/motion.css">
 <script src="../assets/mock.js"></script>
+<script src="../assets/motion.js"></script>
 <style>
   :root { --bg: #fff; --fg: var(--navy); --muted: var(--slate); --line: #c4cfd9; --soft: var(--mist); --ring: var(--teal); }
   html.dark { --bg: var(--navy); --fg: var(--mist); --muted: #b4c3d3; --line: rgb(255 255 255 / 16%); --soft: var(--navy-2); --ring: var(--gold-hi); }
@@ -95,6 +97,41 @@
   footer a { text-decoration: none; opacity: .85; }
   footer a:hover { opacity: 1; text-decoration: underline; }
   .legal { border-top: 1px solid rgb(255 255 255 / 14%); padding: 16px 0 28px; font-size: 12px; opacity: .7; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+  /* Journey: the passport cover, then six panels unfolding from it like a leaflet. */
+  .journey { border-bottom: 1px solid var(--line); }
+  .unfold { display: grid; gap: 20px; width: 100%; }
+  .leaflet { display: grid; grid-template-columns: 1fr; gap: 0; perspective: 1600px; }
+  @media (min-width: 900px) { .leaflet { grid-template-columns: 180px 1fr; } }
+  .cover { display: none; background: var(--navy); color: var(--mist); padding: 20px; gap: 14px; align-content: start; border: 1px solid var(--line); }
+  html.dark .cover { background: #07112a; }
+  .cover img { height: 24px; min-width: 0; }
+  .cover .qr { width: 100%; background: #fff; color: var(--navy); padding: 8px; }
+  .cover span { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 800; color: var(--gold-hi); }
+  @media (min-width: 900px) { .cover { display: grid; } }
+  .leaves { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); transform-style: preserve-3d; }
+  @media (min-width: 900px) { .leaves { grid-template-columns: repeat(6, 1fr); } }
+  .leaf { display: grid; gap: 4px; align-content: start; padding: 12px; border: 1px solid var(--line); margin: -1px 0 0 -1px; background: var(--soft); color: var(--fg);
+          transform-origin: 0 50%; transform: rotateY(-95deg); opacity: 0; transition: transform .9s cubic-bezier(.2, .8, .2, 1), opacity .4s; }
+  @media (max-width: 899px) { .leaf { transform-origin: 50% 0; transform: rotateX(-95deg); } }
+  .leaf svg { width: 64px; height: 64px; stroke: currentColor; stroke-width: 3; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  @media (min-width: 900px) { .leaf { padding: 20px 16px; min-height: 280px; } .leaf svg { width: 96px; height: 96px; margin-bottom: 8px; } }
+  .leaf .f, .leaf .label, .leaf .tagcard, .leaf .screen { fill: var(--bg); }
+  .leaf .honey, .leaf .awning, .leaf .lid { fill: var(--gold); }
+  .leaf .bee-body, .leaf .door, .leaf .qr { fill: currentColor; }
+  .leaf .plus { fill: var(--teal); stroke: none; } .leaf .plus-sign { stroke: #fff; }
+  .leaf .newline { transform: none; }
+  .leaf b { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 13px; }
+  .leaf span { font-size: 12px; color: var(--muted); line-height: 1.45; }
+  @media (min-width: 900px) { .leaf span { font-size: 13px; } }
+  .st1 .p1, .st2 .p2, .st3 .p3, .st4 .p4, .st5 .p5, .st6 .p6 { transform: none; opacity: 1; }
+  .leaf[aria-current] { background: var(--bg); box-shadow: inset 0 3px 0 var(--gold); }
+  .rail { position: relative; height: 22px; container-type: inline-size; }
+  .thread { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: var(--gold-gradient); transform-origin: 100% 50%; transform: scaleX(var(--lp, 0)); }
+  .rail-coin { position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--gold-gradient); box-shadow: 0 0 0 2px var(--navy) inset;
+               transform: translateX(calc((1 - var(--lp, 0)) * (100cqw - 22px))); opacity: 0; transition: opacity .3s; }
+  .st6 .rail-coin { opacity: 1; }
+  html.reduce .leaf { transform: none; opacity: 1; }
 </style>
 </head>
 <body>
@@ -124,9 +161,9 @@
       <span class="label">Farm to kitchen, in the open</span>
       <h1 class="h1">This jar can tell you who made it.</h1>
       <p class="quote muted">Every batch gets a passport. Scan it and see where the honey was harvested, what was checked, and that the farmers were paid.</p>
-      <div class="cta-row"><a class="btn" href="#contact">Talk to us</a><a class="text-link" href="#how">How it works →</a></div>
+      <div class="cta-row"><a class="btn shimmer" href="#contact">Talk to us</a><a class="text-link" href="#how">How it works →</a></div>
     </div>
-    <article class="passport" aria-label="Example batch passport (made-up data)">
+    <article class="passport" data-parallax="-0.04" aria-label="Example batch passport (made-up data)">
       <div class="p-top"><img class="logo-on-light" src="../assets/Logo.svg" alt="Genesy"><img class="logo-on-dark" src="../assets/Logo_for_dark_bg.svg" alt="Genesy"><span class="ex">Example</span></div>
       <div class="p-main">
         <div style="display: grid; gap: 6px; align-content: start">
@@ -136,10 +173,10 @@
         </div>
         <div class="qr" data-qr></div>
       </div>
-      <dl class="p-rows" style="margin: 0">
+      <dl class="p-rows" style="margin: 0" data-assemble>
         <div><dt>Origin</dt><dd>Miombo woodland, Tanzania</dd></div>
         <div><dt>Harvested</dt><dd>June 2026</dd></div>
-        <div><dt>Beekeepers</dt><dd>38 in one programme</dd></div>
+        <div><dt>Beekeepers</dt><dd><span data-count="38">38</span> in one programme</dd></div><div><dt>Jars in batch</dt><dd data-count="1240">1,240</dd></div>
         <div><dt>Packed</dt><dd>July 2026</dd></div>
         <div><dt>Quality check</dt><dd>Passed</dd></div>
       </dl>
@@ -147,31 +184,33 @@
     </article>
   </div>
 
-  <section class="sec" id="how">
-    <div class="sec-label"><span class="num"><b>01</b> | How it works</span><h2 class="h2">Five steps, one record, nothing re-typed.</h2></div>
-    <ol class="list">
-      <li><h3 class="h3">Harvest</h3><p class="muted">Logged in the field app, even without signal: who, where, how much.</p></li>
-      <li><h3 class="h3">Batch</h3><p class="muted">Harvests from many farmers become one batch. Every kilo accounted for.</p></li>
-      <li><h3 class="h3">Passport</h3><p class="muted">The batch gets a QR code for its label. Anyone can scan it.</p></li>
-      <li><h3 class="h3">Sale</h3><p class="muted">Web shop, market stall or store till — all from one stock list.</p></li>
-      <li><h3 class="h3">Passbook</h3><p class="muted">The farmer’s share is written down at sale. Lines are never changed.</p></li>
-    </ol>
+  <section class="journey" data-journey="7" id="how" style="--n: 7" aria-labelledby="j-title">
+    <div class="j-pin">
+      <div class="unfold">
+        <div class="sec-label j-head"><span class="num"><b>01</b> | How it works</span><h2 class="h2" id="j-title">Open the passport. The whole journey is inside.</h2></div>
+        <div class="leaflet">
+          <div class="cover" aria-hidden="true"><img class="logo-on-light" src="../assets/Logo.svg" alt=""><img class="logo-on-dark" src="../assets/Logo_for_dark_bg.svg" alt=""><div class="qr" data-qr></div><span>Batch passport</span></div>
+          <ol class="leaves"><li class="leaf p1" data-step="1"><svg viewBox="-60 -60 120 120" aria-hidden="true"><g><path d="M-38 34h76"/><path class="f" d="M-32 34v-10h64v10zM-28 24v-12h56v12zM-22 12v-12h44v12zM-14 0v-10a14 14 0 0 1 28 0v10z"/><path class="door" d="M-6 34v-7a6 6 0 0 1 12 0v7z"/><g class="bees"><g class="bee"><ellipse class="bee-body" cx="30" cy="-40" rx="5.5" ry="4"/><path class="wing" d="M28 -44q2-8 7-2"/></g><g class="bee"><ellipse class="bee-body" cx="44" cy="-20" rx="5.5" ry="4"/><path class="wing" d="M42 -24q2-8 7-2"/></g><g class="bee"><ellipse class="bee-body" cx="-36" cy="-30" rx="5.5" ry="4"/><path class="wing" d="M-38 -34q2-8 7-2"/></g></g></g></svg><b>Hive</b><span>Bees make the honey. The farmer records each hive.</span></li><li class="leaf p2" data-step="2"><svg viewBox="-60 -60 120 120" aria-hidden="true"><g><rect class="f" x="-36" y="-30" width="72" height="46" rx="3"/><path d="M-36 -14h72M-36 0h72M-12 -30v46M12 -30v46"/><path class="hex" d="M-26 -22l4-3 4 3v5l-4 3-4-3zM20 -8l4-3 4 3v5l-4 3-4-3z"/><path d="M0 16v10"/><circle class="drop" cx="0" cy="32" r="4"/></g></svg><b>Harvest</b><span>Every harvest is logged: who, where, how much.</span></li><li class="leaf p3" data-step="3"><svg viewBox="-60 -60 120 120" aria-hidden="true"><g><rect class="lid" x="-18" y="-34" width="36" height="9" rx="2"/><path class="f honey" d="M-24 -25h48v48a8 8 0 0 1-8 8h-32a8 8 0 0 1-8-8z"/><rect class="label" x="-15" y="-8" width="30" height="20" rx="2"/><g class="tag-swing"><path d="M18 -26l20 8"/><rect class="tagcard" x="32" y="-20" width="28" height="34" rx="3"/><path class="qr" d="M37 -14h7v7h-7zM48 -14h7v7h-7zM37 -3h7v7h-7zM49 -2h5v5h-5zM49 6h5v4h-5z"/></g></g></svg><b>Passport</b><span>Packed into a batch; every jar gets a QR passport.</span></li><li class="leaf p4" data-step="4"><svg viewBox="-60 -60 120 120" aria-hidden="true"><g><rect class="f" x="-22" y="-40" width="44" height="80" rx="8"/><rect class="screen" x="-16" y="-30" width="32" height="52" rx="2"/><path class="qr" d="M-10 -22h8v8h-8zM2 -22h8v8h-8zM-10 -10h8v8h-8zM3 -8h6v6h-6zM-2 4h12v4h-12z"/><path class="scan" d="M-16 -30h32"/><circle cx="0" cy="31" r="3"/></g></svg><b>Scan</b><span>A buyer scans the jar and reads its story.</span></li><li class="leaf p5" data-step="5"><svg viewBox="-60 -60 120 120" aria-hidden="true"><g><path class="awning" d="M-42 -22h84l-8-16h-68z"/><path d="M-42 -22q7 10 14 0q7 10 14 0q7 10 14 0q7 10 14 0q7 10 14 0q7 10 14 0"/><path class="f" d="M-36 -14v48h72v-48z"/><path d="M-36 10h72"/><path class="honey" d="M-26 -2h10v12h-10zM-6 -2h10v12h-10zM14 -2h10v12h-10z"/></g></svg><b>Sold</b><span>Online or at the till, from one stock list.</span></li><li class="leaf p6" data-step="6"><svg viewBox="-60 -60 120 120" aria-hidden="true"><g><path class="f" d="M-32 -34h46a16 16 0 0 1 16 16v52h-46a16 16 0 0 1-16-16z"/><path d="M-22 -20h30M-22 -10h30M-22 0h20"/><path class="newline" d="M-22 12h32"/><circle class="plus" cx="26" cy="26" r="11"/><path class="plus-sign" d="M26 20v12M20 26h12"/></g></svg><b>Paid back</b><span>The farmer’s share flows back into their passbook.</span></li></ol>
+        </div>
+        <div class="rail" aria-hidden="true"><span class="thread"></span><span class="rail-coin"></span></div>
+        <div class="j-progress" aria-hidden="true"><span></span></div>
+      </div>
+    </div>
   </section>
-
   <section class="sec" id="who">
-    <div class="sec-label"><span class="num"><b>02</b> | Who it’s for</span><h2 class="h2">For the people who grow it, sell it and buy it.</h2></div>
+    <div class="sec-label" data-reveal><span class="num"><b>02</b> | Who it’s for</span><h2 class="h2">For the people who grow it, sell it and buy it.</h2></div>
     <div style="display: grid; gap: 24px">
       <div class="two">
         <div><h3 class="h3">Farmer programmes &amp; cooperatives</h3><ul class="muted"><li>Field records that work offline</li><li>Swahili and English on every screen</li><li>Each farmer sees their own passbook</li></ul><a class="text-link" href="#contact">Start with your programme →</a></div>
         <div><h3 class="h3">Brands &amp; shops</h3><ul class="muted"><li>Web shop and till share one stock</li><li>A passport QR for every batch</li><li>From jar back to harvest in seconds</li></ul><a class="text-link" href="#contact">Bring your products →</a></div>
       </div>
-      <p class="callout">Bought a jar? Point your phone camera at the QR code on the label.</p>
+      <p class="callout" data-reveal>Bought a jar? Point your phone camera at the QR code on the label.</p>
     </div>
   </section>
 
   <section class="sec" id="promise">
-    <div class="sec-label"><span class="num"><b>03</b> | Our promise</span><h2 class="h2">Plain rules, kept by the system — not by goodwill.</h2></div>
-    <ol class="list">
+    <div class="sec-label" data-reveal><span class="num"><b>03</b> | Our promise</span><h2 class="h2">Plain rules, kept by the system — not by goodwill.</h2></div>
+    <ol class="list" data-assemble>
       <li><h3 class="h3">Private</h3><p class="muted">Each organisation sees only its own farmers, stock and sales.</p></li>
       <li><h3 class="h3">Consent</h3><p class="muted">Data moves to a partner only through a link the farmer agreed to.</p></li>
       <li><h3 class="h3">Exact</h3><p class="muted">Money counted to the cent. Passbook lines stay as they were written.</p></li>
@@ -179,7 +218,7 @@
   </section>
 
   <section class="contact" id="contact">
-    <div class="sec-label"><span class="num"><b>04</b> | Talk to us</span><h2 class="h2">Grow, pack or sell something worth tracing?</h2></div>
+    <div class="sec-label" data-reveal><span class="num"><b>04</b> | Talk to us</span><h2 class="h2">Grow, pack or sell something worth tracing?</h2></div>
     <div style="display: grid; gap: 20px; align-content: start">
       <a class="mail" href="mailto:hello@genesy.app?subject=Genesy%20for%20my%20organisation">hello@genesy.app</a>
       <p class="muted">Tell us who you are, what you grow, pack or sell, and where. English, Dutch or Swahili. We reply within two working days.</p>
