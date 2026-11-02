@@ -37,6 +37,9 @@ cleanup() {
 trap cleanup EXIT
 
 "${compose[@]}" build
+# The API doesn't migrate at boot here (SKIP_BOOT_MIGRATIONS): the deploy's migrate step runs first.
+"${compose[@]}" up -d --wait db
+"${compose[@]}" --profile seed run --rm seed migrate
 "${compose[@]}" up -d --wait --wait-timeout 180
 
 fail=0

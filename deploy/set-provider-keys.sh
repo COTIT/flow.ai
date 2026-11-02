@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# Writes Stripe or Resend keys into deploy/<env>/secrets without echoing them, so keys never
+# Writes Stripe, Resend or B2 uploads keys into deploy/<env>/secrets without echoing them, so keys never
 # land in shell history, logs or chat. Run on the VPS from the deploy checkout:
 #   deploy/set-provider-keys.sh production stripe   # live (or test) secret key + whsec_
 #   deploy/set-provider-keys.sh staging stripe      # test keys only
 #   deploy/set-provider-keys.sh production resend   # rewrites secrets/smtp_url
-# Then restart with the -f chain in that environment's README ("Turning on Stripe / Resend").
+#   deploy/set-provider-keys.sh production b2-uploads  # the uploads key (not the backup key)
+# Then restart through deploy/deploy.sh <env> compose (README "Turning on …").
 set -Eeuo pipefail
 
 usage() {
-  echo "usage: $0 <production|staging> <stripe|resend>" >&2
+  echo "usage: $0 <production|staging> <stripe|resend|b2-uploads>" >&2
   exit 2
 }
 die() {
@@ -19,7 +20,7 @@ die() {
 env="${1:-}"
 provider="${2:-}"
 [[ "$env" == production || "$env" == staging ]] || usage
-[[ "$provider" == stripe || "$provider" == resend ]] || usage
+[[ "$provider" == stripe || "$provider" == resend || "$provider" == b2-uploads ]] || usage
 dir="${SECRETS_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$env/secrets}"
 [[ -d "$dir" ]] || die "no secrets folder at $dir (README \"One-time setup\")"
 
@@ -63,6 +64,13 @@ case "$provider" in
     [[ "$key" =~ ^re_[A-Za-z0-9_]+$ ]] || die "not a Resend API key (re_…)"
     put smtp_url "smtps://resend:$key@smtp.resend.com:465"
     echo "wrote $dir/smtp_url"
+    ;;
+  b2-uploads)
+    [[ "$env" == production ]] || die "staging has no uploads bucket (demo files stay out of B2)"
+    key="$(ask "B2 uploads application key (the secret part, not the key ID)")"
+    [[ "$key" =~ ^[A-Za-z0-9+/]{20,64}$ ]] || die "not a B2 application key"
+    put b2_uploads_key "$key"
+    echo "wrote $dir/b2_uploads_key; set B2_UPLOADS_BUCKET and B2_UPLOADS_KEY_ID in .env.production"
     ;;
 esac
 unset key secret

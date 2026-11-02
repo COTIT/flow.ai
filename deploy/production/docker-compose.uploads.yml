@@ -1,0 +1,29 @@
+# File uploads on for production: the existing production B2 bucket, objects under genesy/ only.
+# deploy.sh adds this file (-f) once secrets/b2_uploads_key exists (deploy/set-provider-keys.sh
+# production b2-uploads); without it the stack runs as before (file routes answer 503).
+# Its own B2 key, limited to the genesy/ prefix: it can't see the db-backups/ prefix.
+x-uploads-env: &uploads-env
+  B2_UPLOADS_BUCKET: ${B2_UPLOADS_BUCKET:?set B2_UPLOADS_BUCKET in .env.production}
+  B2_UPLOADS_KEY_ID: ${B2_UPLOADS_KEY_ID:?set B2_UPLOADS_KEY_ID in .env.production}
+  B2_UPLOADS_APPLICATION_KEY_FILE: /run/secrets/b2_uploads_key
+  B2_UPLOADS_ENDPOINT: ${B2_UPLOADS_ENDPOINT:-https://s3.eu-central-003.backblazeb2.com}
+  B2_UPLOADS_REGION: ${B2_UPLOADS_REGION:-eu-central-003}
+
+services:
+  api:
+    environment: *uploads-env
+    secrets: [b2_uploads_key]
+  cli:
+    environment: *uploads-env
+    secrets: [b2_uploads_key]
+  # Signed image links point at the endpoint (path-style URLs), so that is the CSP img-src origin.
+  shop:
+    environment:
+      FILES_ORIGIN: ${B2_UPLOADS_ENDPOINT:-https://s3.eu-central-003.backblazeb2.com}
+  office:
+    environment:
+      FILES_ORIGIN: ${B2_UPLOADS_ENDPOINT:-https://s3.eu-central-003.backblazeb2.com}
+
+secrets:
+  b2_uploads_key:
+    file: ${SECRETS_DIR:-./secrets}/b2_uploads_key

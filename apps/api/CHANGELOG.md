@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Migrations as their own deploy step: `genesy-360-api migrate` runs the embedded migrations and exits (0, `migrations up to date`; 1 with `migrate: <error>` on stderr). `SKIP_BOOT_MIGRATIONS=true` boots without migrating; unset (default) keeps boot migrations for dev and tests. The staging and production composes set it, and `deploy/deploy.sh` runs `migrate` before swapping containers.
 - Stripe payments and Resend email, ready for keys (contract `docs/api/payments.md`, migration `payments_stripe`):
   - `PAYMENTS_PROVIDER=stripe`: a payment is a Stripe Checkout Session (hosted page, `checkout_url`), a refund a Stripe Refund of the session's PaymentIntent. Minor units, `Idempotency-Key` = our row id, metadata `{workspace_id, order_id, payment_id}`, pinned `Stripe-Version: 2024-06-20`. Session `expires_at` follows the order's hold within Stripe's 31 min to 24 h window; our expiry job fires first.
   - Config `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (both also `_FILE`), `STRIPE_API_URL` (loopback only). Live keys are refused in builds with debug assertions (dev, tests, staging). `Config` `Debug` masks both secrets.

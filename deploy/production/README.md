@@ -22,7 +22,7 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 - **External Postgres volume.** It is called `genesy-prod-pg` and you make it by hand, so no `down -v` can delete it.
 - **No `noindex` header, no IP allow-list.**
 - **Field release flag off.** `VITE_FEATURE_RESOURCES=off` hides equipment, loans and requests; no demo banner.
-- **No uploads bucket, no PDF renderer yet.** Those routes answer 503, as designed.
+- **Uploads in the production B2 bucket, once its key is in** ("Turning on file uploads"); until then, and always on staging, file routes answer 503. No PDF renderer yet: those routes answer 503 too.
 
 Every step below is for the user to run on the VPS, or for the coordinator once the user says go. VPS facts and DNS records: `../staging/README.md` ("The VPS", "DNS records"). Production needs the `api`, `shop`, `office`, `till` and `field` records, plus the apex (`@`) and `www` for the landing page. The landing page's contact address is `CONTACT_EMAIL` in `.env.production` (default `hello@genesy.app`, a placeholder).
 
@@ -31,7 +31,10 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 | File                            | What                                                                 |
 | ------------------------------- | -------------------------------------------------------------------- |
 | `docker-compose.production.yml` | The stack, with Traefik labels                                       |
-| `docker-compose.stripe.yml`     | Turns Stripe on when added with a second `-f` ("Turning on Stripe")  |
+| `docker-compose.stripe.yml`     | Turns Stripe on; `deploy.sh` adds it once the Stripe key exists      |
+| `docker-compose.uploads.yml`    | Turns file uploads on; `deploy.sh` adds it once the B2 key exists    |
+| `../deploy.sh`                  | Deploy, rollback, prune, and `compose` with the right `-f` chain     |
+| `../ops/`                       | Backups, restore tests, alerts (`../ops/README.md`)                  |
 | `../set-provider-keys.sh`       | Writes Stripe or Resend keys into `secrets/` without echoing them    |
 | `.env.production.example`       | Every variable, no secrets. Copy it to `.env.production` on the VPS. |
 | `secrets/`                      | Secret files on the VPS only. Git ignores everything in it.          |
@@ -80,55 +83,92 @@ nano ~/.config/genesy/ghcr-token   # paste the token, save; it never goes on a c
 docker login ghcr.io -u <token owner> --password-stdin < ~/.config/genesy/ghcr-token
 ```
 
+```bash
+# 6. The ops kit: nightly backups, restore tests, alerts, the sudo rule deploy.sh needs
+cd /srv/genesy-prod && sudo bash deploy/ops/setup.sh
+```
+
 Back up `secrets/credentials_key` off the VPS, for example in the password manager. It encrypts the workspace mail credentials stored in the database. If it's lost, those credentials can't be read, and a backup can't be restored with them.
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main` (including its `images` job, which pushed `ghcr.io/cotit/genesy-<app>:<sha>`), and that staging already runs. Back up first (see Backup).
+Only deploy a commit whose `ci` workflow passed on `main`, including its `images` job, which pushed `ghcr.io/cotit/genesy-<app>:<sha>`, and that staging already runs. The VPS can't reach GitHub's git, so the commit comes over in a git bundle:
 
 ```bash
-cd /srv/genesy-prod
-git fetch origin && git checkout --detach <green-main-sha>
-sed -i "s/^GENESY_REF=.*/GENESY_REF=$(git rev-parse HEAD)/" deploy/production/.env.production
+# On the laptop
+git fetch origin && git bundle create /tmp/genesy.bundle origin/main
+scp /tmp/genesy.bundle genesy:/tmp/
 ```
 
 ```bash
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production pull
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d --wait --no-build
+# On the VPS, as deploy
+cd /srv/genesy-prod && deploy/deploy.sh production <green-main-sha> --bundle /tmp/genesy.bundle
 ```
 
-`--no-build` means the VPS never builds by accident: if an image is missing, `up` stops with an error.
+`deploy.sh` does, in order, and stops at the first failure:
 
-Old images stay on the VPS on purpose: rollback needs the previous sha. Pruning them is tag-aware and belongs to `deploy/deploy.sh` (coming); don't run `docker image prune -a` here.
+1. Takes a lock (one deploy at a time), checks there are 5 GB free, and checks the commit out.
+2. Writes its full sha into `GENESY_REF` in `.env.production`: the images' tag.
+3. Pulls that commit's images from GHCR (`IMAGE_SOURCE=pull`, the default). The old containers keep serving meanwhile.
+4. Takes a backup (`pre-<sha>`, through `/usr/local/lib/genesy-ops/backup.sh`).
+5. Runs the migrations once, in a one-off `cli` container (`genesy-360-api migrate`). The app containers never migrate: `SKIP_BOOT_MIGRATIONS=true`.
+6. `up -d --wait --no-build`, then checks every host through Traefik: `api` `/healthz` must give 200, the apps 2xx/3xx. `--no-build` means the VPS never builds by accident: a missing image stops the deploy.
+7. Records the live and previous versions in `.deploy-state`, adds a line to `deploys.log`, and prunes images.
 
-The API runs its migrations when it boots. Check the deploy:
+A commit already in the checkout needs no `--bundle`. If the health check fails, the new version stays up and the script prints the rollback command. Nothing rolls back on its own: someone decides.
+
+The prune keeps the images of the live and previous version of **both** stacks: staging and production share the GHCR repositories, and the shop, till and landing images even share their tag. Never run `docker image prune -a`.
+
+## Rollback
 
 ```bash
-curl -fsS https://api.genesy.app/healthz
-for h in shop office till field; do curl -s -o /dev/null -w "$h %{http_code}\n" https://$h.genesy.app/; done
+deploy/deploy.sh production rollback
 ```
 
-**Roll back:** set `GENESY_REF` to the previous sha, then `pull` and `up -d --wait --no-build`. Migrations only move forward. If the new release changed the database, restore the backup taken before the deploy.
-
-### Fallback: build on the VPS
-
-Only when the `images` job or GHCR is down. It takes 10–30 minutes and runs on prod's Docker, outside CI's limits.
+This switches back to the previous version: the commit, `GENESY_REF` and the images it kept. If the deploy changed the database (a migration ran), it refuses, because the old code may not fit the new schema. Then the only way back is:
 
 ```bash
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production build
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d --wait
-docker builder prune -f --max-used-space 10GB   # cap the build cache instead of wiping it
+deploy/deploy.sh production rollback --restore-db
 ```
 
-The kept cache makes the next build fast: an unchanged API is a cache hit, a changed one rebuilds only its own crate, and the web images reuse their package store.
+It restores the `pre-<sha>` dump taken before the deploy, after a fresh `pre-restore` dump and the typed words `restore production`. **Everything written since the deploy is lost.** Check with the user first, and prefer fixing forward.
+
+## Fallback: build on the VPS
+
+Only when the `images` job or GHCR is down. Set `IMAGE_SOURCE=build` in `.env.production` and deploy as above: `deploy.sh` builds the images here instead of pulling them. That takes 10–30 minutes and runs on prod's Docker, outside CI's limits. Set it back to `pull` afterwards.
+
+After a build, the prune caps the build cache at 10 GB (`docker builder prune --max-used-space 10GB`) instead of wiping it. The kept cache makes the next build fast: an unchanged API is a cache hit, a changed one rebuilds only its own crate, and the web images reuse their package store.
+
+## Resource limits
+
+Every container has a CPU, memory and process ceiling (`deploy.resources.limits`). Without one, a runaway container could take the whole VPS, which it shares with staging, CI and other projects. These are ceilings, not reservations.
+
+| Service | CPUs | Memory |
+| --- | --- | --- |
+| db | 1.5 | 2 GB (`shm_size` 256 MB) |
+| api | 1.5 | 1 GB |
+| shop, office, till, landing | 0.5 each | 512 MB each |
+| field | 0.25 | 128 MB |
+
+Staging runs smaller limits with a quarter of production's CPU weight (`cpu_shares: 256`), so production wins when both are busy. A container that goes over its memory is killed and restarted (`restart: unless-stopped`). The `vps-watch` alert reports that as a restart loop. If it happens, raise that service's limit here. Check real use with `docker stats --no-stream`.
+
+## Running compose by hand
+
+Always go through `deploy.sh`, never a bare `docker compose`:
+
+```bash
+deploy/deploy.sh production compose ps
+deploy/deploy.sh production compose logs --tail 100 api
+```
+
+It adds `docker-compose.nodns.yml` while that file exists, `docker-compose.stripe.yml` once `secrets/stripe_secret_key` exists, and `docker-compose.uploads.yml` once `secrets/b2_uploads_key` exists. A command that forgets one of those recreates the API without it. The commands below all use it.
 
 ## First owner
 
 Self-signup is off, so the first account is made from the command line, once:
 
 ```bash
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production \
-  --profile cli run --rm cli create-owner --email <email> --workspace <name>
+deploy/deploy.sh production compose --profile cli run --rm cli create-owner --email <email> --workspace <name>
 ```
 
 This runs `genesy-360-api create-owner`. It creates the owner and their workspace, and prints a one-time password **once**. Hand that password to the owner over a private channel. Everyone else is invited from the office.
@@ -140,27 +180,14 @@ This runs `genesy-360-api create-owner`. It creates the owner and their workspac
 1. Log in to `office.genesy.app`.
 2. Make an app key with scope `catalog:read`.
 3. Put it in `STOREFRONT_APP_KEY` in `.env.production`.
-4. Run `up -d shop`.
+4. Run `deploy/deploy.sh production compose up -d shop`.
 
-## Backup
+## Backup and restore
 
-A compressed dump of the whole database, taken while it runs:
-
-```bash
-mkdir -p /srv/genesy-prod/backups && chmod 700 /srv/genesy-prod/backups
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production \
-  exec -T db pg_dump -U genesy -d genesy -Fc > /srv/genesy-prod/backups/genesy-$(date +%F-%H%M).dump
-```
-
-Copy dumps off the VPS: a backup on the same disk dies with the disk.
-
-To restore into the running database (this replaces its contents):
+Nightly dumps, a daily restore test and the live-restore steps are in `../ops/README.md`. A dump by hand:
 
 ```bash
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production stop api shop office till field
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production \
-  exec -T db pg_restore -U genesy -d genesy --clean --if-exists < /srv/genesy-prod/backups/<file>.dump
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d --wait
+sudo /usr/local/lib/genesy-ops/backup.sh production
 ```
 
 ## Turning on Stripe
@@ -180,23 +207,15 @@ Payments answer 503 until this is done. Code and contract: `apps/api/docs/api/pa
    cd /srv/genesy-prod && deploy/set-provider-keys.sh production stripe
    ```
 
-3. **Restart the API with the Stripe file in the chain.** From now on, **every** `docker compose` command in this README needs the same `-f` chain. A command without it recreates the API without Stripe, and payments answer 503 again; nothing breaks beyond that.
+3. **Restart the API.** `deploy.sh` adds `docker-compose.stripe.yml` by itself once `secrets/stripe_secret_key` exists:
 
    ```bash
-   docker compose -f deploy/production/docker-compose.production.yml -f deploy/production/docker-compose.stripe.yml \
-     --env-file deploy/production/.env.production up -d --wait api
+   deploy/deploy.sh production compose up -d --wait api
    ```
 
-   Until DNS is live, the VPS may still have an untracked `deploy/production/docker-compose.nodns.yml`. While that file exists, keep it in the chain, between the main file and the Stripe file:
+4. **Check it:** `deploy/deploy.sh production compose logs api | grep -i payments` no longer shows `PAYMENTS_PROVIDER not set`. Pay one small real order in the shop, refund it from the office, and look for both in the Stripe dashboard (Payments, and Webhooks → the endpoint's deliveries, all 200).
 
-   ```bash
-   docker compose -f deploy/production/docker-compose.production.yml -f deploy/production/docker-compose.nodns.yml \
-     -f deploy/production/docker-compose.stripe.yml --env-file deploy/production/.env.production up -d --wait api
-   ```
-
-4. **Check it:** `docker compose … logs api | grep -i payments` no longer shows `PAYMENTS_PROVIDER not set`. Pay one small real order in the shop, refund it from the office, and look for both in the Stripe dashboard (Payments, and Webhooks → the endpoint's deliveries, all 200).
-
-A wrong or missing key stops the API at boot with a message that names the variable, never the value. To turn Stripe off, run the same command without `docker-compose.stripe.yml`. To roll a key, run the script again and restart.
+A wrong or missing key stops the API at boot with a message that names the variable, never the value. To turn Stripe off, move `secrets/stripe_secret_key` and `secrets/stripe_webhook_secret` out of `secrets/` and restart the API the same way. To roll a key, run the script again and restart.
 
 ## Turning on Resend (mail)
 
@@ -216,11 +235,45 @@ No code: Resend takes SMTP, so `secrets/smtp_url` becomes `smtps://resend:<API k
 2. **Resend → API Keys:** make a key with Sending access, limited to `genesy.app`.
 3. **On the VPS:** `deploy/set-provider-keys.sh production resend`. It rewrites `secrets/smtp_url` without echoing the key.
 4. `MAIL_FROM` in `.env.production` must use the verified domain (the example already says `Genesy <no-reply@genesy.app>`).
-5. Restart the API with your usual `-f` chain (`up -d --wait api`). Then invite yourself from the office and check that the mail arrives, and that Resend → Emails shows it as delivered.
+5. Restart the API: `deploy/deploy.sh production compose up -d --wait api`. Then invite yourself from the office and check that the mail arrives, and that Resend → Emails shows it as delivered.
+
+## Turning on file uploads
+
+Product images, documents and farm photos go to the existing production B2 bucket, under `genesy/<workspace>/…`. Until this is done, file routes answer 503. Staging stays without uploads, so demo files never land in the production bucket.
+
+The bucket gets **two keys that can't see each other's files**:
+
+| Key name | Bucket | File name prefix | Capabilities | Used by |
+| --- | --- | --- | --- | --- |
+| `genesy-prod-uploads` | the production bucket | `genesy/` | `listBuckets, readFiles, writeFiles, deleteFiles` | the API (this section) |
+| `genesy-prod-db-backups` | the production bucket | `db-backups/` | `listBuckets, writeFiles` (**no** `readFiles`, **no** `deleteFiles`) | `backup.sh` (`../ops/README.md`) |
+
+A bug in the API can't touch the backups, and the backup script can't read or change customer files. The backup key can't even read old dumps back, so someone who takes over the VPS can't download or wipe them. Never use one key for both jobs.
+
+1. **Make the uploads key** with the b2 CLI (`b2 account authorize` with the master key first). The CLI sets the exact capabilities; the web console's presets add more:
+
+   ```bash
+   b2 key create --bucket <bucket> --name-prefix genesy/ genesy-prod-uploads listBuckets,readFiles,writeFiles,deleteFiles
+   ```
+
+   It prints the key ID and the application key once. Check it with `b2 key list --long`.
+2. **On the VPS:** write the application key (asked without echo):
+
+   ```bash
+   cd /srv/genesy-prod && deploy/set-provider-keys.sh production b2-uploads
+   ```
+
+3. **In `.env.production`:** set `B2_UPLOADS_BUCKET=<bucket>` and `B2_UPLOADS_KEY_ID=<key ID>`. `B2_UPLOADS_ENDPOINT` and `B2_UPLOADS_REGION` default to `eu-central-003`; set them if the bucket lives elsewhere.
+4. **Restart:** `deploy/deploy.sh production compose up -d --wait api shop office`. `deploy.sh` now adds `docker-compose.uploads.yml`. That gives the API the bucket and key, and sets `FILES_ORIGIN` (the shop's and office's image CSP) to the bucket's endpoint.
+5. **Check it:** upload a product image in the office and see it in the shop. In B2 the file shows up under `genesy/<workspace id>/`.
+
+To turn uploads off, move `secrets/b2_uploads_key` out of `secrets/` and restart the same way. Files already in the bucket stay there.
 
 ## Never
 
 - Never run `docker volume rm genesy-prod-pg`: it deletes production data. (`down -v` can't, since the volume is external.)
+- Never run `docker image prune -a`: it deletes the previous version's images, and a rollback then has to rebuild them. `deploy.sh production prune` keeps them.
 - Never set `GENESY_ALLOW_DEMO_SEED`, `PAYMENTS_PROVIDER=fake` or `ALLOW_FAKE_PAYMENTS` here.
 - Never reuse staging's secret files.
+- Never give the uploads key and the backup key the same prefix, and never use the bucket's master key on the VPS.
 - Never paste a Stripe or Resend key into chat, an issue, an env file or a command line: only into `set-provider-keys.sh`.

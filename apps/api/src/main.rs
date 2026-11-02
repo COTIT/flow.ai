@@ -32,8 +32,20 @@ async fn main() {
 
     let mut config = Config::from_env().expect("config");
     let base: PgConnectOptions = config.database_url.parse().expect("DATABASE_URL");
+    // `genesy-360-api migrate`: the deploy's migration step (one-off container), then exit.
+    if std::env::args().nth(1).as_deref() == Some("migrate") {
+        if let Err(err) = db::migrate(&base).await {
+            eprintln!("migrate: {err}");
+            std::process::exit(1);
+        }
+        println!("migrations up to date");
+        return;
+    }
     // Migrations are embedded in the binary and run on their own connection, before the pool.
-    db::migrate(&base).await.expect("run migrations");
+    // The VPS composes skip this: their deploy runs `migrate` first.
+    if !config.skip_boot_migrations {
+        db::migrate(&base).await.expect("run migrations");
+    }
     let health_db = db::health(base.clone())
         .await
         .expect("connect postgres (health)");

@@ -4,13 +4,18 @@
 # Staging only: fake payments, mail caught by Mailpit, no prod secret anywhere.
 name: genesy-staging
 
+# Limits are ceilings sized so staging can't starve production on the shared VPS; a quarter of
+# production's CPU weight, so production wins when both are busy (README "Resource limits").
+# Default here fits a Next app; api, field, mailpit and db set their own.
 x-hardening: &hardening
   restart: unless-stopped
   security_opt: ["no-new-privileges:true"]
   cap_drop: [ALL]
+  cpu_shares: 256
+  deploy: { resources: { limits: { cpus: "0.35", memory: 384M, pids: 512 } } }
   logging:
     driver: json-file
-    options: { max-size: "10m", max-file: "3" }
+    options: { max-size: "10m", max-file: "3", compress: "true" }
 
 # Shared by every routed service. Each container declares the same two middlewares, so routing
 # keeps working while any one container is down.
@@ -41,6 +46,8 @@ x-api-env: &api-env
   GENESY_ALLOW_DEMO_SEED: "1"
   # Self-signup on, so testers can make their own workspace (API default: off).
   SIGNUP_ENABLED: ${SIGNUP_ENABLED:-true}
+  # deploy/deploy.sh runs `migrate` (cli/seed service) before swapping containers; the API never migrates at boot here.
+  SKIP_BOOT_MIGRATIONS: "true"
 
 x-api-build: &api-build
   context: ../../apps/api
@@ -66,14 +73,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    shm_size: 256m
+    cpu_shares: 256
+    deploy: { resources: { limits: { cpus: "0.5", memory: 768M, pids: 512 } } }
     logging:
       driver: json-file
-      options: { max-size: "10m", max-file: "3" }
+      options: { max-size: "10m", max-file: "3", compress: "true" }
 
   mailpit:
     <<: *hardening
     image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
     user: "65534:65534"
+    deploy: { resources: { limits: { cpus: "0.1", memory: 128M, pids: 512 } } }
     environment:
       MP_MAX_MESSAGES: "2000"
     networks: [internal]
@@ -85,6 +96,7 @@ services:
     <<: *hardening
     build: *api-build
     image: ghcr.io/cotit/genesy-api:${GENESY_REF:-local}-staging
+    deploy: { resources: { limits: { cpus: "0.75", memory: 512M, pids: 512 } } }
     environment: *api-env
     secrets: [database_url, credentials_key]
     depends_on:
@@ -192,6 +204,7 @@ services:
       dockerfile: deploy/images/field.Dockerfile
       args: { VITE_DATA_MODE: demo, VITE_FEATURE_RESOURCES: "on" }
     image: ghcr.io/cotit/genesy-field:${GENESY_REF:-local}-staging
+    deploy: { resources: { limits: { cpus: "0.1", memory: 64M, pids: 512 } } }
     networks: [internal, edge]
     labels:
       <<: *edge-labels
