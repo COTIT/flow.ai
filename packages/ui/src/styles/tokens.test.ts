@@ -84,6 +84,14 @@ describe("glass theme tokens", () => {
     "glass-highlight",
     "glass-shadow",
     "glass-blur",
+    "field",
+    "field-border",
+    "hair",
+    "hair-2",
+    "tint-info",
+    "tint-success",
+    "tint-warning",
+    "tint-error",
   ]
 
   it("light sets every glass token", () => {
