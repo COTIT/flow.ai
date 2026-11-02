@@ -366,5 +366,8 @@
     "rawKg": "Kilo zilizotumika",
     "done": "Fungu {code} limetengenezwa: chupa {units} kutoka kilo {kg}.",
     "open": "Fungua fungu {code}"
+  },
+  "session": {
+    "expired": "Kikao chako kimeisha. Ingia tena ili kuendelea."
   }
 }

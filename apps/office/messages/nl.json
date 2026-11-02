@@ -366,5 +366,8 @@
     "rawKg": "Kg gebruikt",
     "done": "Batch {code} gemaakt: {units} potten van {kg} kg.",
     "open": "Batch {code} openen"
+  },
+  "session": {
+    "expired": "Je sessie is verlopen. Log opnieuw in om verder te gaan."
   }
 }

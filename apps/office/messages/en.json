@@ -366,5 +366,8 @@
     "rawKg": "Kg used",
     "done": "Batch {code} made: {units} jars from {kg} kg.",
     "open": "Open batch {code}"
+  },
+  "session": {
+    "expired": "Your session ended. Log in again to carry on."
   }
 }
