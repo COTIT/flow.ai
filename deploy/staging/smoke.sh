@@ -21,7 +21,7 @@ openssl rand -hex 32 | tr -d '\n' >"$secrets/credentials_key"
 chmod 444 "$secrets"/*
 
 # Images this run may add: its own six plus the pinned ones compose pulls.
-ours=(genesy-staging/{api,shop,office,till,field,landing}:smoke)
+ours=(ghcr.io/cotit/genesy-{api,office,field}:smoke-staging ghcr.io/cotit/genesy-{shop,till,landing}:smoke)
 pulled=($(sed -n 's/^ *image: \([^$]*@sha256:[0-9a-f]*\)$/\1/p' "$here/docker-compose.staging.yml"))
 before="$(docker images -q --no-trunc | sort -u)"
 

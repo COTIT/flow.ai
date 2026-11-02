@@ -18,6 +18,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # Runtime: distroless, no shell, non-root (uid 65532).
 # Same Debian release as build stage (trixie = 13): binary links against its glibc.
 FROM gcr.io/distroless/cc-debian13:nonroot@sha256:08476c244888bfb425bae1ae4dd7c17f093e972aab8426883d97f3c6f280f7c1 AS runtime
+# Links the GHCR package to the repo (Actions push access) and lets the VPS prune by it.
+LABEL org.opencontainers.image.source="https://github.com/COTIT/genesy"
 COPY --from=build /genesy-360-api /genesy-360-api
 ENV BIND_ADDR=0.0.0.0:8080
 EXPOSE 8080

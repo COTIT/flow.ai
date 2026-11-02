@@ -20,6 +20,8 @@ RUN --mount=type=cache,id=genesy-pnpm-store,target=/pnpm-store,sharing=locked \
 RUN pnpm --filter "@genesy/${APP}" build && mkdir -p "apps/${APP}/public"
 
 FROM ${NODE_IMAGE} AS runtime
+# Links the GHCR package to the repo (Actions push access) and lets the VPS prune by it.
+LABEL org.opencontainers.image.source="https://github.com/COTIT/genesy"
 ARG APP
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 WORKDIR /app

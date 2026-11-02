@@ -84,7 +84,7 @@ services:
   api:
     <<: *hardening
     build: *api-build
-    image: genesy-staging/api:${GENESY_REF:-local}
+    image: ghcr.io/cotit/genesy-api:${GENESY_REF:-local}-staging
     environment: *api-env
     secrets: [database_url, credentials_key]
     depends_on:
@@ -106,7 +106,7 @@ services:
       context: ../..
       dockerfile: deploy/images/next.Dockerfile
       args: { APP: shop }
-    image: genesy-staging/shop:${GENESY_REF:-local}
+    image: ghcr.io/cotit/genesy-shop:${GENESY_REF:-local}
     environment:
       API_URL: http://api:8080/v1
       SITE_URL: https://staging-shop.genesy.app
@@ -129,7 +129,7 @@ services:
       dockerfile: deploy/images/next.Dockerfile
       args:
         { APP: office, NEXT_PUBLIC_SHOP_URL: "https://staging-shop.genesy.app" }
-    image: genesy-staging/office:${GENESY_REF:-local}
+    image: ghcr.io/cotit/genesy-office:${GENESY_REF:-local}-staging
     environment:
       API_URL: http://api:8080/v1
       FILES_ORIGIN: ${FILES_ORIGIN:-}
@@ -148,7 +148,7 @@ services:
       context: ../..
       dockerfile: deploy/images/next.Dockerfile
       args: { APP: till }
-    image: genesy-staging/till:${GENESY_REF:-local}
+    image: ghcr.io/cotit/genesy-till:${GENESY_REF:-local}
     environment:
       API_URL: http://api:8080/v1
     networks: [internal, edge]
@@ -167,7 +167,7 @@ services:
       context: ../..
       dockerfile: deploy/images/next.Dockerfile
       args: { APP: landing }
-    image: genesy-staging/landing:${GENESY_REF:-local}
+    image: ghcr.io/cotit/genesy-landing:${GENESY_REF:-local}
     environment:
       SITE_URL: https://staging.genesy.app
       NOINDEX: "1"
@@ -191,7 +191,7 @@ services:
       context: ../..
       dockerfile: deploy/images/field.Dockerfile
       args: { VITE_DATA_MODE: demo, VITE_FEATURE_RESOURCES: "on" }
-    image: genesy-staging/field:${GENESY_REF:-local}
+    image: ghcr.io/cotit/genesy-field:${GENESY_REF:-local}-staging
     networks: [internal, edge]
     labels:
       <<: *edge-labels
@@ -205,7 +205,7 @@ services:
   # Reset = `down -v`, `up -d --wait`, then this again (README "Reset").
   seed:
     profiles: [seed]
-    image: genesy-staging/api:${GENESY_REF:-local}
+    image: ghcr.io/cotit/genesy-api:${GENESY_REF:-local}-staging
     command: ["seed-demo"]
     environment: *api-env
     secrets: [database_url, credentials_key]
