@@ -10,10 +10,8 @@ test.describe("unknown screen", () => {
     await expect(
       page.getByRole("status").filter({ hasText: "There is no such screen." })
     ).toBeVisible()
-    await expect(
-      page.getByRole("link", { name: "Go to the sale screen" })
-    ).toBeVisible()
-    await expectNoHorizontalScroll(page)
+    await expect(page.getByRole("link", { name: "Back to sale" })).toBeVisible()
+    await expectTillLook(page)
   })
 })
 
