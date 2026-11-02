@@ -8,6 +8,7 @@ import type { Locale } from "@genesy/i18n/locales"
 import { fontSans } from "@genesy/ui/lib/fonts"
 import { cn } from "@genesy/ui/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
+import { noindex, pageMetadata, SITE } from "@/lib/seo"
 
 /** The <html> shell both root layouts share: `/` (English) and `/nl`, `/sw`. */
 export async function RootLayout({
@@ -35,8 +36,16 @@ export async function RootLayout({
   )
 }
 
-/** Title and description of the landing page in one language. */
+/** Title, description, canonical, hreflang and share card of the landing page in one language. */
 export async function localeMetadata(locale: Locale): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: "landing" })
-  return { title: t("title"), description: t("description") }
+  return {
+    // The share image resolves against the host actually serving the page (e2e, staging).
+    metadataBase: new URL(process.env.SITE_URL ?? SITE),
+    ...pageMetadata(
+      locale,
+      { title: t("seoTitle"), description: t("description") },
+      noindex()
+    ),
+  }
 }

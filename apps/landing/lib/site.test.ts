@@ -10,7 +10,9 @@ describe("contactHref", () => {
   })
 
   it("uses the configured address, trimmed", () => {
-    expect(contactHref("  team@example.org ")).toMatch(/^mailto:team@example\.org\?/)
+    expect(contactHref("  team@example.org ")).toMatch(
+      /^mailto:team@example\.org\?/
+    )
   })
 })
 
