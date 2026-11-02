@@ -72,29 +72,34 @@ docker volume create genesy-prod-pg
 cp .env.production.example .env.production && chmod 600 .env.production
 ```
 
+```bash
+# 5. Read-only GHCR login (token: ../staging/README.md "GHCR pull token"). Skip if done for staging.
+#    One login serves staging and production: both run as user deploy.
+install -d -m 700 ~/.config/genesy && install -m 600 /dev/null ~/.config/genesy/ghcr-token
+nano ~/.config/genesy/ghcr-token   # paste the token, save; it never goes on a command line
+docker login ghcr.io -u <token owner> --password-stdin < ~/.config/genesy/ghcr-token
+```
+
 Back up `secrets/credentials_key` off the VPS, for example in the password manager. It encrypts the workspace mail credentials stored in the database. If it's lost, those credentials can't be read, and a backup can't be restored with them.
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main`, and that staging already runs.
+Only deploy a commit whose `ci` workflow passed on `main` (including its `images` job, which pushed `ghcr.io/cotit/genesy-<app>:<sha>`), and that staging already runs. Back up first (see Backup).
 
 ```bash
 cd /srv/genesy-prod
 git fetch origin && git checkout --detach <green-main-sha>
-sed -i "s/^GENESY_REF=.*/GENESY_REF=$(git rev-parse --short HEAD)/" deploy/production/.env.production
+sed -i "s/^GENESY_REF=.*/GENESY_REF=$(git rev-parse HEAD)/" deploy/production/.env.production
 ```
 
 ```bash
-# Back up first (see Backup), then:
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production build
-docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d --wait
+docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production pull
+docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d --wait --no-build
 ```
 
-```bash
-# Keep Docker lean: drop unused old prod images and the build cache
-docker image prune -af --filter label=com.docker.compose.project=genesy-prod
-docker builder prune -af
-```
+`--no-build` means the VPS never builds by accident: if an image is missing, `up` stops with an error.
+
+Old images stay on the VPS on purpose: rollback needs the previous sha. Pruning them is tag-aware and belongs to `deploy/deploy.sh` (coming); don't run `docker image prune -a` here.
 
 The API runs its migrations when it boots. Check the deploy:
 
@@ -103,7 +108,19 @@ curl -fsS https://api.genesy.app/healthz
 for h in shop office till field; do curl -s -o /dev/null -w "$h %{http_code}\n" https://$h.genesy.app/; done
 ```
 
-**Roll back:** set `GENESY_REF` to the previous tag (its images are still there until pruned), then `up -d --wait`. Migrations only move forward. If the new release changed the database, restore the backup taken before the deploy.
+**Roll back:** set `GENESY_REF` to the previous sha, then `pull` and `up -d --wait --no-build`. Migrations only move forward. If the new release changed the database, restore the backup taken before the deploy.
+
+### Fallback: build on the VPS
+
+Only when the `images` job or GHCR is down. It takes 10–30 minutes and runs on prod's Docker, outside CI's limits.
+
+```bash
+docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production build
+docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d --wait
+docker builder prune -f --max-used-space 10GB   # cap the build cache instead of wiping it
+```
+
+The kept cache makes the next build fast: an unchanged API is a cache hit, a changed one rebuilds only its own crate, and the web images reuse their package store.
 
 ## First owner
 

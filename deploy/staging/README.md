@@ -116,28 +116,46 @@ chmod 444 secrets/*   # containers run as non-root users; the 700 folder keeps o
 cp .env.staging.example .env.staging && chmod 600 .env.staging
 ```
 
+```bash
+# 4. Read-only login to GHCR, where CI pushes the private images (token: "GHCR pull token" below).
+#    One login serves staging and production: both run as user deploy.
+install -d -m 700 ~/.config/genesy && install -m 600 /dev/null ~/.config/genesy/ghcr-token
+nano ~/.config/genesy/ghcr-token   # paste the token, save; it never goes on a command line
+docker login ghcr.io -u <token owner> --password-stdin < ~/.config/genesy/ghcr-token
+```
+
 Then deploy (next section). Keep `credentials_key` once you have it: it encrypts workspace mail credentials stored in the database. A new key makes those stored credentials unreadable.
+
+### GHCR pull token (once, in GitHub)
+
+The VPS needs read access to the six private `ghcr.io/cotit/genesy-*` packages, nothing more. These steps are yours, in GitHub.
+
+1. **COTIT → Settings → Packages:** allow private container packages to be created. The first green `images` run then creates `genesy-api`, `-shop`, `-office`, `-till`, `-field` and `-landing`. Check each one's settings: visibility **private**, and "Manage Actions access" lists `COTIT/genesy` with **Write**.
+2. **A machine account** (for example `genesy-deploy-bot`) in COTIT, given **Read** on those six packages only (package settings → Manage access). It needs no repository access.
+3. **On that account:** a **classic** personal access token with only `read:packages`, expiring in a year (set a reminder). GHCR does not take fine-grained tokens unless GitHub lists a Packages permission for them when you create one.
+
+Fallback without a machine account: your own classic token with only `read:packages`. It can read every package you can, so the machine account is safer.
+
+To rotate: write the new token into `~/.config/genesy/ghcr-token` on the VPS, run the `docker login` line again, then delete the old token.
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main`.
+Only deploy a commit whose `ci` workflow passed on `main`, including its `images` job. That job built, scanned and pushed this commit's images (`ghcr.io/cotit/genesy-<app>:<sha>`, with `-staging` for api, office and field). The VPS only pulls them.
 
 ```bash
 cd /srv/genesy-staging
 git fetch origin && git checkout --detach <green-main-sha>
-sed -i "s/^GENESY_REF=.*/GENESY_REF=$(git rev-parse --short HEAD)/" deploy/staging/.env.staging
+sed -i "s/^GENESY_REF=.*/GENESY_REF=$(git rev-parse HEAD)/" deploy/staging/.env.staging
 ```
 
 ```bash
-docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging build
-docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging up -d --wait
+docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging pull
+docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging up -d --wait --no-build
 ```
 
-```bash
-# Keep Docker lean: drop old staging images and the build cache
-docker image prune -af --filter label=com.docker.compose.project=genesy-staging   # unused ones only
-docker builder prune -af
-```
+`--no-build` means the VPS never builds by accident: if an image is missing, `up` stops with an error.
+
+Old images stay on the VPS on purpose: rollback needs the previous sha. Pruning them is tag-aware and belongs to `deploy/deploy.sh` (coming); don't run `docker image prune -a` here.
 
 The API runs its migrations when it boots. Check the deploy:
 
@@ -145,6 +163,18 @@ The API runs its migrations when it boots. Check the deploy:
 curl -fsS https://staging-api.genesy.app/healthz
 for h in shop office till field; do curl -s -o /dev/null -w "$h %{http_code}\n" https://staging-$h.genesy.app/; done
 ```
+
+### Fallback: build on the VPS
+
+Only when the `images` job or GHCR is down. It takes 10–30 minutes and runs on prod's Docker, outside CI's limits.
+
+```bash
+docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging build
+docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging up -d --wait
+docker builder prune -f --max-used-space 10GB   # cap the build cache instead of wiping it
+```
+
+The kept cache makes the next build fast: an unchanged API is a cache hit, a changed one rebuilds only its own crate, and the web images reuse their package store.
 
 **The shop's app key.** The shop needs a storefront key before it shows a catalog:
 

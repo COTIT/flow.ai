@@ -27,13 +27,15 @@ if [[ "${1:-job}" == job ]]; then
   cap genesy-ci-cargo-target 10
   cap genesy-ci-cargo-registry 3
   cap genesy-ci-pnpm-store 5
+  cap genesy-ci-trivy-cache 1
   exit 0
 fi
 
 docker container prune -f > /dev/null
 docker network prune -f > /dev/null
 docker image prune -f > /dev/null
-docker builder prune -f > /dev/null
+# Capped, not wiped: the image builds in ci.yml reuse this cache (cargo and pnpm cache mounts).
+docker builder prune -f --max-used-space 12GB > /dev/null
 # Unused images are re-pulled on the next job, so only drop them when the CI disk fills up.
 used_pct="$(df --output=pcent "$HOME" | tail -1 | tr -dc 0-9)"
 if (( used_pct >= 70 )); then
