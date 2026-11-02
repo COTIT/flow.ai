@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -127,7 +128,7 @@ export function OpsRequestReviewScreen() {
             <Row label={t('estimate.perWeek')} value={formatKwh(estimate.est_kwh_per_week)} />
           </dl>
         ) : (
-          <EmptyState title={t('requests.noEstimate')} detail={t('requests.noEstimateDetail')} />
+          <Notice variant="info" title={t('requests.noEstimate')}>{t('requests.noEstimateDetail')}</Notice>
         )}
         <p style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 500 }}>{t('estimate.isEstimate')}</p>
       </section>
@@ -185,7 +186,7 @@ export function OpsRequestReviewScreen() {
             </dl>
           </>
         ) : (
-          <EmptyState title={t('ops.noHeadroom')} detail={t('ops.noHeadroomDetail')} />
+          <Notice variant="info" title={t('ops.noHeadroom')}>{t('ops.noHeadroomDetail')}</Notice>
         )}
         {/* Prospective and approved are separate figures, never summed. */}
         <p style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 500, textWrap: 'pretty' }}>

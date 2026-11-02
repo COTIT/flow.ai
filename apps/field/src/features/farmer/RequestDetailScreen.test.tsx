@@ -139,6 +139,16 @@ describe('RequestDetailScreen farmer actions', () => {
   })
 })
 
+describe('RequestDetailScreen with no stored estimate', () => {
+  test('explains it as info, not as an empty list', () => {
+    show({ estimate: null })
+    render(<RequestDetailScreen />)
+
+    expect(document.querySelector('[data-variant="info"][role="status"]')).toHaveTextContent('No estimate stored for this request')
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
+  })
+})
+
 describe('RequestDetailScreen content freeze', () => {
   // "A submitted request is not editable. The trigger enforces it; the UI must
   // not offer the control." A draft is not frozen, so it must not claim to be.
@@ -154,6 +164,7 @@ describe('RequestDetailScreen content freeze', () => {
     render(<RequestDetailScreen />)
 
     expect(screen.getByTestId('request-detail')).toHaveTextContent(/cannot be changed/i)
+    expect(screen.getByTestId('request-frozen').querySelector('[data-variant="info"][role="status"]')).not.toBeNull()
   })
 
   test('no edit control is offered in any state', () => {

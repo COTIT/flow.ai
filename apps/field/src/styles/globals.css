@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Shared components (Notice, EmptyState) carry their own Tailwind classes;
+   v4 skips workspace packages, so name the folder. Path from this file. */
+@source '../../../../packages/ui/src';
+
 /* Poppins, self-hosted. Weights 400/500/600/700, latin subset only.
    The bare `@fontsource/poppins/400.css` entrypoints also pull devanagari,
    which is ~160 kB of faces neither English nor Swahili can render — and the
@@ -59,6 +63,9 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-destructive: var(--destructive);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -158,6 +165,12 @@
   --muted: var(--sand-2);
   --muted-foreground: var(--ink-2);
   --destructive: var(--flag-ink);
+  /* The shared Notice's tones: its edge and, at 10-15%, its ground. Title and
+     body are --foreground on that ground (contrast.test.ts). The brand book
+     has no amber; --warning is a deep amber that holds 5.3:1 on sand. */
+  --info: var(--primary-ink);
+  --success: var(--green-ink);
+  --warning: #8a5a00;
   --border: var(--rule);
   --input: var(--rule-2);
   --ring: var(--primary);

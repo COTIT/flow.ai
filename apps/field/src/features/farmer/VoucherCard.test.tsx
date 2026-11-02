@@ -128,6 +128,7 @@ describe('an uncollected voucher', () => {
     render(<VoucherCard voucherId={VOUCHER} />)
 
     expect(screen.getByTestId('voucher-validity')).toHaveTextContent(/valid until 15 Jan 2099/i)
+    expect(screen.getByTestId('voucher-validity').querySelector('[data-variant]')).toBeNull()
     expect(screen.getByTestId('voucher-card')).toHaveTextContent(/show this code at the Ruaha office/i)
   })
 
@@ -180,6 +181,7 @@ describe('a cancelled voucher', () => {
     render(<VoucherCard voucherId={VOUCHER} />)
 
     expect(screen.getByTestId('voucher-validity')).toHaveTextContent('Cancelled: Duplicate household')
+    expect(screen.getByTestId('voucher-validity').querySelector('[data-variant="warning"][role="status"]')).not.toBeNull()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
     expect(screen.getByTestId('status-pill')).toHaveTextContent('Cancelled')
   })
@@ -200,6 +202,7 @@ describe('an expired voucher', () => {
 
     expect(screen.getByTestId('status-pill')).toHaveTextContent('Expired')
     expect(screen.getByTestId('voucher-validity')).toHaveTextContent('This voucher expired on 15 Jan 2020, 12:00.')
+    expect(screen.getByTestId('voucher-validity').querySelector('[data-variant="warning"][role="status"]')).not.toBeNull()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 })

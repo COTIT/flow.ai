@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, getRouteApi } from '@tanstack/react-router'
 import { useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/EmptyState'
@@ -377,10 +378,12 @@ export function EquipmentDetailScreen() {
 
           {!parsed.success ? (
             <div data-testid="estimate-blocked">
-              <EmptyState
+              <Notice
+                variant="info"
                 title={t(anythingBlank ? 'equipment.estimateBlockedTitle' : 'equipment.estimateImpossibleTitle')}
-                detail={t(anythingBlank ? 'equipment.estimateBlockedDetail' : 'equipment.estimateImpossibleDetail')}
-              />
+              >
+                {t(anythingBlank ? 'equipment.estimateBlockedDetail' : 'equipment.estimateImpossibleDetail')}
+              </Notice>
             </div>
           ) : preview.isError ? (
             <div data-testid="estimate-error">
@@ -390,7 +393,7 @@ export function EquipmentDetailScreen() {
             <EnergyEstimatePanel estimate={preview.data} />
           ) : preview.data === null ? (
             <div data-testid="estimate-none">
-              <EmptyState title={t('equipment.noEstimateTitle')} detail={t('requests.noEstimateDetail')} />
+              <Notice variant="info" title={t('equipment.noEstimateTitle')}>{t('requests.noEstimateDetail')}</Notice>
             </div>
           ) : (
             <Loading testId="estimate-loading" />

@@ -42,6 +42,20 @@ beforeEach(() => {
 })
 
 describe('OpsRequestReviewScreen', () => {
+  // No estimate and no capacity row are explanations, not missing rows.
+  test('a request with no estimate and a village with no capacity say so as info, not as empty', () => {
+    useOpsRequest.mockReturnValue({ isLoading: false, error: null, request: { ...request, estimate: null }, refetch: vi.fn() })
+    useVillageEnergy.mockReturnValue({ isLoading: false, error: null, data: null })
+    render(<OpsRequestReviewScreen />)
+
+    const info = [...document.querySelectorAll('[data-variant="info"][role="status"]')].map((n) => n.textContent)
+    expect(info).toEqual([
+      expect.stringContaining('No estimate stored for this request'),
+      expect.stringContaining('No capacity recorded for this village'),
+    ])
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
+  })
+
   test('says whether the farmer asked to rent or to buy', () => {
     useOpsRequest.mockReturnValue({ isLoading: false, error: null, request: { ...request, acquisition: 'rent' }, refetch: vi.fn() })
     render(<OpsRequestReviewScreen />)

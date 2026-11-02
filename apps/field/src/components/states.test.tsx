@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
+import { FormDraftStatus } from '@/components/FormDraftStatus'
 import '@/i18n'
 
 describe('EmptyState', () => {
@@ -117,32 +118,34 @@ describe('ErrorState', () => {
  * "something broke" ask the user for completely different next moves.
  */
 describe('empty and error are not interchangeable', () => {
-  test('empty is sunken sand with a dashed mark, and nothing red', () => {
+  test('empty is the shared EmptyState: no live region, no tone, nothing red', () => {
     render(<EmptyState title="No matching supply" detail="That is an honest zero." />)
     const empty = screen.getByTestId('empty-state')
 
-    expect(empty.querySelector('[data-mark="empty"]'), 'the dashed ring mark').not.toBeNull()
-    const signature = `${empty.className}|${empty.getAttribute('style') ?? ''}`
-    expect(signature).not.toMatch(/flag|destructive|red/i)
+    expect(empty.querySelector('[role]')).toBeNull()
+    expect(empty.querySelector('[data-variant]')).toBeNull()
+    expect(empty.innerHTML).not.toMatch(/flag|destructive|red/i)
   })
 
-  test('error carries the red left rule and the bang', () => {
-    render(<ErrorState error={new Error('boom')} />)
-    const error = screen.getByTestId('error-state')
+  test('error is the shared error Notice, announced at once, with its retry inside', () => {
+    render(<ErrorState error={new Error('boom')} onRetry={() => {}} />)
+    const notice = screen.getByTestId('error-state').querySelector('[data-variant="error"]')
 
-    expect(error.querySelector('[data-mark="error"]'), 'the filled disc and bang').not.toBeNull()
-    expect(error.getAttribute('style') ?? '').toMatch(/border-left:\s*4px solid var\(--flag-ink\)/)
+    expect(notice).not.toBeNull()
+    expect(notice).toHaveAttribute('role', 'alert')
+    expect(notice).toHaveTextContent('Something went wrong')
+    expect(notice).toContainElement(screen.getByTestId('error-retry'))
   })
+})
 
-  test('the two share no visual signature', () => {
-    const { unmount } = render(<EmptyState title="Nothing here" />)
-    const empty = screen.getByTestId('empty-state')
-    const emptySignature = `${empty.className}|${empty.getAttribute('style') ?? ''}`
-    unmount()
+describe('an unsent draft that could not be kept on the phone', () => {
+  test('is a warning Notice, not a bare line of text', () => {
+    render(<FormDraftStatus dirty storageError />)
+    const notice = screen.getByTestId('draft-storage-error')
 
-    render(<ErrorState error={new Error('boom')} />)
-    const error = screen.getByTestId('error-state')
-    expect(`${error.className}|${error.getAttribute('style') ?? ''}`).not.toBe(emptySignature)
+    expect(notice.querySelector('[data-variant="warning"][role="status"]')).not.toBeNull()
+    expect(notice).toHaveTextContent('Could not save this draft on this device.')
+    expect(screen.getByTestId('unsaved-draft-badge')).toBeInTheDocument()
   })
 })
 

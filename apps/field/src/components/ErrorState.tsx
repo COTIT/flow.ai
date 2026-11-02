@@ -1,9 +1,11 @@
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
-import { humanizeDbError } from '@/lib/errors'
+import { errorText } from '@/lib/errors'
 
 /**
- * Something actually failed — as opposed to returning nothing.
+ * Something actually failed — as opposed to returning nothing. The shared
+ * error Notice (role="alert"), with the retry as its action.
  *
  * Error contract §9: the Postgres messages in this schema are written to be
  * read by humans, and they are surfaced VERBATIM —
@@ -19,71 +21,35 @@ import { humanizeDbError } from '@/lib/errors'
  */
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useTranslation()
-  const human = humanizeDbError(error)
-  const message = human.kind === 'verbatim' ? human.message : t(human.key, human.values)
 
   return (
-    <div
-      data-testid="error-state"
-      role="alert"
-      className="flex flex-col gap-1.5 px-4 py-3.5"
-      style={{
-        background: 'var(--flag-tint)',
-        border: '1px solid rgba(158, 27, 27, .25)',
-        borderLeft: '4px solid var(--flag-ink)',
-        borderRadius: 'var(--radius-card)',
-      }}
-    >
-      <p className="flex items-center gap-2" style={{ color: 'var(--flag-ink)' }}>
-        <span
-          data-mark="error"
-          aria-hidden
-          className="inline-flex items-center justify-center"
-          style={{
-            width: 18,
-            height: 18,
-            borderRadius: 'var(--radius-pill)',
-            background: 'var(--flag-ink)',
-            color: '#fff',
-            fontSize: 12,
-            fontWeight: 700,
-            lineHeight: 1,
-            flex: 'none',
-          }}
-        >
-          !
-        </span>
-        <span style={{ fontSize: 15, lineHeight: '22px', fontWeight: 600 }}>{t('error.title')}</span>
-      </p>
-      <p
-        style={{
-          fontSize: 14,
-          lineHeight: 1.55,
-          color: 'var(--ink)',
-          fontVariantNumeric: 'tabular-nums',
-          textWrap: 'pretty',
-        }}
+    <div data-testid="error-state">
+      <Notice
+        variant="error"
+        title={t('error.title')}
+        action={
+          onRetry && (
+            <button
+              type="button"
+              data-testid="error-retry"
+              onClick={onRetry}
+              className="inline-flex w-fit items-center px-3.5 font-medium"
+              style={{
+                minHeight: 40,
+                border: '1px solid var(--rule-2)',
+                borderRadius: 'var(--radius-control)',
+                background: 'var(--paper)',
+                color: 'var(--ink)',
+                fontSize: 14,
+              }}
+            >
+              {t('error.retry')}
+            </button>
+          )
+        }
       >
-        {message}
-      </p>
-      {onRetry && (
-        <button
-          type="button"
-          data-testid="error-retry"
-          onClick={onRetry}
-          className="mt-1.5 inline-flex w-fit items-center px-3.5 font-medium"
-          style={{
-            minHeight: 40,
-            border: '1px solid var(--rule-2)',
-            borderRadius: 'var(--radius-control)',
-            background: 'var(--paper)',
-            color: 'var(--ink)',
-            fontSize: 14,
-          }}
-        >
-          {t('error.retry')}
-        </button>
-      )}
+        <p style={{ fontVariantNumeric: 'tabular-nums', textWrap: 'pretty' }}>{errorText(error, t)}</p>
+      </Notice>
     </div>
   )
 }

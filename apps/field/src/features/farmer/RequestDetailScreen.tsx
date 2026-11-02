@@ -1,10 +1,11 @@
 import { getRouteApi } from '@tanstack/react-router'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '@/components/controlStyles'
-import { Card, Loading, ProductNote } from '@/components/controls'
+import { Card, Loading } from '@/components/controls'
 import { StatusPill } from '@/components/StatusPill'
 import { AcquisitionPill } from '@/components/OfferedPills'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
@@ -118,7 +119,7 @@ export function RequestDetailScreen() {
             />
           </dl>
         ) : (
-          <EmptyState title={t('requests.noEstimate')} detail={t('requests.noEstimateDetail')} />
+          <Notice variant="info" title={t('requests.noEstimate')}>{t('requests.noEstimateDetail')}</Notice>
         )}
         <p style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 500 }}>{t('estimate.isEstimate')}</p>
       </section>
@@ -137,7 +138,11 @@ export function RequestDetailScreen() {
         </section>
       )}
 
-      {frozen && <ProductNote>{t('requests.frozen')}</ProductNote>}
+      {frozen && (
+        <div data-testid="request-frozen">
+          <Notice variant="info" title={t('requests.frozen')} />
+        </div>
+      )}
 
       {/* What the applicant may do from here — business-rules §2's role
           matrix, mirrored by farmerActions. A draft can be submitted or
