@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genesy — Direction B: Mist &amp; Journey</title>
+<meta name="description" content="Genesy follows every jar from the farm to the shelf and pays the farmer along the way.">
+<link rel="icon" href="../assets/Icon.svg">
+<link rel="stylesheet" href="../assets/base.css">
+<link rel="stylesheet" href="../assets/motion.css">
+<script src="../assets/mock.js"></script>
+<script src="../assets/motion.js"></script>
+<style>
+  :root { --bg: var(--mist); --fg: var(--navy); --muted: var(--slate); --line: var(--steel); --card: #fff; --accent: var(--teal); --ring: var(--teal); --hill-1: #d1dce5; --hill-2: #b9c9d6; --hill-3: #456087; }
+  html.dark { --bg: #0a183a; --fg: var(--mist); --muted: #b4c3d3; --line: rgb(255 255 255 / 12%); --card: var(--navy-2); --accent: #3fc1cb; --ring: var(--gold-hi); --hill-1: #1b2c57; --hill-2: #243a6b; --hill-3: #456087; }
+
+  .h1 { font-weight: 500; text-transform: uppercase; letter-spacing: .03em; font-size: clamp(28px, 4.4vw, 50px); line-height: 1.12; }
+  .h2 { font-weight: 500; font-size: clamp(24px, 3vw, 34px); line-height: 1.2; }
+  .h3 { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 14px; }
+  .tag { font-weight: 800; text-transform: uppercase; letter-spacing: .1em; font-size: 12px; color: var(--muted); }
+  .muted { color: var(--muted); }
+  .lead { font-size: clamp(16px, 1.5vw, 18px); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border-radius: 999px; font-weight: 600; text-decoration: none; border: 1px solid transparent; }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-primary:hover { background: var(--slate); }
+  html.dark .btn-primary { background: var(--gold-hi); color: var(--navy); }
+  html.dark .btn-primary:hover { background: #f9dd8c; }
+  .btn-ghost { border-color: var(--line); color: var(--fg); }
+  .btn-ghost:hover { border-color: var(--fg); }
+
+  header { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .bar { display: flex; align-items: center; gap: 16px; height: 68px; }
+  .bar nav { display: none; gap: 24px; margin-left: auto; font-size: 14px; }
+  .bar nav a { text-decoration: none; white-space: nowrap; color: var(--muted); }
+  .bar nav a:hover { color: var(--fg); }
+  .tools { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+  .tools > * { flex: none; }
+  .tools select { height: 40px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 0 8px; }
+  .tools .btn { display: none; min-height: 40px; }
+  @media (min-width: 1040px) { .bar nav { display: flex; } .tools { margin-left: 16px; } .tools .btn { display: inline-flex; } }
+
+  /* Hero: words on the left, the landscape and the jar's route on the right. */
+  .hero { padding: 40px 0 24px; }
+  .hero-grid { display: grid; gap: 32px; align-items: center; }
+  @media (min-width: 900px) { .hero { padding: 88px 0 48px; } .hero-grid { grid-template-columns: 1fr 1.1fr; gap: 48px; } }
+  .hero .copy { display: grid; gap: 20px; }
+  .hero .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .scene { width: 100%; border-radius: 20px; background: var(--card); border: 1px solid var(--line); overflow: hidden; }
+
+  section { padding: 64px 0; }
+  @media (min-width: 768px) { section { padding: 96px 0; } }
+  .head { display: grid; gap: 10px; margin-bottom: 40px; max-width: 620px; }
+
+  /* Journey track: vertical on phones, a line across on desktop. */
+  .track { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; position: relative; }
+  .track li { display: grid; grid-template-columns: 56px 1fr; gap: 16px; padding-bottom: 28px; position: relative; }
+  .track li::after { content: ""; position: absolute; left: 27px; top: 56px; bottom: 0; width: 2px; background: var(--line); }
+  .track li:last-child::after { display: none; }
+  .dot { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--card); border: 2px solid var(--accent); color: var(--accent); position: relative; z-index: 1; }
+  .dot svg { width: 26px; height: 26px; }
+  .track li:last-child .dot { border-color: var(--gold); color: var(--navy); background: var(--gold-gradient); }
+  .track p { margin-top: 4px; }
+  @media (min-width: 960px) {
+    .track { grid-template-columns: repeat(5, 1fr); gap: 20px; }
+    .track li { grid-template-columns: 1fr; padding: 0; }
+    .track li::after { left: 56px; right: -20px; top: 27px; bottom: auto; width: auto; height: 2px; }
+  }
+
+  .cards { display: grid; gap: 16px; }
+  @media (min-width: 900px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 28px; display: grid; gap: 16px; align-content: start; }
+  .card .icon { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--teal) 14%, transparent); color: var(--accent); }
+  .card .icon svg { width: 24px; height: 24px; }
+  .card ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; color: var(--muted); }
+  .card ul li::marker { color: var(--gold); }
+  .card a { font-weight: 600; text-underline-offset: 4px; margin-top: auto; }
+  .card.featured { border-color: transparent; background: var(--navy); color: var(--mist); }
+  .card.featured .muted, .card.featured ul { color: #b4c3d3; }
+  .card.featured .icon { background: rgb(239 201 119 / 15%); color: var(--gold-hi); }
+  html.dark .card.featured { background: var(--navy-3); }
+
+  /* Passport on a phone */
+  .pp { display: grid; gap: 40px; align-items: center; }
+  @media (min-width: 900px) { .pp { grid-template-columns: 1.1fr 1fr; gap: 72px; } }
+  .phone { width: 300px; max-width: 100%; margin: 0 auto; border-radius: 36px; padding: 12px; background: var(--navy); box-shadow: 0 30px 60px rgb(10 24 58 / 25%); }
+  .screen { background: #fff; color: var(--navy); border-radius: 26px; overflow: hidden; }
+  .screen .band { background: var(--navy); padding: 16px 18px 14px; }
+  .screen .band img { height: 22px; min-width: 0; }
+  .screen .pic { height: 120px; background: linear-gradient(180deg, #d1dce5, #f2f6f7); display: grid; place-items: end center; }
+  .screen .inner { padding: 18px; display: grid; gap: 12px; font-size: 13px; }
+  .screen .kv { display: flex; justify-content: space-between; border-bottom: 1px solid var(--steel); padding-bottom: 8px; }
+  .screen .kv span:first-child { color: var(--slate); }
+  .screen .kv span:last-child { font-weight: 500; }
+  .screen .ok { display: flex; gap: 8px; align-items: center; background: color-mix(in srgb, var(--teal) 12%, #fff); border-radius: 10px; padding: 10px 12px; font-weight: 500; }
+  .badge { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; background: var(--gold-hi); color: var(--navy); }
+  .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .checks li { display: grid; grid-template-columns: 28px 1fr; gap: 12px; }
+  .checks svg { width: 28px; height: 28px; color: var(--accent); }
+
+  .promise { display: grid; gap: 16px; }
+  @media (min-width: 768px) { .promise { grid-template-columns: repeat(3, 1fr); } }
+  .promise div { border-top: 2px solid; border-image: var(--gold-gradient) 1; padding-top: 20px; display: grid; gap: 8px; }
+
+  .cta { background: var(--navy); color: var(--mist); border-radius: 28px; padding: 40px 24px; display: grid; gap: 20px; text-align: center; justify-items: center; position: relative; overflow: hidden; }
+  html.dark .cta { background: var(--navy-2); border: 1px solid var(--line); }
+  .cta .icon-bg { position: absolute; right: -40px; bottom: -30px; width: 220px; opacity: .18; }
+  .cta .mail { font-size: clamp(20px, 3vw, 30px); font-weight: 500; color: var(--gold-hi); text-underline-offset: 6px; word-break: break-all; }
+  .cta .btn-primary, html.dark .cta .btn-primary { background: var(--gold-hi); color: var(--navy); }
+  @media (min-width: 768px) { .cta { padding: 72px 48px; } }
+
+  footer { border-top: 1px solid var(--line); padding: 48px 0 28px; font-size: 14px; }
+  .f-grid { display: grid; gap: 28px; }
+  @media (min-width: 768px) { .f-grid { grid-template-columns: 1.5fr 1fr 1fr 1fr; } }
+  footer h3 { margin-bottom: 10px; }
+  footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--fg); text-decoration: underline; }
+  .legal { margin-top: 36px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
+
+  /* Journey scene: landscape with a road; hills drift as you scroll. */
+  .j-stage .scene { overflow: hidden; }
+  .scene { --sky: #e4edf2; color: var(--navy); border-radius: 24px; background: var(--card); border: 1px solid var(--line); overflow: hidden; }
+  html.dark .scene { --sky: #13234d; color: var(--mist); }
+  .scene .sky { fill: var(--sky); }
+  .hill.hl1 { fill: var(--hill-1); } .hill.hl2 { fill: var(--hill-2); } .hill.hl3 { fill: var(--hill-3); opacity: .35; }
+  .trees { fill: var(--hill-3); opacity: .7; }
+  .hl1 { transform: translateX(calc(var(--p, 0) * -40px)); } .hl2 { transform: translateX(calc(var(--p, 0) * -70px)); } .hl3 { transform: translateX(calc(var(--p, 0) * -110px)); }
+  .sun-pulse { transform-box: fill-box; transform-origin: center; animation: pulse 5s ease-in-out infinite alternate; }
+  @keyframes pulse { to { transform: scale(1.08); } }
+  .sun-wrap { transform: translateY(calc((1 - var(--p, 0)) * 90px)); }
+  .road-faint { fill: none; stroke: var(--accent); stroke-width: 3; stroke-dasharray: 2 10; stroke-linecap: round; opacity: .35; }
+  .road { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+  .money-road { fill: none; stroke: url(#bg); stroke-width: 4; stroke-dasharray: 2 12; stroke-linecap: round; }
+  .house { fill: var(--card); stroke: currentColor; stroke-width: 2.5; stroke-linejoin: round; }
+  .scene .j-part { stroke: currentColor; stroke-width: 3; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .scene .f, .scene .label, .scene .tagcard, .scene .screen { fill: var(--card); }
+  .scene .honey, .scene .awning, .scene .lid { fill: var(--gold); }
+  .scene .bee-body, .scene .door, .scene .qr { fill: currentColor; }
+  .scene .plus { fill: var(--teal); stroke: none; } .scene .plus-sign { stroke: #fff; }
+  .scene .coin { fill: url(#bg); stroke: var(--navy); stroke-width: 1.5; } .scene .coin-mark { stroke: var(--navy); stroke-width: 2; }
+</style>
+</head>
+<body>
+<a class="sr-only" href="#main">Skip to content</a>
+<header>
+  <div class="wrap bar">
+    <a href="#" aria-label="Genesy home"><img class="logo logo-on-light" src="../assets/Logo.svg" alt="Genesy"><img class="logo logo-on-dark" src="../assets/Logo_for_dark_bg.svg" alt="Genesy"></a>
+    <nav aria-label="Main"><a href="#journey">How it works</a><a href="#who">Who it’s for</a><a href="#passport">The passport</a><a href="#contact">Contact</a></nav>
+    <div class="tools">
+      <label class="sr-only" for="lang">Language</label>
+      <select id="lang"><option>EN</option><option>NL</option><option>SW</option></select>
+      <button class="theme-btn" data-theme-toggle aria-label="Switch light or dark">
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+      <a class="btn btn-primary" href="#contact">Talk to us</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero">
+    <div class="wrap hero-grid">
+      <div class="copy">
+        <span class="tag">Farm to kitchen, in the open</span>
+        <h1 class="h1">Every jar has a story. Every farmer gets their share.</h1>
+        <p class="lead muted">Genesy records the harvest, follows the batch, prints a passport for every jar and pays the farmer when it sells. One system, from the field to the till.</p>
+        <div class="actions"><a class="btn btn-primary shimmer" href="#contact">Talk to us</a><a class="btn btn-ghost" href="#journey">How it works</a></div>
+      </div>
+      <!-- Illustration placeholder: hills, sun, a hive, the route to a jar. No people. -->
+      <svg class="scene hero-scene" data-ambient viewBox="0 0 560 380" role="img" aria-label="Illustration: a beehive in hills, a dotted route leading to a honey jar">
+        <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#956e46"/><stop offset=".3" stop-color="#f9dd8c"/><stop offset=".62" stop-color="#c3944b"/><stop offset=".84" stop-color="#efc977"/><stop offset="1" stop-color="#956e46"/></linearGradient></defs>
+        <circle class="sun-pulse" cx="420" cy="110" r="48" fill="url(#g)" opacity=".9"/>
+        <path d="M0 250 C 90 190 170 200 260 235 S 430 190 560 220 V380 H0Z" fill="var(--hill-1)"/>
+        <path d="M0 300 C 120 250 220 280 320 290 S 470 250 560 280 V380 H0Z" fill="var(--hill-2)"/>
+        <g fill="var(--hill-3)"><rect x="104" y="196" width="6" height="40" rx="2"/><ellipse cx="107" cy="190" rx="34" ry="14"/><rect x="186" y="210" width="5" height="30" rx="2"/><ellipse cx="188" cy="205" rx="24" ry="10"/></g>
+        <g transform="translate(70 250)"><rect width="66" height="14" rx="2" fill="var(--hill-3)"/><rect x="4" y="14" width="58" height="40" fill="#d0a55f"/><rect x="4" y="30" width="58" height="3" fill="#956e46"/><rect x="26" y="44" width="14" height="5" rx="2" fill="#0a183a"/></g><g fill="#0a183a" transform="translate(100 230)"><g class="bees"><g class="bee"><ellipse class="bee-body" cx="30" cy="-40" rx="5.5" ry="4"/><path class="wing" d="M28 -44q2-8 7-2"/></g><g class="bee"><ellipse class="bee-body" cx="44" cy="-20" rx="5.5" ry="4"/><path class="wing" d="M42 -24q2-8 7-2"/></g><g class="bee"><ellipse class="bee-body" cx="-36" cy="-30" rx="5.5" ry="4"/><path class="wing" d="M-38 -34q2-8 7-2"/></g></g></g>
+        <path d="M140 290 C 220 340 300 250 380 300 S 450 330 470 300" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
+        <g transform="translate(450 214)"><rect x="6" y="0" width="44" height="12" rx="3" fill="#0a183a"/><path d="M2 14h52v58a10 10 0 0 1-10 10H12A10 10 0 0 1 2 72Z" fill="url(#g)"/><rect x="12" y="36" width="32" height="24" rx="3" fill="#fff"/><rect x="17" y="41" width="10" height="10" fill="#0a183a"/><rect x="30" y="42" width="10" height="3" fill="#456087"/><rect x="30" y="48" width="8" height="3" fill="#456087"/></g>
+      </svg>
+    </div>
+  </div>
+
+  <section class="journey" data-journey="7" id="journey" style="--n: 7" aria-labelledby="j-title">
+    <div class="j-pin">
+      <div class="wrap j-grid">
+        <div class="j-head">
+          <span class="tag">How it works</span>
+          <h2 class="h2" id="j-title">Watch one jar travel — and the money travel back.</h2>
+          <ol class="j-steps"><li data-step="1"><b>Hive</b><span class="muted">Bees make the honey. The farmer records each hive.</span></li><li data-step="2"><b>Harvest</b><span class="muted">Every harvest is logged: who, where, how much.</span></li><li data-step="3"><b>Passport</b><span class="muted">Packed into a batch; every jar gets a QR passport.</span></li><li data-step="4"><b>Scan</b><span class="muted">A buyer scans the jar and reads its story.</span></li><li data-step="5"><b>Sold</b><span class="muted">Online or at the till, from one stock list.</span></li><li data-step="6"><b>Paid back</b><span class="muted">The farmer’s share flows back into their passbook.</span></li></ol>
+          <div class="j-progress" aria-hidden="true"><span></span></div>
+        </div>
+        <div class="j-stage"><svg class="scene" viewBox="0 0 800 480" aria-hidden="true"><defs><linearGradient id="bg" x1="0" x2="1"><stop offset="0" stop-color="#956e46"/><stop offset=".3" stop-color="#f9dd8c"/><stop offset=".62" stop-color="#c3944b"/><stop offset=".84" stop-color="#efc977"/><stop offset="1" stop-color="#956e46"/></linearGradient></defs><rect class="sky" x="-100" y="-50" width="1000" height="600"/><g class="sun-wrap"><circle class="sun" cx="640" cy="90" r="44" fill="url(#bg)"/></g><path class="hill hl1" d="M-100 260 C 60 190 200 210 330 240 S 600 180 900 230 V600 H-100Z"/><g class="trees hl1"><rect x="452" y="196" width="5" height="34" rx="2"/><ellipse cx="455" cy="192" rx="30" ry="12"/><rect x="760" y="200" width="5" height="30" rx="2"/><ellipse cx="762" cy="196" rx="24" ry="10"/></g><path class="hill hl2" d="M-100 330 C 80 280 260 300 420 320 S 700 280 900 310 V600 H-100Z"/><path class="hill hl3" d="M-100 420 C 120 390 360 410 520 400 S 760 380 900 400 V600 H-100Z"/><path class="road-faint" d="M100 285 C 170 205 200 235 240 235 S 330 295 390 275 S 480 215 540 225 S 640 295 690 275"/><path class="road" data-route d="M100 285 C 170 205 200 235 240 235 S 330 295 390 275 S 480 215 540 225 S 640 295 690 275"/><g class="j-part p6"><path class="money-road" d="M690 300 C 600 470 330 470 150 425"/></g><path data-money d="M690 300 C 600 470 330 470 150 425" fill="none" stroke="none"/><g class="house"><path d="M48 420 l28-24 28 24v30h-56z"/><rect x="68" y="430" width="14" height="20"/></g><g transform="translate(100 250) scale(0.9)"><g class="j-part p1"><path d="M-38 34h76"/><path class="f" d="M-32 34v-10h64v10zM-28 24v-12h56v12zM-22 12v-12h44v12zM-14 0v-10a14 14 0 0 1 28 0v10z"/><path class="door" d="M-6 34v-7a6 6 0 0 1 12 0v7z"/><g class="bees"><g class="bee"><ellipse class="bee-body" cx="30" cy="-40" rx="5.5" ry="4"/><path class="wing" d="M28 -44q2-8 7-2"/></g><g class="bee"><ellipse class="bee-body" cx="44" cy="-20" rx="5.5" ry="4"/><path class="wing" d="M42 -24q2-8 7-2"/></g><g class="bee"><ellipse class="bee-body" cx="-36" cy="-30" rx="5.5" ry="4"/><path class="wing" d="M-38 -34q2-8 7-2"/></g></g></g></g><g transform="translate(240 196) scale(0.8)"><g class="j-part p2"><rect class="f" x="-36" y="-30" width="72" height="46" rx="3"/><path d="M-36 -14h72M-36 0h72M-12 -30v46M12 -30v46"/><path class="hex" d="M-26 -22l4-3 4 3v5l-4 3-4-3zM20 -8l4-3 4 3v5l-4 3-4-3z"/><path d="M0 16v10"/><circle class="drop" cx="0" cy="32" r="4"/></g></g><g transform="translate(390 236) scale(0.9)"><g class="j-part p3"><rect class="lid" x="-18" y="-34" width="36" height="9" rx="2"/><path class="f honey" d="M-24 -25h48v48a8 8 0 0 1-8 8h-32a8 8 0 0 1-8-8z"/><rect class="label" x="-15" y="-8" width="30" height="20" rx="2"/><g class="tag-swing"><path d="M18 -26l20 8"/><rect class="tagcard" x="32" y="-20" width="28" height="34" rx="3"/><path class="qr" d="M37 -14h7v7h-7zM48 -14h7v7h-7zM37 -3h7v7h-7zM49 -2h5v5h-5zM49 6h5v4h-5z"/></g></g></g><g transform="translate(540 182) scale(0.8)"><g class="j-part p4"><rect class="f" x="-22" y="-40" width="44" height="80" rx="8"/><rect class="screen" x="-16" y="-30" width="32" height="52" rx="2"/><path class="qr" d="M-10 -22h8v8h-8zM2 -22h8v8h-8zM-10 -10h8v8h-8zM3 -8h6v6h-6zM-2 4h12v4h-12z"/><path class="scan" d="M-16 -30h32"/><circle cx="0" cy="31" r="3"/></g></g><g transform="translate(690 236) scale(0.9)"><g class="j-part p5"><path class="awning" d="M-42 -22h84l-8-16h-68z"/><path d="M-42 -22q7 10 14 0q7 10 14 0q7 10 14 0q7 10 14 0q7 10 14 0q7 10 14 0"/><path class="f" d="M-36 -14v48h72v-48z"/><path d="M-36 10h72"/><path class="honey" d="M-26 -2h10v12h-10zM-6 -2h10v12h-10zM14 -2h10v12h-10z"/></g></g><g transform="translate(160 400) scale(0.75)"><g class="j-part p6"><path class="f" d="M-32 -34h46a16 16 0 0 1 16 16v52h-46a16 16 0 0 1-16-16z"/><path d="M-22 -20h30M-22 -10h30M-22 0h20"/><path class="newline" d="M-22 12h32"/><circle class="plus" cx="26" cy="26" r="11"/><path class="plus-sign" d="M26 20v12M20 26h12"/></g></g><g data-coin style="opacity:0"><circle r="11" class="coin"/><path d="M-4 -4h8M-4 0h8M-4 4h8" class="coin-mark"/></g></svg></div>
+      </div>
+    </div>
+  </section>
+  <section id="who" style="padding-top: 0">
+    <div class="wrap">
+      <div class="head" data-reveal><span class="tag">Who it’s for</span><h2 class="h2">Built for the people along the route.</h2></div>
+      <div class="cards">
+        <article data-reveal class="card featured">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22c4-4 7-7.5 7-11a7 7 0 0 0-14 0c0 3.5 3 7 7 11z"/><circle cx="12" cy="11" r="2.5"/></svg></span>
+          <h3 class="h3">Farmer programmes &amp; cooperatives</h3>
+          <p class="muted">Know every farmer and every harvest, and show that pay is fair.</p>
+          <ul><li>Field records that work without signal</li><li>Swahili and English on every screen</li><li>Each farmer sees their own passbook</li></ul>
+          <a href="#contact">Start with your programme →</a>
+        </article>
+        <article data-reveal class="card">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 9l1-5h14l1 5M4 9v11h16V9M4 9h16M9 20v-6h6v6"/></svg></span>
+          <h3 class="h3">Brands &amp; shops</h3>
+          <p class="muted">Sell online and in store with proof on every jar.</p>
+          <ul><li>Web shop and till share one stock</li><li>A passport QR for each batch</li><li>From jar back to harvest in seconds</li></ul>
+          <a href="#contact">Bring your products →</a>
+        </article>
+        <article data-reveal class="card">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></svg></span>
+          <h3 class="h3">Buyers</h3>
+          <p class="muted">Holding one of our jars? Point your phone camera at its QR code.</p>
+          <ul><li>Where and when it was harvested</li><li>Which checks it passed</li><li>That the farmers were paid</li></ul>
+          <a href="#">Visit the shop →</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="passport" style="padding-top: 0">
+    <div class="wrap pp">
+      <div style="display: grid; gap: 20px">
+        <span class="tag">The passport</span>
+        <h2 class="h2">Scan the jar. Read its whole story.</h2>
+        <p class="lead muted">Every batch has its own page. No app to install — the phone camera is enough.</p>
+        <ul class="checks">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg><div><b>Where it comes from</b><br><span class="muted">Region, harvest month, how many beekeepers.</span></div></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg><div><b>What was checked</b><br><span class="muted">Quality results for that batch.</span></div></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></svg><div><b>Who got paid</b><br><span class="muted">Farmers are credited at every sale.</span></div></li>
+        </ul>
+      </div>
+      <div data-reveal class="phone" aria-label="Example passport on a phone (made-up data)">
+        <div class="screen">
+          <div class="band"><img src="../assets/Logo_for_dark_bg.svg" alt="Genesy"></div>
+          <div class="pic"><svg viewBox="0 0 280 120" width="100%" aria-hidden="true"><path d="M0 80 C 70 50 140 60 200 75 S 260 60 280 70 V120 H0Z" fill="#b9c9d6"/><path d="M0 100 C 90 80 180 95 280 90 V120 H0Z" fill="#456087"/><circle cx="220" cy="38" r="18" fill="#efc977"/></svg></div>
+          <div class="inner" data-assemble>
+            <div style="display: flex; justify-content: space-between; align-items: center"><b>Raw forest honey</b><span class="badge">Example</span></div>
+            <div class="kv"><span>Batch</span><span>GN-0000-EX</span></div>
+            <div class="kv"><span>Origin</span><span>Tanzania</span></div>
+            <div class="kv"><span>Harvested</span><span>June 2026</span></div>
+            <div class="kv"><span>Beekeepers</span><span data-count="38">38</span></div><div class="kv"><span>Jars in batch</span><span data-count="1240">1,240</span></div>
+            <div class="ok"><svg viewBox="0 0 24 24" width="18" fill="none" stroke="#01909b" stroke-width="2.4"><path d="m5 12 4 4 10-10"/></svg>Farmers paid at sale</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top: 0">
+    <div class="wrap">
+      <div class="head" data-reveal><span class="tag">Our promise</span><h2 class="h2">Plain rules the system keeps for you.</h2></div>
+      <div class="promise" data-assemble>
+        <div><h3 class="h3">Your account is private</h3><p class="muted">Each organisation sees only its own farmers, stock and sales.</p></div>
+        <div><h3 class="h3">Sharing needs consent</h3><p class="muted">Data moves to a partner only through a link the farmer agreed to.</p></div>
+        <div><h3 class="h3">Money is exact</h3><p class="muted">Counted to the cent. Passbook lines stay as they were written.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" style="padding-top: 0">
+    <div class="wrap">
+      <div class="cta">
+        <img class="icon-bg" src="../assets/Icon.svg" alt="" aria-hidden="true">
+        <span class="tag" style="color: var(--gold-hi)">Talk to us</span>
+        <h2 class="h2" style="max-width: 640px">Grow, pack or sell something worth tracing? Let’s talk.</h2>
+        <a class="mail" href="mailto:hello@genesy.app?subject=Genesy%20for%20my%20organisation">hello@genesy.app</a>
+        <a class="btn btn-primary" href="mailto:hello@genesy.app?subject=Genesy%20for%20my%20organisation">Email us</a>
+        <p style="font-size: 14px; color: #b4c3d3">English, Dutch or Swahili. We reply within two working days.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="f-grid">
+      <div style="display: grid; gap: 14px; align-content: start"><span><img class="logo logo-on-light" src="../assets/Logo.svg" alt="Genesy"><img class="logo logo-on-dark" src="../assets/Logo_for_dark_bg.svg" alt="Genesy"></span><p class="muted" style="max-width: 300px">From the farm to the shelf, in the open — and the farmer paid along the way.</p></div>
+      <div><h3 class="h3">Shop</h3><ul><li><a href="#">Buy honey</a></li><li><a href="#passport">Check a passport</a></li></ul></div>
+      <div><h3 class="h3">Sign in</h3><ul><li><a href="#">Office</a></li><li><a href="#">Field app</a></li><li><a href="#">Till</a></li></ul></div>
+      <div><h3 class="h3">About</h3><ul><li><a href="#contact">Contact</a></li><li><a href="#">Privacy</a></li><li><a href="#">Terms</a></li></ul></div>
+    </div>
+    <div class="legal"><span>© 2026 Genesy</span><span>English · Nederlands · Kiswahili</span></div>
+  </div>
+</footer>
+</body>
+</html>

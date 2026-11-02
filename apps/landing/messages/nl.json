@@ -1,0 +1,172 @@
+{
+  "landing": {
+    "title": "Genesy",
+    "description": "Genesy legt de oogst vast, volgt de partij, drukt een paspoort voor elke pot en betaalt de boer zodra die verkocht is.",
+    "skip": "Naar de inhoud",
+    "nav": {
+      "label": "Hoofdmenu",
+      "how": "Hoe het werkt",
+      "who": "Voor wie",
+      "passport": "Het paspoort",
+      "contact": "Contact",
+      "language": "Taal",
+      "theme": "Wissel licht of donker",
+      "home": "Genesy home"
+    },
+    "cta": "Neem contact op",
+    "hero": {
+      "tag": "Van boer tot keuken, voor iedereen zichtbaar",
+      "title": "Elke pot heeft een verhaal. Elke boer krijgt zijn deel.",
+      "lead": "Genesy legt de oogst vast, volgt de partij, drukt een paspoort voor elke pot en betaalt de boer zodra die verkocht is. Eén systeem, van het veld tot de kassa.",
+      "how": "Hoe het werkt",
+      "scene": "Illustratie: een bijenkorf in de heuvels, een stippelroute naar een pot honing",
+      "rotating": {
+        "prefix": "Gevolgd vanaf de",
+        "words": [
+          "korf",
+          "oogst",
+          "partij",
+          "paspoort",
+          "winkel",
+          "spaarboekje"
+        ]
+      }
+    },
+    "journey": {
+      "tag": "Hoe het werkt",
+      "title": "Volg één pot op reis — en het geld terug.",
+      "steps": {
+        "hive": {
+          "title": "Korf",
+          "text": "Bijen maken de honing. De boer registreert elke korf."
+        },
+        "harvest": {
+          "title": "Oogst",
+          "text": "Elke oogst wordt vastgelegd: wie, waar, hoeveel."
+        },
+        "passport": {
+          "title": "Paspoort",
+          "text": "Verpakt in een partij; elke pot krijgt een QR-paspoort."
+        },
+        "scan": {
+          "title": "Scan",
+          "text": "Een koper scant de pot en leest het verhaal."
+        },
+        "sold": {
+          "title": "Verkocht",
+          "text": "Online of aan de kassa, uit één voorraadlijst."
+        },
+        "paid": {
+          "title": "Terugbetaald",
+          "text": "Het deel van de boer komt terug in diens spaarboekje."
+        }
+      }
+    },
+    "who": {
+      "tag": "Voor wie",
+      "title": "Gemaakt voor iedereen langs de route.",
+      "programmes": {
+        "title": "Boerenprogramma’s & coöperaties",
+        "text": "Ken elke boer en elke oogst, en laat zien dat de betaling eerlijk is.",
+        "p1": "Veldregistratie die werkt zonder bereik",
+        "p2": "Swahili en Engels op elk scherm",
+        "p3": "Elke boer ziet zijn eigen spaarboekje",
+        "link": "Begin met uw programma →"
+      },
+      "brands": {
+        "title": "Merken & winkels",
+        "text": "Verkoop online en in de winkel, met bewijs op elke pot.",
+        "p1": "Webshop en kassa delen één voorraad",
+        "p2": "Een paspoort-QR per partij",
+        "p3": "Van pot terug naar oogst in seconden",
+        "link": "Breng uw producten mee →"
+      },
+      "buyers": {
+        "title": "Kopers",
+        "text": "Heeft u een van onze potten? Richt uw telefooncamera op de QR-code.",
+        "p1": "Waar en wanneer er geoogst is",
+        "p2": "Welke controles zijn doorstaan",
+        "p3": "Dat de boeren betaald zijn",
+        "link": "Naar de winkel →"
+      }
+    },
+    "passport": {
+      "tag": "Het paspoort",
+      "title": "Scan de pot. Lees het hele verhaal.",
+      "lead": "Elke partij heeft een eigen pagina. Geen app nodig — de telefooncamera is genoeg.",
+      "c1": {
+        "title": "Waar het vandaan komt",
+        "text": "Regio, oogstmaand, hoeveel imkers."
+      },
+      "c2": {
+        "title": "Wat er gecontroleerd is",
+        "text": "Kwaliteitsresultaten van die partij."
+      },
+      "c3": {
+        "title": "Wie er betaald is",
+        "text": "Boeren krijgen bij elke verkoop hun deel."
+      },
+      "phone": "Voorbeeldpaspoort op een telefoon (verzonnen gegevens)",
+      "product": "Rauwe boshoning",
+      "example": "Voorbeeld",
+      "batch": "Partij",
+      "origin": "Herkomst",
+      "originValue": "Tanzania",
+      "harvested": "Geoogst",
+      "harvestedValue": "juni 2026",
+      "beekeepers": "Imkers",
+      "jars": "Potten in partij",
+      "paid": "Boeren betaald bij verkoop"
+    },
+    "promise": {
+      "tag": "Onze belofte",
+      "title": "Duidelijke regels die het systeem voor u bewaakt.",
+      "private": {
+        "title": "Uw account is privé",
+        "text": "Elke organisatie ziet alleen haar eigen boeren, voorraad en verkopen."
+      },
+      "consent": {
+        "title": "Delen vraagt toestemming",
+        "text": "Gegevens gaan alleen naar een partner via een koppeling waar de boer mee instemde."
+      },
+      "exact": {
+        "title": "Geld klopt precies",
+        "text": "Tot op de cent. Regels in het spaarboekje blijven zoals ze zijn geschreven."
+      }
+    },
+    "contact": {
+      "tag": "Neem contact op",
+      "title": "Kweekt, verpakt of verkoopt u iets wat het volgen waard is? Laten we praten.",
+      "button": "Mail ons",
+      "note": "Engels, Nederlands of Swahili. We antwoorden binnen twee werkdagen."
+    },
+    "footer": {
+      "tagline": "Van boer tot schap, voor iedereen zichtbaar — en de boer onderweg betaald.",
+      "shop": "Winkel",
+      "buy": "Honing kopen",
+      "check": "Een paspoort bekijken",
+      "signIn": "Inloggen",
+      "office": "Kantoor",
+      "field": "Veld-app",
+      "till": "Kassa",
+      "about": "Over",
+      "contact": "Contact",
+      "copyright": "© {year} Genesy",
+      "languages": "Talen"
+    },
+    "features": {
+      "label": "Wat Genesy doet",
+      "items": [
+        "Werkt offline in het veld",
+        "Kiswahili · English · Nederlands",
+        "Een QR-paspoort per partij",
+        "Webshop en kassa, één voorraad",
+        "Spaarboekje voor de boer",
+        "Delen alleen met toestemming",
+        "Geld tot op de cent"
+      ]
+    },
+    "seoTitle": "Genesy — elke pot heeft een verhaal, elke boer krijgt zijn deel",
+    "ogAlt": "Genesy: van de korf tot uw keuken, en de boer onderweg betaald"
+  }
+}

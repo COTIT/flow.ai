@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# One image recipe for the Next apps: --build-arg APP=shop|office|till, context = repo root.
+# One image recipe for the Next apps: --build-arg APP=shop|office|till|landing, context = repo root.
 # Base image pinned by digest (index, all platforms); bump tag and digest together.
 ARG NODE_IMAGE=node:24.21.0-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66
 
@@ -16,7 +16,7 @@ WORKDIR /repo
 COPY . .
 RUN --mount=type=cache,id=genesy-pnpm-store,target=/pnpm-store,sharing=locked \
     pnpm install --frozen-lockfile --store-dir /pnpm-store
-# office and till have no public/ folder; an empty one keeps the COPY below uniform.
+# office, till and landing have no public/ folder; an empty one keeps the COPY below uniform.
 RUN pnpm --filter "@genesy/${APP}" build && mkdir -p "apps/${APP}/public"
 
 FROM ${NODE_IMAGE} AS runtime

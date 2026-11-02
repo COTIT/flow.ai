@@ -160,6 +160,31 @@ services:
       traefik.http.routers.genesy-staging-till.middlewares: genesy-staging-allow,genesy-staging-noindex
       traefik.http.services.genesy-staging-till.loadbalancer.server.port: "3000"
 
+  # staging.genesy.app: the landing page, kept out of search engines (NOINDEX + X-Robots-Tag).
+  landing:
+    <<: *hardening
+    build:
+      context: ../..
+      dockerfile: deploy/images/next.Dockerfile
+      args: { APP: landing }
+    image: genesy-staging/landing:${GENESY_REF:-local}
+    environment:
+      SITE_URL: https://staging.genesy.app
+      NOINDEX: "1"
+      NEXT_PUBLIC_CONTACT_EMAIL: ${CONTACT_EMAIL:-hello@genesy.app}
+      NEXT_PUBLIC_SHOP_URL: https://staging-shop.genesy.app
+      NEXT_PUBLIC_OFFICE_URL: https://staging-office.genesy.app
+      NEXT_PUBLIC_FIELD_URL: https://staging-field.genesy.app
+      NEXT_PUBLIC_TILL_URL: https://staging-till.genesy.app
+    networks: [edge]
+    labels:
+      <<: *edge-labels
+      traefik.http.routers.genesy-staging-landing.rule: Host(`staging.genesy.app`)
+      traefik.http.routers.genesy-staging-landing.entrypoints: ${TRAEFIK_ENTRYPOINT}
+      traefik.http.routers.genesy-staging-landing.tls.certresolver: ${TRAEFIK_CERTRESOLVER}
+      traefik.http.routers.genesy-staging-landing.middlewares: genesy-staging-allow,genesy-staging-noindex
+      traefik.http.services.genesy-staging-landing.loadbalancer.server.port: "3000"
+
   field:
     <<: *hardening
     build:

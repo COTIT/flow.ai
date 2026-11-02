@@ -8,14 +8,16 @@ const shopPort = 3200 + PORT_OFFSET
 const officePort = 3201 + PORT_OFFSET
 const fieldPort = 3202 + PORT_OFFSET
 const tillPort = 3203 + PORT_OFFSET
+const landingPort = 3204 + PORT_OFFSET
 const shop = `http://127.0.0.1:${shopPort}`
 const office = `http://127.0.0.1:${officePort}`
 const field = `http://127.0.0.1:${fieldPort}`
 const till = `http://127.0.0.1:${tillPort}`
+const landing = `http://127.0.0.1:${landingPort}`
 
 /**
  * Headless end-to-end runs against production builds (`next start`), so `pnpm turbo run e2e`
- * builds first. Ports 3200-3203/8199 (+ E2E_PORT_OFFSET) are kept apart from the dev servers.
+ * builds first. Ports 3200-3204/8199 (+ E2E_PORT_OFFSET) are kept apart from the dev servers.
  */
 export default defineConfig({
   forbidOnly: ci,
@@ -32,6 +34,7 @@ export default defineConfig({
       use: { ...p.use, serviceWorkers: "block" as const },
     })),
     ...projectsFor("till", { testDir: "tests/till", baseURL: till }),
+    ...projectsFor("landing", { testDir: "tests/landing", baseURL: landing }),
   ],
   webServer: [
     {
@@ -72,6 +75,14 @@ export default defineConfig({
       url: `${till}/setup`,
       reuseExistingServer: false,
       env: { API_URL: "http://127.0.0.1:9/v1" },
+    },
+    {
+      // The landing page calls no API. A contact address set at start (not build) time proves
+      // compose can change it without a rebuild.
+      command: `pnpm --filter @genesy/landing exec next start --port ${landingPort} --hostname 127.0.0.1`,
+      url: landing,
+      reuseExistingServer: false,
+      env: { SITE_URL: landing, NEXT_PUBLIC_CONTACT_EMAIL: "team@genesy.test" },
     },
   ],
 })

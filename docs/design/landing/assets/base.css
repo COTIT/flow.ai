@@ -1,0 +1,49 @@
+/* Shared by the three landing mockups: Poppins from packages/ui (OFL), reset, theme toggle. */
+@font-face { font-family: Poppins; font-weight: 400; font-style: normal; font-display: swap; src: url("../../../../packages/ui/src/fonts/Poppins-Regular.ttf") format("truetype"); }
+@font-face { font-family: Poppins; font-weight: 400; font-style: italic; font-display: swap; src: url("../../../../packages/ui/src/fonts/Poppins-Italic.ttf") format("truetype"); }
+@font-face { font-family: Poppins; font-weight: 500; font-style: normal; font-display: swap; src: url("../../../../packages/ui/src/fonts/Poppins-Medium.ttf") format("truetype"); }
+@font-face { font-family: Poppins; font-weight: 600; font-style: normal; font-display: swap; src: url("../../../../packages/ui/src/fonts/Poppins-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: Poppins; font-weight: 700; font-style: normal; font-display: swap; src: url("../../../../packages/ui/src/fonts/Poppins-Bold.ttf") format("truetype"); }
+@font-face { font-family: Poppins; font-weight: 800; font-style: normal; font-display: swap; src: url("../../../../packages/ui/src/fonts/Poppins-ExtraBold.ttf") format("truetype"); }
+
+/* Brand constants (style guide 04.2025) — same values as packages/ui globals.css. */
+:root {
+  --navy: #0a183a; --navy-2: #13234d; --navy-3: #1b2c57;
+  --mist: #f2f6f7; --steel: #d1dce5; --gold: #d0a55f; --gold-hi: #efc977;
+  --taupe: #8b8171; --teal: #01909b; --slate: #456087; --ink: #232423;
+  --danger: #b42318;
+  --gold-gradient: linear-gradient(90deg, #956e46 0%, #f9dd8c 30%, #c3944b 62%, #efc977 84%, #956e46 100%);
+}
+html.dark { --danger: #f97066; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; font-family: Poppins, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.02em; line-height: 1.6; -webkit-font-smoothing: antialiased;
+  background: var(--bg); color: var(--fg);
+}
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; }
+h1, h2, h3, p { margin: 0; }
+button, input, select, textarea { font: inherit; letter-spacing: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ring, var(--teal)); outline-offset: 2px; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.gold-rule { height: 2px; background-image: var(--gold-gradient); }
+.wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+@media (min-width: 768px) { .wrap { padding: 0 32px; } }
+
+/* Logo: real brand files; the theme picks the light- or dark-ground file. */
+.logo { height: 36px; width: auto; min-width: 100px; }
+.logo-on-dark { display: none; }
+html.dark .logo-on-light { display: none; }
+html.dark .logo-on-dark { display: block; }
+
+.theme-btn { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
+.theme-btn svg { width: 18px; height: 18px; }
+.theme-btn .moon { display: none; }
+html.dark .theme-btn .sun { display: none; }
+html.dark .theme-btn .moon { display: block; }
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
