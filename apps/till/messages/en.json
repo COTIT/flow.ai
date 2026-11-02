@@ -20,7 +20,10 @@
     "locked": "Too many wrong PINs. Try again later.",
     "pinFormat": "The PIN is 4 to 8 digits.",
     "keyRefused": "This device's key is no longer accepted. Set up the till again.",
-    "setupAgain": "Set up again"
+    "setupAgain": "Set up again",
+    "expired": "Your session ended. Log in again to continue.",
+    "usersFailed": "Couldn't load the till users. Check the connection and reload.",
+    "noUsers": "No till users yet. Ask the office to add one."
   },
   "sale": {
     "title": "Sale",
@@ -47,7 +50,14 @@
     "savedTitle": "Saved offline",
     "savedHint": "The till is offline. This sale is kept on this device and sent once the connection is back.",
     "newSale": "New sale",
-    "quote": "Quote"
+    "quote": "Quote",
+    "noShift": "No shift is open on this register. Cash sales need an open shift.",
+    "catalogLoading": "Loading the product list…",
+    "catalogEmpty": "This register has no products to sell yet. Ask the office.",
+    "catalogFailed": "Couldn't load the product list. Check the connection.",
+    "catalogStale": "Couldn't refresh the product list. Showing the copy on this device.",
+    "noMatch": "No products match “{query}”.",
+    "mismatch": "Some prices differ from the current catalog. The office will see this."
   },
   "nav": {
     "label": "Till menu",
@@ -67,10 +77,13 @@
     "counted": "Counted",
     "difference": "Difference",
     "closedTitle": "Shift closed",
-    "short": "Short",
-    "over": "Over",
-    "balanced": "Balanced",
-    "queued": "{count, plural, one {# offline sale} other {# offline sales}} still to sync. Sync before closing the shift."
+    "short": "The drawer is {amount} short.",
+    "over": "The drawer is {amount} over.",
+    "balanced": "The drawer balances.",
+    "queued": "{count, plural, one {# offline sale} other {# offline sales}} still to sync. Sync before closing the shift.",
+    "loadFailed": "Couldn't load the drawer. Check the connection.",
+    "opened": "Shift opened. You can start selling.",
+    "toQueue": "Go to offline sales"
   },
   "count": {
     "denomination": "Value of row {n}",
@@ -92,7 +105,9 @@
     "change": "Change",
     "card": "Card slip",
     "print": "Print",
-    "newSale": "New sale"
+    "newSale": "New sale",
+    "booked": "Sale {number} is booked.",
+    "mismatch": "This sale was charged at prices that differ from the current catalog. The office will see it."
   },
   "queue": {
     "title": "Offline sales",
@@ -104,6 +119,23 @@
     "conflict": "Conflict",
     "review": "Needs review",
     "booked": "Sale {number}: {due}",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "syncing": "Sending offline sales…",
+    "allBooked": "All offline sales are booked.",
+    "emptyHint": "Sales rung up without a connection wait here until they are sent.",
+    "showOffice": "This sale was not booked. Show it to the office before dismissing it.",
+    "mismatch": "Charged at prices that differ from the current catalog. The office will see it."
+  },
+  "errors": {
+    "crashTitle": "This screen stopped working.",
+    "crashBody": "Sales waiting to sync are still kept on this device. Try again, or go back to the sale screen.",
+    "retry": "Try again",
+    "home": "Go to the sale screen",
+    "notFoundTitle": "There is no such screen.",
+    "notFoundBody": "The address may be mistyped."
+  },
+  "offline": {
+    "title": "Offline. Sales are kept on this device and sent when the connection is back.",
+    "waiting": "{count, plural, one {# sale} other {# sales}} waiting to sync"
   }
 }

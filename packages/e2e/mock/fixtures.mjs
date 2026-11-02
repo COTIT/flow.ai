@@ -40,3 +40,11 @@ export const STOCK_LIMIT = 10
 export const NO_PROVIDER_EMAIL = "no-provider@e2e.test"
 /** Orders placed with this email turn paid on their second read, like a Stripe webhook landing late. */
 export const LATE_PAYMENT_EMAIL = "late-payment@e2e.test"
+/** Orders placed with this email come back already cancelled (expired before payment). */
+export const EXPIRED_EMAIL = "expired@e2e.test"
+/** Orders placed with this email get a 503 from the payment provider (it is down). */
+export const PROVIDER_DOWN_EMAIL = "provider-down@e2e.test"
+/** Checkout with this email gets the API's 429 (too many web orders waiting). */
+export const BUSY_EMAIL = "busy@e2e.test"
+/** Reading this order fails with a 503 (API trouble while loading the order page). */
+export const FAILING_ORDER = "66666666-6666-4666-8666-666666666666"

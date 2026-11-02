@@ -20,7 +20,10 @@
     "locked": "PIN zisizo sahihi zimezidi. Jaribu tena baadaye.",
     "pinFormat": "PIN ni tarakimu 4 hadi 8.",
     "keyRefused": "Ufunguo wa kifaa hiki haukubaliki tena. Sanidi kituo upya.",
-    "setupAgain": "Sanidi upya"
+    "setupAgain": "Sanidi upya",
+    "expired": "Muda wa kuingia umeisha. Ingia tena ili uendelee.",
+    "usersFailed": "Imeshindwa kupakia watumiaji wa kituo. Angalia mtandao kisha pakia upya.",
+    "noUsers": "Bado hakuna watumiaji wa kituo. Omba ofisi iongeze mmoja."
   },
   "sale": {
     "title": "Mauzo",
@@ -47,7 +50,14 @@
     "savedTitle": "Imehifadhiwa nje ya mtandao",
     "savedHint": "Kituo hakiko mtandaoni. Mauzo haya yamehifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
     "newSale": "Mauzo mapya",
-    "quote": "Bei ya sasa"
+    "quote": "Bei ya sasa",
+    "noShift": "Hakuna zamu iliyo wazi kwenye rejista hii. Mauzo ya taslimu yanahitaji zamu iliyo wazi.",
+    "catalogLoading": "Inapakia orodha ya bidhaa…",
+    "catalogEmpty": "Rejista hii bado haina bidhaa za kuuza. Uliza ofisi.",
+    "catalogFailed": "Imeshindwa kupakia orodha ya bidhaa. Angalia mtandao.",
+    "catalogStale": "Imeshindwa kusasisha orodha ya bidhaa. Inaonyesha nakala iliyo kwenye kifaa hiki.",
+    "noMatch": "Hakuna bidhaa inayolingana na “{query}”.",
+    "mismatch": "Baadhi ya bei zinatofautiana na katalogi ya sasa. Ofisi itaona hili."
   },
   "nav": {
     "label": "Menyu ya kituo",
@@ -67,10 +77,13 @@
     "counted": "Zilizohesabiwa",
     "difference": "Tofauti",
     "closedTitle": "Zamu imefungwa",
-    "short": "Upungufu",
-    "over": "Ziada",
-    "balanced": "Sawa",
-    "queued": "Mauzo {count} ya nje ya mtandao bado hayajatumwa. Yatume kabla ya kufunga zamu."
+    "short": "Droo ina upungufu wa {amount}.",
+    "over": "Droo ina ziada ya {amount}.",
+    "balanced": "Droo iko sawa.",
+    "queued": "Mauzo {count} ya nje ya mtandao bado hayajatumwa. Yatume kabla ya kufunga zamu.",
+    "loadFailed": "Imeshindwa kupakia droo. Angalia mtandao.",
+    "opened": "Zamu imefunguliwa. Unaweza kuanza kuuza.",
+    "toQueue": "Nenda kwenye mauzo ya nje ya mtandao"
   },
   "count": {
     "denomination": "Thamani ya mstari {n}",
@@ -92,7 +105,9 @@
     "change": "Chenji",
     "card": "Risiti ya kadi",
     "print": "Chapisha",
-    "newSale": "Mauzo mapya"
+    "newSale": "Mauzo mapya",
+    "booked": "Mauzo {number} yamerekodiwa.",
+    "mismatch": "Mauzo haya yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili."
   },
   "queue": {
     "title": "Mauzo ya nje ya mtandao",
@@ -104,6 +119,23 @@
     "conflict": "Mgongano",
     "review": "Yanahitaji ukaguzi",
     "booked": "Mauzo {number}: {due}",
-    "dismiss": "Ondoa"
+    "dismiss": "Ondoa",
+    "syncing": "Inatuma mauzo ya nje ya mtandao…",
+    "allBooked": "Mauzo yote ya nje ya mtandao yamerekodiwa.",
+    "emptyHint": "Mauzo yaliyofanywa bila mtandao yanasubiri hapa hadi yatumwe.",
+    "showOffice": "Mauzo haya hayajarekodiwa. Yaonyeshe ofisi kabla ya kuyaondoa.",
+    "mismatch": "Yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili."
+  },
+  "errors": {
+    "crashTitle": "Skrini hii imeacha kufanya kazi.",
+    "crashBody": "Mauzo yanayosubiri kutumwa bado yamehifadhiwa kwenye kifaa hiki. Jaribu tena, au rudi kwenye mauzo.",
+    "retry": "Jaribu tena",
+    "home": "Rudi kwenye mauzo",
+    "notFoundTitle": "Hakuna skrini kama hii.",
+    "notFoundBody": "Huenda anwani imeandikwa vibaya."
+  },
+  "offline": {
+    "title": "Nje ya mtandao. Mauzo yanahifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
+    "waiting": "Mauzo {count} yanasubiri kutumwa"
   }
 }

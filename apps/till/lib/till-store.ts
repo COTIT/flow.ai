@@ -13,10 +13,12 @@ export type TillState = {
   session: TillLoginResource | null
   /** `false` until the saved state was read back from localStorage. */
   hydrated: boolean
+  /** Why the last session ended, when it wasn't the user's own logout (for the PIN screen). */
+  ended: "expired" | null
   pair: (device: Device) => void
   unpair: () => void
   signIn: (login: TillLoginResource) => void
-  signOut: () => void
+  signOut: (reason?: "expired") => void
 }
 
 /**
@@ -29,10 +31,16 @@ export const tillStore = createStore<TillState>()(
       device: null,
       session: null,
       hydrated: false,
+      ended: null,
       pair: (device) => set({ device, session: null }),
       unpair: () => set({ device: null, session: null }),
-      signIn: (session) => set({ session }),
-      signOut: () => set({ session: null }),
+      signIn: (session) => set({ session, ended: null }),
+      // Only a live session can expire: a wrong PIN's 401 has none to end.
+      signOut: (reason) =>
+        set((s) => ({
+          session: null,
+          ended: s.session ? (reason ?? null) : s.ended,
+        })),
     }),
     {
       name: "genesy.till",

@@ -89,9 +89,7 @@ test.describe("offline scan", () => {
   test("a scan without network finds the product in the device copy", async ({
     page,
     context,
-    api,
   }) => {
-    void api // installs the fake API
     await seedCatalog(page)
     await seedTill(page)
     // Let the start-up delta land before the network goes.

@@ -3,12 +3,13 @@ import Link from "next/link"
 import { getLocale, getTranslations } from "next-intl/server"
 
 import { buttonVariants } from "@genesy/ui/components/button"
+import { Notice } from "@genesy/ui/components/notice"
 import { formatMoney } from "@genesy/ui/lib/money"
 
 import { ClearCart } from "@/components/clear-cart"
 import { LocalTime } from "@/components/local-time"
 import { PayButton } from "@/components/pay-button"
-import { RefreshWhileUnpaid } from "@/components/refresh-while-unpaid"
+import { PaymentWatcher } from "@/components/payment-watcher"
 import { getOrder } from "@/lib/storefront"
 
 type Props = { params: Promise<{ id: string }> }
@@ -39,33 +40,35 @@ export default async function OrderPage({ params }: Props) {
       {/* One live region for every status, so a change (e.g. to paid) is announced. */}
       <div role="status">
         {paid ? (
-          <div className="rounded-lg border border-teal bg-teal/15 p-4">
-            <p className="font-medium">{t("paid")}</p>
-            <ClearCart />
-          </div>
+          <Notice live={false} variant="success" title={t("paid")} />
         ) : order.status === "cancelled" ? (
-          <div className="flex flex-col items-start gap-3">
-            <p>{t("cancelled")}</p>
-            <Link href="/cart" className={buttonVariants()}>
-              {t("again")}
-            </Link>
-          </div>
+          <Notice
+            live={false}
+            variant="warning"
+            title={t("cancelled")}
+            action={
+              <Link href="/" className={buttonVariants({ variant: "outline" })}>
+                {t("again")}
+              </Link>
+            }
+          >
+            {t("cancelledBody")}
+          </Notice>
         ) : order.status === "awaiting_payment" ? (
-          <p>
-            {t("awaiting")}
-            {order.expires_at ? (
-              <>
-                {" "}
-                {t.rich("heldUntil", {
-                  time: () => <LocalTime iso={order.expires_at!} />,
-                })}
-              </>
-            ) : null}
-          </p>
+          <PaymentWatcher>
+            <Notice live={false} variant="info" title={t("awaiting")}>
+              {order.expires_at
+                ? t.rich("heldUntil", {
+                    time: () => <LocalTime iso={order.expires_at!} />,
+                  })
+                : null}
+            </Notice>
+          </PaymentWatcher>
         ) : (
-          <p>{t("status", { status: order.status })}</p>
+          <Notice live={false} title={t("status", { status: order.status })} />
         )}
       </div>
+      {paid ? <ClearCart /> : null}
 
       <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 rounded-lg border p-4 tabular-nums">
         <dt>{t("subtotal")}</dt>
@@ -77,10 +80,7 @@ export default async function OrderPage({ params }: Props) {
       </dl>
 
       {order.status === "awaiting_payment" ? (
-        <>
-          <PayButton orderId={order.id} />
-          <RefreshWhileUnpaid />
-        </>
+        <PayButton orderId={order.id} />
       ) : null}
     </div>
   )

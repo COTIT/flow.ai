@@ -1,11 +1,11 @@
 "use client"
 
-import * as React from "react"
-import { onlineManager, useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 
 import { tillSalesQuote } from "@genesy/api-client/endpoints/till"
 import type { QuoteRequest } from "@genesy/api-client/model"
 import { toSaleLines, type CartLine } from "@/lib/cart-store"
+import { useOnline } from "@/lib/use-online"
 import { useTill } from "@/lib/till-store"
 
 /**
@@ -18,11 +18,7 @@ export function useQuote(
   tendered: number | null
 ) {
   const workspace = useTill((s) => s.device?.workspaceId) ?? ""
-  const online = React.useSyncExternalStore(
-    onlineManager.subscribe.bind(onlineManager),
-    () => onlineManager.isOnline(),
-    () => true
-  )
+  const online = useOnline()
   const body: QuoteRequest = {
     lines: toSaleLines(lines),
     payment:

@@ -42,7 +42,7 @@ test("opening a shift sends the counted float and shows the API's figures", asyn
   drawerApi(api, null)
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByRole("link", { name: "Drawer" }).click()
+  await page.getByRole("link", { name: "Drawer", exact: true }).click()
   await expect(
     page.getByText("No shift is open on this register.")
   ).toBeVisible()
@@ -56,6 +56,11 @@ test("opening a shift sends the counted float and shows the API's figures", asyn
   await page.getByRole("button", { name: "Open shift" }).click()
 
   await expect(page.getByText("€45.15").first()).toBeVisible()
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Shift opened. You can start selling." })
+  ).toBeVisible()
   const [open] = api.callsTo("POST", `/workspace/${WS}/till/shift/open`)
   expect(open!.body).toEqual({
     count: [
@@ -81,7 +86,9 @@ test("closing a shift shows the variance the API returns", async ({
     page.getByRole("heading", { name: "Shift closed" })
   ).toBeVisible()
   await expect(page.getByText("-€0.15")).toBeVisible()
-  await expect(page.getByText("Short")).toBeVisible()
+  await expect(
+    page.getByRole("status").filter({ hasText: "The drawer is €0.15 short." })
+  ).toBeVisible()
   await expect(
     page.getByText("No shift is open on this register.")
   ).toBeVisible()
@@ -131,3 +138,31 @@ test.describe("shift already open elsewhere", () => {
     ).toBeVisible()
   })
 })
+
+for (const [difference, words] of [
+  [0, "The drawer balances."],
+  [120, "The drawer is €1.20 over."],
+] as const) {
+  test(`closing with a difference of ${difference} says "${words}"`, async ({
+    page,
+    api,
+  }) => {
+    drawerApi(api, openShift)
+    api.on("POST", "/workspace/:ws/till/shift/close", () => ({
+      data: {
+        ...openShift,
+        closed_by: "tu-1",
+        closed_at: "2026-11-01T17:00:00Z",
+        counted: openShift.expected + difference,
+        difference,
+      },
+    }))
+    await seedTill(page)
+    await page.goto("/drawer")
+    await page.getByLabel("Pieces of €50.00").fill("1")
+    await page.getByRole("button", { name: "Close shift" }).click()
+    await expect(
+      page.getByRole("status").filter({ hasText: words })
+    ).toBeVisible()
+  })
+}

@@ -12,7 +12,11 @@ import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
 import { QueueRunner } from "@/components/queue-runner"
+import { Notice } from "@genesy/ui/components/notice"
+import { Loading } from "@/components/state"
+import { pendingCount, useQueue } from "@/lib/sale-queue"
 import { tillStore, useTill } from "@/lib/till-store"
+import { useOnline } from "@/lib/use-online"
 
 const nav = [
   { href: "/sale", label: "nav.sale" },
@@ -31,6 +35,8 @@ export default function TillLayout({
   const hydrated = useTill((s) => s.hydrated)
   const device = useTill((s) => s.device)
   const session = useTill((s) => s.session)
+  const online = useOnline()
+  const waiting = useQueue(pendingCount)
   const logout = useTillLogout({
     mutation: { onSettled: () => tillStore.getState().signOut() },
   })
@@ -59,7 +65,12 @@ export default function TillLayout({
     return () => window.removeEventListener("online", refresh)
   }, [token, device])
 
-  if (!hydrated || !device || !session) return null
+  if (!hydrated || !device || !session)
+    return (
+      <main className="p-6">
+        <Loading>{t("common.loading")}</Loading>
+      </main>
+    )
 
   return (
     <div className="flex min-h-svh flex-col gap-4 p-4 md:p-6">
@@ -103,6 +114,20 @@ export default function TillLayout({
           </Link>
         ))}
       </nav>
+      {online ? null : (
+        <Notice
+          variant="warning"
+          className="print:hidden"
+          title={t("offline.title")}
+          action={
+            waiting ? (
+              <Link href="/queue" prefetch={false} className="underline">
+                {t("offline.waiting", { count: waiting })}
+              </Link>
+            ) : null
+          }
+        />
+      )}
       <main className="flex flex-col gap-4">{children}</main>
     </div>
   )

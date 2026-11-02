@@ -154,3 +154,38 @@ test("a login stored before the register had a currency is refreshed from /till/
     decimals: 2,
   })
 })
+
+test("a register with no till users says who can add one", async ({
+  page,
+  api,
+}) => {
+  api.on("GET", "/workspace/:ws/till/login/users", () => ({ data: [] }))
+  await seedTill(page, { loggedIn: false })
+  await page.goto("/login")
+  await expect(
+    page.getByText("No till users yet. Ask the office to add one.")
+  ).toBeVisible()
+  await expectNoHorizontalScroll(page)
+})
+
+test.describe("till users unavailable", () => {
+  test.use({
+    allow: {
+      responses: [{ url: `/v1/workspace/${WS}/till/login/users`, status: 503 }],
+    },
+  })
+
+  test("says the list couldn't load", async ({ page, api }) => {
+    api.on("GET", "/workspace/:ws/till/login/users", () => ({
+      status: 503,
+      body: { message: "Service unavailable." },
+    }))
+    await seedTill(page, { loggedIn: false })
+    await page.goto("/login")
+    await expect(
+      page
+        .getByRole("alert")
+        .filter({ hasText: "Couldn't load the till users." })
+    ).toBeVisible()
+  })
+})

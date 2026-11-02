@@ -3,6 +3,7 @@ import Link from "next/link"
 import { getLocale, getTranslations } from "next-intl/server"
 import { ArrowLeftIcon } from "lucide-react"
 
+import { Notice } from "@genesy/ui/components/notice"
 import { formatMoney } from "@genesy/ui/lib/money"
 
 import { AddToCart } from "@/components/add-to-cart"
@@ -98,6 +99,11 @@ export default async function ProductPage({ params }: Props) {
             </section>
           ) : null}
 
+          {isSoldOut(product.available_stock) ? (
+            <Notice variant="warning" title={t("product.soldOutTitle")}>
+              {t("product.soldOutBody")}
+            </Notice>
+          ) : null}
           <AddToCart
             product={product}
             soldOut={isSoldOut(product.available_stock)}
