@@ -186,6 +186,15 @@
   --tone-success: #016a73;
   --tone-warning: #7a5a1e;
   --tone-error: #b42318;
+  /* Fields, hairlines and status tints (glass.css --field, --hair, --c-*). */
+  --field: rgb(255 255 255 / 78%);
+  --field-border: rgb(10 24 58 / 16%);
+  --hair: rgb(10 24 58 / 8%);
+  --hair-2: rgb(10 24 58 / 14%);
+  --tint-info: rgb(69 96 135 / 12%);
+  --tint-success: rgb(1 144 155 / 13%);
+  --tint-warning: rgb(208 165 95 / 22%);
+  --tint-error: rgb(180 35 24 / 10%);
 }
 
 .dark .theme-glass {
@@ -206,6 +215,14 @@
   --tone-success: #6fd6dd;
   --tone-warning: #efc977;
   --tone-error: #fda29b;
+  --field: rgb(255 255 255 / 6%);
+  --field-border: rgb(255 255 255 / 18%);
+  --hair: rgb(255 255 255 / 8%);
+  --hair-2: rgb(255 255 255 / 16%);
+  --tint-info: rgb(143 166 200 / 16%);
+  --tint-success: rgb(1 144 155 / 22%);
+  --tint-warning: rgb(239 201 119 / 16%);
+  --tint-error: rgb(249 112 102 / 16%);
 }
 
 /* Glass surfaces. Blur is dropped (solid fill instead) where the browser can't blur or the
@@ -317,6 +334,170 @@
   border-radius: 16px;
   background-color: var(--glass-subtle);
   border: 1px solid var(--color-border);
+}
+
+/* Controls at the mockup's sizes (glass.css .btn, .input, .badge, .tbl, .skel, .dialog).
+   Each size is matched on the component's own size class, so a caller's explicit size wins.
+   Colours skip :hover, :focus-visible and aria-invalid so the components' states still show. */
+.theme-glass [data-slot="button"]:is(.h-8) {
+  height: 40px;
+  padding-inline: 16px;
+  gap: 8px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+.theme-glass [data-slot="button"]:is(.h-7, .h-6) {
+  height: 34px;
+  padding-inline: 12px;
+  gap: 6px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.theme-glass [data-slot="button"]:is(.h-9) {
+  height: 52px;
+  padding-inline: 22px;
+  gap: 8px;
+  border-radius: 14px;
+  font-size: 16px;
+}
+.theme-glass [data-slot="button"]:is(.size-8) {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+.theme-glass [data-slot="button"]:is(.size-7, .size-6) {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.theme-glass [data-slot="button"]:is(.size-9) {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+}
+.theme-glass [data-slot="button"]:is(.h-8, .h-9, .size-8, .size-9) svg:not([class*="size-"]) {
+  width: 18px;
+  height: 18px;
+}
+.theme-glass [data-slot="button"].bg-primary {
+  box-shadow: 0 6px 16px -8px rgb(10 24 58 / 50%);
+}
+.theme-glass [data-slot="button"].border-border:not(:hover, :focus-visible, [aria-expanded="true"]) {
+  background-color: var(--field);
+  border-color: var(--field-border);
+}
+.theme-glass :is([data-slot="input"].h-8, [data-slot="select-trigger"][data-size="default"]) {
+  height: 44px;
+}
+.theme-glass [data-slot="select-trigger"][data-size="sm"] {
+  height: 34px;
+  border-radius: 10px;
+}
+.theme-glass :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="textarea"]) {
+  padding-inline: 14px;
+  border-radius: 12px;
+}
+.theme-glass [data-slot="textarea"] {
+  min-height: 96px;
+  padding-block: 12px;
+}
+.theme-glass :is([data-slot="input"], [data-slot="select-trigger"], [data-slot="textarea"]):not(:focus-visible, [aria-invalid="true"]) {
+  background-color: var(--field);
+  border-color: var(--field-border);
+}
+/* Phones: every button is a 44 px tap target, even where the mockup draws 34 or 40. */
+@media (max-width: 767px) {
+  .theme-glass :is([data-slot="button"], [data-slot="select-trigger"]) {
+    min-height: 44px;
+  }
+  .theme-glass [data-slot="button"]:is(.size-6, .size-7, .size-8, .size-9) {
+    min-width: 44px;
+  }
+}
+
+.theme-glass [data-slot="badge"] {
+  height: 24px;
+  padding-inline: 10px;
+  gap: 6px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.theme-glass [data-slot="badge"][data-variant="teal"] {
+  background-color: var(--tint-success);
+  color: var(--tone-success);
+}
+.theme-glass [data-slot="badge"][data-variant="gold"] {
+  background-color: var(--tint-warning);
+  color: var(--tone-warning);
+}
+.theme-glass [data-slot="badge"][data-variant="red"] {
+  background-color: var(--tint-error);
+  color: var(--tone-error);
+}
+.theme-glass [data-slot="badge"][data-variant="slate"] {
+  background-color: var(--tint-info);
+  color: var(--tone-info);
+}
+/* Tones carry a dot; `data-dot="false"` drops it (counts, story-block kinds). */
+.theme-glass [data-slot="badge"]:is([data-variant="teal"], [data-variant="gold"], [data-variant="red"], [data-variant="slate"]):not([data-dot="false"])::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.theme-glass [data-slot="table-head"] {
+  height: auto;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  background-color: var(--glass-subtle);
+}
+.theme-glass [data-slot="table-cell"] {
+  padding: 14px 16px;
+  font-size: 14px;
+}
+.theme-glass [data-slot="table-row"] {
+  border-color: var(--hair);
+}
+
+.theme-glass [data-slot="skeleton"] {
+  background: linear-gradient(90deg, var(--hair) 0%, var(--hair-2) 50%, var(--hair) 100%);
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-glass [data-slot="skeleton"] {
+    animation: none;
+  }
+}
+
+.theme-glass :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) {
+  width: 100%;
+  max-width: min(540px, calc(100% - 2rem));
+  gap: 16px;
+  padding: 24px;
+  border-radius: 26px;
+}
+/* Phones: dialogs become bottom sheets. */
+@media (max-width: 767px) {
+  .theme-glass :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    max-width: none;
+    max-height: 90dvh;
+    overflow-y: auto;
+    translate: none;
+    padding: 20px 16px 28px;
+    border-radius: 26px 26px 0 0;
+  }
 }
 
 /* Type scale from the style guide's hierarchy page (sizes there are proportions only). */
