@@ -36,6 +36,7 @@ import {
 import { Field } from "@/components/field"
 import { SecretReveal, splitList } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 export default function AppKeysPage() {
   const t = useTranslations()
@@ -51,7 +52,16 @@ export default function AppKeysPage() {
     queryClient.invalidateQueries({
       queryKey: getAppKeysListQueryKey(workspaceId),
     })
-  const revoke = useAppKeysRevoke({ mutation: { onSuccess: refresh } })
+  const done = useDone()
+  const revoke = useAppKeysRevoke({
+    mutation: {
+      onMutate: done.clear,
+      onSuccess: () => {
+        done.show(t("done.keyRevoked"))
+        return refresh()
+      },
+    },
+  })
   const when = (s: string | null) => (s ? new Date(s).toLocaleString() : "—")
 
   return (
@@ -60,13 +70,14 @@ export default function AppKeysPage() {
         <h1 className="mr-auto heading-2 text-lg">{t("appKeys.title")}</h1>
         <CreateKey onCreated={refresh} />
       </div>
+      <Done message={done.message} />
       <ApiError error={revoke.error} fallback={t("common.error")} />
       {keys.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : keys.isError ? (
-        <ApiError error={keys.error} fallback={t("common.error")} />
+        <LoadError error={keys.error} onRetry={() => void keys.refetch()} />
       ) : keys.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("appKeys.empty")}</p>
+        <Empty title={t("appKeys.empty")} />
       ) : (
         <>
           <Table>

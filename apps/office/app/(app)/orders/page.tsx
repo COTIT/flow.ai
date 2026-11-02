@@ -20,6 +20,7 @@ import {
 import { formatMoney } from "@genesy/ui/lib/money"
 import { selectClass } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 import { customerName, orderStatuses } from "./shared"
 
@@ -67,9 +68,12 @@ export default function OrdersPage({
       {orders.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : orders.isError ? (
-        <ApiError error={orders.error} fallback={t("common.error")} />
+        <LoadError error={orders.error} onRetry={() => void orders.refetch()} />
       ) : orders.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("orders.empty")}</p>
+        <Empty
+          title={t("orders.empty")}
+          onClear={status ? () => router.push("?") : undefined}
+        />
       ) : (
         <>
           <Table>

@@ -17,6 +17,7 @@ import {
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"
+import { Empty, LoadError } from "@/components/states"
 
 export default function ShiftsPage() {
   const t = useTranslations()
@@ -35,9 +36,10 @@ export default function ShiftsPage() {
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (shifts.isError)
-    return <ApiError error={shifts.error} fallback={t("common.error")} />
-  if (shifts.data.data.length === 0)
-    return <p className="text-sm text-muted-foreground">{t("till.noShifts")}</p>
+    return (
+      <LoadError error={shifts.error} onRetry={() => void shifts.refetch()} />
+    )
+  if (shifts.data.data.length === 0) return <Empty title={t("till.noShifts")} />
   return (
     <>
       <Table>

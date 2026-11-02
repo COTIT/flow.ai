@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { Empty, LoadError } from "@/components/states"
 
 export default function ProductsPage({
   searchParams,
@@ -62,11 +63,15 @@ export default function ProductsPage({
       {products.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : products.isError ? (
-        <p role="alert" className="text-sm text-destructive">
-          {t("common.error")}
-        </p>
+        <LoadError
+          error={products.error}
+          onRetry={() => void products.refetch()}
+        />
       ) : products.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("products.empty")}</p>
+        <Empty
+          title={t("products.empty")}
+          onClear={q ? () => router.push("?") : undefined}
+        />
       ) : (
         <>
           <Table>

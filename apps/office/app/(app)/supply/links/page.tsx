@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 export default function SupplyLinksPage() {
   const t = useTranslations()
@@ -38,8 +39,16 @@ export default function SupplyLinksPage() {
     queryClient.invalidateQueries({
       queryKey: getSupplyLinksListQueryKey(workspaceId),
     })
-  const accept = useSupplyLinksAccept({ mutation: { onSuccess } })
-  const revoke = useSupplyLinksRevoke({ mutation: { onSuccess } })
+  const done = useDone()
+  const ok = (message: string) => ({
+    onMutate: done.clear,
+    onSuccess: () => {
+      done.show(message)
+      return onSuccess()
+    },
+  })
+  const accept = useSupplyLinksAccept({ mutation: ok(t("done.linkAccepted")) })
+  const revoke = useSupplyLinksRevoke({ mutation: ok(t("done.linkRevoked")) })
   const label = (group: string, key: string) =>
     t.has(`supply.${group}.${key}`) ? t(`supply.${group}.${key}`) : key
   // The allow-list in words; an empty list still lets the lot cross, with no farmer details.
@@ -54,16 +63,19 @@ export default function SupplyLinksPage() {
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (links.isError)
-    return <ApiError error={links.error} fallback={t("common.error")} />
+    return (
+      <LoadError error={links.error} onRetry={() => void links.refetch()} />
+    )
   return (
     <>
       <p className="text-sm text-muted-foreground">{t("supply.linksHint")}</p>
+      <Done message={done.message} />
       <ApiError
         error={accept.error ?? revoke.error}
         fallback={t("common.error")}
       />
       {links.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("supply.noLinks")}</p>
+        <Empty title={t("supply.noLinks")} />
       ) : (
         <>
           <Table>

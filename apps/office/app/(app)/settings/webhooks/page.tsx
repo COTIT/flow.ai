@@ -12,7 +12,10 @@ import {
   useWebhooksList,
   useWebhooksUpdate,
 } from "@genesy/api-client/endpoints/webhooks"
-import type { WebhookEndpointResource, WebhookEvent } from "@genesy/api-client/model"
+import type {
+  WebhookEndpointResource,
+  WebhookEvent,
+} from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
@@ -37,6 +40,7 @@ import {
 import { Field } from "@/components/field"
 import { SecretReveal, splitList } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 export default function WebhooksPage() {
   const t = useTranslations()
@@ -52,21 +56,36 @@ export default function WebhooksPage() {
     queryClient.invalidateQueries({
       queryKey: getWebhooksListQueryKey(workspaceId),
     })
-  const remove = useWebhooksDelete({ mutation: { onSuccess: refresh } })
+  const done = useDone()
+  const remove = useWebhooksDelete({
+    mutation: {
+      onMutate: done.clear,
+      onSuccess: () => {
+        done.show(t("done.endpointDeleted"))
+        return refresh()
+      },
+    },
+  })
 
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="mr-auto heading-2 text-lg">{t("webhooks.title")}</h1>
-        <EndpointDialog onDone={refresh} />
+        <EndpointDialog
+          onDone={() => {
+            done.show(t("done.endpointAdded"))
+            void refresh()
+          }}
+        />
       </div>
+      <Done message={done.message} />
       <ApiError error={remove.error} fallback={t("common.error")} />
       {hooks.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : hooks.isError ? (
-        <ApiError error={hooks.error} fallback={t("common.error")} />
+        <LoadError error={hooks.error} onRetry={() => void hooks.refetch()} />
       ) : hooks.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("webhooks.empty")}</p>
+        <Empty title={t("webhooks.empty")} />
       ) : (
         <>
           <Table>
@@ -97,7 +116,13 @@ export default function WebhooksPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-2">
-                      <EndpointDialog endpoint={h} onDone={refresh} />
+                      <EndpointDialog
+                        endpoint={h}
+                        onDone={() => {
+                          done.show(t("done.endpointSaved"))
+                          void refresh()
+                        }}
+                      />
                       <ConfirmDialog
                         trigger={t("webhooks.delete")}
                         title={t("webhooks.deleteTitle")}

@@ -40,6 +40,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
+import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
 
 type Named = { name?: string; bin_code?: string; bin_name?: string } | null
 
@@ -57,12 +58,16 @@ export default function ProductPage({
   const stock = useStockWithBins(workspaceId, id, enabled)
   const [page, setPage] = React.useState(1)
   const movements = useStockMovements(workspaceId, id, { page }, enabled)
+  const done = useDone()
   const update = useProductsUpdate({
     mutation: {
-      onSuccess: () =>
-        queryClient.invalidateQueries({
+      onMutate: done.clear,
+      onSuccess: () => {
+        done.show(t("done.productSaved"))
+        return queryClient.invalidateQueries({
           queryKey: getProductsGetQueryKey(workspaceId, id),
-        }),
+        })
+      },
     },
   })
   const errors = fieldErrors(update.error)
@@ -72,13 +77,20 @@ export default function ProductPage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (product.isError)
-    return <ApiError error={product.error} fallback={t("common.error")} />
+    return (
+      <LoadError
+        error={product.error}
+        onRetry={() => void product.refetch()}
+        backHref="/products"
+      />
+    )
   const p = product.data.data
 
   return (
     <>
       <section className="flex flex-col gap-3">
         <h1 className="heading-2 text-lg">{p.name}</h1>
+        <Done message={done.message} />
         <form
           key={p.last_updated_at}
           className="flex max-w-2xl flex-col gap-3"
@@ -159,11 +171,6 @@ export default function ProductPage({
             {t("products.storeOnly")}
           </label>
           <ApiError error={update.error} fallback={t("common.error")} />
-          {update.isSuccess ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              {t("actions.saved")}
-            </p>
-          ) : null}
           <Button
             type="submit"
             className="self-start"
@@ -182,6 +189,7 @@ export default function ProductPage({
           <MutateStock
             productId={id}
             onDone={() => {
+              done.show(t("done.stockChanged"))
               for (const queryKey of [
                 getStockWithBinsQueryKey(workspaceId, id),
                 getStockMovementsQueryKey(workspaceId, id),
@@ -193,9 +201,9 @@ export default function ProductPage({
         {stock.isPending ? (
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : stock.isError ? (
-          <ApiError error={stock.error} fallback={t("common.error")} />
+          <LoadError error={stock.error} onRetry={() => void stock.refetch()} />
         ) : stock.data.data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("stock.empty")}</p>
+          <Empty title={t("stock.empty")} />
         ) : (
           <Table>
             <TableHeader>
@@ -241,11 +249,12 @@ export default function ProductPage({
         {movements.isPending ? (
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : movements.isError ? (
-          <ApiError error={movements.error} fallback={t("common.error")} />
+          <LoadError
+            error={movements.error}
+            onRetry={() => void movements.refetch()}
+          />
         ) : movements.data.data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("stock.noMovements")}
-          </p>
+          <Empty title={t("stock.noMovements")} />
         ) : (
           <>
             <Table>
@@ -354,6 +363,7 @@ function MutateStock({
           <DialogHeader>
             <DialogTitle>{t("stock.change")}</DialogTitle>
           </DialogHeader>
+          <Capped meta={warehouses.data?.meta} />
           <Field
             id="m-warehouse"
             label={t("stock.warehouse")}

@@ -128,12 +128,10 @@ test.describe(() => {
     await dialog.getByLabel("Kg used").fill("1")
     await dialog.getByRole("button", { name: "Pack into jars" }).click()
     await expect(
-      dialog
-        .getByRole("alert")
-        .filter({
-          hasText:
-            "Only a lot from a supply batch or a supply transfer can be packed.",
-        })
+      dialog.getByRole("alert").filter({
+        hasText:
+          "Only a lot from a supply batch or a supply transfer can be packed.",
+      })
     ).toBeVisible()
   })
 

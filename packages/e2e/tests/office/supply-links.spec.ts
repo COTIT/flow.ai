@@ -77,6 +77,9 @@ test("supply links: allow-list shown; accept asks first and cancel sends nothing
     .getByRole("button", { name: "Accept" })
     .click()
   await expect(ruaha.getByText("Live", { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Supply link accepted." })
+  ).toBeVisible()
   await expect(ruaha.getByRole("button", { name: "Accept" })).toHaveCount(0)
   expect(
     api.callsTo("POST", "/workspace/:ws/supply-links/:id/accept")

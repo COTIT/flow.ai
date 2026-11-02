@@ -99,7 +99,10 @@ test("create a batch: it opens and shows in the list", async ({
   await dialog.getByLabel("Batch code").fill("ILU-2026-02")
   await dialog.getByLabel("Produced on").fill("2026-10-01")
   await dialog.getByRole("button", { name: "Save" }).click()
-  await expect(page).toHaveURL(/\/lots\/lot-2$/)
+  await expect(page).toHaveURL(/\/lots\/lot-2\?done=created$/)
+  await expect(
+    page.getByRole("status").filter({ hasText: "Batch created." })
+  ).toBeVisible()
   await expect(page.getByRole("heading", { name: "ILU-2026-02" })).toBeVisible()
   expect(api.callsTo("POST", "/workspace/:ws/lots")[0]?.body).toMatchObject({
     product_id: product.id,
@@ -135,7 +138,10 @@ test("status filter goes to the API", async ({ page, api }) => {
   lotsApi(api)
   await page.goto("/lots")
   await page.getByRole("combobox", { name: "Status" }).selectOption("recalled")
-  await expect(page.getByText("No batches yet.")).toBeVisible()
+  // A filter that finds nothing says so, and offers the way back.
+  await expect(page.getByText("No matches")).toBeVisible()
+  await page.getByRole("button", { name: "Clear filters" }).click()
+  await expect(page.getByRole("link", { name: "ILU-2026-01" })).toBeVisible()
   expect(api.calls.at(-1)?.path).toMatch(/\/lots$/)
 })
 

@@ -33,6 +33,7 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
+import { Notice } from "@genesy/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -45,6 +46,7 @@ import { formatMoney, toMinor } from "@genesy/ui/lib/money"
 import { Field } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
 import { useIdempotencyKey } from "@/lib/idempotency"
+import { Done, LoadError, useDone } from "@/components/states"
 
 import { customerName } from "../shared"
 
@@ -68,25 +70,46 @@ export default function OrderPage({
     ])
       void queryClient.invalidateQueries({ queryKey })
   }
+  const done = useDone()
+  const ok = (message: string) => () => {
+    done.show(message)
+    onSuccess()
+  }
   const vars = { workspace: workspaceId, order: id }
   const confirmKey = useIdempotencyKey()
   const completeKey = useIdempotencyKey()
   const cancelKey = useIdempotencyKey()
   const invoiceKey = useIdempotencyKey()
   const confirm = useOrdersConfirm({
-    mutation: { onSuccess, onSettled: (_d, e) => confirmKey.settle(e) },
+    mutation: {
+      onMutate: done.clear,
+      onSuccess: ok(t("done.order.confirmed")),
+      onSettled: (_d, e) => confirmKey.settle(e),
+    },
     request: confirmKey.request,
   })
   const complete = useOrdersComplete({
-    mutation: { onSuccess, onSettled: (_d, e) => completeKey.settle(e) },
+    mutation: {
+      onMutate: done.clear,
+      onSuccess: ok(t("done.order.completed")),
+      onSettled: (_d, e) => completeKey.settle(e),
+    },
     request: completeKey.request,
   })
   const cancel = useOrdersCancel({
-    mutation: { onSuccess, onSettled: (_d, e) => cancelKey.settle(e) },
+    mutation: {
+      onMutate: done.clear,
+      onSuccess: ok(t("done.order.cancelled")),
+      onSettled: (_d, e) => cancelKey.settle(e),
+    },
     request: cancelKey.request,
   })
   const invoice = useOrdersInvoice({
-    mutation: { onSuccess, onSettled: (_d, e) => invoiceKey.settle(e) },
+    mutation: {
+      onMutate: done.clear,
+      onSuccess: ok(t("done.order.invoiced")),
+      onSettled: (_d, e) => invoiceKey.settle(e),
+    },
     request: invoiceKey.request,
   })
   const actionError =
@@ -97,7 +120,13 @@ export default function OrderPage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (order.isError)
-    return <ApiError error={order.error} fallback={t("common.error")} />
+    return (
+      <LoadError
+        error={order.error}
+        onRetry={() => void order.refetch()}
+        backHref="/orders"
+      />
+    )
   const o = order.data.data
   const money = (minor: number) =>
     formatMoney(minor, o.decimals, o.currency, locale)
@@ -114,6 +143,7 @@ export default function OrderPage({
           <StatusBadge status={o.status} label={statusLabel(o.status)} />
           <span className="text-sm text-muted-foreground">{o.source}</span>
         </div>
+        <Done message={done.message} />
         <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm">
           <dt className="text-muted-foreground">{t("orders.customer")}</dt>
           <dd>{customerName(o.customer) || "—"}</dd>
@@ -138,6 +168,9 @@ export default function OrderPage({
           ) : null}
         </dl>
 
+        {o.allowed_actions.length === 0 ? (
+          <Notice title={t("orders.nothingToDo")} />
+        ) : null}
         <div className="flex flex-wrap gap-2">
           {can("confirm") ? (
             <Button
@@ -147,7 +180,9 @@ export default function OrderPage({
               {t("orders.confirm")}
             </Button>
           ) : null}
-          {can("pick") ? <PickDialog order={o} onDone={onSuccess} /> : null}
+          {can("pick") ? (
+            <PickDialog order={o} onDone={ok(t("done.order.picked"))} />
+          ) : null}
           {can("complete") ? (
             <ConfirmDialog
               trigger={t("orders.complete")}
@@ -170,7 +205,7 @@ export default function OrderPage({
             </Button>
           ) : null}
           {can("return") ? (
-            <ReturnsDialog order={o} onDone={onSuccess} />
+            <ReturnsDialog order={o} onDone={ok(t("done.order.returned"))} />
           ) : null}
           {can("refund") ? <RefundDialog order={o} onDone={onSuccess} /> : null}
           {can("cancel") ? (
