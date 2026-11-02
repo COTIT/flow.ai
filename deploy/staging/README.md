@@ -96,7 +96,7 @@ Let's Encrypt can only issue the certificates once these names resolve.
 ## One-time setup (on the VPS)
 
 ```bash
-# 1. A deploy checkout (as user deploy), separate from the CI runner's
+# 1. A deploy checkout (as user deploy)
 sudo mkdir -p /srv/genesy-staging && sudo chown deploy /srv/genesy-staging
 git clone git@github.com:COTIT/genesy.git /srv/genesy-staging
 cd /srv/genesy-staging/deploy/staging
@@ -142,7 +142,7 @@ To rotate: write the new token into `~/.config/genesy/ghcr-token` on the VPS, ru
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main`, including its `images` job. That job built, scanned and pushed this commit's images (`ghcr.io/cotit/genesy-<app>:<sha>`, with `-staging` for api, office and field); the VPS only pulls them. It is the same script and the same steps as production (`../production/README.md`, "Deploy from main", "Rollback" and "Fallback: build on the VPS"); only the env name changes:
+Only deploy a commit whose `ci` workflow passed on `main`, including its two `images` jobs (api and web). They built, scanned and pushed this commit's images, or copied the tags of the last green commit when their inputs didn't change (`ghcr.io/cotit/genesy-<app>:<sha>`, with `-staging` for api, office and field); the VPS only pulls them. It is the same script and the same steps as production (`../production/README.md`, "Deploy from main", "Rollback" and "Fallback: build on the VPS"); only the env name changes:
 
 ```bash
 cd /srv/genesy-staging && deploy/deploy.sh staging <green-main-sha> --bundle /tmp/genesy.bundle

@@ -89,3 +89,17 @@ test("the screen shows its data", async ({ page }) => {
 - Shop data lives in `packages/e2e/mock/` (`fixtures.mjs` holds the ids and codes specs use).
 - Query by role and name (`getByRole`), as a screen-reader user would find things.
 - A new app gets its projects with `projectsFor("<app>", { testDir, baseURL })` and a `webServer` entry in `packages/e2e/playwright.config.ts`.
+
+## CI runners and cost
+
+`.github/workflows/ci.yml` runs on GitHub-hosted runners (2-core `ubuntu-24.04`). The repo is private, so every minute is billed ($0.006/min, each job rounded up to a whole minute, $12 a month included on the Free plan). The spend cap is a budget in GitHub billing. What keeps the bill down:
+
+- **Skip what didn't change.** The `changes` job compares the commit with the last green `main` commit (`deploy/ci/changes.sh`, tested by `deploy/ci/changes.test.sh`). `api` runs only for `apps/api/`, `web` (checks, builds, e2e) only for web code or `apps/api/openapi.json`. Changing the workflow or `deploy/ci/` runs everything. A missing or unknown base runs everything.
+- **A newer push cancels the older run**, on `main` too.
+- **Images:** the two `images` jobs (api, web) build, scan and push only a group whose inputs changed. Otherwise they copy the last green commit's tags in the registry, so every green commit still has a full set of `ghcr.io/cotit/genesy-<app>:<sha>` tags.
+- **Caches:**
+  - Rust dependencies (one entry per `Cargo.lock`, saved from `main`), the pnpm store, `cargo-audit` and the Trivy DB (one a day) use the Actions cache.
+  - The API image's dependency layer is cached in GHCR (`genesy-buildcache`).
+  - Playwright browsers come in the job's container image.
+
+`ci-selfhosted.yml` is the old VPS-runner CI, kept only as a by-hand rollback until it is removed together with `deploy/ci-runner/`.
