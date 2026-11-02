@@ -68,7 +68,10 @@
     "checkout": "Nenda kulipa",
     "emptyWhy": "Ongeza kitu kutoka dukani na kitaonekana hapa.",
     "browse": "Nenda dukani",
-    "short": "Kikapu"
+    "short": "Kikapu",
+    "keepShopping": "Endelea kununua",
+    "summary": "Muhtasari",
+    "items": "Bidhaa"
   },
   "checkout": {
     "title": "Kulipa",
@@ -92,11 +95,21 @@
       "unavailable": "Hatuwezi kupokea oda kwa sasa. Tafadhali jaribu tena baada ya dakika moja."
     },
     "fieldsTitle": "Tafadhali kagua sehemu zilizowekwa alama",
-    "orderTitle": "Tafadhali kagua oda yako"
+    "orderTitle": "Tafadhali kagua oda yako",
+    "steps": "Hatua za malipo",
+    "step": {
+      "cart": "Kikapu",
+      "details": "Maelezo",
+      "pay": "Lipa"
+    },
+    "contact": "Mawasiliano",
+    "address": "Anwani ya kusafirisha",
+    "hint": {
+      "email": "Risiti yako na kiungo cha oda vitatumwa hapa."
+    }
   },
   "order": {
     "title": "Oda yako",
-    "heading": "Oda {number}",
     "awaiting": "Inasubiri malipo.",
     "heldUntil": "Bidhaa zako zimehifadhiwa hadi <time></time>.",
     "paid": "Asante! Malipo yamepokelewa na oda yako imethibitishwa.",
@@ -106,7 +119,6 @@
     "subtotal": "Jumla ndogo",
     "vat": "VAT",
     "total": "Jumla",
-    "pay": "Lipa sasa",
     "problem": {
       "no_provider": {
         "title": "Malipo ya mtandaoni bado hayapatikani",
@@ -135,6 +147,13 @@
     "loadFailed": {
       "title": "Hatukuweza kupakia oda yako",
       "body": "Oda yako iko salama. Tafadhali jaribu tena baada ya muda mfupi."
+    },
+    "label": "Oda",
+    "payAmount": "Lipa {amount}",
+    "badge": {
+      "awaiting": "Inasubiri malipo",
+      "paid": "Imelipwa",
+      "cancelled": "Imeghairiwa"
     }
   }
 }

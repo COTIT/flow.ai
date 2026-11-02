@@ -68,7 +68,10 @@
     "checkout": "Naar afrekenen",
     "emptyWhy": "Voeg iets toe uit de winkel, dan zie je het hier.",
     "browse": "Naar de winkel",
-    "short": "Winkelwagen"
+    "short": "Winkelwagen",
+    "keepShopping": "Verder winkelen",
+    "summary": "Overzicht",
+    "items": "Artikelen"
   },
   "checkout": {
     "title": "Afrekenen",
@@ -92,11 +95,21 @@
       "unavailable": "We kunnen nu geen bestellingen aannemen. Probeer het over een minuut opnieuw."
     },
     "fieldsTitle": "Controleer de gemarkeerde velden",
-    "orderTitle": "Controleer je bestelling"
+    "orderTitle": "Controleer je bestelling",
+    "steps": "Stappen bij het afrekenen",
+    "step": {
+      "cart": "Winkelwagen",
+      "details": "Gegevens",
+      "pay": "Betalen"
+    },
+    "contact": "Contact",
+    "address": "Verzendadres",
+    "hint": {
+      "email": "Je bon en de link naar je bestelling komen hier."
+    }
   },
   "order": {
     "title": "Je bestelling",
-    "heading": "Bestelling {number}",
     "awaiting": "Wacht op betaling.",
     "heldUntil": "Je artikelen zijn gereserveerd tot <time></time>.",
     "paid": "Bedankt! Je betaling is binnen en je bestelling is bevestigd.",
@@ -106,7 +119,6 @@
     "subtotal": "Subtotaal",
     "vat": "Btw",
     "total": "Totaal",
-    "pay": "Nu betalen",
     "problem": {
       "no_provider": {
         "title": "Online betalen is nog niet mogelijk",
@@ -135,6 +147,13 @@
     "loadFailed": {
       "title": "We konden je bestelling niet laden",
       "body": "Je bestelling is veilig. Probeer het zo opnieuw."
+    },
+    "label": "Bestelling",
+    "payAmount": "Betaal {amount}",
+    "badge": {
+      "awaiting": "Wacht op betaling",
+      "paid": "Betaald",
+      "cancelled": "Geannuleerd"
     }
   }
 }

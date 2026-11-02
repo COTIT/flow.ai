@@ -1,32 +1,47 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
-import { Button, buttonVariants } from "@genesy/ui/components/button"
-import { EmptyState } from "@genesy/ui/components/empty-state"
+import { Button } from "@genesy/ui/components/button"
 import { Input } from "@genesy/ui/components/input"
 import { Label } from "@genesy/ui/components/label"
 import { Notice } from "@genesy/ui/components/notice"
+import { Skeleton } from "@genesy/ui/components/skeleton"
+import { formatMoney } from "@genesy/ui/lib/money"
+import { cn } from "@genesy/ui/lib/utils"
 
 import { placeOrder, type CheckoutState } from "@/app/actions"
+import { btnLg, card, cardTitle, honey } from "@/lib/look"
 import { useCart } from "@/lib/use-cart"
 
-const FIELDS = [
+import { EmptyCart } from "./cart-view"
+
+type Field = readonly [name: string, type: string, autoComplete: string]
+const CONTACT: Field[] = [
   ["email", "email", "email"],
-  ["name", "text", "name"],
   ["phone", "tel", "tel"],
+  ["name", "text", "name"],
+]
+const ADDRESS: Field[] = [
   ["line1", "text", "address-line1"],
   ["line2", "text", "address-line2"],
+]
+const PLACE: Field[] = [
   ["postal_code", "text", "postal-code"],
   ["city", "text", "address-level2"],
   ["country", "text", "country"],
-] as const
+]
+const FIELDS = [...CONTACT, ...ADDRESS, ...PLACE]
+/** Under its field, as drawn: only the email has a hint. */
+const HINTED = new Set(["email"])
 
+const thumb = cn(honey, "size-12 shrink-0 rounded-[12px]")
+
+/** Mock `ShopCheckout`: Contact and Shipping address cards beside "Your order". */
 export function CheckoutForm() {
   const t = useTranslations("checkout")
-  const tc = useTranslations("cart")
+  const locale = useLocale()
   const { lines, ready } = useCart()
   // One key per visit: a double submit or a retry places one order, not two.
   const [key] = React.useState(() => crypto.randomUUID())
@@ -35,19 +50,7 @@ export function CheckoutForm() {
     FormData
   >(placeOrder, {})
 
-  if (!ready) return null
-  if (!lines.length)
-    return (
-      <EmptyState
-        title={tc("empty")}
-        description={tc("emptyWhy")}
-        action={
-          <Link href="/" className={buttonVariants()}>
-            {tc("browse")}
-          </Link>
-        }
-      />
-    )
+  if (ready && !lines.length) return <EmptyCart />
 
   // The API's 422 paths: customer fields go under their input, the rest (e.g.
   // `lines.1.quantity`, named by the cart line's product) into the notice on top.
@@ -66,10 +69,54 @@ export function CheckoutForm() {
   const fieldsWrong =
     Object.keys(fieldMessages).length > 0 || (state.missing?.length ?? 0) > 0
 
+  const field = ([name, type, autoComplete]: Field, className?: string) => {
+    const missing = state.missing?.includes(name)
+    const messages = missing ? [t("required")] : fieldMessages[name]
+    // The error first: it is what the buyer must act on.
+    const described = [
+      messages && `${name}-error`,
+      HINTED.has(name) && `${name}-hint`,
+    ]
+      .filter(Boolean)
+      .join(" ")
+    return (
+      <div
+        key={name}
+        className={cn("flex min-w-0 flex-col gap-1.5", className)}
+      >
+        <Label htmlFor={name} className="text-[13px]">
+          {t(`field.${name}`)}
+        </Label>
+        <Input
+          id={name}
+          name={name}
+          type={type}
+          autoComplete={autoComplete}
+          maxLength={255}
+          aria-invalid={messages ? true : undefined}
+          aria-describedby={described || undefined}
+        />
+        {HINTED.has(name) ? (
+          <p id={`${name}-hint`} className="text-xs text-muted-foreground">
+            {t(`hint.${name}`)}
+          </p>
+        ) : null}
+        {messages ? (
+          <p
+            id={`${name}-error`}
+            className="text-xs font-medium text-(--tone-error)"
+          >
+            {messages.join(" ")}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
   return (
     <form
       action={action}
-      className="grid gap-8 md:grid-cols-[1fr_20rem]"
+      className="grid grid-cols-12 gap-3 md:gap-4"
       noValidate
     >
       <input type="hidden" name="key" value={key} />
@@ -84,7 +131,7 @@ export function CheckoutForm() {
           }))
         )}
       />
-      <div className="flex flex-col gap-4">
+      <div className="col-span-12 flex min-w-0 flex-col gap-4 md:col-span-8">
         {state.problem ? (
           <Notice
             // Too busy is temporary and not the buyer's fault: a warning, not an error.
@@ -102,51 +149,74 @@ export function CheckoutForm() {
         ) : fieldsWrong ? (
           <Notice variant="error" title={t("fieldsTitle")} />
         ) : null}
-        {FIELDS.map(([name, type, autoComplete]) => {
-          const missing = state.missing?.includes(name)
-          const messages = missing ? [t("required")] : fieldMessages[name]
-          return (
-            <div key={name} className="flex flex-col gap-1">
-              <Label htmlFor={name}>{t(`field.${name}`)}</Label>
-              <Input
-                id={name}
-                name={name}
-                type={type}
-                autoComplete={autoComplete}
-                maxLength={255}
-                aria-invalid={messages ? true : undefined}
-                aria-describedby={messages ? `${name}-error` : undefined}
-              />
-              {messages ? (
-                <p id={`${name}-error`} className="text-sm text-destructive">
-                  {messages.join(" ")}
-                </p>
-              ) : null}
-            </div>
-          )
-        })}
+        <section aria-labelledby="checkout-contact" className={card}>
+          <h2 id="checkout-contact" className={cardTitle}>
+            {t("contact")}
+          </h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {CONTACT.map((f) =>
+              field(f, f[0] === "name" ? "md:col-span-2" : undefined)
+            )}
+          </div>
+        </section>
+        <section aria-labelledby="checkout-address" className={card}>
+          <h2 id="checkout-address" className={cardTitle}>
+            {t("address")}
+          </h2>
+          {ADDRESS.map((f) => field(f))}
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            {PLACE.map((f) => field(f))}
+          </div>
+        </section>
       </div>
-      <aside className="flex h-fit flex-col gap-4 rounded-lg bg-muted p-4">
-        <h2 className="heading-3">{t("summary")}</h2>
-        <ul className="flex flex-col gap-1 text-sm">
-          {lines.map((l) => (
-            <li
-              key={`${l.productId}:${l.variantId}`}
-              className="flex justify-between gap-2"
-            >
-              <span>
-                {l.name}
-                {l.variantLabel ? ` (${l.variantLabel})` : ""}
-              </span>
-              <span className="tabular-nums">× {l.quantity}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="text-sm text-muted-foreground">{t("totalNext")}</p>
-        <Button type="submit" size="lg" disabled={pending}>
+
+      <section
+        aria-labelledby="checkout-order"
+        className={cn(card, "col-span-12 md:col-span-4")}
+      >
+        <h2 id="checkout-order" className={cardTitle}>
+          {t("summary")}
+        </h2>
+        {ready ? (
+          <ul className="flex flex-col gap-3">
+            {lines.map((l) => (
+              <li
+                key={`${l.productId}:${l.variantId}`}
+                className="flex items-center gap-3"
+              >
+                <span aria-hidden className={thumb} />
+                <div className="min-w-0 flex-auto">
+                  <p className="text-[13px] font-semibold">
+                    {l.name}
+                    {l.variantLabel ? ` · ${l.variantLabel}` : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {l.quantity} ×{" "}
+                    {formatMoney(l.priceGross, l.decimals, l.currency, locale)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div aria-hidden className="flex items-center gap-3">
+            <Skeleton className={thumb} />
+            <div className="flex flex-auto flex-col gap-2">
+              <Skeleton className="h-3.5 w-3/4" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </div>
+        )}
+        <div className="h-px bg-border" />
+        <p className="text-xs text-muted-foreground">{t("totalNext")}</p>
+        <Button
+          type="submit"
+          disabled={!ready || pending}
+          className={cn(btnLg, "w-full")}
+        >
           {t("place")}
         </Button>
-      </aside>
+      </section>
     </form>
   )
 }

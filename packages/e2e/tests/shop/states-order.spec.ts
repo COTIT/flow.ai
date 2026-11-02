@@ -55,7 +55,7 @@ test("an expired order is a warning with a way back to the shop", async ({
     "This order expired before it was paid"
   )
   await expect(warning).toContainText("The items went back on the shelf.")
-  await expect(page.getByRole("button", { name: "Pay now" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: /^Pay \$\d/ })).toHaveCount(0)
   await warning.getByRole("link", { name: "Shop again" }).click()
   await expect(page).toHaveURL("/")
 })
@@ -65,7 +65,7 @@ test("a failed payment start is an error, and the button offers to try again", a
   request,
 }) => {
   await page.goto(`/orders/${await placeOrder(request, PROVIDER_DOWN_EMAIL)}`)
-  await page.getByRole("button", { name: "Pay now" }).click()
+  await page.getByRole("button", { name: /^Pay \$\d/ }).click()
   const error = page
     .getByRole("alert")
     .filter({ hasText: "The payment service isn't answering" })

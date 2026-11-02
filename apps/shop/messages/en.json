@@ -68,7 +68,10 @@
     "checkout": "Go to checkout",
     "emptyWhy": "Add something from the shop and it will show up here.",
     "browse": "Browse the shop",
-    "short": "Cart"
+    "short": "Cart",
+    "keepShopping": "Keep shopping",
+    "summary": "Summary",
+    "items": "Items"
   },
   "checkout": {
     "title": "Checkout",
@@ -92,11 +95,21 @@
       "unavailable": "We can't place orders right now. Please try again in a minute."
     },
     "fieldsTitle": "Please check the highlighted fields",
-    "orderTitle": "Please check your order"
+    "orderTitle": "Please check your order",
+    "steps": "Checkout steps",
+    "step": {
+      "cart": "Cart",
+      "details": "Details",
+      "pay": "Pay"
+    },
+    "contact": "Contact",
+    "address": "Shipping address",
+    "hint": {
+      "email": "Your receipt and order link go here."
+    }
   },
   "order": {
     "title": "Your order",
-    "heading": "Order {number}",
     "awaiting": "Waiting for payment.",
     "heldUntil": "Your items are reserved until <time></time>.",
     "paid": "Thank you! Your payment is in and your order is confirmed.",
@@ -106,7 +119,6 @@
     "subtotal": "Subtotal",
     "vat": "VAT",
     "total": "Total",
-    "pay": "Pay now",
     "problem": {
       "no_provider": {
         "title": "Online payment isn't available yet",
@@ -135,6 +147,13 @@
     "loadFailed": {
       "title": "We couldn't load your order",
       "body": "Your order is safe. Please try again in a moment."
+    },
+    "label": "Order",
+    "payAmount": "Pay {amount}",
+    "badge": {
+      "awaiting": "Awaiting payment",
+      "paid": "Paid",
+      "cancelled": "Cancelled"
     }
   }
 }

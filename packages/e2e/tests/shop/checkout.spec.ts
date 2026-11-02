@@ -4,39 +4,13 @@ import {
   NO_PROVIDER_EMAIL,
   PRODUCT,
   STOCK_LIMIT,
-  VARIANT,
 } from "../../mock/fixtures.mjs"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
+import { seedCart } from "./cart"
 import { placeOrder } from "./orders"
 
 // Each test drives one stage and starts from seeded state for the rest: on a loaded
 // machine the whole purchase in one test overran its budget at whatever step it was on.
-
-/** Starts the browser with `quantity` honey 500 g jars in the cart (`genesy.cart`, once). */
-async function seedCart(page: Page, quantity: number) {
-  const cart = {
-    state: {
-      lines: [
-        {
-          productId: PRODUCT.honey,
-          variantId: VARIANT.honey500,
-          quantity,
-          name: "Ilundo Wild Forest Honey",
-          variantLabel: "Size: 500 g",
-          priceGross: 2499,
-          currency: "USD",
-          decimals: 2,
-        },
-      ],
-    },
-    version: 0,
-  }
-  // Only when absent, so a cart the app empties stays empty on the next page load.
-  await page.addInitScript((v) => {
-    if (!localStorage.getItem("genesy.cart"))
-      localStorage.setItem("genesy.cart", v)
-  }, JSON.stringify(cart))
-}
 
 async function fillCustomer(page: Page, email = "buyer@e2e.test") {
   await page.getByLabel("Email").fill(email)
@@ -112,7 +86,7 @@ test("paying returns to the order page, thanks the buyer and empties the cart", 
     (r) =>
       r.request().isNavigationRequest() && r.url().endsWith(`/orders/${id}`)
   )
-  await page.getByRole("button", { name: "Pay now" }).click()
+  await page.getByRole("button", { name: /^Pay \$\d/ }).click()
   await back
   await expect(
     page
@@ -154,13 +128,13 @@ test("with no payment provider configured, the order page says so calmly", async
   request,
 }) => {
   await page.goto(`/orders/${await placeOrder(request, NO_PROVIDER_EMAIL)}`)
-  await page.getByRole("button", { name: "Pay now" }).click()
+  await page.getByRole("button", { name: /^Pay \$\d/ }).click()
   await expect(
     page
       .getByRole("status")
       .filter({ hasText: "Online payment isn't available yet" })
   ).toBeVisible()
-  await expect(page.getByRole("button", { name: "Pay now" })).toBeDisabled()
+  await expect(page.getByRole("button", { name: /^Pay \$\d/ })).toBeDisabled()
   await expectNoHorizontalScroll(page)
 })
 

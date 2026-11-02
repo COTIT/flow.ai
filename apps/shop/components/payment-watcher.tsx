@@ -10,7 +10,7 @@ import { Notice } from "@genesy/ui/components/notice"
 /**
  * Shown while an order awaits payment. Re-reads the page every 3 s (the provider's webhook
  * can land after the buyer is back), skipping hidden tabs. After 2 minutes it stops and
- * swaps `children` for a warning with "Check again". Mounted only while unpaid, so a
+ * puts a warning above `children` with "Check again". Mounted only while unpaid, so a
  * status change stops it. The API decides the status; this only re-reads it.
  */
 export function PaymentWatcher({ children }: { children: React.ReactNode }) {
@@ -31,25 +31,29 @@ export function PaymentWatcher({ children }: { children: React.ReactNode }) {
   }, [router, round])
 
   if (!gaveUp) return children
+  // The warning comes first; the order's own notice (with its pay button) stays below it.
   return (
-    <Notice
-      live={false}
-      variant="warning"
-      title={t("title")}
-      action={
-        <Button
-          variant="outline"
-          onClick={() => {
-            setGaveUp(false)
-            setRound((r) => r + 1)
-            router.refresh()
-          }}
-        >
-          {t("action")}
-        </Button>
-      }
-    >
-      {t("body")}
-    </Notice>
+    <>
+      <Notice
+        live={false}
+        variant="warning"
+        title={t("title")}
+        action={
+          <Button
+            variant="outline"
+            onClick={() => {
+              setGaveUp(false)
+              setRound((r) => r + 1)
+              router.refresh()
+            }}
+          >
+            {t("action")}
+          </Button>
+        }
+      >
+        {t("body")}
+      </Notice>
+      {children}
+    </>
   )
 }
