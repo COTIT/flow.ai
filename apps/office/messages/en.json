@@ -65,7 +65,8 @@
     "recallTitle": "Recall this batch?",
     "recallText": "Batch {code} will show as recalled on its public page and on every jar's QR link.",
     "recallConfirm": "Recall batch",
-    "passport": "Passport"
+    "passport": "Passport",
+    "noEvents": "No history yet."
   },
   "secret": {
     "once": "Copy this secret now. It is shown only once.",
@@ -160,6 +161,11 @@
       "by": "By",
       "factLabel": "Label",
       "factValue": "Value"
+    },
+    "done": {
+      "saved": "Draft saved.",
+      "published": "Published: the public page shows this version.",
+      "unpublished": "Taken offline: the public page no longer shows."
     }
   },
   "stock": {
@@ -255,7 +261,8 @@
     "refundQueued": "Refund of {amount} sent to the provider (status: {status}).",
     "cancel": "Cancel order",
     "cancelTitle": "Cancel order {number}?",
-    "cancelText": "Reserved stock is released. A paid order needs a refund first; the system will say so."
+    "cancelText": "Reserved stock is released. A paid order needs a refund first; the system will say so.",
+    "nothingToDo": "Nothing more to do on this order."
   },
   "till": {
     "title": "Till",
@@ -366,5 +373,84 @@
     "rawKg": "Kg used",
     "done": "Batch {code} made: {units} jars from {kg} kg.",
     "open": "Open batch {code}"
+  },
+  "session": {
+    "expired": "Your session ended. Log in again to carry on."
+  },
+  "states": {
+    "retry": "Try again",
+    "noMatches": "No matches",
+    "noMatchesText": "Nothing fits these filters.",
+    "clearFilters": "Clear filters",
+    "notFound": "Not found",
+    "notFoundText": "It may have been removed, or the link is wrong.",
+    "back": "Back to the list",
+    "capped": "Showing the first {shown} of {total}. Search is not available here yet.",
+    "pageNotFound": "This page does not exist",
+    "goHome": "Go to products",
+    "crashed": "Something went wrong on this page.",
+    "crashedText": "Try again. If it keeps happening, tell us what you were doing."
+  },
+  "done": {
+    "productSaved": "Product saved.",
+    "stockChanged": "Stock changed; the movement is listed below.",
+    "lot": {
+      "created": "Batch created.",
+      "received": "Transfer received into this new batch."
+    },
+    "lotSaved": "Batch saved.",
+    "order": {
+      "confirmed": "Order confirmed; stock is reserved.",
+      "completed": "Order completed; stock taken.",
+      "cancelled": "Order cancelled.",
+      "invoiced": "Invoice made.",
+      "picked": "Picking saved.",
+      "returned": "Returns taken back."
+    },
+    "keyRevoked": "App key revoked.",
+    "endpointAdded": "Endpoint added.",
+    "endpointSaved": "Endpoint saved.",
+    "endpointDeleted": "Endpoint deleted.",
+    "linkAccepted": "Supply link accepted.",
+    "linkRevoked": "Supply link revoked.",
+    "tillUserAdded": "Till user added.",
+    "pinChanged": "New PIN set for {name}.",
+    "deactivated": "{name} can no longer log in at the till.",
+    "activated": "{name} can log in at the till again.",
+    "vaultAdded": "Vault added.",
+    "pdfReady": "The PDF is ready.",
+    "imagesSaved": "Images saved."
+  },
+  "images": {
+    "title": "Images",
+    "empty": "No images yet.",
+    "unnamed": "Image",
+    "variant": "variant image",
+    "pick": "Image file",
+    "add": "Add image",
+    "removeOne": "Remove image {position}",
+    "save": "Save images",
+    "discard": "Discard changes"
+  },
+  "credits": {
+    "title": "Farmer credits",
+    "groups": "{count, plural, one {Sales credit # farmer group, shown on the public page.} other {Sales credit # farmer groups, shown on the public page.}}",
+    "noGroups": "The public page shows no farmer groups for this batch.",
+    "empty": "No sales or returns of this batch yet.",
+    "at": "When",
+    "kind": "What",
+    "order": "Order",
+    "jars": "Jars",
+    "till": "till",
+    "kinds": {
+      "sale": "Sale",
+      "return": "Return"
+    }
+  },
+  "lineage": {
+    "packedFrom": "Packed from batch",
+    "pack": "{units} units from {kg} kg",
+    "receivedFrom": "Received from the partner's batch {code} ({publicCode}).",
+    "transfers": "See transfers"
   }
 }

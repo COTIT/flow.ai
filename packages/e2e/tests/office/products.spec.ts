@@ -34,11 +34,9 @@ test.describe("API error", () => {
       "GET /workspace/w1/products": { status: 500, body: { message: "boom" } },
     })
     await page.goto("/")
-    // Waits out TanStack Query's three retries.
+    // Waits out TanStack Query's three retries; the API's own words show, with a retry.
     await expect(
-      page
-        .getByRole("alert")
-        .filter({ hasText: "Something went wrong. Try again." })
+      page.getByRole("alert").filter({ hasText: "boom" })
     ).toBeVisible({ timeout: 15_000 })
   })
 })

@@ -35,6 +35,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
+import { Capped, Empty, LoadError } from "@/components/states"
 
 import { LotFields, lotStatuses } from "./lot-fields"
 
@@ -80,7 +81,8 @@ export default function LotsPage({
         <h1 className="mr-auto heading-2 text-lg">{t("lots.title")}</h1>
         <CreateLot
           products={products.data?.data ?? []}
-          onCreated={(id) => router.push(`/lots/${id}`)}
+          productsMeta={products.data?.meta}
+          onCreated={(id) => router.push(`/lots/${id}?done=created`)}
         />
       </div>
       <div className="flex flex-wrap gap-2">
@@ -117,9 +119,12 @@ export default function LotsPage({
       {lots.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : lots.isError ? (
-        <ApiError error={lots.error} fallback={t("common.error")} />
+        <LoadError error={lots.error} onRetry={() => void lots.refetch()} />
       ) : lots.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("lots.empty")}</p>
+        <Empty
+          title={t("lots.empty")}
+          onClear={q || status ? () => router.push("?") : undefined}
+        />
       ) : (
         <>
           <Table>
@@ -184,9 +189,11 @@ export default function LotsPage({
 
 function CreateLot({
   products,
+  productsMeta,
   onCreated,
 }: {
   products: { id: string; name: string }[]
+  productsMeta?: { total: number; per_page: number }
   onCreated: (id: string) => void
 }) {
   const t = useTranslations()
@@ -239,6 +246,7 @@ function CreateLot({
           <DialogHeader>
             <DialogTitle>{t("lots.new")}</DialogTitle>
           </DialogHeader>
+          <Capped meta={productsMeta} />
           <Field
             id="lot-product"
             label={t("lots.product")}

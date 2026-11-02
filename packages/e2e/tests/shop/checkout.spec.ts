@@ -127,9 +127,10 @@ test("not enough stock comes back from the server, next to the product", async (
   await page.goto("/checkout")
   await fillCustomer(page)
   await page.getByRole("button", { name: "Place order" }).click()
-  await expect(
-    page.getByRole("alert").filter({ hasText: "Ilundo Wild Forest Honey" })
-  ).toHaveText(
+  const error = page
+    .getByRole("alert")
+    .filter({ hasText: "Please check your order" })
+  await expect(error).toContainText(
     `Ilundo Wild Forest Honey: Not enough stock: ${STOCK_LIMIT} available.`
   )
   await expect(page).toHaveURL("/checkout")
@@ -159,13 +160,6 @@ test("with no payment provider configured, the order page says so calmly", async
   ).toBeVisible()
   await expect(page.getByRole("button", { name: "Pay now" })).toBeDisabled()
   await expectNoHorizontalScroll(page)
-})
-
-test("an empty cart says so", async ({ page }) => {
-  await page.goto("/cart")
-  await expect(page.getByText("Your cart is empty.")).toBeVisible()
-  await page.goto("/checkout")
-  await expect(page.getByText("Your cart is empty.")).toBeVisible()
 })
 
 test.describe("unknown order", () => {

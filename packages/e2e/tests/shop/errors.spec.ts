@@ -26,11 +26,12 @@ for (const path of [`/products/${PRODUCT.failing}`, `/b/${LOT.failing}`]) {
       expect(html).not.toContain(SECRET_BODY)
       expect(html).not.toMatch(stack)
 
+      const notice = page
+        .getByRole("alert")
+        .filter({ hasText: "The shop is taking a break" })
+      await expect(notice).toHaveAttribute("data-variant", "error")
       await expect(
-        page.getByRole("heading", { name: "The shop is taking a break" })
-      ).toBeVisible()
-      await expect(
-        page.getByRole("button", { name: "Try again" })
+        notice.getByRole("button", { name: "Try again" })
       ).toBeVisible()
       expect(await page.content()).not.toContain(SECRET_BODY)
     })

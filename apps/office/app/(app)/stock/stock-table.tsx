@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useTranslations } from "next-intl"
 
 import type { PaginatedStockResource } from "@genesy/api-client/model"
-import { ApiError } from "@genesy/ui/components/api-error"
 import { Pager } from "@genesy/ui/components/pager"
 import {
   Table,
@@ -14,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { Empty, LoadError } from "@/components/states"
 
 /** Stock rows from `stock_list` or `stock_negative`, with the "all / below zero" switch. */
 export function StockTable({
@@ -22,7 +22,12 @@ export function StockTable({
   onPage,
 }: {
   view: "all" | "negative"
-  query: { isPending: boolean; error: unknown; data?: PaginatedStockResource }
+  query: {
+    isPending: boolean
+    error: unknown
+    data?: PaginatedStockResource
+    refetch: () => unknown
+  }
   onPage: (page: number) => void
 }) {
   const t = useTranslations()
@@ -50,11 +55,11 @@ export function StockTable({
       {query.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : query.error || !query.data ? (
-        <ApiError error={query.error} fallback={t("common.error")} />
+        <LoadError error={query.error} onRetry={() => void query.refetch()} />
       ) : query.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {view === "negative" ? t("stock.noNegative") : t("stock.empty")}
-        </p>
+        <Empty
+          title={view === "negative" ? t("stock.noNegative") : t("stock.empty")}
+        />
       ) : (
         <>
           <Table>

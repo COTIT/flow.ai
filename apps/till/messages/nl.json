@@ -20,7 +20,10 @@
     "locked": "Te vaak een verkeerde pincode. Probeer het later opnieuw.",
     "pinFormat": "De pincode is 4 tot 8 cijfers.",
     "keyRefused": "De sleutel van dit apparaat wordt niet meer geaccepteerd. Stel de kassa opnieuw in.",
-    "setupAgain": "Opnieuw instellen"
+    "setupAgain": "Opnieuw instellen",
+    "expired": "Je sessie is beëindigd. Log opnieuw in om verder te gaan.",
+    "usersFailed": "De kassagebruikers konden niet geladen worden. Controleer de verbinding en herlaad.",
+    "noUsers": "Nog geen kassagebruikers. Vraag het kantoor er een toe te voegen."
   },
   "sale": {
     "title": "Verkoop",
@@ -47,7 +50,14 @@
     "savedTitle": "Offline bewaard",
     "savedHint": "De kassa is offline. Deze verkoop blijft op dit apparaat en wordt verstuurd zodra er weer verbinding is.",
     "newSale": "Nieuwe verkoop",
-    "quote": "Prijsopgave"
+    "quote": "Prijsopgave",
+    "noShift": "Er is geen dienst open op deze kassa. Contante verkopen hebben een open dienst nodig.",
+    "catalogLoading": "Productlijst laden…",
+    "catalogEmpty": "Deze kassa heeft nog geen producten. Vraag het kantoor.",
+    "catalogFailed": "De productlijst kon niet geladen worden. Controleer de verbinding.",
+    "catalogStale": "De productlijst kon niet ververst worden. De kopie op dit apparaat wordt getoond.",
+    "noMatch": "Geen producten voor “{query}”.",
+    "mismatch": "Sommige prijzen wijken af van de huidige catalogus. Het kantoor ziet dit."
   },
   "nav": {
     "label": "Kassamenu",
@@ -67,10 +77,13 @@
     "counted": "Geteld",
     "difference": "Verschil",
     "closedTitle": "Dienst gesloten",
-    "short": "Tekort",
-    "over": "Overschot",
-    "balanced": "Klopt",
-    "queued": "Nog {count, plural, one {# offline verkoop} other {# offline verkopen}} te versturen. Verstuur ze voor het sluiten van de dienst."
+    "short": "De kassalade heeft {amount} tekort.",
+    "over": "De kassalade heeft {amount} over.",
+    "balanced": "De kassalade klopt.",
+    "queued": "Nog {count, plural, one {# offline verkoop} other {# offline verkopen}} te versturen. Verstuur ze voor het sluiten van de dienst.",
+    "loadFailed": "De kassalade kon niet geladen worden. Controleer de verbinding.",
+    "opened": "Dienst geopend. Je kunt beginnen met verkopen.",
+    "toQueue": "Naar offline verkopen"
   },
   "count": {
     "denomination": "Waarde van rij {n}",
@@ -92,7 +105,9 @@
     "change": "Wisselgeld",
     "card": "Pinbon",
     "print": "Afdrukken",
-    "newSale": "Nieuwe verkoop"
+    "newSale": "Nieuwe verkoop",
+    "booked": "Verkoop {number} is geboekt.",
+    "mismatch": "Deze verkoop is afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit."
   },
   "queue": {
     "title": "Offline verkopen",
@@ -104,6 +119,23 @@
     "conflict": "Conflict",
     "review": "Nakijken",
     "booked": "Verkoop {number}: {due}",
-    "dismiss": "Verbergen"
+    "dismiss": "Verbergen",
+    "syncing": "Offline verkopen versturen…",
+    "allBooked": "Alle offline verkopen zijn geboekt.",
+    "emptyHint": "Verkopen zonder verbinding wachten hier tot ze verstuurd zijn.",
+    "showOffice": "Deze verkoop is niet geboekt. Laat hem aan het kantoor zien voor je hem verbergt.",
+    "mismatch": "Afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit."
+  },
+  "errors": {
+    "crashTitle": "Dit scherm werkt niet meer.",
+    "crashBody": "Verkopen die nog verstuurd moeten worden blijven op dit apparaat. Probeer het opnieuw of ga terug naar de verkoop.",
+    "retry": "Opnieuw proberen",
+    "home": "Naar de verkoop",
+    "notFoundTitle": "Dit scherm bestaat niet.",
+    "notFoundBody": "Misschien is het adres verkeerd getypt."
+  },
+  "offline": {
+    "title": "Offline. Verkopen blijven op dit apparaat en worden verstuurd zodra er weer verbinding is.",
+    "waiting": "{count, plural, one {# verkoop} other {# verkopen}} wacht op versturen"
   }
 }

@@ -205,6 +205,9 @@ test("till users: add, reset PIN, deactivate (cancel sends nothing)", async ({
   await expect(
     page.getByRole("cell", { name: "Baraka", exact: true })
   ).toBeVisible()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Till user added." })
+  ).toBeVisible()
   expect(api.callsTo("POST", "/workspace/:ws/till/users")[0]?.body).toEqual({
     name: "Baraka",
     pin: "4821",

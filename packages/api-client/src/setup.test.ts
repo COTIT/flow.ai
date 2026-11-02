@@ -62,5 +62,15 @@ describe("connectBrowser", () => {
     await expect(apiRequest({ url: "/me" })).rejects.toBeInstanceOf(AxiosError)
     expect(sessionStore.getState().token).toBeNull()
     expect(cache.clear).toHaveBeenCalledOnce()
+    expect(sessionStore.getState().expired).toBe(true)
+  })
+
+  it("a refused login (no token yet) is not an expired session", async () => {
+    const { sessionStore, apiRequest } = await load(401)
+
+    await expect(
+      apiRequest({ url: "/login", method: "POST" })
+    ).rejects.toBeInstanceOf(AxiosError)
+    expect(sessionStore.getState().expired).toBe(false)
   })
 })

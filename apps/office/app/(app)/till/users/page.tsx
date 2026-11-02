@@ -35,6 +35,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 export default function TillUsersPage() {
   const t = useTranslations()
@@ -47,20 +48,29 @@ export default function TillUsersPage() {
     queryClient.invalidateQueries({
       queryKey: getTillUsersListQueryKey(workspaceId),
     })
-  const update = useTillUsersUpdate({ mutation: { onSuccess: refresh } })
+  const done = useDone()
+  const update = useTillUsersUpdate({
+    mutation: { onMutate: done.clear, onSuccess: refresh },
+  })
 
   return (
     <>
+      <Done message={done.message} />
       <div className="flex justify-end">
-        <PinDialog onDone={refresh} />
+        <PinDialog
+          onDone={() => {
+            done.show(t("done.tillUserAdded"))
+            void refresh()
+          }}
+        />
       </div>
       <ApiError error={update.error} fallback={t("common.error")} />
       {users.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : users.isError ? (
-        <ApiError error={users.error} fallback={t("common.error")} />
+        <LoadError error={users.error} onRetry={() => void users.refetch()} />
       ) : users.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("till.noUsers")}</p>
+        <Empty title={t("till.noUsers")} />
       ) : (
         <Table>
           <TableHeader>
@@ -91,7 +101,13 @@ export default function TillUsersPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-2">
-                    <PinDialog user={u} onDone={refresh} />
+                    <PinDialog
+                      user={u}
+                      onDone={() => {
+                        done.show(t("done.pinChanged", { name: u.name }))
+                        void refresh()
+                      }}
+                    />
                     {u.active ? (
                       <ConfirmDialog
                         trigger={t("till.deactivate")}
@@ -101,11 +117,19 @@ export default function TillUsersPage() {
                         cancel={t("actions.cancel")}
                         disabled={update.isPending}
                         onConfirm={() =>
-                          update.mutate({
-                            workspace: workspaceId,
-                            user: u.id,
-                            data: { active: false },
-                          })
+                          update.mutate(
+                            {
+                              workspace: workspaceId,
+                              user: u.id,
+                              data: { active: false },
+                            },
+                            {
+                              onSuccess: () =>
+                                done.show(
+                                  t("done.deactivated", { name: u.name })
+                                ),
+                            }
+                          )
                         }
                       />
                     ) : (
@@ -113,11 +137,19 @@ export default function TillUsersPage() {
                         variant="outline"
                         disabled={update.isPending}
                         onClick={() =>
-                          update.mutate({
-                            workspace: workspaceId,
-                            user: u.id,
-                            data: { active: true },
-                          })
+                          update.mutate(
+                            {
+                              workspace: workspaceId,
+                              user: u.id,
+                              data: { active: true },
+                            },
+                            {
+                              onSuccess: () =>
+                                done.show(
+                                  t("done.activated", { name: u.name })
+                                ),
+                            }
+                          )
                         }
                       >
                         {t("till.activate")}

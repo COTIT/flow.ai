@@ -90,7 +90,12 @@ test("receive: cancel sends nothing; the body is exact; opens the new batch", as
   await dialog.getByLabel("New batch code").fill("AFM-RAW-01")
   await dialog.getByLabel("Quantity").fill("248.50")
   await dialog.getByRole("button", { name: "Receive" }).click()
-  await expect(page).toHaveURL(/\/lots\/lot-9$/)
+  await expect(page).toHaveURL(/\/lots\/lot-9\?done=received$/)
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Transfer received into this new batch." })
+  ).toBeVisible()
   await expect(page.getByRole("heading", { name: "AFM-RAW-01" })).toBeVisible()
   expect(
     api.callsTo("POST", "/workspace/:ws/supply-transfers/:id/receive")[0]?.body

@@ -12,10 +12,14 @@
   },
   "catalog": {
     "title": "Duka",
-    "empty": "Hakuna bidhaa zinazouzwa kwa sasa.",
+    "empty": "Hakuna bidhaa zinazouzwa kwa sasa",
     "previous": "Iliyotangulia",
     "next": "Inayofuata",
-    "page": "Ukurasa {page} kati ya {last}"
+    "page": "Ukurasa {page} kati ya {last}",
+    "emptyWhy": "Mavuno mapya huongezwa mara kwa mara. Tafadhali rudi hivi karibuni.",
+    "pastEnd": "Hakuna kitu kwenye ukurasa huu",
+    "pastEndWhy": "Ukurasa huu uko baada ya mwisho wa orodha.",
+    "firstPage": "Nenda ukurasa wa kwanza"
   },
   "product": {
     "inStock": "Ipo stoo",
@@ -23,7 +27,9 @@
     "variants": "Ukubwa na chaguo",
     "back": "Rudi dukani",
     "noDescription": "Maelezo zaidi yanakuja hivi karibuni.",
-    "imageSoon": "Picha inakuja hivi karibuni"
+    "imageSoon": "Picha inakuja hivi karibuni",
+    "soldOutTitle": "Imeisha kwa sasa",
+    "soldOutBody": "Bidhaa hii haipo stoo. Rudi hivi karibuni."
   },
   "errors": {
     "unavailableTitle": "Duka limepumzika kidogo",
@@ -31,7 +37,9 @@
     "retry": "Jaribu tena",
     "notFoundTitle": "Ukurasa haujapatikana",
     "notFoundBody": "Ukurasa huu haupo au bidhaa hii haiuzwi tena.",
-    "home": "Nenda dukani"
+    "home": "Nenda dukani",
+    "batchTitle": "Hatuwezi kupata fungu hili",
+    "batchBody": "Kagua msimbo kwenye chupa: huenda umeandikwa vibaya, au pasipoti yake bado haijachapishwa."
   },
   "cart": {
     "title": "Kikapu chako",
@@ -41,19 +49,18 @@
     "add": "Weka kwenye kikapu",
     "added": "Imewekwa kwenye kikapu chako.",
     "view": "Tazama kikapu",
-    "empty": "Kikapu chako ni kitupu.",
-    "continue": "Endelea kununua",
+    "empty": "Kikapu chako ni kitupu",
     "each": "{price} kila moja",
     "less": "Punguza {name} moja",
     "more": "Ongeza {name} moja",
     "remove": "Ondoa {name}",
     "totalAtCheckout": "Jumla inahesabiwa wakati wa kulipa: bei, VAT na stoo zinathibitishwa unapoweka oda.",
-    "checkout": "Nenda kulipa"
+    "checkout": "Nenda kulipa",
+    "emptyWhy": "Ongeza kitu kutoka dukani na kitaonekana hapa.",
+    "browse": "Nenda dukani"
   },
   "checkout": {
     "title": "Kulipa",
-    "empty": "Kikapu chako ni kitupu.",
-    "shop": "Nenda dukani",
     "summary": "Oda yako",
     "totalNext": "Jumla, pamoja na VAT, inaonyeshwa kwenye ukurasa unaofuata kabla ya kulipa.",
     "place": "Weka oda",
@@ -72,7 +79,9 @@
       "invalid_input": "Kuna kitu si sahihi kwenye fomu. Tafadhali kagua na ujaribu tena.",
       "busy": "Duka lina shughuli nyingi sasa. Tafadhali jaribu tena baada ya dakika chache.",
       "unavailable": "Hatuwezi kupokea oda kwa sasa. Tafadhali jaribu tena baada ya dakika moja."
-    }
+    },
+    "fieldsTitle": "Tafadhali kagua sehemu zilizowekwa alama",
+    "orderTitle": "Tafadhali kagua oda yako"
   },
   "order": {
     "title": "Oda yako",
@@ -80,8 +89,8 @@
     "awaiting": "Inasubiri malipo.",
     "heldUntil": "Bidhaa zako zimehifadhiwa hadi <time></time>.",
     "paid": "Asante! Malipo yamepokelewa na oda yako imethibitishwa.",
-    "cancelled": "Oda hii iliisha muda kabla ya kulipwa, kwa hiyo bidhaa zimerudishwa stoo.",
-    "again": "Rudi kwenye kikapu",
+    "cancelled": "Oda hii iliisha muda kabla ya kulipwa",
+    "again": "Nunua tena",
     "status": "Hali: {status}",
     "subtotal": "Jumla ndogo",
     "vat": "VAT",
@@ -104,6 +113,17 @@
         "title": "Malipo hayakuweza kuanza",
         "body": "Hakuna kilichotozwa. Tafadhali jaribu tena baada ya dakika moja."
       }
+    },
+    "cancelledBody": "Bidhaa zimerudishwa stoo. Unaweza kuziagiza tena.",
+    "retry": "Jaribu tena",
+    "waitingLong": {
+      "title": "Bado tunasubiri malipo",
+      "body": "Huduma ya malipo bado haijayathibitisha. Kama umelipa, kagua tena baada ya dakika moja; kama bado, tumia Lipa sasa hapa chini.",
+      "action": "Kagua tena"
+    },
+    "loadFailed": {
+      "title": "Hatukuweza kupakia oda yako",
+      "body": "Oda yako iko salama. Tafadhali jaribu tena baada ya muda mfupi."
     }
   }
 }

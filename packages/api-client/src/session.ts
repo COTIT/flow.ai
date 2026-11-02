@@ -12,9 +12,15 @@ export type Session = {
   workspaceId: string | null
   /** `false` until the saved session was read back from localStorage (always `false` on the server). */
   hydrated: boolean
+  /**
+   * `true` when the last logout came from the backend refusing a live token (a 401), so a
+   * login page can say "your session ended". Cleared by the next login; not saved.
+   */
+  expired: boolean
   signIn: (login: TokenResponse) => void
   selectWorkspace: (id: string) => void
-  signOut: () => void
+  /** `"expired"` is for the 401 handler; a logout button calls it with nothing. */
+  signOut: (reason?: "expired") => void
 }
 
 const loggedOut = { token: null, workspaceIds: [], workspaceId: null }
@@ -28,8 +34,10 @@ export const sessionStore = createStore<Session>()(
     (set, get) => ({
       ...loggedOut,
       hydrated: false,
+      expired: false,
       signIn: (login) =>
         set({
+          expired: false,
           token: login.access_token,
           workspaceIds: login.workspace_ids,
           workspaceId: login.workspace_ids[0] ?? null,
@@ -37,8 +45,11 @@ export const sessionStore = createStore<Session>()(
       selectWorkspace: (id) => {
         if (get().workspaceIds.includes(id)) set({ workspaceId: id })
       },
-      signOut: () => {
-        set(loggedOut)
+      signOut: (reason) => {
+        // Parallel calls can each get the 401: the later ones (token already gone) keep the mark.
+        const expired =
+          reason === "expired" && (get().expired || Boolean(get().token))
+        set({ ...loggedOut, expired })
         // Drop the saved copy too, not just the token inside it.
         sessionStore.persist.clearStorage()
       },

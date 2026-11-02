@@ -39,6 +39,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
+import { Capped, Empty, LoadError } from "@/components/states"
 
 export default function SupplyTransfersPage() {
   const t = useTranslations()
@@ -57,11 +58,14 @@ export default function SupplyTransfersPage() {
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (transfers.isError)
-    return <ApiError error={transfers.error} fallback={t("common.error")} />
-  if (transfers.data.data.length === 0)
     return (
-      <p className="text-sm text-muted-foreground">{t("supply.noTransfers")}</p>
+      <LoadError
+        error={transfers.error}
+        onRetry={() => void transfers.refetch()}
+      />
     )
+  if (transfers.data.data.length === 0)
+    return <Empty title={t("supply.noTransfers")} />
   return (
     <>
       <Table>
@@ -156,7 +160,7 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
           queryKey: getSupplyChainListQueryKey(workspaceId),
         })
         setOpen(false)
-        if (data.to_lot) router.push(`/lots/${data.to_lot.id}`)
+        if (data.to_lot) router.push(`/lots/${data.to_lot.id}?done=received`)
       },
     },
   })
@@ -202,6 +206,7 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
               {t("supply.receiveText", { quantity: transfer.quantity })}
             </DialogDescription>
           </DialogHeader>
+          <Capped meta={products.data?.meta} />
           <Field
             id="rcv-product"
             label={t("lots.product")}
@@ -222,6 +227,7 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
           >
             <Input name="code" required />
           </Field>
+          <Capped meta={warehouses.data?.meta} />
           <Field
             id="rcv-warehouse"
             label={t("stock.warehouse")}

@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 export default function InvoicesPage({
   searchParams,
@@ -65,9 +66,15 @@ export default function InvoicesPage({
       {invoices.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : invoices.isError ? (
-        <ApiError error={invoices.error} fallback={t("common.error")} />
+        <LoadError
+          error={invoices.error}
+          onRetry={() => void invoices.refetch()}
+        />
       ) : invoices.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("invoices.empty")}</p>
+        <Empty
+          title={t("invoices.empty")}
+          onClear={q ? () => router.push("?") : undefined}
+        />
       ) : (
         <>
           <Table>

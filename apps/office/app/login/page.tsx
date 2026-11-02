@@ -9,12 +9,14 @@ import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { LoginForm } from "@genesy/ui/components/login-form"
 import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { Notice } from "@genesy/ui/components/notice"
 
 export default function LoginPage() {
   const t = useTranslations()
   const router = useRouter()
   const login = useLogin()
   const token = useSession((s) => s.token)
+  const expired = useSession((s) => s.expired)
 
   React.useEffect(() => {
     if (token) router.replace("/products")
@@ -35,6 +37,11 @@ export default function LoginPage() {
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
       <Logo className="h-10" />
       <div className="gold-rule w-full max-w-sm" />
+      {expired ? (
+        <div className="w-full max-w-sm">
+          <Notice title={t("session.expired")} />
+        </div>
+      ) : null}
       <LoginForm
         labels={{
           title: t("auth.title"),

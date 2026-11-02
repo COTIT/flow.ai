@@ -28,17 +28,28 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 import { LotFields } from "../lot-fields"
+import { FarmerCredits } from "./farmer-credits"
 import { PackDialog } from "./pack-dialog"
 
 export default function LotPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  // Set by the page that sent us here (create, receive) so its outcome shows on arrival.
+  searchParams: Promise<{ done?: string }>
 }) {
   const t = useTranslations()
   const { id } = React.use(params)
+  const arrived = React.use(searchParams).done
+  const done = useDone(
+    arrived === "created" || arrived === "received"
+      ? t(`done.lot.${arrived}`)
+      : null
+  )
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
   const lot = useLotsGet(workspaceId, id, {
@@ -54,7 +65,9 @@ export default function LotPage({
   const [pending, setPending] = React.useState<UpdateLotRequest | null>(null)
   const update = useLotsUpdate({
     mutation: {
+      onMutate: done.clear,
       onSuccess: () => {
+        done.show(t("done.lotSaved"))
         for (const queryKey of [
           getLotsGetQueryKey(workspaceId, id),
           getLotsEventsQueryKey(workspaceId, id),
@@ -74,7 +87,13 @@ export default function LotPage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (lot.isError)
-    return <ApiError error={lot.error} fallback={t("common.error")} />
+    return (
+      <LoadError
+        error={lot.error}
+        onRetry={() => void lot.refetch()}
+        backHref="/lots"
+      />
+    )
   const current = lot.data.data
 
   return (
@@ -97,6 +116,41 @@ export default function LotPage({
           </Link>
           <PackDialog lotId={id} code={current.code} />
         </div>
+        <Done message={done.message} />
+        {current.parent_lot || current.received_from ? (
+          <p className="text-sm text-muted-foreground">
+            {current.parent_lot ? (
+              <>
+                {t("lineage.packedFrom")}{" "}
+                <Link
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  href={`/lots/${current.parent_lot.id}`}
+                >
+                  {current.parent_lot.code}
+                </Link>
+                {/* The two exact numbers as the API keeps them; no kg-per-jar division here. */}
+                {current.pack
+                  ? ` · ${t("lineage.pack", { units: current.pack.units, kg: current.pack.raw_kg })}`
+                  : ""}
+              </>
+            ) : null}
+            {current.received_from ? (
+              <>
+                {current.parent_lot ? " · " : ""}
+                {t("lineage.receivedFrom", {
+                  code: current.received_from.from_lot_code,
+                  publicCode: current.received_from.from_lot_public_code,
+                })}{" "}
+                <Link
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  href="/supply/transfers"
+                >
+                  {t("lineage.transfers")}
+                </Link>
+              </>
+            ) : null}
+          </p>
+        ) : null}
         <form
           key={current.updated_at}
           className="flex max-w-2xl flex-col gap-3"
@@ -120,11 +174,6 @@ export default function LotPage({
         >
           <LotFields lot={current} errors={fieldErrors(update.error)} />
           <ApiError error={update.error} fallback={t("common.error")} />
-          {update.isSuccess && !update.isPending ? (
-            <p role="status" className="text-sm text-muted-foreground">
-              {t("actions.saved")}
-            </p>
-          ) : null}
           <Button
             type="submit"
             className="self-start"
@@ -144,12 +193,19 @@ export default function LotPage({
         />
       </section>
 
+      <FarmerCredits lotId={id} />
+
       <section className="flex flex-col gap-3">
         <h2 className="heading-2 text-base">{t("lots.events")}</h2>
         {events.isPending ? (
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : events.isError ? (
-          <ApiError error={events.error} fallback={t("common.error")} />
+          <LoadError
+            error={events.error}
+            onRetry={() => void events.refetch()}
+          />
+        ) : events.data.data.length === 0 ? (
+          <Empty title={t("lots.noEvents")} />
         ) : (
           <>
             <Table>

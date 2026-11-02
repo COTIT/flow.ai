@@ -10,6 +10,7 @@ import {
 } from "@genesy/api-client/endpoints/invoices"
 import { ApiError } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
+import { Notice } from "@genesy/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -19,6 +20,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 export default function InvoicePage({
   params,
@@ -42,7 +44,13 @@ export default function InvoicePage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (invoice.isError)
-    return <ApiError error={invoice.error} fallback={t("common.error")} />
+    return (
+      <LoadError
+        error={invoice.error}
+        onRetry={() => void invoice.refetch()}
+        backHref="/invoices"
+      />
+    )
   const inv = invoice.data.data
   const payments = inv.relationships.payments ?? []
 
@@ -58,16 +66,7 @@ export default function InvoicePage({
             <StatusBadge status="credit" label={t("invoices.credit")} />
           ) : null}
           <div className="ml-auto flex items-center gap-2">
-            {pdf.data ? (
-              <a
-                className="text-sm font-medium underline-offset-4 hover:underline"
-                href={pdf.data.data.file_path}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {t("invoices.openPdf")}
-              </a>
-            ) : (
+            {pdf.data ? null : (
               <Button
                 variant="outline"
                 disabled={pdf.isFetching}
@@ -77,6 +76,25 @@ export default function InvoicePage({
               </Button>
             )}
           </div>
+        </div>
+        <div role="status">
+          {pdf.data ? (
+            <Notice
+              live={false}
+              variant="success"
+              title={t("done.pdfReady")}
+              action={
+                <a
+                  className="text-sm font-medium underline-offset-4 hover:underline"
+                  href={pdf.data.data.file_path}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t("invoices.openPdf")}
+                </a>
+              }
+            />
+          ) : null}
         </div>
         <ApiError error={pdf.error} fallback={t("common.error")} />
         <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm">
@@ -132,9 +150,7 @@ export default function InvoicePage({
       <section className="flex flex-col gap-3">
         <h2 className="heading-2 text-base">{t("invoices.payments")}</h2>
         {payments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("invoices.noPayments")}
-          </p>
+          <Empty title={t("invoices.noPayments")} />
         ) : (
           <Table>
             <TableHeader>

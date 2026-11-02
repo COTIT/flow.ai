@@ -120,7 +120,9 @@ test("story blocks: add, reorder and save in that order", async ({
     .getByRole("button", { name: "Move up" })
     .click()
   await page.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("button", { name: "Save" })).toBeDisabled()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Draft saved." })
+  ).toBeVisible()
   expect(
     api.callsTo("PUT", "/workspace/:ws/lots/:lot/passport")[0]?.body
   ).toMatchObject({

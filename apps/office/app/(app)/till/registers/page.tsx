@@ -37,6 +37,7 @@ import { Field, selectClass } from "@/components/field"
 import { SecretReveal } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"
+import { Capped, Empty, LoadError } from "@/components/states"
 
 export default function RegistersPage() {
   const t = useTranslations()
@@ -71,6 +72,7 @@ export default function RegistersPage() {
       <div className="flex justify-end">
         <CreateRegister
           warehouses={warehouses.data?.data ?? []}
+          warehousesMeta={warehouses.data?.meta}
           onCreated={refresh}
         />
       </div>
@@ -91,9 +93,12 @@ export default function RegistersPage() {
       {registers.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : registers.isError ? (
-        <ApiError error={registers.error} fallback={t("common.error")} />
+        <LoadError
+          error={registers.error}
+          onRetry={() => void registers.refetch()}
+        />
       ) : registers.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("till.noRegisters")}</p>
+        <Empty title={t("till.noRegisters")} />
       ) : (
         <>
           <Table>
@@ -165,9 +170,11 @@ export default function RegistersPage() {
 
 function CreateRegister({
   warehouses,
+  warehousesMeta,
   onCreated,
 }: {
   warehouses: { id: string; name: string }[]
+  warehousesMeta?: { total: number; per_page: number }
   onCreated: () => void
 }) {
   const t = useTranslations()
@@ -211,6 +218,7 @@ function CreateRegister({
             <Field id="reg-name" label={t("appKeys.name")} errors={errors.name}>
               <Input name="name" required />
             </Field>
+            <Capped meta={warehousesMeta} />
             <Field
               id="reg-warehouse"
               label={t("till.storeWarehouse")}

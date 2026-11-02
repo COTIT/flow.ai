@@ -10,6 +10,6 @@ export function connectBrowser() {
   return configureApi({
     baseURL: "/v1",
     getToken: () => sessionStore.getState().token,
-    onUnauthorized: () => sessionStore.getState().signOut(),
+    onUnauthorized: () => sessionStore.getState().signOut("expired"),
   })
 }

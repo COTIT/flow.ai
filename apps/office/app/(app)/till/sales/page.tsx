@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { useTillMoney } from "@/lib/till-money"
+import { Empty, LoadError } from "@/components/states"
 
 export default function TillSalesPage({
   searchParams,
@@ -59,9 +60,12 @@ export default function TillSalesPage({
       {sales.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : sales.isError ? (
-        <ApiError error={sales.error} fallback={t("common.error")} />
+        <LoadError error={sales.error} onRetry={() => void sales.refetch()} />
       ) : sales.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("till.noSales")}</p>
+        <Empty
+          title={t("till.noSales")}
+          onClear={mismatch === "true" ? () => router.push("?") : undefined}
+        />
       ) : (
         <>
           <Table>

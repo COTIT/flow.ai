@@ -113,7 +113,7 @@ test.describe("codes that open no passport", () => {
     const response = await page.goto(`/b/${LOT.unknown}`)
     expect(response?.status()).toBe(404)
     await expect(
-      page.getByRole("heading", { name: "Page not found" })
+      page.getByRole("heading", { name: "We can't find this batch" })
     ).toBeVisible()
   })
 

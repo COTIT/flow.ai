@@ -15,6 +15,9 @@ import { Input } from "@genesy/ui/components/input"
 import { Label } from "@genesy/ui/components/label"
 import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { EmptyState } from "@genesy/ui/components/empty-state"
+import { Notice } from "@genesy/ui/components/notice"
+import { Loading } from "@/components/state"
 import { deviceAuth, tillStore, useTill } from "@/lib/till-store"
 
 /** Till user picker and PIN, sent with the device key. */
@@ -24,6 +27,7 @@ export default function LoginPage() {
   const hydrated = useTill((s) => s.hydrated)
   const device = useTill((s) => s.device)
   const session = useTill((s) => s.session)
+  const ended = useTill((s) => s.ended)
   const [user, setUser] = React.useState<TillUserBrief | null>(null)
 
   const users = useTillLoginUsers(device?.workspaceId ?? "", {
@@ -43,7 +47,9 @@ export default function LoginPage() {
 
   if (!hydrated || !device) return null
 
-  const keyRefused = [401, 403, 404].includes(users.error?.response?.status ?? 0)
+  const keyRefused = [401, 403, 404].includes(
+    users.error?.response?.status ?? 0
+  )
   const status = login.error?.response?.status
   const error = !login.error
     ? null
@@ -60,11 +66,12 @@ export default function LoginPage() {
       <Logo className="h-10" />
       <div className="flex w-full max-w-sm flex-col gap-4">
         <h1 className="text-xl font-medium">{t("login.title")}</h1>
+        {ended === "expired" ? (
+          <Notice variant="info" title={t("login.expired")} />
+        ) : null}
         {keyRefused ? (
           <>
-            <p role="alert" className="text-sm text-destructive">
-              {t("login.keyRefused")}
-            </p>
+            <Notice variant="error" title={t("login.keyRefused")} />
             <Button
               onClick={() => {
                 tillStore.getState().unpair()
@@ -75,12 +82,14 @@ export default function LoginPage() {
             </Button>
           </>
         ) : users.isError ? (
-          <p role="alert" className="text-sm text-destructive">
-            {t("common.error")}
-          </p>
+          <Notice variant="error" title={t("login.usersFailed")} />
+        ) : users.isPending ? (
+          <Loading>{t("common.loading")}</Loading>
+        ) : !users.data.data.length ? (
+          <EmptyState title={t("login.noUsers")} />
         ) : !user ? (
           <ul aria-label={t("login.who")} className="grid grid-cols-2 gap-2">
-            {users.data?.data.map((u) => (
+            {users.data.data.map((u) => (
               <li key={u.id}>
                 <Button
                   variant="outline"
@@ -119,11 +128,7 @@ export default function LoginPage() {
                 aria-invalid={Boolean(error)}
               />
             </div>
-            {error ? (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            ) : null}
+            {error ? <Notice variant="error" title={error} /> : null}
             <div className="flex gap-2">
               <Button
                 type="button"

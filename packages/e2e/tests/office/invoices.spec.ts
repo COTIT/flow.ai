@@ -85,6 +85,9 @@ test("PDF is made only on request", async ({ page, api }) => {
   invoicesApi(api)
   await page.goto("/invoices/inv-1")
   await page.getByRole("button", { name: "Make PDF" }).click()
+  await expect(
+    page.getByRole("status").filter({ hasText: "The PDF is ready." })
+  ).toBeVisible()
   await expect(page.getByRole("link", { name: "Open PDF" })).toHaveAttribute(
     "href",
     "https://files.example.com/inv.pdf?sig=x"

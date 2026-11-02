@@ -65,7 +65,8 @@
     "recallTitle": "Rudisha fungu hili?",
     "recallText": "Fungu {code} litaonyeshwa kuwa limerudishwa kwenye ukurasa wake wa umma na kwenye kiungo cha QR cha kila chupa.",
     "recallConfirm": "Rudisha fungu",
-    "passport": "Pasipoti"
+    "passport": "Pasipoti",
+    "noEvents": "Bado hakuna historia."
   },
   "secret": {
     "once": "Nakili siri hii sasa. Inaonyeshwa mara moja tu.",
@@ -160,6 +161,11 @@
       "by": "Na",
       "factLabel": "Jina",
       "factValue": "Thamani"
+    },
+    "done": {
+      "saved": "Rasimu imehifadhiwa.",
+      "published": "Imechapishwa: ukurasa wa umma unaonyesha toleo hili.",
+      "unpublished": "Imeondolewa: ukurasa wa umma hauonekani tena."
     }
   },
   "stock": {
@@ -255,7 +261,8 @@
     "refundQueued": "Marejesho ya {amount} yametumwa kwa mtoa huduma (hali: {status}).",
     "cancel": "Ghairi oda",
     "cancelTitle": "Ghairi oda {number}?",
-    "cancelText": "Akiba iliyohifadhiwa itaachiliwa. Oda iliyolipwa inahitaji kurejeshewa pesa kwanza; mfumo utasema."
+    "cancelText": "Akiba iliyohifadhiwa itaachiliwa. Oda iliyolipwa inahitaji kurejeshewa pesa kwanza; mfumo utasema.",
+    "nothingToDo": "Hakuna zaidi cha kufanya kwenye oda hii."
   },
   "till": {
     "title": "Kaunta",
@@ -366,5 +373,84 @@
     "rawKg": "Kilo zilizotumika",
     "done": "Fungu {code} limetengenezwa: chupa {units} kutoka kilo {kg}.",
     "open": "Fungua fungu {code}"
+  },
+  "session": {
+    "expired": "Kikao chako kimeisha. Ingia tena ili kuendelea."
+  },
+  "states": {
+    "retry": "Jaribu tena",
+    "noMatches": "Hakuna kinacholingana",
+    "noMatchesText": "Hakuna kinacholingana na vichujio hivi.",
+    "clearFilters": "Futa vichujio",
+    "notFound": "Haikupatikana",
+    "notFoundText": "Huenda imeondolewa, au kiungo si sahihi.",
+    "back": "Rudi kwenye orodha",
+    "capped": "Zinaonyeshwa {shown} za kwanza kati ya {total}. Kutafuta bado hakupo hapa.",
+    "pageNotFound": "Ukurasa huu haupo",
+    "goHome": "Nenda kwenye bidhaa",
+    "crashed": "Kuna tatizo kwenye ukurasa huu.",
+    "crashedText": "Jaribu tena. Likiendelea, tuambie ulichokuwa ukifanya."
+  },
+  "done": {
+    "productSaved": "Bidhaa imehifadhiwa.",
+    "stockChanged": "Akiba imebadilishwa; mabadiliko yako hapa chini.",
+    "lot": {
+      "created": "Fungu limeundwa.",
+      "received": "Uhamisho umepokelewa kwenye fungu hili jipya."
+    },
+    "lotSaved": "Fungu limehifadhiwa.",
+    "order": {
+      "confirmed": "Oda imethibitishwa; akiba imehifadhiwa.",
+      "completed": "Oda imekamilika; akiba imetolewa.",
+      "cancelled": "Oda imeghairiwa.",
+      "invoiced": "Ankara imetengenezwa.",
+      "picked": "Uchukuaji umehifadhiwa.",
+      "returned": "Marejesho yamepokelewa."
+    },
+    "keyRevoked": "Ufunguo umefutwa.",
+    "endpointAdded": "Endpoint imeongezwa.",
+    "endpointSaved": "Endpoint imehifadhiwa.",
+    "endpointDeleted": "Endpoint imefutwa.",
+    "linkAccepted": "Kiungo cha ugavi kimekubaliwa.",
+    "linkRevoked": "Kiungo cha ugavi kimefutwa.",
+    "tillUserAdded": "Mtumiaji wa kaunta ameongezwa.",
+    "pinChanged": "PIN mpya imewekwa kwa {name}.",
+    "deactivated": "{name} hawezi tena kuingia kwenye kaunta.",
+    "activated": "{name} anaweza kuingia kwenye kaunta tena.",
+    "vaultAdded": "Sefu imeongezwa.",
+    "pdfReady": "PDF iko tayari.",
+    "imagesSaved": "Picha zimehifadhiwa."
+  },
+  "images": {
+    "title": "Picha",
+    "empty": "Bado hakuna picha.",
+    "unnamed": "Picha",
+    "variant": "picha ya aina",
+    "pick": "Faili ya picha",
+    "add": "Ongeza picha",
+    "removeOne": "Ondoa picha {position}",
+    "save": "Hifadhi picha",
+    "discard": "Acha mabadiliko"
+  },
+  "credits": {
+    "title": "Malipo kwa wakulima",
+    "groups": "{count, plural, one {Mauzo yanamlipa kikundi # cha wakulima, kinachoonyeshwa kwenye ukurasa wa umma.} other {Mauzo yanalipa vikundi # vya wakulima, vinavyoonyeshwa kwenye ukurasa wa umma.}}",
+    "noGroups": "Ukurasa wa umma hauonyeshi vikundi vya wakulima kwa fungu hili.",
+    "empty": "Bado hakuna mauzo au marejesho ya fungu hili.",
+    "at": "Lini",
+    "kind": "Nini",
+    "order": "Oda",
+    "jars": "Chupa",
+    "till": "kaunta",
+    "kinds": {
+      "sale": "Mauzo",
+      "return": "Marejesho"
+    }
+  },
+  "lineage": {
+    "packedFrom": "Imefungashwa kutoka fungu",
+    "pack": "vipande {units} kutoka kilo {kg}",
+    "receivedFrom": "Imepokelewa kutoka fungu {code} la mshirika ({publicCode}).",
+    "transfers": "Angalia uhamisho"
   }
 }

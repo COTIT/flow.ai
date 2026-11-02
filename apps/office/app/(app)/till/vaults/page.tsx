@@ -31,6 +31,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { useTillMoney } from "@/lib/till-money"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 export default function VaultsPage() {
   const t = useTranslations()
@@ -41,9 +42,12 @@ export default function VaultsPage() {
     query: { enabled: Boolean(workspaceId) },
   })
   const [open, setOpen] = React.useState(false)
+  const done = useDone()
   const create = useTillVaultsCreate({
     mutation: {
+      onMutate: done.clear,
       onSuccess: () => {
+        done.show(t("done.vaultAdded"))
         void queryClient.invalidateQueries({
           queryKey: getTillVaultsListQueryKey(workspaceId),
         })
@@ -55,6 +59,7 @@ export default function VaultsPage() {
 
   return (
     <>
+      <Done message={done.message} />
       <div className="flex justify-end">
         <Dialog
           open={open}
@@ -118,9 +123,9 @@ export default function VaultsPage() {
       {vaults.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : vaults.isError ? (
-        <ApiError error={vaults.error} fallback={t("common.error")} />
+        <LoadError error={vaults.error} onRetry={() => void vaults.refetch()} />
       ) : vaults.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("till.noVaults")}</p>
+        <Empty title={t("till.noVaults")} />
       ) : (
         <Table>
           <TableHeader>

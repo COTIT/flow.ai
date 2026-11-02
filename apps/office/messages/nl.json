@@ -65,7 +65,8 @@
     "recallTitle": "Deze batch terugroepen?",
     "recallText": "Batch {code} wordt als teruggeroepen getoond op de publieke pagina en via de QR-link van elke pot.",
     "recallConfirm": "Batch terugroepen",
-    "passport": "Paspoort"
+    "passport": "Paspoort",
+    "noEvents": "Nog geen geschiedenis."
   },
   "secret": {
     "once": "Kopieer dit geheim nu. Het wordt maar één keer getoond.",
@@ -160,6 +161,11 @@
       "by": "Door",
       "factLabel": "Label",
       "factValue": "Waarde"
+    },
+    "done": {
+      "saved": "Concept opgeslagen.",
+      "published": "Gepubliceerd: de publieke pagina toont deze versie.",
+      "unpublished": "Offline gehaald: de publieke pagina is niet meer zichtbaar."
     }
   },
   "stock": {
@@ -255,7 +261,8 @@
     "refundQueued": "Terugbetaling van {amount} naar de provider gestuurd (status: {status}).",
     "cancel": "Order annuleren",
     "cancelTitle": "Order {number} annuleren?",
-    "cancelText": "Gereserveerde voorraad komt vrij. Een betaalde order moet eerst terugbetaald worden; het systeem meldt dat."
+    "cancelText": "Gereserveerde voorraad komt vrij. Een betaalde order moet eerst terugbetaald worden; het systeem meldt dat.",
+    "nothingToDo": "Er is niets meer te doen voor deze order."
   },
   "till": {
     "title": "Kassa",
@@ -366,5 +373,84 @@
     "rawKg": "Kg gebruikt",
     "done": "Batch {code} gemaakt: {units} potten van {kg} kg.",
     "open": "Batch {code} openen"
+  },
+  "session": {
+    "expired": "Je sessie is verlopen. Log opnieuw in om verder te gaan."
+  },
+  "states": {
+    "retry": "Opnieuw proberen",
+    "noMatches": "Geen resultaten",
+    "noMatchesText": "Niets past bij deze filters.",
+    "clearFilters": "Filters wissen",
+    "notFound": "Niet gevonden",
+    "notFoundText": "Het is misschien verwijderd, of de link klopt niet.",
+    "back": "Terug naar de lijst",
+    "capped": "De eerste {shown} van {total} worden getoond. Zoeken kan hier nog niet.",
+    "pageNotFound": "Deze pagina bestaat niet",
+    "goHome": "Naar producten",
+    "crashed": "Er ging iets mis op deze pagina.",
+    "crashedText": "Probeer het opnieuw. Blijft het gebeuren, vertel ons wat je deed."
+  },
+  "done": {
+    "productSaved": "Product opgeslagen.",
+    "stockChanged": "Voorraad gewijzigd; de mutatie staat hieronder.",
+    "lot": {
+      "created": "Batch aangemaakt.",
+      "received": "Overdracht ontvangen in deze nieuwe batch."
+    },
+    "lotSaved": "Batch opgeslagen.",
+    "order": {
+      "confirmed": "Order bevestigd; voorraad gereserveerd.",
+      "completed": "Order afgerond; voorraad afgeboekt.",
+      "cancelled": "Order geannuleerd.",
+      "invoiced": "Factuur gemaakt.",
+      "picked": "Picken opgeslagen.",
+      "returned": "Retouren ingenomen."
+    },
+    "keyRevoked": "App-sleutel ingetrokken.",
+    "endpointAdded": "Endpoint toegevoegd.",
+    "endpointSaved": "Endpoint opgeslagen.",
+    "endpointDeleted": "Endpoint verwijderd.",
+    "linkAccepted": "Aanvoerkoppeling geaccepteerd.",
+    "linkRevoked": "Aanvoerkoppeling ingetrokken.",
+    "tillUserAdded": "Kassagebruiker toegevoegd.",
+    "pinChanged": "Nieuwe pincode ingesteld voor {name}.",
+    "deactivated": "{name} kan niet meer inloggen op de kassa.",
+    "activated": "{name} kan weer inloggen op de kassa.",
+    "vaultAdded": "Kluis toegevoegd.",
+    "pdfReady": "De PDF is klaar.",
+    "imagesSaved": "Afbeeldingen opgeslagen."
+  },
+  "images": {
+    "title": "Afbeeldingen",
+    "empty": "Nog geen afbeeldingen.",
+    "unnamed": "Afbeelding",
+    "variant": "variantafbeelding",
+    "pick": "Afbeeldingsbestand",
+    "add": "Afbeelding toevoegen",
+    "removeOne": "Afbeelding {position} verwijderen",
+    "save": "Afbeeldingen opslaan",
+    "discard": "Wijzigingen weggooien"
+  },
+  "credits": {
+    "title": "Vergoedingen aan boeren",
+    "groups": "{count, plural, one {Verkopen vergoeden # boerengroep, getoond op de publieke pagina.} other {Verkopen vergoeden # boerengroepen, getoond op de publieke pagina.}}",
+    "noGroups": "De publieke pagina toont geen boerengroepen voor deze batch.",
+    "empty": "Nog geen verkopen of retouren van deze batch.",
+    "at": "Wanneer",
+    "kind": "Wat",
+    "order": "Order",
+    "jars": "Potten",
+    "till": "kassa",
+    "kinds": {
+      "sale": "Verkoop",
+      "return": "Retour"
+    }
+  },
+  "lineage": {
+    "packedFrom": "Verpakt uit batch",
+    "pack": "{units} stuks uit {kg} kg",
+    "receivedFrom": "Ontvangen uit batch {code} van de partner ({publicCode}).",
+    "transfers": "Bekijk overdrachten"
   }
 }
