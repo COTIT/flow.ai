@@ -341,6 +341,7 @@ async fn a_request_killed_after_the_provider_call_is_recovered_once(pool: PgPool
             webhook_url: "https://api.test/x",
             metadata: json!({ "workspace_id": ws, "order_id": id, "payment_id": row }),
             idempotency_key: &row,
+            expires_at: None,
         })
         .await
         .unwrap();

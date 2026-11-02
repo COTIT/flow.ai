@@ -191,6 +191,7 @@ mod tests {
             webhook_url: "https://api.example.com/v1/payments/webhooks/fake/x",
             metadata: json!({ "order_id": "o" }),
             idempotency_key: key,
+            expires_at: None,
         }
     }
 

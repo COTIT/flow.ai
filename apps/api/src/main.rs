@@ -77,8 +77,12 @@ async fn main() {
     let job_http = outbound::Outbound::new(&[]).expect("outbound http client");
     let credentials = config.credentials_key.map(std::sync::Arc::new);
     // Checked by Config: fake is refused in a release build.
-    let payments = payments::select(config.payments_provider.as_deref(), !cfg!(debug_assertions))
-        .expect("payments provider");
+    let payments = payments::select(
+        config.payments_provider.as_deref(),
+        !cfg!(debug_assertions),
+        config.stripe.clone(),
+    )
+    .expect("payments provider");
     if payments.is_none() {
         tracing::warn!("PAYMENTS_PROVIDER not set: web payments answer 503");
     }

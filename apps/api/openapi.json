@@ -27706,9 +27706,112 @@
         ]
       }
     },
+    "/payments/webhooks/{provider}": {
+      "post": {
+        "description": "For providers that hold one fixed endpoint (Stripe: `https://<api>/v1/payments/webhooks/stripe`). The `Stripe-Signature` header is checked on the raw body before anything is read; then only the Checkout Session or Refund id is taken. The workspace comes from our own payment row for that id, and the status is re-fetched from the provider. The answer is an empty 200 whatever the body holds (bad signature, unknown id, other events). At most 64 KiB.",
+        "operationId": "payments_webhook_any",
+        "parameters": [
+          {
+            "description": "Provider name, e.g. `stripe`",
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "The provider's event, e.g. a Stripe event object",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Received (empty body)"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Payment provider event, one endpoint for every workspace",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
     "/payments/webhooks/{provider}/{workspace}": {
       "post": {
-        "description": "The body names a payment or refund id in the provider's format (the in-process test provider: `id=<id>`, form encoded). The status is always re-fetched from the provider; the answer is an empty 200 whatever the body names. At most 1 KiB.",
+        "description": "The body names a payment or refund id in the provider's format (the in-process test provider: `id=<id>`, form encoded; Stripe: a signed event, `Stripe-Signature` checked first). The status is always re-fetched from the provider; the answer is an empty 200 whatever the body names. At most 64 KiB.",
         "operationId": "payments_webhook",
         "parameters": [
           {

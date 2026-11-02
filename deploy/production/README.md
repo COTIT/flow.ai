@@ -15,7 +15,7 @@ It is a separate compose project, `genesy-prod`. It never touches the `control36
 **How it differs from staging** (`../staging/README.md`):
 
 - **No Mailpit.** Mail goes to the real SMTP server in `secrets/smtp_url`.
-- **No fake payments.** The API image is the default build, which refuses `PAYMENTS_PROVIDER=fake`. With no provider set, web payments answer 503 until a real provider is chosen (see `deferred-providers.md`).
+- **No fake payments.** The API image is the default build, which refuses `PAYMENTS_PROVIDER=fake`. Web payments answer 503 until Stripe is turned on ("Turning on Stripe").
 - **No demo seed, no self-signup.** `GENESY_ALLOW_DEMO_SEED` is unset and `SIGNUP_ENABLED=false` (also the API default). The first account comes from `create-owner`; everyone else is invited.
 - **External Postgres volume.** It is called `genesy-prod-pg` and you make it by hand, so no `down -v` can delete it.
 - **No `noindex` header, no IP allow-list.**
@@ -29,6 +29,8 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 | File                            | What                                                                 |
 | ------------------------------- | -------------------------------------------------------------------- |
 | `docker-compose.production.yml` | The stack, with Traefik labels                                       |
+| `docker-compose.stripe.yml`     | Turns Stripe on when added with a second `-f` ("Turning on Stripe")  |
+| `../set-provider-keys.sh`       | Writes Stripe or Resend keys into `secrets/` without echoing them    |
 | `.env.production.example`       | Every variable, no secrets. Copy it to `.env.production` on the VPS. |
 | `secrets/`                      | Secret files on the VPS only. Git ignores everything in it.          |
 | `../images/*`                   | Web images, shared with staging                                      |
@@ -56,7 +58,7 @@ printf '%s' 'smtps://USER:PASSWORD@HOST:465' > secrets/smtp_url
 chmod 444 secrets/*   # containers run as non-root users; the 700 folder keeps other users out
 ```
 
-There's no mail provider yet. Until one is chosen, put `smtps://unset.invalid:465` in `smtp_url`: the API boots, and mails fail and stay in the outbox.
+Mail goes through Resend ("Turning on Resend"). Until its key is in, put `smtps://unset.invalid:465` in `smtp_url`: the API boots, and mails fail and stay in the outbox.
 
 ```bash
 # 3. The database volume (external: compose never creates or deletes it)
@@ -142,8 +144,64 @@ docker compose -f deploy/production/docker-compose.production.yml --env-file dep
 docker compose -f deploy/production/docker-compose.production.yml --env-file deploy/production/.env.production up -d --wait
 ```
 
+## Turning on Stripe
+
+Payments answer 503 until this is done. Code and contract: `apps/api/docs/api/payments.md`. One Stripe account serves every workspace.
+
+1. **Stripe dashboard, live mode:**
+   - Developers → API keys: copy the secret key (`sk_live_…`), or make a restricted key (`rk_live_…`) with Checkout Sessions and Refunds set to Write.
+   - Developers → Webhooks → Add endpoint:
+     - URL `https://api.genesy.app/v1/payments/webhooks/stripe` (one endpoint for every workspace; no workspace in the path).
+     - Events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `refund.updated`, `refund.failed`.
+     - Copy its signing secret (`whsec_…`).
+   - Settings → Payment methods: turn on what the shop offers (cards, iDEAL, Bancontact, SEPA debit). Checkout shows what is on there.
+2. **On the VPS:** write the keys. They are asked for without echo, so they never land in shell history.
+
+   ```bash
+   cd /srv/genesy-prod && deploy/set-provider-keys.sh production stripe
+   ```
+
+3. **Restart the API with the Stripe file in the chain.** From now on, **every** `docker compose` command in this README needs the same `-f` chain. A command without it recreates the API without Stripe, and payments answer 503 again; nothing breaks beyond that.
+
+   ```bash
+   docker compose -f deploy/production/docker-compose.production.yml -f deploy/production/docker-compose.stripe.yml \
+     --env-file deploy/production/.env.production up -d --wait api
+   ```
+
+   Until DNS is live, the VPS may still have an untracked `deploy/production/docker-compose.nodns.yml`. While that file exists, keep it in the chain, between the main file and the Stripe file:
+
+   ```bash
+   docker compose -f deploy/production/docker-compose.production.yml -f deploy/production/docker-compose.nodns.yml \
+     -f deploy/production/docker-compose.stripe.yml --env-file deploy/production/.env.production up -d --wait api
+   ```
+
+4. **Check it:** `docker compose … logs api | grep -i payments` no longer shows `PAYMENTS_PROVIDER not set`. Pay one small real order in the shop, refund it from the office, and look for both in the Stripe dashboard (Payments, and Webhooks → the endpoint's deliveries, all 200).
+
+A wrong or missing key stops the API at boot with a message that names the variable, never the value. To turn Stripe off, run the same command without `docker-compose.stripe.yml`. To roll a key, run the script again and restart.
+
+## Turning on Resend (mail)
+
+No code: Resend takes SMTP, so `secrets/smtp_url` becomes `smtps://resend:<API key>@smtp.resend.com:465`.
+
+1. **Resend dashboard → Domains → Add domain** `genesy.app`. Resend then lists the DNS records to add. Copy the values from the dashboard: the DKIM key is unique, and the MX host depends on the region you pick.
+
+   | Type | Name (zone `genesy.app`) | Value (from the dashboard)                          | Notes                 |
+   | ---- | ------------------------ | --------------------------------------------------- | --------------------- |
+   | MX   | `send`                   | `feedback-smtp.<region>.amazonses.com`, priority 10 | bounces (return path) |
+   | TXT  | `send`                   | `v=spf1 include:amazonses.com ~all`                 | SPF                   |
+   | TXT  | `resend._domainkey`      | `p=MIGfMA0…` (long key)                             | DKIM                  |
+   | TXT  | `_dmarc`                 | `v=DMARC1; p=none;`                                 | optional, recommended |
+
+   Add them in OpenProvider and press Verify in Resend; it can take up to a few hours. If `_dmarc` already exists, keep the existing one.
+
+2. **Resend → API Keys:** make a key with Sending access, limited to `genesy.app`.
+3. **On the VPS:** `deploy/set-provider-keys.sh production resend`. It rewrites `secrets/smtp_url` without echoing the key.
+4. `MAIL_FROM` in `.env.production` must use the verified domain (the example already says `Genesy <no-reply@genesy.app>`).
+5. Restart the API with your usual `-f` chain (`up -d --wait api`). Then invite yourself from the office and check that the mail arrives, and that Resend → Emails shows it as delivered.
+
 ## Never
 
 - Never run `docker volume rm genesy-prod-pg`: it deletes production data. (`down -v` can't, since the volume is external.)
 - Never set `GENESY_ALLOW_DEMO_SEED`, `PAYMENTS_PROVIDER=fake` or `ALLOW_FAKE_PAYMENTS` here.
 - Never reuse staging's secret files.
+- Never paste a Stripe or Resend key into chat, an issue, an env file or a command line: only into `set-provider-keys.sh`.

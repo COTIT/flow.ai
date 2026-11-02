@@ -154,6 +154,30 @@ ssh -L 8025:127.0.0.1:18025 genesy
 
 Then open <http://localhost:8025>.
 
+## Turning on Stripe (test mode)
+
+Staging runs the in-process fake until this is done. The staging image keeps debug assertions on, so the API refuses a live key here: only Stripe test mode, test cards (`4242 4242 4242 4242`) and no real money.
+
+1. **Stripe dashboard, test mode:** copy the test secret key (`sk_test_…`). Then add a webhook endpoint `https://staging-api.genesy.app/v1/payments/webhooks/stripe` with the same events as production (`deploy/production/README.md`, "Turning on Stripe"), and copy its signing secret (`whsec_…`).
+2. **On the VPS:** `deploy/set-provider-keys.sh staging stripe` (asks for both, no echo, refuses a live key).
+3. **Restart the API with the Stripe file in the chain.** Every later `docker compose` command for staging needs the same chain. The `seed` service keeps its own fake whatever is set.
+
+   ```bash
+   docker compose -f deploy/staging/docker-compose.staging.yml -f deploy/staging/docker-compose.stripe.yml \
+     --env-file deploy/staging/.env.staging up -d --wait api
+   ```
+
+   While the VPS still has an untracked `deploy/staging/docker-compose.nodns.yml` (until DNS is live), put it between the two:
+
+   ```bash
+   docker compose -f deploy/staging/docker-compose.staging.yml -f deploy/staging/docker-compose.nodns.yml \
+     -f deploy/staging/docker-compose.stripe.yml --env-file deploy/staging/.env.staging up -d --wait api
+   ```
+
+4. If `STAGING_IP_ALLOWLIST` is set, Stripe's webhook calls are blocked: add Stripe's webhook IP ranges (stripe.com/files/ips/ips_webhooks.txt) or leave the list empty.
+
+Mail on staging stays on Mailpit; Resend is production only.
+
 ## Reset
 
 This wipes the staging database and every caught mail, starts clean, then reseeds:

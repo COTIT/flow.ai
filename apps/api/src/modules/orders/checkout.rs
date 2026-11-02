@@ -259,6 +259,7 @@ pub async fn create_at_provider(
             webhook_url: webhook,
             metadata: json!({ "workspace_id": workspace_id, "order_id": o.id, "payment_id": payment_id }),
             idempotency_key: &key,
+            expires_at: o.expires_at,
         })
         .await
 }

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Stripe payments and Resend email, ready for keys (contract `docs/api/payments.md`, migration `payments_stripe`):
+  - `PAYMENTS_PROVIDER=stripe`: a payment is a Stripe Checkout Session (hosted page, `checkout_url`), a refund a Stripe Refund of the session's PaymentIntent. Minor units, `Idempotency-Key` = our row id, metadata `{workspace_id, order_id, payment_id}`, pinned `Stripe-Version: 2024-06-20`. Session `expires_at` follows the order's hold within Stripe's 31 min to 24 h window; our expiry job fires first.
+  - Config `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (both also `_FILE`), `STRIPE_API_URL` (loopback only). Live keys are refused in builds with debug assertions (dev, tests, staging). `Config` `Debug` masks both secrets.
+  - Webhooks: new `POST /v1/payments/webhooks/{provider}` (one endpoint for every workspace, workspace taken from our own payment row); both webhook routes pass headers, verify `Stripe-Signature` on the raw body first, and take bodies up to 64 KiB (was 1 KiB). `NewIntent` gains `expires_at`; `Provider::webhook_id` takes the headers.
+  - Migration `payments_stripe`: `provider` CHECKs allow `stripe`, provider ids up to 255 characters, index `order_payments_provider_id_idx`.
+  - Resend needs no code: `SMTP_URL=smtps://resend:<key>@smtp.resend.com:465` (tests cover it). DNS records and key setup in the deploy READMEs.
 - Phase 4c step 7, staging demo seed and production bootstrap (`docs/api/demo-seed.md`, `docs/api/auth.md`):
   - `genesy-360-api seed-demo` (CLI only): refuses unless `GENESY_ALLOW_DEMO_SEED`. Runs once and refuses a half-seeded state. Seeds the AFM shop, the till, the RUAHA farm (farm demo plus 4c) and the supply chain end to end through the API's own routes: link, harvest, batch, packing, transfer, a paid web order and a till sale crediting the farmer, an invoice and a payout. Prints one credentials table to stdout.
   - `SIGNUP_ENABLED` (off by default): when off, `POST /v1/create-workspace` answers 404 before the body is read. `.env.example` sets it on for local dev.
