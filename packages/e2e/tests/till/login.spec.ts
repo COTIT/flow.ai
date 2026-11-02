@@ -163,9 +163,7 @@ test("a register with no till users says who can add one", async ({
   await seedTill(page, { loggedIn: false })
   await page.goto("/login")
   await expect(
-    page
-      .getByRole("status")
-      .filter({ hasText: "No till users yet. Ask the office to add one." })
+    page.getByText("No till users yet. Ask the office to add one.")
   ).toBeVisible()
   await expectNoHorizontalScroll(page)
 })

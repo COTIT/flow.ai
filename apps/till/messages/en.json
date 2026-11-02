@@ -77,10 +77,13 @@
     "counted": "Counted",
     "difference": "Difference",
     "closedTitle": "Shift closed",
-    "short": "Short",
-    "over": "Over",
-    "balanced": "Balanced",
-    "queued": "{count, plural, one {# offline sale} other {# offline sales}} still to sync. Sync before closing the shift."
+    "short": "The drawer is {amount} short.",
+    "over": "The drawer is {amount} over.",
+    "balanced": "The drawer balances.",
+    "queued": "{count, plural, one {# offline sale} other {# offline sales}} still to sync. Sync before closing the shift.",
+    "loadFailed": "Couldn't load the drawer. Check the connection.",
+    "opened": "Shift opened. You can start selling.",
+    "toQueue": "Go to offline sales"
   },
   "count": {
     "denomination": "Value of row {n}",

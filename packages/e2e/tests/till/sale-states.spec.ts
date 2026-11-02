@@ -14,9 +14,10 @@ const status = (page: import("@playwright/test").Page, text: string) =>
 test("an empty cart and a search with no match say so", async ({ page }) => {
   await seedTill(page)
   await page.goto("/sale")
-  await expect(status(page, "The cart is empty.")).toBeVisible()
+  // Empty states are not live regions: matched by their words.
+  await expect(page.getByText("The cart is empty.")).toBeVisible()
   await page.getByLabel("Search products").fill("zzz")
-  await expect(status(page, "No products match “zzz”.")).toBeVisible()
+  await expect(page.getByText("No products match “zzz”.")).toBeVisible()
   await expectNoHorizontalScroll(page)
 })
 
@@ -28,7 +29,7 @@ test("a register with nothing to sell says who to ask", async ({
   await seedTill(page)
   await page.goto("/sale")
   await expect(
-    status(page, "This register has no products to sell yet. Ask the office.")
+    page.getByText("This register has no products to sell yet. Ask the office.")
   ).toBeVisible()
 })
 

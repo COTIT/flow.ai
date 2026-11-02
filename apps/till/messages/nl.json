@@ -77,10 +77,13 @@
     "counted": "Geteld",
     "difference": "Verschil",
     "closedTitle": "Dienst gesloten",
-    "short": "Tekort",
-    "over": "Overschot",
-    "balanced": "Klopt",
-    "queued": "Nog {count, plural, one {# offline verkoop} other {# offline verkopen}} te versturen. Verstuur ze voor het sluiten van de dienst."
+    "short": "De kassalade heeft {amount} tekort.",
+    "over": "De kassalade heeft {amount} over.",
+    "balanced": "De kassalade klopt.",
+    "queued": "Nog {count, plural, one {# offline verkoop} other {# offline verkopen}} te versturen. Verstuur ze voor het sluiten van de dienst.",
+    "loadFailed": "De kassalade kon niet geladen worden. Controleer de verbinding.",
+    "opened": "Dienst geopend. Je kunt beginnen met verkopen.",
+    "toQueue": "Naar offline verkopen"
   },
   "count": {
     "denomination": "Waarde van rij {n}",

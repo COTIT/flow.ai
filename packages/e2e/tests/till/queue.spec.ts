@@ -230,7 +230,7 @@ test.describe("server down", () => {
     await seedTill(page)
     await page.goto("/drawer")
     await expect(
-      page.getByRole("alert").filter({
+      page.getByRole("status").filter({
         hasText: "1 offline sale still to sync. Sync before closing the shift.",
       })
     ).toBeVisible()

@@ -77,10 +77,13 @@
     "counted": "Zilizohesabiwa",
     "difference": "Tofauti",
     "closedTitle": "Zamu imefungwa",
-    "short": "Upungufu",
-    "over": "Ziada",
-    "balanced": "Sawa",
-    "queued": "Mauzo {count} ya nje ya mtandao bado hayajatumwa. Yatume kabla ya kufunga zamu."
+    "short": "Droo ina upungufu wa {amount}.",
+    "over": "Droo ina ziada ya {amount}.",
+    "balanced": "Droo iko sawa.",
+    "queued": "Mauzo {count} ya nje ya mtandao bado hayajatumwa. Yatume kabla ya kufunga zamu.",
+    "loadFailed": "Imeshindwa kupakia droo. Angalia mtandao.",
+    "opened": "Zamu imefunguliwa. Unaweza kuanza kuuza.",
+    "toQueue": "Nenda kwenye mauzo ya nje ya mtandao"
   },
   "count": {
     "denomination": "Thamani ya mstari {n}",

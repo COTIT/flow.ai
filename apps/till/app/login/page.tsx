@@ -15,7 +15,9 @@ import { Input } from "@genesy/ui/components/input"
 import { Label } from "@genesy/ui/components/label"
 import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
-import { Empty, Loading, Notice } from "@/components/state"
+import { EmptyState } from "@genesy/ui/components/empty-state"
+import { Notice } from "@genesy/ui/components/notice"
+import { Loading } from "@/components/state"
 import { deviceAuth, tillStore, useTill } from "@/lib/till-store"
 
 /** Till user picker and PIN, sent with the device key. */
@@ -65,11 +67,11 @@ export default function LoginPage() {
       <div className="flex w-full max-w-sm flex-col gap-4">
         <h1 className="text-xl font-medium">{t("login.title")}</h1>
         {ended === "expired" ? (
-          <Notice kind="info">{t("login.expired")}</Notice>
+          <Notice variant="info" title={t("login.expired")} />
         ) : null}
         {keyRefused ? (
           <>
-            <Notice kind="error">{t("login.keyRefused")}</Notice>
+            <Notice variant="error" title={t("login.keyRefused")} />
             <Button
               onClick={() => {
                 tillStore.getState().unpair()
@@ -80,11 +82,11 @@ export default function LoginPage() {
             </Button>
           </>
         ) : users.isError ? (
-          <Notice kind="error">{t("login.usersFailed")}</Notice>
+          <Notice variant="error" title={t("login.usersFailed")} />
         ) : users.isPending ? (
           <Loading>{t("common.loading")}</Loading>
         ) : !users.data.data.length ? (
-          <Empty>{t("login.noUsers")}</Empty>
+          <EmptyState title={t("login.noUsers")} />
         ) : !user ? (
           <ul aria-label={t("login.who")} className="grid grid-cols-2 gap-2">
             {users.data.data.map((u) => (
@@ -126,7 +128,7 @@ export default function LoginPage() {
                 aria-invalid={Boolean(error)}
               />
             </div>
-            {error ? <Notice kind="error">{error}</Notice> : null}
+            {error ? <Notice variant="error" title={error} /> : null}
             <div className="flex gap-2">
               <Button
                 type="button"

@@ -12,7 +12,8 @@ import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
 import { QueueRunner } from "@/components/queue-runner"
-import { Loading, Notice } from "@/components/state"
+import { Notice } from "@genesy/ui/components/notice"
+import { Loading } from "@/components/state"
 import { pendingCount, useQueue } from "@/lib/sale-queue"
 import { tillStore, useTill } from "@/lib/till-store"
 import { useOnline } from "@/lib/use-online"
@@ -114,14 +115,18 @@ export default function TillLayout({
         ))}
       </nav>
       {online ? null : (
-        <Notice kind="warning" className="print:hidden">
-          <p>{t("offline.title")}</p>
-          {waiting ? (
-            <Link href="/queue" prefetch={false} className="underline">
-              {t("offline.waiting", { count: waiting })}
-            </Link>
-          ) : null}
-        </Notice>
+        <Notice
+          variant="warning"
+          className="print:hidden"
+          title={t("offline.title")}
+          action={
+            waiting ? (
+              <Link href="/queue" prefetch={false} className="underline">
+                {t("offline.waiting", { count: waiting })}
+              </Link>
+            ) : null
+          }
+        />
       )}
       <main className="flex flex-col gap-4">{children}</main>
     </div>
