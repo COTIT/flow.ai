@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { createColumnHelper } from '@tanstack/react-table'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { DataTable } from '@/components/DataTable'
@@ -24,6 +25,7 @@ import {
 import { useSession } from '@/app/session'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { formatKw, formatPlainDate } from '@/lib/format'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
 /** Absent is not zero: a village with no capacity row has no figure, not 0 kW. */
@@ -43,6 +45,8 @@ export function VillagesScreen() {
   const [createOpen, setCreateOpen] = useState(false)
   // The village whose capacity is being set, or null.
   const [capacityFor, setCapacityFor] = useState<VillageCapacity | null>(null)
+  // The panel closes on a saved capacity, so the screen says it; opening a panel again clears it.
+  const [capacitySaved, setCapacitySaved] = useState(false)
 
   const columns = useMemo(() => {
     const col = createColumnHelper<VillageCapacity>()
@@ -100,6 +104,7 @@ export function VillagesScreen() {
             data-testid="village-set-capacity"
             onClick={() => {
               setCreateOpen(false)
+              setCapacitySaved(false)
               setCapacityFor(c.row.original)
             }}
           >
@@ -126,6 +131,7 @@ export function VillagesScreen() {
             variant={createOpen ? 'secondary' : 'primary'}
             onClick={() => {
               setCapacityFor(null)
+              setCapacitySaved(false)
               setCreateOpen((open) => !open)
             }}
           >
@@ -137,7 +143,20 @@ export function VillagesScreen() {
 
       {createOpen && <VillageCreatePanel onClose={() => setCreateOpen(false)} />}
       {capacityFor && (
-        <VillageCreatePanel key={capacityFor.id} village={capacityFor} onClose={() => setCapacityFor(null)} />
+        <VillageCreatePanel
+          key={capacityFor.id}
+          village={capacityFor}
+          onClose={() => setCapacityFor(null)}
+          onSaved={() => {
+            setCapacityFor(null)
+            setCapacitySaved(true)
+          }}
+        />
+      )}
+      {capacitySaved && (
+        <div data-testid="village-capacity-saved">
+          <Notice variant="success" title={t('villages.capacitySaved')} />
+        </div>
       )}
 
       {query.isLoading ? (
@@ -170,6 +189,19 @@ const VILLAGE_DEFAULTS = {
 }
 const BASES = ['planned', 'nameplate'] as const
 
+/** The form field each API key belongs to; a new village sends its capacity nested as `capacity.*`. */
+const VILLAGE_FIELD: Record<string, keyof typeof VILLAGE_DEFAULTS> = {
+  name: 'name', code: 'code', latitude: 'latitude', longitude: 'longitude',
+  capacity_kw: 'capacityKw', basis: 'basis', simultaneity_factor: 'simultaneity',
+  source_note: 'sourceNote', effective_from: 'effectiveFrom',
+}
+const villageFieldOf = (key: string) => VILLAGE_FIELD[key.replace(/^capacity\./, '')]
+const VILLAGE_INPUT: Record<keyof typeof VILLAGE_DEFAULTS, string> = {
+  name: 'village-name', code: 'village-code', latitude: 'village-latitude', longitude: 'village-longitude',
+  capacityKw: 'village-capacity', basis: 'village-basis-select', simultaneity: 'village-simultaneity',
+  sourceNote: 'village-source-note', effectiveFrom: 'village-effective-from',
+}
+
 /**
  * Only the SHAPE of a number is checked here: `Number('25,5')` is NaN and
  * would reach the RPC as a cast error. Ranges — capacity not negative, the
@@ -190,7 +222,7 @@ function numberErrorKey(value: string, required: boolean): string | undefined {
  * Given a `village`, the same panel records a new current capacity for it
  * (capacity fields only); the API keeps the previous one as history.
  */
-function VillageCreatePanel({ onClose, village }: { onClose: () => void; village?: VillageCapacity }) {
+function VillageCreatePanel({ onClose, onSaved = onClose, village }: { onClose: () => void; onSaved?: () => void; village?: VillageCapacity }) {
   const { t } = useTranslation()
   const createVillage = useCreateVillage()
   const setCapacity = useSetVillageCapacity()
@@ -225,7 +257,11 @@ function VillageCreatePanel({ onClose, village }: { onClose: () => void; village
     capacity: numberErrorKey(capacityKw, true),
     simultaneity: numberErrorKey(simultaneity, false),
   }
-  const shown = (key: keyof typeof errors) => (touched && errors[key] ? t(errors[key]!) : undefined)
+  // The API's refusal of a field, as written; the screen's own check wins while it fails.
+  const refusal = useFieldErrors(create.error, draft.setError, villageFieldOf, (field) => VILLAGE_INPUT[field as keyof typeof VILLAGE_INPUT])
+  const server = (field: keyof typeof VILLAGE_DEFAULTS) => draft.formState.errors[field]?.message
+  const shown = (key: keyof typeof errors, field: keyof typeof VILLAGE_DEFAULTS = key as keyof typeof VILLAGE_DEFAULTS) =>
+    (touched && errors[key] ? t(errors[key]!) : undefined) ?? server(field)
 
   const submit = () => {
     if (inFlight.current || create.isPending || !draft.ready) return
@@ -241,7 +277,7 @@ function VillageCreatePanel({ onClose, village }: { onClose: () => void; village
       effective_from: effectiveFrom,
     }
     const save = village
-      ? setCapacity.mutateAsync({ villageId: village.id, id: draft.clientRef, capacity }).then(onClose)
+      ? setCapacity.mutateAsync({ villageId: village.id, id: draft.clientRef, capacity }).then(onSaved)
       : createVillage.mutateAsync({
           id: draft.clientRef,
           project_id: projectId,
@@ -257,7 +293,7 @@ function VillageCreatePanel({ onClose, village }: { onClose: () => void; village
   /** "Try again": the save that failed, unchanged (same id, same body), the same way as submit. */
   const retry = () => {
     const save = village
-      ? setCapacity.mutateAsync(setCapacity.variables!).then(onClose)
+      ? setCapacity.mutateAsync(setCapacity.variables!).then(onSaved)
       : createVillage.mutateAsync(createVillage.variables!)
     void finishDraftWhenSaved(save, draft.finish)
   }
@@ -303,10 +339,10 @@ function VillageCreatePanel({ onClose, village }: { onClose: () => void; village
           </Field>
           </>)}
 
-          <Field label={t('villages.capacity')} id="village-capacity" error={shown('capacity')} errorTestId="village-capacity-error">
+          <Field label={t('villages.capacity')} id="village-capacity" error={shown('capacity', 'capacityKw')} errorTestId="village-capacity-error">
             <input id="village-capacity" data-testid="village-capacity" inputMode="decimal" value={capacityKw} onChange={(e) => setCapacityKw(e.target.value)} className="w-full" style={CONTROL} />
           </Field>
-          <Field label={t('villages.basis')} id="village-basis-select">
+          <Field label={t('villages.basis')} id="village-basis-select" error={server('basis')} errorTestId="village-basis-error">
             <Select value={basis} onValueChange={(value) => setBasis(value ?? 'planned')}>
               <SelectTrigger id="village-basis-select" data-testid="village-basis-select" className="w-full">
                 {t(`capacityBasis.${basis}`)}
@@ -319,19 +355,24 @@ function VillageCreatePanel({ onClose, village }: { onClose: () => void; village
           <Field label={t('villages.simultaneity')} id="village-simultaneity" hint={t('villages.simultaneityHint')} error={shown('simultaneity')} errorTestId="village-simultaneity-error">
             <input id="village-simultaneity" data-testid="village-simultaneity" inputMode="decimal" value={simultaneity} onChange={(e) => setSimultaneity(e.target.value)} className="w-full" style={CONTROL} />
           </Field>
-          <Field label={t('villages.effectiveFrom')} id="village-effective-from">
+          <Field label={t('villages.effectiveFrom')} id="village-effective-from" error={server('effectiveFrom')} errorTestId="village-effective-from-error">
             <input id="village-effective-from" data-testid="village-effective-from" type="date" value={effectiveFrom} onChange={(e) => setEffectiveFrom(e.target.value)} className="w-full" style={CONTROL} />
           </Field>
-          <Field label={t('villages.sourceNote')} id="village-source-note">
+          <Field label={t('villages.sourceNote')} id="village-source-note" error={server('sourceNote')} errorTestId="village-source-note-error">
             <input id="village-source-note" data-testid="village-source-note" value={sourceNote} onChange={(e) => setSourceNote(e.target.value)} className="w-full" style={CONTROL} />
           </Field>
         </div>
 
         {!village && <p className="type-note" style={{ color: 'var(--ink-3)' }}>{t('villages.officerNote')}</p>}
 
-        {create.isError && (
+        {create.isError && refusal != null && (
           <div data-testid="village-create-error">
-            <ErrorState error={create.error} onRetry={retry} />
+            <ErrorState error={refusal} onRetry={retry} />
+          </div>
+        )}
+        {!village && create.isSuccess && !draft.dirty && (
+          <div data-testid="village-saved">
+            <Notice variant="success" title={t('villages.created')} />
           </div>
         )}
 

@@ -16,6 +16,7 @@ import { z } from 'zod'
 import { useEstimatePreview, useSubmitRequest } from '@/features/farmer/useRequests'
 import { formatKw, formatPrice } from '@/lib/format'
 import { finishDraftWhenSaved } from '@/lib/drafts'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 import { FormDraftStatus } from '@/components/FormDraftStatus'
 
@@ -60,7 +61,9 @@ export function EquipmentDetailScreen() {
   const submit = useSubmitRequest()
 
   const draft = usePersistentForm<RequestDraft>('equipment-request', equipmentId, EMPTY, zodResolver(draftSchema))
-  const { handleSubmit, control, reset, formState: { errors, isSubmitting } } = draft
+  const { handleSubmit, control, reset, setError, formState: { errors, isSubmitting } } = draft
+  // A refusal naming a figure lands at that figure; anything else stays in the banner.
+  const refusal = useFieldErrors(submit.error, setError, ['quantity', 'hours_per_day', 'days_per_week'], (field) => `request-${fieldId(field as keyof RequestForm)}`)
   const [quantity, setQuantity] = draft.field('quantity')
   const [hoursPerDay, setHoursPerDay] = draft.field('hours_per_day')
   const [daysPerWeek, setDaysPerWeek] = draft.field('days_per_week')
@@ -197,7 +200,8 @@ export function EquipmentDetailScreen() {
         style={{ fontSize: 13, color: 'var(--flag-ink)', textWrap: 'pretty' }}
       >
         <BangMark />
-        {t(error.message ?? 'equipment.required')}
+        {/* An API message is already the text to show; t() would split it at ':'. */}
+        {error.type === 'server' ? error.message : t(error.message ?? 'equipment.required')}
       </p>
     )
   }
@@ -400,9 +404,9 @@ export function EquipmentDetailScreen() {
           )}
         </div>
 
-        {submit.isError && (
+        {submit.isError && refusal != null && (
           <div data-testid="request-error">
-            <ErrorState error={submit.error} onRetry={() => void finishDraftWhenSaved(submit.mutateAsync(submit.variables!), draft.finish)} />
+            <ErrorState error={refusal} onRetry={() => void finishDraftWhenSaved(submit.mutateAsync(submit.variables!), draft.finish)} />
           </div>
         )}
 

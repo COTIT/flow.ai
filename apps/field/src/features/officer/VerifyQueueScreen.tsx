@@ -1,3 +1,4 @@
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 import { Link } from '@tanstack/react-router'
 
@@ -61,6 +62,11 @@ export function VerifyQueueScreen() {
       {/* app_verify's own message if it refuses — shown as written, never
           replaced with a generic failure (business-rules §9). */}
       {verify.error && <ErrorState error={verify.error} />}
+      {verify.isSuccess && (
+        <div data-testid="verify-done">
+          <Notice variant="success" title={t('person.verified')} />
+        </div>
+      )}
 
       {query.isLoading ? (
         <p data-testid="verify-queue-loading" style={{ fontSize: 15, color: 'var(--ink-2)' }}>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { OfficerEditDialog, type EditField } from '@/features/officer/OfficerEditDialog'
@@ -60,6 +61,12 @@ export function RecordEditAction({
           onComplete={() => setOpen(false)}
           onCancel={() => { edit.reset(); setOpen(false) }}
         />
+      )}
+      {/* Its own line in the row; cleared when the dialog opens again (reset). */}
+      {edit.isSuccess && !open && (
+        <div data-testid="record-edit-saved" className="w-full basis-full">
+          <Notice variant="success" title={t('officerEdit.saved')} />
+        </div>
       )}
     </>
   )

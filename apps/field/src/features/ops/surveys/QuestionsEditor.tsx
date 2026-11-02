@@ -1,8 +1,11 @@
 import { useId, useState } from 'react'
 import { ArrowDown, ArrowUp, Plus } from 'lucide-react'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ErrorState } from '@/components/ErrorState'
+import { fieldErrorsOf } from '@/lib/apiError'
+import { errorText } from '@/lib/errors'
 import { CONTROL } from '@/components/controlStyles'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
@@ -167,9 +170,14 @@ function QuestionCard({
   const [state, setState] = useState<CardState>(() => (question ? stateOf(question) : blankState()))
   const [dirty, setDirty] = useState(false)
 
+  // The API's refusal of a prompt or kind is shown under it, until the next edit.
+  const refused = fieldErrorsOf(save.error, ['prompt_en', 'prompt_sw', 'kind'])
+  const fieldError = (field: string) => (refused.fields[field] ? errorText(refused.fields[field], t) : undefined)
+
   const change = (patch: Partial<CardState>) => {
     setState((s) => ({ ...s, ...patch }))
     setDirty(true)
+    if (save.isError) save.reset()
   }
   const changeOption = (index: number, patch: Partial<EditableOption>) =>
     change({ options: state.options.map((o, i) => (i === index ? { ...o, ...patch } : o)) })
@@ -248,7 +256,7 @@ function QuestionCard({
         </div>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Field label={t('surveyAdmin.question.prompt_en')} htmlFor={`${id}-prompt-en`}>
+          <Field label={t('surveyAdmin.question.prompt_en')} htmlFor={`${id}-prompt-en`} error={fieldError('prompt_en')}>
             <input
               id={`${id}-prompt-en`}
               data-testid="question-prompt-en"
@@ -258,7 +266,7 @@ function QuestionCard({
               style={CONTROL}
             />
           </Field>
-          <Field label={t('surveyAdmin.question.prompt_sw')} htmlFor={`${id}-prompt-sw`}>
+          <Field label={t('surveyAdmin.question.prompt_sw')} htmlFor={`${id}-prompt-sw`} error={fieldError('prompt_sw')}>
             <input
               id={`${id}-prompt-sw`}
               data-testid="question-prompt-sw"
@@ -269,7 +277,7 @@ function QuestionCard({
               style={CONTROL}
             />
           </Field>
-          <Field label={t('surveyAdmin.question.kind')} htmlFor={`${id}-kind`}>
+          <Field label={t('surveyAdmin.question.kind')} htmlFor={`${id}-kind`} error={fieldError('kind')}>
             <Select value={state.kind} onValueChange={(value) => change({ kind: value as QuestionKind })}>
               <SelectTrigger id={`${id}-kind`} data-testid="question-kind" className="w-full">
                 {t(`surveyAdmin.kinds.${state.kind}`)}
@@ -353,18 +361,16 @@ function QuestionCard({
           </fieldset>
         )}
 
-        {save.isError && <ErrorState error={save.error} />}
+        {save.isError && refused.general != null && <ErrorState error={refused.general} />}
+        {question && save.isSuccess && !dirty && (
+          <div data-testid="question-saved">
+            <Notice variant="success" title={t('surveyAdmin.saved')} />
+          </div>
+        )}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" data-testid="question-save" disabled={save.isPending} className="w-fit">
-            {save.isPending ? t('surveyAdmin.saving') : t('surveyAdmin.save')}
-          </Button>
-          {question && save.isSuccess && !dirty && (
-            <span role="status" className="type-note" style={{ color: 'var(--green-ink)' }}>
-              {t('surveyAdmin.saved')}
-            </span>
-          )}
-        </div>
+        <Button type="submit" data-testid="question-save" disabled={save.isPending} className="w-fit">
+          {save.isPending ? t('surveyAdmin.saving') : t('surveyAdmin.save')}
+        </Button>
       </form>
     </Panel>
   )

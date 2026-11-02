@@ -108,6 +108,13 @@ describe('OpsRequestReviewScreen', () => {
     expect(screen.queryByTestId('review-error')).not.toBeInTheDocument()
   })
 
+  test('an approval that went through says so', () => {
+    useReviewAction.mockReturnValue({ isPending: false, isError: false, isSuccess: true, variables: { action: 'approve' }, mutate, reset: vi.fn() })
+    render(<OpsRequestReviewScreen />)
+
+    expect(screen.getByTestId('review-done')).toHaveTextContent('Request approved')
+  })
+
   // Approve and reject cannot be undone, so each asks first.
   test.each(['approve', 'reject'] as const)('%s asks first: cancel sends nothing, confirm sends once', async (action) => {
     const user = userEvent.setup()

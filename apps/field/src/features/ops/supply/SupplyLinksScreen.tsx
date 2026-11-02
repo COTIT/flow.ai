@@ -1,9 +1,13 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
+import { BangMark } from '@/components/marks'
+import { fieldErrorsOf } from '@/lib/apiError'
+import { errorText } from '@/lib/errors'
 import { FormField } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader'
 import { CONTROL } from '@/components/controlStyles'
@@ -43,6 +47,11 @@ export function SupplyLinksScreen() {
       <PageHeader title={t('supply.linksTitle')} description={t('supply.linksIntro')} />
       <GrantForm />
       {revoke.error ? <ErrorState error={revoke.error} /> : null}
+      {revoke.isSuccess && (
+        <div data-testid="supply-revoke-done">
+          <Notice variant="success" title={t('supply.revoked')} />
+        </div>
+      )}
       {links.error ? (
         <ErrorState error={links.error} onRetry={() => void links.refetch()} />
       ) : links.isLoading ? (
@@ -99,6 +108,14 @@ function GrantForm() {
   /** Kept until a link is granted, edits included, so a lost reply can never turn into a second link. */
   const idempotencyKey = useRef(newUuid())
 
+  // The API's refusal of the shop or the fields is shown at it, until the next edit.
+  const refused = fieldErrorsOf(grant.error, (key) =>
+    key === 'to_workspace_id' ? key : /^fields(\.\d+)?$/.test(key) ? 'fields' : null)
+  const fieldError = (field: string) => (refused.fields[field] ? errorText(refused.fields[field], t) : undefined)
+  const edit = () => {
+    if (grant.isError || grant.isSuccess) grant.reset()
+  }
+
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (inFlight.current) return
@@ -121,12 +138,15 @@ function GrantForm() {
       <form data-testid="supply-grant" className="flex flex-col gap-3" onSubmit={submit}>
         <h2 className="font-semibold">{t('supply.grantTitle')}</h2>
         {/* shortcut: the shop is named by its workspace id, the API has no directory of workspaces to pick from; replace with a picker when one is documented. */}
-        <FormField label={t('supply.grantTo')} id="supply-grant-to" hint={t('supply.grantToHint')}>
+        <FormField label={t('supply.grantTo')} id="supply-grant-to" hint={t('supply.grantToHint')} error={fieldError('to_workspace_id')} errorTestId="supply-grant-to-error">
           <input
             id="supply-grant-to"
             data-testid="supply-grant-to"
             value={to}
-            onChange={(e) => setTo(e.target.value)}
+            onChange={(e) => {
+              setTo(e.target.value)
+              edit()
+            }}
             className="w-full"
             style={CONTROL}
             autoComplete="off"
@@ -141,20 +161,32 @@ function GrantForm() {
                   type="checkbox"
                   data-testid={`supply-grant-field-${field}`}
                   checked={fields.includes(field)}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setFields((now) => (e.target.checked ? [...now, field] : now.filter((f) => f !== field)))
-                  }
+                    edit()
+                  }}
                 />
                 {t(`supply.field.${field}`)}
               </label>
             ))}
           </div>
+          {fieldError('fields') && (
+            <p data-testid="supply-grant-fields-error" className="flex items-start gap-[7px] font-medium" style={{ fontSize: 13, color: 'var(--flag-ink)' }}>
+              <BangMark />
+              {fieldError('fields')}
+            </p>
+          )}
         </fieldset>
-        {grant.error ? (
+        {grant.error && refused.general != null ? (
           <div data-testid="supply-grant-error">
-            <ErrorState error={grant.error} />
+            <ErrorState error={refused.general} />
           </div>
         ) : null}
+        {grant.isSuccess && (
+          <div data-testid="supply-grant-done">
+            <Notice variant="success" title={t('supply.granted')} />
+          </div>
+        )}
         <div>
           <Button type="submit" data-testid="supply-grant-submit" disabled={grant.isPending}>
             {grant.isPending ? t('supply.granting') : t('supply.grantSubmit')}

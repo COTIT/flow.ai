@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { FormDraftStatus } from '@/components/FormDraftStatus'
 import { finishDraftWhenSaved } from '@/lib/drafts'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 import {
   BUYER_CHANNELS,
@@ -46,6 +48,15 @@ export function BuyersScreen() {
   const [name, setName] = draft.field('name')
   const [channel, setChannel] = draft.field('channel')
   const [contactNote, setContactNote] = draft.field('contact_note')
+  // A refusal naming a field lands under it; a taken name is the API's own sentence.
+  const refusal = useFieldErrors(create.error, draft.setError, ['name', 'channel', 'contact_note'], (field) => `buyer-${field.replace('_', '-')}`)
+  const fieldErrors = draft.formState.errors
+  const serverError = (field: 'channel' | 'contact_note') =>
+    fieldErrors[field] && (
+      <span data-testid={`buyer-${field.replace('_', '-')}-error`} className="block type-note font-medium" style={{ color: 'var(--flag-ink)' }}>
+        {fieldErrors[field]?.message}
+      </span>
+    )
 
   const columns = useMemo(() => {
     const col = createColumnHelper<Buyer>()
@@ -141,6 +152,7 @@ export function BuyersScreen() {
           <label className="flex min-w-0 flex-col gap-1.5" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
             <span className="block type-note" style={{ color: 'var(--ink-2)' }}>{t('buyers.colName')}</span>
             <input
+              id="buyer-name"
               data-testid="buyer-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -148,7 +160,7 @@ export function BuyersScreen() {
             />
             {draft.formState.errors.name && (
               <span data-testid="buyer-name-error" className="block type-note font-medium" style={{ color: 'var(--flag-ink)' }}>
-                {t('buyers.nameRequired')}
+                {draft.formState.errors.name.type === 'server' ? draft.formState.errors.name.message : t('buyers.nameRequired')}
               </span>
             )}
           </label>
@@ -156,7 +168,7 @@ export function BuyersScreen() {
           <label className="flex min-w-0 flex-col gap-1.5" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
             <span className="block type-note" style={{ color: 'var(--ink-2)' }}>{t('buyers.colChannel')}</span>
             <Select value={channel} onValueChange={(value) => setChannel(value as Buyer['channel'])}>
-              <SelectTrigger data-testid="buyer-channel" className="w-full">
+              <SelectTrigger id="buyer-channel" data-testid="buyer-channel" className="w-full">
                 {t(`buyers.channel.${channel}`)}
               </SelectTrigger>
               <SelectContent>
@@ -167,22 +179,34 @@ export function BuyersScreen() {
                 ))}
               </SelectContent>
             </Select>
+            {serverError('channel')}
           </label>
 
           <label className="flex min-w-0 flex-col gap-1.5" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>
             <span className="block type-note" style={{ color: 'var(--ink-2)' }}>{t('buyers.colContact')}</span>
             <input
+              id="buyer-contact-note"
               data-testid="buyer-contact-note"
               value={contactNote}
               onChange={(e) => setContactNote(e.target.value)}
               className="w-full" style={CONTROL}
             />
+            {serverError('contact_note')}
           </label>
         </div>
 
         {/* The API's message as written — a taken name names the collision
             better than a generic failure would. */}
-        {create.error && <ErrorState error={create.error} />}
+        {create.error && refusal != null && (
+          <div data-testid="buyer-create-error">
+            <ErrorState error={refusal} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} />
+          </div>
+        )}
+        {create.isSuccess && !draft.dirty && (
+          <div data-testid="buyer-saved">
+            <Notice variant="success" title={t('buyers.created')} />
+          </div>
+        )}
 
         <Button
           type="submit"

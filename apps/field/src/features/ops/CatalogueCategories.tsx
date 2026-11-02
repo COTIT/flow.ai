@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { useWorkspaceId } from '@/app/workspace'
@@ -10,6 +11,7 @@ import { CONTROL } from '@/components/controlStyles'
 import { Button } from '@/components/ui/button'
 import { useCreateCategory, useEquipmentCategories } from '@/features/ops/useCatalogue'
 import { finishDraftWhenSaved } from '@/lib/drafts'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
 const schema = z.object({ code: z.string(), nameEn: z.string(), nameSw: z.string() })
@@ -34,6 +36,9 @@ export function CatalogueCategories() {
 
   const errors = { code, 'name-en': nameEn, 'name-sw': nameSw }
   const missing = (key: keyof typeof errors) => touched && errors[key].trim() === ''
+  // A taken code is the API's sentence, shown under the code.
+  const refusal = useFieldErrors(create.error, draft.setError, (key) => FIELD[key], (field) => `category-${INPUT[field]}`)
+  const server = (id: keyof typeof errors) => draft.formState.errors[Object.keys(INPUT).find((field) => INPUT[field] === id) as keyof typeof DEFAULTS]?.message
 
   const submit = () => {
     if (inFlight.current || create.isPending || !draft.ready) return
@@ -53,7 +58,7 @@ export function CatalogueCategories() {
     <Field
       label={t(id === 'code' ? 'catalogue.code' : id === 'name-en' ? 'catalogue.nameEn' : 'catalogue.nameSw')}
       id={`category-${id}`}
-      error={missing(id) ? t('catalogue.required') : undefined}
+      error={missing(id) ? t('catalogue.required') : server(id)}
       errorTestId={`category-${id}-error`}
     >
       <input
@@ -104,9 +109,14 @@ export function CatalogueCategories() {
           {input('name-en', nameEn, setNameEn)}
           {input('name-sw', nameSw, setNameSw)}
         </div>
-        {create.isError && (
+        {create.isError && refusal != null && (
           <div data-testid="category-create-error">
-            <ErrorState error={create.error} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} />
+            <ErrorState error={refusal} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} />
+          </div>
+        )}
+        {create.isSuccess && !draft.dirty && (
+          <div data-testid="category-saved">
+            <Notice variant="success" title={t('catalogue.categoryCreated')} />
           </div>
         )}
         <Button type="submit" data-testid="category-submit" disabled={!draft.ready || create.isPending} className="w-fit">
@@ -116,3 +126,7 @@ export function CatalogueCategories() {
     </section>
   )
 }
+
+/** The form field each API key belongs to, and that field's input (`category-<input>`). */
+const FIELD: Record<string, keyof typeof DEFAULTS> = { code: 'code', name_en: 'nameEn', name_sw: 'nameSw' }
+const INPUT: Record<string, string> = { code: 'code', nameEn: 'name-en', nameSw: 'name-sw' }

@@ -6,6 +6,7 @@ import { FormDraftStatus } from '@/components/FormDraftStatus'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
 import { errorText } from '@/lib/errors'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { validateEdit, type CropMeasure, type EditableTable, type EditValues } from '@/features/officer/officerEdit'
 import type { Enums } from '@/lib/enums'
 
@@ -62,6 +63,10 @@ export function OfficerEditDialog({
     || !MEASURE_FIELDS.some((name) => name === field.name) || field.name === activeMeasure || (activeMeasure === 'area' && field.name === 'area_ha'),
   )
 
+  // A refusal naming a field lands under it; anything else stays in the message below the fields.
+  const refusal = useFieldErrors(error, draft.setError, visibleFields.map((field) => field.name), (name) => `edit-${name}`)
+  const fieldError = (name: string) => draft.formState.errors[name]?.message
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!draft.ready) return
@@ -104,6 +109,7 @@ export function OfficerEditDialog({
             {t(field.label)}
             {field.options ? (
               <select
+                id={`edit-${field.name}`}
                 data-testid={`edit-${field.name}`}
                 value={values?.[field.name] ?? ''}
                 onChange={(event) => draft.field(field.name)[1](event.target.value)}
@@ -116,7 +122,9 @@ export function OfficerEditDialog({
               </select>
             ) : (
               <input
+                id={`edit-${field.name}`}
                 data-testid={`edit-${field.name}`}
+                aria-invalid={fieldError(field.name) ? true : undefined}
                 type={field.type ?? 'text'}
                 value={values?.[field.name] ?? ''}
                 required={field.required}
@@ -126,11 +134,16 @@ export function OfficerEditDialog({
                 style={inputStyle}
               />
             )}
+            {fieldError(field.name) && (
+              <span data-testid={`edit-${field.name}-error`} style={{ color: 'var(--flag-ink)', fontSize: 13 }}>
+                {fieldError(field.name)}
+              </span>
+            )}
           </label>
         ))}
-        {(validationError || error) && (
+        {(validationError || refusal != null) && (
           <p role="alert" data-testid="officer-edit-error" style={{ color: 'var(--flag-ink)', fontSize: 13 }}>
-            {error ? errorText(error, t) : validationError}
+            {refusal != null ? errorText(refusal, t) : validationError}
           </p>
         )}
         <div className="flex flex-wrap justify-end gap-2.5">

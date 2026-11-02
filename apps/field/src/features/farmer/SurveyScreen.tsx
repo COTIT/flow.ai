@@ -1,6 +1,7 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, getRouteApi } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/EmptyState'
@@ -8,6 +9,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { FormDraftStatus } from '@/components/FormDraftStatus'
 import { CONTROL_FIELD } from '@/components/controlStyles'
 import { Loading, ProductNote } from '@/components/controls'
+import { BangMark } from '@/components/marks'
 import { Button } from '@/components/ui/button'
 import { SurveyFacts, SurveyIncentive } from '@/features/farmer/SurveysListScreen'
 import { VoucherCard } from '@/features/farmer/VoucherCard'
@@ -182,6 +184,15 @@ function SurveyAnswerForm({ survey, submit }: { survey: FarmerSurvey; submit: Su
   })
 
   const busy = submit.isPending || isSubmitting
+  // The database names the question it refuses ("question 3 is required"): that refusal is shown
+  // there, and goes once that answer changes. Any other refusal stays below the form.
+  const refusal = submit.error ? refusalOf(submit.error, t) : null
+  const refusedId = refusal?.position ? survey.questions.find((q) => String(q.position) === refusal.position)?.id : undefined
+  useEffect(() => {
+    if (!refusedId) return
+    const id = `survey-q-${refusedId}`
+    ;(document.getElementById(id) ?? document.getElementsByName(id)[0])?.focus()
+  }, [submit.error, refusedId])
 
   return (
     <form data-testid="survey-form" className="flex flex-col gap-5" noValidate onSubmit={onSubmit}>
@@ -194,15 +205,25 @@ function SurveyAnswerForm({ survey, submit }: { survey: FarmerSurvey; submit: Su
             key={question.id}
             question={question}
             value={value ?? ''}
-            onChange={setValue}
+            onChange={(next) => {
+              setValue(next)
+              if (question.id === refusedId) submit.reset()
+            }}
             language={language}
+            error={question.id === refusedId ? refusal?.text : undefined}
           />
         )
       })}
 
       <ProductNote>{t('surveys.onceNote')}</ProductNote>
 
-      {submit.error && <SubmitRefusal error={submit.error} />}
+      {refusal && !refusedId && (
+        <div data-testid="survey-submit-error">
+          <Notice variant="error" title={t('surveys.notSent')}>
+            <p style={{ textWrap: 'pretty' }}>{refusal.text}</p>
+          </Notice>
+        </div>
+      )}
 
       <Button
         type="submit"
@@ -220,31 +241,16 @@ function SurveyAnswerForm({ survey, submit }: { survey: FarmerSurvey; submit: Su
 
 /**
  * The database's refusal, as written — "question 3 is required", "this survey
- * is closed" — with its first letter raised. Machine noise (a dropped
- * connection, a constraint name) is replaced by `humanizeDbError`, which is
- * what `ErrorState` uses too; the refusal is not dressed as "something went
- * wrong", because nothing did: the database said no, and why.
+ * is closed" — with its first letter raised, and the question it names. Machine
+ * noise (a dropped connection, a constraint name) is replaced by
+ * `humanizeDbError`; the refusal is not dressed as "something went wrong",
+ * because nothing did: the database said no, and why.
  */
-function SubmitRefusal({ error }: { error: Error }) {
-  const { t } = useTranslation()
+function refusalOf(error: Error, t: (key: string, values?: Record<string, string>) => string) {
   const human = humanizeDbError(error)
-  return (
-    <p
-      role="alert"
-      data-testid="survey-submit-error"
-      className="type-body px-3.5 py-3"
-      style={{
-        border: '1px solid var(--rule-2)',
-        borderLeft: '4px solid var(--flag-ink)',
-        borderRadius: 'var(--radius-card)',
-        background: 'var(--flag-tint)',
-        color: 'var(--ink)',
-        textWrap: 'pretty',
-      }}
-    >
-      {human.kind === 'verbatim' ? sentence(human.message) : t(human.key, human.values)}
-    </p>
-  )
+  return human.kind === 'verbatim'
+    ? { text: sentence(human.message), position: /^question (\d+)\b/.exec(human.message)?.[1] }
+    : { text: t(human.key, human.values), position: human.values?.position }
 }
 
 interface FieldProps {
@@ -252,13 +258,29 @@ interface FieldProps {
   value: string
   onChange: (value: string) => void
   language: string | undefined
+  /** The database's refusal of this answer, shown under it. */
+  error?: string
 }
 
 /**
  * One question. The position is shown because the database's refusals name
  * it ("question 3 is required"), and the farmer has to find question 3.
  */
-function QuestionField({ question, value, onChange, language }: FieldProps) {
+function QuestionField({ error, ...props }: FieldProps) {
+  return (
+    <div data-testid="survey-question" data-kind={props.question.kind} className="flex flex-col gap-2">
+      <QuestionInput {...props} />
+      {error && (
+        <p data-testid="survey-question-error" className="flex items-start gap-[7px] font-medium" style={{ fontSize: 13, color: 'var(--flag-ink)', textWrap: 'pretty' }}>
+          <BangMark />
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function QuestionInput({ question, value, onChange, language }: Omit<FieldProps, 'error'>) {
   const { t } = useTranslation()
   const inputId = `survey-q-${question.id}`
   const prompt = (
@@ -286,7 +308,7 @@ function QuestionField({ question, value, onChange, language }: FieldProps) {
               label: localisedField(option, 'label', language),
             }))
       return (
-        <fieldset data-testid="survey-question" data-kind={question.kind} className="flex flex-col gap-2">
+        <fieldset className="flex flex-col gap-2">
           <legend className="mb-2">{prompt}</legend>
           {options.map((option) => (
             <Choice
@@ -313,7 +335,7 @@ function QuestionField({ question, value, onChange, language }: FieldProps) {
         onChange(writeChoices(question.options.map((o) => o.value).filter((v) => next.includes(v))))
       }
       return (
-        <fieldset data-testid="survey-question" data-kind={question.kind} className="flex flex-col gap-2">
+        <fieldset className="flex flex-col gap-2">
           <legend className="mb-2">{prompt}</legend>
           {question.options.map((option) => (
             <Choice
@@ -332,7 +354,7 @@ function QuestionField({ question, value, onChange, language }: FieldProps) {
 
     case 'number':
       return (
-        <div data-testid="survey-question" data-kind={question.kind} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <label htmlFor={inputId}>{prompt}</label>
           {/* Text with a decimal keypad, not type="number": the database parses
               the value and names the question when it cannot. */}
@@ -350,7 +372,7 @@ function QuestionField({ question, value, onChange, language }: FieldProps) {
 
     case 'text':
       return (
-        <div data-testid="survey-question" data-kind={question.kind} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           <label htmlFor={inputId}>{prompt}</label>
           <textarea
             id={inputId}

@@ -213,6 +213,11 @@ export function OpsRequestReviewScreen() {
           <ErrorState error={review.error} onRetry={() => review.mutate(review.variables!)} />
         </div>
       )}
+      {review.isSuccess && (
+        <div data-testid="review-done">
+          <Notice variant="success" title={t(`ops.reviewDone.${review.variables.action}`)} />
+        </div>
+      )}
 
       {actions.length === 0 ? (
         <p style={{ fontSize: 15, color: 'var(--ink-2)' }}>{t('ops.noActions')}</p>

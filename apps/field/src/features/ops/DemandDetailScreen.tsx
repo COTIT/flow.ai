@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { CoverageBar } from '@/components/CoverageBar'
@@ -200,6 +201,11 @@ export function DemandDetailScreen() {
         {createOpportunity.isError && (
           <div data-testid="create-opportunity-error">
             <ErrorState error={createOpportunity.error} onRetry={() => createOpportunity.mutate(createOpportunity.variables!)} />
+          </div>
+        )}
+        {createOpportunity.isSuccess && (
+          <div data-testid="create-opportunity-done">
+            <Notice variant="success" title={t('demand.opportunityCreated')} />
           </div>
         )}
       </section>

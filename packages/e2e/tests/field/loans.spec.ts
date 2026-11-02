@@ -94,10 +94,11 @@ test("ops adds a loan listing: a device-made id and integer minor units, no fina
 test.describe("a refused loan listing", () => {
   test.use({ allow: { responses: [{ url: `/v1${LOANS}`, status: 422 }] } })
 
-  test("shows the API's message as written, and a retry keeps the same id", async ({ page }) => {
+  test("shows the API's message as written at the maximum, and a retry keeps the same id", async ({ page }) => {
     const sent = await openOps(page, rangeBackwards)
     await page.getByTestId("catalogue-create-submit").click()
-    await expect(page.getByTestId("catalogue-create-error")).toContainText("the maximum must not be below the minimum")
+    await expect(page.getByTestId("catalogue-max-error")).toContainText("the maximum must not be below the minimum")
+    await expect(page.getByTestId("catalogue-create-error")).toHaveCount(0)
 
     await page.getByTestId("catalogue-max").fill("3000001")
     await page.getByTestId("catalogue-create-submit").click()

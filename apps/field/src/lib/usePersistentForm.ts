@@ -50,7 +50,7 @@ export function usePersistentForm<T extends Record<string, string>>(
   // Kept current in an effect, declared before the restore so it runs first.
   const versionRef = useRef(version)
   useEffect(() => { versionRef.current = version }, [version])
-  const { reset, getValues, setValue } = form
+  const { reset, getValues, setValue, clearErrors } = form
 
   if (state.key !== key) {
     setState({ key, ready: !owner, dirty: false, storageError: false, clientRef: newUuid() })
@@ -102,6 +102,8 @@ export function usePersistentForm<T extends Record<string, string>>(
   function field<K extends keyof T & string>(name: K): [T[K], (value: T[K]) => void] {
     return [values[name] ?? defaults[name], value => {
       if (state.key !== key || closed.current) return
+      // The API's refusal of this field is answered by the edit; a resolver re-checks it below.
+      clearErrors(name as unknown as Path<T>)
       setValue(name as unknown as Path<T>, value as unknown as PathValue<T, Path<T>>, { shouldDirty: true, shouldValidate: true })
       if (!state.ready) {
         // Held in the form; the restore persists it once storage has answered.

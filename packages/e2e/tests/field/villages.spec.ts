@@ -128,6 +128,7 @@ test.describe("a capacity save that fails", () => {
     await page.getByTestId("village-create-submit").click()
 
     await expect(page.getByTestId("village-create-panel")).toHaveCount(0)
+    await expect(page.getByTestId("village-capacity-saved").getByRole("status")).toContainText("Capacity saved")
     const ids = sent.filter((s) => s.key === `POST ${VILLAGES}/v1/capacity`).map((s) => (s.body as { id: string }).id)
     expect(ids).toEqual([expect.stringMatching(UUID), ids[0]])
     await expectNoHorizontalScroll(page)
@@ -137,7 +138,7 @@ test.describe("a capacity save that fails", () => {
 test.describe("a refused village", () => {
   test.use({ allow: { responses: [{ url: `/v1${VILLAGES}`, status: 422 }] } })
 
-  test("shows the API's message as written", async ({ page }) => {
+  test("shows the API's message as written, at its field", async ({ page }) => {
     await open(page, { extra: { [`POST ${VILLAGES}`]: factorRefused } })
 
     await page.getByTestId("village-create-open").click()
@@ -147,9 +148,10 @@ test.describe("a refused village", () => {
     await page.getByTestId("village-simultaneity").fill("0")
     await page.getByTestId("village-create-submit").click()
 
-    await expect(page.getByTestId("village-create-error")).toContainText(
+    await expect(page.getByTestId("village-simultaneity-error")).toContainText(
       "simultaneity factor must be more than 0 and at most 1",
     )
+    await expect(page.getByTestId("village-create-error")).toHaveCount(0)
     await expectNoHorizontalScroll(page)
   })
 })

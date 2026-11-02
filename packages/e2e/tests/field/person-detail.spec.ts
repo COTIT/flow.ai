@@ -71,13 +71,14 @@ test("an officer reads a person's household, farm, plot, cycle, figures and docu
 test.describe("a refused correction", () => {
   test.use({ allow: { responses: [{ url: `/v1/workspace/w1/farm/farms/${FARM}`, status: 422 }] } })
 
-  test("keeps the dialog open with the API's message", async ({ page }) => {
+  test("keeps the dialog open with the API's message at its field", async ({ page }) => {
     await open(page, { status: 422, body: { message: "invalid", errors: { latitude: ["latitude must be between -90 and 90"] } } })
     await page.getByTestId(`edit-farm-${FARM}`).click()
     await page.getByTestId("edit-label").fill("Hillside farm")
     await page.getByTestId("officer-edit-save").click()
 
-    await expect(page.getByTestId("officer-edit-error")).toHaveText("latitude must be between -90 and 90")
+    await expect(page.getByTestId("edit-latitude-error")).toHaveText("latitude must be between -90 and 90")
+    await expect(page.getByTestId("officer-edit-error")).toHaveCount(0)
     await expect(page.getByTestId(`farm-${FARM}`)).toContainText("Riverside farm")
     await expectNoHorizontalScroll(page)
   })

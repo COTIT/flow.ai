@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useRef, useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 import { zodResolver } from '@hookform/resolvers/zod'
 
@@ -30,6 +31,7 @@ import {
 } from '@/features/ops/useOpportunity'
 import { formatKg, formatPlainDate, formatTimestamp } from '@/lib/format'
 import { finishDraftWhenSaved } from '@/lib/drafts'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
 const route = getRouteApi('/_ops/ops/opportunities/$opportunityId')
@@ -75,6 +77,8 @@ export function OpportunityDetailScreen() {
   const [kg, setKg] = draft.field('contributed_kg')
   /** Field errors from `supplySchema`, as i18n keys. */
   const [attachErrors, setAttachErrors] = useState<Record<string, string>>({})
+  // The API's refusal of a field (over-commitment names the kilograms) is shown under it, as written.
+  const attachRefusal = useFieldErrors(attach.error, draft.setError, ['harvest_report_id', 'contributed_kg'], (field) => (field === 'contributed_kg' ? 'attach-kg' : 'attach-harvest'))
   /**
    * QA #23. `isPending` only becomes true on the NEXT render, so Enter and a
    * click in one tick both passed the disabled check. A ref latches
@@ -139,15 +143,18 @@ export function OpportunityDetailScreen() {
     })
   }
 
+  /** The API's text for a field; the schema's own errors are `attachErrors`, checked on submit. */
+  const refused = (field: 'harvest_report_id' | 'contributed_kg') =>
+    draft.formState.errors[field]?.type === 'server' ? draft.formState.errors[field]?.message : undefined
   const attachError = (field: 'harvest_report_id' | 'contributed_kg', testId: string) =>
-    attachErrors[field] ? (
+    attachErrors[field] || refused(field) ? (
       <p
         data-testid={`${testId}-error`}
         className="flex items-start gap-[7px] font-medium"
         style={{ fontSize: 13, color: 'var(--flag-ink)' }}
       >
         <BangMark />
-        {t(attachErrors[field])}
+        {attachErrors[field] ? t(attachErrors[field]) : refused(field)}
       </p>
     ) : null
 
@@ -301,6 +308,11 @@ export function OpportunityDetailScreen() {
       {move.isError && (
         <div data-testid="status-error">
           <ErrorState error={move.error} onRetry={() => move.mutate(move.variables!)} />
+        </div>
+      )}
+      {move.isSuccess && (
+        <div data-testid="status-done">
+          <Notice variant="success" title={t('opportunity.moved')} />
         </div>
       )}
 
@@ -487,9 +499,15 @@ export function OpportunityDetailScreen() {
               {attachError('contributed_kg', 'attach-kg')}
             </div>
 
-            {attach.isError && (
+            {attach.isError && attachRefusal != null && (
               <div data-testid="attach-error">
-                <ErrorState error={attach.error} onRetry={() => void finishDraftWhenSaved(attach.mutateAsync(attach.variables!), draft.finish)} />
+                <ErrorState error={attachRefusal} onRetry={() => void finishDraftWhenSaved(attach.mutateAsync(attach.variables!), draft.finish)} />
+              </div>
+            )}
+
+            {attach.isSuccess && !draft.dirty && (
+              <div data-testid="attach-done">
+                <Notice variant="success" title={t('opportunity.attached')} />
               </div>
             )}
 

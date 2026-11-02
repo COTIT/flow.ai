@@ -245,7 +245,7 @@ describe('the village create form', () => {
     expect(mutateAsync).toHaveBeenCalledTimes(1)
   })
 
-  test("the API's refusal is shown as written", async () => {
+  test("the API's refusal is shown as written, at the field it names", async () => {
     ready()
     createState.isError = true
     createState.error = {
@@ -255,7 +255,8 @@ describe('the village create form', () => {
     render(<VillagesScreen />)
     await open()
 
-    expect(screen.getByTestId('village-create-error')).toHaveTextContent('must be more than 0 and at most 1')
+    expect(await screen.findByTestId('village-simultaneity-error')).toHaveTextContent('must be more than 0 and at most 1')
+    expect(screen.queryByTestId('village-create-error')).not.toBeInTheDocument()
   })
 
   // Gap 3: "Try again" re-sends what failed, so the API sees the same id with the same body.

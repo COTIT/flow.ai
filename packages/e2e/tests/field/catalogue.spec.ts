@@ -117,7 +117,7 @@ test("ops adds a category, then a machine in it, each with a device-made id", as
 test.describe("a refused category", () => {
   test.use({ allow: { responses: [{ url: `/v1${CATS}`, status: 422 }] } })
 
-  test("shows the API's message as written", async ({ page }) => {
+  test("shows the API's message as written, at the code", async ({ page }) => {
     await open(page, { extra: { [`POST ${CATS}`]: codeTaken } })
 
     await page.getByTestId("category-code").fill("MILLING")
@@ -125,7 +125,8 @@ test.describe("a refused category", () => {
     await page.getByTestId("category-name-sw").fill("Kusaga tena")
     await page.getByTestId("category-submit").click()
 
-    await expect(page.getByTestId("category-create-error")).toContainText("this code is already used in this workspace")
+    await expect(page.getByTestId("category-code-error")).toContainText("this code is already used in this workspace")
+    await expect(page.getByTestId("category-create-error")).toHaveCount(0)
     await expectNoHorizontalScroll(page)
   })
 })

@@ -393,23 +393,9 @@ function Done({ voucherId, amount, onAnother }: { voucherId: string; amount: str
 
   return (
     <div data-testid="redeem-done" className="flex flex-col gap-4">
-      <div
-        role="status"
-        className="flex flex-col gap-1 px-4 py-3.5"
-        style={{
-          border: '1px solid var(--green-ink)',
-          borderLeft: '4px solid var(--green-ink)',
-          borderRadius: 'var(--radius-card)',
-          background: 'var(--green-tint)',
-        }}
-      >
-        <h2 className="type-title" style={{ color: 'var(--green-ink)' }}>
-          {t('redeem.done')}
-        </h2>
-        <p className="type-body-strong tabular" style={{ color: 'var(--ink)' }}>
-          {t('redeem.doneDetail', { amount })}
-        </p>
-      </div>
+      <Notice variant="success" title={t('redeem.done')}>
+        <p className="type-body-strong tabular">{t('redeem.doneDetail', { amount })}</p>
+      </Notice>
 
       <section className="flex flex-col gap-2.5">
         <h3 className="type-section" style={{ color: 'var(--ink-3)' }}>

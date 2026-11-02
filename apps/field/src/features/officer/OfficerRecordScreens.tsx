@@ -1,5 +1,6 @@
 import { getRouteApi } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/EmptyState'
@@ -138,6 +139,11 @@ export function OfficerFarmScreen() {
           version={farm.captured_at}
         />
       </header>
+      {verify.isSuccess && (
+        <div data-testid="verify-done">
+          <Notice variant="success" title={t('person.verified')} />
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2.5">
         <Detail
@@ -289,6 +295,11 @@ export function OfficerCycleScreen() {
           version={cycle.captured_at}
         />
       </header>
+      {verify.isSuccess && (
+        <div data-testid="verify-done">
+          <Notice variant="success" title={t('person.verified')} />
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2.5">
         <Detail label={t('cycleDetail.measure')} value={measure} />
