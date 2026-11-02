@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 
-import { apiErrorMessage, apiStatus, fieldErrorsOf } from '@/lib/apiError'
+import { apiErrorMessage, apiStatus, fieldErrorsOf, firstFailure } from '@/lib/apiError'
 
 const failed = (status: number, data: unknown) => ({ response: { status, data } })
 
@@ -39,5 +39,23 @@ describe('fieldErrorsOf', () => {
     expect(fieldErrorsOf(other, ['quantity'])).toEqual({ fields: {}, general: other })
     expect(fieldErrorsOf(refused, [])).toEqual({ fields: {}, general: refused })
     expect(fieldErrorsOf(null, ['quantity'])).toEqual({ fields: {}, general: null })
+  })
+})
+
+describe('firstFailure', () => {
+  test("gives the first failed read's error, and a retry that re-reads only the failed reads", () => {
+    const ok = { error: null, refetch: vi.fn() }
+    const down = { error: new Error('market failed'), refetch: vi.fn() }
+    const alsoDown = { error: new Error('quality failed'), refetch: vi.fn() }
+    const failure = firstFailure([ok, down, alsoDown])
+    expect(failure.error).toBe(down.error)
+    failure.retry()
+    expect(ok.refetch).not.toHaveBeenCalled()
+    expect(down.refetch).toHaveBeenCalledTimes(1)
+    expect(alsoDown.refetch).toHaveBeenCalledTimes(1)
+  })
+
+  test('no failure, no error', () => {
+    expect(firstFailure([{ error: null, refetch: vi.fn() }]).error).toBeNull()
   })
 })

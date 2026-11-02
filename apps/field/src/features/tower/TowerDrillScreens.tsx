@@ -19,6 +19,7 @@ import {
   useTowerProduction,
   useTowerProductionRows,
 } from '@/features/tower/useTower'
+import { firstFailure } from '@/lib/apiError'
 import { formatArea, formatKg, formatKw, formatPercent, formatPlainDate } from '@/lib/format'
 
 /**
@@ -75,8 +76,8 @@ export function TowerProductionScreen() {
   const totals = useTowerProduction(village)
   const cycles = useTowerProductionRows(village)
 
-  const error = totals.error ?? cycles.error
-  if (error) return <ErrorState error={error} onRetry={() => void cycles.refetch()} />
+  const failure = firstFailure([totals, cycles])
+  if (failure.error) return <ErrorState error={failure.error} onRetry={failure.retry} />
 
   const grouped = totals.data ?? []
   // The tile's own headline, restated at the foot of the rows that make it up.
@@ -351,8 +352,8 @@ export function TowerEnergyScreen() {
   const rows = useTowerEnergyRows(village)
   const totals = useTowerEnergy(village)
 
-  const error = rows.error ?? totals.error
-  if (error) return <ErrorState error={error} onRetry={() => void rows.refetch()} />
+  const failure = firstFailure([rows, totals])
+  if (failure.error) return <ErrorState error={failure.error} onRetry={failure.retry} />
 
   const { prospective, approved, excluded } = partitionEnergyRows(rows.data ?? [])
   const energy = totals.data

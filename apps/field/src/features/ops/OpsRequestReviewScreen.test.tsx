@@ -145,3 +145,14 @@ describe('OpsRequestReviewScreen', () => {
     expect(screen.getByTestId('review-error')).toHaveTextContent('only ops or admin may review a request')
   })
 })
+
+/** States step 4: a failed energy read used to read as "no capacity recorded". */
+test('a failed headroom read is an error with a retry, not "no capacity"', async () => {
+  const refetch = vi.fn()
+  useVillageEnergy.mockReturnValue({ isLoading: false, error: new Error('energy failed'), data: undefined, refetch })
+  render(<OpsRequestReviewScreen />)
+  expect(screen.getByRole('alert')).toHaveTextContent('energy failed')
+  expect(screen.queryByText(/No capacity recorded/)).not.toBeInTheDocument()
+  await userEvent.setup().click(screen.getByTestId('error-retry'))
+  expect(refetch).toHaveBeenCalled()
+})

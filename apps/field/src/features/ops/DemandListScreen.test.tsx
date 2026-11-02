@@ -317,3 +317,14 @@ describe('the figures the columns would silently change', () => {
     expect(screen.queryByTestId('demand-quantity-error')).not.toBeInTheDocument()
   })
 })
+
+/** States step 4: failed buyer and crop lists used to leave the pickers silently empty. */
+test('failed form options are an error with a retry, not empty pickers', async () => {
+  const refetch = vi.fn()
+  useDemandFormOptions.mockReturnValue({ isLoading: false, error: new Error('options failed'), data: undefined, refetch })
+  render(<DemandListScreen />)
+  await openCreate()
+  expect(screen.getByTestId('demand-options-error')).toHaveTextContent('options failed')
+  await userEvent.click(screen.getByTestId('error-retry'))
+  expect(refetch).toHaveBeenCalled()
+})

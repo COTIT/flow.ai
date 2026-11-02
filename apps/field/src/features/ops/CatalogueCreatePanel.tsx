@@ -19,6 +19,7 @@ import {
 } from '@/features/ops/useCatalogue'
 import { amountToMinor } from '@/features/ops/surveys/figures'
 import { useCurrencies } from '@/features/ops/surveys/useSurveyAdmin'
+import { firstFailure } from '@/lib/apiError'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
@@ -84,7 +85,8 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
   const categories = useEquipmentCategories()
   // shortcut: prices are in the account's default currency (the labels say TZS); add a currency
   // picker when an account prices equipment in more than one.
-  const currencies = useCurrencies().data ?? []
+  const currencyQuery = useCurrencies()
+  const currencies = currencyQuery.data ?? []
   const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
   /** Integer minor units of the currency, by string maths; null when blank or not an amount. */
   const minor = (text: string) => (text.trim() === '' ? null : amountToMinor(text.trim(), currency?.decimals ?? 0))
@@ -158,7 +160,7 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
   )
 
   return (
-    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} refusal={refusal} saved={create.isSuccess && !draft.dirty && t('catalogue.equipmentCreated')} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} ready={draft.ready && Boolean(currency)}>
+    <CreateForm onSubmit={submit} loadFailure={firstFailure([categories, currencyQuery])} dirty={draft.dirty} storageError={draft.storageError} create={create} refusal={refusal} saved={create.isSuccess && !draft.dirty && t('catalogue.equipmentCreated')} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} ready={draft.ready && Boolean(currency)}>
       <Field label={t('catalogue.code')} id="catalogue-code" error={shown('code')} errorTestId="catalogue-code-error">
         {input('code', code, setCode)}
       </Field>
@@ -220,7 +222,8 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
   const create = useCreateLoanProduct()
   // shortcut: amounts are in the account's default currency, as for equipment; add a currency
   // picker when an account lists loans in more than one.
-  const currencies = useCurrencies().data ?? []
+  const currencyQuery = useCurrencies()
+  const currencies = currencyQuery.data ?? []
   const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
   const minor = (text: string) => amountToMinor(text.trim(), currency?.decimals ?? 0)
   const amountError = (text: string) =>
@@ -280,7 +283,7 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
   )
 
   return (
-    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} refusal={refusal} saved={create.isSuccess && !draft.dirty && t('catalogue.loanCreated')}
+    <CreateForm onSubmit={submit} loadFailure={firstFailure([currencyQuery])} dirty={draft.dirty} storageError={draft.storageError} create={create} refusal={refusal} saved={create.isSuccess && !draft.dirty && t('catalogue.loanCreated')}
       onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)}
       ready={draft.ready && Boolean(currency)} note={t('resources.loanNote')}
     >
@@ -312,6 +315,7 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
 /** The form frame both kinds share: grid, draft status, error, submit. */
 function CreateForm({
   onSubmit,
+  loadFailure,
   dirty,
   storageError,
   ready,
@@ -323,6 +327,8 @@ function CreateForm({
   children,
 }: {
   onSubmit: () => void
+  /** A read the form needs (categories, currency) that failed: without it "Add" stays disabled, so say why. */
+  loadFailure: { error: unknown; retry: () => void }
   dirty: boolean
   storageError: boolean
   ready: boolean
@@ -347,6 +353,11 @@ function CreateForm({
       }}
     >
       <FormDraftStatus dirty={dirty} storageError={storageError} />
+      {loadFailure.error != null && (
+        <div data-testid="catalogue-options-error">
+          <ErrorState error={loadFailure.error} onRetry={loadFailure.retry} />
+        </div>
+      )}
       {note && <p className="type-note" style={{ color: 'var(--ink-2)', textWrap: 'pretty' }}>{note}</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{children}</div>
       <p className="type-note" style={{ color: 'var(--ink-3)' }}>{t('catalogue.indicativeNote')}</p>

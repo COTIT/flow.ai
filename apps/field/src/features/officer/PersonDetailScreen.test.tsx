@@ -391,3 +391,13 @@ describe('PersonDetailScreen app login', () => {
     expect(historyState.refetch).toHaveBeenCalled()
   })
 })
+
+/** States step 4: a failed crop read used to leave the cycle correction's crop list silently empty. */
+test('a failed crop read is an error with a retry', async () => {
+  const refetch = vi.fn()
+  useCrops.mockReturnValue({ crops: [], error: new Error('crops failed'), refetch })
+  render(<PersonDetailScreen />)
+  expect(screen.getByTestId('crops-error')).toHaveTextContent('crops failed')
+  await userEvent.setup().click(screen.getByTestId('error-retry'))
+  expect(refetch).toHaveBeenCalled()
+})

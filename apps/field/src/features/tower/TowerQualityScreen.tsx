@@ -10,6 +10,7 @@ import { TableCard } from '@/components/controls'
 import { TileSkeleton } from '@/features/tower/TowerTile'
 import { QUALITY_METRICS, validateQualitySearch } from '@/features/tower/towerSearch'
 import { useTowerQuality, useTowerQualityRows } from '@/features/tower/useTower'
+import { firstFailure } from '@/lib/apiError'
 
 const route = getRouteApi('/_ops/ops/tower/quality')
 
@@ -20,8 +21,8 @@ export function TowerQualityScreen() {
   const totals = useTowerQuality(village)
   const rows = useTowerQualityRows(village, metric)
 
-  const error = totals.error ?? rows.error ?? scope.error
-  if (error) return <ErrorState error={error} onRetry={() => void rows.refetch()} />
+  const failure = firstFailure([totals, rows, scope])
+  if (failure.error) return <ErrorState error={failure.error} onRetry={failure.retry} />
 
   const ratio = metric === 'persons'
     ? [totals.data?.persons_verified, totals.data?.persons]

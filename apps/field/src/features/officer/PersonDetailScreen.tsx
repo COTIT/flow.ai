@@ -116,6 +116,11 @@ export function PersonDetailScreen() {
         )}
       </header>
 
+      {crops.error && (
+        <div data-testid="crops-error">
+          <ErrorState error={crops.error} onRetry={() => void crops.refetch()} />
+        </div>
+      )}
       {verify.isError && (
         <div data-testid="verify-error">
           <ErrorState error={verify.error} onRetry={() => verify.mutate(verify.variables!)} />

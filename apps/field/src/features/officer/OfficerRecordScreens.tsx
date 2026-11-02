@@ -139,6 +139,11 @@ export function OfficerFarmScreen() {
           version={farm.captured_at}
         />
       </header>
+      {verify.isError && (
+        <div data-testid="verify-error">
+          <ErrorState error={verify.error} onRetry={() => verify.mutate(verify.variables!)} />
+        </div>
+      )}
       {verify.isSuccess && (
         <div data-testid="verify-done">
           <Notice variant="success" title={t('person.verified')} />
@@ -295,9 +300,19 @@ export function OfficerCycleScreen() {
           version={cycle.captured_at}
         />
       </header>
+      {verify.isError && (
+        <div data-testid="verify-error">
+          <ErrorState error={verify.error} onRetry={() => verify.mutate(verify.variables!)} />
+        </div>
+      )}
       {verify.isSuccess && (
         <div data-testid="verify-done">
           <Notice variant="success" title={t('person.verified')} />
+        </div>
+      )}
+      {crops.error && (
+        <div data-testid="crops-error">
+          <ErrorState error={crops.error} onRetry={() => void crops.refetch()} />
         </div>
       )}
 

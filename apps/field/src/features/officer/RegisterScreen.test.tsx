@@ -971,3 +971,28 @@ describe('farm GPS auto-capture', () => {
     expect(getCurrentPosition).not.toHaveBeenCalled()
   })
 })
+
+/** States step 4: a device that cannot store the draft says so, as every other form does. */
+describe('draft storage', () => {
+  test('a draft the device could not store shows the storage warning', () => {
+    useDraft.mockReturnValue({ status: 'dirty', draft: null, save, clear, storageError: true })
+    renderScreen()
+    expect(screen.getByTestId('draft-storage-error')).toHaveTextContent('Could not save this draft on this device')
+  })
+
+  test('so does a title-document draft it could not store', () => {
+    docsDraft.mockReturnValue({ status: 'empty', draft: undefined, save: docsSave, clear: docsClear, storageError: true })
+    renderScreen()
+    expect(screen.getByTestId('draft-storage-error')).toBeInTheDocument()
+  })
+})
+
+describe('a failed load', () => {
+  test('offers a retry that re-reads it', async () => {
+    const refetch = vi.fn()
+    useCrops.mockReturnValue({ isLoading: false, error: new Error('crops failed'), crops: [], refetch })
+    renderScreen()
+    await userEvent.setup().click(screen.getByTestId('error-retry'))
+    expect(refetch).toHaveBeenCalled()
+  })
+})

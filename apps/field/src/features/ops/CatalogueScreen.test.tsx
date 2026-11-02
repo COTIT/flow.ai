@@ -17,8 +17,13 @@ vi.mock('@/features/farmer/useEquipment', () => ({
 vi.mock('@/features/farmer/useResources', () => ({
   useLoanProducts: () => useLoanProducts(),
 }))
+const currencies = vi.hoisted(() => ({ error: null as unknown, refetch: (() => {}) as () => void }))
 vi.mock('@/features/ops/surveys/useSurveyAdmin', () => ({
-  useCurrencies: () => ({ data: [{ id: 'c1', decimals: 2, default_currency: true, asset_type: 'tzs', active: true }] }),
+  useCurrencies: () => ({
+    data: currencies.error ? undefined : [{ id: 'c1', decimals: 2, default_currency: true, asset_type: 'tzs', active: true }],
+    error: currencies.error,
+    refetch: currencies.refetch,
+  }),
 }))
 vi.mock('@/features/ops/useCatalogue', () => ({
   useEquipmentCategories: () => ({
@@ -89,6 +94,7 @@ beforeEach(() => {
   createState.isError = false
   createState.error = null
   search.kind = undefined
+  currencies.error = null
   useEquipmentList.mockReturnValue({ isLoading: false, error: null, items: [item()] })
   useLoanProducts.mockReturnValue({ isLoading: false, error: null, items: [loan()] })
 })
@@ -399,4 +405,16 @@ describe('equipment categories', () => {
     expect(screen.getByTestId('category-name-sw-error')).toBeInTheDocument()
     expect(createCategory).not.toHaveBeenCalled()
   })
+})
+
+/** States step 4: a failed currency read used to leave "Add" disabled with no reason given. */
+test('a failed currency read is an error with a retry in the create form', async () => {
+  const refetch = vi.fn()
+  currencies.error = new Error('currencies failed')
+  currencies.refetch = refetch
+  render(<CatalogueScreen />)
+  await userEvent.click(screen.getByTestId('catalogue-create-open'))
+  expect(screen.getByTestId('catalogue-options-error')).toHaveTextContent('currencies failed')
+  await userEvent.click(screen.getByTestId('error-retry'))
+  expect(refetch).toHaveBeenCalled()
 })

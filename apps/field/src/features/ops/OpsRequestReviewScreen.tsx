@@ -139,6 +139,8 @@ export function OpsRequestReviewScreen() {
         </h2>
         {energy.isLoading ? (
           <Loading />
+        ) : energy.error ? (
+          <ErrorState error={energy.error} onRetry={() => void energy.refetch()} />
         ) : energy.data ? (
           <>
             <div className="flex flex-wrap gap-2.5">

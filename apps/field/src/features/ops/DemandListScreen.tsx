@@ -26,6 +26,7 @@ import {
 } from '@/features/ops/useDemand'
 import { amountToMinor } from '@/features/ops/surveys/figures'
 import { useCurrencies } from '@/features/ops/surveys/useSurveyAdmin'
+import { firstFailure } from '@/lib/apiError'
 import { formatKg, formatPlainDate, formatPrice } from '@/lib/format'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { hasAtMostDecimals } from '@/lib/decimals'
@@ -42,7 +43,10 @@ export function DemandListScreen() {
   const create = useCreateDemand()
   // shortcut: prices are in the account's default currency; add a currency picker when an account
   // trades in more than one.
-  const currencies = useCurrencies().data ?? []
+  const currencyQuery = useCurrencies()
+  const currencies = currencyQuery.data ?? []
+  // Without its buyers, crops and currency the form cannot be filled in: say why, with a retry.
+  const optionsFailure = firstFailure([options, currencyQuery])
   const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
   const session = useSession()
   const projectScope = session.data?.memberships.find(m => m.role === 'ops' || m.role === 'admin')?.project_id ?? 'project'
@@ -203,6 +207,11 @@ export function DemandListScreen() {
             }}
           >
         <FormDraftStatus dirty={draft.dirty} storageError={draft.storageError} />
+        {optionsFailure.error && (
+          <div data-testid="demand-options-error">
+            <ErrorState error={optionsFailure.error} onRetry={optionsFailure.retry} />
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Field label={t('demand.buyer')} id="demand-buyer" error={missing.buyer ? t('demand.required') : server('buyerId')} errorTestId="demand-buyer-error">
             <Select value={buyerId} onValueChange={(value) => setBuyerId(value ?? '')}>

@@ -410,6 +410,8 @@ export function OpportunityDetailScreen() {
           </div>
         ) : available.isLoading ? (
           <Loading />
+        ) : available.error ? (
+          <ErrorState error={available.error} onRetry={() => void available.refetch()} />
         ) : rows.length === 0 ? (
           <EmptyState
             title={t('opportunity.noneAvailableTitle')}

@@ -44,3 +44,16 @@ export function fieldErrorsOf(error: unknown, fieldOf: FieldOf): { fields: Recor
   }
   return { fields, general: Object.keys(fields).length === 0 ? (error ?? null) : left }
 }
+
+/**
+ * A screen fed by several reads: the first failed read's error, and a retry that re-reads every read
+ * that failed (and only those), so "Try again" never re-sends a read that already answered.
+ */
+export function firstFailure(queries: ReadonlyArray<{ error: unknown; refetch: () => unknown }>) {
+  return {
+    error: queries.find((q) => q.error)?.error ?? null,
+    retry: () => queries.forEach((q) => {
+      if (q.error) void q.refetch()
+    }),
+  }
+}

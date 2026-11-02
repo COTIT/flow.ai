@@ -13,7 +13,7 @@ import { useSession } from '@/app/session'
 import { workspaceId } from '@/app/workspace'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
-import { UnsavedDraftBadge } from '@/components/UnsavedDraftBadge'
+import { FormDraftStatus } from '@/components/FormDraftStatus'
 import { BangMark, PlannedMark, VerificationMark } from '@/components/marks'
 import { Button } from '@/components/ui/button'
 import {
@@ -322,8 +322,8 @@ export function RegisterScreen() {
   // The API's messages are written to be read: each one lands on the field it names.
   const refusal = useFieldErrors(submit.error, setError, registerFieldOf)
 
-  if (session.error) return <ErrorState error={session.error} />
-  if (cropsQuery.error) return <ErrorState error={cropsQuery.error} />
+  if (session.error) return <ErrorState error={session.error} onRetry={() => void session.refetch()} />
+  if (cropsQuery.error) return <ErrorState error={cropsQuery.error} onRetry={() => void cropsQuery.refetch()} />
 
   if (!draftIdFromUrl || session.isLoading || cropsQuery.isLoading || draft.status === 'restoring') {
     return (
@@ -1037,7 +1037,7 @@ export function RegisterScreen() {
                 total: REGISTER_GROUPS.length,
               })}
             </span>
-            {draft.status === 'dirty' && <UnsavedDraftBadge />}
+            <FormDraftStatus dirty={draft.status === 'dirty'} storageError={draft.storageError || docsDraft.storageError} />
           </div>
           <button
             type="submit"

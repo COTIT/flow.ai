@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 const useFarmDetail = vi.fn()
 const useCycleDetail = vi.fn()
 const queueMutate = vi.fn()
-const queueState = { isPending: false, variables: undefined as { table: string; id: string } | undefined }
+const queueState = { isPending: false, isError: false, error: null as unknown, variables: undefined as { table: string; id: string } | undefined }
 const search: { plot?: string; harvest?: string } = {}
 const crops = [
   { id: 'crop-area', name: 'Maize', measured_by: 'area' as const },
@@ -20,8 +20,9 @@ vi.mock('@/features/officer/useOfficerRecords', () => ({
 vi.mock('@/features/officer/useVerifyQueue', () => ({
   useVerifyFromQueue: () => ({ ...queueState, mutate: queueMutate, mutateAsync: queueMutate }),
 }))
+const cropsState = { error: null as unknown, refetch: vi.fn() }
 vi.mock('@/features/officer/useCrops', () => ({
-  useCrops: () => ({ crops, isLoading: false }),
+  useCrops: () => ({ crops, isLoading: false, ...cropsState }),
 }))
 vi.mock('@/features/officer/RecordEditAction', () => ({
   RecordEditAction: ({ table, id, version }: { table: string; id: string; version?: string | null }) => (
@@ -45,7 +46,11 @@ beforeEach(() => {
   useCycleDetail.mockReset()
   queueMutate.mockReset()
   queueState.isPending = false
+  queueState.isError = false
+  queueState.error = null
   queueState.variables = undefined
+  cropsState.error = null
+  cropsState.refetch.mockReset()
   delete search.plot
   delete search.harvest
 })
@@ -344,4 +349,42 @@ describe('OfficerCycleScreen', () => {
     expect(screen.getByTestId('edit-crop_cycle-c1')).toHaveAttribute('data-version', '2026-09-12T08:00:00Z')
     expect(screen.getByTestId('edit-harvest_report-h1')).toHaveAttribute('data-version', '2026-09-13T08:00:00Z')
   })
+})
+
+/** States step 4: a refused verify used to re-enable the button and say nothing. */
+describe('a refused verify', () => {
+  const refused = (table: string, id: string) => {
+    queueState.isError = true
+    queueState.error = new Error('this record was changed since you opened it')
+    queueState.variables = { table, id }
+  }
+
+  test('shows the refusal on the farm screen, and Try again re-sends it', async () => {
+    refused('farm', 'f1')
+    useFarmDetail.mockReturnValue({ isLoading: false, error: null, data: farm({ verification: 'unverified' }) })
+    render(<OfficerFarmScreen />)
+    const error = screen.getByTestId('verify-error')
+    expect(error).toHaveTextContent('this record was changed since you opened it')
+    await userEvent.setup().click(screen.getByTestId('error-retry'))
+    expect(queueMutate).toHaveBeenCalledWith({ table: 'farm', id: 'f1' })
+  })
+
+  test('shows the refusal on the cycle screen, and Try again re-sends it', async () => {
+    refused('crop_cycle', 'c1')
+    useCycleDetail.mockReturnValue({ isLoading: false, error: null, cycle: cycle({ verification: 'unverified' }) })
+    render(<OfficerCycleScreen />)
+    expect(screen.getByTestId('verify-error')).toHaveTextContent('this record was changed since you opened it')
+    await userEvent.setup().click(screen.getByTestId('error-retry'))
+    expect(queueMutate).toHaveBeenCalledWith({ table: 'crop_cycle', id: 'c1' })
+  })
+})
+
+/** States step 4: a failed crop read used to leave the correction dialog's crop list silently empty. */
+test('a failed crop read on the cycle screen is an error with a retry', async () => {
+  cropsState.error = new Error('crops failed')
+  useCycleDetail.mockReturnValue({ isLoading: false, error: null, cycle: cycle() })
+  render(<OfficerCycleScreen />)
+  expect(screen.getByTestId('crops-error')).toHaveTextContent('crops failed')
+  await userEvent.setup().click(screen.getByTestId('error-retry'))
+  expect(cropsState.refetch).toHaveBeenCalled()
 })
