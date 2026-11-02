@@ -37,24 +37,19 @@
   },
   "sale": {
     "title": "Mauzo",
-    "scan": "Changanua au andika msimbopau",
+    "scan": "Changanua msimbopau au andika jina",
     "notFound": "Hakuna bidhaa yenye msimbo {code}.",
-    "search": "Tafuta bidhaa",
-    "results": "Matokeo ya utafutaji",
-    "cart": "Kikapu",
     "empty": "Kikapu ni tupu.",
     "less": "Punguza {name} moja",
     "more": "Ongeza {name} moja",
     "quantityOf": "Idadi ya {name}",
-    "remove": "Ondoa {name}",
     "estimate": "Makadirio (nje ya mtandao)",
     "estimateHint": "Nje ya mtandao: bei za katalogi pamoja na VAT. Jumla, ukokotoaji na chenji vya seva vinakuja mauzo yakitumwa.",
     "method": "Njia ya malipo",
     "cash": "Taslimu",
     "card": "Kadi",
-    "tendered": "Pesa zilizopokelewa",
-    "reference": "Kumbukumbu ya risiti ya kadi",
-    "badTendered": "Weka pesa zilizopokelewa, mf. 20.00.",
+    "reference": "Namba ya risiti ya kadi au tarakimu 4 za mwisho",
+    "badTendered": "Weka kiasi cha taslimu kilichopokelewa.",
     "toDrawer": "Fungua droo",
     "charge": "Toza",
     "savedTitle": "Imehifadhiwa nje ya mtandao",
@@ -67,12 +62,32 @@
     "catalogFailed": "Imeshindwa kupakia orodha ya bidhaa. Angalia mtandao.",
     "catalogStale": "Imeshindwa kusasisha orodha ya bidhaa. Inaonyesha nakala iliyo kwenye kifaa hiki.",
     "noMatch": "Hakuna bidhaa inayolingana na “{query}”.",
-    "mismatch": "Baadhi ya bei zinatofautiana na katalogi ya sasa. Ofisi itaona hili."
+    "mismatch": "Baadhi ya bei zinatofautiana na katalogi ya sasa. Ofisi itaona hili.",
+    "ready": "Kichanganuzi tayari",
+    "products": "Bidhaa",
+    "basket": "Kikapu",
+    "basketCount": "Kikapu · {count, plural, one {bidhaa #} other {bidhaa #}}",
+    "clear": "Ondoa zote",
+    "each": "{price} kila moja",
+    "inBasket": "{count} kwenye kikapu",
+    "total": "Jumla",
+    "rounding": "Ukadiriaji wa taslimu",
+    "due": "Kiasi cha kulipa",
+    "pay": "Pokea malipo",
+    "done": "Imekamilika",
+    "close": "Funga",
+    "received": "Imepokelewa",
+    "exact": "Kamili",
+    "change": "Chenji",
+    "referenceHint": "Lipisha kadi kwenye mashine kwanza, kisha andika namba ya risiti.",
+    "book": "Rekodi mauzo",
+    "bookCard": "Rekodi mauzo ya kadi"
   },
   "nav": {
     "label": "Menyu ya kituo",
     "sale": "Mauzo",
-    "drawer": "Droo"
+    "drawer": "Droo",
+    "lock": "Funga"
   },
   "drawer": {
     "title": "Droo ya pesa",
@@ -107,17 +122,16 @@
     "piecesOf": "Idadi ya {value}"
   },
   "receipt": {
-    "title": "Risiti",
     "total": "Jumla",
     "rounding": "Ukokotoaji wa taslimu",
     "due": "Kulipa",
     "tendered": "Pesa zilizopokelewa",
-    "change": "Chenji",
     "card": "Risiti ya kadi",
     "print": "Chapisha",
-    "newSale": "Mauzo mapya",
-    "booked": "Mauzo {number} yamerekodiwa.",
-    "mismatch": "Mauzo haya yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili."
+    "booked": "Mauzo {number} yamerekodiwa",
+    "mismatch": "Mauzo haya yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili.",
+    "giveChange": "Toa chenji",
+    "newSale": "Mauzo mapya"
   },
   "queue": {
     "title": "Mauzo ya nje ya mtandao",
@@ -134,7 +148,9 @@
     "allBooked": "Mauzo yote ya nje ya mtandao yamerekodiwa.",
     "emptyHint": "Mauzo yaliyofanywa bila mtandao yanasubiri hapa hadi yatumwe.",
     "showOffice": "Mauzo haya hayajarekodiwa. Yaonyeshe ofisi kabla ya kuyaondoa.",
-    "mismatch": "Yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili."
+    "mismatch": "Yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili.",
+    "online": "Mtandaoni",
+    "offline": "{count, plural, =0 {Nje ya mtandao} other {Nje ya mtandao · # za kutuma}}"
   },
   "errors": {
     "crashTitle": "Skrini hii imeacha kufanya kazi.",
@@ -145,8 +161,8 @@
     "notFoundBody": "Huenda anwani imeandikwa vibaya."
   },
   "offline": {
-    "title": "Nje ya mtandao. Mauzo yanahifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
-    "waiting": "Mauzo {count} yanasubiri kutumwa"
+    "title": "Nje ya mtandao — mauzo yanahifadhiwa kwenye kifaa hiki",
+    "body": "Yatatumwa mara mtandao utakaporudi. Hadi hapo jumla ni makadirio."
   },
   "keypad": {
     "clear": "Futa yote",

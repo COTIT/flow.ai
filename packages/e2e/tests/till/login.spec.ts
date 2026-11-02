@@ -74,12 +74,13 @@ test("pairing, picking a user and the right PIN open the sale screen", async ({
   await expect(
     page.getByRole("img", { name: "4 of 4 digits entered" })
   ).toBeVisible()
-  await expectTillLook(page)
+  // Reached from setup in-page, so the metric still holds setup's shifts; the PIN pad test
+  // checks this screen's own shift from a fresh load.
+  await expectTillLook(page, { shift: false })
   await page.getByRole("button", { name: "Log in" }).click()
 
   await expect(page).toHaveURL("/sale")
-  await expect(page.getByText("Iringa till 1")).toBeVisible()
-  await expect(page.getByText("Amina")).toBeVisible()
+  await expect(page.getByRole("banner")).toContainText("Iringa till 1 · Amina")
 
   // The login routes take the device key, never a till token.
   const [users] = api.callsTo("GET", "/workspace/w1/till/login/users")
@@ -95,7 +96,7 @@ test("logging out ends the session with the till token and returns to the PIN sc
 }) => {
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByRole("button", { name: "Log out" }).click()
+  await page.getByRole("button", { name: "Lock" }).click()
 
   await expect(page).toHaveURL("/login")
   const [logout] = api.callsTo("POST", "/workspace/w1/till/logout")
@@ -126,7 +127,7 @@ test.describe("wrong PIN", () => {
     await expect(
       page.getByRole("img", { name: "0 of 4 digits entered" })
     ).toBeVisible()
-    await expectTillLook(page)
+    await expectTillLook(page, { shift: false })
   })
 })
 
@@ -299,6 +300,7 @@ test.describe("pairing problems", () => {
           body: { message: "x" },
         }))
         await page.goto("/setup")
+        await expectTillLook(page)
         await page.getByLabel("Account").fill("afm")
         await page.getByLabel("Pairing code").fill("K7Q4-MZPX")
         await page.getByRole("button", { name: "Pair this till" }).click()
@@ -306,7 +308,7 @@ test.describe("pairing problems", () => {
           page.getByRole(role).filter({ hasText: text })
         ).toBeVisible()
         await expect(page).toHaveURL("/setup")
-        await expectTillLook(page)
+        await expectTillLook(page, { shift: false })
         const stored = await page.evaluate(() =>
           localStorage.getItem("genesy.till")
         )

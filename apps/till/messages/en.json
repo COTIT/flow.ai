@@ -37,24 +37,19 @@
   },
   "sale": {
     "title": "Sale",
-    "scan": "Scan or type a barcode",
+    "scan": "Scan a barcode or type a name",
     "notFound": "No product with code {code}.",
-    "search": "Search products",
-    "results": "Search results",
-    "cart": "Cart",
-    "empty": "The cart is empty.",
+    "empty": "The basket is empty.",
     "less": "One less {name}",
     "more": "One more {name}",
     "quantityOf": "Quantity of {name}",
-    "remove": "Remove {name}",
     "estimate": "Estimate (offline)",
     "estimateHint": "Offline: catalog prices incl. VAT. The server's total, rounding and change come with the sale when it syncs.",
     "method": "Payment method",
     "cash": "Cash",
     "card": "Card",
-    "tendered": "Cash received",
-    "reference": "Card slip reference",
-    "badTendered": "Enter the cash received, e.g. 20.00.",
+    "reference": "Card slip or last 4 digits",
+    "badTendered": "Enter the cash received.",
     "toDrawer": "Open the drawer",
     "charge": "Charge",
     "savedTitle": "Saved offline",
@@ -67,12 +62,32 @@
     "catalogFailed": "Couldn't load the product list. Check the connection.",
     "catalogStale": "Couldn't refresh the product list. Showing the copy on this device.",
     "noMatch": "No products match “{query}”.",
-    "mismatch": "Some prices differ from the current catalog. The office will see this."
+    "mismatch": "Some prices differ from the current catalog. The office will see this.",
+    "ready": "Scanner ready",
+    "products": "Products",
+    "basket": "Basket",
+    "basketCount": "Basket · {count, plural, one {# item} other {# items}}",
+    "clear": "Clear",
+    "each": "{price} each",
+    "inBasket": "{count} in the basket",
+    "total": "Total",
+    "rounding": "Cash rounding",
+    "due": "Due",
+    "pay": "Take payment",
+    "done": "Done",
+    "close": "Close",
+    "received": "Received",
+    "exact": "Exact",
+    "change": "Change",
+    "referenceHint": "Run the card on the terminal first, then type its slip number.",
+    "book": "Book sale",
+    "bookCard": "Book card sale"
   },
   "nav": {
     "label": "Till menu",
     "sale": "Sale",
-    "drawer": "Drawer"
+    "drawer": "Drawer",
+    "lock": "Lock"
   },
   "drawer": {
     "title": "Drawer",
@@ -107,17 +122,16 @@
     "piecesOf": "Pieces of {value}"
   },
   "receipt": {
-    "title": "Receipt",
     "total": "Total",
     "rounding": "Cash rounding",
     "due": "To pay",
     "tendered": "Cash received",
-    "change": "Change",
     "card": "Card slip",
     "print": "Print",
-    "newSale": "New sale",
-    "booked": "Sale {number} is booked.",
-    "mismatch": "This sale was charged at prices that differ from the current catalog. The office will see it."
+    "booked": "Sale {number} booked",
+    "mismatch": "This sale was charged at prices that differ from the current catalog. The office will see it.",
+    "giveChange": "Give change",
+    "newSale": "New sale"
   },
   "queue": {
     "title": "Offline sales",
@@ -134,7 +148,9 @@
     "allBooked": "All offline sales are booked.",
     "emptyHint": "Sales rung up without a connection wait here until they are sent.",
     "showOffice": "This sale was not booked. Show it to the office before dismissing it.",
-    "mismatch": "Charged at prices that differ from the current catalog. The office will see it."
+    "mismatch": "Charged at prices that differ from the current catalog. The office will see it.",
+    "online": "Online",
+    "offline": "{count, plural, =0 {Offline} other {Offline · # to sync}}"
   },
   "errors": {
     "crashTitle": "This screen stopped working.",
@@ -145,8 +161,8 @@
     "notFoundBody": "The address may be mistyped."
   },
   "offline": {
-    "title": "Offline. Sales are kept on this device and sent when the connection is back.",
-    "waiting": "{count, plural, one {# sale} other {# sales}} waiting to sync"
+    "title": "Offline — sales are kept on this device",
+    "body": "They are sent as soon as the connection is back. Totals are estimates until then."
   },
   "keypad": {
     "clear": "Clear",

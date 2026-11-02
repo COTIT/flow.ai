@@ -1,5 +1,6 @@
 import { expectNoHorizontalScroll } from "../../src/test"
 import { expect, seedTill, test, WS } from "./fake-till"
+import { expectTillLook } from "./look"
 
 test.describe("unknown screen", () => {
   test.use({ allow: { responses: [{ url: "/no-such-screen", status: 404 }] } })
@@ -23,11 +24,15 @@ test("going offline shows a warning; coming back clears it", async ({
   await seedTill(page)
   await page.goto("/sale")
   await expect(page.getByRole("heading", { name: "Sale" })).toBeVisible()
+  // The "Online" badge is hidden on a phone (no room), as in the mockup.
+  await expect(page.getByRole("banner")).toContainText("Online")
+  await expectTillLook(page)
   await context.setOffline(true)
   const offline = page
     .getByRole("status")
-    .filter({ hasText: "Offline. Sales are kept on this device" })
+    .filter({ hasText: "Offline — sales are kept on this device" })
   await expect(offline).toBeVisible()
+  await expect(page.getByText("Offline", { exact: true })).toBeVisible()
   await expectNoHorizontalScroll(page)
   await context.setOffline(false)
   await expect(offline).toHaveCount(0)
@@ -59,7 +64,7 @@ test.describe("expired session", () => {
 test("a user's own logout shows no session-ended message", async ({ page }) => {
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByRole("button", { name: "Log out" }).click()
+  await page.getByRole("button", { name: "Lock" }).click()
   await expect(page).toHaveURL("/login")
   await expect(page.getByText("Your session ended.")).toHaveCount(0)
 })

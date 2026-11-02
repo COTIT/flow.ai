@@ -37,24 +37,19 @@
   },
   "sale": {
     "title": "Verkoop",
-    "scan": "Scan of typ een barcode",
+    "scan": "Scan een barcode of typ een naam",
     "notFound": "Geen product met code {code}.",
-    "search": "Producten zoeken",
-    "results": "Zoekresultaten",
-    "cart": "Winkelwagen",
-    "empty": "De winkelwagen is leeg.",
+    "empty": "Het mandje is leeg.",
     "less": "Eén {name} minder",
     "more": "Eén {name} meer",
     "quantityOf": "Aantal {name}",
-    "remove": "{name} verwijderen",
     "estimate": "Schatting (offline)",
     "estimateHint": "Offline: catalogusprijzen incl. btw. Totaal, afronding en wisselgeld van de server komen mee als de verkoop verstuurd is.",
     "method": "Betaalwijze",
     "cash": "Contant",
     "card": "Pin",
-    "tendered": "Ontvangen contant",
-    "reference": "Referentie pinbon",
-    "badTendered": "Vul het ontvangen bedrag in, bv. 20,00.",
+    "reference": "Pinbonnummer of laatste 4 cijfers",
+    "badTendered": "Voer het ontvangen bedrag in.",
     "toDrawer": "Open de kassalade",
     "charge": "Afrekenen",
     "savedTitle": "Offline bewaard",
@@ -67,12 +62,32 @@
     "catalogFailed": "De productlijst kon niet geladen worden. Controleer de verbinding.",
     "catalogStale": "De productlijst kon niet ververst worden. De kopie op dit apparaat wordt getoond.",
     "noMatch": "Geen producten voor “{query}”.",
-    "mismatch": "Sommige prijzen wijken af van de huidige catalogus. Het kantoor ziet dit."
+    "mismatch": "Sommige prijzen wijken af van de huidige catalogus. Het kantoor ziet dit.",
+    "ready": "Scanner klaar",
+    "products": "Producten",
+    "basket": "Mandje",
+    "basketCount": "Mandje · {count, plural, one {# artikel} other {# artikelen}}",
+    "clear": "Leegmaken",
+    "each": "{price} per stuk",
+    "inBasket": "{count} in het mandje",
+    "total": "Totaal",
+    "rounding": "Afronding contant",
+    "due": "Te betalen",
+    "pay": "Betaling ontvangen",
+    "done": "Klaar",
+    "close": "Sluiten",
+    "received": "Ontvangen",
+    "exact": "Gepast",
+    "change": "Wisselgeld",
+    "referenceHint": "Laat eerst op de pinautomaat betalen en typ dan het bonnummer.",
+    "book": "Verkoop boeken",
+    "bookCard": "Pinverkoop boeken"
   },
   "nav": {
     "label": "Kassamenu",
     "sale": "Verkoop",
-    "drawer": "Lade"
+    "drawer": "Lade",
+    "lock": "Vergrendelen"
   },
   "drawer": {
     "title": "Kassalade",
@@ -107,17 +122,16 @@
     "piecesOf": "Aantal van {value}"
   },
   "receipt": {
-    "title": "Bon",
     "total": "Totaal",
     "rounding": "Afronding contant",
     "due": "Te betalen",
     "tendered": "Ontvangen contant",
-    "change": "Wisselgeld",
     "card": "Pinbon",
     "print": "Afdrukken",
-    "newSale": "Nieuwe verkoop",
-    "booked": "Verkoop {number} is geboekt.",
-    "mismatch": "Deze verkoop is afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit."
+    "booked": "Verkoop {number} geboekt",
+    "mismatch": "Deze verkoop is afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit.",
+    "giveChange": "Wisselgeld teruggeven",
+    "newSale": "Nieuwe verkoop"
   },
   "queue": {
     "title": "Offline verkopen",
@@ -134,7 +148,9 @@
     "allBooked": "Alle offline verkopen zijn geboekt.",
     "emptyHint": "Verkopen zonder verbinding wachten hier tot ze verstuurd zijn.",
     "showOffice": "Deze verkoop is niet geboekt. Laat hem aan het kantoor zien voor je hem verbergt.",
-    "mismatch": "Afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit."
+    "mismatch": "Afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit.",
+    "online": "Online",
+    "offline": "{count, plural, =0 {Offline} other {Offline · # te versturen}}"
   },
   "errors": {
     "crashTitle": "Dit scherm werkt niet meer.",
@@ -145,8 +161,8 @@
     "notFoundBody": "Misschien is het adres verkeerd getypt."
   },
   "offline": {
-    "title": "Offline. Verkopen blijven op dit apparaat en worden verstuurd zodra er weer verbinding is.",
-    "waiting": "{count, plural, one {# verkoop} other {# verkopen}} wacht op versturen"
+    "title": "Offline — verkopen blijven op dit apparaat",
+    "body": "Ze worden verstuurd zodra de verbinding terug is. Tot dan zijn totalen schattingen."
   },
   "keypad": {
     "clear": "Wissen",

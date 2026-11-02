@@ -125,6 +125,8 @@ export function useTillCatalog() {
     empty: query.isSuccess && items.length === 0,
     /** Products on the device (the copy works offline too). */
     count: items.length,
+    /** Everything the device copy can sell, for the tiles. */
+    items,
     /** Scanned or typed code: the API's exact EAN/barcode match, else the device copy (offline). */
     lookup: async (code: string): Promise<Sellable | null> => {
       if (!navigator.onLine) return match(items, code)

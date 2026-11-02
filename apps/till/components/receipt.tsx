@@ -1,56 +1,80 @@
 "use client"
 
+import { Printer } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 
-import type { SaleResource } from "@genesy/api-client/model"
+import type { QuoteLine, SaleResource } from "@genesy/api-client/model"
 import { Button } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
-import type { CartLine } from "@/lib/cart-store"
+import { estimate, type CartLine } from "@/lib/cart-store"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
 
-/** The booked sale as the API answered it, with the lines as rung up. */
+/** "2 × Wildflower honey 500 g" rows; `amount` is the API's line total when there is one. */
+function Lines({
+  lines,
+  amount,
+}: {
+  lines: CartLine[]
+  amount: (l: CartLine) => string
+}) {
+  return lines.map((l) => (
+    <div
+      key={`${l.productId}-${l.variantId}`}
+      className="flex justify-between gap-3 text-[13px]"
+    >
+      <span>
+        {l.quantity} × {l.name}
+      </span>
+      <span className="tabular-nums">{amount(l)}</span>
+    </div>
+  ))
+}
+
+/** The booked sale as the API answered it (TillReceipt), with the lines as rung up. */
 export function Receipt({
   sale,
   lines,
+  quoted,
   onDone,
 }: {
   sale: SaleResource
   lines: CartLine[]
+  /** The quote's lines at charge time: the API's line totals. */
+  quoted?: QuoteLine[]
   onDone: () => void
 }) {
   const t = useTranslations("receipt")
   const locale = useLocale()
   const { money } = useTillMoney()
   const session = useTill((s) => s.session)
+  const cash = sale.method === "cash"
 
   const rows: [string, string][] = [
-    [t("total"), money(sale.total)],
     ...(sale.rounding
-      ? [[t("rounding"), money(sale.rounding)] as [string, string]]
+      ? ([
+          [t("rounding"), money(sale.rounding)],
+          [t("due"), money(sale.due)],
+        ] as [string, string][])
       : []),
-    [t("due"), money(sale.due)],
-    ...(sale.method === "cash"
-      ? [
-          [t("tendered"), money(sale.tendered)] as [string, string],
-          [t("change"), money(sale.change)] as [string, string],
-        ]
-      : [[t("card"), sale.card_reference ?? "—"] as [string, string]]),
+    cash
+      ? [t("tendered"), money(sale.tendered)]
+      : [t("card"), sale.card_reference ?? "—"],
   ]
 
   return (
-    <section
-      aria-label={t("title")}
-      className="flex max-w-md flex-col gap-3 rounded-lg border p-4"
-    >
-      <h1 className="text-xl font-medium">
-        {t("title")} {sale.number}
-      </h1>
+    <>
       <Notice
         variant="success"
         className="print:hidden"
         title={t("booked", { number: sale.number })}
-      />
+      >
+        {new Intl.DateTimeFormat(locale, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(sale.sold_at))}
+        {session ? ` · ${session.register.name} · ${session.user.name}` : null}
+      </Notice>
       {sale.price_mismatch ? (
         <Notice
           variant="warning"
@@ -58,38 +82,91 @@ export function Receipt({
           title={t("mismatch")}
         />
       ) : null}
-      <p className="text-sm text-muted-foreground">
-        {new Intl.DateTimeFormat(locale, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(sale.sold_at))}
-        {session ? ` · ${session.register.name} · ${session.user.name}` : null}
-      </p>
-      <ul className="flex flex-col gap-1 text-sm">
-        {lines.map((l) => (
-          <li key={`${l.productId}-${l.variantId}`} className="flex gap-2">
-            <span className="mr-auto">
-              {l.quantity} × {l.name}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <dl className="grid grid-cols-2 gap-1 border-t pt-2 text-sm">
-        {rows.map(([label, value]) => (
-          <div key={label} className="contents">
-            <dt>{label}</dt>
-            <dd className="text-right tabular-nums">{value}</dd>
+      <div className="till-tile flex flex-col gap-2">
+        <Lines
+          lines={lines}
+          amount={(l) => {
+            const q = quoted?.find(
+              (x) =>
+                x.product_id === l.productId &&
+                (x.product_variant_id ?? null) === l.variantId
+            )
+            return q ? money(q.line_total) : ""
+          }}
+        />
+        <hr className="border-0 border-t border-[var(--hair)]" />
+        <dl className="flex flex-col gap-2">
+          <div className="flex justify-between gap-3 font-semibold">
+            <dt>{t("total")}</dt>
+            <dd className="tabular-nums">{money(sale.total)}</dd>
           </div>
-        ))}
-      </dl>
-      <div className="flex gap-2 print:hidden">
-        <Button variant="outline" onClick={() => window.print()}>
+          {rows.map(([label, value]) => (
+            <div key={label} className="flex justify-between gap-3 text-[13px]">
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+      {cash ? (
+        <div className="teal-tile py-3.5">
+          <span id="give-label" className="text-lg font-semibold">
+            {t("giveChange")}
+          </span>
+          <output aria-labelledby="give-label" className="grand text-[40px]">
+            {money(sale.change)}
+          </output>
+        </div>
+      ) : null}
+      <div className="print-hide mt-auto flex gap-2.5">
+        <Button
+          variant="outline"
+          className="btn-76 w-[150px]"
+          onClick={() => window.print()}
+        >
+          <Printer aria-hidden />
           {t("print")}
         </Button>
-        <Button className="flex-1" onClick={onDone}>
+        <button
+          type="button"
+          className="charge grow justify-center"
+          onClick={onDone}
+        >
           {t("newSale")}
-        </Button>
+        </button>
       </div>
-    </section>
+    </>
+  )
+}
+
+/** A sale kept on the device because the API couldn't be reached. */
+export function Saved({
+  lines,
+  onDone,
+}: {
+  lines: CartLine[]
+  onDone: () => void
+}) {
+  const t = useTranslations("sale")
+  const { money } = useTillMoney()
+  return (
+    <>
+      <Notice variant="warning" title={t("savedHint")} />
+      <div className="till-tile flex flex-col gap-2">
+        <Lines lines={lines} amount={() => ""} />
+        <hr className="border-0 border-t border-[var(--hair)]" />
+        <div className="flex justify-between gap-3 font-semibold">
+          <span>{t("estimate")}</span>
+          <span className="tabular-nums">≈ {money(estimate(lines))}</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        className="charge mt-auto justify-center"
+        onClick={onDone}
+      >
+        {t("newSale")}
+      </button>
+    </>
   )
 }

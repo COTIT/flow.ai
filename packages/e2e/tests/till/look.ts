@@ -26,11 +26,15 @@ export async function expectNoTransitions(page: Page) {
   expect(moving, "elements that transition or animate").toEqual([])
 }
 
-/** The till's look rules on the current screen, once it has settled. */
-export async function expectTillLook(page: Page) {
+/**
+ * The till's look rules on the current screen, once it has settled. `{ shift: false }` after
+ * a server answer to a tap (a notice it adds may land later than the 500 ms the shift
+ * metric forgives); check the screen before the tap instead.
+ */
+export async function expectTillLook(page: Page, { shift = true } = {}) {
   await expectNoHorizontalScroll(page)
   await expectTapTargets(page)
-  await expectNoLayoutShift(page)
+  if (shift) await expectNoLayoutShift(page)
   await expectNoTransitions(page)
 }
 

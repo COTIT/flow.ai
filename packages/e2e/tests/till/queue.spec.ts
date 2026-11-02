@@ -48,12 +48,17 @@ function serverApi(api: FakeApi) {
 }
 
 async function ringUpCash(page: Page) {
-  await page.getByLabel("Search products").fill("honey")
   await page.getByRole("button", { name: /Ilundo honey 500 g/ }).click()
   await page
     .getByRole("button", { name: "One more Ilundo honey 500 g" })
     .click()
-  await page.getByLabel("Cash received").fill("30")
+}
+
+/** Opens the payment sheet and types €30.00 received. */
+async function pay30(page: Page) {
+  await page.getByRole("button", { name: /^Charge/ }).click()
+  for (const d of "3000")
+    await page.getByRole("button", { name: d, exact: true }).click()
 }
 
 test.describe("offline", () => {
@@ -71,15 +76,20 @@ test.describe("offline", () => {
     await ringUpCash(page)
 
     await context.setOffline(true)
-    // Offline the cart can't ask for a quote: it shows the labelled estimate (catalog gross × pieces).
-    const cart = page.getByRole("region", { name: "Cart" })
-    await expect(cart.getByText("Estimate (offline)")).toBeVisible()
-    await expect(cart.getByText("≈ €25.00")).toBeVisible()
-    await page.getByRole("button", { name: "Charge" }).click()
-    const saved = page.getByRole("region", { name: "Saved offline" })
+    // Offline the basket can't ask for a quote: it shows the labelled estimate (catalog gross × pieces).
+    const basket = page.getByRole("complementary", { name: "Basket" })
+    await expect(basket.getByText("Estimate (offline)")).toBeVisible()
+    await expect(basket.getByRole("definition")).toHaveText("≈ €25.00")
+    await pay30(page)
+    // No quote offline: no change shown, and Exact has no due to match.
+    await expect(page.getByLabel("Change")).toHaveText("—")
+    await expect(page.getByRole("button", { name: "Exact" })).toBeDisabled()
+    await page.getByRole("button", { name: /^Book sale/ }).click()
+    const saved = page.getByRole("dialog", { name: "Saved offline" })
     await expect(saved.getByText("≈ €25.00")).toBeVisible()
-    await expect(page.getByText("1 sale to sync")).toBeVisible()
+    await expect(page.getByText("Offline · 1 to sync")).toBeVisible()
     await expectNoHorizontalScroll(page)
+    await saved.getByRole("button", { name: "New sale" }).click()
     expect(api.callsTo("POST", `/workspace/${WS}/till/sales`)).toHaveLength(0)
 
     await context.setOffline(false)
@@ -127,10 +137,11 @@ test.describe("lost answer", () => {
     await seedTill(page)
     await page.goto("/sale")
     await ringUpCash(page)
-    await page.getByRole("button", { name: "Charge" }).click()
+    await pay30(page)
+    await page.getByRole("button", { name: /^Book sale/ }).click()
 
     await expect(
-      page.getByRole("region", { name: "Saved offline" })
+      page.getByRole("dialog", { name: "Saved offline" })
     ).toBeVisible()
     await expect(page.getByText("Offline sales synced")).toBeVisible()
     expect(
@@ -277,10 +288,8 @@ test("a replayed sale booked at other prices is flagged", async ({
       .filter({ hasText: "All offline sales are booked." })
   ).toBeVisible()
   await expect(
-    page
-      .getByRole("status")
-      .filter({
-        hasText: "Charged at prices that differ from the current catalog.",
-      })
+    page.getByRole("status").filter({
+      hasText: "Charged at prices that differ from the current catalog.",
+    })
   ).toBeVisible()
 })
