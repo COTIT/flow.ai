@@ -52,7 +52,7 @@ In `apps/api/src`, the only thing `cfg!(debug_assertions)` decides is the paymen
 - Traefik v3.6, Docker provider, `exposedByDefault=false` (every router here sets `traefik.enable=true`).
 - External network `traefik`. Entrypoints `web` (redirects to HTTPS) and `websecure`. Cert resolver `le` (HTTP challenge). These are the defaults in `.env.staging.example`.
 - IPv4 `185.77.96.44`, IPv6 `2a02:4780:d:ca37::1`. 4 cores, 15 GB RAM.
-- Deploy user `deploy`. Staging lives in `/srv/genesy-staging`, production in `/srv/genesy-prod`, CI in `/srv/genesy-ci`.
+- Deploy user `deploy`. Staging lives in `/srv/genesy-staging` and production in `/srv/genesy-prod`.
 - Existing hosts: `control.genesy.app` and `*.control.genesy.app` only. Nothing else under `genesy.app` is taken.
 - Traefik is the first hop (no CDN), so the IP allow-list and the API's per-IP rate limit see the visitor's address.
 

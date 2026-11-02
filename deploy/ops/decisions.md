@@ -4,6 +4,8 @@ Today one VPS (4 cores, 15 GB RAM) runs production, staging, the CI runner and o
 
 ## 1. The CI runner off the production VPS
 
+**Decided 2026-11-02: B.** All CI runs on GitHub-hosted runners; the VPS runner and `deploy/ci-runner/` are removed.
+
 | Option | Rough cost | Risk | Work |
 | --- | --- | --- | --- |
 | **A. Second small VPS for CI** (4 vCPU / 8 GB class, e.g. Hetzner or the current host) | about €8–15 a month | Low. Production no longer shares CPU, disk I/O or RAM with builds, and a CI escape lands on a box with nothing on it. | `deploy/ci-runner/setup.sh` runs unchanged on the new box. Register it, then remove the old runner (README "Teardown"). About an hour. |

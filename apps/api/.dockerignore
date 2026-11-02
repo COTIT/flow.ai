@@ -3,4 +3,3 @@ target
 .env.*
 !.env.example
 node_modules
-ci-runner

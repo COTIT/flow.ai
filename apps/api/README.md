@@ -82,4 +82,4 @@ The runtime image is distroless and runs as non-root.
 
 ## CI and deploy
 
-CI (`.github/workflows/ci.yml`) runs on a self-hosted runner; setup is in `deploy/ci-runner/`. There is no deploy pipeline in this repo yet.
+CI (`.github/workflows/ci.yml`) runs on GitHub-hosted runners and pushes the images to GHCR; the VPS deploys by pulling them (`deploy/production/README.md`).

@@ -102,4 +102,4 @@ test("the screen shows its data", async ({ page }) => {
   - The API image's dependency layer is cached in GHCR (`genesy-buildcache`).
   - Playwright browsers come in the job's container image.
 
-`ci-selfhosted.yml` is the old VPS-runner CI, kept only as a by-hand rollback until it is removed together with `deploy/ci-runner/`.
+The old self-hosted runner on the VPS was removed on 2026-11-02; the VPS only pulls images and runs them.
