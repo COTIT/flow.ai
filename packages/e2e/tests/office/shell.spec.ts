@@ -25,9 +25,8 @@ test.beforeEach(({ api }) => {
   })
 })
 
-test("home goes to products; list pages through meta", async ({ page }) => {
-  await page.goto("/")
-  await expect(page).toHaveURL(/\/products$/)
+test("the menu marks the current page; a list pages through meta", async ({ page }) => {
+  await page.goto("/products")
   await openMenu(page)
   await expect(
     page.getByRole("navigation", { name: "Main menu" }).getByRole("link", { name: "Products" })

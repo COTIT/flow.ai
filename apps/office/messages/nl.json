@@ -33,7 +33,8 @@
     "invoices": "Facturen",
     "orders": "Orders",
     "till": "Kassa",
-    "supply": "Aanvoer"
+    "supply": "Aanvoer",
+    "overview": "Overzicht"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -418,7 +419,7 @@
     "back": "Terug naar de lijst",
     "capped": "De eerste {shown} van {total} worden getoond. Zoeken kan hier nog niet.",
     "pageNotFound": "Deze pagina bestaat niet",
-    "goHome": "Naar producten",
+    "goHome": "Naar het overzicht",
     "crashed": "Er ging iets mis op deze pagina.",
     "crashedText": "Probeer het opnieuw. Blijft het gebeuren, vertel ons wat je deed."
   },
@@ -497,5 +498,29 @@
   "login": {
     "subtitle": "Producten, voorraad, orders, batches en de kassa — voor je account.",
     "theme": "Thema"
+  },
+  "overview": {
+    "title": "Overzicht",
+    "receiveTransfer": "Overdracht ontvangen",
+    "ordersToPick": "Orders om te picken",
+    "lotsInQuarantine": "Partijen in quarantaine",
+    "belowZero": "Producten onder nul",
+    "mismatches": "Kassaverkopen tegen andere prijzen",
+    "recentOrders": "Recente orders",
+    "recentOrdersSub": "Webshop en kantoor, nieuwste eerst",
+    "allOrders": "Alle orders",
+    "attention": "Vraagt aandacht",
+    "allClear": "Er vraagt nu niets je aandacht.",
+    "lotInQuarantine": "Partij {code} in quarantaine",
+    "lotInQuarantineHint": "Controleer en geef vrij of roep terug",
+    "belowZeroCount": "{total, plural, one {# product onder nul} other {# producten onder nul}}",
+    "belowZeroHint": "Tel ze en corrigeer de voorraad",
+    "mismatchCount": "{total, plural, one {# kassaverkoop tegen andere prijzen} other {# kassaverkopen tegen andere prijzen}}",
+    "mismatchHint": "Vergelijk ze met de catalogus",
+    "till": "Kassa",
+    "shifts": "Diensten",
+    "salesBooked": "Geboekte verkopen",
+    "tillNote": "Totalen van alle diensten en verkopen; bedragen staan op de dienstpagina's.",
+    "lotsByStatus": "Partijen per status"
   }
 }

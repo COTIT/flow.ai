@@ -26,6 +26,13 @@ export const officeApi = (
   "GET /workspace/w1/orders": {
     body: { data: [], meta: { current_page: 1, from: null, to: null, last_page: 1, per_page: 1, total: 0 } },
   },
+  // The overview's lists (login lands there); empty.
+  ...Object.fromEntries(
+    ["lots", "products/stocks/negative", "till/sales", "till/shifts"].map((path) => [
+      `GET /workspace/w1/${path}`,
+      { body: { data: [], meta: { current_page: 1, from: null, to: null, last_page: 1, per_page: 1, total: 0 } } },
+    ])
+  ),
   "GET /me/workspaces": {
     body: { data: [{ id: "w1", workspace_name: "Ilundo Honey Co." }] },
   },

@@ -33,7 +33,8 @@
     "invoices": "Invoices",
     "orders": "Orders",
     "till": "Till",
-    "supply": "Supply"
+    "supply": "Supply",
+    "overview": "Overview"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -418,7 +419,7 @@
     "back": "Back to the list",
     "capped": "Showing the first {shown} of {total}. Search is not available here yet.",
     "pageNotFound": "This page does not exist",
-    "goHome": "Go to products",
+    "goHome": "Go to the overview",
     "crashed": "Something went wrong on this page.",
     "crashedText": "Try again. If it keeps happening, tell us what you were doing."
   },
@@ -497,5 +498,29 @@
   "login": {
     "subtitle": "Products, stock, orders, batches and the till — for your account.",
     "theme": "Theme"
+  },
+  "overview": {
+    "title": "Overview",
+    "receiveTransfer": "Receive transfer",
+    "ordersToPick": "Orders to pick",
+    "lotsInQuarantine": "Batches in quarantine",
+    "belowZero": "Products below zero",
+    "mismatches": "Till sales at other prices",
+    "recentOrders": "Recent orders",
+    "recentOrdersSub": "Web shop and office, newest first",
+    "allOrders": "All orders",
+    "attention": "Needs attention",
+    "allClear": "Nothing needs you right now.",
+    "lotInQuarantine": "Batch {code} in quarantine",
+    "lotInQuarantineHint": "Check it, then release or recall it",
+    "belowZeroCount": "{total, plural, one {# product below zero} other {# products below zero}}",
+    "belowZeroHint": "Count them and correct the stock",
+    "mismatchCount": "{total, plural, one {# till sale at other prices} other {# till sales at other prices}}",
+    "mismatchHint": "Compare them with the catalog",
+    "till": "Till",
+    "shifts": "Shifts",
+    "salesBooked": "Sales booked",
+    "tillNote": "Totals of all shifts and sales; money stays on the shift pages.",
+    "lotsByStatus": "Batches by status"
   }
 }

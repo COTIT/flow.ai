@@ -61,11 +61,13 @@ export default function LotsPage({
     status?: string
     product?: string
     page?: string
+    /** `?new=1` (the overview's "New batch") opens the create dialog. */
+    new?: string
   }>
 }) {
   const t = useTranslations()
   const router = useRouter()
-  const { q, status, product, page } = React.use(searchParams)
+  const { q, status, product, page, new: startNew } = React.use(searchParams)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const lots = useLotsList(
     workspaceId,
@@ -120,6 +122,7 @@ export default function LotsPage({
           <CreateLot
             products={products.data?.data ?? []}
             productsMeta={products.data?.meta}
+            startOpen={startNew === "1"}
             onCreated={(id) => router.push(`/lots/${id}?done=created`)}
           />
         }
@@ -287,14 +290,16 @@ function FilterSelect({
 function CreateLot({
   products,
   productsMeta,
+  startOpen = false,
   onCreated,
 }: {
   products: { id: string; name: string }[]
   productsMeta?: { total: number; per_page: number }
+  startOpen?: boolean
   onCreated: (id: string) => void
 }) {
   const t = useTranslations()
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(startOpen)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
   const create = useLotsCreate({

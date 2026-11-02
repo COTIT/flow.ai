@@ -2,7 +2,7 @@ import { mockApi } from "../../src/api-mock"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { officeApi } from "./api"
 
-test("logging in opens the product list", async ({ page }) => {
+test("logging in opens the overview", async ({ page }) => {
   await mockApi(page, {
     ...officeApi(),
     "POST /login": {
@@ -27,11 +27,8 @@ test("logging in opens the product list", async ({ page }) => {
   await page.getByLabel("Password").fill("e2e-password-only")
   await page.getByRole("button", { name: "Log in" }).click()
 
-  await expect(page).toHaveURL("/products")
-  await expect(
-    page.getByRole("cell", { name: "Ilundo Wild Forest Honey" })
-  ).toBeVisible()
-  await expect(page.getByText("1–2 of 2")).toBeVisible()
+  await expect(page).toHaveURL("/")
+  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible()
 })
 
 test.describe("wrong password", () => {

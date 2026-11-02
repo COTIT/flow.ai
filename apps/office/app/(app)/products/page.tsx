@@ -138,7 +138,7 @@ export default function ProductsPage({
         }
       >
         {products.isPending ? (
-          <ListSkeleton columns={columns} />
+          <ListSkeleton columns={columns} rowHeight="h-10" />
         ) : products.isError ? (
           <CardState>
             <LoadError
