@@ -35,8 +35,8 @@ async function seedCatalog(page: Page) {
 }
 
 async function searchFor(page: Page, text: string) {
-  await page.getByLabel("Search products").fill(text)
-  return page.getByRole("list", { name: "Search results" })
+  await page.getByLabel("Scan a barcode or type a name").fill(text)
+  return page.getByRole("list", { name: "Products" })
 }
 
 test("the first sync reads every page of the catalog", async ({
@@ -99,10 +99,12 @@ test.describe("offline scan", () => {
     await page.goto("/sale")
     await settled
     await context.setOffline(true)
-    await page.getByLabel("Scan or type a barcode").fill("8712345000035")
-    await page.getByLabel("Scan or type a barcode").press("Enter")
+    await page.getByLabel("Scan a barcode or type a name").fill("8712345000035")
+    await page.getByLabel("Scan a barcode or type a name").press("Enter")
     await expect(
-      page.getByRole("region", { name: "Cart" }).getByText("Beeswax block")
+      page
+        .getByRole("complementary", { name: "Basket" })
+        .getByText("Beeswax block")
     ).toBeVisible()
   })
 })
@@ -118,8 +120,8 @@ test("a code the API doesn't know is reported, even if an old copy had it", asyn
   await seedCatalog(page)
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByLabel("Scan or type a barcode").fill("8712345000035")
-  await page.getByLabel("Scan or type a barcode").press("Enter")
+  await page.getByLabel("Scan a barcode or type a name").fill("8712345000035")
+  await page.getByLabel("Scan a barcode or type a name").press("Enter")
   await expect(
     page
       .getByRole("alert")

@@ -105,7 +105,15 @@ export function serveQuote(api: FakeApi, rows: TillRow[]) {
   api.on("POST", "/workspace/:ws/till/sales/quote", ({ body }) => {
     const b = body as QuoteBody
     const total = b.lines.reduce((sum, l) => sum + gross(l), 0)
-    return quoteReply(b, total, total)
+    const reply = quoteReply(b, total, total)
+    // Per-line figures as the API sends them (only line_total is shown).
+    reply.data.lines = b.lines.map((l) => ({
+      product_id: l.product_id,
+      product_variant_id: l.product_variant_id ?? null,
+      quantity: l.quantity,
+      line_total: gross(l),
+    })) as never[]
+    return reply
   })
 }
 

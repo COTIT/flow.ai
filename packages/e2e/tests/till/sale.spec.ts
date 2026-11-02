@@ -1,4 +1,6 @@
-import { expectNoHorizontalScroll } from "../../src/test"
+import type { Page } from "@playwright/test"
+
+import { expectTillLook, tapKeys } from "./look"
 import {
   catalogPage,
   expect,
@@ -82,14 +84,27 @@ function saleApi(api: FakeApi) {
   )
 }
 
-async function ringUp(page: import("@playwright/test").Page) {
-  await page.getByLabel("Search products").fill("honey")
-  await page.getByRole("button", { name: /Ilundo honey 500 g/ }).click()
+const scan = (page: Page) => page.getByLabel("Scan a barcode or type a name")
+
+/** Two honeys (tile, then +) and a large candle (scanned). */
+async function ringUp(page: Page) {
+  await page
+    .getByRole("list", { name: "Products" })
+    .getByRole("button", { name: /Ilundo honey 500 g/ })
+    .click()
   await page
     .getByRole("button", { name: "One more Ilundo honey 500 g" })
     .click()
-  await page.getByLabel("Scan or type a barcode").fill("8712345000028")
-  await page.getByLabel("Scan or type a barcode").press("Enter")
+  await scan(page).fill("8712345000028")
+  await scan(page).press("Enter")
+}
+
+/** Opens the payment sheet, card or cash. */
+async function charge(page: Page, method: "Cash" | "Card" = "Cash") {
+  await page.getByRole("button", { name: /^Charge/ }).click()
+  const sheet = page.getByRole("dialog", { name: "Take payment" })
+  await sheet.getByRole("button", { name: method }).click()
+  return sheet
 }
 
 test("a cash sale sends the catalog prices and shows the API's rounding and change", async ({
@@ -104,22 +119,45 @@ test("a cash sale sends the catalog prices and shows the API's rounding and chan
   })
   await seedTill(page)
   await page.goto("/sale")
+  await expect(page.getByText("The basket is empty.")).toBeVisible()
+  await expectTillLook(page)
   await ringUp(page)
 
-  const cart = page.getByRole("region", { name: "Cart" })
-  await expect(cart.getByLabel("Quantity of Ilundo honey 500 g")).toHaveText(
+  const basket = page.getByRole("complementary", { name: "Basket" })
+  await expect(basket.getByText("Basket · 3 items")).toBeVisible()
+  await expect(basket.getByLabel("Quantity of Ilundo honey 500 g")).toHaveText(
     "2"
   )
-  await expect(cart.getByText("Beeswax candle · Large")).toBeVisible()
-  const quote = cart.getByRole("definition")
+  await expect(basket.getByText("Beeswax candle · Large")).toBeVisible()
+  // The tile shows how many are in the basket.
+  await expect(
+    page.getByRole("button", { name: /Ilundo honey 500 g.*2 in the basket/ })
+  ).toBeVisible()
+  const quote = basket.getByRole("definition")
   await expect(quote.filter({ hasText: "€33.02" })).toBeVisible()
   await expect(quote.filter({ hasText: "-€0.02" })).toBeVisible()
   await expect(quote.filter({ hasText: "€33.00" })).toBeVisible()
-  await expect(cart.getByText("≈")).toHaveCount(0)
-  await expectNoHorizontalScroll(page)
+  await expect(basket.getByRole("button", { name: /^Charge/ })).toHaveText(
+    "Charge€33.00"
+  )
+  await expect(basket.getByText("≈")).toHaveCount(0)
+  await expectTillLook(page)
 
-  await page.getByLabel("Cash received").fill("50")
-  await expect(quote.filter({ hasText: "€17.00" })).toBeVisible()
+  const sheet = await charge(page)
+  await expect(sheet.getByText("€33.00").first()).toBeVisible()
+  // Exact, then the smallest accepted notes that cover what is due (only €50 here).
+  await expect(sheet.locator(".notes").getByRole("button")).toHaveText([
+    "Exact",
+    "€50.00",
+  ])
+  await sheet.getByRole("button", { name: "Exact" }).click()
+  await expect(sheet.getByLabel("Received")).toHaveText("€33.00")
+  await sheet.getByRole("button", { name: "Delete" }).click()
+  await expect(sheet.getByLabel("Received")).toHaveText("€3.30")
+  await sheet.getByRole("button", { name: "€50.00" }).click()
+  await expect(sheet.getByLabel("Received")).toHaveText("€50.00")
+  await expect(sheet.getByLabel("Change")).toHaveText("€17.00")
+  await expectTillLook(page)
   const quoted = api
     .callsTo("POST", `/workspace/${WS}/till/sales/quote`)
     .at(-1)!
@@ -135,17 +173,18 @@ test("a cash sale sends the catalog prices and shows the API's rounding and chan
     ],
     payment: { method: "cash", tendered: 5000 },
   })
-  await page.getByRole("button", { name: "Charge" }).click()
+  await sheet.getByRole("button", { name: /^Book sale/ }).click()
 
-  const receipt = page.getByRole("region", { name: "Receipt" })
+  const receipt = page.getByRole("dialog", { name: "Done" })
   await expect(
-    receipt.getByRole("heading", { name: "Receipt 1042" })
+    receipt.getByRole("status").filter({ hasText: "Sale 1042 booked" })
   ).toBeVisible()
   await expect(receipt.getByText("€33.02")).toBeVisible()
   await expect(receipt.getByText("-€0.02")).toBeVisible()
   await expect(receipt.getByText("€33.00")).toBeVisible()
-  await expect(receipt.getByText("€17.00")).toBeVisible()
-  await expectNoHorizontalScroll(page)
+  await expect(receipt.getByText("€50.00")).toBeVisible()
+  await expect(receipt.getByLabel("Give change")).toHaveText("€17.00")
+  await expectTillLook(page)
 
   const [post] = api.callsTo("POST", `/workspace/${WS}/till/sales`)
   const body = post!.body as Record<string, unknown>
@@ -161,8 +200,9 @@ test("a cash sale sends the catalog prices and shows the API's rounding and chan
   ])
   expect(body.payment).toEqual({ method: "cash", tendered: 5000 })
 
-  await page.getByRole("button", { name: "New sale" }).click()
-  await expect(page.getByText("The cart is empty.")).toBeVisible()
+  await receipt.getByRole("button", { name: "New sale" }).click()
+  await expect(page.getByRole("dialog")).toHaveCount(0)
+  await expect(page.getByText("The basket is empty.")).toBeVisible()
 })
 
 test("a card sale records the slip reference and has no change", async ({
@@ -173,17 +213,25 @@ test("a card sale records the slip reference and has no change", async ({
   await seedTill(page)
   await page.goto("/sale")
   await ringUp(page)
-  await page.getByRole("button", { name: "Card" }).click()
-  await page.getByLabel("Card slip reference").fill("SLIP-77")
-  await page.getByRole("button", { name: "Charge" }).click()
+  // Line totals are the quote's (2 × €12.50, and the candle at €12.50).
+  const basket = page.getByRole("complementary", { name: "Basket" })
+  await expect(basket.locator(".lp")).toHaveText(["€25.00", "€12.50"])
+  const sheet = await charge(page, "Card")
+  await tapKeys(page, "48210")
+  await sheet.getByRole("button", { name: "Delete" }).click()
+  await expect(sheet.getByLabel("Card slip or last 4 digits")).toHaveText(
+    "4821"
+  )
+  await expectTillLook(page)
+  await sheet.getByRole("button", { name: /^Book card sale/ }).click()
 
-  const receipt = page.getByRole("region", { name: "Receipt" })
-  await expect(receipt.getByText("SLIP-77")).toBeVisible()
-  await expect(receipt.getByText("Change")).toHaveCount(0)
+  const receipt = page.getByRole("dialog", { name: "Done" })
+  await expect(receipt.getByText("4821")).toBeVisible()
+  await expect(receipt.getByText("Give change")).toHaveCount(0)
   const [post] = api.callsTo("POST", `/workspace/${WS}/till/sales`)
   expect((post!.body as Record<string, unknown>).payment).toEqual({
     method: "card",
-    reference: "SLIP-77",
+    reference: "4821",
   })
 })
 
@@ -196,9 +244,14 @@ test("a scan asks the API for the exact code", async ({ page, api }) => {
   })
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByLabel("Scan or type a barcode").fill("8712345000028")
-  await page.getByLabel("Scan or type a barcode").press("Enter")
-  await expect(page.getByText("Beeswax candle · Large")).toBeVisible()
+  await scan(page).fill("8712345000028")
+  await scan(page).press("Enter")
+  await expect(
+    page
+      .getByRole("complementary", { name: "Basket" })
+      .getByText("Beeswax candle · Large")
+  ).toBeVisible()
+  await expect(scan(page)).toHaveValue("")
   expect(asked).toContain("8712345000028")
 })
 
@@ -206,12 +259,12 @@ test("an unknown barcode is reported, nothing added", async ({ page, api }) => {
   saleApi(api)
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByLabel("Scan or type a barcode").fill("123")
-  await page.getByLabel("Scan or type a barcode").press("Enter")
+  await scan(page).fill("123")
+  await scan(page).press("Enter")
   await expect(
     page.getByRole("alert").filter({ hasText: "No product with code 123." })
   ).toBeVisible()
-  await expect(page.getByText("The cart is empty.")).toBeVisible()
+  await expect(page.getByText("The basket is empty.")).toBeVisible()
 })
 
 test.describe("refused sales", () => {
@@ -246,18 +299,23 @@ test.describe("refused sales", () => {
     await seedTill(page)
     await page.goto("/sale")
     await ringUp(page)
-    await page.getByLabel("Cash received").fill("10")
-    await page.getByRole("button", { name: "Charge" }).click()
+    const sheet = await charge(page)
+    await tapKeys(page, "1000")
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
     await expect(
-      page
+      sheet
         .getByRole("alert")
         .filter({ hasText: "The cash tendered is less than due." })
     ).toBeVisible()
+    await expectTillLook(page, { shift: false })
 
-    await page.getByLabel("Cash received").fill("40")
-    await page.getByRole("button", { name: "Charge" }).click()
+    for (let i = 0; i < 4; i++)
+      await sheet.getByRole("button", { name: "Delete" }).click()
+    await tapKeys(page, "4000")
+    await expect(sheet.getByLabel("Received")).toHaveText("€40.00")
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
     await expect(
-      page.getByRole("heading", { name: "Receipt 1042" })
+      page.getByRole("dialog", { name: "Done" }).getByText("Sale 1042 booked")
     ).toBeVisible()
     const posts = api.callsTo("POST", `/workspace/${WS}/till/sales`)
     expect(posts).toHaveLength(2)
@@ -274,8 +332,9 @@ test.describe("refused sales", () => {
     await seedTill(page)
     await page.goto("/sale")
     await ringUp(page)
-    await page.getByLabel("Cash received").fill("50")
-    await page.getByRole("button", { name: "Charge" }).click()
+    const sheet = await charge(page)
+    await sheet.getByRole("button", { name: "€50.00" }).click()
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
     await expect(
       page
         .getByRole("alert")

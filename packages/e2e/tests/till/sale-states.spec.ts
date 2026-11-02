@@ -1,4 +1,4 @@
-import { expectNoHorizontalScroll } from "../../src/test"
+import { expectTillLook } from "./look"
 import {
   expect,
   honey,
@@ -15,10 +15,10 @@ test("an empty cart and a search with no match say so", async ({ page }) => {
   await seedTill(page)
   await page.goto("/sale")
   // Empty states are not live regions: matched by their words.
-  await expect(page.getByText("The cart is empty.")).toBeVisible()
-  await page.getByLabel("Search products").fill("zzz")
+  await expect(page.getByText("The basket is empty.")).toBeVisible()
+  await page.getByLabel("Scan a barcode or type a name").fill("zzz")
   await expect(page.getByText("No products match “zzz”.")).toBeVisible()
-  await expectNoHorizontalScroll(page)
+  await expectTillLook(page)
 })
 
 test("a register with nothing to sell says who to ask", async ({
@@ -31,6 +31,7 @@ test("a register with nothing to sell says who to ask", async ({
   await expect(
     page.getByText("This register has no products to sell yet. Ask the office.")
   ).toBeVisible()
+  await expectTillLook(page)
 })
 
 test("no open shift is shown before charging, with the way to the drawer", async ({
@@ -42,6 +43,7 @@ test("no open shift is shown before charging, with the way to the drawer", async
   await page.goto("/sale")
   const warning = status(page, "No shift is open on this register.")
   await expect(warning).toBeVisible()
+  await expectTillLook(page)
   await warning.getByRole("link", { name: "Open the drawer" }).click()
   await expect(page).toHaveURL("/drawer")
 })
@@ -62,10 +64,12 @@ test("a quote with prices that differ from the catalog warns the cashier", async
   })
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByLabel("Search products").fill("honey")
   await page.getByRole("button", { name: /Ilundo honey 500 g/ }).click()
   await expect(
-    status(page, "Some prices differ from the current catalog.")
+    page
+      .getByRole("complementary", { name: "Basket" })
+      .getByRole("status")
+      .filter({ hasText: "Some prices differ from the current catalog." })
   ).toBeVisible()
 })
 
@@ -101,13 +105,14 @@ test("a booked sale says so; a price mismatch on it is flagged", async ({
   })
   await seedTill(page)
   await page.goto("/sale")
-  await page.getByLabel("Search products").fill(honey.name)
+  await page.getByLabel("Scan a barcode or type a name").fill(honey.name)
   await page.getByRole("button", { name: /Ilundo honey 500 g/ }).click()
+  await page.getByRole("button", { name: /^Charge/ }).click()
   await page.getByRole("button", { name: "Card" }).click()
-  await page.getByRole("button", { name: "Charge" }).click()
-  await expect(status(page, "Sale 1043 is booked.")).toBeVisible()
+  await page.getByRole("button", { name: /^Book card sale/ }).click()
+  await expect(status(page, "Sale 1043 booked")).toBeVisible()
   await expect(
     status(page, "This sale was charged at prices that differ")
   ).toBeVisible()
-  await expectNoHorizontalScroll(page)
+  await expectTillLook(page)
 })
