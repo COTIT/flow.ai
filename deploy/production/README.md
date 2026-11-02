@@ -91,10 +91,12 @@ docker compose -f deploy/production/docker-compose.production.yml --env-file dep
 ```
 
 ```bash
-# Keep Docker lean: drop unused old prod images and the build cache
+# Keep Docker lean: drop unused old prod images, and cap the build cache at 10 GB
 docker image prune -af --filter label=com.docker.compose.project=genesy-prod
-docker builder prune -af
+docker builder prune -f --max-used-space 10GB
 ```
+
+The kept cache makes the next build fast: an unchanged API is a cache hit, a changed one rebuilds only its own crate, and the web images reuse their package store.
 
 The API runs its migrations when it boots. Check the deploy:
 
