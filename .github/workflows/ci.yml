@@ -150,8 +150,11 @@ jobs:
         - /run/user/1001/docker.sock:/run/ci-docker.sock
         - genesy-ci-tools:/opt/ci-tools
         - genesy-ci-trivy-cache:/trivy-cache
+      # Container env, not job env: job env also reaches the runner's own `docker exec` on the
+      # host, where /run/ci-docker.sock doesn't exist.
+      env:
+        DOCKER_HOST: unix:///run/ci-docker.sock
     env:
-      DOCKER_HOST: unix:///run/ci-docker.sock
       GENESY_REF: ${{ github.sha }}
       # The compose files need these to load; nothing is started here.
       TRAEFIK_NETWORK: unused
