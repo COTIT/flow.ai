@@ -1,3 +1,9 @@
 # Real env file on the VPS; the example is committed.
 .env.production
 !.env.production.example
+# deploy.sh bookkeeping on the VPS.
+.deploy-state
+.deploy-state.new
+.deploy.lock
+deploys.log
+.env.production.new
