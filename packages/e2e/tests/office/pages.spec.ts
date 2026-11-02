@@ -102,3 +102,34 @@ test("a picker cut at the first page warns how much it shows", async ({
       .filter({ hasText: "Showing the first 100 of 150." })
   ).toBeVisible()
 })
+
+test.describe(() => {
+  // React logs the caught error with a stack of build-hashed chunk names: match its start.
+  test.use({
+    allow: {
+      consolePrefix: [
+        "TypeError: Cannot read properties of null (reading 'name')",
+      ],
+    },
+  })
+
+  test("a screen that crashes shows the error page with a retry", async ({
+    page,
+    api,
+  }) => {
+    // A product reply without its data makes the page throw while rendering.
+    api
+      .on("GET", "/workspace/:ws/products/:id", () => ({ data: null }))
+      .on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => ({
+        data: [],
+      }))
+      .on("GET", "/workspace/:ws/products/:id/stock-movements", () => paged([]))
+    await page.goto("/products/p1")
+    await expect(
+      page
+        .getByRole("alert")
+        .filter({ hasText: "Something went wrong on this page." })
+    ).toBeVisible()
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible()
+  })
+})
