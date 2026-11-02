@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>genesy.app landing — directions</title>
+<link rel="stylesheet" href="assets/base.css">
+<style>
+  :root { --bg: #f2f6f7; --fg: #0a183a; --line: #d1dce5; }
+  body { padding: 24px 0 64px; }
+  h1 { font-weight: 500; text-transform: uppercase; letter-spacing: .04em; font-size: 24px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .bar button { border: 1px solid var(--line); background: #fff; padding: 8px 14px; cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: var(--fg); color: #fff; }
+  .dir { margin-bottom: 48px; }
+  .dir h2 { font-weight: 500; font-size: 20px; margin-bottom: 4px; }
+  .dir p { color: #456087; margin-bottom: 12px; max-width: 760px; }
+  .frames { display: flex; gap: 20px; align-items: flex-start; overflow-x: auto; }
+  .desk { width: 640px; height: 900px; flex: none; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+  .desk iframe { width: 1280px; height: 1800px; border: 0; transform: scale(.5); transform-origin: 0 0; }
+  .mob { width: 375px; height: 900px; flex: none; border: 1px solid var(--line); background: #fff; }
+  .mob iframe { width: 375px; height: 900px; border: 0; }
+  .cap { font-size: 12px; color: #456087; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <h1>genesy.app — three directions</h1>
+    <div><button data-t="light" aria-pressed="true">Light</button> <button data-t="dark" aria-pressed="false">Dark</button></div>
+  </div>
+  <div class="dir"><h2>A · Navy &amp; Gold</h2><p>The style guide's cover: navy hero, large gold bars from the icon, formal and bold. Two strong panels for programmes and brands; passport card on navy.</p>
+    <div class="frames"><div><div class="desk"><iframe data-src="a-navy-gold/index.html" title="A desktop"></iframe></div><div class="cap">Desktop 1280 (scaled) · <a href="a-navy-gold/index.html">open full page</a></div></div><div><div class="mob"><iframe data-src="a-navy-gold/index.html" title="A mobile"></iframe></div><div class="cap">Phone 375</div></div></div></div>
+  <div class="dir"><h2>B · Mist &amp; Journey</h2><p>Lighter and warmer: mist ground, an illustrated landscape with the jar's route, the five steps as a track, three audience cards (incl. buyers), passport on a phone.</p>
+    <div class="frames"><div><div class="desk"><iframe data-src="b-mist-journey/index.html" title="B desktop"></iframe></div><div class="cap">Desktop 1280 (scaled) · <a href="b-mist-journey/index.html">open full page</a></div></div><div><div class="mob"><iframe data-src="b-mist-journey/index.html" title="B mobile"></iframe></div><div class="cap">Phone 375</div></div></div></div>
+  <div class="dir"><h2>C · Passport first</h2><p>Editorial, like the guide's own pages: gold rule, hairlines, numbered sections. The hero is the jar's passport itself; the email address is the call to action.</p>
+    <div class="frames"><div><div class="desk"><iframe data-src="c-passport-first/index.html" title="C desktop"></iframe></div><div class="cap">Desktop 1280 (scaled) · <a href="c-passport-first/index.html">open full page</a></div></div><div><div class="mob"><iframe data-src="c-passport-first/index.html" title="C mobile"></iframe></div><div class="cap">Phone 375</div></div></div></div>
+</div>
+<script>
+  const frames = document.querySelectorAll("iframe")
+  const set = (t) => {
+    frames.forEach((f) => (f.src = f.dataset.src + "?theme=" + t))
+    document.querySelectorAll("[data-t]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.t === t))
+  }
+  document.querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => set(b.dataset.t)))
+  set("light")
+</script>
+</body>
+</html>
