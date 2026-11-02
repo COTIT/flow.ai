@@ -8,11 +8,11 @@ Provider payments of web orders. Code: `src/payments/` (provider-neutral interfa
 
 Stripe settings, read only when `PAYMENTS_PROVIDER=stripe` (each secret also as `<KEY>_FILE`, a Docker secret). Boot fails naming the var, never the value:
 
-| Var | Rule |
-|---|---|
-| `STRIPE_SECRET_KEY` | `sk_test_…`, `sk_live_…` or a restricted `rk_…` key. Live keys are refused in builds with debug assertions (dev, tests, the staging image), so staging can only run test mode. |
-| `STRIPE_WEBHOOK_SECRET` | The dashboard endpoint's signing secret, `whsec_…`. |
-| `STRIPE_API_URL` | Optional. Default `https://api.stripe.com`; an override must be a loopback URL (`127.0.0.1`, `::1`, `localhost`): a local fake for tests. |
+| Var                     | Rule                                                                                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `STRIPE_SECRET_KEY`     | `sk_test_…`, `sk_live_…` or a restricted `rk_…` key. Live keys are refused in builds with debug assertions (dev, tests, the staging image), so staging can only run test mode. |
+| `STRIPE_WEBHOOK_SECRET` | The dashboard endpoint's signing secret, `whsec_…`.                                                                                                                            |
+| `STRIPE_API_URL`        | Optional. Default `https://api.stripe.com`; an override must be a loopback URL (`127.0.0.1`, `::1`, `localhost`): a local fake for tests.                                      |
 
 ## Stripe
 
@@ -35,6 +35,7 @@ One platform Stripe account for every workspace; the workspace travels in metada
    - `POST /payments/webhooks/{provider}`: for providers with one endpoint for every workspace (Stripe). The workspace comes from our own `order_payments` row for that provider id, never from the body.
 
    A known id at the configured provider is queued in `payment_webhook_inbox` (one pending row per id, so repeats coalesce); anything else is ignored. The answer is always an empty 200, so it never tells which workspaces or ids exist and a bad event is never retried by the provider.
+
 4. **Drain** (job `payment_inbox`, one per workspace): takes the oldest pending row, re-fetches the payment from the provider (outside any transaction) and rejects it when the provider doesn't know it or its amount, currency or metadata (workspace, order, payment) differ from our row. Otherwise it applies the status under the order lock, then the payment row's lock:
    - `paid`: the order gets `paid_at`; `awaiting_payment` → `open`. An order the expiry already cancelled re-holds its stock and opens, or, when the stock is gone, stays cancelled and gets one automatic full refund (`auto`, unique per payment).
    - `failed`, `expired`, `canceled`: stored; the shop may start a new intent.
