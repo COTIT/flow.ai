@@ -37,7 +37,8 @@
         "@genesy/shop#build",
         "@genesy/office#build",
         "@genesy/field#build",
-        "@genesy/till#build"
+        "@genesy/till#build",
+        "@genesy/landing#build"
       ],
       "passThroughEnv": [
         "CI",
