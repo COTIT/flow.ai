@@ -1,8 +1,147 @@
 {
   "landing": {
     "title": "Genesy",
+    "description": "Genesy inarekodi mavuno, inafuatilia kundi, inachapisha pasipoti kwa kila chupa na inamlipa mkulima bidhaa inapouzwa.",
+    "skip": "Ruka hadi maudhui",
+    "nav": {
+      "label": "Menyu kuu",
+      "how": "Jinsi inavyofanya kazi",
+      "who": "Ni kwa ajili ya nani",
+      "passport": "Pasipoti",
+      "contact": "Wasiliana",
+      "language": "Lugha",
+      "theme": "Badilisha mwanga au giza",
+      "home": "Mwanzo wa Genesy"
+    },
+    "cta": "Ongea nasi",
     "hero": {
-      "title": "Kila chupa ina hadithi. Kila mkulima anapata sehemu yake."
+      "tag": "Kutoka shambani hadi jikoni, kwa uwazi",
+      "title": "Kila chupa ina hadithi. Kila mkulima anapata sehemu yake.",
+      "lead": "Genesy inarekodi mavuno, inafuatilia kundi, inachapisha pasipoti kwa kila chupa na inamlipa mkulima bidhaa inapouzwa. Mfumo mmoja, kutoka shambani hadi kaunta.",
+      "how": "Jinsi inavyofanya kazi",
+      "scene": "Mchoro: mzinga wa nyuki milimani, njia ya nukta inayoelekea chupa ya asali"
+    },
+    "journey": {
+      "tag": "Jinsi inavyofanya kazi",
+      "title": "Tazama chupa moja ikisafiri — na pesa ikirudi.",
+      "steps": {
+        "hive": {
+          "title": "Mzinga",
+          "text": "Nyuki hutengeneza asali. Mkulima anarekodi kila mzinga."
+        },
+        "harvest": {
+          "title": "Mavuno",
+          "text": "Kila mavuno yanarekodiwa: nani, wapi, kiasi gani."
+        },
+        "passport": {
+          "title": "Pasipoti",
+          "text": "Yanafungwa katika kundi; kila chupa inapata pasipoti ya QR."
+        },
+        "scan": {
+          "title": "Skani",
+          "text": "Mnunuzi anaskani chupa na kusoma hadithi yake."
+        },
+        "sold": {
+          "title": "Imeuzwa",
+          "text": "Mtandaoni au kaunta, kutoka orodha moja ya hisa."
+        },
+        "paid": {
+          "title": "Malipo yamerudi",
+          "text": "Sehemu ya mkulima inarudi kwenye kitabu chake cha akiba."
+        }
+      }
+    },
+    "who": {
+      "tag": "Ni kwa ajili ya nani",
+      "title": "Imejengwa kwa ajili ya watu walio njiani.",
+      "programmes": {
+        "title": "Programu za wakulima na vyama vya ushirika",
+        "text": "Mjue kila mkulima na kila mavuno, na uonyeshe kuwa malipo ni ya haki.",
+        "p1": "Kumbukumbu za shambani zinazofanya kazi bila mtandao",
+        "p2": "Kiswahili na Kiingereza kwenye kila skrini",
+        "p3": "Kila mkulima anaona kitabu chake cha akiba",
+        "link": "Anza na programu yako →"
+      },
+      "brands": {
+        "title": "Chapa na maduka",
+        "text": "Uza mtandaoni na dukani ukiwa na uthibitisho kwenye kila chupa.",
+        "p1": "Duka la mtandaoni na kaunta vinashiriki hisa moja",
+        "p2": "QR ya pasipoti kwa kila kundi",
+        "p3": "Kutoka chupa hadi mavuno kwa sekunde",
+        "link": "Leta bidhaa zako →"
+      },
+      "buyers": {
+        "title": "Wanunuzi",
+        "text": "Una moja ya chupa zetu? Elekeza kamera ya simu yako kwenye msimbo wa QR.",
+        "p1": "Wapi na lini ilivunwa",
+        "p2": "Ukaguzi gani ilipita",
+        "p3": "Kwamba wakulima walilipwa",
+        "link": "Tembelea duka →"
+      }
+    },
+    "passport": {
+      "tag": "Pasipoti",
+      "title": "Skani chupa. Soma hadithi yake yote.",
+      "lead": "Kila kundi lina ukurasa wake. Hakuna programu ya kusakinisha — kamera ya simu inatosha.",
+      "c1": {
+        "title": "Inatoka wapi",
+        "text": "Mkoa, mwezi wa mavuno, idadi ya wafugaji nyuki."
+      },
+      "c2": {
+        "title": "Kilichokaguliwa",
+        "text": "Matokeo ya ubora wa kundi hilo."
+      },
+      "c3": {
+        "title": "Nani alilipwa",
+        "text": "Wakulima wanalipwa kila mauzo."
+      },
+      "phone": "Mfano wa pasipoti kwenye simu (data ya kubuni)",
+      "product": "Asali mbichi ya msituni",
+      "example": "Mfano",
+      "batch": "Kundi",
+      "origin": "Asili",
+      "originValue": "Tanzania",
+      "harvested": "Ilivunwa",
+      "harvestedValue": "Juni 2026",
+      "beekeepers": "Wafugaji nyuki",
+      "jars": "Chupa katika kundi",
+      "paid": "Wakulima wamelipwa wakati wa mauzo"
+    },
+    "promise": {
+      "tag": "Ahadi yetu",
+      "title": "Kanuni rahisi ambazo mfumo unakulindia.",
+      "private": {
+        "title": "Akaunti yako ni ya faragha",
+        "text": "Kila shirika linaona wakulima, hisa na mauzo yake tu."
+      },
+      "consent": {
+        "title": "Kushiriki kunahitaji ridhaa",
+        "text": "Data inaenda kwa mshirika kupitia kiungo ambacho mkulima alikubali tu."
+      },
+      "exact": {
+        "title": "Pesa ni sahihi",
+        "text": "Imehesabiwa hadi senti. Mistari ya kitabu cha akiba inabaki kama ilivyoandikwa."
+      }
+    },
+    "contact": {
+      "tag": "Ongea nasi",
+      "title": "Unalima, unafunga au unauza kitu kinachostahili kufuatiliwa? Tuongee.",
+      "button": "Tutumie barua pepe",
+      "note": "Kiingereza, Kiholanzi au Kiswahili. Tunajibu ndani ya siku mbili za kazi."
+    },
+    "footer": {
+      "tagline": "Kutoka shambani hadi rafuni, kwa uwazi — na mkulima analipwa njiani.",
+      "shop": "Duka",
+      "buy": "Nunua asali",
+      "check": "Angalia pasipoti",
+      "signIn": "Ingia",
+      "office": "Ofisi",
+      "field": "Programu ya shambani",
+      "till": "Kaunta",
+      "about": "Kuhusu",
+      "contact": "Wasiliana",
+      "copyright": "© {year} Genesy",
+      "languages": "Lugha"
     }
   }
 }

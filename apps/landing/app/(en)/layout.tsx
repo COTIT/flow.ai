@@ -1,13 +1,12 @@
-import type { Metadata } from "next"
-import { getTranslations } from "next-intl/server"
+import { localeMetadata, RootLayout } from "@/components/root-layout"
 
-import { RootLayout } from "@/components/root-layout"
+// One root layout per language (English at /); an unknown path matches none and gets the global 404.
+export const generateMetadata = () => localeMetadata("en")
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations({ locale: "en", namespace: "landing" })
-  return { title: t("title") }
-}
-
-export default function EnglishLayout({ children }: { children: React.ReactNode }) {
+export default function EnglishLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return <RootLayout locale="en">{children}</RootLayout>
 }

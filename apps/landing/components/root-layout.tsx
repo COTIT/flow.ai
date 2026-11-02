@@ -1,5 +1,6 @@
+import type { Metadata } from "next"
 import { NextIntlClientProvider } from "next-intl"
-import { setRequestLocale } from "next-intl/server"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 import { headers } from "next/headers"
 
 import "@genesy/ui/globals.css"
@@ -32,4 +33,10 @@ export async function RootLayout({
       </body>
     </html>
   )
+}
+
+/** Title and description of the landing page in one language. */
+export async function localeMetadata(locale: Locale): Promise<Metadata> {
+  const t = await getTranslations({ locale, namespace: "landing" })
+  return { title: t("title"), description: t("description") }
 }

@@ -1,8 +1,147 @@
 {
   "landing": {
     "title": "Genesy",
+    "description": "Genesy records the harvest, follows the batch, prints a passport for every jar and pays the farmer when it sells.",
+    "skip": "Skip to content",
+    "nav": {
+      "label": "Main",
+      "how": "How it works",
+      "who": "Who it’s for",
+      "passport": "The passport",
+      "contact": "Contact",
+      "language": "Language",
+      "theme": "Switch light or dark",
+      "home": "Genesy home"
+    },
+    "cta": "Talk to us",
     "hero": {
-      "title": "Every jar has a story. Every farmer gets their share."
+      "tag": "Farm to kitchen, in the open",
+      "title": "Every jar has a story. Every farmer gets their share.",
+      "lead": "Genesy records the harvest, follows the batch, prints a passport for every jar and pays the farmer when it sells. One system, from the field to the till.",
+      "how": "How it works",
+      "scene": "Illustration: a beehive in hills, a dotted route leading to a honey jar"
+    },
+    "journey": {
+      "tag": "How it works",
+      "title": "Watch one jar travel — and the money travel back.",
+      "steps": {
+        "hive": {
+          "title": "Hive",
+          "text": "Bees make the honey. The farmer records each hive."
+        },
+        "harvest": {
+          "title": "Harvest",
+          "text": "Every harvest is logged: who, where, how much."
+        },
+        "passport": {
+          "title": "Passport",
+          "text": "Packed into a batch; every jar gets a QR passport."
+        },
+        "scan": {
+          "title": "Scan",
+          "text": "A buyer scans the jar and reads its story."
+        },
+        "sold": {
+          "title": "Sold",
+          "text": "Online or at the till, from one stock list."
+        },
+        "paid": {
+          "title": "Paid back",
+          "text": "The farmer’s share flows back into their passbook."
+        }
+      }
+    },
+    "who": {
+      "tag": "Who it’s for",
+      "title": "Built for the people along the route.",
+      "programmes": {
+        "title": "Farmer programmes & cooperatives",
+        "text": "Know every farmer and every harvest, and show that pay is fair.",
+        "p1": "Field records that work without signal",
+        "p2": "Swahili and English on every screen",
+        "p3": "Each farmer sees their own passbook",
+        "link": "Start with your programme →"
+      },
+      "brands": {
+        "title": "Brands & shops",
+        "text": "Sell online and in store with proof on every jar.",
+        "p1": "Web shop and till share one stock",
+        "p2": "A passport QR for each batch",
+        "p3": "From jar back to harvest in seconds",
+        "link": "Bring your products →"
+      },
+      "buyers": {
+        "title": "Buyers",
+        "text": "Holding one of our jars? Point your phone camera at its QR code.",
+        "p1": "Where and when it was harvested",
+        "p2": "Which checks it passed",
+        "p3": "That the farmers were paid",
+        "link": "Visit the shop →"
+      }
+    },
+    "passport": {
+      "tag": "The passport",
+      "title": "Scan the jar. Read its whole story.",
+      "lead": "Every batch has its own page. No app to install — the phone camera is enough.",
+      "c1": {
+        "title": "Where it comes from",
+        "text": "Region, harvest month, how many beekeepers."
+      },
+      "c2": {
+        "title": "What was checked",
+        "text": "Quality results for that batch."
+      },
+      "c3": {
+        "title": "Who got paid",
+        "text": "Farmers are credited at every sale."
+      },
+      "phone": "Example passport on a phone (made-up data)",
+      "product": "Raw forest honey",
+      "example": "Example",
+      "batch": "Batch",
+      "origin": "Origin",
+      "originValue": "Tanzania",
+      "harvested": "Harvested",
+      "harvestedValue": "June 2026",
+      "beekeepers": "Beekeepers",
+      "jars": "Jars in batch",
+      "paid": "Farmers paid at sale"
+    },
+    "promise": {
+      "tag": "Our promise",
+      "title": "Plain rules the system keeps for you.",
+      "private": {
+        "title": "Your account is private",
+        "text": "Each organisation sees only its own farmers, stock and sales."
+      },
+      "consent": {
+        "title": "Sharing needs consent",
+        "text": "Data moves to a partner only through a link the farmer agreed to."
+      },
+      "exact": {
+        "title": "Money is exact",
+        "text": "Counted to the cent. Passbook lines stay as they were written."
+      }
+    },
+    "contact": {
+      "tag": "Talk to us",
+      "title": "Grow, pack or sell something worth tracing? Let’s talk.",
+      "button": "Email us",
+      "note": "English, Dutch or Swahili. We reply within two working days."
+    },
+    "footer": {
+      "tagline": "From the farm to the shelf, in the open — and the farmer paid along the way.",
+      "shop": "Shop",
+      "buy": "Buy honey",
+      "check": "Check a passport",
+      "signIn": "Sign in",
+      "office": "Office",
+      "field": "Field app",
+      "till": "Till",
+      "about": "About",
+      "contact": "Contact",
+      "copyright": "© {year} Genesy",
+      "languages": "Languages"
     }
   }
 }
