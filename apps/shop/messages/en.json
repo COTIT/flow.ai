@@ -12,10 +12,14 @@
   },
   "catalog": {
     "title": "Shop",
-    "empty": "No products for sale right now.",
+    "empty": "No products for sale right now",
     "previous": "Previous",
     "next": "Next",
-    "page": "Page {page} of {last}"
+    "page": "Page {page} of {last}",
+    "emptyWhy": "New harvests are added regularly. Please check back soon.",
+    "pastEnd": "Nothing on this page",
+    "pastEndWhy": "This page is past the end of the catalog.",
+    "firstPage": "Go to the first page"
   },
   "product": {
     "inStock": "In stock",
@@ -23,7 +27,9 @@
     "variants": "Sizes and options",
     "back": "Back to the shop",
     "noDescription": "More about this product soon.",
-    "imageSoon": "Photo coming soon"
+    "imageSoon": "Photo coming soon",
+    "soldOutTitle": "Sold out for now",
+    "soldOutBody": "This product is out of stock. Check back soon."
   },
   "errors": {
     "unavailableTitle": "The shop is taking a break",
@@ -31,7 +37,9 @@
     "retry": "Try again",
     "notFoundTitle": "Page not found",
     "notFoundBody": "This page doesn't exist or is no longer for sale.",
-    "home": "Go to the shop"
+    "home": "Browse the shop",
+    "batchTitle": "We can't find this batch",
+    "batchBody": "Check the code on the jar: it may be mistyped, or its passport may not be published yet."
   },
   "cart": {
     "title": "Your cart",
@@ -41,19 +49,18 @@
     "add": "Add to cart",
     "added": "Added to your cart.",
     "view": "View cart",
-    "empty": "Your cart is empty.",
-    "continue": "Continue shopping",
+    "empty": "Your cart is empty",
     "each": "{price} each",
     "less": "One less {name}",
     "more": "One more {name}",
     "remove": "Remove {name}",
     "totalAtCheckout": "Total calculated at checkout: prices, VAT and stock are confirmed when you place the order.",
-    "checkout": "Go to checkout"
+    "checkout": "Go to checkout",
+    "emptyWhy": "Add something from the shop and it will show up here.",
+    "browse": "Browse the shop"
   },
   "checkout": {
     "title": "Checkout",
-    "empty": "Your cart is empty.",
-    "shop": "Go to the shop",
     "summary": "Your order",
     "totalNext": "The total, with VAT, is shown on the next page before you pay.",
     "place": "Place order",
@@ -72,7 +79,9 @@
       "invalid_input": "Something in the form isn't right. Please check it and try again.",
       "busy": "The shop is very busy right now. Please try again in a few minutes.",
       "unavailable": "We can't place orders right now. Please try again in a minute."
-    }
+    },
+    "fieldsTitle": "Please check the highlighted fields",
+    "orderTitle": "Please check your order"
   },
   "order": {
     "title": "Your order",
@@ -80,8 +89,8 @@
     "awaiting": "Waiting for payment.",
     "heldUntil": "Your items are reserved until <time></time>.",
     "paid": "Thank you! Your payment is in and your order is confirmed.",
-    "cancelled": "This order expired before it was paid, so the items went back on the shelf.",
-    "again": "Back to your cart",
+    "cancelled": "This order expired before it was paid",
+    "again": "Shop again",
     "status": "Status: {status}",
     "subtotal": "Subtotal",
     "vat": "VAT",
@@ -104,6 +113,17 @@
         "title": "Payment couldn't start",
         "body": "Nothing was charged. Please try again in a minute."
       }
+    },
+    "cancelledBody": "The items went back on the shelf. You can order them again.",
+    "retry": "Try again",
+    "waitingLong": {
+      "title": "Still waiting for the payment",
+      "body": "The payment provider hasn't confirmed it yet. If you paid, check again in a minute; if not, use Pay now below.",
+      "action": "Check again"
+    },
+    "loadFailed": {
+      "title": "We couldn't load your order",
+      "body": "Your order is safe. Please try again in a moment."
     }
   }
 }
