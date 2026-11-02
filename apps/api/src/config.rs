@@ -156,6 +156,15 @@ impl Config {
         Self::from_lookup(|key| files.get(key).cloned().or_else(|| env(key)))
     }
 
+    /// Only `DATABASE_URL` (or `DATABASE_URL_FILE`), for `genesy-360-api migrate`: the deploy's
+    /// migrate step and CI's template DB need no other config.
+    pub fn database_url_from_env() -> Result<String, String> {
+        database_url(
+            |key| std::env::var(key).ok(),
+            |path| std::fs::read_to_string(path),
+        )
+    }
+
     // Lookup fn instead of env::var so tests skip global env mutation (unsafe in edition 2024).
     fn from_lookup(get: impl Fn(&str) -> Option<String>) -> Result<Self, String> {
         let database_url = get("DATABASE_URL").ok_or("DATABASE_URL not set")?;
@@ -421,6 +430,19 @@ fn read_secret_files(
         found.insert(key, value.to_owned());
     }
     Ok(found)
+}
+
+/// `DATABASE_URL`, from its `_FILE` when set (same rules as `Config::from_env`).
+fn database_url(
+    get: impl Fn(&str) -> Option<String>,
+    read: impl Fn(&str) -> std::io::Result<String>,
+) -> Result<String, String> {
+    let files = read_secret_files(&get, read)?;
+    files
+        .get("DATABASE_URL")
+        .cloned()
+        .or_else(|| get("DATABASE_URL"))
+        .ok_or_else(|| "DATABASE_URL not set".into())
 }
 
 /// True when the URL's query string holds exactly `pair` (not as a substring of another pair,
@@ -1172,5 +1194,41 @@ mod secret_file_tests {
         .unwrap();
         assert_eq!(got["STRIPE_SECRET_KEY"], "sk_test_x");
         assert_eq!(got["STRIPE_WEBHOOK_SECRET"], "whsec_x");
+    }
+
+    // `migrate` reads only the DB URL, so a deploy's one-off migrate needs no other config.
+    #[test]
+    fn database_url_alone_from_env_or_file() {
+        let plain = database_url(env(&[("DATABASE_URL", "postgres://a")]), files(&[]));
+        let file = database_url(
+            env(&[("DATABASE_URL_FILE", "/run/secrets/db")]),
+            files(&[("/run/secrets/db", "postgres://b\n")]),
+        );
+        let neither = database_url(env(&[]), files(&[])).unwrap_err();
+
+        assert_eq!(plain.unwrap(), "postgres://a");
+        assert_eq!(file.unwrap(), "postgres://b");
+        assert_eq!(neither, "DATABASE_URL not set");
+    }
+
+    #[test]
+    fn database_url_file_rules_match_full_config() {
+        let both = database_url(
+            env(&[
+                ("DATABASE_URL", "postgres://a"),
+                ("DATABASE_URL_FILE", "/run/secrets/db"),
+            ]),
+            files(&[("/run/secrets/db", "postgres://secret")]),
+        )
+        .unwrap_err();
+        let unreadable =
+            database_url(env(&[("DATABASE_URL_FILE", "/nope")]), files(&[])).unwrap_err();
+
+        assert_eq!(both, "set DATABASE_URL or DATABASE_URL_FILE, not both");
+        assert!(
+            unreadable.starts_with("DATABASE_URL_FILE unreadable at /nope"),
+            "{unreadable}"
+        );
+        assert!(!both.contains("secret") && !unreadable.contains("secret"));
     }
 }

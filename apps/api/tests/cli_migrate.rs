@@ -4,7 +4,8 @@ use std::process::{Command, Output};
 
 use sqlx::PgPool;
 
-/// The binary with `migrate`, pointed at database `db` on the test server, nothing else set.
+/// The binary with `migrate`, pointed at database `db` on the test server, nothing else set
+/// (no app config: migrate reads only the DB URL).
 fn migrate(db: &str) -> Output {
     dotenvy::dotenv().ok();
     let server = std::env::var("DATABASE_URL").expect("DATABASE_URL");
@@ -15,12 +16,14 @@ fn migrate(db: &str) -> Output {
         .arg("migrate")
         .env_clear()
         .env("DATABASE_URL", format!("{server}/{db}"))
-        .env("FRONTEND_URL", "https://app.test")
-        .env("API_PUBLIC_URL", "https://api.test")
-        .env("SMTP_URL", "smtps://smtp.test:465")
-        .env("MAIL_FROM", "Genesy <no-reply@genesy.test>")
         .output()
         .expect("run genesy-360-api")
+}
+
+/// The summary line; tracing logs (sqlx notices) also go to stdout before it.
+fn last_line(out: &Output) -> String {
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    stdout.lines().last().unwrap_or_default().to_owned()
 }
 
 async fn applied(pool: &PgPool) -> i64 {
@@ -39,11 +42,22 @@ async fn migrate_fills_an_empty_database_then_is_a_no_op(pool: PgPool) {
     assert!(first.status.success(), "{first:?}");
     let count = applied(&pool).await;
     assert!(count > 10, "{count}");
+    let newest: i64 = sqlx::query_scalar("SELECT max(version) FROM _sqlx_migrations")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        last_line(&first),
+        format!("applied {count} migrations, now at {newest}")
+    );
 
     let second = migrate(&db);
     assert!(second.status.success(), "{second:?}");
     assert_eq!(applied(&pool).await, count);
-    assert!(String::from_utf8_lossy(&second.stdout).contains("up to date"));
+    assert_eq!(
+        last_line(&second),
+        format!("migrations up to date ({newest})")
+    );
 }
 
 /// A failed migration exits non-zero with `migrate:` on stderr, and starts no server.

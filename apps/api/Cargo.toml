@@ -39,3 +39,14 @@ zeroize = "1.9.1"
 [dev-dependencies]
 http-body-util = "0.1.5"
 jsonschema = { version = "0.59.0", default-features = false }
+
+# Tests build in the dev profile; every test signs up, so unoptimised argon2 dominated suite
+# time. Optimising only the hash crates keeps the same hash params.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
+
+[profile.dev.package.password-hash]
+opt-level = 3

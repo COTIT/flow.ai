@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `genesy-360-api migrate` reports what it did: `applied 1 migration, now at 20261102022109`, or `migrations up to date (20261102022109)` when nothing ran (it used to print "up to date" either way). It now reads only `DATABASE_URL` or `DATABASE_URL_FILE` (same `_FILE` rules as boot config), so it needs no other config.
+- CI speed: tests build argon2, blake2 and password-hash at opt-level 3 (same hash params; every test signs up). The CI api job migrates its throwaway Postgres's `template1` once, so each `#[sqlx::test]` DB is a clone instead of a full migration replay. That throwaway Postgres also runs in RAM with fsync, synchronous_commit and full_page_writes off, and `trust` auth (no SCRAM handshake per test connection). A new `changes` job skips the api job when a push or PR touches neither `apps/api/` nor `.github/workflows/`; `images` treats a skipped api as green.
+
 - Migrations as their own deploy step: `genesy-360-api migrate` runs the embedded migrations and exits (0, `migrations up to date`; 1 with `migrate: <error>` on stderr). `SKIP_BOOT_MIGRATIONS=true` boots without migrating; unset (default) keeps boot migrations for dev and tests. The staging and production composes set it, and `deploy/deploy.sh` runs `migrate` before swapping containers.
 - Stripe payments and Resend email, ready for keys (contract `docs/api/payments.md`, migration `payments_stripe`):
   - `PAYMENTS_PROVIDER=stripe`: a payment is a Stripe Checkout Session (hosted page, `checkout_url`), a refund a Stripe Refund of the session's PaymentIntent. Minor units, `Idempotency-Key` = our row id, metadata `{workspace_id, order_id, payment_id}`, pinned `Stripe-Version: 2024-06-20`. Session `expires_at` follows the order's hold within Stripe's 31 min to 24 h window; our expiry job fires first.

@@ -71,12 +71,27 @@ async fn job_and_control_pools_cap_their_statements(pool: PgPool) {
 #[sqlx::test(migrations = false)]
 async fn migrations_fill_an_empty_database(pool: PgPool) {
     let base = (*pool.connect_options()).clone();
-    db::migrate(&base).await.unwrap();
-    let applied: i64 = sqlx::query_scalar("SELECT count(*) FROM _sqlx_migrations")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    let first = db::migrate(&base).await.unwrap();
+    let (applied, newest): (i64, i64) =
+        sqlx::query_as("SELECT count(*), max(version) FROM _sqlx_migrations")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert!(applied > 10, "{applied}");
+    assert_eq!(first.applied, applied);
+    assert_eq!(first.version, Some(newest));
+    assert_eq!(
+        first.to_string(),
+        format!("applied {applied} migrations, now at {newest}")
+    );
+
+    // A second run (the deploy's `migrate` with nothing new) says so instead of "applied".
+    let again = db::migrate(&base).await.unwrap();
+    assert_eq!(again.applied, 0);
+    assert_eq!(
+        again.to_string(),
+        format!("migrations up to date ({newest})")
+    );
 }
 
 /// Workspace A's numbering lock is held elsewhere: twelve A creates (more than sqlx's old
