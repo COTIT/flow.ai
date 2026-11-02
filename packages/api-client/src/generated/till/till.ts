@@ -31,6 +31,8 @@ import type {
   CreateVaultRequest,
   EnvelopeKeyRotated,
   EnvelopeOptionShiftResource,
+  EnvelopePairedResource,
+  EnvelopePairingCode,
   EnvelopeQuoteResource,
   EnvelopeRegisterKeyed,
   EnvelopeSaleResource,
@@ -47,6 +49,7 @@ import type {
   PaginatedRegisterResource,
   PaginatedSaleResource,
   PaginatedShiftResource,
+  PairRequest,
   QuoteRequest,
   SaleRequest,
   TillCatalogPage,
@@ -84,6 +87,74 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 };
 
 /**
+ * No token. Swaps the shop name and the office's one-time code for the register's new device key; the old key and its sessions end. 10 failed tries in 15 minutes lock that shop name (429).
+ * @summary Pair a till with shop name and code
+ */
+export const tillPair = (
+    pairRequest: BodyType<PairRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePairedResource>(
+      {url: `/till/pair`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: pairRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillPairMutationKey = () => ['tillPair'] as const;
+
+export const getTillPairMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillPair>>, TError,TillPairMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillPair>>, TError,TillPairMutationVariables, TContext> => {
+
+const mutationKey = getTillPairMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillPair>>, TillPairMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  tillPair(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillPairMutationResult = NonNullable<Awaited<ReturnType<typeof tillPair>>>
+    export type TillPairMutationBody = BodyType<PairRequest>
+    export type TillPairMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillPairMutationVariables = {data: BodyType<PairRequest>}
+
+    /**
+ * @summary Pair a till with shop name and code
+ */
+export const useTillPair = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillPair>>, TError,TillPairMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillPair>>,
+        TError,
+        TillPairMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillPairMutationOptions(options), queryClient);
+    }
+    /**
  * @summary What this register sells (paged, delta sync, barcode lookup)
  */
 export const tillCatalog = (
@@ -735,6 +806,73 @@ export const useTillRegistersRotateKey = <TError = ErrorType<MessageBody>,
         TContext
       > => {
       return useMutation(getTillRegistersRotateKeyMutationOptions(options), queryClient);
+    }
+    /**
+ * Valid 10 minutes, single use. A newer code voids this one. The working till keeps its key until a till redeems the code at `POST /till/pair`.
+ * @summary Make a one-time pairing code
+ */
+export const tillRegistersPairing = (
+    workspace: string,
+    register: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePairingCode>(
+      {url: `/workspace/${workspace}/till/registers/${register}/pairing`, method: 'POST', signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillRegistersPairingMutationKey = () => ['tillRegistersPairing'] as const;
+
+export const getTillRegistersPairingMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillRegistersPairing>>, TError,TillRegistersPairingMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillRegistersPairing>>, TError,TillRegistersPairingMutationVariables, TContext> => {
+
+const mutationKey = getTillRegistersPairingMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillRegistersPairing>>, TillRegistersPairingMutationVariables> = (props) => {
+          const {workspace,register} = props ?? {};
+
+          return  tillRegistersPairing(workspace,register,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillRegistersPairingMutationResult = NonNullable<Awaited<ReturnType<typeof tillRegistersPairing>>>
+
+    export type TillRegistersPairingMutationError = ErrorType<MessageBody>
+    export type TillRegistersPairingMutationVariables = {workspace: string;register: string}
+
+    /**
+ * @summary Make a one-time pairing code
+ */
+export const useTillRegistersPairing = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillRegistersPairing>>, TError,TillRegistersPairingMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillRegistersPairing>>,
+        TError,
+        TillRegistersPairingMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillRegistersPairingMutationOptions(options), queryClient);
     }
     /**
  * @summary List till sales

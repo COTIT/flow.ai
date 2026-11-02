@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE till_pairings SET voided_at = now()\n         WHERE workspace_id = $1 AND register_id = $2 AND redeemed_at IS NULL\n           AND voided_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1728cf999836d9a5f8292929b57289ba6bb712e877208fc7ce9005a8b1968d5a"
+}

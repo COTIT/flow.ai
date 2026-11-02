@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE till_pairings SET redeemed_at = now(), redeemed_ip = $3, app_key_id = $4\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "481efde5576b9e389c83cb2ec910ce6e5d1912fea38a3d84c7faafdd15f1cba4"
+}

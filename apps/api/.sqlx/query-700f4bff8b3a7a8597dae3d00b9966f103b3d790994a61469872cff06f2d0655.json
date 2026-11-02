@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT r.id, r.name, r.warehouse_id, r.currency_id, r.created_at,\n                  a.prefix AS \"key_prefix?\", count(*) OVER () AS \"total!\"\n           FROM till_registers r\n           LEFT JOIN app_keys a ON a.id = r.app_key_id AND a.revoked_at IS NULL\n           WHERE r.workspace_id = $1\n           ORDER BY r.created_at DESC, r.id DESC\n           LIMIT $2 OFFSET $3",
+  "query": "SELECT r.id, r.name, r.warehouse_id, r.currency_id, r.created_at,\n                  a.prefix AS \"key_prefix?\",\n                  (SELECT max(p.redeemed_at) FROM till_pairings p\n                   WHERE p.workspace_id = r.workspace_id AND p.register_id = r.id) AS paired_at,\n                  count(*) OVER () AS \"total!\"\n           FROM till_registers r\n           LEFT JOIN app_keys a ON a.id = r.app_key_id AND a.revoked_at IS NULL\n           WHERE r.workspace_id = $1\n           ORDER BY r.created_at DESC, r.id DESC\n           LIMIT $2 OFFSET $3",
   "describe": {
     "columns": [
       {
@@ -71,6 +71,12 @@
       },
       {
         "ordinal": 6,
+        "name": "paired_at",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
         "name": "total!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -90,8 +96,9 @@
       false,
       false,
       false,
+      null,
       null
     ]
   },
-  "hash": "825e0675a11d0baed155e2358bdabed6fec1c8bc50d2b087cc7d729bdf0da0e9"
+  "hash": "700f4bff8b3a7a8597dae3d00b9966f103b3d790994a61469872cff06f2d0655"
 }

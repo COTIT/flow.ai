@@ -9,7 +9,8 @@ use std::{
 use axum::{
     Json, Router,
     body::Body,
-    http::{HeaderValue, Request, Response, StatusCode, header::RETRY_AFTER},
+    extract::FromRequestParts,
+    http::{HeaderValue, Request, Response, StatusCode, header::RETRY_AFTER, request::Parts},
     response::IntoResponse,
 };
 use serde_json::json;
@@ -55,6 +56,27 @@ impl KeyExtractor for ClientIp {
             PeerIpKeyExtractor.extract(req)?
         };
         Ok(bucket(ip))
+    }
+}
+
+/// The client address the public limiter keys on (IPv6: its /64), for audit rows. None when
+/// the request carries none (tests without a peer).
+pub struct ClientAddr(pub Option<String>);
+
+impl FromRequestParts<AppState> for ClientAddr {
+    type Rejection = std::convert::Infallible;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let mut req = Request::new(());
+        *req.headers_mut() = parts.headers.clone();
+        *req.extensions_mut() = parts.extensions.clone();
+        let key = ClientIp {
+            trust_forwarded: state.rate_limit.trust_forwarded,
+        };
+        Ok(Self(key.extract(&req).ok().map(|ip| ip.to_string())))
     }
 }
 

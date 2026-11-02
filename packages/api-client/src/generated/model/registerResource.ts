@@ -19,5 +19,10 @@ export interface RegisterResource {
      */
   key_prefix: string | null;
   name: string;
+  /**
+     * Last time a till paired with a code.
+     * @nullable
+     */
+  paired_at: string | null;
   warehouse_id: string;
 }

@@ -39,7 +39,51 @@ Every path is under `/v1/workspace/{workspace}`. A key or session of another wor
 
 ### `POST /till/registers/{register}/key` (`cashregister.update`)
 
+Office shows this as **Disconnect till**: the new key is never shown, so the till stops until it is paired again with a code.
+
+
 Revokes the current device key and issues a new one: 200 `{data: {key}}`. Sessions opened with the old key end on their next request. Also clears the register's PIN lock.
+
+## Pairing a till
+
+The cashier never types a workspace id or a device key. The office makes a short code; the till swaps it, with the shop name, for the key and keeps the key to itself.
+
+### `POST /till/registers/{register}/pairing` (`cashregister.update`)
+
+201:
+
+```json
+{ "data": { "code": "K7Q4-MZPX", "workspace": "afm", "expires_at": "…" } }
+```
+
+- `code`: 8 Crockford base32 characters (no I, L, O, U), shown 4-4. Valid **10 minutes**, **once**. Stored only as sha256 of workspace id + code.
+- `workspace`: the shop name to type with it (the workspace name, its slug).
+- A newer code for the register voids the older unused one. The till paired now keeps working until a code is redeemed.
+- 404 for a register of another workspace.
+
+### `POST /till/pair` (no token, IP rate limit)
+
+`{workspace: "afm", code: "K7Q4-MZPX"}`: case, spaces and dashes don't matter, and O/I/L read as 0/1.
+
+200:
+
+```json
+{ "data": { "workspace_id": "…", "device_key": "gsk_…",
+            "register": { "id": "…", "name": "Till 1" } } }
+```
+
+The till stores both and shows neither. Redeeming revokes the register's previous key (its till sessions end) and issues a new one, as `POST …/key` does.
+
+| Status | When |
+|---|---|
+| 401 `Invalid credentials` | unknown shop name, or a code that never existed for that shop: one answer, so names can't be probed |
+| 410 | the code matched but expired, was used, or a newer one replaced it |
+| 429 | more than 10 tries in 15 minutes for that shop name from one address, or more than 50 from all addresses. Known and unknown names count alike |
+| 422 | `workspace` or `code` missing |
+
+Each code row is the audit trail: who made it and when, when it was redeemed, from which address (as the rate limiter sees it; IPv6 as its /64), and which device key it produced. `GET /till/registers` shows the last redeem as `paired_at`.
+
+Tills paired before codes existed keep their stored key and work unchanged.
 
 ## Till users
 

@@ -1,7 +1,10 @@
 //! Till login rules: a register's device key is an app key (kind `till`, scopes `till:login` +
 //! `catalog:read`), shown once and rotated whole. PIN login: every 5th wrong PIN locks the user
 //! (15 minutes, doubling), 20 within an hour lock the register (15 minutes); a wrong PIN, an
-//! unknown and an inactive user answer alike.
+//! unknown and an inactive user answer alike. Pairing: the office makes a one-time code (10
+//! minutes); shop name + code redeem it for a fresh device key, the old one revoked; unknown
+//! shop and wrong code answer alike; 10 tries per shop name and address, 50 per name, in 15
+//! minutes.
 
 use std::str::FromStr;
 
@@ -18,12 +21,15 @@ use crate::{
             repo::{self as keys, NewKey},
             secret::{self, CATALOG_READ, TILL_LOGIN},
         },
-        auth::{password, token},
-        currencies, permissions, products, settings,
+        auth::{password, repo as tokens, service::MAX_LOGIN_FAILURES, token},
+        currencies,
+        farm_vouchers::rules::normalize,
+        lots::service::public_code,
+        permissions, products, settings,
         till::{
             dto::{
-                NewRegister, NewTillUser, RegisterKeyed, SessionResource, TillLoginResource,
-                TillUserBrief, TillUserPatch,
+                NewRegister, NewTillUser, Pair, PairedRegister, PairedResource, PairingCode,
+                RegisterKeyed, SessionResource, TillLoginResource, TillUserBrief, TillUserPatch,
             },
             repo::{self, RegisterRow, SessionRow, UserRow},
         },
@@ -34,6 +40,11 @@ const NO_STORE: &str = "The selected warehouse id must be a store warehouse.";
 const BAD_CURRENCY: &str = "The selected currency id is invalid.";
 const NO_CURRENCY: &str = "The workspace has no main currency.";
 const BAD_USER: &str = "The selected user id is invalid.";
+const USED_CODE: &str = "This code has expired or was already used. Ask the office for a new one.";
+/// Tries for one shop name from all addresses in 15 minutes.
+const PAIR_NAME_CEILING: i64 = 50;
+/// Pairing code length: 8 Crockford characters, about 40 bits.
+const PAIR_CODE_LEN: usize = 8;
 
 fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
@@ -49,7 +60,8 @@ fn same_workspace(key: &AppKey, workspace: &str) -> Result<(), AppError> {
 /// Issue a device key for register `name`, in the caller's transaction; `(key id, plain, prefix)`.
 async fn issue_key(
     conn: &mut sqlx::PgConnection,
-    access: &WorkspaceAccess,
+    workspace_id: Uuid,
+    created_by: Option<Uuid>,
     name: &str,
 ) -> Result<(Uuid, token::PlainSecret, String), AppError> {
     let (plain, hash, prefix) = secret::generate()?;
@@ -57,13 +69,13 @@ async fn issue_key(
     let row = keys::insert(
         conn,
         &NewKey {
-            workspace_id: access.workspace_id,
+            workspace_id,
             name,
             kind: "till",
             scopes: &scopes,
             key_hash: &hash,
             prefix: &prefix,
-            created_by: Some(access.user_id),
+            created_by,
         },
     )
     .await?;
@@ -90,7 +102,7 @@ pub async fn create_register(
             .await?
             .ok_or_else(|| AppError::field("currency_id", NO_CURRENCY))?,
     };
-    let (key_id, plain, prefix) = issue_key(&mut tx, access, &input.name).await?;
+    let (key_id, plain, prefix) = issue_key(&mut tx, ws, Some(access.user_id), &input.name).await?;
     let (id, created_at) = repo::insert_register(
         &mut *tx,
         ws,
@@ -108,6 +120,7 @@ pub async fn create_register(
         warehouse_id: input.warehouse_id,
         currency_id,
         key_prefix: Some(prefix),
+        paired_at: None,
         created_at,
     };
     Ok(RegisterKeyed::new(row, plain.expose().to_owned()))
@@ -131,16 +144,108 @@ pub async fn rotate_key(
 ) -> Result<String, AppError> {
     let (ws, id) = (access.workspace_id, parse(register)?);
     let mut tx = state.db.begin().await?;
-    let (name, old) = repo::lock_register_key(&mut *tx, ws, id)
+    let (_, plain) = replace_key(&mut tx, ws, id, Some(access.user_id)).await?;
+    tx.commit().await?;
+    Ok(plain.expose().to_owned())
+}
+
+/// Revoke the register's key and issue a new one, in the caller's transaction (404 when the
+/// register isn't the workspace's); `(register name, new key id)` and the plain key.
+async fn replace_key(
+    conn: &mut sqlx::PgConnection,
+    workspace_id: Uuid,
+    register_id: Uuid,
+    created_by: Option<Uuid>,
+) -> Result<((String, Uuid), token::PlainSecret), AppError> {
+    let (name, old) = repo::lock_register_key(&mut *conn, workspace_id, register_id)
         .await?
         .ok_or(AppError::NotFound)?;
     if let Some(old) = old {
-        keys::revoke(&mut *tx, ws, old).await?;
+        keys::revoke(&mut *conn, workspace_id, old).await?;
     }
-    let (key_id, plain, _) = issue_key(&mut tx, access, &name).await?;
-    repo::set_register_key(&mut *tx, ws, id, key_id).await?;
+    let (key_id, plain, _) = issue_key(conn, workspace_id, created_by, &name).await?;
+    repo::set_register_key(&mut *conn, workspace_id, register_id, key_id).await?;
+    Ok(((name, key_id), plain))
+}
+
+/// sha256 of workspace id + normalized code: codes are only ever looked up hashed.
+fn code_hash(workspace_id: Uuid, code: &str) -> [u8; 32] {
+    token::hash(&format!("{workspace_id}:{code}"))
+}
+
+/// A one-time pairing code for the register, voiding its older live one. The working till
+/// keeps its key until the code is redeemed.
+pub async fn pairing_code(
+    state: &AppState,
+    access: &WorkspaceAccess,
+    register: &str,
+) -> Result<PairingCode, AppError> {
+    let (ws, id) = (access.workspace_id, parse(register)?);
+    let mut tx = state.db.begin().await?;
+    repo::lock_register_key(&mut *tx, ws, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    let code: String = public_code()?.chars().take(PAIR_CODE_LEN).collect();
+    let expires_at =
+        repo::insert_pairing(&mut tx, ws, id, &code_hash(ws, &code), access.user_id).await?;
+    let workspace = repo::workspace_name(&mut *tx, ws).await?;
     tx.commit().await?;
-    Ok(plain.expose().to_owned())
+    Ok(PairingCode {
+        code: format!("{}-{}", &code[..4], &code[4..]),
+        workspace,
+        expires_at,
+    })
+}
+
+/// Swap shop name + code for the register's new device key (the old key and its sessions
+/// end). Unknown shop and wrong code: the same 401; a code once valid but expired, used or
+/// replaced: 410; over 10 tries in 15 minutes for a shop name from one address, or over 50
+/// from all: 429.
+pub async fn pair(
+    state: &AppState,
+    input: Pair,
+    ip: Option<String>,
+) -> Result<PairedResource, AppError> {
+    let name = input.workspace.trim().to_lowercase();
+    // Known and unknown names count alike: nothing to tell them apart by. Per name and
+    // address, so spamming a shop's name from elsewhere can't lock its own till out; the
+    // per-name ceiling caps guessing spread over many addresses.
+    let by_name = format!("till-pair:{name}");
+    let by_client = format!("{by_name}@{}", ip.as_deref().unwrap_or("-"));
+    for key in [&by_client, &by_name] {
+        tokens::record_login_attempt(&state.db, key).await?;
+    }
+    if tokens::recent_login_attempts(&state.db, &by_client).await? > MAX_LOGIN_FAILURES
+        || tokens::recent_login_attempts(&state.db, &by_name).await? > PAIR_NAME_CEILING
+    {
+        return Err(AppError::TooManyRequests);
+    }
+    let code = normalize(&input.code);
+    let mut tx = state.db.begin().await?;
+    let Some(ws) = repo::workspace_by_name(&mut *tx, &name).await? else {
+        return Err(AppError::InvalidCredentials);
+    };
+    let pairing = repo::lock_pairing(&mut *tx, ws, &code_hash(ws, &code))
+        .await?
+        .ok_or(AppError::InvalidCredentials)?;
+    if !pairing.live {
+        return Err(AppError::Gone(USED_CODE));
+    }
+    let ((register_name, key_id), plain) =
+        replace_key(&mut tx, ws, pairing.register_id, pairing.created_by).await?;
+    repo::redeem_pairing(&mut *tx, ws, pairing.id, ip.as_deref(), key_id).await?;
+    tx.commit().await?;
+    for key in [&by_client, &by_name] {
+        tokens::clear_login_attempts(&state.db, key).await?;
+    }
+    Ok(PairedResource {
+        workspace_id: ws,
+        device_key: plain.expose().to_owned(),
+        register: PairedRegister {
+            id: pairing.register_id,
+            name: register_name,
+        },
+    })
 }
 
 /// New till user; a linked user must be a member of the workspace.

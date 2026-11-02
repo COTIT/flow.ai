@@ -12,6 +12,8 @@ pub struct RegisterRow {
     pub warehouse_id: Uuid,
     pub currency_id: Uuid,
     pub key_prefix: Option<String>,
+    /// Last time a till paired with a code.
+    pub paired_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -106,7 +108,10 @@ pub async fn list_registers(
 ) -> Result<(Vec<RegisterRow>, i64), sqlx::Error> {
     let rows = sqlx::query!(
         r#"SELECT r.id, r.name, r.warehouse_id, r.currency_id, r.created_at,
-                  a.prefix AS "key_prefix?", count(*) OVER () AS "total!"
+                  a.prefix AS "key_prefix?",
+                  (SELECT max(p.redeemed_at) FROM till_pairings p
+                   WHERE p.workspace_id = r.workspace_id AND p.register_id = r.id) AS paired_at,
+                  count(*) OVER () AS "total!"
            FROM till_registers r
            LEFT JOIN app_keys a ON a.id = r.app_key_id AND a.revoked_at IS NULL
            WHERE r.workspace_id = $1
@@ -127,6 +132,7 @@ pub async fn list_registers(
             warehouse_id: r.warehouse_id,
             currency_id: r.currency_id,
             key_prefix: r.key_prefix,
+            paired_at: r.paired_at,
             created_at: r.created_at,
         })
         .collect();
@@ -458,6 +464,104 @@ pub async fn prune_sessions(db: impl PgExecutor<'_>) -> Result<u64, sqlx::Error>
     .execute(db)
     .await?
     .rows_affected())
+}
+
+/// A pairing code as redeem sees it.
+pub struct PairingRow {
+    pub id: Uuid,
+    pub register_id: Uuid,
+    pub created_by: Option<Uuid>,
+    /// Not redeemed, not voided, not expired.
+    pub live: bool,
+}
+
+/// Store a 10-minute code for the register, voiding its older live one; the expiry.
+pub async fn insert_pairing(
+    conn: &mut sqlx::PgConnection,
+    workspace_id: Uuid,
+    register_id: Uuid,
+    code_hash: &[u8; 32],
+    created_by: Uuid,
+) -> Result<DateTime<Utc>, sqlx::Error> {
+    sqlx::query!(
+        "UPDATE till_pairings SET voided_at = now()
+         WHERE workspace_id = $1 AND register_id = $2 AND redeemed_at IS NULL
+           AND voided_at IS NULL",
+        workspace_id,
+        register_id,
+    )
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query_scalar!(
+        "INSERT INTO till_pairings (workspace_id, register_id, code_hash, created_by, expires_at)
+         VALUES ($1, $2, $3, $4, now() + interval '10 minutes') RETURNING expires_at",
+        workspace_id,
+        register_id,
+        &code_hash[..],
+        created_by,
+    )
+    .fetch_one(conn)
+    .await
+}
+
+/// A live workspace by its name (the slug).
+pub async fn workspace_by_name(
+    db: impl PgExecutor<'_>,
+    name: &str,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM workspaces WHERE name = $1 AND deleted_at IS NULL",
+        name
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// The workspace's name (the slug the till types).
+pub async fn workspace_name(db: impl PgExecutor<'_>, id: Uuid) -> Result<String, sqlx::Error> {
+    sqlx::query_scalar!("SELECT name FROM workspaces WHERE id = $1", id)
+        .fetch_one(db)
+        .await
+}
+
+/// The workspace's code with this hash, under a row lock.
+pub async fn lock_pairing(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    code_hash: &[u8; 32],
+) -> Result<Option<PairingRow>, sqlx::Error> {
+    sqlx::query_as!(
+        PairingRow,
+        r#"SELECT id, register_id, created_by,
+                  (redeemed_at IS NULL AND voided_at IS NULL AND expires_at > now()) AS "live!"
+           FROM till_pairings WHERE workspace_id = $1 AND code_hash = $2
+           FOR UPDATE"#,
+        workspace_id,
+        &code_hash[..],
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// Mark a code redeemed: when, from where, which key it gave.
+pub async fn redeem_pairing(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+    ip: Option<&str>,
+    app_key_id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE till_pairings SET redeemed_at = now(), redeemed_ip = $3, app_key_id = $4
+         WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
+        ip,
+        app_key_id,
+    )
+    .execute(db)
+    .await
+    .map(|_| ())
 }
 
 #[cfg(test)]
