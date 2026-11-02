@@ -18,8 +18,9 @@ import { Button } from '@/components/ui/button'
 import { useEquipmentList, type EquipmentItem } from '@/features/farmer/useEquipment'
 import { useLoanProducts, type LoanItem } from '@/features/farmer/useResources'
 import { kindOf, type ResourceKind } from '@/features/farmer/resourceKind'
+import { CatalogueCategories } from '@/features/ops/CatalogueCategories'
 import { CatalogueCreatePanel } from '@/features/ops/CatalogueCreatePanel'
-import { formatKw, formatMoney } from '@/lib/format'
+import { formatKw, formatPrice } from '@/lib/format'
 
 /** A figure that is genuinely absent reads as absent, never as zero. */
 const DASH = '—'
@@ -78,24 +79,26 @@ export function CatalogueScreen() {
       {createOpen && <CatalogueCreatePanel kind={kind} onClose={() => setCreateOpen(false)} />}
 
       {kind === 'equipment' ? <EquipmentTable /> : <LoanTable />}
+
+      {kind === 'equipment' && <CatalogueCategories />}
     </section>
   )
 }
 
 function EquipmentTable() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const query = useEquipmentList()
 
   const columns = useMemo(() => {
     const col = createColumnHelper<EquipmentItem>()
-    const money = (value: number | null, currency: string, testId: string) => (
+    const money = (value: EquipmentItem['indicative_price'], testId: string) => (
       /* The tag travels with the number, and absent stays absent. */
       <span data-testid={testId} className="inline-flex flex-wrap items-baseline justify-end gap-2">
         {value === null ? (
           <span className="tabular">{DASH}</span>
         ) : (
           <>
-            <span className="tabular font-semibold">{formatMoney(value, currency)}</span>
+            <span className="tabular font-semibold">{formatPrice(value, i18n.language)}</span>
             <IndicativePill />
           </>
         )}
@@ -124,18 +127,22 @@ function EquipmentTable() {
         header: t('catalogue.colDays'),
         cell: (c) => <span className="tabular">{c.getValue() ?? DASH}</span>,
       }),
-      col.accessor('indicative_price', {
+      // Sorted by minor units; shown as Money.
+      col.accessor((r) => r.indicative_price?.minor ?? null, {
+        id: 'indicative_price',
         header: t('catalogue.colPrice'),
         meta: { numeric: true },
-        cell: (c) => money(c.getValue(), c.row.original.currency, 'catalogue-price'),
+        cell: (c) => money(c.row.original.indicative_price, 'catalogue-price'),
       }),
-      col.accessor('indicative_rent_per_day', {
+      // Sorted by minor units; shown as Money.
+      col.accessor((r) => r.indicative_rent_per_day?.minor ?? null, {
+        id: 'indicative_rent_per_day',
         header: t('catalogue.colRent'),
         meta: { numeric: true },
-        cell: (c) => money(c.getValue(), c.row.original.currency, 'catalogue-rent'),
+        cell: (c) => money(c.row.original.indicative_rent_per_day, 'catalogue-rent'),
       }),
     ]
-  }, [t])
+  }, [t, i18n.language])
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
   if (query.isLoading) return <Loading testId="catalogue-loading" />
@@ -154,7 +161,7 @@ function EquipmentTable() {
 }
 
 function LoanTable() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const query = useLoanProducts()
 
   const columns = useMemo(() => {
@@ -172,15 +179,15 @@ function LoanTable() {
         cell: (c) => (
           <span data-testid="catalogue-loan-range" className="inline-flex flex-wrap items-baseline justify-end gap-2">
             <span className="tabular font-semibold">
-              {formatMoney(c.row.original.indicative_min_amount, c.row.original.currency)} –{' '}
-              {formatMoney(c.row.original.indicative_max_amount, c.row.original.currency)}
+              {formatPrice(c.row.original.indicative_min, i18n.language)} –{' '}
+              {formatPrice(c.row.original.indicative_max, i18n.language)}
             </span>
             <IndicativePill />
           </span>
         ),
       }),
     ]
-  }, [t])
+  }, [t, i18n.language])
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
   if (query.isLoading) return <Loading testId="catalogue-loading" />

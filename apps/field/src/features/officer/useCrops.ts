@@ -5,10 +5,10 @@ import { farmCropsList } from '@genesy/api-client/endpoints/farm-crops'
 import type { CropResource } from '@genesy/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
 type CropRow = Pick<CropResource, 'id' | 'code' | 'name_en' | 'name_sw'> & {
-  measured_by: Database['public']['Enums']['crop_measure']
+  measured_by: Enums['crop_measure']
 }
 
 /** Every active crop of the workspace, by English name. The list is paged, so every page is read. */

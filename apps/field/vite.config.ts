@@ -16,7 +16,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      // App shell only. No runtime caching of Supabase responses: RLS decides
+      // App shell only. No runtime caching of API responses: the API decides
       // what a user may see, and a cached response outlives a revoked
       // membership. Offline data is deliberately out of scope (Plan v2).
       workbox: {

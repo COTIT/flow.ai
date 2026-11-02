@@ -21,8 +21,9 @@ use crate::{
         app_keys::secret::CATALOG_READ,
         lots::{
             dto::{
-                CreateLotRequest, ListQuery, LotEventResource, LotResource, LotStockLevel,
-                PageQuery, PassportResource, StockMutationRequest, UpdateLotRequest,
+                CreateLotRequest, FarmerCreditsPage, ListQuery, LotEventResource, LotFreeStock,
+                LotResource, LotStockLevel, PageQuery, PassportResource, StockMutationRequest,
+                UpdateLotRequest,
             },
             passport::Passport,
             public::PublicLot,
@@ -63,7 +64,7 @@ pub async fn list(
         page.offset(),
     )
     .await?;
-    let data = rows.into_iter().map(Into::into).collect();
+    let data = service::resources(&state, access.workspace_id, rows).await?;
     Ok(Json(Paginated::new(data, total, page)))
 }
 
@@ -87,7 +88,7 @@ pub async fn create(
     ValidatedJson(input): ValidatedJson<CreateLotRequest>,
 ) -> Result<(StatusCode, Data<LotResource>), AppError> {
     let lot = service::create(&state, &access, input).await?;
-    Ok((StatusCode::CREATED, Data(lot.into())))
+    Ok((StatusCode::CREATED, Data(LotResource::new(lot, None))))
 }
 
 /// GET /lots/{lot}.
@@ -111,8 +112,38 @@ pub async fn get(
     Path((_, id)): LotPath,
 ) -> Result<Data<LotResource>, AppError> {
     Ok(Data(
-        service::get(&state, access.workspace_id, &id).await?.into(),
+        service::resource(
+            &state,
+            access.workspace_id,
+            service::get(&state, access.workspace_id, &id).await?,
+        )
+        .await?,
     ))
+}
+
+/// GET /lots/{lot}/stock -> the lot's stock per warehouse.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/lots/{lot}/stock", tag = "lots",
+    operation_id = "lots_stock", summary = "A lot's free stock per warehouse",
+    description = "One row per warehouse holding the lot, by warehouse name: `level`, `reserved` (held by orders) and `available`, as 2-decimal text. Same visibility as the lot.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<Vec<LotFreeStock>>, description = "Stock per warehouse; empty when none"),
+        (status = 403, body = MessageBody, description = "Inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn stock(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, id)): LotPath,
+) -> Result<Data<Vec<LotFreeStock>>, AppError> {
+    let rows = service::free_stock(&state, access.workspace_id, &id).await?;
+    Ok(Data(rows.into_iter().map(Into::into).collect()))
 }
 
 /// PATCH /lots/{lot} -> the updated lot.
@@ -139,7 +170,12 @@ pub async fn update(
     ValidatedJson(patch): ValidatedJson<UpdateLotRequest>,
 ) -> Result<Data<LotResource>, AppError> {
     Ok(Data(
-        service::update(&state, &access, &id, patch).await?.into(),
+        service::resource(
+            &state,
+            access.workspace_id,
+            service::update(&state, &access, &id, patch).await?,
+        )
+        .await?,
     ))
 }
 
@@ -170,6 +206,40 @@ pub async fn events(
         service::events(&state, access.workspace_id, &id, page.size, page.offset()).await?;
     let data = rows.into_iter().map(Into::into).collect();
     Ok(Json(Paginated::new(data, total, page)))
+}
+
+/// GET /lots/{lot}/farmer-credits -> `{data:[...], meta, farmer_groups}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/lots/{lot}/farmer-credits", tag = "lots",
+    operation_id = "lots_farmer_credits", summary = "Sales and returns of a lot that credited its farmers",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+        PageQuery,
+    ),
+    responses(
+        (status = 200, body = FarmerCreditsPage, description = "One page, newest first; no farmer data or amounts"),
+        (status = 403, body = MessageBody, description = "Inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn farmer_credits(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, id)): LotPath,
+    Query(query): Query<PageQuery>,
+) -> Result<Json<FarmerCreditsPage>, AppError> {
+    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let (rows, total, farmer_groups) =
+        service::farmer_credits(&state, access.workspace_id, &id, page.size, page.offset()).await?;
+    let data = rows.into_iter().map(Into::into).collect();
+    let (data, meta) = Paginated::new(data, total, page).into_parts();
+    Ok(Json(FarmerCreditsPage {
+        data,
+        meta,
+        farmer_groups,
+    }))
 }
 
 /// GET /lots/{lot}/passport.

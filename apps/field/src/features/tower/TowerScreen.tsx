@@ -41,10 +41,10 @@ import {
   formatKg,
   formatKw,
   formatKwh,
-  formatMoney,
   formatPlainDate,
+  formatPrice,
 } from '@/lib/format'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 import { resourcesEnabled } from '@/lib/features'
 
 const route = getRouteApi('/_ops/ops/tower/')
@@ -64,7 +64,7 @@ const MARK = { size: 16, strokeWidth: 2.25, style: { flex: 'none' as const } }
  * a desktop, stacked on a phone, no media query.
  */
 export function TowerScreen() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   // Validated at the point of use: the router hands back raw search params.
   const { village } = validateVillageSearch(route.useSearch())
@@ -398,9 +398,9 @@ export function TowerScreen() {
               ) : (
                 <>
                   <div className="flex flex-col">
-                    {(pipeline.data ?? []).map((row) => (
+                    {(pipeline.data ?? []).map((row, index) => (
                       <div
-                        key={`${row.status}-${row.currency}`}
+                        key={`${row.status}-${index}`}
                         className="grid items-center gap-3 py-[9px]"
                         style={{
                           gridTemplateColumns: 'minmax(0, 1fr) auto',
@@ -422,12 +422,12 @@ export function TowerScreen() {
                         </Link>
                         <span className="flex flex-col items-end">
                           <span className="tabular font-semibold" style={{ fontSize: 15 }}>
-                            {formatMoney(row.indicative_value, row.currency ?? 'TZS')}
+                            {formatPrice(row.indicative_value, i18n.language)}
                           </span>
                           {/* A rent is not a purchase price: shown apart, per day. */}
-                          {typeof row.indicative_rent_per_day === 'number' && (
+                          {row.indicative_rent_per_day && (
                             <span data-testid="tile-pue-rent" className="tabular type-note" style={{ color: 'var(--ink-2)' }}>
-                              {t('tower.rentPerDay', { value: formatMoney(row.indicative_rent_per_day, row.currency ?? 'TZS') })}
+                              {t('tower.rentPerDay', { value: formatPrice(row.indicative_rent_per_day, i18n.language) })}
                             </span>
                           )}
                         </span>
@@ -502,7 +502,7 @@ export function TowerScreen() {
   )
 }
 
-type RequestStatus = Database['public']['Enums']['pue_status']
+type RequestStatus = Enums['pue_status']
 
 /**
  * One of the two peaks. `data-peak-cell` is what

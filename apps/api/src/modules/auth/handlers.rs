@@ -16,6 +16,25 @@ use crate::{
     },
 };
 
+/// 404 when signup is switched off, checked before the body is read, so a closed route looks
+/// absent whatever is sent. Production keeps it off; the first owner comes from `create-owner`.
+pub struct SignupOpen;
+
+impl axum::extract::FromRequestParts<AppState> for SignupOpen {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        _: &mut axum::http::request::Parts,
+        state: &AppState,
+    ) -> Result<Self, AppError> {
+        if state.signup_enabled {
+            Ok(Self)
+        } else {
+            Err(AppError::NotFound)
+        }
+    }
+}
+
 /// POST /v1/create-workspace -> 201 token body.
 #[utoipa::path(
     post, path = "/create-workspace", tag = "auth",
@@ -23,11 +42,13 @@ use crate::{
     request_body = CreateWorkspaceRequest,
     responses(
         (status = 201, body = Envelope<TokenResponse>, description = "Account and workspace created; logged in"),
+        (status = 404, body = MessageBody, description = "Signup is switched off (`SIGNUP_ENABLED`)"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input, email or workspace name taken"),
     )
 )]
 pub async fn create_workspace(
     State(state): State<AppState>,
+    _open: SignupOpen,
     ValidatedJson(input): ValidatedJson<CreateWorkspaceRequest>,
 ) -> Result<(StatusCode, Data<TokenResponse>), AppError> {
     let session = service::create_workspace(&state, input).await?;

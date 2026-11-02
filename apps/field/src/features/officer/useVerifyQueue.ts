@@ -1,9 +1,12 @@
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import {
   farmRecordsCropCyclesList,
   farmRecordsCropCyclesVerify,
   farmRecordsFarmsList,
   farmRecordsFarmsVerify,
+  farmRecordsHarvestReportsAll,
   farmRecordsHarvestReportsVerify,
   farmRecordsHouseholdsList,
   farmRecordsHouseholdsVerify,
@@ -12,22 +15,26 @@ import {
   farmRecordsPlotsList,
   farmRecordsPlotsVerify,
 } from '@genesy/api-client/endpoints/farm-records'
-import type { Provenance as ApiProvenance } from '@genesy/api-client/model'
+import type { CropName, Provenance as ApiProvenance } from '@genesy/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 import { allPages } from '@/features/farmer/pages'
 import type { VerifiableTable } from '@/features/officer/personDetail'
 import { provenanceOf } from '@/features/officer/useOfficerRecords'
+import { localisedName } from '@/lib/names'
 import { queryKeys } from '@/lib/queryKeys'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type Enums = Database['public']['Enums']
 
 export interface QueueRow {
   table: VerifiableTable
   id: string
-  /** What the record is: a name, a label, or a cycle's season. */
+  /** What the record is: a name, a label, a cycle's season, or a figure's kg. The hook completes it at render. */
   label: string
+  /** A cycle's crop, both names: chosen at render. */
+  crop?: CropName
+  /** A harvest figure's kind (`expected`/`actual`): worded at render. */
+  harvest_kind?: string
   village_id: string
   source: Enums['source_type']
   verification: Enums['verification_status']
@@ -54,24 +61,20 @@ export const OUTSTANDING_FILTER = OUTSTANDING.join(',')
 
 /**
  * The officer's verify queue — spec 5.7: the outstanding records of each kind,
- * `GET …/farm/{kind}?verification=unverified,pending`, every page. The API scopes each list to
- * the officer's villages.
- *
- * shortcut: no harvest figures here — the API lists them only per crop cycle; they are verified
- * from the cycle screen until a workspace-wide `harvest-reports?verification=` list exists.
- * shortcut: a cycle is labelled by its season alone (the list carries no crop name; the cycle
- * screen it links to names the crop), until the list embeds the crop.
+ * `GET …/farm/{kind}?verification=unverified,pending`, every page, harvest figures included
+ * (`GET …/farm/harvest-reports`, workspace-wide). The API scopes each list to the caller's role.
  */
 export async function fetchVerifyQueue(): Promise<QueueRow[]> {
   const workspace = workspaceId()
   const filter = { verification: OUTSTANDING_FILTER }
   // A failed read is not an empty queue: any one failing rejects the whole queue.
-  const [persons, households, farms, plots, cycles] = await Promise.all([
+  const [persons, households, farms, plots, cycles, harvests] = await Promise.all([
     allPages((params) => farmRecordsPersonsList(workspace, { ...filter, ...params })),
     allPages((params) => farmRecordsHouseholdsList(workspace, { ...filter, ...params })),
     allPages((params) => farmRecordsFarmsList(workspace, { ...filter, ...params })),
     allPages((params) => farmRecordsPlotsList(workspace, { ...filter, ...params })),
     allPages((params) => farmRecordsCropCyclesList(workspace, { ...filter, ...params })),
+    allPages((params) => farmRecordsHarvestReportsAll(workspace, { ...filter, ...params })),
   ])
 
   const row = (
@@ -85,7 +88,12 @@ export async function fetchVerifyQueue(): Promise<QueueRow[]> {
     ...households.map((h) => ({ ...row('household', h, h.label), captured_by: h.provenance.captured_by?.id ?? null })),
     ...farms.map((f) => row('farm', f, f.label)),
     ...plots.map((p) => ({ ...row('plot', p, p.label), farm_id: p.farm_id })),
-    ...cycles.map((c) => row('crop_cycle', c, c.season_label ?? '')),
+    ...cycles.map((c) => ({ ...row('crop_cycle', c, c.season_label ?? ''), crop: c.crop })),
+    ...harvests.map((h) => ({
+      ...row('harvest_report', h, `${h.quantity_kg} kg`),
+      crop_cycle_id: h.crop_cycle_id,
+      harvest_kind: h.kind,
+    })),
   ]
 
   // Most recently captured first: the queue is worked from the newest
@@ -94,10 +102,24 @@ export async function fetchVerifyQueue(): Promise<QueueRow[]> {
 }
 
 export function useVerifyQueue() {
-  return useQuery({
+  const { t, i18n } = useTranslation()
+  const language = i18n.resolvedLanguage
+  const query = useQuery({
     queryKey: queryKeys.verifyQueue(),
     queryFn: () => fetchVerifyQueue(),
   })
+
+  // Worded HERE, not in the queryFn: the key has no language, so a label made at fetch would
+  // keep the first language (QA #31).
+  const data = useMemo(
+    () =>
+      query.data?.map((row) => {
+        const lead = row.crop ? localisedName(row.crop, language) : row.harvest_kind ? t(`harvestKind.${row.harvest_kind}`) : ''
+        return lead ? { ...row, label: [lead, row.label].filter(Boolean).join(' · ') } : row
+      }),
+    [query.data, language, t],
+  )
+  return { ...query, data }
 }
 
 /** `POST /farm/{kind}/{id}/verification`, by table. The API stamps who and when, and refuses a second verify. */

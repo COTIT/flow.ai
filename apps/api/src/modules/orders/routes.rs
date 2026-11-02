@@ -30,10 +30,11 @@ pub fn storefront() -> OpenApiRouter<AppState> {
         .routes(routes!(storefront::payment))
 }
 
-/// Provider webhooks (no auth; `build_app` puts them behind the IP rate limit). A status call
-/// is a short id: 1 KiB is plenty.
+/// Provider webhooks (no auth; `build_app` puts them behind the IP rate limit). Stripe sends
+/// the whole object (3 to 8 KB): 64 KiB like the JSON routes.
 pub fn public() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(webhook::receive))
-        .layer(DefaultBodyLimit::max(1024))
+        .routes(routes!(webhook::receive_any))
+        .layer(DefaultBodyLimit::max(64 * 1024))
 }

@@ -8,6 +8,7 @@ const product = {
   status: "active",
   short_description: null,
   description: null,
+  store_only: false,
   last_updated_at: "2026-10-01T08:00:00Z",
 }
 const warehouse = { id: "wh-1", name: "Dar es Salaam" }
@@ -82,7 +83,24 @@ test("edit product: only the form's keys are sent", async ({ page, api }) => {
     status: "active",
     short_description: "Raw forest honey",
     description: null,
+    store_only: false,
   })
+})
+
+test("store only: ticking it sends store_only true", async ({ page, api }) => {
+  stockApi(api)
+  await page.goto("/products/prod-honey")
+  await page.getByLabel("Sold at the till only (not in the web shop)").check()
+  await page.getByRole("button", { name: "Save" }).click()
+  await expect(page.getByRole("status")).toHaveText("Saved.")
+  expect(
+    api.callsTo("POST", "/workspace/:ws/products/:id")[0]?.body
+  ).toMatchObject({
+    store_only: true,
+  })
+  await expect(
+    page.getByLabel("Sold at the till only (not in the web shop)")
+  ).toBeChecked()
 })
 
 test.describe(() => {

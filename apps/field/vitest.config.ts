@@ -11,13 +11,7 @@ export default mergeConfig(
       globals: true,
       setupFiles: ['./src/test-setup.ts'],
       include: ['src/**/*.test.{ts,tsx}'],
-      // Unit tests never talk to Supabase. These placeholders let modules
-      // that import the client load in CI (which has no .env), and replace
-      // any local .env values so a stray call fails fast instead of reaching
-      // the demo database.
       env: {
-        VITE_SUPABASE_URL: 'http://127.0.0.1:9',
-        VITE_SUPABASE_ANON_KEY: 'unit-test-placeholder',
         // The demo banner tests assert demo mode, so it is pinned, not inherited.
         VITE_DATA_MODE: 'demo',
         // The demo build shows the resource chain; off-mode tests mock @/lib/features.

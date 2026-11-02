@@ -550,3 +550,158 @@ async fn results_count_answers_and_money_in_minor_units(pool: PgPool) {
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN, "farmers see no results");
 }
+
+// ---- field-app follow-ups ----
+
+#[sqlx::test]
+async fn a_retried_create_with_the_same_id_makes_one_draft(pool: PgPool) {
+    let (f, s) = setup(pool).await;
+    let id = client_ref();
+    let body =
+        json!({ "id": id, "title_en": "Offline draft", "reward_minor": 100, "currency_id": s.tzs });
+    let (status, res) = f
+        .call(Method::POST, "/surveys", Some(body.clone()), &f.owner)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(res["data"]["id"], id.as_str(), "the client's id is kept");
+    let owner = f.user_id("owner@ruaha.test").await;
+    assert_eq!(res["data"]["created_by"]["id"], owner.as_str());
+    assert!(res["data"]["created_by"]["name"].is_string(), "{res}");
+
+    let mut again = body.clone();
+    again["title_en"] = json!("Changed on retry");
+    let (status, res) = f
+        .call(Method::POST, "/surveys", Some(again), &f.owner)
+        .await;
+    assert_eq!(status, StatusCode::OK, "a retry replays: {res}");
+    assert_eq!(
+        res["data"]["title_en"], "Offline draft",
+        "the stored draft wins"
+    );
+    assert_eq!(f.list("/surveys", &f.owner).await["meta"]["total"], 1);
+
+    let (status, res) = f
+        .call(
+            Method::POST,
+            "/surveys",
+            Some(
+                json!({ "id": "nope", "title_en": "X", "reward_minor": 100, "currency_id": s.tzs }),
+            ),
+            &f.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(res["errors"]["id"][0], "The id must be a valid UUID.");
+    let (status, _) = f
+        .call(
+            Method::POST,
+            "/surveys",
+            Some(json!({ "id": client_ref(), "title_en": "X", "reward_minor": 100, "currency_id": s.tzs })),
+            &s.juma,
+        )
+        .await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "officers never author");
+
+    let other = Farm::new_named(f.pool.clone(), "else.test", "elsewhere").await;
+    let other_tzs = other.tzs().await;
+    let (status, res) = other
+        .call(
+            Method::POST,
+            "/surveys",
+            Some(
+                json!({ "id": id, "title_en": "X", "reward_minor": 100, "currency_id": other_tzs }),
+            ),
+            &other.owner,
+        )
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::CONFLICT,
+        "another workspace's id: {res}"
+    );
+    assert_eq!(res["message"], "This id is already in use.");
+    assert_eq!(
+        other.list("/surveys", &other.owner).await["meta"]["total"],
+        0,
+        "nothing leaks into the other workspace"
+    );
+}
+
+#[sqlx::test]
+async fn the_list_carries_voucher_sums_for_staff_only(pool: PgPool) {
+    let (f, s) = setup(pool).await;
+    let (id, q) = f.survey(&s.tzs, 500_000, 0, false).await;
+    let mut vouchers = Vec::new();
+    for token in [&s.neema, &s.asha] {
+        let (status, res) = f
+            .answer(&id, json!({ q[0].clone(): "home" }), &client_ref(), token)
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{res}");
+        vouchers.push(res["data"].clone());
+    }
+    let redeem = json!({ "code": vouchers[0]["code"], "id_type": "nida", "name_confirmed": true });
+    let (status, res) = f
+        .call(Method::POST, "/vouchers/redeem", Some(redeem), &s.juma)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let void = format!(
+        "/vouchers/{}/void",
+        vouchers[1]["voucher_id"].as_str().unwrap()
+    );
+    let (status, res) = f
+        .call(
+            Method::POST,
+            &void,
+            Some(json!({ "reason": "duplicate" })),
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{res}");
+
+    let row = |list: Value| {
+        list["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|r| r["id"] == id.as_str())
+            .unwrap()
+            .clone()
+    };
+    let sum = row(f.list("/surveys", &f.ops).await)["summary"].clone();
+    assert_eq!(
+        sum["issued"],
+        json!({ "count": 2, "minor": 1_000_000 }),
+        "{sum}"
+    );
+    assert_eq!(sum["redeemed"], json!({ "count": 1, "minor": 500_000 }));
+    assert_eq!(sum["outstanding"], json!({ "count": 0, "minor": 0 }));
+    assert_eq!(sum["expired_count"], 0);
+    assert_eq!(sum["void_count"], 1);
+    let (_, results) = f
+        .call(Method::GET, &format!("/surveys/{id}/results"), None, &f.ops)
+        .await;
+    for k in [
+        "issued",
+        "redeemed",
+        "outstanding",
+        "expired_count",
+        "void_count",
+    ] {
+        assert_eq!(sum[k], results["data"][k], "{k} matches the results page");
+    }
+    assert_eq!(
+        row(f.list("/surveys", &s.juma).await)["summary"],
+        sum,
+        "field officers see the sums too"
+    );
+    let farmer = row(f.list("/surveys", &s.neema).await);
+    assert!(
+        farmer.get("summary").is_some_and(Value::is_null),
+        "farmers get null: {farmer}"
+    );
+    let one = f.list(&format!("/surveys/{id}"), &f.ops).await;
+    assert_eq!(
+        one["data"]["summary"], sum,
+        "the single survey carries it too"
+    );
+}

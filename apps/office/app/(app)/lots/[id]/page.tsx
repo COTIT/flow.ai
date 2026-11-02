@@ -30,6 +30,7 @@ import {
 import { StatusBadge } from "@/components/status-badge"
 
 import { LotFields } from "../lot-fields"
+import { PackDialog } from "./pack-dialog"
 
 export default function LotPage({
   params,
@@ -94,6 +95,7 @@ export default function LotPage({
           >
             {t("lots.passport")}
           </Link>
+          <PackDialog lotId={id} code={current.code} />
         </div>
         <form
           key={current.updated_at}

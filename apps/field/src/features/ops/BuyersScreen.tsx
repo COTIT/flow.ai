@@ -70,7 +70,6 @@ export function BuyersScreen() {
     if (!projectId || !draft.ready) return
     void finishDraftWhenSaved(create.mutateAsync({
       id: draft.clientRef,
-      project_id: projectId,
       name: name.trim(),
       channel,
       contact_note: contactNote.trim() || null,
@@ -181,8 +180,8 @@ export function BuyersScreen() {
           </label>
         </div>
 
-        {/* The database's message as written — a unique-name violation names
-            the collision better than a generic failure would. */}
+        {/* The API's message as written — a taken name names the collision
+            better than a generic failure would. */}
         {create.error && <ErrorState error={create.error} />}
 
         <Button

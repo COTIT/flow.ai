@@ -6,16 +6,8 @@ dist-ssr
 .env.*
 !.env.example
 
-# supabase CLI local state
-supabase/.branches
-supabase/.temp
-
 # test output
 coverage
-playwright-report
-test-results
-blob-report
-/playwright/.cache
 
 # editors / os
 .DS_Store
@@ -23,10 +15,6 @@ blob-report
 !.vscode/extensions.json
 .idea
 *.log
-
-# Transient: `pnpm db:types` generates here and moves on success, so a failed
-# generation cannot truncate the committed types.
-src/lib/db.types.ts.new
 
 # bug report images downloaded by pnpm bugs:show
 .bug-reports/

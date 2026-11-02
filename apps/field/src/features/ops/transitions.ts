@@ -1,6 +1,6 @@
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-export type RequestStatus = Database['public']['Enums']['pue_status']
+export type RequestStatus = Enums['pue_status']
 
 /**
  * pue_request_guard's machine, mirrored (business-rules §2).
@@ -51,7 +51,7 @@ export function reviewerActions(status: RequestStatus): ReviewerAction[] {
   }
 }
 
-/** Spec 7.3: approve and reject both require a decision_note. */
+/** Spec 7.3: approve and reject carry a decision_note (the API requires it); here it only places the note field. */
 export function requiresDecisionNote(action: ReviewerAction): boolean {
   return action === 'approve' || action === 'reject'
 }

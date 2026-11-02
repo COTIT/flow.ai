@@ -6,6 +6,10 @@
 //! The story: Salima registers the Ilundo households, ops (Asha) verifies them, Juma (a second
 //! Ilundo officer) redeems a voucher. Three vouchers worth TZS 10,000 are issued, TZS 2,000
 //! redeemed; Neema still has two surveys to answer. One expected harvest was revised.
+//! Phase 4c adds the equipment catalogue and a loan listing, PUE requests (Ilundo's approved
+//! peak (15.0 + 2 × 1.5) kW × 0.600 = 10.800 kW, one request still submitted, every one a
+//! purchase), two buyers, an open maize demand and an Ilundo opportunity carrying 3000 kg of
+//! Neema's revised figure.
 
 use std::net::SocketAddr;
 
@@ -49,7 +53,7 @@ pub const STAFF: &[(&str, &str, &str, &str, Option<&str>)] = &[
         Some("MGAMA"),
     ),
 ];
-const OWNER: &str = "amina.admin@ruaha-demo.test";
+pub const OWNER: &str = "amina.admin@ruaha-demo.test";
 
 /// What a run did. The passwords are random per run and exist only here: print them once.
 pub struct Report {
@@ -63,20 +67,20 @@ pub struct Report {
 }
 
 /// 16 random hex characters plus one of each class the staff password rule wants.
-fn random_password() -> Result<String, AppError> {
+pub(crate) fn random_password() -> Result<String, AppError> {
     let (plain, _) = crate::modules::auth::token::generate()?;
     Ok(format!("Demo-{}-Aa1!", &plain.expose()[..16]))
 }
 
 /// In-process client: requests go through the full router, as from 127.0.0.1.
-struct Api {
-    app: Router,
-    staff_password: String,
-    farmer_password: String,
+pub(crate) struct Api {
+    pub(crate) app: Router,
+    pub(crate) staff_password: String,
+    pub(crate) farmer_password: String,
 }
 
 impl Api {
-    async fn call(
+    pub(crate) async fn call(
         &self,
         method: Method,
         uri: &str,
@@ -117,14 +121,19 @@ impl Api {
         Ok(value)
     }
 
-    async fn post(&self, uri: &str, body: Value, token: &str) -> Result<Value, AppError> {
+    pub(crate) async fn post(
+        &self,
+        uri: &str,
+        body: Value,
+        token: &str,
+    ) -> Result<Value, AppError> {
         Ok(self
             .call(Method::POST, uri, Some(body), Some(token))
             .await?["data"]
             .take())
     }
 
-    async fn login(&self, email: &str) -> Result<String, AppError> {
+    pub(crate) async fn login(&self, email: &str) -> Result<String, AppError> {
         let body = json!({ "email": email, "password": self.staff_password });
         let res = self.call(Method::POST, "/login", Some(body), None).await?;
         text(&res["data"], "access_token")
@@ -161,7 +170,7 @@ impl Api {
     }
 }
 
-fn text(v: &Value, key: &str) -> Result<String, AppError> {
+pub(crate) fn text(v: &Value, key: &str) -> Result<String, AppError> {
     v[key]
         .as_str()
         .map(str::to_owned)
@@ -235,14 +244,34 @@ pub async fn run(mut state: AppState) -> Result<Report, AppError> {
     )
     .await?;
     let mut villages = std::collections::HashMap::new();
-    for (code, name, lat, lon) in [
-        ("ILUNDO", "Ilundo", "-7.7120", "35.6810"),
-        ("MGAMA", "Mgama", "-7.8030", "35.7540"),
+    // RUAHA seed capacities: planned, never measured.
+    for (code, name, lat, lon, kw, factor, note) in [
+        (
+            "ILUNDO",
+            "Ilundo",
+            "-7.7120",
+            "35.6810",
+            "500",
+            "0.600",
+            "DEMO. Two hydro generators plus backup solar, approx 0.5 MW planned. No battery confirmed.",
+        ),
+        (
+            "MGAMA",
+            "Mgama",
+            "-7.8030",
+            "35.7540",
+            "150",
+            "0.650",
+            "DEMO. Indicative comparison village.",
+        ),
     ] {
         let v = api
             .post(
                 &farm("/villages"),
-                json!({ "code": code, "name": name, "latitude": lat, "longitude": lon }),
+                json!({ "code": code, "name": name, "latitude": lat, "longitude": lon,
+                    "capacity": { "capacity_kw": kw, "basis": "planned",
+                        "simultaneity_factor": factor, "source_note": note,
+                        "effective_from": "2026-01-15" } }),
                 &owner,
             )
             .await?;
@@ -384,12 +413,13 @@ pub async fn run(mut state: AppState) -> Result<Report, AppError> {
     // The maize estimate was revised: the first figure stays on record.
     let maize_cycle = neema["crop_cycle_ids"][0].as_str().unwrap_or_default();
     let revision = json!({ "kind": "expected", "quantity_kg": "4100", "source": "field_verified", "confidence": "high" });
-    api.post(
-        &farm(&format!("/crop-cycles/{maize_cycle}/harvest-reports")),
-        revision,
-        salima,
-    )
-    .await?;
+    let revised = api
+        .post(
+            &farm(&format!("/crop-cycles/{maize_cycle}/harvest-reports")),
+            revision,
+            salima,
+        )
+        .await?;
 
     // A second pair of eyes on every Ilundo household: ops, not the registrar.
     for reg in [&neema, &asha, &bakari] {
@@ -480,6 +510,116 @@ pub async fn run(mut state: AppState) -> Result<Report, AppError> {
     // Juma neither registered nor verified the Mfaume household: he pays its TZS 2,000.
     let redeem = json!({ "code": codes[2], "id_type": "nida", "name_confirmed": true });
     api.post(&farm("/vouchers/redeem"), redeem, juma).await?;
+
+    // Phase 4c: the catalogue, energy and the market. Ilundo's approved peak is
+    // (15.0 + 2 × 1.5) kW × 0.600 = 10.800 kW; every seeded request is a purchase.
+    let agro = api
+        .post(
+            &farm("/equipment-categories"),
+            json!({ "code": "AGRO", "name_en": "Agro-processing", "name_sw": "Usindikaji" }),
+            ops,
+        )
+        .await?;
+    let water = api
+        .post(
+            &farm("/equipment-categories"),
+            json!({ "code": "IRRIGATION", "name_en": "Irrigation", "name_sw": "Umwagiliaji" }),
+            ops,
+        )
+        .await?;
+    let mill = api
+        .post(
+            &farm("/equipment"),
+            json!({ "category_id": agro["id"], "code": "MILL-15", "name_en": "Maize mill",
+                    "name_sw": "Kinu cha mahindi", "rated_power_kw": "15", "typical_hours_per_day": "8",
+                    "typical_days_per_week": "6", "can_buy": true,
+                    "indicative_price_minor": 2_200_000_000_i64, "currency_id": tzs }),
+            ops,
+        )
+        .await?;
+    let pump = api
+        .post(
+            &farm("/equipment"),
+            json!({ "category_id": water["id"], "code": "PUMP-1.5", "name_en": "Solar irrigation pump",
+                    "name_sw": "Pampu ya umwagiliaji", "rated_power_kw": "1.5", "typical_hours_per_day": "6",
+                    "typical_days_per_week": "6", "can_rent": true, "can_buy": true,
+                    "indicative_price_minor": 350_000_000_i64, "indicative_rent_per_day_minor": 5_000_000_i64,
+                    "currency_id": tzs }),
+            ops,
+        )
+        .await?;
+    api.post(
+        &farm("/loan-products"),
+        json!({ "code": "INPUTS", "name_en": "Input loan", "name_sw": "Mkopo wa pembejeo",
+                "description_en": "Seed and fertiliser, asked about at the office.",
+                "indicative_min_minor": 50_000_000_i64, "indicative_max_minor": 500_000_000_i64,
+                "currency_id": tzs }),
+        ops,
+    )
+    .await?;
+    let request = |person: &Value, equipment: &Value, quantity: i64| {
+        json!({ "person_id": person["person_id"], "equipment_id": equipment["id"],
+                "quantity": quantity, "acquisition": "buy" })
+    };
+    for (person, equipment, quantity) in [(&neema, &mill, 1), (&asha, &pump, 2)] {
+        let r = api
+            .post(
+                &farm("/pue-requests"),
+                request(person, equipment, quantity),
+                salima,
+            )
+            .await?;
+        let tail = farm(&format!("/pue-requests/{}/transitions", text(&r, "id")?));
+        api.post(&tail, json!({ "action": "start_review" }), ops)
+            .await?;
+        let approve = json!({ "action": "approve", "note": "DEMO: fits the village capacity" });
+        api.post(&tail, approve, ops).await?;
+    }
+    // Prospective, not yet decided.
+    api.post(&farm("/pue-requests"), request(&bakari, &mill, 1), salima)
+        .await?;
+
+    let millers = api
+        .post(
+            &farm("/buyers"),
+            json!({ "name": "Iringa Millers", "channel": "direct" }),
+            ops,
+        )
+        .await?;
+    api.post(
+        &farm("/buyers"),
+        json!({ "name": "AFM aggregation hub", "channel": "afm", "contact_note": "DEMO: a label, no integration" }),
+        ops,
+    )
+    .await?;
+    let demand = api
+        .post(
+            &farm("/buyer-demands"),
+            json!({ "buyer_id": millers["id"], "crop_id": crops["MAIZE"], "quantity_kg": "6000",
+                    "window_start": "2026-09-01", "window_end": "2026-10-31",
+                    "indicative_price_per_kg_minor": 80_000, "currency_id": tzs }),
+            ops,
+        )
+        .await?;
+    let opportunity = api
+        .post(
+            &farm(&format!(
+                "/buyer-demands/{}/opportunities",
+                text(&demand, "id")?
+            )),
+            json!({ "village_id": ilundo, "note": "DEMO" }),
+            ops,
+        )
+        .await?;
+    api.post(
+        &farm(&format!(
+            "/opportunities/{}/supply",
+            text(&opportunity, "id")?
+        )),
+        json!({ "harvest_report_id": revised["id"], "contributed_kg": "3000" }),
+        ops,
+    )
+    .await?;
 
     Ok(Report {
         workspace_id: ws_id,

@@ -1,18 +1,16 @@
+import { farmBugReportsCreate } from '@genesy/api-client/endpoints/farm-bug-reports'
+
+import { workspaceId } from '@/app/workspace'
 import type { TrailEntry } from '@/lib/bugTrail'
 import { redactUrl } from '@/lib/bugTrail'
-import type { Json } from '@/lib/db.types'
-import { newUuid } from '@/lib/ids'
-import { supabase } from '@/lib/supabase'
 
 /**
- * Bug reports from the floating button (migration 20261025090001_bug_reports).
+ * Bug reports from the floating button: `POST farm/bug-reports` (multipart).
  *
- * Anyone signed in files; only admin reads, so the insert asks for nothing
- * back. The bucket and the table decide what is accepted — a refusal comes
- * back with their own message.
+ * Anyone with a farm role files, always under their own name (the API takes the reporter from the
+ * session; naming one is an unknown field). Only admin reads. The API decides what is accepted —
+ * image type and size, at least one image, at most 30 steps — and a refusal shows its message.
  */
-export const BUG_REPORT_BUCKET = 'bug-reports'
-
 const SCREENSHOT_TIMEOUT_MS = 8000
 
 /**
@@ -34,37 +32,23 @@ export async function captureScreen(): Promise<Blob | null> {
 }
 
 export interface BugReportInput {
-  reporterId: string
+  /** Made when the sheet opens and kept until the report is filed, so a retry is filed once. */
+  id: string
   description: string
   actions: TrailEntry[]
   screenshot: Blob | null
   photo: File | null
 }
 
-const EXTENSION: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/heic': 'heic' }
-
-/** `{reporter}/{uuid}.{ext}` — the storage policy reads the owner from the first folder. */
-async function store(reporterId: string, image: Blob | null): Promise<string | null> {
-  if (!image) return null
-  const path = `${reporterId}/${newUuid()}.${EXTENSION[image.type] ?? 'png'}`
-  const { error } = await supabase.storage
-    .from(BUG_REPORT_BUCKET)
-    .upload(path, image, { contentType: image.type, upsert: false })
-  if (error) throw new Error(error.message)
-  return path
-}
-
 export async function submitBugReport(input: BugReportInput): Promise<void> {
-  const screenshot_path = await store(input.reporterId, input.screenshot)
-  const photo_path = await store(input.reporterId, input.photo)
-  const { error } = await supabase.from('bug_report').insert({
+  await farmBugReportsCreate(workspaceId(), {
+    id: input.id,
     route: redactUrl(location.href),
     user_agent: navigator.userAgent,
     viewport: `${window.innerWidth}x${window.innerHeight}`,
     description: input.description,
-    actions: input.actions as unknown as Json,
-    screenshot_path,
-    photo_path,
+    actions: JSON.stringify(input.actions),
+    screenshot: input.screenshot,
+    photo: input.photo,
   })
-  if (error) throw new Error(error.message)
 }

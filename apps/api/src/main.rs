@@ -77,8 +77,12 @@ async fn main() {
     let job_http = outbound::Outbound::new(&[]).expect("outbound http client");
     let credentials = config.credentials_key.map(std::sync::Arc::new);
     // Checked by Config: fake is refused in a release build.
-    let payments = payments::select(config.payments_provider.as_deref(), !cfg!(debug_assertions))
-        .expect("payments provider");
+    let payments = payments::select(
+        config.payments_provider.as_deref(),
+        !cfg!(debug_assertions),
+        config.stripe.clone(),
+    )
+    .expect("payments provider");
     if payments.is_none() {
         tracing::warn!("PAYMENTS_PROVIDER not set: web payments answer 503");
     }
@@ -137,6 +141,7 @@ async fn main() {
         pdf,
         payments: payments.clone(),
         checkout_hold_max: config.checkout_hold_max,
+        signup_enabled: config.signup_enabled,
     };
     // `genesy-360-api seed-farm-demo`: the RUAHA demo workspace, then exit. CLI only: no route
     // ever seeds. Runs before the listener binds, so it can run beside a live server.
@@ -163,6 +168,76 @@ async fn main() {
             ),
             Err(err) => {
                 eprintln!("seed-farm-demo: {err}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+    // `genesy-360-api seed-demo`: every part of the staging demo, then exit. Refuses unless
+    // GENESY_ALLOW_DEMO_SEED is set (staging compose only). Secrets go to stdout once.
+    if std::env::args().nth(1).as_deref() == Some("seed-demo") {
+        match genesy_360_api::demo::run(state, config.allow_demo_seed).await {
+            Ok(s) if s.created => {
+                println!(
+                    "{:<16} | {:<14} | {:<32} | {:<40} | path",
+                    "app", "role", "login", "secret"
+                );
+                for c in &s.credentials {
+                    println!(
+                        "{:<16} | {:<14} | {:<32} | {:<40} | {}",
+                        c.app, c.role, c.login, c.secret, c.path
+                    );
+                }
+                println!(
+                    "storefront app key (shop container): {}",
+                    s.storefront_key.unwrap_or_default()
+                );
+                println!(
+                    "passport (QR target): {}",
+                    s.passport_path.unwrap_or_default()
+                );
+                println!(
+                    "note: the paid web order went through the seed's in-process Fake provider; \
+                     its payment row says `fake`."
+                );
+            }
+            Ok(_) => println!("staging demo already seeded: nothing to do"),
+            Err(err) => {
+                eprintln!("seed-demo: {err}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+    // `genesy-360-api create-owner --email E --workspace NAME [--first-name F] [--last-name L]`:
+    // the first owner of a production install (signup is off there). Refuses an existing email.
+    if std::env::args().nth(1).as_deref() == Some("create-owner") {
+        let args: Vec<String> = std::env::args().skip(2).collect();
+        let arg = |name: &str| {
+            args.iter()
+                .position(|a| a == name)
+                .and_then(|i| args.get(i + 1))
+                .cloned()
+        };
+        let (Some(email), Some(workspace)) = (arg("--email"), arg("--workspace")) else {
+            eprintln!(
+                "usage: create-owner --email <email> --workspace <name> [--first-name F] [--last-name L]"
+            );
+            std::process::exit(2);
+        };
+        let first = arg("--first-name").unwrap_or_else(|| "Owner".into());
+        let last = arg("--last-name").unwrap_or_else(|| "Admin".into());
+        match genesy_360_api::bootstrap::create_owner(&state, &email, &workspace, &first, &last)
+            .await
+        {
+            Ok(owner) => {
+                // Printed once, to stdout only: the password exists nowhere else.
+                println!("created workspace {workspace} ({})", owner.workspace_id);
+                println!("owner {email}, one-time password: {}", owner.password);
+                println!("sign in at /login and change it now");
+            }
+            Err(err) => {
+                eprintln!("create-owner: {err}");
                 std::process::exit(1);
             }
         }

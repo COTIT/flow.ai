@@ -1,0 +1,103 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id AS lot_id, p.id AS \"parent_id?\", p.code AS \"parent_code?\",\n                  l.pack_raw_kg::text AS pack_raw_kg, l.pack_units::text AS pack_units,\n                  t.id AS \"transfer_id?\", f.code AS \"from_lot_code?\",\n                  f.public_code AS \"from_lot_public_code?\"\n           FROM lots l\n           LEFT JOIN lots p ON p.workspace_id = l.workspace_id AND p.id = l.parent_lot_id\n           LEFT JOIN supply_transfers t ON t.to_workspace_id = l.workspace_id\n                                       AND t.to_lot_id = l.id\n           LEFT JOIN lots f ON f.workspace_id = t.from_workspace_id AND f.id = t.from_lot_id\n           WHERE l.workspace_id = $1 AND l.id = ANY($2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "parent_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "parent_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "pack_raw_kg",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "pack_units",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "transfer_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "from_lot_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "from_lot_public_code?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "public_code"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      null,
+      null,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "46ef5fe0f608ca484139dc5902bc8cf37c8df11cdaf29fb84cfbc1a6935e1919"
+}

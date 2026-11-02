@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO product_images (workspace_id, product_id, file_id, product_variant_id,\n                                     position)\n         SELECT $1, $2, f, v, n::smallint\n         FROM unnest($3::uuid[], $4::uuid[]) WITH ORDINALITY AS t(f, v, n)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6588ffc3dc1b71937154cf9a1585aa172db2d0bf488f91de491c6a49a0c0f554"
+}

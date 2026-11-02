@@ -2,7 +2,7 @@
 
 use std::{fmt, net::SocketAddr};
 
-use crate::{crypto::CredentialKey, storage::S3Config};
+use crate::{crypto::CredentialKey, payments::stripe, storage::S3Config};
 
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:8080";
 const DEFAULT_TOKEN_TTL_DAYS: i64 = 30;
@@ -75,9 +75,16 @@ pub struct Config {
     pub graph_api_url: String,
     /// `PAYMENTS_PROVIDER`: unset = no web payments (503); `fake` in debug builds only.
     pub payments_provider: Option<String>,
+    /// `STRIPE_*`, read only when `PAYMENTS_PROVIDER=stripe`.
+    pub stripe: Option<stripe::Settings>,
     /// `CHECKOUT_HOLD_MAX`: web orders awaiting payment per workspace (default 500), so fake
     /// checkouts can't hold all the stock.
     pub checkout_hold_max: i64,
+    /// `SIGNUP_ENABLED`: `POST /v1/create-workspace` is open. Off by default, so production
+    /// is closed unless someone opens it; the first owner comes from `create-owner`.
+    pub signup_enabled: bool,
+    /// `GENESY_ALLOW_DEMO_SEED`: `seed-demo` may run. Only the staging compose sets it.
+    pub allow_demo_seed: bool,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -132,6 +139,7 @@ impl fmt::Debug for Config {
             .field("graph_login_url", &self.graph_login_url)
             .field("graph_api_url", &self.graph_api_url)
             .field("payments_provider", &self.payments_provider)
+            .field("stripe", &self.stripe) // masks both secrets
             .field("checkout_hold_max", &self.checkout_hold_max)
             .finish()
     }
@@ -214,8 +222,15 @@ impl Config {
             ));
         }
         let checkout_hold_max: i64 = positive(&get, "CHECKOUT_HOLD_MAX", 500)?;
+        let signup_enabled = flag(&get, "SIGNUP_ENABLED")?;
+        let allow_demo_seed = flag(&get, "GENESY_ALLOW_DEMO_SEED")?;
         let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
-        crate::payments::select(payments_provider.as_deref(), !cfg!(debug_assertions))?;
+        let release = !cfg!(debug_assertions);
+        let stripe = match payments_provider.as_deref().map(str::trim) {
+            Some("stripe") => Some(stripe_settings(&get, release)?),
+            _ => None,
+        };
+        crate::payments::select(payments_provider.as_deref(), release, stripe.clone())?;
         let credentials_key = get("CREDENTIALS_KEY")
             .filter(|v| !v.is_empty())
             .map(|mut v| {
@@ -269,7 +284,10 @@ impl Config {
             graph_login_url,
             graph_api_url,
             payments_provider,
+            stripe,
             checkout_hold_max,
+            signup_enabled,
+            allow_demo_seed,
         })
     }
 }
@@ -304,6 +322,50 @@ fn storage(get: &impl Fn(&str) -> Option<String>) -> Result<Option<S3Config>, St
     }))
 }
 
+/// `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_API_URL`. Live keys only in release
+/// builds (staging's image keeps debug assertions on). Errors never carry the values.
+fn stripe_settings(
+    get: &impl Fn(&str) -> Option<String>,
+    release: bool,
+) -> Result<stripe::Settings, String> {
+    let secret_key = get("STRIPE_SECRET_KEY")
+        .filter(|v| !v.trim().is_empty())
+        .ok_or("STRIPE_SECRET_KEY not set (PAYMENTS_PROVIDER=stripe needs it)")?;
+    let prefix = ["sk_test_", "sk_live_", "rk_test_", "rk_live_"]
+        .into_iter()
+        .find(|p| secret_key.starts_with(p) && secret_key.len() > p.len())
+        .ok_or("STRIPE_SECRET_KEY must start with sk_test_, sk_live_, rk_test_ or rk_live_")?;
+    if prefix.ends_with("live_") && !release {
+        return Err(
+            "STRIPE_SECRET_KEY is a live key: refused in a build with debug assertions \
+                    (dev, tests, staging); use a test key"
+                .into(),
+        );
+    }
+    let webhook_secret = get("STRIPE_WEBHOOK_SECRET")
+        .filter(|v| v.starts_with("whsec_") && v.len() > "whsec_".len())
+        .ok_or("STRIPE_WEBHOOK_SECRET must be set to the endpoint's whsec_ signing secret")?;
+    let api_url = match optional_url(get, "STRIPE_API_URL")? {
+        None => stripe::API_URL.into(),
+        Some(url) => {
+            let host = crate::outbound::host_of(&url).unwrap_or_default();
+            if !url.starts_with("http")
+                || !["127.0.0.1", "::1", "localhost"].contains(&host.as_str())
+            {
+                return Err(
+                    "STRIPE_API_URL may only point at a loopback address (a local fake)".into(),
+                );
+            }
+            url
+        }
+    };
+    Ok(stripe::Settings {
+        api_url,
+        secret_key,
+        webhook_secret,
+    })
+}
+
 /// An optional http(s) URL without a trailing slash; blank = unset.
 fn optional_url(
     get: &impl Fn(&str) -> Option<String>,
@@ -321,11 +383,13 @@ fn optional_url(
 
 /// Vars that may come from `<KEY>_FILE` (Docker secrets), so passwords never sit in env files;
 /// true = the file may be empty (an optional feature left off).
-const SECRET_FILE_VARS: [(&str, bool); 4] = [
+const SECRET_FILE_VARS: [(&str, bool); 6] = [
     ("DATABASE_URL", false),
     ("SMTP_URL", false),
     ("CREDENTIALS_KEY", false),
     ("B2_UPLOADS_APPLICATION_KEY", true),
+    ("STRIPE_SECRET_KEY", false),
+    ("STRIPE_WEBHOOK_SECRET", false),
 ];
 
 /// Read each `<KEY>_FILE` that is set. Errors name the var and path, never the contents.
@@ -364,9 +428,9 @@ fn query_has(url: &str, pair: &str) -> bool {
 /// Optional `true|false` env var, default false.
 fn flag(get: &impl Fn(&str) -> Option<String>, key: &str) -> Result<bool, String> {
     match get(key).as_deref() {
-        None | Some("false") => Ok(false),
-        Some("true") => Ok(true),
-        Some(other) => Err(format!("{key} must be true|false, got {other:?}")),
+        None | Some("false" | "0") => Ok(false),
+        Some("true" | "1") => Ok(true),
+        Some(other) => Err(format!("{key} must be true|false|1|0, got {other:?}")),
     }
 }
 
@@ -592,6 +656,23 @@ mod tests {
     }
 
     #[test]
+    fn signup_and_demo_seed_are_off_unless_set() {
+        let with = |extra: &'static [(&'static str, &'static str)]| {
+            let mut pairs = vec![
+                ("DATABASE_URL", "postgres://x"),
+                ("SMTP_URL", "smtps://user:secret@smtp.test:465"),
+            ];
+            pairs.extend_from_slice(extra);
+            Config::from_lookup(lookup(Box::leak(pairs.into_boxed_slice())))
+        };
+        let off = with(&[]).unwrap();
+        assert!(!off.signup_enabled && !off.allow_demo_seed);
+        let on = with(&[("SIGNUP_ENABLED", "true"), ("GENESY_ALLOW_DEMO_SEED", "1")]).unwrap();
+        assert!(on.signup_enabled && on.allow_demo_seed);
+        assert!(with(&[("SIGNUP_ENABLED", "maybe")]).is_err());
+    }
+
+    #[test]
     fn smtp_url_must_use_tls_unless_insecure_allowed() {
         let plain = |extra: &'static [(&'static str, &'static str)]| {
             let mut pairs = vec![
@@ -784,6 +865,115 @@ mod tests {
         assert!(with("mollie").unwrap_err().contains("not a known provider"));
     }
 
+    fn stripe_with(pairs: &[(&str, &str)]) -> Result<Config, String> {
+        let base = [
+            ("DATABASE_URL", "postgres://x"),
+            ("PAYMENTS_PROVIDER", "stripe"),
+            ("STRIPE_SECRET_KEY", "sk_test_abc"),
+            ("STRIPE_WEBHOOK_SECRET", "whsec_abc"),
+        ];
+        let all: Vec<(&str, &str)> = pairs.iter().chain(base.iter()).copied().collect();
+        Config::from_lookup(lookup(&all))
+    }
+
+    #[test]
+    fn stripe_needs_both_secrets_with_their_prefixes() {
+        let cfg = stripe_with(&[]).unwrap();
+        let s = cfg.stripe.unwrap();
+        assert_eq!(
+            (
+                s.api_url.as_str(),
+                s.secret_key.as_str(),
+                s.webhook_secret.as_str()
+            ),
+            ("https://api.stripe.com", "sk_test_abc", "whsec_abc")
+        );
+        assert!(stripe_with(&[("STRIPE_SECRET_KEY", "rk_test_abc")]).is_ok());
+        for (var, bad) in [
+            ("STRIPE_SECRET_KEY", ""),
+            ("STRIPE_WEBHOOK_SECRET", ""),
+            ("STRIPE_SECRET_KEY", "pk_test_abc"),
+            ("STRIPE_SECRET_KEY", "sk_test_"),
+            ("STRIPE_WEBHOOK_SECRET", "abc"),
+        ] {
+            let err = stripe_with(&[(var, bad)]).unwrap_err();
+            assert!(err.starts_with(var), "{var}={bad}: {err}");
+            assert!(!err.contains("abc"), "value echoed: {err}");
+        }
+        // Not chosen: the settings are not read at all.
+        let none = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("STRIPE_SECRET_KEY", "nonsense"),
+        ]))
+        .unwrap();
+        assert!(none.stripe.is_none());
+    }
+
+    #[test]
+    fn stripe_live_keys_are_refused_in_builds_with_debug_assertions() {
+        for live in ["sk_live_abc", "rk_live_abc"] {
+            let got = stripe_with(&[("STRIPE_SECRET_KEY", live)]);
+            if cfg!(debug_assertions) {
+                let err = got.unwrap_err();
+                assert!(err.contains("live key"), "{err}");
+                assert!(!err.contains(live), "{err}");
+            } else {
+                assert!(got.is_ok());
+            }
+        }
+    }
+
+    #[test]
+    fn stripe_api_url_may_only_point_at_loopback() {
+        for ok in [
+            "http://127.0.0.1:4010",
+            "http://localhost:4010/",
+            "http://[::1]:4010",
+        ] {
+            let s = stripe_with(&[("STRIPE_API_URL", ok)])
+                .unwrap()
+                .stripe
+                .unwrap();
+            assert!(!s.api_url.ends_with('/'), "{ok}");
+        }
+        for bad in [
+            "https://evil.example.com",
+            "http://10.0.0.5:4010",
+            "http://127.0.0.1.evil.example:80",
+            "ftp://127.0.0.1",
+        ] {
+            let err = stripe_with(&[("STRIPE_API_URL", bad)]).unwrap_err();
+            assert!(err.starts_with("STRIPE_API_URL"), "{bad}: {err}");
+        }
+    }
+
+    #[test]
+    fn debug_masks_stripe_secrets() {
+        let cfg = stripe_with(&[
+            ("STRIPE_SECRET_KEY", "sk_test_supersecret"),
+            ("STRIPE_WEBHOOK_SECRET", "whsec_hooksecret"),
+        ])
+        .unwrap();
+        let shown = format!("{cfg:?}");
+        assert!(!shown.contains("supersecret"), "{shown}");
+        assert!(!shown.contains("hooksecret"), "{shown}");
+        assert!(shown.contains("api.stripe.com"), "{shown}");
+    }
+
+    #[test]
+    fn resend_smtp_url_passes_the_tls_check() {
+        let cfg = Config::from_lookup(lookup(&[
+            ("DATABASE_URL", "postgres://x"),
+            (
+                "SMTP_URL",
+                "smtps://resend:re_AbC123_xyz@smtp.resend.com:465",
+            ),
+        ]))
+        .unwrap();
+        assert!(cfg.smtp_url.starts_with("smtps://resend:"));
+        assert!(!format!("{cfg:?}").contains("re_AbC123"));
+    }
+
     #[test]
     fn credentials_key_is_optional_and_never_echoed() {
         const HEX: &str = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
@@ -939,5 +1129,22 @@ mod secret_file_tests {
 
         assert!(missing.starts_with("SMTP_URL_FILE"), "{missing}");
         assert!(empty.starts_with("SMTP_URL_FILE"), "{empty}");
+    }
+
+    #[test]
+    fn stripe_secrets_read_from_files() {
+        let got = read_secret_files(
+            env(&[
+                ("STRIPE_SECRET_KEY_FILE", "/run/secrets/sk"),
+                ("STRIPE_WEBHOOK_SECRET_FILE", "/run/secrets/wh"),
+            ]),
+            files(&[
+                ("/run/secrets/sk", "sk_test_x\n"),
+                ("/run/secrets/wh", "whsec_x\n"),
+            ]),
+        )
+        .unwrap();
+        assert_eq!(got["STRIPE_SECRET_KEY"], "sk_test_x");
+        assert_eq!(got["STRIPE_WEBHOOK_SECRET"], "whsec_x");
     }
 }

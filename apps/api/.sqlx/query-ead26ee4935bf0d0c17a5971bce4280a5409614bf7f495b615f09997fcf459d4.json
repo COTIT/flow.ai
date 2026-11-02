@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_pue_requests SET status = $3,\n             submitted_at = CASE WHEN $3 = 'submitted' THEN coalesce(submitted_at, now())\n                                 ELSE submitted_at END,\n             decided_at = CASE WHEN $3 IN ('approved', 'rejected') THEN now() ELSE decided_at END,\n             decided_by = CASE WHEN $3 IN ('approved', 'rejected') THEN $4 ELSE decided_by END,\n             decision_note = coalesce($5, decision_note),\n             updated_at = now()\n         WHERE workspace_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ead26ee4935bf0d0c17a5971bce4280a5409614bf7f495b615f09997fcf459d4"
+}

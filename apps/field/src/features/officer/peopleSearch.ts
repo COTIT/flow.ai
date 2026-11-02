@@ -1,6 +1,6 @@
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-export type VerificationStatus = Database['public']['Enums']['verification_status']
+export type VerificationStatus = Enums['verification_status']
 
 export interface PeopleSearch {
   /** Free-text name search. */

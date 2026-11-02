@@ -47,6 +47,9 @@ pub struct SessionRow {
     pub register_name: String,
     pub warehouse_id: Uuid,
     pub currency_id: Uuid,
+    /// ISO 4217, upper case.
+    pub currency_code: String,
+    pub currency_decimals: i16,
     pub till_user_id: Uuid,
     pub user_name: String,
     pub expires_at: DateTime<Utc>,
@@ -411,16 +414,18 @@ pub async fn live_session(
 ) -> Result<Option<SessionRow>, sqlx::Error> {
     sqlx::query_as!(
         SessionRow,
-        "SELECT s.id, s.workspace_id, s.register_id, r.name AS register_name, r.warehouse_id,
-                r.currency_id, s.till_user_id, u.name AS user_name, s.expires_at
+        r#"SELECT s.id, s.workspace_id, s.register_id, r.name AS register_name, r.warehouse_id,
+                r.currency_id, upper(c.asset_type) AS "currency_code!",
+                c.decimals AS currency_decimals, s.till_user_id, u.name AS user_name, s.expires_at
          FROM till_sessions s
          JOIN till_registers r ON r.workspace_id = s.workspace_id AND r.id = s.register_id
                               AND r.app_key_id = s.app_key_id
+         JOIN currencies c ON c.workspace_id = r.workspace_id AND c.id = r.currency_id
          JOIN app_keys a ON a.id = s.app_key_id AND a.revoked_at IS NULL
          JOIN till_users u ON u.workspace_id = s.workspace_id AND u.id = s.till_user_id
                           AND u.active
          JOIN workspaces w ON w.id = s.workspace_id AND w.deleted_at IS NULL
-         WHERE s.token_hash = $1 AND s.ended_at IS NULL AND s.expires_at > now()",
+         WHERE s.token_hash = $1 AND s.ended_at IS NULL AND s.expires_at > now()"#,
         &token_hash[..],
     )
     .fetch_optional(db)

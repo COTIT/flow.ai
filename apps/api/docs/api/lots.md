@@ -14,6 +14,9 @@ Paths sit under `/v1/workspace/{workspace}`. Members read; writes need `product.
 | `status` | string | `released` (default, sellable), `quarantine` or `recalled` |
 | `produced_on`, `best_before`, `expires_on` | date or null | `YYYY-MM-DD`; `best_before` and `expires_on` not before `produced_on` |
 | `origin` | string or null | up to 255 chars |
+| `parent_lot` | `{id, code}` or null | the lot of this workspace it was packed from (read only) |
+| `pack` | `{raw_kg, units}` or null | decimal strings: kg of the parent used and units made (read only) |
+| `received_from` | `{transfer_id, from_lot_code, from_lot_public_code}` or null | the supply transfer it was received from, with the sender's lot codes as `/supply-transfers` shows them; never the sender's ids (read only) |
 | `created_at`, `updated_at` | date-time | |
 
 ## Routes
@@ -25,8 +28,15 @@ Paths sit under `/v1/workspace/{workspace}`. Members read; writes need `product.
 | GET | `/lots/{lot}` | | `200 {data}` |
 | PATCH | `/lots/{lot}` | any of `code`, `status`, dates, `origin`; absent keeps, `null` clears a nullable field | `200 {data}` |
 | GET | `/lots/{lot}/events` | `page`, `page_size` | `200 {data, meta}`, newest first |
+| GET | `/lots/{lot}/farmer-credits` | `page`, `page_size` | `200 {data, meta, farmer_groups}`, newest first; see below |
 
 **422 cases.** Missing `product_id` or `code`; bad code characters or length; unknown status; a date that isn't `YYYY-MM-DD`; a later date before `produced_on`; `origin` over 255. `product_id`: "The selected product id is invalid." when the product is malformed, unknown, deleted, of another workspace, or does not track stock. `code`: "The code has already been taken." (any case, this workspace only).
+
+## Farmer credits (selling side)
+
+`GET /lots/{lot}/farmer-credits` lists the sales and returns of this workspace's lot that credited or debited farmers (`farm_sale_attributions` with `sold_workspace_id` = this workspace): `{order_id, order_number, till_ref, kind, jars, at}`. `till_ref` is the till's `client_ref` (null for web and office orders); `kind` is `sale` or `return`; `jars` is the units sold, or for a return the change in units returned (positive = jars came back). `farmer_groups` is how many groups the lot's public page shows under the link's frozen allow-list; null when it shows none (no supply lineage, or `village` not shared).
+
+Never shown (G10): farmer names or ids, per-farmer or total amounts, kg, price per kg, the batch, or any farm-side id. A lot of another workspace (the farm's included) is 404. Members read.
 
 ## Trail (`lot_events`)
 
@@ -54,6 +64,8 @@ Stock rows carry an optional `lot_id`. Null is the product's no-lot stock, which
 - Out may not take more than the row has free (level − reserved). Otherwise `422` on `quantity`: "Insufficient stock in this lot. Available: …, Reserved: …, Requested: …".
 - An unknown or foreign warehouse gives `422` on `warehouse_id`.
 - Reply: `200 {data: {warehouse_id, stock_lvl}}`.
+
+`GET /lots/{lot}/stock` (any member, like reading the lot; another workspace's lot `404`): `200 {data: [{warehouse_id, level, reserved, available}]}`, one row per warehouse holding the lot (its rows there summed), by warehouse name, 2-decimal text. `available = level − reserved`. No stock: `[]`.
 
 Once a lot holds any stock row, its `code` can't change (`422` on `code`); the code is printed on labels.
 

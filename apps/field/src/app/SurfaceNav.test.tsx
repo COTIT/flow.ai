@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, test, vi } from 'vitest'
 
-// The shell as it is once every screen is on the Genesy API (the port gates are tested in ported.test.ts).
-vi.mock('@/lib/ported', () => ({ isPorted: () => true }))
 vi.mock('@tanstack/react-router', () => ({
   Link: ({
     children,

@@ -167,14 +167,14 @@ describe('VerifyQueueScreen content', () => {
     expect(screen.getByTestId('verify-person-p1')).toBeDisabled()
   })
 
-  // app_verify's own message, shown as written (business-rules §9).
-  test("a refusal from app_verify is surfaced verbatim", () => {
-    verifyState.error = new Error('only field staff may verify records')
+  // The API's own refusal, in the user's language (business-rules §9).
+  test('a refusal from the API is surfaced', () => {
+    verifyState.error = new Error('a household must be verified by someone other than the officer who registered it')
     useVerifyQueue.mockReturnValue({ isLoading: false, error: null, data: [row()] })
     render(<VerifyQueueScreen />)
 
     expect(screen.getByTestId('error-state')).toHaveTextContent(
-      'You do not have permission to do that.',
+      'A household must be verified by someone other than the officer who registered it.',
     )
     // The queue still renders: one failed write does not hide the work.
     expect(screen.getByTestId('verify-queue-row')).toBeInTheDocument()

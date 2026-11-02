@@ -19,6 +19,7 @@ const nav = [
   { href: "/stock", label: "nav.stock" },
   { href: "/orders", label: "nav.orders" },
   { href: "/lots", label: "nav.lots" },
+  { href: "/supply/links", label: "nav.supply" },
   { href: "/invoices", label: "nav.invoices" },
   { href: "/till/registers", label: "nav.till" },
   { href: "/settings/app-keys", label: "nav.appKeys" },

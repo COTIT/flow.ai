@@ -1,0 +1,677 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, product_number, product_nr_formatted, name, brand, type AS kind, status, has_stock,\n           is_serialized, warranty_default_mode, warranty_duration_value, warranty_duration_unit,\n           reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,\n           barcode, barcode_vendor, supplier_discount_code, short_description, description,\n           stock_level_supplier, supplier_relation_id, currency_id, vat_group_id, sales_group_id,\n           default_warehouse_id, price, gross_price, wholesale_price, supplier_wholesale_price,\n           impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,\n           dimensions, country_of_origin, url_vendor, url_vendor_override,\n           exclude_price_corrections, archived, import_id, import_source, export_enabled,\n           export_price_sync, export_product_data, export_data, meta, store_only, created_at, updated_at FROM products\n         WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "product_number",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "product_number"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "product_nr_formatted",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "product_nr_formatted"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "brand",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "brand"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "has_stock",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "has_stock"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "is_serialized",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "is_serialized"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "warranty_default_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "warranty_default_mode"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "warranty_duration_value",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "warranty_duration_value"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "warranty_duration_unit",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "warranty_duration_unit"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "reference",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "reference"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "reference_vendor",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "reference_vendor"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "reference_vendor2",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "reference_vendor2"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "reference_vendor3",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "reference_vendor3"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "ean13",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "ean13"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "hs_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "hs_code"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "barcode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "barcode"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "barcode_vendor",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "barcode_vendor"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "supplier_discount_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "supplier_discount_code"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "short_description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "short_description"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "stock_level_supplier",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "stock_level_supplier"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
+        "name": "supplier_relation_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "supplier_relation_id"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 26,
+        "name": "vat_group_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "vat_group_id"
+          }
+        }
+      },
+      {
+        "ordinal": 27,
+        "name": "sales_group_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "sales_group_id"
+          }
+        }
+      },
+      {
+        "ordinal": 28,
+        "name": "default_warehouse_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "default_warehouse_id"
+          }
+        }
+      },
+      {
+        "ordinal": 29,
+        "name": "price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "price"
+          }
+        }
+      },
+      {
+        "ordinal": 30,
+        "name": "gross_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "gross_price"
+          }
+        }
+      },
+      {
+        "ordinal": 31,
+        "name": "wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 32,
+        "name": "supplier_wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "supplier_wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 33,
+        "name": "impact_on_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "impact_on_price"
+          }
+        }
+      },
+      {
+        "ordinal": 34,
+        "name": "impact_on_wholesale_price",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "impact_on_wholesale_price"
+          }
+        }
+      },
+      {
+        "ordinal": 35,
+        "name": "order_unit",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "order_unit"
+          }
+        }
+      },
+      {
+        "ordinal": 36,
+        "name": "sale_unit",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "sale_unit"
+          }
+        }
+      },
+      {
+        "ordinal": 37,
+        "name": "weight",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "weight"
+          }
+        }
+      },
+      {
+        "ordinal": 38,
+        "name": "unit",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "unit"
+          }
+        }
+      },
+      {
+        "ordinal": 39,
+        "name": "dimensions",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "dimensions"
+          }
+        }
+      },
+      {
+        "ordinal": 40,
+        "name": "country_of_origin",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "country_of_origin"
+          }
+        }
+      },
+      {
+        "ordinal": 41,
+        "name": "url_vendor",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "url_vendor"
+          }
+        }
+      },
+      {
+        "ordinal": 42,
+        "name": "url_vendor_override",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "url_vendor_override"
+          }
+        }
+      },
+      {
+        "ordinal": 43,
+        "name": "exclude_price_corrections",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "exclude_price_corrections"
+          }
+        }
+      },
+      {
+        "ordinal": 44,
+        "name": "archived",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "archived"
+          }
+        }
+      },
+      {
+        "ordinal": 45,
+        "name": "import_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "import_id"
+          }
+        }
+      },
+      {
+        "ordinal": 46,
+        "name": "import_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "import_source"
+          }
+        }
+      },
+      {
+        "ordinal": 47,
+        "name": "export_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "export_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 48,
+        "name": "export_price_sync",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "export_price_sync"
+          }
+        }
+      },
+      {
+        "ordinal": 49,
+        "name": "export_product_data",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "export_product_data"
+          }
+        }
+      },
+      {
+        "ordinal": 50,
+        "name": "export_data",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "export_data"
+          }
+        }
+      },
+      {
+        "ordinal": 51,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 52,
+        "name": "store_only",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "store_only"
+          }
+        }
+      },
+      {
+        "ordinal": 53,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 54,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "949c8cd463abecb63f8ea14fdc1b24f4517e82779357d7f9aa2a48ca43840703"
+}

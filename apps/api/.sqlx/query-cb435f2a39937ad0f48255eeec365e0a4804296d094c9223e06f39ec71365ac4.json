@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT farm_harvest_committed_kg($1) AS \"kg!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kg!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cb435f2a39937ad0f48255eeec365e0a4804296d094c9223e06f39ec71365ac4"
+}

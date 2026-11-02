@@ -1,0 +1,188 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.code, l.name_en, l.name_sw, l.description_en, l.description_sw,\n                  l.indicative_min_minor, l.indicative_max_minor, l.currency_id,\n                  c.asset_type AS currency, c.decimals, l.is_active, l.created_at, l.updated_at\n           FROM farm_loan_products l JOIN currencies c ON c.id = l.currency_id\n           WHERE l.workspace_id = $1 AND ($2::uuid IS NULL OR l.id = $2)\n             AND ($3::bool IS NULL OR l.is_active = $3)\n           ORDER BY l.name_en, l.id LIMIT $4 OFFSET $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "name_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "description_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "description_en"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "description_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "description_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "indicative_min_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "indicative_min_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "indicative_max_minor",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "indicative_max_minor"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "is_active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "is_active"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_loan_products",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e4916c220bdc691798e9ac79f4d264e4fe84b37c2f1f6dccb2421fad6cba1607"
+}

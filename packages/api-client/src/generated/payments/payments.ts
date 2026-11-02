@@ -28,7 +28,76 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * The body names a payment or refund id in the provider's format (the in-process test provider: `id=<id>`, form encoded). The status is always re-fetched from the provider; the answer is an empty 200 whatever the body names. At most 1 KiB.
+ * For providers that hold one fixed endpoint (Stripe: `https://<api>/v1/payments/webhooks/stripe`). The `Stripe-Signature` header is checked on the raw body before anything is read; then only the Checkout Session or Refund id is taken. The workspace comes from our own payment row for that id, and the status is re-fetched from the provider. The answer is an empty 200 whatever the body holds (bad signature, unknown id, other events). At most 64 KiB.
+ * @summary Payment provider event, one endpoint for every workspace
+ */
+export const paymentsWebhookAny = (
+    provider: string,
+    paymentsWebhookAnyBody: BodyType<string>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<void>(
+      {url: `/payments/webhooks/${provider}`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: paymentsWebhookAnyBody, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsWebhookAnyMutationKey = () => ['paymentsWebhookAny'] as const;
+
+export const getPaymentsWebhookAnyMutationOptions = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsWebhookAny>>, TError,PaymentsWebhookAnyMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof paymentsWebhookAny>>, TError,PaymentsWebhookAnyMutationVariables, TContext> => {
+
+const mutationKey = getPaymentsWebhookAnyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof paymentsWebhookAny>>, PaymentsWebhookAnyMutationVariables> = (props) => {
+          const {provider,data} = props ?? {};
+
+          return  paymentsWebhookAny(provider,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PaymentsWebhookAnyMutationResult = NonNullable<Awaited<ReturnType<typeof paymentsWebhookAny>>>
+    export type PaymentsWebhookAnyMutationBody = BodyType<string>
+    export type PaymentsWebhookAnyMutationError = ErrorType<MessageBody>
+    export type PaymentsWebhookAnyMutationVariables = {provider: string;data: BodyType<string>}
+
+    /**
+ * @summary Payment provider event, one endpoint for every workspace
+ */
+export const usePaymentsWebhookAny = <TError = ErrorType<MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsWebhookAny>>, TError,PaymentsWebhookAnyMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof paymentsWebhookAny>>,
+        TError,
+        PaymentsWebhookAnyMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPaymentsWebhookAnyMutationOptions(options), queryClient);
+    }
+    /**
+ * The body names a payment or refund id in the provider's format (the in-process test provider: `id=<id>`, form encoded; Stripe: a signed event, `Stripe-Signature` checked first). The status is always re-fetched from the provider; the answer is an empty 200 whatever the body names. At most 64 KiB.
  * @summary Payment provider status-changed call
  */
 export const paymentsWebhook = (

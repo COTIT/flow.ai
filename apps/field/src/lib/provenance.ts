@@ -3,10 +3,10 @@
  * after the thirtieth call site.
  */
 
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
 /** The five S13 source categories, straight from the database enum. */
-export type SourceType = Database['public']['Enums']['source_type']
+export type SourceType = Enums['source_type']
 
 /**
  * Tables carrying the full provenance block. Every insert into one of these

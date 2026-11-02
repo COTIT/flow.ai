@@ -4,6 +4,7 @@
 //! behind (same idempotency key) and re-fetches stale ones, and refunds. Provider calls never
 //! run inside a transaction.
 
+use axum::http::HeaderMap;
 use serde_json::json;
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
@@ -17,7 +18,7 @@ use crate::{
         repo::{self as jobs, Claimed, NewJob},
         runner::Step,
     },
-    modules::orders::{checkout, repo as orders, service},
+    modules::orders::{checkout, dto::OrderAction, repo as orders, service},
     payments::{self, NewRefund, Provider, Status},
 };
 
@@ -26,6 +27,55 @@ const GIVE_UP: i16 = 10;
 /// Inbox rows one drain run applies.
 const DRAIN_CHUNK: usize = 50;
 const NOTHING_PAID: &str = "Nothing has been paid on this order.";
+
+/// What an order's payments allow: `net` paid (paid − refunded) gates cancel, `refundable`
+/// (the first paid payment − its refunds not failed) gates a refund.
+#[derive(Clone, Copy, Default)]
+pub struct Paid {
+    pub net: i64,
+    pub refundable: i64,
+}
+
+/// [`Paid`] per order of `ids`, in one statement; an order without payments is absent.
+pub async fn paid_totals(
+    db: impl sqlx::PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<std::collections::HashMap<Uuid, Paid>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT p.order_id AS "order_id!",
+                  (coalesce(sum(p.amount) FILTER (WHERE p.kind = 'payment' AND p.status = 'paid'), 0)
+                   - coalesce(sum(p.amount) FILTER (WHERE p.kind = 'refund'
+                                                     AND p.status = 'refunded'), 0))::int8
+                    AS "net!",
+                  coalesce((SELECT f.amount - (SELECT coalesce(sum(r.amount), 0)
+                                               FROM order_payments r
+                                               WHERE r.workspace_id = f.workspace_id
+                                                 AND r.parent_id = f.id AND r.kind = 'refund'
+                                                 AND r.status NOT IN ('failed', 'canceled'))
+                            FROM order_payments f
+                            WHERE f.workspace_id = $1 AND f.order_id = p.order_id
+                              AND f.kind = 'payment' AND f.status = 'paid'
+                            ORDER BY f.created_at LIMIT 1), 0)::int8 AS "refundable!"
+           FROM order_payments p
+           WHERE p.workspace_id = $1 AND p.order_id = ANY($2)
+           GROUP BY p.order_id"#,
+        workspace_id,
+        ids,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            let paid = Paid {
+                net: r.net,
+                refundable: r.refundable,
+            };
+            (r.order_id, paid)
+        })
+        .collect())
+}
 
 /// A payment or refund row.
 struct PaymentRow {
@@ -78,28 +128,60 @@ pub async fn receive(
     state: &AppState,
     provider: &str,
     workspace: &str,
+    headers: &HeaderMap,
+    body: &[u8],
+) -> Result<(), AppError> {
+    let Ok(ws) = Uuid::parse_str(workspace) else {
+        return Ok(());
+    };
+    receive_for(state, provider, Some(ws), headers, body).await
+}
+
+/// `POST /payments/webhooks/{provider}`: for providers with one endpoint for every workspace
+/// (Stripe). The workspace comes from our own payment row matched on the provider id, never
+/// from the body; the drain then checks the re-fetched object's metadata names that workspace.
+pub async fn receive_any(
+    state: &AppState,
+    provider: &str,
+    headers: &HeaderMap,
+    body: &[u8],
+) -> Result<(), AppError> {
+    receive_for(state, provider, None, headers, body).await
+}
+
+async fn receive_for(
+    state: &AppState,
+    provider: &str,
+    workspace: Option<Uuid>,
+    headers: &HeaderMap,
     body: &[u8],
 ) -> Result<(), AppError> {
     let Some(p) = state.payments.as_ref().filter(|p| p.name() == provider) else {
         return Ok(());
     };
-    let (Ok(ws), Some(id)) = (Uuid::parse_str(workspace), p.webhook_id(body)) else {
+    let Some(id) = p.webhook_id(headers, body) else {
         return Ok(());
     };
     let mut tx = state.db.begin().await?;
+    // At most one row per workspace (unique key); the LIMIT bounds a forged id's fan-out.
     let known = sqlx::query_scalar!(
-        r#"SELECT EXISTS (SELECT 1 FROM order_payments
-                          WHERE workspace_id = $1 AND provider = $2 AND provider_id = $3) AS "e!""#,
-        ws,
+        "SELECT workspace_id FROM order_payments
+         WHERE provider = $1 AND provider_id = $2 AND ($3::uuid IS NULL OR workspace_id = $3)
+         LIMIT 2",
         provider,
         id,
+        workspace,
     )
-    .fetch_one(&mut *tx)
+    .fetch_all(&mut *tx)
     .await?;
-    if known {
-        queue(&mut tx, ws, provider, &id).await?;
-        tx.commit().await?;
+    if known.is_empty() {
+        tracing::info!(provider, "payment webhook names an unknown id; ignored");
+        return Ok(());
     }
+    for ws in known {
+        queue(&mut tx, ws, provider, &id).await?;
+    }
+    tx.commit().await?;
     Ok(())
 }
 
@@ -532,6 +614,9 @@ pub async fn refund(
     let o = orders::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    let paid = paid_totals(&mut *tx, workspace_id, &[o.id]).await?;
+    let paid = paid.get(&o.id).copied().unwrap_or_default();
+    service::check(OrderAction::Refund, &o, &[], paid)?;
     let pay = sqlx::query!(
         r#"SELECT p.id, p.provider, p.amount, p.currency,
                   (SELECT coalesce(sum(r.amount), 0)::int8 FROM order_payments r

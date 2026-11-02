@@ -1,0 +1,22 @@
+# Stripe on for production: added as an extra -f after the main file (README "Turning on
+# Stripe"). Needs secrets/stripe_secret_key and secrets/stripe_webhook_secret, written by
+# deploy/set-provider-keys.sh. Without this file the stack runs as before (payments 503).
+services:
+  api:
+    environment:
+      PAYMENTS_PROVIDER: stripe
+      STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
+      STRIPE_WEBHOOK_SECRET_FILE: /run/secrets/stripe_webhook_secret
+    secrets: [stripe_secret_key, stripe_webhook_secret]
+  cli:
+    environment:
+      PAYMENTS_PROVIDER: stripe
+      STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
+      STRIPE_WEBHOOK_SECRET_FILE: /run/secrets/stripe_webhook_secret
+    secrets: [stripe_secret_key, stripe_webhook_secret]
+
+secrets:
+  stripe_secret_key:
+    file: ${SECRETS_DIR:-./secrets}/stripe_secret_key
+  stripe_webhook_secret:
+    file: ${SECRETS_DIR:-./secrets}/stripe_webhook_secret

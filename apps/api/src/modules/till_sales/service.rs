@@ -18,7 +18,7 @@ use crate::{
         orders::{
             dto::LineInput,
             repo::{self as orders, NewOrder},
-            service as order_rules,
+            service::{self as order_rules, Priced},
         },
         settings,
         stock::{
@@ -27,7 +27,7 @@ use crate::{
         },
         till::repo::SessionRow,
         till_sales::{
-            dto::{NewSale, Payment},
+            dto::{NewQuote, NewSale, Payment, QuoteLine, QuoteResource},
             repo::{self, NewSaleRow, SaleRow},
         },
     },
@@ -62,6 +62,109 @@ async fn cash_step(
     Ok(step.unwrap_or(1))
 }
 
+/// A basket priced the way a sale books it.
+struct SalePrice {
+    currency_id: Uuid,
+    /// At the prices the till charged.
+    charged: Priced,
+    /// At today's catalog prices.
+    server: Priced,
+    mismatched: usize,
+    /// Cash rounded to the currency's step; card = total.
+    due: i64,
+}
+
+/// Price `lines` for the session's register: the till's prices, the catalog's, and what is
+/// due for `payment` (cash below due is refused). The sale and the quote both call this.
+async fn price_sale(
+    conn: &mut sqlx::PgConnection,
+    s: &SessionRow,
+    lines: &[LineInput],
+    payment: &Payment,
+) -> Result<SalePrice, AppError> {
+    let ws = s.workspace_id;
+    let (currency_id, dp) = order_rules::currency(&mut *conn, ws, Some(s.currency_id)).await?;
+    let charged = order_rules::price(&mut *conn, ws, currency_id, dp, lines, false).await?;
+    let catalog: Vec<LineInput> = lines
+        .iter()
+        .map(|l| LineInput {
+            unit_price: None,
+            ..l.clone()
+        })
+        .collect();
+    if charged.total > TOTAL_MAX {
+        return Err(AppError::field("lines", TOO_BIG));
+    }
+    let server = order_rules::price(&mut *conn, ws, currency_id, dp, &catalog, false).await?;
+    let mismatched = charged
+        .lines
+        .iter()
+        .zip(&server.lines)
+        .filter(|(c, s)| c.unit_price != s.unit_price)
+        .count();
+    let due = match payment {
+        Payment::Cash { tendered } => {
+            let code = currencies::repo::find(&mut *conn, ws, currency_id)
+                .await?
+                .map(|c| c.asset_type)
+                .unwrap_or_default();
+            let due = round_cash(charged.total, cash_step(&mut *conn, ws, &code).await?);
+            if tendered.is_some_and(|t| t < due) {
+                return Err(AppError::field("payment.tendered", TOO_LITTLE));
+            }
+            due
+        }
+        Payment::Card { .. } => charged.total,
+    };
+    Ok(SalePrice {
+        currency_id,
+        charged,
+        server,
+        mismatched,
+        due,
+    })
+}
+
+/// What a sale of `q` would book now; reads only, in a transaction that is rolled back.
+pub async fn quote(
+    state: &AppState,
+    s: &SessionRow,
+    q: NewQuote,
+) -> Result<QuoteResource, AppError> {
+    let mut tx = state.db.begin().await?;
+    let p = price_sale(&mut tx, s, &q.lines, &q.payment).await?;
+    tx.rollback().await?;
+    let tendered = match q.payment {
+        Payment::Cash { tendered } => tendered,
+        Payment::Card { .. } => None,
+    };
+    Ok(QuoteResource {
+        lines: p
+            .charged
+            .lines
+            .iter()
+            .map(|l| QuoteLine {
+                product_id: l.product_id,
+                product_variant_id: l.product_variant_id,
+                quantity: format!("{:.2}", l.quantity),
+                unit_price: l.unit_price,
+                line_excl: l.line_excl,
+                line_vat: l.line_vat,
+                line_total: l.line_excl + l.line_vat,
+            })
+            .collect(),
+        subtotal: p.charged.subtotal,
+        vat: p.charged.vat,
+        total: p.charged.total,
+        server_total: p.server.total,
+        price_mismatch: p.charged.total - p.server.total,
+        mismatched_lines: i32::try_from(p.mismatched).unwrap_or(i32::MAX),
+        due: p.due,
+        rounding: p.due - p.charged.total,
+        change: tendered.map(|t| t - p.due),
+    })
+}
+
 /// Book a till sale, or answer the one already booked under its `client_ref`. `true` when
 /// this call wrote it.
 pub async fn sell(
@@ -79,44 +182,22 @@ pub async fn sell(
         return Ok((false, found));
     }
 
-    let (currency_id, dp) = order_rules::currency(&mut tx, ws, Some(s.currency_id)).await?;
-    let charged = order_rules::price(&mut tx, ws, currency_id, dp, &sale.lines, false).await?;
-    let catalog: Vec<LineInput> = sale
-        .lines
-        .iter()
-        .map(|l| LineInput {
-            unit_price: None,
-            ..l.clone()
-        })
-        .collect();
-    if charged.total > TOTAL_MAX {
-        return Err(AppError::field("lines", TOO_BIG));
-    }
-    let server = order_rules::price(&mut tx, ws, currency_id, dp, &catalog, false).await?;
-    let mismatched = charged
-        .lines
-        .iter()
-        .zip(&server.lines)
-        .filter(|(c, s)| c.unit_price != s.unit_price)
-        .count();
-
-    let (shift_id, due, tendered, card_reference) = match &sale.payment {
+    let SalePrice {
+        currency_id,
+        charged,
+        server,
+        mismatched,
+        due,
+    } = price_sale(&mut tx, s, &sale.lines, &sale.payment).await?;
+    let (shift_id, tendered, card_reference) = match &sale.payment {
         Payment::Cash { tendered } => {
-            let code = currencies::repo::find(&mut *tx, ws, currency_id)
-                .await?
-                .map(|c| c.asset_type)
-                .unwrap_or_default();
-            let due = round_cash(charged.total, cash_step(&mut tx, ws, &code).await?);
-            if *tendered < due {
-                return Err(AppError::field("payment.tendered", TOO_LITTLE));
-            }
             cash::lock_register(&mut tx, ws, s.register_id).await?;
             let shift = cash::open_shift(&mut *tx, ws, s.register_id)
                 .await?
                 .ok_or(AppError::Conflict(NO_SHIFT))?;
-            (Some(shift.id), due, Some(*tendered), None)
+            (Some(shift.id), *tendered, None)
         }
-        Payment::Card { reference } => (None, charged.total, None, reference.as_deref()),
+        Payment::Card { reference } => (None, None, reference.as_deref()),
     };
 
     let number = order_rules::number(&mut tx, ws).await?;

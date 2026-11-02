@@ -4,7 +4,13 @@ import { describe, expect, test } from 'vitest'
 import { EnergyEstimatePanel } from '@/components/EnergyEstimatePanel'
 import '@/i18n'
 
-const mill = { ratedPowerKw: 15, quantity: 1, hoursPerDay: 6, daysPerWeek: 5 }
+// The API's preview, as numbers for display: the panel shows it and works nothing out.
+const mill = {
+  estimate: {
+    rated_power_kw: 15, quantity: 1, hours_per_day: 6, days_per_week: 5,
+    est_power_kw: 15, est_kwh_per_day: 90, est_kwh_per_week: 450,
+  },
+}
 
 describe('EnergyEstimatePanel', () => {
   test('shows the inputs it was given', () => {
@@ -35,21 +41,9 @@ describe('EnergyEstimatePanel', () => {
     expect(screen.getByTestId('estimate-basis')).toBeInTheDocument()
   })
 
-  test('recalculates when the assumptions change', () => {
-    const { rerender } = render(<EnergyEstimatePanel {...mill} />)
-    expect(screen.getByTestId('estimate-kwh-day')).toHaveTextContent('90.000 kWh')
-
-    rerender(<EnergyEstimatePanel {...mill} hoursPerDay={8} />)
-    expect(screen.getByTestId('estimate-kwh-day')).toHaveTextContent('120.000 kWh')
-    expect(screen.getByTestId('estimate-kwh-week')).toHaveTextContent('600.000 kWh')
-    // Peak power is unchanged by hours.
-    expect(screen.getByTestId('estimate-power')).toHaveTextContent('15.000 kW')
-  })
-
-  test('a blank assumption shows zero, never NaN', () => {
-    render(<EnergyEstimatePanel {...mill} hoursPerDay={Number.NaN} />)
-    expect(screen.getByTestId('estimate-kwh-day')).toHaveTextContent('0.000 kWh')
-    expect(screen.getByTestId('estimate-kwh-day')).not.toHaveTextContent(/NaN/)
+  test('shows the API figures as given, with no arithmetic of its own', () => {
+    render(<EnergyEstimatePanel estimate={{ ...mill.estimate, est_kwh_per_day: 91 }} />)
+    expect(screen.getByTestId('estimate-kwh-day')).toHaveTextContent('91.000 kWh')
   })
 
   test('figures are set for tabular alignment, since they stack', () => {

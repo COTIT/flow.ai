@@ -22,6 +22,7 @@ const product: StorefrontProduct = {
   currency: "USD",
   currency_decimals: 2,
   available_stock: "7.000",
+  images: [],
   variants: [],
 }
 

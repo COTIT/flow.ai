@@ -1,6 +1,6 @@
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type PueStatus = Database['public']['Enums']['pue_status']
+type PueStatus = Enums['pue_status']
 
 export interface EnergyRow {
   id: string

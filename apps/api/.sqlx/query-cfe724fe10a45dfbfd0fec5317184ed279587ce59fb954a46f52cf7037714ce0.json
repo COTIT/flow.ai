@@ -1,0 +1,103 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, code, name_en, name_sw, is_active, created_at, updated_at\n         FROM farm_equipment_categories\n         WHERE workspace_id = $1 AND ($2::bool IS NULL OR is_active = $2)\n         ORDER BY name_en, id LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name_en",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "name_en"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name_sw",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "name_sw"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_active",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "is_active"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_equipment_categories",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cfe724fe10a45dfbfd0fec5317184ed279587ce59fb954a46f52cf7037714ce0"
+}

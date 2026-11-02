@@ -376,6 +376,9 @@ pub struct InvoiceIndexResource {
     import_id: Option<String>,
     #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    /// Customer display name: company name, else alias, else first contact; null when none.
+    #[schema(required = true, example = "Acme")]
+    customer_name: Option<String>,
     relationships: InvoiceIndexLinks,
 }
 

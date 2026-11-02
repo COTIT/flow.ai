@@ -1,10 +1,12 @@
 //! Provider-neutral payments: create a payment intent, fetch its status, refund it. Callers
 //! (storefront checkout, the webhook drain, the sweep) only see [`Provider`]; a provider's
-//! status is never trusted from a webhook body, always re-fetched. No real provider is built
-//! yet (deferred, `docs/deferred-providers.md`): adding one = one `Provider` variant + one file.
+//! status is never trusted from a webhook body, always re-fetched. Providers: the in-process
+//! fake (debug builds) and Stripe; adding one = one `Provider` variant + one file.
 
 pub mod fake;
+pub mod stripe;
 
+use axum::http::HeaderMap;
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -71,6 +73,8 @@ pub struct NewIntent<'a> {
     pub metadata: Value,
     /// Sent to the provider so a retried create returns the same payment (our row id).
     pub idempotency_key: &'a str,
+    /// When our order stops waiting for payment; providers that can end the checkout then do.
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// A refund to create.
@@ -103,6 +107,8 @@ pub enum Error {
 pub enum Provider {
     /// In-process, scriptable, debug builds only (`PAYMENTS_PROVIDER=fake`).
     Fake(fake::Fake),
+    /// Stripe Checkout (`PAYMENTS_PROVIDER=stripe`).
+    Stripe(stripe::Stripe),
 }
 
 impl Provider {
@@ -110,6 +116,7 @@ impl Provider {
     pub fn name(&self) -> &'static str {
         match self {
             Self::Fake(_) => "fake",
+            Self::Stripe(_) => "stripe",
         }
     }
 
@@ -117,6 +124,7 @@ impl Provider {
     pub async fn create(&self, p: &NewIntent<'_>) -> Result<Intent, Error> {
         match self {
             Self::Fake(f) => f.create(p),
+            Self::Stripe(s) => s.create(p).await,
         }
     }
 
@@ -124,6 +132,7 @@ impl Provider {
     pub async fn fetch(&self, workspace_id: Uuid, id: &str) -> Result<Intent, Error> {
         match self {
             Self::Fake(f) => f.fetch(workspace_id, id),
+            Self::Stripe(s) => s.fetch(workspace_id, id).await,
         }
     }
 
@@ -131,14 +140,17 @@ impl Provider {
     pub async fn refund(&self, r: &NewRefund<'_>) -> Result<Intent, Error> {
         match self {
             Self::Fake(f) => f.refund(r),
+            Self::Stripe(s) => s.refund(r).await,
         }
     }
 
-    /// The payment or refund id a status-changed webhook names; None when the body isn't one.
-    /// Only the id is read: the status is always re-fetched.
-    pub fn webhook_id(&self, body: &[u8]) -> Option<String> {
+    /// The payment or refund id a status-changed webhook names; None when the body isn't one
+    /// or its signature fails (providers that sign check before reading the body). Only the
+    /// id is read: the status is always re-fetched.
+    pub fn webhook_id(&self, headers: &HeaderMap, body: &[u8]) -> Option<String> {
         match self {
             Self::Fake(_) => fake::webhook_id(body),
+            Self::Stripe(s) => s.webhook_id(headers, body),
         }
     }
 
@@ -151,18 +163,28 @@ impl Provider {
     ) -> Result<Intent, Error> {
         match self {
             Self::Fake(f) => f.fetch_refund(workspace_id, payment_id, refund_id),
+            Self::Stripe(s) => s.fetch_refund(workspace_id, payment_id, refund_id).await,
         }
     }
 }
 
-/// `PAYMENTS_PROVIDER`: unset or blank = none; `fake` only in debug builds (`release` false).
-pub fn select(name: Option<&str>, release: bool) -> Result<Option<Provider>, String> {
+/// `PAYMENTS_PROVIDER`: unset or blank = none; `fake` only in debug builds (`release` false);
+/// `stripe` with its settings (`Config` reads them only when it is chosen).
+pub fn select(
+    name: Option<&str>,
+    release: bool,
+    stripe: Option<stripe::Settings>,
+) -> Result<Option<Provider>, String> {
     match name.map(str::trim).filter(|n| !n.is_empty()) {
         None => Ok(None),
         Some("fake") if release => {
             Err("PAYMENTS_PROVIDER=fake is refused in a release build".into())
         }
         Some("fake") => Ok(Some(Provider::Fake(fake::Fake::default()))),
+        Some("stripe") => {
+            let settings = stripe.ok_or("PAYMENTS_PROVIDER=stripe needs its STRIPE_* settings")?;
+            Ok(Some(Provider::Stripe(stripe::Stripe::new(settings)?)))
+        }
         Some(other) => Err(format!("PAYMENTS_PROVIDER {other} is not a known provider")),
     }
 }
@@ -173,12 +195,30 @@ mod tests {
 
     #[test]
     fn select_takes_fake_in_debug_only_and_refuses_unknown_names() {
-        assert!(select(None, false).unwrap().is_none());
-        assert!(select(Some("  "), true).unwrap().is_none());
-        let fake = select(Some("fake"), false).unwrap().unwrap();
+        assert!(select(None, false, None).unwrap().is_none());
+        assert!(select(Some("  "), true, None).unwrap().is_none());
+        let fake = select(Some("fake"), false, None).unwrap().unwrap();
         assert_eq!(fake.name(), "fake");
-        assert!(select(Some("fake"), true).unwrap_err().contains("release"));
-        assert!(select(Some("mollie"), false).is_err());
+        assert!(
+            select(Some("fake"), true, None)
+                .unwrap_err()
+                .contains("release")
+        );
+        assert!(select(Some("mollie"), false, None).is_err());
+        assert!(
+            select(Some("stripe"), true, None)
+                .unwrap_err()
+                .contains("STRIPE_")
+        );
+        let settings = stripe::Settings {
+            api_url: stripe::API_URL.into(),
+            secret_key: "sk_test_x".into(),
+            webhook_secret: "whsec_x".into(),
+        };
+        let s = select(Some("stripe"), true, Some(settings))
+            .unwrap()
+            .unwrap();
+        assert_eq!(s.name(), "stripe");
     }
 
     #[test]

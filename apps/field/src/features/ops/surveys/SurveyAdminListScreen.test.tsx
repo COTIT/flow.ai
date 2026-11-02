@@ -61,6 +61,13 @@ const survey = (over: Record<string, unknown> = {}) => ({
   closes_at: null,
   published_at: '2026-09-20T08:00:00Z',
   created_at: '2026-09-19T08:00:00Z',
+  summary: {
+    issued: { count: 3, minor: 1500000 },
+    redeemed: { count: 2, minor: 1000000 },
+    outstanding: { count: 1, minor: 500000 },
+    expired_count: 0,
+    void_count: 0,
+  },
   ...over,
 })
 
@@ -117,11 +124,17 @@ describe('the survey table', () => {
     expect(within(row).getByTestId('survey-responses')).toHaveTextContent('3')
   })
 
-  // shortcut in the screen: the list has no per-survey voucher sums yet.
-  test('no redeemed or outstanding figures are invented for the list', () => {
+  test("shows the API's collected and not-yet-collected sums per survey", () => {
     render(<SurveyAdminListScreen />)
-    expect(screen.queryByTestId('survey-redeemed')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('survey-outstanding')).not.toBeInTheDocument()
+    const row = screen.getByTestId('survey-row')
+    expect(within(row).getByTestId('survey-redeemed').textContent).toMatch(/^2 · TZS\s10,000\.00$/)
+    expect(within(row).getByTestId('survey-outstanding').textContent).toMatch(/^1 · TZS\s5,000\.00$/)
+  })
+
+  test('no sums is shown as unknown, never 0', () => {
+    useSurveyAdminList.mockReturnValue({ isLoading: false, error: null, data: [survey({ summary: null })], refetch: vi.fn() })
+    render(<SurveyAdminListScreen />)
+    expect(screen.getByTestId('survey-redeemed')).toHaveTextContent('—')
   })
 
   test('the title is chosen by language at render', async () => {
@@ -203,7 +216,12 @@ describe('authoring controls', () => {
     await userEvent.click(screen.getByTestId('survey-new-submit'))
 
     expect(mutateAsync).toHaveBeenCalledTimes(1)
-    expect(mutateAsync.mock.calls[0][0]).toEqual({ title_en: 'Water use', reward_minor: 500000, currency_id: 'c-tzs' })
+    expect(mutateAsync.mock.calls[0][0]).toEqual({
+      id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+      title_en: 'Water use',
+      reward_minor: 500000,
+      currency_id: 'c-tzs',
+    })
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith({ to: '/ops/surveys/$surveyId', params: { surveyId: 'new-id' } }),
     )
@@ -245,6 +263,23 @@ describe('authoring controls', () => {
     fireEvent.submit(form)
 
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
+  })
+
+  // The id is made when the form opens, so a retry after a lost reply gets the same survey back.
+  test('a retry after a failed write sends the same client id', async () => {
+    asAdmin()
+    mutateAsync.mockRejectedValueOnce(new Error('network'))
+    render(<SurveyAdminListScreen />)
+    await userEvent.click(screen.getByTestId('survey-create-open'))
+    await userEvent.type(screen.getByTestId('survey-new-title'), 'Water use')
+    await userEvent.type(screen.getByTestId('survey-new-reward'), '5000')
+
+    await userEvent.click(screen.getByTestId('survey-new-submit'))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1))
+    await userEvent.click(screen.getByTestId('survey-new-submit'))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2))
+
+    expect(mutateAsync.mock.calls[1][0].id).toBe(mutateAsync.mock.calls[0][0].id)
   })
 
   test('the API refusal is shown', async () => {

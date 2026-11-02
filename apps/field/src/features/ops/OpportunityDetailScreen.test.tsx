@@ -22,11 +22,6 @@ vi.mock('@/lib/drafts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/drafts')>()
   return { ...actual, indexedDbDraftStore: actual.createMemoryDraftStore() }
 })
-// Names resolve through app_actor_names; here, a fixed map.
-const actorNames: Record<string, string> = { 'u-ops': 'Fixture Ops' }
-vi.mock('@/lib/actorNames', () => ({
-  useActorName: (id: string | null | undefined) => (id ? actorNames[id] : undefined),
-}))
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useParams: () => ({ opportunityId: 'o1' }) }),
   Link: ({ children }: { children: React.ReactNode }) => <a href="#x">{children}</a>,
@@ -86,7 +81,8 @@ const opportunity = (over: Record<string, unknown> = {}) => ({
       person_id: 'p1',
       plot_label: 'Kipande cha juu',
       crop_name: 'Maize',
-      captured_by: 'u-ops',
+      // The API embeds the attacher's name.
+      captured_by: 'Fixture Ops',
       captured_at: '2026-10-01T09:30:00Z',
     },
   ],
@@ -100,6 +96,12 @@ const loaded = (over: Record<string, unknown> = {}) =>
     opportunity: opportunity(over),
     refetch: vi.fn(),
   })
+
+/** Attaching cannot be undone, so it goes through a confirmation. */
+function confirmAttach() {
+  const confirm = screen.queryByTestId('confirm-dialog-confirm')
+  if (confirm) fireEvent.click(confirm)
+}
 
 async function chooseHarvest(label: RegExp = /4,100/) {
   await userEvent.click(screen.getByTestId('attach-harvest'))
@@ -330,21 +332,12 @@ describe('each supply line says who attached it', () => {
     expect(screen.getByRole('columnheader', { name: 'Attached by' })).toBeInTheDocument()
   })
 
-  // Seeded lines were written with no signed-in actor, and a name the caller
-  // may not see is zero rows: both are a dash, never a raw id.
-  test('no recorded attacher, or a name not returned, is a dash', () => {
-    loaded({
-      supply: [
-        { ...opportunity().supply[0], captured_by: null },
-        { ...opportunity().supply[0], harvest_report_id: 'h2', captured_by: 'u-hidden' },
-      ],
-    })
+  // A line the API names nobody for is a dash, never a raw id.
+  test('no named attacher is a dash', () => {
+    loaded({ supply: [{ ...opportunity().supply[0], captured_by: null }] })
     render(<OpportunityDetailScreen />)
 
-    const cells = screen.getAllByTestId('supply-attached-by')
-    expect(cells[0]).toHaveTextContent(/^—/)
-    expect(cells[1]).toHaveTextContent(/^—/)
-    expect(cells[1]).not.toHaveTextContent('u-hidden')
+    expect(screen.getByTestId('supply-attached-by')).toHaveTextContent(/^—/)
   })
 })
 
@@ -520,6 +513,7 @@ describe('the contribution has to be a contribution', () => {
     if (harvest) await chooseHarvest()
     fireEvent.change(screen.getByTestId('attach-kg'), { target: { value: kg } })
     fireEvent.click(screen.getByTestId('attach-submit'))
+    confirmAttach()
   }
 
   test('zero kilograms is refused inline, not by the database', async () => {
@@ -570,9 +564,23 @@ describe('the contribution has to be a contribution', () => {
     expect(attachMutateAsync.mock.calls[0][0]).toEqual({
       id: expect.stringMatching(/^[0-9a-f-]{36}$/),
       harvestReportId: 'h9',
-      cropCycleId: 'cy9',
-      contributedKg: 1600,
+      // As typed: kg travel as decimal text, never through a float.
+      contributedKg: '1600',
     })
+  })
+
+  // Supply lines are never edited or detached, so attaching asks first.
+  test('attaching asks first; cancelling sends nothing', async () => {
+    withHarvest()
+    render(<OpportunityDetailScreen />)
+    await chooseHarvest()
+    fireEvent.change(screen.getByTestId('attach-kg'), { target: { value: '1600' } })
+    fireEvent.click(screen.getByTestId('attach-submit'))
+
+    expect(screen.getByTestId('confirm-dialog')).toHaveTextContent(/1,600\.00 kg/)
+    fireEvent.click(screen.getByTestId('confirm-dialog-cancel'))
+    expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+    expect(attachMutateAsync).not.toHaveBeenCalled()
   })
 
   /**
@@ -586,7 +594,7 @@ describe('the contribution has to be a contribution', () => {
     withHarvest()
     await attach('99999')
 
-    expect(attachMutateAsync.mock.calls[0][0]).toMatchObject({ contributedKg: 99999 })
+    expect(attachMutateAsync.mock.calls[0][0]).toMatchObject({ contributedKg: '99999' })
   })
 
   test('the error clears once the figure is fixed', async () => {
@@ -599,6 +607,7 @@ describe('the contribution has to be a contribution', () => {
 
     fireEvent.change(screen.getByTestId('attach-kg'), { target: { value: '1600' } })
     fireEvent.click(screen.getByTestId('attach-submit'))
+    confirmAttach()
 
     expect(screen.queryByTestId('attach-kg-error')).not.toBeInTheDocument()
     expect(attachMutateAsync).toHaveBeenCalledTimes(1)
@@ -644,8 +653,9 @@ describe('attaching supply is a real form', () => {
     await chooseHarvest()
     fireEvent.change(screen.getByTestId('attach-kg'), { target: { value: '1600' } })
     fireEvent.submit(screen.getByTestId('attach-submit').closest('form')!)
+    confirmAttach()
 
-    expect(attachMutateAsync.mock.calls[0][0]).toMatchObject({ contributedKg: 1600 })
+    expect(attachMutateAsync.mock.calls[0][0]).toMatchObject({ contributedKg: '1600' })
   })
 
   // QA #23. A second submit while the first is in flight is a duplicate write,
@@ -675,6 +685,9 @@ describe('attaching supply is a real form', () => {
     const form = screen.getByTestId('attach-submit').closest('form')!
     fireEvent.submit(form)
     fireEvent.submit(form)
+    const confirm = screen.getByTestId('confirm-dialog-confirm')
+    fireEvent.click(confirm)
+    fireEvent.click(confirm)
 
     expect(attachMutateAsync).toHaveBeenCalledTimes(1)
   })
@@ -699,6 +712,7 @@ describe('the supply draft after a confirmed save', () => {
     await waitFor(async () => expect(await indexedDbDraftStore.get(key)).toMatchObject({ values: { contributed_kg: '1600' } }))
 
     fireEvent.submit(screen.getByTestId('attach-submit').closest('form')!)
+    confirmAttach()
     expect(attachMutateAsync).toHaveBeenCalledTimes(1)
     unmount()
     await act(async () => resolve())

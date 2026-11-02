@@ -17,16 +17,16 @@ vi.mock('@tanstack/react-router', () => ({
 const { EquipmentListScreen } = await import('@/features/farmer/EquipmentListScreen')
 await import('@/i18n')
 
+const tzs = (minor: number) => ({ minor, currency: 'TZS', decimals: 2, currency_id: 'c1' })
 const machine = (over: Record<string, unknown> = {}) => ({
   id: 'eq1',
   name: 'Maize mill',
   category_name: 'Milling',
   rated_power_kw: 15,
-  indicative_price: 22000000,
-  indicative_rent_per_day: 150000,
+  indicative_price: tzs(2200000000),
+  indicative_rent_per_day: tzs(15000000),
   can_rent: true,
   can_buy: true,
-  currency: 'TZS',
   ...over,
 })
 
@@ -35,15 +35,15 @@ const loan = {
   code: 'INPUT',
   name: 'Input loan',
   description: 'Seed and fertiliser for a season.',
-  indicative_min_amount: 200000,
-  indicative_max_amount: 1500000,
-  currency: 'TZS',
+  indicative_min: tzs(20000000),
+  indicative_max: tzs(150000000),
 }
 
 beforeEach(() => {
   search.kind = undefined
   navigate.mockReset()
   useEquipmentList.mockReturnValue({ isLoading: false, error: null, items: [machine()] })
+  useLoanProducts.mockReset()
   useLoanProducts.mockReturnValue({ isLoading: false, error: null, items: [loan] })
 })
 

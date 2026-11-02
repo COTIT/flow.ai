@@ -661,3 +661,115 @@ async fn an_order_becomes_one_draft_invoice_without_moving_stock(pool: PgPool) {
     let (s, _) = act(&w, &fresh, "invoice").await;
     assert_eq!(s, StatusCode::CONFLICT, "drafts aren't invoiced");
 }
+
+const ACTIONS: [&str; 7] = [
+    "confirm", "pick", "complete", "cancel", "return", "refund", "invoice",
+];
+
+/// Try `action` with a well-formed body, so a refusal comes from the order's state.
+async fn try_action(w: &W, id: &str, action: &str) -> StatusCode {
+    let lines = line_ids(w, id).await;
+    let one = |q: &str| json!({ "lines": [{ "line_id": lines[0], "quantity": q }] });
+    let (path, body) = match action {
+        "pick" => ("pick", Some(one("0"))),
+        "return" => ("returns", Some(one("1"))),
+        "refund" => ("refunds", Some(json!({ "amount": 1 }))),
+        a => (a, None),
+    };
+    call(w, Method::POST, &format!("/{id}/{path}"), body)
+        .await
+        .0
+}
+
+/// `allowed_actions` lists exactly `want`, and every other action is refused.
+async fn allows(w: &W, id: &str, want: &[&str]) {
+    let (_, o) = call(w, Method::GET, &format!("/{id}"), None).await;
+    let got: Vec<&str> = o["data"]["allowed_actions"]
+        .as_array()
+        .unwrap_or_else(|| panic!("no allowed_actions: {o}"))
+        .iter()
+        .map(|a| a.as_str().unwrap())
+        .collect();
+    assert_eq!(got, want, "{}", o["data"]["status"]);
+    let (_, page) = call(w, Method::GET, "", None).await;
+    let row = page["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == id)
+        .unwrap();
+    assert_eq!(row["allowed_actions"], o["data"]["allowed_actions"], "list");
+    for a in ACTIONS.iter().filter(|a| !want.contains(a)) {
+        let s = try_action(w, id, a).await;
+        assert!(s.is_client_error(), "{a} not listed but answered {s}");
+    }
+}
+
+/// Mark the order paid `amount` through a fake provider payment; its id.
+async fn paid_sql(w: &W, id: &str) -> String {
+    sqlx::query_scalar(
+        "WITH o AS (UPDATE orders SET paid_at = now() WHERE id = $1::uuid
+                    RETURNING workspace_id, id, total)
+         INSERT INTO order_payments (workspace_id, order_id, kind, provider, provider_id, amount,
+                                     currency, status)
+         SELECT workspace_id, id, 'payment', 'fake', 'fk_' || id, total, 'EUR', 'paid' FROM o
+         RETURNING id::text",
+    )
+    .bind(id)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap()
+}
+
+#[sqlx::test]
+async fn allowed_actions_are_what_the_api_accepts(pool: PgPool) {
+    let w = world(pool).await;
+    let rel = w
+        .api
+        .with_base("/relations")
+        .create(
+            json!({ "company_name": "Shop BV", "type": "business" }),
+            "relation_id",
+        )
+        .await;
+    let with_relation = async |id: &str| {
+        let body = Some(json!({ "relation_id": rel }));
+        call(&w, Method::PATCH, &format!("/{id}"), body).await;
+    };
+
+    // Draft without a relation: invoicing needs one, and a draft can't be invoiced anyway.
+    let id = draft(&w, json!([line(&w.honey, "2")])).await;
+    allows(&w, &id, &["confirm", "cancel"]).await;
+    act(&w, &id, "cancel").await;
+    allows(&w, &id, &[]).await;
+
+    // Open, not picked: no complete. Then picked.
+    let id = draft(&w, json!([line(&w.honey, "2")])).await;
+    act(&w, &id, "confirm").await;
+    allows(&w, &id, &["pick", "cancel"]).await;
+    with_relation(&id).await;
+    allows(&w, &id, &["pick", "cancel", "invoice"]).await;
+    pick_all(&w, &id).await;
+    allows(&w, &id, &["pick", "complete", "cancel", "invoice"]).await;
+    act(&w, &id, "complete").await;
+    allows(&w, &id, &["return", "invoice"]).await;
+    act(&w, &id, "invoice").await;
+    allows(&w, &id, &["return"]).await;
+
+    // Paid: cancel needs a refund first; refunded in full: cancel again, nothing to refund.
+    let id = draft(&w, json!([line(&w.wax, "1")])).await;
+    act(&w, &id, "confirm").await;
+    let pay = paid_sql(&w, &id).await;
+    allows(&w, &id, &["pick", "refund"]).await;
+    sqlx::query(
+        "INSERT INTO order_payments (workspace_id, order_id, kind, provider, provider_id,
+                                     parent_id, amount, currency, status)
+         SELECT workspace_id, order_id, 'refund', 'fake', 'fr_1', id, amount, 'EUR', 'refunded'
+         FROM order_payments WHERE id = $1::uuid",
+    )
+    .bind(&pay)
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+    allows(&w, &id, &["pick", "cancel"]).await;
+}

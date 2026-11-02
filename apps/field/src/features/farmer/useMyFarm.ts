@@ -5,13 +5,13 @@ import type { Provenance as ApiProvenance } from '@genesy/api-client/model'
 
 import { useSession } from '@/app/session'
 import { workspaceId } from '@/app/workspace'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 import { queryKeys } from '@/lib/queryKeys'
 
 type Provenance = {
-  source: Database['public']['Enums']['source_type']
-  verification: Database['public']['Enums']['verification_status']
-  confidence: Database['public']['Enums']['confidence_level'] | null
+  source: Enums['source_type']
+  verification: Enums['verification_status']
+  confidence: Enums['confidence_level'] | null
   captured_at: string
 }
 

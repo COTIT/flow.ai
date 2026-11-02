@@ -37,6 +37,7 @@ import type {
   FarmCorrection,
   FarmRecordsCropCyclesListParams,
   FarmRecordsFarmsListParams,
+  FarmRecordsHarvestReportsAllParams,
   FarmRecordsHarvestReportsListParams,
   FarmRecordsHouseholdsListParams,
   FarmRecordsPersonsListParams,
@@ -932,6 +933,107 @@ export const useFarmRecordsFarmsVerify = <TError = ErrorType<MessageBody>,
       return useMutation(getFarmRecordsFarmsVerifyMutationOptions(options), queryClient);
     }
     /**
+ * The verify queue. Newest first. Same visibility as the cycles: ops and admin all, field officers their villages, a farmer the cycles on their own farms.
+ * @summary List harvest figures across cycles
+ */
+export const farmRecordsHarvestReportsAll = (
+    workspace: string,
+    params?: FarmRecordsHarvestReportsAllParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedHarvestReportResource>(
+      {url: `/workspace/${workspace}/farm/harvest-reports`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmRecordsHarvestReportsAllQueryKey = (workspace: string,
+    params?: FarmRecordsHarvestReportsAllParams,) => {
+    return [
+    `/workspace/${workspace}/farm/harvest-reports`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getFarmRecordsHarvestReportsAllQueryOptions = <TData = Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: FarmRecordsHarvestReportsAllParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmRecordsHarvestReportsAllQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>> = ({ signal }) => farmRecordsHarvestReportsAll(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmRecordsHarvestReportsAllQueryResult = NonNullable<Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>>
+export type FarmRecordsHarvestReportsAllQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useFarmRecordsHarvestReportsAll<TData = Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  FarmRecordsHarvestReportsAllParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>,
+          TError,
+          Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmRecordsHarvestReportsAll<TData = Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmRecordsHarvestReportsAllParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>,
+          TError,
+          Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmRecordsHarvestReportsAll<TData = Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmRecordsHarvestReportsAllParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List harvest figures across cycles
+ */
+
+export function useFarmRecordsHarvestReportsAll<TData = Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmRecordsHarvestReportsAllParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmRecordsHarvestReportsAll>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmRecordsHarvestReportsAllQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Verify a harvest figure
  */
 export const farmRecordsHarvestReportsVerify = (

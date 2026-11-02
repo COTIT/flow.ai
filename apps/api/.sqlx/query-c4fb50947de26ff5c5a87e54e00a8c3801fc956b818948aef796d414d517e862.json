@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n             (SELECT count(*) FROM farm_persons p WHERE p.workspace_id = $1 AND p.village_id = $2\n                AND p.deleted_at IS NULL) AS \"persons!\",\n             (SELECT count(*) FROM farm_persons p WHERE p.workspace_id = $1 AND p.village_id = $2\n                AND p.deleted_at IS NULL AND p.verification = 'verified') AS \"persons_verified!\",\n             (SELECT count(*) FROM farms f WHERE f.workspace_id = $1 AND f.village_id = $2\n                AND f.deleted_at IS NULL) AS \"farms!\",\n             (SELECT count(*) FROM farms f WHERE f.workspace_id = $1 AND f.village_id = $2\n                AND f.deleted_at IS NULL AND f.latitude IS NOT NULL) AS \"farms_with_gps!\",\n             (SELECT count(*) FROM farm_crop_cycles c WHERE c.workspace_id = $1 AND c.village_id = $2\n                AND c.deleted_at IS NULL) AS \"cycles!\",\n             (SELECT count(*) FROM farm_crop_cycles c WHERE c.workspace_id = $1 AND c.village_id = $2\n                AND c.deleted_at IS NULL AND EXISTS (\n                    SELECT 1 FROM farm_harvest_reports h WHERE h.crop_cycle_id = c.id\n                      AND h.kind = 'expected' AND h.is_current AND h.deleted_at IS NULL))\n               AS \"cycles_with_estimate!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "persons!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "persons_verified!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "farms!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "farms_with_gps!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "cycles!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "cycles_with_estimate!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c4fb50947de26ff5c5a87e54e00a8c3801fc956b818948aef796d414d517e862"
+}

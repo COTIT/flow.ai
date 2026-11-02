@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_opportunities SET updated_at = now(), offered_quantity_kg =\n             (SELECT coalesce(sum(contributed_kg), 0) FROM farm_opportunity_supply\n              WHERE opportunity_id = $1)\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3e2264f86edd6ae244075e6dc22623f0dd76a4f8b73cecaa4c586e0671428d75"
+}

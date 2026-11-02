@@ -10,7 +10,6 @@ import { useMyFarm } from '@/features/farmer/useMyFarm'
 import { useMyRequests } from '@/features/farmer/useRequests'
 import { useSurveyBadgeCount } from '@/features/farmer/useSurveyEligibility'
 import { resourcesEnabled } from '@/lib/features'
-import { isPorted } from '@/lib/ported'
 
 type LinkTo = Parameters<typeof Link>[0]['to']
 
@@ -109,14 +108,12 @@ export function FarmHomeScreen() {
       </section>
       </Card>
 
-      {/* shortcut: the API has no opportunities or PUE requests yet; these cards stay hidden until their screens are ported. */}
-      {isPorted('/farm/opportunities') && <OpportunitiesCard />}
-      {resourcesEnabled && isPorted('/farm/requests') && <LatestRequestCard />}
+      <OpportunitiesCard />
+      {resourcesEnabled && <LatestRequestCard />}
     </section>
   )
 }
 
-/** Mounted only once its screen is on the API, so its query never runs before. */
 function OpportunitiesCard() {
   const { t } = useTranslation()
   const opportunities = useFarmerOpportunities()

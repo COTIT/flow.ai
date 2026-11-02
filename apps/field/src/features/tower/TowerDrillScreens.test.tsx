@@ -30,7 +30,7 @@ beforeEach(() => {
   scope.mockReset()
   production.mockReset(); productionRows.mockReset(); energy.mockReset(); energyRows.mockReset(); market.mockReset()
   scope.mockReturnValue({ data: { villages: { v1: 'Ilundo' } } })
-  production.mockReturnValue({ isLoading: false, error: null, data: [{ crop_id: 'c1', crop_name: 'Maize', window_month: '2026-09-01', expected_kg: 12000, actual_kg: null }] })
+  production.mockReturnValue({ isLoading: false, error: null, data: [{ crop_id: 'c1', crop_name: 'Maize', window_month: '2026-09-01', expected_kg: 12000, actual_kg: null, cycle_area_ha: 4.9 }] })
   productionRows.mockReturnValue({ isLoading: false, error: null, data: [{ id: 'cycle1', crop_name: 'Maize', person_id: 'p1', farmer: 'Neema', plot_label: 'Kipande', harvest_start: '2026-09-01', harvest_end: '2026-09-30', area_ha: 1.2, expected_kg: 12000, actual_kg: null }] })
   energy.mockReturnValue({ isLoading: false, error: null, data: { prospective_kw_raw: 12, approved_kw_raw: 15, simultaneity_factor: 0.6, prospective_peak_kw: 7.2, approved_peak_kw: 9 } })
   energyRows.mockReturnValue({ isLoading: false, error: null, data: [{ id: 'r1', applicant: 'Baraka', equipment_name: 'Dryer', status: 'under_review', est_power_kw: 12 }] })
@@ -45,6 +45,15 @@ describe('Tower drill-down screens', () => {
     expect(screen.getByRole('link', { name: /Back to the Tower/ })).toHaveAttribute('href', '/ops/tower')
     expect(screen.getByTestId('production-table').parentElement).toHaveClass('overflow-x-auto')
     expect(screen.getByTestId('production-table').closest('section')?.parentElement).toHaveClass('w-full')
+  })
+
+  // The API's cycle_area_ha is a sum of cycle areas, never land: it is labelled so where it is shown.
+  test('production shows each group\'s cycle area with its "sum of cycle areas" label', () => {
+    render(<TowerProductionScreen />)
+    const group = screen.getByTestId('production-group')
+    expect(group).toHaveTextContent('4.9000 ha')
+    expect(group).toHaveTextContent(/planted area across cycles/i)
+    expect(screen.getByText(/the sum of cycle areas/i)).toBeInTheDocument()
   })
 
   test('energy keeps prospective and approved figures in separate groups', () => {

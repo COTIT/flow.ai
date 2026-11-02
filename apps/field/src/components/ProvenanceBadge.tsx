@@ -4,11 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { ConfidenceMeter, VerificationMark } from '@/components/marks'
 
 import { formatTimestamp } from '@/lib/format'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type SourceType = Database['public']['Enums']['source_type']
-type VerificationStatus = Database['public']['Enums']['verification_status']
-type ConfidenceLevel = Database['public']['Enums']['confidence_level']
+type SourceType = Enums['source_type']
+type VerificationStatus = Enums['verification_status']
+type ConfidenceLevel = Enums['confidence_level']
 
 export interface ProvenanceBadgeProps {
   source: SourceType

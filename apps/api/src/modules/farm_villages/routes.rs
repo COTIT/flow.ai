@@ -9,4 +9,5 @@ pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::list, handlers::create))
         .routes(routes!(handlers::update))
+        .routes(routes!(handlers::add_capacity))
 }

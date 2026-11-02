@@ -3,19 +3,22 @@
 
 use axum::{
     Json,
-    extract::{Path, Query, State},
-    http::StatusCode,
+    extract::{FromRequestParts, Path, Query, State},
+    http::{StatusCode, request::Parts},
 };
 
 use crate::{
     AppState,
     error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
+        farm::{ADMIN, OPS},
         json::ValidatedJson,
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
-        workspace::{Can, WorkspaceAccess, permissions},
+        workspace::{Can, NOT_ALLOWED, Permission, WorkspaceAccess, permissions},
     },
+    idempotency::{Answer, Keyed},
+    modules::farm_memberships::repo::live_roles,
     modules::supply_chain::{
         dto::{
             DispatchRequest, ListQuery, PackedLotResource, PackingRequest, ReceiveRequest,
@@ -65,28 +68,49 @@ pub async fn pack(
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("lot" = Uuid, Path, description = "Lot id"),
+        ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer; another request under the key is a 422. Kept for a day."),
     ),
     request_body = DispatchRequest,
     responses(
-        (status = 201, body = Envelope<SupplyTransferResource>, description = "Dispatched"),
-        (status = 403, body = MessageBody, description = "No `product.update`, or the link is not live"),
+        (status = 201, body = Envelope<SupplyTransferResource>, description = "Dispatched (or the first answer again, for a retried Idempotency-Key)"),
+        (status = 403, body = MessageBody, description = "Neither `product.update` nor farm ops/admin, or the link is not live"),
         (status = 404, body = MessageBody, description = "Unknown lot, or another workspace's"),
-        (status = 422, body = UnprocessableBody, description = "Invalid input, unknown link, not enough stock, or not a supply lot"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input or Idempotency-Key, key reused for another request, unknown link, not enough stock, or not a supply lot"),
     ),
     security(("bearer" = []))
 )]
 pub async fn dispatch(
     State(state): State<AppState>,
-    access: Can<ProductUpdate>,
+    Shipper(access): Shipper,
     Path((_, id)): Path<(String, String)>,
-    ValidatedJson(d): ValidatedJson<DispatchRequest>,
-) -> Result<(StatusCode, Data<SupplyTransferResource>), AppError> {
-    let t = service::dispatch(&state, &access, &id, d).await?;
-    let ws = access.workspace_id;
-    Ok((
-        StatusCode::CREATED,
-        Data(SupplyTransferResource::new(t, ws)),
-    ))
+    Keyed { input, key }: Keyed<DispatchRequest>,
+) -> Result<Answer, AppError> {
+    service::dispatch(&state, &access, &id, input, key).await
+}
+
+/// Who may ship lot stock: `product.update`, or farm ops/admin (farm staff ship without
+/// catalogue rights). Checked before the body, so a stranger gets 403 before any 422.
+pub struct Shipper(WorkspaceAccess);
+
+impl FromRequestParts<AppState> for Shipper {
+    type Rejection = AppError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, AppError> {
+        let access = WorkspaceAccess::from_request_parts(parts, state).await?;
+        let farm_ops = || async {
+            let roles = live_roles(&state.db, access.workspace_id, access.user_id).await?;
+            Ok::<_, AppError>(
+                roles
+                    .iter()
+                    .any(|r| [OPS, ADMIN].contains(&r.role.as_str())),
+            )
+        };
+        if access.allows(ProductUpdate::NAME) || farm_ops().await? {
+            Ok(Self(access))
+        } else {
+            Err(AppError::Forbidden(NOT_ALLOWED))
+        }
+    }
 }
 
 /// GET /supply-transfers -> `{data:[...], meta}`.

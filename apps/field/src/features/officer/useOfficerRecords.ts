@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { farmCropsList } from '@genesy/api-client/endpoints/farm-crops'
 import {
   farmRecordsCropCyclesGet,
   farmRecordsFarmsGet,
@@ -17,9 +16,8 @@ import { apiStatus } from '@/lib/apiError'
 import { queryKeys } from '@/lib/queryKeys'
 import { isUuid } from '@/lib/ids'
 import { localisedName, type LocalisedNames } from '@/lib/names'
-import type { Database } from '@/lib/db.types'
+import type { Enums } from '@/lib/enums'
 
-type Enums = Database['public']['Enums']
 
 interface Provenance {
   source: Enums['source_type']
@@ -131,8 +129,6 @@ export async function fetchCycleDetail(cycleId: string): Promise<CycleRow | null
   if (!isUuid(cycleId)) return null
 
   const workspace = workspaceId()
-  // shortcut: one page each (100 crops, 100 figures in the series) — plenty for a cycle; read more
-  // pages, or ask the API for a cycle embed (crop names, plot label, series), if either ever runs out.
   let cycle
   try {
     cycle = (await farmRecordsCropCyclesGet(workspace, cycleId)).data
@@ -141,14 +137,12 @@ export async function fetchCycleDetail(cycleId: string): Promise<CycleRow | null
     if (apiStatus(error) === 404) return null
     throw error
   }
-  const [plot, series, crops] = await Promise.all([
+  const [plot, series] = await Promise.all([
     farmRecordsPlotsGet(workspace, cycle.plot_id),
-    farmRecordsHarvestReportsList(workspace, cycleId, { page_size: 100 }),
-    farmCropsList(workspace, { page_size: 100 }),
+    allPages((params) => farmRecordsHarvestReportsList(workspace, cycleId, params)),
   ])
-  const crop = crops.data.find((row) => row.id === cycle.crop_id)
 
-  const harvests = series.data
+  const harvests = series
     .map((h) => ({
       ...provenanceOf(h.provenance),
       id: h.id,
@@ -172,7 +166,7 @@ export async function fetchCycleDetail(cycleId: string): Promise<CycleRow | null
     village_id: cycle.village_id,
     // Both names, so the cache holds both and the language is chosen at
     // render — QA #31.
-    crop: crop ? { name_en: crop.name_en, name_sw: crop.name_sw } : null,
+    crop: { name_en: cycle.crop.name_en, name_sw: cycle.crop.name_sw },
     season_label: cycle.season_label,
     status: cycle.status as Enums['crop_cycle_status'],
     area_ha: cycle.area_ha === null ? null : Number(cycle.area_ha),

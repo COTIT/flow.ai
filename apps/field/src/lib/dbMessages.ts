@@ -11,20 +11,20 @@ import { localiseDbDate } from '@/lib/format'
  * carrying every value it had (a question number, a date, a name), and
  * anything else falls through to verbatim.
  *
- * Each rule records `sql`, the literal it was written against.
- * `dbMessages.test.ts` fails if that literal leaves the migrations, so a
+ * Each rule records `source`, the literal it was written against.
+ * `dbMessages.test.ts` fails if that literal leaves the API's Rust sources, so a
  * reworded message cannot stop matching in silence and drop a Swahili farmer
  * back to English.
  *
  * Scope: the farmer surface, and the officer's registration, verification,
- * login-card and voucher-redemption messages, from the 29 Sep migrations.
+ * login-card and voucher-redemption messages, as the Genesy API words them.
  * Everything else is still verbatim.
  */
 export interface DbMessageRule {
   /** i18n key the message resolves to. */
   key: string
-  /** The literal in the migrations this rule matches. */
-  sql: string
+  /** The literal in the Genesy API (apps/api/src) this rule matches. */
+  source: string
   /** Anchored: the whole message has to match. */
   pattern: RegExp
   /** Interpolation values, from the pattern's capture groups. */
@@ -39,20 +39,20 @@ export interface TranslatedDbMessage {
 }
 
 /** A fixed sentence: exact text, no values. */
-function fixed(key: string, text: string, sql = text): DbMessageRule {
+function fixed(key: string, text: string, source = text): DbMessageRule {
   return {
     key,
-    sql,
+    source,
     pattern: new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
     example: text,
   }
 }
 
 /** "question N …": the position is what tells a farmer which answer to fix. */
-function question(key: string, tail: string, sql: string): DbMessageRule {
+function question(key: string, tail: string, source: string): DbMessageRule {
   return {
     key,
-    sql,
+    source,
     pattern: new RegExp(`^question (\\d+)${tail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
     values: (m) => ({ position: m[1] }),
     example: `question 7${tail}`,
@@ -80,13 +80,12 @@ export const DB_MESSAGE_RULES: DbMessageRule[] = [
   fixed('dbError.surveyLimitReached', 'this survey has reached its limit'),
 
   // ── survey submission (app_survey_submit) ──
-  fixed('dbError.signInFirst', 'sign in first'),
-  question('dbError.questionRequired', ' is required', 'question % is required'),
-  question('dbError.questionChooseOne', ': choose one of the listed options', 'question %: choose one of the listed options'),
-  question('dbError.questionChooseSome', ': choose from the listed options', 'question %: choose from the listed options'),
-  question('dbError.questionEnterNumber', ': enter a number', 'question %: enter a number'),
-  question('dbError.questionTooLong', ': answer in at most 2000 characters', 'question %: answer in at most 2000 characters'),
-  question('dbError.questionYesNo', ': answer yes or no', 'question %: answer yes or no'),
+  question('dbError.questionRequired', ' is required', 'question {position} is required'),
+  question('dbError.questionChooseOne', ': choose one of the listed options', '"choose one of the listed options"'),
+  question('dbError.questionChooseSome', ': choose from the listed options', '"choose from the listed options"'),
+  question('dbError.questionEnterNumber', ': enter a number', '"enter a number"'),
+  question('dbError.questionTooLong', ': answer in at most 2000 characters', '"answer in at most 2000 characters"'),
+  question('dbError.questionYesNo', ': answer yes or no', '"answer yes or no"'),
   // Developer-facing: a retry guard and a shape check. A farmer cannot act on
   // them, so they read as the generic error.
   fixed('error.unexpected', 'client_ref is required so a retry cannot answer twice'),
@@ -102,28 +101,28 @@ export const DB_MESSAGE_RULES: DbMessageRule[] = [
     // The database names nobody when it has no name to give, and says so in
     // English. That fallback must not be printed inside a Swahili sentence.
     key: 'dbError.voucherAlreadyRedeemedByOther',
-    sql: "'voucher already redeemed on %s by %s'",
+    source: '"another staff member"',
     pattern: /^voucher already redeemed on (.+) by another staff member$/,
     values: (m) => ({ date: localiseDbDate(m[1]) }),
     example: 'voucher already redeemed on 05 Sep 2026 14:30 by another staff member',
   },
   {
     key: 'dbError.voucherAlreadyRedeemed',
-    sql: "'voucher already redeemed on %s by %s'",
+    source: '"voucher already redeemed on {} by {}"',
     pattern: /^voucher already redeemed on (.+?) by (.+)$/,
     values: (m) => ({ date: localiseDbDate(m[1]), name: m[2] }),
     example: 'voucher already redeemed on 05 Sep 2026 14:30 by Salima Officer',
   },
   {
     key: 'dbError.voucherVoided',
-    sql: "'this voucher was voided: '",
+    source: '"this voucher was voided: {}"',
     pattern: /^this voucher was voided: ([\s\S]*)$/,
     values: (m) => ({ reason: m[1] }),
     example: 'this voucher was voided: issued twice',
   },
   {
     key: 'dbError.voucherExpired',
-    sql: "'this voucher expired on %s'",
+    source: '"this voucher expired on {on}"',
     pattern: /^this voucher expired on (.+)$/,
     values: (m) => ({ date: localiseDbDate(m[1]) }),
     example: 'this voucher expired on 03 Mar 2026',
@@ -141,20 +140,15 @@ export const DB_MESSAGE_RULES: DbMessageRule[] = [
     'dbError.voucherHeldForAudit',
     'this voucher is held for an audit: ops or admin must redeem it in person',
   ),
-  fixed('dbError.voucherNotFound', 'voucher not found'),
   fixed('dbError.recordIdDocument', 'record which ID document you checked'),
   fixed('dbError.confirmIdName', 'confirm that the name on the ID matches the household'),
-  fixed('error.notAllowed', 'only staff may look up vouchers'),
-  fixed('error.notAllowed', 'only staff may redeem vouchers'),
 
   // ── household verification (four eyes) ──
   fixed(
     'dbError.verifyOtherOfficer',
     'a household must be verified by someone other than the officer who registered it',
   ),
-  fixed('dbError.recordNotFound', 'record not found or outside your villages'),
   fixed('dbError.notAwaitingVerification', 'record is not awaiting verification'),
-  fixed('error.notAllowed', 'only field staff may verify records'),
 
   // ── registration and the farmer login card ──
   fixed(
@@ -169,26 +163,16 @@ export const DB_MESSAGE_RULES: DbMessageRule[] = [
   fixed('dbError.cropNeedsArea', 'this crop is measured by area: area_ha is required'),
   fixed('dbError.cropNeedsTrees', 'this crop is measured by tree count: tree_count is required'),
   fixed('dbError.cropNeedsUnits', 'this crop is measured by unit count: unit_count is required'),
-  fixed('dbError.personNotFound', 'person not found or outside your villages'),
   fixed('dbError.addPhoneFirst', 'add a phone number before issuing a login'),
   fixed(
     'dbError.staffPasswordNotHere',
     'this person signs in as staff: their password cannot be reset here',
   ),
   fixed('dbError.phoneHasLogin', 'this phone number already has an app login'),
-  fixed('error.notAllowed', 'only field staff may register a farmer'),
-  fixed('error.notAllowed', 'only field staff may issue a farmer login'),
-  // Authored by the app, not the database (src/app/session.ts). Its own guard
-  // test lives with the session code, so `sql` names that file's literal.
-  {
-    key: 'error.accountUnreadable',
-    sql: 'Your account could not be read. Try again.',
-    pattern: /^Your account could not be read\. Try again\.$/,
-    example: 'Your account could not be read. Try again.',
-  },
   // A missing field the form should have supplied, not something to fix.
-  fixed('error.unexpected', 'village_id is required'),
   fixed('error.unexpected', 'unknown crop'),
+  // The API's (apps/api farm_pue dto.rs): approve and reject without a note.
+  fixed('dbError.noteRequired', 'The note field is required to approve or reject.'),
 ]
 
 /**

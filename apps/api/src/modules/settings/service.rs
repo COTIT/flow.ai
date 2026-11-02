@@ -227,6 +227,12 @@ fn read_section(name: &str, stored: &Value) -> Value {
 }
 
 /// Laravel CashRegisterSetting::toArray: logo (files arrive with F5), defaults for the till.
+/// `cash_register.accepted_cash` when unset: the euro notes and coins, as major-unit strings.
+pub const ACCEPTED_CASH: [&str; 13] = [
+    "0.05", "0.10", "0.20", "0.50", "1.00", "2.00", "5.00", "10.00", "20.00", "50.00", "100.00",
+    "200.00", "500.00",
+];
+
 fn cash_register_out(v: &mut Value) {
     let Value::Object(m) = v else {
         return;
@@ -235,13 +241,9 @@ fn cash_register_out(v: &mut Value) {
     m.insert("logo".into(), Value::Null);
     let unset = |m: &Map<String, Value>, k: &str| m.get(k).is_none_or(Value::is_null);
     if unset(m, "accepted_cash") {
-        let cash = [
-            "0.05", "0.10", "0.20", "0.50", "1.00", "2.00", "5.00", "10.00", "20.00", "50.00",
-            "100.00", "200.00", "500.00",
-        ];
         m.insert(
             "accepted_cash".into(),
-            cash.into_iter().map(Value::from).collect(),
+            ACCEPTED_CASH.into_iter().map(Value::from).collect(),
         );
     }
     if unset(m, "receipt_line_length") {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { BUTTON_PRIMARY, CONTROL } from '@/components/controlStyles'
@@ -17,30 +18,27 @@ import {
   type ReviewerAction,
 } from '@/features/ops/transitions'
 import { useOpsRequest, useReviewAction, useVillageEnergy } from '@/features/ops/useOpsRequests'
+import { humanizeDbError } from '@/lib/errors'
 import { formatKw, formatKwh, formatTimestamp } from '@/lib/format'
-import { useActorName } from '@/lib/actorNames'
 
 const route = getRouteApi('/_ops/ops/requests/$requestId')
 
 /**
  * Spec 7.3 — the review screen.
  *
- * Offers only legal transitions and surfaces the trigger's message verbatim if
- * one is raised anyway. The status machine itself lives in pue_request_guard;
- * this decides which controls exist, and an "illegal transition" error
- * reaching a user means this screen offered something it should not have.
+ * Offers the transitions the status suggests; the API decides what is allowed
+ * and its refusal is shown as written.
  */
 export function OpsRequestReviewScreen() {
   const { requestId } = route.useParams()
   const { t } = useTranslation()
   const query = useOpsRequest(requestId)
-  // A name, never the raw id: resolved through the scoped provenance lookup.
-  const capturedBy = useActorName(query.request?.captured_by)
   const energy = useVillageEnergy(query.request?.village_id)
   const review = useReviewAction(requestId, query.request?.village_id)
 
   const [note, setNote] = useState('')
-  const [noteError, setNoteError] = useState(false)
+  // Approve and reject cannot be undone, so they wait here until the reviewer confirms.
+  const [confirming, setConfirming] = useState<'approve' | 'reject' | null>(null)
 
   if (query.error) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
 
@@ -50,7 +48,7 @@ export function OpsRequestReviewScreen() {
     )
   }
 
-  // Zero rows is an answer: RLS says this request is not visible.
+  // Not found is an answer: someone else's request, or none.
   if (!query.request) {
     return <EmptyState title={t('ops.notFoundTitle')} detail={t('ops.notFoundDetail')} />
   }
@@ -59,14 +57,22 @@ export function OpsRequestReviewScreen() {
   const estimate = request.estimate
   const actions = reviewerActions(request.status)
 
+  // The API decides whether a note is needed; its refusal of the note is shown at the field.
+  const noteRefused = review.isError
+    ? (review.error as { response?: { data?: { errors?: { note?: string[] } } } } | null)?.response?.data?.errors?.note?.[0]
+    : undefined
+  const noteError = noteRefused ? humanize(noteRefused, t) : null
+
   const run = (action: ReviewerAction) => {
-    if (requiresDecisionNote(action) && note.trim() === '') {
-      setNoteError(true)
+    if (action === 'approve' || action === 'reject') {
+      setConfirming(action)
       return
     }
-    setNoteError(false)
-    review.mutate({ action, note: requiresDecisionNote(action) ? note.trim() : undefined })
+    submit(action)
   }
+
+  const submit = (action: ReviewerAction) =>
+    review.mutate({ action, note: note.trim() || undefined })
 
   return (
     <section className="flex w-full flex-col gap-[18px]" data-testid="request-review">
@@ -77,7 +83,7 @@ export function OpsRequestReviewScreen() {
         breadcrumbs={[{ label: t('nav.requests'), to: '/ops/requests' }, { label: request.equipment_name }]}
       />
       <header className="flex flex-col gap-2.5">
-        <ProvenanceBadge source={request.source} verification={request.verification} confidence={request.confidence} capturedAt={request.captured_at} capturedBy={capturedBy} />
+        <ProvenanceBadge source={request.source} verification={request.verification} confidence={request.confidence} capturedAt={request.captured_at} capturedBy={request.captured_by_name} />
         <dl className="grid gap-x-5 gap-y-1.5 sm:grid-cols-2">
           <Row label={t('ops.applicant')} value={request.applicant} />
           <Row label={t('ops.village')} value={request.village_name} />
@@ -140,7 +146,7 @@ export function OpsRequestReviewScreen() {
                 value={formatKw(energy.data.capacity_kw)}
                 /* Capacity is PLANNED, never measured. The basis is in the
                    cell, not in a row of its own. */
-                pill={t(`capacityBasis.${energy.data.capacity_basis}`)}
+                pill={energy.data.capacity_basis ? t(`capacityBasis.${energy.data.capacity_basis}`) : undefined}
               />
               <Cell
                 label={t('ops.headroom')}
@@ -174,7 +180,7 @@ export function OpsRequestReviewScreen() {
             <dl className="grid gap-x-5 gap-y-1.5 sm:grid-cols-2">
               <Row
                 label={t('ops.simultaneity')}
-                value={String(energy.data.simultaneity_factor)}
+                value={String(energy.data.simultaneity_factor ?? '—')}
               />
             </dl>
           </>
@@ -201,7 +207,7 @@ export function OpsRequestReviewScreen() {
         </section>
       )}
 
-      {review.isError && (
+      {review.isError && !noteError && (
         <div data-testid="review-error">
           <ErrorState error={review.error} onRetry={() => review.reset()} />
         </div>
@@ -226,7 +232,7 @@ export function OpsRequestReviewScreen() {
                 rows={2}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                aria-invalid={noteError || undefined}
+                aria-invalid={noteError ? true : undefined}
                 aria-describedby={noteError ? 'decision-note-error' : undefined}
                 className="w-full"
                 style={
@@ -242,7 +248,7 @@ export function OpsRequestReviewScreen() {
                   style={{ fontSize: 13, color: 'var(--flag-ink)' }}
                 >
                   <BangMark />
-                  {t('ops.decisionNoteRequired')}
+                  {noteError}
                 </p>
               )}
             </div>
@@ -265,8 +271,29 @@ export function OpsRequestReviewScreen() {
           </div>
         </section>
       )}
+
+      {confirming && (
+        <ConfirmDialog
+          title={t(confirming === 'approve' ? 'ops.confirmApproveTitle' : 'ops.confirmRejectTitle')}
+          detail={t(confirming === 'approve' ? 'ops.confirmApproveDetail' : 'ops.confirmRejectDetail')}
+          confirmLabel={t(`ops.${confirming}`)}
+          cancelLabel={t('ops.confirmCancel')}
+          confirming={review.isPending}
+          onConfirm={() => {
+            submit(confirming)
+            setConfirming(null)
+          }}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
     </section>
   )
+}
+
+/** A message from the API, as written (or its known translation). */
+function humanize(text: string, t: (key: string, values?: Record<string, unknown>) => string): string {
+  const human = humanizeDbError(text)
+  return human.kind === 'verbatim' ? human.message : t(human.key, human.values)
 }
 
 function camel(action: ReviewerAction): string {

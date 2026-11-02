@@ -6,6 +6,9 @@
  * coverage percentages, or any stored energy estimate (§11).
  */
 
+import type { Money } from '@genesy/api-client/model'
+import { formatMoney as formatMinor } from '@genesy/ui/lib/money'
+
 import i18n from '@/i18n'
 
 const HECTARES_PER_ACRE = 0.40468564224
@@ -67,14 +70,11 @@ export function formatKwh(kwh: number | null): string {
 }
 
 /**
- * numeric(14,2) plus an explicit currency code, default TZS.
- *
- * The code is always shown, never inferred from a locale. Every price in this
- * system is INDICATIVE and the caller is responsible for labelling it so —
- * these are not quotations.
+ * An API price (integer minor units) as text, or '—' when not set. Never through a float. The
+ * currency code is always shown; every price is INDICATIVE and the caller labels it so.
  */
-export function formatMoney(amount: number | null, currency: string): string {
-  return amount === null ? UNKNOWN : `${currency} ${fixed(amount, 2)}`
+export function formatPrice(money: Money | null, language: string): string {
+  return money ? formatMinor(money.minor, money.decimals, money.currency, language) : UNKNOWN
 }
 
 /** Percentages, 1 dp. */

@@ -78,6 +78,10 @@ async fn only_the_household_reads_its_code(pool: PgPool) {
         "the household reads its own code"
     );
     assert!(
+        mine["data"][0]["void_reason"].is_null(),
+        "an issued voucher has no void reason"
+    );
+    assert!(
         mine["data"][0].get("audit_required").is_none(),
         "the audit flag is not shown"
     );
@@ -408,6 +412,12 @@ async fn ops_voids_with_a_reason_and_the_void_is_on_the_trail(pool: PgPool) {
     assert_eq!(
         void["detail"]["reason"], "duplicate household",
         "the farmer sees the void and its reason"
+    );
+    let mine = f.list("/vouchers/mine", &s.neema).await;
+    assert_eq!(mine["data"][0]["status"], "void");
+    assert_eq!(
+        mine["data"][0]["void_reason"], "duplicate household",
+        "the household's own voucher list says why"
     );
 }
 

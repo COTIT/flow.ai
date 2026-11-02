@@ -22,9 +22,10 @@ use crate::{
         },
         orders::{
             dto::{
-                LineInput, LinesQuantity, OrderCreated, OrderInput, OrderLineResource, OrderPatch,
-                OrderResource,
+                LineInput, LinesQuantity, OrderAction, OrderCreated, OrderInput, OrderLineResource,
+                OrderPatch, OrderResource,
             },
+            payments::{Paid, paid_totals},
             repo::{self, LineRow, NewLine, OrderRow},
         },
         pricing::engine,
@@ -49,6 +50,7 @@ const NOT_RETURNABLE: &str = "Only a completed order takes returns.";
 const NOT_INVOICEABLE: &str = "Only an open or completed order can be invoiced.";
 const INVOICED: &str = "This order already has an invoice.";
 const NO_RELATION: &str = "Set a relation on the order before invoicing it.";
+const NOTHING_TO_REFUND: &str = "Nothing paid on this order is left to refund.";
 /// Cancelling a paid order needs its payment refunded first.
 pub const REFUND_REQUIRED: &str = "refund_required";
 
@@ -65,6 +67,19 @@ fn minor(d: Decimal, dp: u32) -> Option<i64> {
     let mut d = d;
     d.rescale(dp);
     i64::try_from(d.mantissa()).ok()
+}
+
+/// One unit at `unit_price` (minor units excl VAT) incl `vat` %, priced like a one-line
+/// order: what a sale or quote of quantity 1 totals. None when out of range.
+pub fn unit_gross(unit_price: i64, vat: Decimal, dp: u32) -> Option<i64> {
+    let line = engine::Line {
+        quantity: Decimal::ONE,
+        price: Decimal::new(unit_price, dp),
+        vat,
+        ..engine::Line::default()
+    };
+    let s = engine::summarise(&[line], dp).ok()?;
+    minor(s.total, dp)
 }
 
 /// Lines priced in minor units, the order totals and the per-rate summary.
@@ -358,10 +373,61 @@ pub async fn unhold(
     Ok(())
 }
 
+/// Why the API refuses `action` on `o` now, else Ok. Every action route runs it under the
+/// order lock and `allowed_actions` lists the ones it passes, so the two can't disagree.
+pub fn check(
+    action: OrderAction,
+    o: &OrderRow,
+    lines: &[LineRow],
+    paid: Paid,
+) -> Result<(), AppError> {
+    let need = |ok: bool, msg: &'static str| if ok { Ok(()) } else { Err(conflict(msg)) };
+    let status = o.status.as_str();
+    match action {
+        OrderAction::Confirm => need(status == "draft", NOT_DRAFT),
+        OrderAction::Pick => need(status == "open", NOT_OPEN),
+        OrderAction::Complete => {
+            need(status == "open", NOT_OPEN)?;
+            let picked = lines.iter().all(|l| !l.tracked || l.picked == l.quantity);
+            need(picked, NOT_PICKED)
+        }
+        OrderAction::Cancel => {
+            let open = matches!(status, "draft" | "awaiting_payment" | "open");
+            need(open, NOT_CANCELLABLE)?;
+            need(o.paid_at.is_none() || paid.net <= 0, REFUND_REQUIRED)
+        }
+        OrderAction::Return => need(
+            matches!(status, "completed" | "partially_returned"),
+            NOT_RETURNABLE,
+        ),
+        OrderAction::Refund => need(paid.refundable > 0, NOTHING_TO_REFUND),
+        OrderAction::Invoice => {
+            let done = matches!(status, "completed" | "partially_returned" | "returned");
+            need(status == "open" || done, NOT_INVOICEABLE)?;
+            need(o.invoice_id.is_none(), INVOICED)?;
+            match o.relation_id {
+                Some(_) => Ok(()),
+                None => Err(AppError::field("relation_id", NO_RELATION)),
+            }
+        }
+    }
+}
+
+/// [`Paid`] of one order, read in `conn` (fresh under the order lock).
+async fn paid_of(conn: &mut PgConnection, workspace_id: Uuid, id: Uuid) -> Result<Paid, AppError> {
+    let mut m = paid_totals(conn, workspace_id, &[id]).await?;
+    Ok(m.remove(&id).unwrap_or_default())
+}
+
 /// The order with its lines as a resource.
-pub fn resource(o: OrderRow, lines: Vec<LineRow>) -> OrderResource {
+pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
     let q = |d: Decimal| format!("{d:.2}");
+    let allowed_actions = OrderAction::ALL
+        .into_iter()
+        .filter(|a| check(*a, &o, &lines, paid).is_ok())
+        .collect();
     OrderResource {
+        allowed_actions,
         id: o.id,
         number: o.number,
         status: o.status,
@@ -417,7 +483,8 @@ pub async fn data(
         .await?
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&mut *conn, workspace_id, &[id]).await?;
-    serde_json::to_value(json!({ "data": resource(o, lines) }))
+    let paid = paid_of(conn, workspace_id, id).await?;
+    serde_json::to_value(json!({ "data": resource(o, lines, paid) }))
         .map_err(|e| AppError::Internal(e.to_string()))
 }
 
@@ -497,7 +564,12 @@ pub async fn get(
         .await?
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&state.db, workspace_id, &[id]).await?;
-    Ok(resource(o, lines))
+    let paid = paid_totals(&state.db, workspace_id, &[id]).await?;
+    Ok(resource(
+        o,
+        lines,
+        paid.get(&id).copied().unwrap_or_default(),
+    ))
 }
 
 /// A page of orders with their lines; total matches.
@@ -517,11 +589,13 @@ pub async fn list(
     for l in repo::lines(&state.db, workspace_id, &ids).await? {
         by_order.entry(l.order_id).or_default().push(l);
     }
+    let paid = paid_totals(&state.db, workspace_id, &ids).await?;
     let data = rows
         .into_iter()
         .map(|o| {
             let lines = by_order.remove(&o.id).unwrap_or_default();
-            resource(o, lines)
+            let p = paid.get(&o.id).copied().unwrap_or_default();
+            resource(o, lines, p)
         })
         .collect();
     Ok((data, total))
@@ -622,9 +696,7 @@ pub async fn confirm(
         id,
         key,
         async |conn, o, lines| {
-            if o.status != "draft" {
-                return Err(conflict(NOT_DRAFT));
-            }
+            check(OrderAction::Confirm, &o, &lines, Paid::default())?;
             hold(conn, workspace_id, &o, &lines).await?;
             repo::set_status(conn, workspace_id, o.id, "open").await?;
             Ok(())
@@ -649,9 +721,7 @@ pub async fn pick(
         id,
         key,
         async |conn, o, lines| {
-            if o.status != "open" {
-                return Err(conflict(NOT_OPEN));
-            }
+            check(OrderAction::Pick, &o, &lines, Paid::default())?;
             let mut rows = Vec::new();
             for (n, (line_id, q)) in input.lines.iter().enumerate() {
                 let Some(l) = lines.iter().find(|l| l.id == *line_id) else {
@@ -691,12 +761,7 @@ pub async fn complete(
         id,
         key,
         async |conn, o, lines| {
-            if o.status != "open" {
-                return Err(conflict(NOT_OPEN));
-            }
-            if lines.iter().any(|l| l.tracked && l.picked != l.quantity) {
-                return Err(conflict(NOT_PICKED));
-            }
+            check(OrderAction::Complete, &o, &lines, Paid::default())?;
             let (wants, _) = wants(&lines, |l| l.quantity);
             let reason = format!("order {}", o.number);
             reserve::commit(
@@ -747,12 +812,8 @@ pub async fn cancel_locked(
     o: &OrderRow,
     lines: &[LineRow],
 ) -> Result<(), AppError> {
-    if !matches!(o.status.as_str(), "draft" | "awaiting_payment" | "open") {
-        return Err(conflict(NOT_CANCELLABLE));
-    }
-    if o.paid_at.is_some() && super::payments::net_paid(conn, workspace_id, o.id).await?.0 > 0 {
-        return Err(conflict(REFUND_REQUIRED));
-    }
+    let paid = paid_of(conn, workspace_id, o.id).await?;
+    check(OrderAction::Cancel, o, lines, paid)?;
     if o.status != "draft" {
         unhold(conn, workspace_id, o, lines).await?;
     }
@@ -805,9 +866,7 @@ pub async fn returns(
         id,
         key,
         async |conn, o, mut lines| {
-            if !matches!(o.status.as_str(), "completed" | "partially_returned") {
-                return Err(conflict(NOT_RETURNABLE));
-            }
+            check(OrderAction::Return, &o, &lines, Paid::default())?;
             let returned = |lines: &[LineRow]| {
                 let mut m = std::collections::BTreeMap::new();
                 for l in lines.iter().filter(|l| l.tracked && !l.returned.is_zero()) {
@@ -925,15 +984,7 @@ pub async fn invoice(
         id,
         key,
         async |conn, o, lines| {
-            if !matches!(
-                o.status.as_str(),
-                "open" | "completed" | "partially_returned" | "returned"
-            ) {
-                return Err(conflict(NOT_INVOICEABLE));
-            }
-            if o.invoice_id.is_some() {
-                return Err(conflict(INVOICED));
-            }
+            check(OrderAction::Invoice, &o, &lines, Paid::default())?;
             let Some(relation_id) = o.relation_id else {
                 return Err(AppError::field("relation_id", NO_RELATION));
             };

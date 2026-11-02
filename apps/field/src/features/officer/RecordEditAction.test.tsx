@@ -10,7 +10,7 @@ const editState = { isPending: false, error: null as Error | null }
 vi.mock('@/features/officer/useOfficerEdit', () => ({
   useOfficerEdit: () => ({ mutateAsync: mutate, reset, ...editState }),
 }))
-// No signed-in owner, and no route to the Supabase client in CI without .env.
+// No signed-in owner.
 vi.mock('@/app/session', () => ({ useSession: () => ({ data: undefined }) }))
 vi.mock('@/lib/usePersistentForm', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/usePersistentForm')>()

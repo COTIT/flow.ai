@@ -1,0 +1,17 @@
+# Stripe test mode on for staging: added as an extra -f after the main file (README "Turning on
+# Stripe"). Needs secrets/stripe_secret_key (sk_test_…) and secrets/stripe_webhook_secret,
+# written by deploy/set-provider-keys.sh. The image keeps debug assertions on, so the API
+# refuses a live key here. The demo seed keeps its in-process fake.
+services:
+  api:
+    environment:
+      PAYMENTS_PROVIDER: stripe
+      STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
+      STRIPE_WEBHOOK_SECRET_FILE: /run/secrets/stripe_webhook_secret
+    secrets: [stripe_secret_key, stripe_webhook_secret]
+
+secrets:
+  stripe_secret_key:
+    file: ${SECRETS_DIR:-./secrets}/stripe_secret_key
+  stripe_webhook_secret:
+    file: ${SECRETS_DIR:-./secrets}/stripe_webhook_secret
