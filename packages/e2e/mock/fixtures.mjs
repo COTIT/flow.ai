@@ -38,3 +38,5 @@ export const VARIANT = {
 export const STOCK_LIMIT = 10
 /** Orders placed with this email get the API's 503 "no payment provider configured". */
 export const NO_PROVIDER_EMAIL = "no-provider@e2e.test"
+/** Orders placed with this email turn paid on their second read, like a Stripe webhook landing late. */
+export const LATE_PAYMENT_EMAIL = "late-payment@e2e.test"

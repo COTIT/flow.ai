@@ -22,7 +22,9 @@ export function AddToCart({
   soldOut: boolean
 }) {
   const t = useTranslations("cart")
-  const { add } = useCart()
+  // `ready` comes after hydration: until then the controls are inert server HTML, where a
+  // click would submit the form natively (page reload) and a choice would be reset.
+  const { add, ready } = useCart()
   const [variantId, setVariantId] = React.useState(
     product.variants[0]?.id ?? null
   )
@@ -56,6 +58,7 @@ export function AddToCart({
           <div className="flex flex-col gap-1">
             <Label htmlFor="variant">{t("option")}</Label>
             <select
+              disabled={!ready}
               id="variant"
               value={variantId ?? ""}
               onChange={(e) => setVariantId(e.target.value)}
@@ -72,6 +75,7 @@ export function AddToCart({
         <div className="flex w-24 flex-col gap-1">
           <Label htmlFor="quantity">{t("quantity")}</Label>
           <Input
+            disabled={!ready}
             id="quantity"
             type="number"
             inputMode="numeric"
@@ -83,7 +87,7 @@ export function AddToCart({
             }
           />
         </div>
-        <Button type="submit" size="lg" disabled={soldOut}>
+        <Button type="submit" size="lg" disabled={!ready || soldOut}>
           {t("add")}
         </Button>
       </div>
