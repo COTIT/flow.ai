@@ -1,5 +1,5 @@
-import { expectNoHorizontalScroll } from "../../src/test"
 import { expect, seedTill, test, type FakeApi, WS } from "./fake-till"
+import { expectTillLook, tapKeys } from "./look"
 
 const openShift = {
   id: "sh-1",
@@ -46,13 +46,25 @@ test("opening a shift sends the counted float and shows the API's figures", asyn
   await expect(
     page.getByText("No shift is open on this register.")
   ).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Count the float" })
+  ).toBeVisible()
+  await expectTillLook(page)
 
   // One row per note or coin the register accepts (from the login's register).
   await expect(page.getByLabel(/^Pieces of /)).toHaveCount(10)
-  await page.getByLabel("Pieces of €20.00").fill("2")
-  await page.getByLabel("Pieces of €0.05").fill("3")
-  await expect(page.getByText("Counted: €40.15")).toBeVisible()
-  await expectNoHorizontalScroll(page)
+  // Steppers, the pad (into the selected row) and a keyboard all count.
+  await page.getByRole("button", { name: "One more €20.00" }).click()
+  await page.getByRole("button", { name: "One more €20.00" }).click()
+  await page.getByLabel("Pieces of €0.05").click()
+  await tapKeys(page, "34")
+  await page.getByRole("button", { name: "Delete" }).click()
+  await page.getByLabel("Pieces of €1.00").fill("1")
+  await page.getByRole("button", { name: "One less €1.00" }).click()
+  await expect(page.getByLabel("Pieces of €20.00")).toHaveValue("2")
+  await expect(page.getByLabel("Pieces of €0.05")).toHaveValue("3")
+  await expect(page.getByLabel("Counted")).toHaveText("€40.15")
+  await expectTillLook(page)
   await page.getByRole("button", { name: "Open shift" }).click()
 
   await expect(page.getByText("€45.15").first()).toBeVisible()
@@ -64,8 +76,9 @@ test("opening a shift sends the counted float and shows the API's figures", asyn
   const [open] = api.callsTo("POST", `/workspace/${WS}/till/shift/open`)
   expect(open!.body).toEqual({
     count: [
-      { denomination: 5, count: 3 },
       { denomination: 2000, count: 2 },
+      { denomination: 100, count: 0 },
+      { denomination: 5, count: 3 },
     ],
   })
 })
@@ -77,18 +90,21 @@ test("closing a shift shows the variance the API returns", async ({
   drawerApi(api, openShift)
   await seedTill(page)
   await page.goto("/drawer")
-  await expect(page.getByText("€65.15")).toBeVisible()
+  await expect(page.getByLabel("Expected")).toHaveText("€65.15")
+  await expect(page.getByText("Shift open", { exact: true })).toBeVisible()
+  await expectTillLook(page)
 
   await page.getByLabel("Pieces of €50.00").fill("1")
   await page.getByRole("button", { name: "Close shift" }).click()
 
   await expect(
-    page.getByRole("heading", { name: "Shift closed" })
+    page
+      .getByRole("status")
+      .filter({ hasText: "Shift closed — short by €0.15" })
   ).toBeVisible()
-  await expect(page.getByText("-€0.15")).toBeVisible()
-  await expect(
-    page.getByRole("status").filter({ hasText: "The drawer is €0.15 short." })
-  ).toBeVisible()
+  await expect(page.getByLabel("Difference")).toHaveText("-€0.15")
+  await expectTillLook(page, { shift: false })
+  await page.getByRole("button", { name: "Open new shift" }).click()
   await expect(
     page.getByText("No shift is open on this register.")
   ).toBeVisible()
@@ -140,8 +156,8 @@ test.describe("shift already open elsewhere", () => {
 })
 
 for (const [difference, words] of [
-  [0, "The drawer balances."],
-  [120, "The drawer is €1.20 over."],
+  [0, "Shift closed — the drawer balances"],
+  [120, "Shift closed — over by €1.20"],
 ] as const) {
   test(`closing with a difference of ${difference} says "${words}"`, async ({
     page,
@@ -166,3 +182,16 @@ for (const [difference, words] of [
     ).toBeVisible()
   })
 }
+
+test("Lock till on the close result ends the session", async ({
+  page,
+  api,
+}) => {
+  drawerApi(api, openShift)
+  await seedTill(page)
+  await page.goto("/drawer")
+  await page.getByLabel("Pieces of €50.00").fill("1")
+  await page.getByRole("button", { name: "Close shift" }).click()
+  await page.getByRole("button", { name: "Lock till" }).click()
+  await expect(page).toHaveURL("/login")
+})

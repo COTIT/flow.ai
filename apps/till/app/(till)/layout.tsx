@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { tillMe } from "@genesy/api-client/endpoints/till"
@@ -18,6 +18,7 @@ export default function TillLayout({
 }) {
   const t = useTranslations()
   const router = useRouter()
+  const pathname = usePathname()
   const hydrated = useTill((s) => s.hydrated)
   const device = useTill((s) => s.device)
   const session = useTill((s) => s.session)
@@ -52,7 +53,8 @@ export default function TillLayout({
   return (
     <div className="till">
       <TillTop />
-      {online ? null : (
+      {/* The queue shows its own warning, with Sync now. */}
+      {online || pathname.startsWith("/queue") ? null : (
         <Notice
           variant="warning"
           className="mx-3 mt-3 print:hidden"

@@ -125,6 +125,13 @@
   .totals { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; border-top: 1px solid var(--hair-2); }
   .totals > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
+  /* ---------- Drawer ---------- */
+  .count-row { display: grid; grid-template-columns: 90px auto minmax(0, 1fr); gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--hair); }
+  .qstep input.count { width: 44px; height: 44px; text-align: center; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; background: transparent; border: 0; outline: none; border-radius: 10px; color: var(--fg); }
+  .qstep input.count:focus-visible { outline: 3px solid var(--ring); }
+  .tile3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 760px) { .tile3 { grid-template-columns: 1fr; } }
+
   /* ---------- Payment sheet ---------- */
   .scrim { position: absolute; inset: 0; background: var(--scrim); }
   .sheet { position: absolute; top: 12px; right: 12px; bottom: 12px; width: 520px; max-width: calc(100% - 24px); border-radius: 28px; padding: 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; outline: none; }

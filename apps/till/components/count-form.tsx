@@ -1,13 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { Plus, X } from "lucide-react"
+import { ChevronRight, Minus, Plus, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 import type { CountLine } from "@genesy/api-client/model"
 import { Button } from "@genesy/ui/components/button"
 import { Input } from "@genesy/ui/components/input"
+import { Notice } from "@genesy/ui/components/notice"
+import { cn } from "@genesy/ui/lib/utils"
 import { toMinor } from "@genesy/ui/lib/money"
+import { Keypad, type PadKey } from "@/components/keypad"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
 
@@ -15,12 +18,28 @@ import { useTillMoney } from "@/lib/use-money"
 type Row = { fixed?: number; denomination: string; count: string }
 const empty: Row = { denomination: "", count: "" }
 
-/** A cash count: one row per note or coin the register accepts, plus any typed extra rows. */
+/**
+ * A cash count (TillDrawer): one row per note or coin the register accepts (stepper, a count
+ * field the pad types into), and on the right the figures, the pad and the submit button.
+ * Typed extra rows only when the register lists no notes.
+ */
 export function CountForm({
+  title,
+  sub,
+  badge,
+  expected,
+  aside,
   submitLabel,
   pending,
   onSubmit,
 }: {
+  title: string
+  sub: React.ReactNode
+  badge: React.ReactNode
+  /** The API's expected cash, when a shift is open. */
+  expected?: string
+  /** Notices for the right column (above the pad). */
+  aside?: React.ReactNode
   submitLabel: string
   pending: boolean
   onSubmit: (count: CountLine[]) => void
@@ -30,9 +49,13 @@ export function CountForm({
   const accepted = useTill((s) => s.session?.register.accepted_cash) ?? []
   const [rows, setRows] = React.useState<Row[]>(() =>
     accepted.length
-      ? accepted.map((v) => ({ fixed: v, denomination: "", count: "" }))
+      ? // Largest note first, as the drawer is counted (TillDrawer).
+        [...accepted]
+          .sort((a, b) => b - a)
+          .map((v) => ({ fixed: v, denomination: "", count: "" }))
       : [empty]
   )
+  const [selected, setSelected] = React.useState(0)
   const [invalid, setInvalid] = React.useState(false)
 
   const lines = rows
@@ -53,11 +76,27 @@ export function CountForm({
     : null
 
   const set = (i: number, patch: Partial<Row>) =>
-    setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+    setRows((all) => all.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+  const pieces = (r: Row) =>
+    /^\d+$/.test(r.count.trim()) ? Number(r.count) : 0
+  const press = (k: PadKey) => {
+    const r = rows[selected]
+    if (!r) return
+    set(selected, {
+      count:
+        k === "back"
+          ? r.count.slice(0, -1)
+          : k === "clear"
+            ? ""
+            : (r.count + k).replace(/^0+(?=\d)/, "").slice(0, 5),
+    })
+  }
+  const label = (r: Row, i: number) =>
+    r.fixed ? money(r.fixed) : r.denomination || t("row", { n: i + 1 })
 
   return (
     <form
-      className="flex flex-col gap-3"
+      className="split split-wide"
       onSubmit={(e) => {
         e.preventDefault()
         if (!valid) return setInvalid(true)
@@ -65,70 +104,143 @@ export function CountForm({
         onSubmit(lines as CountLine[])
       }}
     >
-      <ul className="flex flex-col gap-2">
+      <section
+        className="till-card gap-1 overflow-y-auto"
+        aria-labelledby="count-title"
+      >
+        <div className="mb-1.5 flex items-center justify-between gap-3">
+          <div>
+            <h1 id="count-title" className="card-title text-lg">
+              {title}
+            </h1>
+            <p className="text-[13px] text-muted-foreground">{sub}</p>
+          </div>
+          {badge}
+        </div>
         {rows.map((row, i) => (
-          <li key={i} className="flex items-center gap-2">
+          <div
+            key={i}
+            className={cn("count-row", i === selected && "till-tile")}
+          >
             {row.fixed ? (
-              <span className="flex-1 tabular-nums">{money(row.fixed)}</span>
+              <span className="text-[17px] font-semibold tabular-nums">
+                {money(row.fixed)}
+              </span>
             ) : (
               <Input
                 aria-label={t("denomination", { n: i + 1 })}
                 inputMode="decimal"
                 placeholder={t("value")}
+                className="h-11"
                 value={row.denomination}
                 onChange={(e) => set(i, { denomination: e.target.value })}
               />
             )}
-            <span aria-hidden>×</span>
-            <Input
-              aria-label={
-                row.fixed
-                  ? t("piecesOf", { value: money(row.fixed) })
-                  : t("pieces", { n: i + 1 })
-              }
-              inputMode="numeric"
-              placeholder={t("count")}
-              className="w-24"
-              value={row.count}
-              onChange={(e) => set(i, { count: e.target.value })}
-            />
-            {row.fixed ? null : (
-              <Button
+            <span className="qstep">
+              <button
                 type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={t("remove", { n: i + 1 })}
-                disabled={rows.length === 1}
-                onClick={() => setRows(rows.filter((_, j) => j !== i))}
+                aria-label={t("less", { value: label(row, i) })}
+                onClick={() => {
+                  setSelected(i)
+                  set(i, { count: String(Math.max(0, pieces(row) - 1)) })
+                }}
               >
-                <X />
-              </Button>
-            )}
-          </li>
+                <Minus aria-hidden className="size-[18px]" />
+              </button>
+              <input
+                aria-label={
+                  row.fixed
+                    ? t("piecesOf", { value: money(row.fixed) })
+                    : t("pieces", { n: i + 1 })
+                }
+                // The pad types here; no on-screen keyboard over the pad.
+                inputMode="none"
+                autoComplete="off"
+                placeholder="0"
+                className="count"
+                value={row.count}
+                onFocus={() => setSelected(i)}
+                onChange={(e) => set(i, { count: e.target.value })}
+              />
+              <button
+                type="button"
+                aria-label={t("more", { value: label(row, i) })}
+                onClick={() => {
+                  setSelected(i)
+                  set(i, { count: String(pieces(row) + 1) })
+                }}
+              >
+                <Plus aria-hidden className="size-[18px]" />
+              </button>
+            </span>
+            <span className="flex items-center justify-end gap-1 text-right font-semibold tabular-nums">
+              {row.fixed ? money(row.fixed * pieces(row)) : null}
+              {row.fixed ? null : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="btn-44"
+                  aria-label={t("remove", { n: i + 1 })}
+                  disabled={rows.length === 1}
+                  onClick={() => {
+                    setSelected(0)
+                    setRows(rows.filter((_, j) => j !== i))
+                  }}
+                >
+                  <X />
+                </Button>
+              )}
+            </span>
+          </div>
         ))}
-      </ul>
-      <Button
-        type="button"
-        variant="outline"
-        className="w-fit"
-        onClick={() => setRows([...rows, empty])}
-      >
-        <Plus /> {t("add")}
-      </Button>
-      <p className="text-sm">
-        {t("total")}:{" "}
-        <span className="font-medium tabular-nums">
-          {total == null ? "—" : money(Number(total))}
-        </span>
-      </p>
-      {invalid ? (
-        <p role="alert" className="text-sm text-destructive">
-          {t("invalid")}
+        {accepted.length ? null : (
+          <Button
+            type="button"
+            variant="outline"
+            className="btn-44 mt-2 w-fit"
+            onClick={() => setRows([...rows, empty])}
+          >
+            <Plus /> {t("add")}
+          </Button>
+        )}
+      </section>
+
+      <section className="flex min-h-0 flex-col gap-3">
+        <div className="till-card strong tight">
+          {expected ? (
+            <div className="flex items-center justify-between gap-3">
+              <span id="expected-label" className="text-muted-foreground">
+                {t("expected")}
+              </span>
+              <output
+                aria-labelledby="expected-label"
+                className="font-semibold tabular-nums"
+              >
+                {expected}
+              </output>
+            </div>
+          ) : null}
+          <div className="flex items-center justify-between gap-3">
+            <span id="counted-label" className="font-semibold">
+              {t("total")}
+            </span>
+            <output aria-labelledby="counted-label" className="grand">
+              {total == null ? "—" : money(Number(total))}
+            </output>
+          </div>
+        </div>
+        {aside}
+        {invalid ? <Notice variant="error" title={t("invalid")} /> : null}
+        <Keypad fn="clear" onKey={press} />
+        <p className="text-xs text-muted-foreground">
+          {t("padHint", { row: label(rows[selected] ?? empty, selected) })}
         </p>
-      ) : null}
-      <Button type="submit" disabled={pending} className="w-fit">
-        {submitLabel}
-      </Button>
+        <button type="submit" className="charge mt-auto" disabled={pending}>
+          <span>{submitLabel}</span>
+          <ChevronRight aria-hidden className="size-[22px]" />
+        </button>
+      </section>
     </form>
   )
 }

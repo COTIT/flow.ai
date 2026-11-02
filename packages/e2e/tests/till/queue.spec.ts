@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test"
 
 import { expectNoHorizontalScroll } from "../../src/test"
+import { expectTillLook } from "./look"
 import { expect, honey, seedTill, test, type FakeApi, WS } from "./fake-till"
 
 const REF = "00000000-0000-4000-8000-000000000001"
@@ -107,7 +108,7 @@ test.describe("offline", () => {
 
     await page.getByText("Offline sales synced").click()
     await expect(page).toHaveURL("/queue")
-    await expect(page.getByText("Sale 1042: €25.00")).toBeVisible()
+    await expect(page.getByText("Booked as sale 1042 · €25.00")).toBeVisible()
     await expect(page.getByText("Booked", { exact: true })).toBeVisible()
     await expect(
       page
@@ -216,8 +217,11 @@ test.describe("refused replay", () => {
         "This client_ref was used for another sale on this register."
       )
     ).toBeVisible()
+    await expect(page.getByText("Needs the office")).toBeVisible()
+    // The replay's answer turned the card into a conflict after load: shift checked elsewhere.
+    await expectTillLook(page, { shift: false })
     await page.getByRole("button", { name: "Dismiss" }).click()
-    await expect(page.getByText("No offline sales.")).toBeVisible()
+    await expect(page.getByText("All offline sales are booked")).toBeVisible()
   })
 })
 
@@ -265,11 +269,43 @@ test.describe("server down", () => {
 test("an empty queue says what it is for", async ({ page }) => {
   await seedTill(page)
   await page.goto("/queue")
-  await expect(page.getByText("No offline sales.")).toBeVisible()
+  await expect(page.getByText("All offline sales are booked")).toBeVisible()
   await expect(
     page.getByText("Sales rung up without a connection wait here")
   ).toBeVisible()
-  await expectNoHorizontalScroll(page)
+  await expectTillLook(page)
+})
+
+test.describe("server busy, then offline", () => {
+  test.use({ allow: { responses: [{ url: refUrl, status: 503 }] } })
+
+  test("the queue shows its waiting sales and Sync now in the warning", async ({
+    page,
+    context,
+    api,
+  }) => {
+    api.on("GET", "/workspace/:ws/till/sales/:ref", () => ({
+      status: 503,
+      body: { message: "Busy." },
+    }))
+    await seedQueue(page)
+    await seedTill(page)
+    await page.goto("/queue")
+    await context.setOffline(true)
+    const warning = page
+      .getByRole("status")
+      .filter({ hasText: "Offline — sales are kept on this device" })
+    await expect(warning).toHaveCount(1)
+    await expect(
+      warning.getByRole("button", { name: "Sync now" })
+    ).toBeVisible()
+    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+    await expect(card.getByText("Waiting", { exact: true })).toBeVisible()
+    await expect(card.getByText("Card · ≈ €12.50 estimate")).toBeVisible()
+    await expect(page.getByText("1 waiting")).toBeVisible()
+    await expect(page.getByText("Offline · 1 to sync")).toBeVisible()
+    await expectTillLook(page, { shift: false })
+  })
 })
 
 test("a replayed sale booked at other prices is flagged", async ({

@@ -16,15 +16,24 @@ const nav = [
   { href: "/drawer", label: "nav.drawer" },
 ] as const
 
+/** Lock: ends the till user's session (the device stays paired), back to the PIN screen. */
+export function useLock() {
+  const device = useTill((s) => s.device)
+  const logout = useTillLogout({
+    mutation: { onSettled: () => tillStore.getState().signOut() },
+  })
+  return {
+    pending: logout.isPending,
+    lock: () => device && logout.mutate({ workspace: device.workspaceId }),
+  }
+}
+
 /** The signed-in top bar (TillSale): logo, Sale/Drawer, status, register · user, theme, Lock. */
 export function TillTop() {
   const t = useTranslations()
   const pathname = usePathname()
-  const device = useTill((s) => s.device)
   const session = useTill((s) => s.session)
-  const logout = useTillLogout({
-    mutation: { onSettled: () => tillStore.getState().signOut() },
-  })
+  const { lock, pending } = useLock()
   return (
     <header className="till-top glass-strong">
       <Logo className="h-[22px] min-w-0 shrink-0" />
@@ -51,10 +60,8 @@ export function TillTop() {
       <Button
         variant="outline"
         className="btn-44"
-        disabled={logout.isPending}
-        onClick={() =>
-          device && logout.mutate({ workspace: device.workspaceId })
-        }
+        disabled={pending}
+        onClick={lock}
       >
         {t("nav.lock")}
       </Button>
