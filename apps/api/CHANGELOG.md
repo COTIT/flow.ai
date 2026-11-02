@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Integration tests are one binary: `tests/<feature>.rs` moved to `tests/api/<feature>.rs` (same names, now modules), declared in `tests/api/main.rs`; a guard test fails when a file there isn't declared. `tests/openapi.rs` stays its own binary, so `cargo test --test openapi committed_spec` is unchanged. One file's tests: `cargo test --test api <feature>::`. The test build went from ~100 binaries of ~140 MB each (14 GB of target/) to one of 244 MB, and `cargo test` now spreads every test over all cores instead of one file at a time.
 - `genesy-360-api migrate` reports what it did: `applied 1 migration, now at 20261102022109`, or `migrations up to date (20261102022109)` when nothing ran (it used to print "up to date" either way). It now reads only `DATABASE_URL` or `DATABASE_URL_FILE` (same `_FILE` rules as boot config), so it needs no other config.
 - CI speed: tests build argon2, blake2 and password-hash at opt-level 3 (same hash params; every test signs up). The CI api job migrates its throwaway Postgres's `template1` once, so each `#[sqlx::test]` DB is a clone instead of a full migration replay. That throwaway Postgres also runs in RAM with fsync, synchronous_commit and full_page_writes off, and `trust` auth (no SCRAM handshake per test connection). A new `changes` job skips the api job when a push or PR touches neither `apps/api/` nor `.github/workflows/`; `images` treats a skipped api as green.
 

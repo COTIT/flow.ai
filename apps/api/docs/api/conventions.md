@@ -89,7 +89,7 @@ Think of it as a till that counts exact coins, not a calculator that shows 0.1 +
     | product raw price columns (`gross_price`, `wholesale_price`, `supplier_wholesale_price`, `impact_on_price`, `impact_on_wholesale_price`, `purchase_price`) | 4 | Column (null prints `"0.00"`) |
     | `*_incl` | 2 | Falsy |
 
-    The product rows are pinned against the PHP oracle in `products::pricing::tests::zero_rules_match_php_oracle` and over HTTP in `tests/products.rs` `zero_prices_print_by_laravel_source`.
+    The product rows are pinned against the PHP oracle in `products::pricing::tests::zero_rules_match_php_oracle` and over HTTP in `tests/api/products.rs` `zero_prices_print_by_laravel_source`.
 - Oracle: `tests/fixtures/format_decimals.json` holds 207 cases produced by PHP 8.4 running the real `MoneyHelper.php` (prod is PHP 8.4 too). `money::tests::matches_php_oracle` runs all of them.
 - Raw columns that Laravel printed unformatted (`shipping_costs` → `"780.00000000"`) print `Decimal` rescaled to 8.
 

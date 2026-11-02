@@ -34,7 +34,7 @@ pub const CREDENTIALS_KEY: &str =
 pub const API_PUBLIC_URL: &str = "https://api.test";
 
 /// Test defaults; mail goes to `outbox`. Rate limit high enough that only
-/// tests/rate_limit.rs (which sets its own) ever hits it.
+/// tests/api/rate_limit.rs (which sets its own) ever hits it.
 pub fn state(pool: PgPool, mailer: Mailer) -> AppState {
     AppState {
         health_db: pool.clone(),
