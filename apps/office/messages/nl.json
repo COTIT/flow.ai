@@ -418,6 +418,39 @@
     "deactivated": "{name} kan niet meer inloggen op de kassa.",
     "activated": "{name} kan weer inloggen op de kassa.",
     "vaultAdded": "Kluis toegevoegd.",
-    "pdfReady": "De PDF is klaar."
+    "pdfReady": "De PDF is klaar.",
+    "imagesSaved": "Afbeeldingen opgeslagen."
+  },
+  "images": {
+    "title": "Afbeeldingen",
+    "empty": "Nog geen afbeeldingen.",
+    "unnamed": "Afbeelding",
+    "variant": "variantafbeelding",
+    "pick": "Afbeeldingsbestand",
+    "add": "Afbeelding toevoegen",
+    "removeOne": "Afbeelding {position} verwijderen",
+    "save": "Afbeeldingen opslaan",
+    "discard": "Wijzigingen weggooien"
+  },
+  "credits": {
+    "title": "Vergoedingen aan boeren",
+    "groups": "{count, plural, one {Verkopen vergoeden # boerengroep, getoond op de publieke pagina.} other {Verkopen vergoeden # boerengroepen, getoond op de publieke pagina.}}",
+    "noGroups": "De publieke pagina toont geen boerengroepen voor deze batch.",
+    "empty": "Nog geen verkopen of retouren van deze batch.",
+    "at": "Wanneer",
+    "kind": "Wat",
+    "order": "Order",
+    "jars": "Potten",
+    "till": "kassa",
+    "kinds": {
+      "sale": "Verkoop",
+      "return": "Retour"
+    }
+  },
+  "lineage": {
+    "packedFrom": "Verpakt uit batch",
+    "pack": "{units} stuks uit {kg} kg",
+    "receivedFrom": "Ontvangen uit batch {code} van de partner ({publicCode}).",
+    "transfers": "Bekijk overdrachten"
   }
 }

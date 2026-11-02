@@ -31,6 +31,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 import { LotFields } from "../lot-fields"
+import { FarmerCredits } from "./farmer-credits"
 import { PackDialog } from "./pack-dialog"
 
 export default function LotPage({
@@ -116,6 +117,40 @@ export default function LotPage({
           <PackDialog lotId={id} code={current.code} />
         </div>
         <Done message={done.message} />
+        {current.parent_lot || current.received_from ? (
+          <p className="text-sm text-muted-foreground">
+            {current.parent_lot ? (
+              <>
+                {t("lineage.packedFrom")}{" "}
+                <Link
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  href={`/lots/${current.parent_lot.id}`}
+                >
+                  {current.parent_lot.code}
+                </Link>
+                {/* The two exact numbers as the API keeps them; no kg-per-jar division here. */}
+                {current.pack
+                  ? ` · ${t("lineage.pack", { units: current.pack.units, kg: current.pack.raw_kg })}`
+                  : ""}
+              </>
+            ) : null}
+            {current.received_from ? (
+              <>
+                {current.parent_lot ? " · " : ""}
+                {t("lineage.receivedFrom", {
+                  code: current.received_from.from_lot_code,
+                  publicCode: current.received_from.from_lot_public_code,
+                })}{" "}
+                <Link
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  href="/supply/transfers"
+                >
+                  {t("lineage.transfers")}
+                </Link>
+              </>
+            ) : null}
+          </p>
+        ) : null}
         <form
           key={current.updated_at}
           className="flex max-w-2xl flex-col gap-3"
@@ -157,6 +192,8 @@ export default function LotPage({
           onConfirm={() => pending && save(pending)}
         />
       </section>
+
+      <FarmerCredits lotId={id} />
 
       <section className="flex flex-col gap-3">
         <h2 className="heading-2 text-base">{t("lots.events")}</h2>

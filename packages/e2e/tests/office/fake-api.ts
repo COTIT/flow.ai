@@ -81,6 +81,11 @@ export async function fakeApi(page: Page) {
       ],
     }))
     .on("POST", "/logout", () => ({ status: 204 }))
+    // Every batch page reads its farmer credits; specs that care override this.
+    .on("GET", "/workspace/:ws/lots/:lot/farmer-credits", () => ({
+      ...paged([]),
+      farmer_groups: null,
+    }))
   await page.route("**/v1/**", (route) => api.handle(route))
   return api
 }

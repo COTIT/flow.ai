@@ -418,6 +418,39 @@
     "deactivated": "{name} hawezi tena kuingia kwenye kaunta.",
     "activated": "{name} anaweza kuingia kwenye kaunta tena.",
     "vaultAdded": "Sefu imeongezwa.",
-    "pdfReady": "PDF iko tayari."
+    "pdfReady": "PDF iko tayari.",
+    "imagesSaved": "Picha zimehifadhiwa."
+  },
+  "images": {
+    "title": "Picha",
+    "empty": "Bado hakuna picha.",
+    "unnamed": "Picha",
+    "variant": "picha ya aina",
+    "pick": "Faili ya picha",
+    "add": "Ongeza picha",
+    "removeOne": "Ondoa picha {position}",
+    "save": "Hifadhi picha",
+    "discard": "Acha mabadiliko"
+  },
+  "credits": {
+    "title": "Malipo kwa wakulima",
+    "groups": "{count, plural, one {Mauzo yanamlipa kikundi # cha wakulima, kinachoonyeshwa kwenye ukurasa wa umma.} other {Mauzo yanalipa vikundi # vya wakulima, vinavyoonyeshwa kwenye ukurasa wa umma.}}",
+    "noGroups": "Ukurasa wa umma hauonyeshi vikundi vya wakulima kwa fungu hili.",
+    "empty": "Bado hakuna mauzo au marejesho ya fungu hili.",
+    "at": "Lini",
+    "kind": "Nini",
+    "order": "Oda",
+    "jars": "Chupa",
+    "till": "kaunta",
+    "kinds": {
+      "sale": "Mauzo",
+      "return": "Marejesho"
+    }
+  },
+  "lineage": {
+    "packedFrom": "Imefungashwa kutoka fungu",
+    "pack": "vipande {units} kutoka kilo {kg}",
+    "receivedFrom": "Imepokelewa kutoka fungu {code} la mshirika ({publicCode}).",
+    "transfers": "Angalia uhamisho"
   }
 }

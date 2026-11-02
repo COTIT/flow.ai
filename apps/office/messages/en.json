@@ -418,6 +418,39 @@
     "deactivated": "{name} can no longer log in at the till.",
     "activated": "{name} can log in at the till again.",
     "vaultAdded": "Vault added.",
-    "pdfReady": "The PDF is ready."
+    "pdfReady": "The PDF is ready.",
+    "imagesSaved": "Images saved."
+  },
+  "images": {
+    "title": "Images",
+    "empty": "No images yet.",
+    "unnamed": "Image",
+    "variant": "variant image",
+    "pick": "Image file",
+    "add": "Add image",
+    "removeOne": "Remove image {position}",
+    "save": "Save images",
+    "discard": "Discard changes"
+  },
+  "credits": {
+    "title": "Farmer credits",
+    "groups": "{count, plural, one {Sales credit # farmer group, shown on the public page.} other {Sales credit # farmer groups, shown on the public page.}}",
+    "noGroups": "The public page shows no farmer groups for this batch.",
+    "empty": "No sales or returns of this batch yet.",
+    "at": "When",
+    "kind": "What",
+    "order": "Order",
+    "jars": "Jars",
+    "till": "till",
+    "kinds": {
+      "sale": "Sale",
+      "return": "Return"
+    }
+  },
+  "lineage": {
+    "packedFrom": "Packed from batch",
+    "pack": "{units} units from {kg} kg",
+    "receivedFrom": "Received from the partner's batch {code} ({publicCode}).",
+    "transfers": "See transfers"
   }
 }

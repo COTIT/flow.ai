@@ -42,6 +42,8 @@ import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
 import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
 
+import { ProductImages } from "./images"
+
 type Named = { name?: string; bin_code?: string; bin_name?: string } | null
 
 export default function ProductPage({
@@ -180,6 +182,8 @@ export default function ProductPage({
           </Button>
         </form>
       </section>
+
+      <ProductImages productId={id} done={done} />
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
