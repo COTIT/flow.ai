@@ -20,7 +20,8 @@
     "locked": "Too many wrong PINs. Try again later.",
     "pinFormat": "The PIN is 4 to 8 digits.",
     "keyRefused": "This device's key is no longer accepted. Set up the till again.",
-    "setupAgain": "Set up again"
+    "setupAgain": "Set up again",
+    "expired": "Your session ended. Log in again to continue."
   },
   "sale": {
     "title": "Sale",
@@ -105,5 +106,17 @@
     "review": "Needs review",
     "booked": "Sale {number}: {due}",
     "dismiss": "Dismiss"
+  },
+  "errors": {
+    "crashTitle": "This screen stopped working.",
+    "crashBody": "Sales waiting to sync are still kept on this device. Try again, or go back to the sale screen.",
+    "retry": "Try again",
+    "home": "Go to the sale screen",
+    "notFoundTitle": "There is no such screen.",
+    "notFoundBody": "The address may be mistyped."
+  },
+  "offline": {
+    "title": "Offline. Sales are kept on this device and sent when the connection is back.",
+    "waiting": "{count, plural, one {# sale} other {# sales}} waiting to sync"
   }
 }

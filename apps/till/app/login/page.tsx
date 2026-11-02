@@ -15,6 +15,7 @@ import { Input } from "@genesy/ui/components/input"
 import { Label } from "@genesy/ui/components/label"
 import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { Notice } from "@/components/state"
 import { deviceAuth, tillStore, useTill } from "@/lib/till-store"
 
 /** Till user picker and PIN, sent with the device key. */
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const hydrated = useTill((s) => s.hydrated)
   const device = useTill((s) => s.device)
   const session = useTill((s) => s.session)
+  const ended = useTill((s) => s.ended)
   const [user, setUser] = React.useState<TillUserBrief | null>(null)
 
   const users = useTillLoginUsers(device?.workspaceId ?? "", {
@@ -43,7 +45,9 @@ export default function LoginPage() {
 
   if (!hydrated || !device) return null
 
-  const keyRefused = [401, 403, 404].includes(users.error?.response?.status ?? 0)
+  const keyRefused = [401, 403, 404].includes(
+    users.error?.response?.status ?? 0
+  )
   const status = login.error?.response?.status
   const error = !login.error
     ? null
@@ -60,6 +64,9 @@ export default function LoginPage() {
       <Logo className="h-10" />
       <div className="flex w-full max-w-sm flex-col gap-4">
         <h1 className="text-xl font-medium">{t("login.title")}</h1>
+        {ended === "expired" ? (
+          <Notice kind="info">{t("login.expired")}</Notice>
+        ) : null}
         {keyRefused ? (
           <>
             <p role="alert" className="text-sm text-destructive">

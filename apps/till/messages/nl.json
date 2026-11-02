@@ -20,7 +20,8 @@
     "locked": "Te vaak een verkeerde pincode. Probeer het later opnieuw.",
     "pinFormat": "De pincode is 4 tot 8 cijfers.",
     "keyRefused": "De sleutel van dit apparaat wordt niet meer geaccepteerd. Stel de kassa opnieuw in.",
-    "setupAgain": "Opnieuw instellen"
+    "setupAgain": "Opnieuw instellen",
+    "expired": "Je sessie is beëindigd. Log opnieuw in om verder te gaan."
   },
   "sale": {
     "title": "Verkoop",
@@ -105,5 +106,17 @@
     "review": "Nakijken",
     "booked": "Verkoop {number}: {due}",
     "dismiss": "Verbergen"
+  },
+  "errors": {
+    "crashTitle": "Dit scherm werkt niet meer.",
+    "crashBody": "Verkopen die nog verstuurd moeten worden blijven op dit apparaat. Probeer het opnieuw of ga terug naar de verkoop.",
+    "retry": "Opnieuw proberen",
+    "home": "Naar de verkoop",
+    "notFoundTitle": "Dit scherm bestaat niet.",
+    "notFoundBody": "Misschien is het adres verkeerd getypt."
+  },
+  "offline": {
+    "title": "Offline. Verkopen blijven op dit apparaat en worden verstuurd zodra er weer verbinding is.",
+    "waiting": "{count, plural, one {# verkoop} other {# verkopen}} wacht op versturen"
   }
 }

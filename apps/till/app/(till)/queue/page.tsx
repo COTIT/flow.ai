@@ -47,7 +47,10 @@ export default function QueuePage() {
               </Badge>
               <span className="mr-auto">
                 {i.sale
-                  ? t("booked", { number: i.sale.number, due: money(i.sale.due) })
+                  ? t("booked", {
+                      number: i.sale.number,
+                      due: money(i.sale.due),
+                    })
                   : `≈ ${money(estimate(i.lines))}`}
                 {i.message ? (
                   <span className="block text-destructive">{i.message}</span>
@@ -57,7 +60,9 @@ export default function QueuePage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => queueStore.getState().dismiss(i.body.client_ref)}
+                  onClick={() =>
+                    queueStore.getState().dismiss(i.body.client_ref)
+                  }
                 >
                   {t("dismiss")}
                 </Button>

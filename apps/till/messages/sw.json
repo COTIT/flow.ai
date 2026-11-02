@@ -20,7 +20,8 @@
     "locked": "PIN zisizo sahihi zimezidi. Jaribu tena baadaye.",
     "pinFormat": "PIN ni tarakimu 4 hadi 8.",
     "keyRefused": "Ufunguo wa kifaa hiki haukubaliki tena. Sanidi kituo upya.",
-    "setupAgain": "Sanidi upya"
+    "setupAgain": "Sanidi upya",
+    "expired": "Muda wa kuingia umeisha. Ingia tena ili uendelee."
   },
   "sale": {
     "title": "Mauzo",
@@ -105,5 +106,17 @@
     "review": "Yanahitaji ukaguzi",
     "booked": "Mauzo {number}: {due}",
     "dismiss": "Ondoa"
+  },
+  "errors": {
+    "crashTitle": "Skrini hii imeacha kufanya kazi.",
+    "crashBody": "Mauzo yanayosubiri kutumwa bado yamehifadhiwa kwenye kifaa hiki. Jaribu tena, au rudi kwenye mauzo.",
+    "retry": "Jaribu tena",
+    "home": "Rudi kwenye mauzo",
+    "notFoundTitle": "Hakuna skrini kama hii.",
+    "notFoundBody": "Huenda anwani imeandikwa vibaya."
+  },
+  "offline": {
+    "title": "Nje ya mtandao. Mauzo yanahifadhiwa kwenye kifaa hiki na yatatumwa mtandao ukirudi.",
+    "waiting": "Mauzo {count} yanasubiri kutumwa"
   }
 }

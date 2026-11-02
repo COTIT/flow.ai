@@ -145,9 +145,13 @@ export async function fakeTill(page: Page) {
 
 /** Guarded `test` with a faked till API on every page; the device is not seeded. */
 export const test = base.extend<{ api: FakeApi }>({
-  api: async ({ page }, use) => {
-    await use(await fakeTill(page))
-  },
+  // auto: a spec that never names `api` still gets it, so nothing reaches a real backend.
+  api: [
+    async ({ page }, use) => {
+      await use(await fakeTill(page))
+    },
+    { auto: true },
+  ],
 })
 
 export { expect, paged }
