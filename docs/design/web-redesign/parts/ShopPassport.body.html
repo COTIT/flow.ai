@@ -1,0 +1,60 @@
+  <sc-if value="{{isRecalled}}" hint-placeholder-val="{{ false }}">
+    <div class="recall" role="alert"><svg class="i xl" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg><div><p style="font-weight: 700; font-size: 18px">This lot has been recalled</p><p style="opacity: 0.92">Please don’t eat it. Return the jar to where you bought it for a full refund. The details below stay for your reference.</p></div></div>
+  </sc-if>
+  <section class="bento">
+    <div class="card s-12" style="padding: 0; overflow: hidden; gap: 0">
+      <div class="ph-img ph-coffee" style="height: 280px; border-radius: 0"><span class="ph-label">Banner photo</span></div>
+      <div class="row wrap between" style="padding: 24px 28px; gap: 16px">
+        <div class="col gap-8" style="flex: 1 1 520px">
+          <p class="tag" style="color: var(--t-gold)">Ruaha coffee 250 g · Lot CF-2026-01</p>
+          <h1 class="h1" style="font-size: 32px">Coffee from the Ilundo hills</h1>
+          <p class="muted" style="max-width: 680px">Grown in the shade of miombo trees by three families in Ilundo village, picked by hand and dried on raised beds.</p>
+        </div>
+        <div class="col gap-8" style="align-items: flex-end">
+          <sc-if value="{{notRecalled}}" hint-placeholder-val="{{ true }}"><span class="badge b-teal">Released</span></sc-if>
+          <sc-if value="{{isRecalled}}" hint-placeholder-val="{{ false }}"><span class="badge b-red">Recalled</span></sc-if>
+          <p class="xs muted">Made 14 Sep 2026 · Best before 14 Sep 2027</p>
+        </div>
+      </div>
+    </div>
+    <div class="card s-7">
+      <div class="card-head"><p class="card-title">Where it comes from</p><a href="#" class="btn btn-ghost btn-sm">View area on OpenStreetMap <svg class="i sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg></a></div>
+      <div class="map" style="min-height: 260px"><span class="pin">Ilundo · about 1 km area</span></div>
+      <p class="xs muted">Shown as an area, not an exact spot, to protect the farmers’ homes.</p>
+    </div>
+    <div class="card s-5">
+      <p class="card-title">What’s inside</p>
+      <div class="col gap-8"><div class="row between small"><span>Arabica coffee, Ilundo</span><span class="num" style="font-weight: 600">100%</span></div><div class="bar"><i style="width: 100%"></i></div></div>
+      <div class="grid-2" style="gap: 10px">
+        <div class="tile"><p class="xs muted">Altitude</p><p style="font-weight: 600">1,650 m</p></div>
+        <div class="tile"><p class="xs muted">Process</p><p style="font-weight: 600">Natural</p></div>
+        <div class="tile"><p class="xs muted">Variety</p><p style="font-weight: 600">Arabica</p></div>
+        <div class="tile"><p class="xs muted">Harvest</p><p style="font-weight: 600">Jun–Aug 2026</p></div>
+      </div>
+    </div>
+    <div class="card s-12">
+      <div class="card-head"><h2 class="h2">Meet the farmers</h2><p class="small muted">They are credited for every jar sold.</p></div>
+      <div class="grid-3">
+        <div class="tile row" style="gap: 14px"><span class="avatar navy" style="width: 56px; height: 56px; font-size: 18px">BA</span><div><p style="font-weight: 600">Baraka</p><p class="small muted">Ilundo · picked 12–30 Jul</p></div></div>
+        <div class="tile row" style="gap: 14px"><span class="avatar navy" style="width: 56px; height: 56px; font-size: 18px">FA</span><div><p style="font-weight: 600">Faraji</p><p class="small muted">Ilundo · picked 2–20 Aug</p></div></div>
+        <div class="tile row" style="gap: 14px"><span class="avatar navy" style="width: 56px; height: 56px; font-size: 18px">ZA</span><div><p style="font-weight: 600">Zawadi</p><p class="small muted">Ilundo · picked 18 Jul–9 Aug</p></div></div>
+      </div>
+    </div>
+    <div class="card s-5" style="justify-content: center">
+      <p class="h3">In her words</p>
+      <p style="font-size: 20px; font-style: italic; line-height: 1.5">“We dry every cherry in the sun and turn it by hand three times a day.”</p>
+      <p class="small muted">— Zawadi, Ilundo</p>
+    </div>
+    <div class="card s-7">
+      <p class="card-title">The harvest</p>
+      <p class="muted small">The harvest starts in June when the cherries turn deep red. Families pick only the ripe ones, then spread them on raised beds made of mesh so air reaches every side. After about three weeks the cherries are hulled at the Ilundo store and weighed — each farmer’s share is written in their passbook on the spot.</p>
+      <div class="ph-img ph-coffee" style="height: 160px"><span class="ph-label">Story photo</span></div>
+    </div>
+    <div class="card s-12">
+      <div class="card-head"><p class="card-title">Certificates</p></div>
+      <div class="grid-2">
+        <div class="tile row"><span class="chip-ic teal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1zM9 12l2 2 4-4"></path></svg></span><div class="grow"><p class="small" style="font-weight: 600">Organic (EU 2018/848)</p><p class="xs muted">TZ-BIO-104 · valid until Mar 2027</p></div><a href="#" class="btn btn-outline btn-sm">PDF</a></div>
+        <div class="tile row"><span class="chip-ic teal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1zM9 12l2 2 4-4"></path></svg></span><div class="grow"><p class="small" style="font-weight: 600">Lab test · moisture 11%</p><p class="xs muted">Iringa lab · 30 Aug 2026</p></div><a href="#" class="btn btn-outline btn-sm">PDF</a></div>
+      </div>
+    </div>
+  </section>

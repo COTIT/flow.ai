@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Till sale</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./glass.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{rootClass}}" style="position: relative">
+  <header class="till-top glass-strong">
+    <img class="logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy">
+    <img class="logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy">
+    <nav class="row gap-4" aria-label="Till">
+      <a href="#" class="till-tab on">Sale</a>
+      <a href="#" class="till-tab">Drawer</a>
+    </nav>
+    <span class="grow"></span>
+    <span class="badge b-teal no-phone">Online</span>
+    <span class="who no-phone">AFM counter · Amina</span>
+    <button class="btn btn-ghost btn-icon" type="button" aria-label="Switch theme" style="width: 44px; height: 44px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></button>
+    <button class="btn btn-outline" type="button" style="height: 44px">Lock</button>
+  </header>
+
+  <sc-if value="{{isA}}" hint-placeholder-val="{{ true }}">
+  <div class="till-body sale">
+    <div class="pane">
+      <label class="scan"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 7v10M12 7v10M16 7v10"></path></svg><span class="muted grow">Scan a barcode or type a name</span><span class="badge b-slate nodot no-phone">Scanner ready</span></label>
+      <div class="ptiles">
+        <sc-for list="{{products}}" as="p" hint-placeholder-count="12">
+          <button class="ptile" type="button"><span class="nm">{{p.name}}</span><span class="pr">{{p.price}}</span><sc-if value="{{p.qty}}" hint-placeholder-val="{{ false }}"><span class="qty">{{p.qty}}</span></sc-if></button>
+        </sc-for>
+      </div>
+    </div>
+    <aside class="basket dock glass-strong" aria-label="Basket">
+      <div class="col" style="gap: 8px; min-height: 0">
+        <div class="row between"><p class="card-title">Basket · 5 items</p><button class="btn btn-ghost" type="button" style="height: 44px">Clear</button></div>
+        <ul class="lines">
+          <sc-for list="{{lines}}" as="l" hint-placeholder-count="3">
+            <li class="line"><span class="ln">{{l.name}}</span><span class="lp">{{l.total}}</span><span class="qstep"><button type="button" aria-label="One less"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button><span>{{l.qty}}</span><button type="button" aria-label="One more"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"></path></svg></button></span><span class="xs muted right">{{l.unit}} each</span></li>
+          </sc-for>
+        </ul>
+      </div>
+      <div class="col" style="gap: 10px; margin-top: auto">
+        <div class="totals"><div class="row small"><span class="muted">Total</span><span class="num">$60.00</span></div><div class="row"><span style="font-weight: 600">Due</span><span class="grand">$60.00</span></div></div>
+        <button class="charge" type="button"><span>Charge</span><span class="num">$60.00</span></button>
+      </div>
+    </aside>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{isB}}" hint-placeholder-val="{{ false }}">
+  <div class="till-body sale-b">
+    <aside class="basket glass-strong" aria-label="Basket">
+      <div class="row between"><p class="card-title" style="font-size: 18px">Basket · 5 items</p><button class="btn btn-ghost" type="button" style="height: 44px">Clear</button></div>
+      <ul class="lines">
+        <sc-for list="{{lines}}" as="l" hint-placeholder-count="3">
+          <li class="line"><span class="ln">{{l.name}}</span><span class="lp">{{l.total}}</span><span class="qstep"><button type="button" aria-label="One less"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button><span>{{l.qty}}</span><button type="button" aria-label="One more"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"></path></svg></button></span><span class="xs muted right">{{l.unit}} each</span></li>
+        </sc-for>
+      </ul>
+      <div class="totals"><div class="row"><span style="font-weight: 600">Due</span><span class="grand">$60.00</span></div></div>
+    </aside>
+    <div class="pane">
+      <label class="scan"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 7v10M12 7v10M16 7v10"></path></svg><span class="mono grow" style="font-size: 20px">4006</span><span class="muted small">code</span></label>
+      <div class="pad" style="flex: 1 1 auto">
+        <button class="key" type="button">7</button><button class="key" type="button">8</button><button class="key" type="button">9</button>
+        <button class="key" type="button">4</button><button class="key" type="button">5</button><button class="key" type="button">6</button>
+        <button class="key" type="button">1</button><button class="key" type="button">2</button><button class="key" type="button">3</button>
+        <button class="key fn" type="button">× Qty</button><button class="key" type="button">0</button><button class="key fn" type="button" aria-label="Delete"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM18 9l-6 6M12 9l6 6"></path></svg></button>
+      </div>
+      <div class="row" style="gap: 10px"><button class="btn btn-outline" type="button" style="height: 76px; border-radius: 22px; flex: 0 0 140px; font-size: 16px">Add item</button><button class="charge grow" type="button"><span>Charge</span><span class="num">$60.00</span></button></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{hasSheet}}" hint-placeholder-val="{{ false }}">
+    <div class="scrim"></div>
+    <section class="sheet glass-strong" role="dialog" aria-label="Payment">
+      <div class="row between"><p class="card-title" style="font-size: 20px">{{sheetTitle}}</p><button class="btn btn-outline btn-icon" type="button" aria-label="Close" style="width: 48px; height: 48px; border-radius: 14px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></div>
+
+      <sc-if value="{{isPay}}" hint-placeholder-val="{{ true }}">
+        <div class="seg" style="width: 100%"><span class="{{cashTab}}" style="flex: 1; height: 48px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6h20v12H2zM12 10a2 2 0 1 0 0 4 2 2 0 1 0 0-4M6 12h.01M18 12h.01"></path></svg>Cash</span><span class="{{cardTab}}" style="flex: 1; height: 48px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h20v14H2zM2 10h20"></path></svg>Card</span></div>
+        <div class="row between"><span class="muted">Due</span><span class="grand">$60.00</span></div>
+      </sc-if>
+
+      <sc-if value="{{isCash}}" hint-placeholder-val="{{ true }}">
+        <div class="col" style="gap: 6px"><span class="label">Received</span><div class="tender">$80.00</div></div>
+        <div class="notes"><button class="btn btn-outline" type="button">Exact</button><button class="btn btn-outline" type="button">$70</button><button class="btn btn-outline" type="button">$80</button><button class="btn btn-outline" type="button">$100</button></div>
+        <div class="pad">
+          <button class="key" type="button">1</button><button class="key" type="button">2</button><button class="key" type="button">3</button>
+          <button class="key" type="button">4</button><button class="key" type="button">5</button><button class="key" type="button">6</button>
+          <button class="key" type="button">7</button><button class="key" type="button">8</button><button class="key" type="button">9</button>
+          <button class="key fn" type="button">00</button><button class="key" type="button">0</button><button class="key fn" type="button" aria-label="Delete"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM18 9l-6 6M12 9l6 6"></path></svg></button>
+        </div>
+        <div class="row between tile" style="padding: 12px 16px; background: var(--c-teal); border-color: transparent; margin-top: auto"><span style="font-weight: 600">Change</span><span class="grand" style="color: var(--t-teal)">$20.00</span></div>
+        <button class="charge" type="button"><span>Book sale</span><span class="num">$60.00</span></button>
+      </sc-if>
+
+      <sc-if value="{{isCard}}" hint-placeholder-val="{{ false }}">
+        <div class="col" style="gap: 6px"><span class="label">Card slip or last 4 digits</span><div class="tender mono" style="text-align: left">4821</div><span class="hint">Run the card on the terminal first, then type its slip number.</span></div>
+        <div class="pad">
+          <button class="key" type="button">1</button><button class="key" type="button">2</button><button class="key" type="button">3</button>
+          <button class="key" type="button">4</button><button class="key" type="button">5</button><button class="key" type="button">6</button>
+          <button class="key" type="button">7</button><button class="key" type="button">8</button><button class="key" type="button">9</button>
+          <button class="key fn" type="button">Clear</button><button class="key" type="button">0</button><button class="key fn" type="button" aria-label="Delete"><svg class="i lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zM18 9l-6 6M12 9l6 6"></path></svg></button>
+        </div>
+        <button class="charge" type="button" style="margin-top: auto"><span>Book card sale</span><span class="num">$60.00</span></button>
+      </sc-if>
+
+      <sc-if value="{{isReceipt}}" hint-placeholder-val="{{ false }}">
+        <div class="notice n-success"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span><div><p class="n-title">Sale 1188 booked</p><p class="n-body">Today 11:42 · AFM counter · Amina</p></div></div>
+        <div class="tile col" style="gap: 8px">
+          <div class="row between small"><span>2 × Wildflower honey 500 g</span><span class="num">$29.00</span></div>
+          <div class="row between small"><span>1 × Ruaha coffee 250 g</span><span class="num">$12.00</span></div>
+          <div class="row between small"><span>2 × Beeswax candle, tall</span><span class="num">$19.00</span></div>
+          <div class="sep"></div>
+          <div class="row between"><span style="font-weight: 600">Total</span><span class="num" style="font-weight: 600">$60.00</span></div>
+          <div class="row between small"><span class="muted">Cash received</span><span class="num">$80.00</span></div>
+        </div>
+        <div class="row between tile" style="padding: 14px 16px; background: var(--c-teal); border-color: transparent"><span style="font-weight: 600; font-size: 18px">Give change</span><span class="grand" style="color: var(--t-teal); font-size: 40px">$20.00</span></div>
+        <div class="row" style="gap: 10px; margin-top: auto"><button class="btn btn-outline" type="button" style="height: 76px; border-radius: 22px; flex: 0 0 150px; font-size: 16px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"></path></svg>Print</button><button class="charge grow" type="button" style="justify-content: center">New sale</button></div>
+      </sc-if>
+    </section>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"direction":{"editor":"enum","options":["a","b"],"default":"a"},"layout":{"editor":"enum","options":["a","b"],"default":"a"},"sheet":{"editor":"enum","options":["none","cash","card","receipt"],"default":"none"},"$preview":{"width":1024,"height":768}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'light';
+    const dir = this.props.direction ?? 'a';
+    const layout = this.props.layout ?? 'a';
+    const sheet = this.props.sheet ?? 'none';
+    const products = [
+      ['Wildflower honey 500 g', '$14.50', '2'], ['Miombo forest honey 1 kg', '$26.00', ''], ['Acacia honey 250 g', '$8.75', ''],
+      ['Ruaha coffee 250 g', '$12.00', '1'], ['Raw honeycomb 400 g', '$18.00', ''], ['Beeswax candle, tall', '$9.50', '2'],
+      ['Beeswax candle, small', '$5.00', ''], ['Honey gift box', '$39.00', ''], ['Wildflower honey 250 g', '$8.00', ''],
+      ['Ruaha coffee 1 kg', '$42.00', ''], ['Honey dipper', '$4.50', ''], ['Tote bag', '$12.00', '']
+    ].map(([name, price, qty]) => ({ name, price, qty }));
+    const lines = [
+      { name: 'Wildflower honey 500 g', qty: '2', unit: '$14.50', total: '$29.00' },
+      { name: 'Ruaha coffee 250 g', qty: '1', unit: '$12.00', total: '$12.00' },
+      { name: 'Beeswax candle, tall', qty: '2', unit: '$9.50', total: '$19.00' }
+    ];
+    return {
+      rootClass: 'g till t-' + mode + ' dir-' + dir,
+      products, lines,
+      isA: layout !== 'b', isB: layout === 'b',
+      hasSheet: sheet !== 'none',
+      isPay: sheet === 'cash' || sheet === 'card',
+      isCash: sheet === 'cash', isCard: sheet === 'card', isReceipt: sheet === 'receipt',
+      sheetTitle: sheet === 'receipt' ? 'Done' : 'Take payment',
+      cashTab: sheet === 'cash' ? 'btn on' : 'btn',
+      cardTab: sheet === 'card' ? 'btn on' : 'btn'
+    };
+  }
+}
+</script>
+</body>
+</html>

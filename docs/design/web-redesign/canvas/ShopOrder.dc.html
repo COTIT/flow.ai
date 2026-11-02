@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop order</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./glass.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div class="{{rootClass}}">
+<div class="wrap-shop">
+  <header class="shop-head glass-strong">
+    <a href="#" aria-label="Genesy shop home"><img class="logo-img logo-l" src="/_blob/961aa98faa7be2bd8dbe24143ff25474" alt="Genesy"><img class="logo-img logo-d" src="/_blob/6f1303279cddc88634ef9d67532e86eb" alt="Genesy"></a>
+    <nav class="shop-nav" aria-label="Shop"><a href="#" class="on">Shop</a></nav>
+    <span class="grow"></span>
+    <button class="btn btn-ghost btn-icon no-phone" type="button" aria-label="Language">EN</button>
+    <button class="btn btn-ghost btn-icon" type="button" aria-label="Switch theme"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"></path></svg></button>
+    <a href="#" class="btn btn-outline" aria-label="Cart, 2 items"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"></path></svg><span class="no-phone">Cart</span><span class="count">2</span></a>
+  </header>
+<!--BODY-->
+  <section class="bento" style="max-width: 920px; margin: 0 auto; width: 100%">
+    <div class="card s-12" style="gap: 18px">
+      <div class="row between wrap"><div><p class="h3">Order</p><h1 class="h2">#1042</h1></div>
+        <sc-if value="{{isAwaiting}}" hint-placeholder-val="{{ true }}"><span class="badge b-gold">Awaiting payment</span></sc-if>
+        <sc-if value="{{isPaid}}" hint-placeholder-val="{{ false }}"><span class="badge b-teal">Paid</span></sc-if>
+        <sc-if value="{{isCancelled}}" hint-placeholder-val="{{ false }}"><span class="badge b-red">Cancelled</span></sc-if>
+      </div>
+      <sc-if value="{{isAwaiting}}" hint-placeholder-val="{{ true }}">
+        <div class="notice n-info"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg></span><div class="col gap-8 grow" style="align-items: flex-start"><div><p class="n-title">We’re holding your items until 10:42</p><p class="n-body">Pay now to finish. This page updates by itself once the payment is through.</p></div><button class="btn btn-primary btn-lg" type="button">Pay $48.50</button></div></div>
+      </sc-if>
+      <sc-if value="{{isPaid}}" hint-placeholder-val="{{ false }}">
+        <div class="notice n-success"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg></span><div><p class="n-title">Thank you — your order is paid</p><p class="n-body">A receipt is on its way to dana.whitfield@example.com. We’ll email you when it ships.</p></div></div>
+      </sc-if>
+      <sc-if value="{{isCancelled}}" hint-placeholder-val="{{ false }}">
+        <div class="notice n-warning"><span class="chip-ic"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg></span><div class="col gap-8" style="align-items: flex-start"><div><p class="n-title">This order was cancelled</p><p class="n-body">The payment time ran out. You haven’t been charged.</p></div><a href="#" class="btn btn-outline btn-sm">Shop again</a></div></div>
+      </sc-if>
+      <div class="grid-2">
+        <div class="tile col gap-8">
+          <div class="row"><span class="ph-img ph-honey" style="width: 44px; height: 44px; border-radius: 12px"></span><div class="grow"><p class="small" style="font-weight: 600">Wildflower honey · 500 g</p><p class="xs muted">2 × $14.50</p></div><span class="num small" style="font-weight: 600">$29.00</span></div>
+          <div class="row"><span class="ph-img ph-coffee" style="width: 44px; height: 44px; border-radius: 12px"></span><div class="grow"><p class="small" style="font-weight: 600">Ruaha coffee 250 g</p><p class="xs muted">1 × $12.00</p></div><span class="num small" style="font-weight: 600">$12.00</span></div>
+        </div>
+        <div class="tile col gap-8">
+          <div class="row between small"><span class="muted">Subtotal</span><span class="num">$41.00</span></div>
+          <div class="row between small"><span class="muted">VAT</span><span class="num">$7.50</span></div>
+          <div class="sep"></div>
+          <div class="row between"><span style="font-weight: 600">Total</span><span class="price">$48.50</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+<!--/BODY-->
+  <footer class="foot">
+    <div class="row gap-16"><img src="/_blob/88da5df3172b71ae006beea04a534220" alt="" style="width: 42px; height: auto"><div><p style="font-weight: 600">Traceable from hive to kitchen</p><p class="small" style="opacity: 0.8">Shipping to the United States. Prices include VAT.</p></div></div>
+    <div class="row gap-16 small"><a href="#">Privacy</a><a href="#">Contact</a><a href="#">English</a></div>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["light","dark"],"default":"light"},"direction":{"editor":"enum","options":["a","b"],"default":"a"},"status":{"editor":"enum","options":["normal","paid","cancelled","recalled"],"default":"normal"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mode = this.props.mode ?? 'light';
+    const dir = this.props.direction ?? 'a';
+    const status = this.props.status ?? 'normal';
+    const products = [
+      { img: 'ph-img ph-honey', brand: 'AFM', name: 'Wildflower honey 500 g', desc: 'Raw, unblended, from miombo woodland near Ilundo.', price: '$14.50', stock: 'In stock', badge: 'badge b-teal' },
+      { img: 'ph-img ph-amber', brand: 'AFM', name: 'Miombo forest honey 1 kg', desc: 'Dark and rich. Harvested twice a year.', price: '$26.00', stock: 'In stock', badge: 'badge b-teal' },
+      { img: 'ph-img ph-coffee', brand: 'AFM · RUAHA', name: 'Ruaha coffee 250 g', desc: 'Arabica from Ilundo, sun-dried on raised beds.', price: '$12.00', stock: 'Few left', badge: 'badge b-gold' },
+      { img: 'ph-img ph-honey', brand: 'AFM', name: 'Acacia honey 250 g', desc: 'Light and floral, stays runny.', price: '$8.75', stock: 'In stock', badge: 'badge b-teal' },
+      { img: 'ph-img ph-wax', brand: 'AFM', name: 'Beeswax candle, tall', desc: 'Pure beeswax from the same hives.', price: '$9.50', stock: 'In stock', badge: 'badge b-teal' },
+      { img: 'ph-img ph-comb', brand: 'AFM', name: 'Raw honeycomb 400 g', desc: 'Cut straight from the frame.', price: '$18.00', stock: 'Sold out', badge: 'badge b-slate' }
+    ];
+    return {
+      rootClass: 'g t-' + mode + ' dir-' + dir,
+      products,
+      isPaid: status === 'paid', isCancelled: status === 'cancelled', isAwaiting: status === 'normal',
+      isRecalled: status === 'recalled', notRecalled: status !== 'recalled'
+    };
+  }
+}
+</script>
+</body>
+</html>
