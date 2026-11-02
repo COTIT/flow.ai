@@ -230,11 +230,13 @@ describe('PersonDetailScreen', () => {
     queryState.error = null
     verifyState.isError = true
     verifyState.error = new Error('verify failed')
+    verifyState.variables = { table: 'person', id: 'p1' }
     useVerify.mockReturnValue({ ...verifyState, mutate, reset })
     view.rerender(<PersonDetailScreen />)
     expect(screen.getByTestId('verify-error')).toHaveTextContent('verify failed')
+    // "Try again" re-sends the verify that failed.
     await userEvent.setup().click(screen.getByTestId('error-retry'))
-    expect(reset).toHaveBeenCalled()
+    expect(mutate).toHaveBeenCalledWith({ table: 'person', id: 'p1' })
   })
 
   test('renders empty relationship sections and fully verified summary', () => {
@@ -388,4 +390,14 @@ describe('PersonDetailScreen app login', () => {
     await userEvent.setup().click(within(section).getByTestId('error-retry'))
     expect(historyState.refetch).toHaveBeenCalled()
   })
+})
+
+/** States step 4: a failed crop read used to leave the cycle correction's crop list silently empty. */
+test('a failed crop read is an error with a retry', async () => {
+  const refetch = vi.fn()
+  useCrops.mockReturnValue({ crops: [], error: new Error('crops failed'), refetch })
+  render(<PersonDetailScreen />)
+  expect(screen.getByTestId('crops-error')).toHaveTextContent('crops failed')
+  await userEvent.setup().click(screen.getByTestId('error-retry'))
+  expect(refetch).toHaveBeenCalled()
 })

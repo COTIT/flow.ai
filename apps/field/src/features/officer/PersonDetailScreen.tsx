@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { useSession } from '@/app/session'
@@ -115,9 +116,25 @@ export function PersonDetailScreen() {
         )}
       </header>
 
+      {crops.error && (
+        <div data-testid="crops-error">
+          <ErrorState error={crops.error} onRetry={() => void crops.refetch()} />
+        </div>
+      )}
       {verify.isError && (
         <div data-testid="verify-error">
-          <ErrorState error={verify.error} onRetry={() => verify.reset()} />
+          <ErrorState error={verify.error} onRetry={() => verify.mutate(verify.variables!)} />
+        </div>
+      )}
+      {verify.isSuccess && (
+        <div data-testid="verify-done">
+          <Notice variant="success" title={t('person.verified')} />
+        </div>
+      )}
+      {/* Cleared when the next edit opens (openEdit resets the mutation). */}
+      {edit.isSuccess && !editing && (
+        <div data-testid="person-saved">
+          <Notice variant="success" title={t('officerEdit.saved')} />
         </div>
       )}
 

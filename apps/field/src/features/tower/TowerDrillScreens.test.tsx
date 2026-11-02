@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const production = vi.fn()
@@ -76,5 +77,26 @@ describe('Tower drill-down screens', () => {
     market.mockReturnValue({ isLoading: false, error: new Error('Market failed'), data: null })
     rerender(<TowerMarketScreen />)
     expect(screen.getByRole('alert')).toHaveTextContent('Market failed')
+  })
+
+  test('a failed read retries that read, not its neighbour', async () => {
+    const user = userEvent.setup()
+    const totals = vi.fn()
+    const rows = vi.fn()
+    production.mockReturnValue({ isLoading: false, error: new Error('Totals failed'), data: undefined, refetch: totals })
+    productionRows.mockReturnValue({ isLoading: false, error: null, data: [], refetch: rows })
+    const { unmount } = render(<TowerProductionScreen />)
+    await user.click(screen.getByTestId('error-retry'))
+    expect(totals).toHaveBeenCalledTimes(1)
+    expect(rows).not.toHaveBeenCalled()
+    unmount()
+
+    totals.mockReset()
+    energy.mockReturnValue({ isLoading: false, error: new Error('Totals failed'), data: undefined, refetch: totals })
+    energyRows.mockReturnValue({ isLoading: false, error: null, data: [], refetch: rows })
+    render(<TowerEnergyScreen />)
+    await user.click(screen.getByTestId('error-retry'))
+    expect(totals).toHaveBeenCalledTimes(1)
+    expect(rows).not.toHaveBeenCalled()
   })
 })

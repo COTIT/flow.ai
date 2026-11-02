@@ -170,7 +170,7 @@ describe('LanguageSwitch applies the stored locale', () => {
 describe('what the failure says, and how long it says it', () => {
   test('a JS exception is not what the officer reads', async () => {
     useSession.mockReturnValue(signedIn('en'))
-    updateFarmMe.mockRejectedValue(new TypeError('Failed to fetch'))
+    updateFarmMe.mockRejectedValue(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
     renderSwitch()
 
     await chooseLanguage('Kiswahili')
@@ -180,7 +180,7 @@ describe('what the failure says, and how long it says it', () => {
     // bundle in the language now showing.
     const banner = await screen.findByTestId('language-error')
     expect(banner).toHaveTextContent(i18n.t('error.network'))
-    expect(banner).not.toHaveTextContent('TypeError')
+    expect(banner).not.toHaveTextContent('Network Error')
     // The honest half stays: it changed on screen and was not stored.
     expect(banner).toHaveTextContent(i18n.t('language.notSaved'))
   })

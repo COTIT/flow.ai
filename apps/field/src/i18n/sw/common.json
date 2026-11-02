@@ -36,7 +36,7 @@
     "submit": "Ingia",
     "submitting": "Inaingia…",
     "invalid": "Namba ya simu au barua pepe na neno la siri havilingani na akaunti yoyote.",
-    "network": "Seva haikupatikana. Angalia mtandao wako kisha ujaribu tena.",
+    "network": "Hakuna mtandao. Angalia muunganisho wako kisha ujaribu tena.",
     "emailRequired": "Weka namba yako ya simu au anwani ya barua pepe.",
     "emailInvalid": "Weka namba ya simu ya mkononi ya Tanzania, kwa mfano 0712 345 678, au anwani ya barua pepe.",
     "passwordRequired": "Weka neno lako la siri.",
@@ -70,7 +70,7 @@
   "error": {
     "title": "Kuna tatizo",
     "retry": "Jaribu tena",
-    "network": "Imeshindwa kuwasiliana na seva. Angalia mtandao wako kisha ujaribu tena.",
+    "network": "Hakuna mtandao. Angalia muunganisho wako kisha ujaribu tena.",
     "unexpected": "Kumetokea hitilafu isiyotarajiwa. Jaribu tena, na uiambie timu ya mradi ikiendelea kutokea.",
     "badId": "Rejea ya rekodi hiyo si sahihi.",
     "numericOverflow": "Moja ya namba ni kubwa mno kwa kisanduku ulichoiandikia. Angalia namba kisha ujaribu tena.",
@@ -270,7 +270,8 @@
     "superseded": "Imebadilishwa na mpya",
     "window": "Kipindi cha kuvuna",
     "unverifiedCount_one": "Rekodi {{count}} bado haijahakikiwa",
-    "unverifiedCount_other": "Rekodi {{count}} bado hazijahakikiwa"
+    "unverifiedCount_other": "Rekodi {{count}} bado hazijahakikiwa",
+    "verified": "Rekodi imehakikiwa"
   },
   "verifyDialog": {
     "title": "Hakiki rekodi hii?",
@@ -313,7 +314,8 @@
       "plot": "Hariri taarifa za kipande cha shamba",
       "crop_cycle": "Hariri msimu wa zao",
       "harvest_report": "Rekebisha kiasi cha mavuno"
-    }
+    },
+    "saved": "Marekebisho yamehifadhiwa"
   },
   "estimate": {
     "title": "Makadirio ya nishati",
@@ -422,7 +424,11 @@
       "submit": "Tuma ombi hili",
       "withdraw": "Ondoa ombi"
     },
-    "draftNote": "Ombi hili bado halijatumwa. Hakuna anayelipitia hadi utakapolituma."
+    "draftNote": "Ombi hili bado halijatumwa. Hakuna anayelipitia hadi utakapolituma.",
+    "done": {
+      "submit": "Ombi limetumwa",
+      "withdraw": "Ombi limeondolewa"
+    }
   },
   "table": {
     "emptyTitle": "Hakuna cha kuonyesha",
@@ -470,7 +476,12 @@
     "confirmApproveDetail": "Ombi lililoidhinishwa haliwezi kurudishwa.",
     "confirmRejectTitle": "Kataa ombi hili?",
     "confirmRejectDetail": "Ombi lililokataliwa haliwezi kurudishwa.",
-    "confirmCancel": "Rudi"
+    "confirmCancel": "Rudi",
+    "reviewDone": {
+      "start_review": "Mapitio yameanza",
+      "approve": "Ombi limeidhinishwa",
+      "reject": "Ombi limekataliwa"
+    }
   },
   "capacityBasis": {
     "planned": "Uliopangwa",
@@ -524,7 +535,9 @@
     "createOpportunity": "Unda fursa",
     "creatingOpportunity": "Inaunda…",
     "notASale": "Fursa si mauzo, si uwasilishaji wa mazao wala si malipo. Inarekodi kwamba kijiji kinaweza kumsambazia mnunuzi.",
-    "window": "Kipindi"
+    "window": "Kipindi",
+    "created": "Mahitaji yamerekodiwa",
+    "opportunityCreated": "Fursa imeundwa"
   },
   "opportunity": {
     "notASale": "Fursa si mauzo, si uwasilishaji wa mazao wala si malipo. 'Imekubaliwa' maana yake pande zote mbili zimekubali kuendelea kuzungumza; hakuna kilichohamishwa.",
@@ -573,7 +586,9 @@
     "kgNotANumber": "Andika namba.",
     "kgMoreThanZero": "Kiasi kinachochangiwa lazima kiwe zaidi ya sifuri.",
     "kgTooLarge": "Namba hii ni kubwa mno kwa sehemu hii.",
-    "kgDecimals": "Tumia desimali zisizozidi 2."
+    "kgDecimals": "Tumia desimali zisizozidi 2.",
+    "moved": "Hali imebadilishwa",
+    "attached": "Ugavi umeongezwa"
   },
   "tower": {
     "title": "Control Tower",
@@ -705,7 +720,10 @@
     "categories": {
       "title": "Aina za vifaa",
       "add": "Ongeza aina"
-    }
+    },
+    "equipmentCreated": "Kifaa kimeongezwa kwenye orodha",
+    "loanCreated": "Mkopo umeongezwa kwenye orodha",
+    "categoryCreated": "Aina imeongezwa"
   },
   "people": {
     "title": "Watu",
@@ -801,7 +819,8 @@
     "creating": "Inaongeza…",
     "nameRequired": "Mnunuzi anahitaji jina.",
     "noneTitle": "Bado hakuna wanunuzi",
-    "noneDetail": "Ongeza mnunuzi wa kwanza ili kurekodi mahitaji yake."
+    "noneDetail": "Ongeza mnunuzi wa kwanza ili kurekodi mahitaji yake.",
+    "created": "Mnunuzi ameongezwa"
   },
   "villages": {
     "title": "Vijiji",
@@ -832,7 +851,9 @@
     "notANumber": "Andika namba, ukitumia nukta kwa desimali.",
     "officerNote": "Maafisa wa uwandani wataona kijiji kipya pale tu watakapopangiwa.",
     "setCapacity": "Weka uwezo",
-    "capacityTitle": "Uwezo mpya uliopangwa wa {{name}}"
+    "capacityTitle": "Uwezo mpya uliopangwa wa {{name}}",
+    "created": "Kijiji kimeongezwa",
+    "capacitySaved": "Uwezo umehifadhiwa"
   },
   "farmerOpportunities": {
     "title": "Fursa",
@@ -1224,7 +1245,8 @@
     "onceNote": "Kaya yako inaweza kujibu dodoso hili mara moja. Kagua majibu yako kabla ya kuwasilisha.",
     "notFound": "Dodoso hili halipatikani.",
     "badge_one": "dodoso jipya {{count}}",
-    "badge_other": "madodoso mapya {{count}}"
+    "badge_other": "madodoso mapya {{count}}",
+    "notSent": "Majibu hayajatumwa"
   },
   "voucher": {
     "title": "Vocha yako ya motisha",
@@ -1421,7 +1443,12 @@
     "selectVoucher": "Chagua vocha ili kuona kumbukumbu zake za ukaguzi.",
     "voucherFor": "Vocha ya {{household}}",
     "noRedemptions": "Hakuna kilichokabidhiwa katika tarehe hizi",
-    "noRedemptionsDetail": "Jaribu kipindi kirefu zaidi cha tarehe."
+    "noRedemptionsDetail": "Jaribu kipindi kirefu zaidi cha tarehe.",
+    "voided": "Vocha imeghairiwa",
+    "statusDone": {
+      "live": "Dodoso limechapishwa",
+      "closed": "Dodoso limefungwa"
+    }
   },
   "plotDocuments": {
     "title_one": "Hati za ardhi ({{count}})",
@@ -1518,6 +1545,8 @@
     "received": "Imepokelewa {{quantity}}",
     "stockTitle": "Akiba ya loti hii",
     "stockRow": "{{available}} zinapatikana · {{level}} zipo, {{reserved}} zimeshikiliwa kwa oda",
-    "noStock": "Loti hii haina akiba."
+    "noStock": "Loti hii haina akiba.",
+    "granted": "Kiungo kimetolewa",
+    "revoked": "Kiungo kimebatilishwa"
   }
 }

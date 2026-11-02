@@ -284,20 +284,31 @@ describe('the answer form', () => {
     expect(mutateAsync.mock.calls[0][0].answers).toEqual({})
   })
 
-  test('a refusal is shown in the database words, as an alert', () => {
+  test('a refusal naming a question is shown at that question, in the database words', () => {
     submitState.error = new Error('question 3 is required')
     render(<SurveyScreen />)
 
+    const third = screen.getAllByTestId('survey-question')[2]
+    expect(within(third).getByTestId('survey-question-error')).toHaveTextContent('Question 3 is required')
+    expect(screen.queryByTestId('survey-submit-error')).not.toBeInTheDocument()
+  })
+
+  test('any other refusal is shown in the database words, as an alert', () => {
+    submitState.error = new Error('the voucher could not be issued')
+    render(<SurveyScreen />)
+
     const alert = screen.getByRole('alert')
-    expect(alert).toHaveTextContent('Question 3 is required')
+    expect(alert).toHaveTextContent('The voucher could not be issued')
     expect(alert).not.toHaveTextContent('Something went wrong')
+    expect(screen.queryByTestId('survey-question-error')).not.toBeInTheDocument()
   })
 
   test('a lost connection is said plainly, not as a browser message', () => {
-    submitState.error = new TypeError('Failed to fetch')
+    submitState.error = Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' })
     render(<SurveyScreen />)
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/could not reach the server/i)
+    expect(screen.getByRole('alert')).toHaveTextContent(/no network/i)
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Network Error')
   })
 
   test('in flight: the control is disabled and says so', () => {

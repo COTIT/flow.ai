@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 const useVillageCapacity = vi.fn()
 const mutateAsync = vi.fn()
 const setCapacity = vi.fn()
-const createState = { isPending: false, isError: false, error: null as Error | null }
+const createState = { isPending: false, isError: false, error: null as Error | null, variables: undefined as unknown }
 vi.mock('@/features/ops/useOpsReference', () => ({
   useVillageCapacity: () => useVillageCapacity(),
   useCreateVillage: () => ({ mutateAsync, reset: vi.fn(), ...createState }),
@@ -38,6 +38,7 @@ beforeEach(() => {
   createState.isPending = false
   createState.isError = false
   createState.error = null
+  createState.variables = undefined
 })
 
 const village = (over: Record<string, unknown> = {}) => ({
@@ -244,7 +245,7 @@ describe('the village create form', () => {
     expect(mutateAsync).toHaveBeenCalledTimes(1)
   })
 
-  test("the API's refusal is shown as written", async () => {
+  test("the API's refusal is shown as written, at the field it names", async () => {
     ready()
     createState.isError = true
     createState.error = {
@@ -254,7 +255,24 @@ describe('the village create form', () => {
     render(<VillagesScreen />)
     await open()
 
-    expect(screen.getByTestId('village-create-error')).toHaveTextContent('must be more than 0 and at most 1')
+    expect(await screen.findByTestId('village-simultaneity-error')).toHaveTextContent('must be more than 0 and at most 1')
+    expect(screen.queryByTestId('village-create-error')).not.toBeInTheDocument()
+  })
+
+  // Gap 3: "Try again" re-sends what failed, so the API sees the same id with the same body.
+  test('"Try again" re-sends exactly the save that failed', async () => {
+    ready()
+    const sent = { id: '40000000-0000-4000-8000-000000000001', project_id: 'p', name: 'Mlowa', code: 'MLW' }
+    createState.isError = true
+    createState.error = Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' })
+    createState.variables = sent
+    render(<VillagesScreen />)
+    await open()
+
+    expect(screen.getByTestId('village-create-error')).toHaveTextContent('No network')
+    await userEvent.click(screen.getByTestId('error-retry'))
+    expect(mutateAsync).toHaveBeenCalledTimes(1)
+    expect(mutateAsync).toHaveBeenCalledWith(sent)
   })
 })
 

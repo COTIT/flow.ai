@@ -5,3 +5,6 @@ import { connectBrowser } from '@genesy/api-client/setup'
  * session token from the shared `genesy.session` store, and a 401 signs out.
  */
 export const api = connectBrowser()
+
+// Field only: on a weak signal a request must end in "No network" with a retry, not hang.
+api.defaults.timeout = 20_000

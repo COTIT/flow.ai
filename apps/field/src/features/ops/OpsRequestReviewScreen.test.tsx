@@ -42,6 +42,20 @@ beforeEach(() => {
 })
 
 describe('OpsRequestReviewScreen', () => {
+  // No estimate and no capacity row are explanations, not missing rows.
+  test('a request with no estimate and a village with no capacity say so as info, not as empty', () => {
+    useOpsRequest.mockReturnValue({ isLoading: false, error: null, request: { ...request, estimate: null }, refetch: vi.fn() })
+    useVillageEnergy.mockReturnValue({ isLoading: false, error: null, data: null })
+    render(<OpsRequestReviewScreen />)
+
+    const info = [...document.querySelectorAll('[data-variant="info"][role="status"]')].map((n) => n.textContent)
+    expect(info).toEqual([
+      expect.stringContaining('No estimate stored for this request'),
+      expect.stringContaining('No capacity recorded for this village'),
+    ])
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
+  })
+
   test('says whether the farmer asked to rent or to buy', () => {
     useOpsRequest.mockReturnValue({ isLoading: false, error: null, request: { ...request, acquisition: 'rent' }, refetch: vi.fn() })
     render(<OpsRequestReviewScreen />)
@@ -94,6 +108,13 @@ describe('OpsRequestReviewScreen', () => {
     expect(screen.queryByTestId('review-error')).not.toBeInTheDocument()
   })
 
+  test('an approval that went through says so', () => {
+    useReviewAction.mockReturnValue({ isPending: false, isError: false, isSuccess: true, variables: { action: 'approve' }, mutate, reset: vi.fn() })
+    render(<OpsRequestReviewScreen />)
+
+    expect(screen.getByTestId('review-done')).toHaveTextContent('Request approved')
+  })
+
   // Approve and reject cannot be undone, so each asks first.
   test.each(['approve', 'reject'] as const)('%s asks first: cancel sends nothing, confirm sends once', async (action) => {
     const user = userEvent.setup()
@@ -123,4 +144,15 @@ describe('OpsRequestReviewScreen', () => {
     render(<OpsRequestReviewScreen />)
     expect(screen.getByTestId('review-error')).toHaveTextContent('only ops or admin may review a request')
   })
+})
+
+/** States step 4: a failed energy read used to read as "no capacity recorded". */
+test('a failed headroom read is an error with a retry, not "no capacity"', async () => {
+  const refetch = vi.fn()
+  useVillageEnergy.mockReturnValue({ isLoading: false, error: new Error('energy failed'), data: undefined, refetch })
+  render(<OpsRequestReviewScreen />)
+  expect(screen.getByRole('alert')).toHaveTextContent('energy failed')
+  expect(screen.queryByText(/No capacity recorded/)).not.toBeInTheDocument()
+  await userEvent.setup().click(screen.getByTestId('error-retry'))
+  expect(refetch).toHaveBeenCalled()
 })

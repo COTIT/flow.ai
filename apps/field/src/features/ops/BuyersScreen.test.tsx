@@ -1,10 +1,10 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const useBuyers = vi.fn()
 const mutateAsync = vi.fn()
-const createState = { isPending: false, error: null as Error | null }
+const createState = { isPending: false, error: null as unknown, isSuccess: false }
 
 vi.mock('@/features/ops/useOpsReference', () => ({
   useBuyers: () => useBuyers(),
@@ -45,6 +45,7 @@ beforeEach(() => {
   session.data.userId = undefined
   createState.isPending = false
   createState.error = null
+  createState.isSuccess = false
 })
 
 async function chooseChannel(label: string) {
@@ -183,6 +184,25 @@ describe('BuyersScreen create', () => {
     const shown = screen.getByTestId('error-state')
     expect(shown).toHaveTextContent(/buyer with that name already exists/i)
     expect(shown).not.toHaveTextContent('buyer_project_id_name_key')
+  })
+
+  test("a 422 naming the name is shown at the name, not in the banner", async () => {
+    createState.error = { isAxiosError: true, response: { status: 422, data: { message: 'invalid', errors: { name: ['a buyer may have at most 120 characters'] } } } }
+    useBuyers.mockReturnValue({ isLoading: false, error: null, data: [] })
+    render(<BuyersScreen />)
+    await openCreate()
+
+    expect(await screen.findByTestId('buyer-name-error')).toHaveTextContent('a buyer may have at most 120 characters')
+    expect(screen.queryByTestId('buyer-create-error')).not.toBeInTheDocument()
+  })
+
+  test('a saved buyer says so', async () => {
+    createState.isSuccess = true
+    useBuyers.mockReturnValue({ isLoading: false, error: null, data: [] })
+    render(<BuyersScreen />)
+    await openCreate()
+
+    expect(within(screen.getByTestId('buyer-saved')).getByRole('status')).toHaveTextContent('Buyer added')
   })
 
   test('submit is disabled while the write is in flight', async () => {

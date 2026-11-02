@@ -1,18 +1,23 @@
 import type { ReactNode } from 'react'
 
+import { BangMark } from '@/components/marks'
+
 /**
  * A label above its control, with an optional hint under it — the ops form
- * idiom from DemandListScreen, shared by the survey forms.
+ * idiom from DemandListScreen, shared by the survey forms. `error` is the
+ * API's refusal of this field, as written.
  */
 export function Field({
   label,
   htmlFor,
   hint,
+  error,
   children,
 }: {
   label: string
   htmlFor: string
   hint?: string
+  error?: string
   children: ReactNode
 }) {
   return (
@@ -28,6 +33,12 @@ export function Field({
       {hint && (
         <p className="type-note" style={{ color: 'var(--ink-3)', textWrap: 'pretty' }}>
           {hint}
+        </p>
+      )}
+      {error && (
+        <p data-testid={`${htmlFor}-error`} className="flex items-start gap-[7px] font-medium" style={{ fontSize: 13, color: 'var(--flag-ink)' }}>
+          <BangMark />
+          {error}
         </p>
       )}
     </div>

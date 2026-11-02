@@ -1,4 +1,4 @@
-import { apiErrorMessage } from '@/lib/apiError'
+import { apiErrorMessage, isNoAnswer } from '@/lib/apiError'
 
 /**
  * What a user reads when a write fails — QA #3, #4, #20, #25.
@@ -74,11 +74,8 @@ const UNIQUE_CONSTRAINT: Record<string, string> = {
   app_user_person_unique: 'error.personHasLogin',
 }
 
-/**
- * Browsers word a failed request differently and none of the wordings is copy.
- * Chrome/Firefox/Safari respectively, plus React Native's.
- */
-const NETWORK = /failed to fetch|networkerror|network request failed|load failed/i
+/** axios's own wording for a request with no answer, when only the text was kept. */
+const NETWORK = /^(network error|timeout of \d+ms exceeded)$/i
 
 /** A stringified JS exception, e.g. "TypeError: x is not a function". */
 const JS_EXCEPTION = /^(Type|Reference|Syntax|Range|Eval|URI|Internal)Error\b/
@@ -96,42 +93,16 @@ function messageOf(error: unknown): string {
   return ''
 }
 
-/**
- * Conditions where the same request would probably succeed a moment later.
- *
- * Deliberately short. `retry: false` is the app's default because almost every
- * failure here is a decision the database made — a policy, a constraint, a
- * guard — and repeating the request repeats the decision while delaying the
- * message the user needs.
- *
- * Two exceptions earn a retry:
- *
- *   the connection   a village with intermittent signal, which is the whole
- *                    deployment context
- *   JWT timing       GoTrue can mint a token a fraction ahead of the clock
- *                    that validates it, and the first request carrying it is
- *                    rejected for skew (QA #33). A second later it is fine.
- *
- * Note what this is NOT about. CLAUDE.md's "zero rows is an answer … never
- * retry" concerns an EMPTY RESULT, which is a success: it never reaches this
- * function, and no retry policy has ever applied to it.
- */
-const TRANSIENT = /^JWT (issued at future|expired)|failed to fetch|networkerror|network request failed|load failed/i
-
-export function isTransientError(error: unknown): boolean {
-  const message = messageOf(error).trim()
-  return message !== '' && TRANSIENT.test(message)
-}
-
 export function humanizeDbError(error: unknown): HumanError {
+  // Connection first: in a village with intermittent signal the most common
+  // failure is a request that got no answer, and it is not a refusal at all.
+  if (isNoAnswer(error)) return { kind: 'key', key: 'error.network' }
+
   const message = messageOf(error).trim()
 
   // Nothing to show. A blank banner is worse than an admission.
   if (message === '') return { kind: 'key', key: 'error.unexpected' }
 
-  // Connection first: a TypeError from fetch is the single most common
-  // failure in a village with intermittent signal, and it is not a database
-  // error at all.
   if (NETWORK.test(message)) return { kind: 'key', key: 'error.network' }
 
   const check = /violates check constraint "([^"]+)"/.exec(message)
@@ -176,6 +147,15 @@ export function humanizeDbError(error: unknown): HumanError {
   if (named) return { kind: 'key', key: named.key, values: named.values }
 
   return { kind: 'verbatim', message }
+}
+
+/** The sentence to show for a failure, in the user's language. */
+export function errorText(
+  error: unknown,
+  t: (key: string, values?: Record<string, string>) => string,
+): string {
+  const human = humanizeDbError(error)
+  return human.kind === 'verbatim' ? human.message : t(human.key, human.values)
 }
 
 /**

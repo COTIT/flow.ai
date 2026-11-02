@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { humanizeDbError, isTransientError } from '@/lib/errors'
+import { humanizeDbError } from '@/lib/errors'
 
 const key = (error: unknown) => {
   const result = humanizeDbError(error)
@@ -177,27 +177,44 @@ describe('the other classes of machine noise', () => {
 })
 
 /**
- * QA #25. "TypeError: Failed to fetch" tells a field officer nothing;
- * "check your connection" tells them everything.
+ * QA #25, and the states plan gap 1. A request that got no answer is a
+ * connection problem, never copy: axios says "Network Error" in English, and a
+ * field officer on a weak signal needs "No network", in their language.
  */
+describe('a request that got no answer', () => {
+  const axiosError = (code: string, message: string) =>
+    Object.assign(new Error(message), { isAxiosError: true, code, response: undefined })
+
+  test('offline is a network problem', () => {
+    expect(key(axiosError('ERR_NETWORK', 'Network Error'))).toBe('error.network')
+  })
+
+  test('a timeout is a network problem', () => {
+    expect(key(axiosError('ECONNABORTED', 'timeout of 20000ms exceeded'))).toBe('error.network')
+    expect(key(axiosError('ETIMEDOUT', 'timeout exceeded'))).toBe('error.network')
+  })
+
+  // A message kept as text after the error is gone (e.g. a failed document upload).
+  test('axios wording carried as text is still a network problem', () => {
+    expect(key('Network Error')).toBe('error.network')
+    expect(key('timeout of 20000ms exceeded')).toBe('error.network')
+  })
+
+  test('an answer, even a failed one, is not', () => {
+    const answered = Object.assign(new Error('Request failed with status code 503'), {
+      isAxiosError: true,
+      response: { status: 503, data: { message: 'Service unavailable.' } },
+    })
+    expect(key(answered)).toBe('VERBATIM:Service unavailable.')
+  })
+})
+
 describe('JS exceptions are never user copy', () => {
-  test('a failed fetch is a connection problem', () => {
-    expect(key(new TypeError('Failed to fetch'))).toBe('error.network')
-  })
-
-  test('however the browser words it', () => {
-    expect(key(new Error('NetworkError when attempting to fetch resource.'))).toBe('error.network')
-    expect(key(new Error('Network request failed'))).toBe('error.network')
-    expect(key(new Error('Load failed'))).toBe('error.network')
-  })
-
-  // A stringified exception can arrive already prefixed with its class.
   test('a stringified exception is recognised by its prefix', () => {
-    expect(key('TypeError: Failed to fetch')).toBe('error.network')
     expect(key(new Error('ReferenceError: x is not defined'))).toBe('error.unexpected')
   })
 
-  test('a runtime exception that is not a network one is still not copy', () => {
+  test('a runtime exception is not copy', () => {
     expect(key(new TypeError('x.map is not a function'))).toBe('error.unexpected')
   })
 })
@@ -213,57 +230,6 @@ describe('nothing at all', () => {
       'VERBATIM:over-commitment: 1 kg available',
     )
     expect(key({ code: '23514' })).toBe('error.unexpected')
-  })
-})
-
-/**
- * QA #33. Signing in occasionally left the user on the login form reporting
- * `JWT issued at future`: the password was accepted, and the FIRST request
- * carrying the fresh token was rejected because GoTrue minted it a fraction
- * ahead of the validator's clock. A second later the same token is fine.
- *
- * This is the one failure worth retrying automatically. The user typed a
- * correct password, the server agreed, and then a read failed for a reason
- * they can do nothing about — and the app strands them on a form as though
- * they had got something wrong.
- *
- * It is NOT a licence to retry generally. CLAUDE.md: zero rows is an answer,
- * render an empty state, never retry. Zero rows is a SUCCESS and never reaches
- * this function; what reaches it is a thrown error, and almost all of those are
- * permanent.
- */
-describe('isTransientError', () => {
-  test.each([
-    'JWT issued at future',
-    'JWT expired',
-    'Failed to fetch',
-    'NetworkError when attempting to fetch resource.',
-    'Load failed',
-  ])('%s is worth trying again', (message) => {
-    expect(isTransientError(new Error(message))).toBe(true)
-  })
-
-  // Everything the database decided. Trying again produces the same answer and
-  // delays the message the user needs.
-  test.each([
-    'new row violates row-level security policy for table "person"',
-    'over-commitment: 4100.00 kg available, 4100.00 kg already committed, 100.00 kg requested',
-    'illegal transition draft -> approved',
-    'this crop is measured by area: area_ha is required',
-    'new row for relation "pue_request" violates check constraint "pue_request_hours_per_day_check"',
-    'invalid input syntax for type uuid: "nope"',
-  ])('%s is not', (message) => {
-    expect(isTransientError(new Error(message))).toBe(false)
-  })
-
-  test('nothing at all is not transient', () => {
-    expect(isTransientError(null)).toBe(false)
-    expect(isTransientError(undefined)).toBe(false)
-  })
-
-  // A wrong password must fail immediately and say so.
-  test('bad credentials are not transient', () => {
-    expect(isTransientError(new Error('Invalid login credentials'))).toBe(false)
   })
 })
 

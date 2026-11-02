@@ -62,14 +62,15 @@ test.describe("a refused revision", () => {
     allow: { responses: [{ url: `/v1/workspace/w1/farm/crop-cycles/${CYCLE}/harvest-reports`, status: 422 }] },
   })
 
-  test("shows the API's message in the dialog", async ({ page }) => {
+  test("shows the API's message in the dialog, at its field", async ({ page }) => {
     await open(page, {
       status: 422,
       body: { message: "invalid", errors: { quantity_kg: ["The quantity kg must be at most 9999999999.99."] } },
     })
     await revise(page, "4100")
 
-    await expect(page.getByTestId("officer-edit-error")).toHaveText("The quantity kg must be at most 9999999999.99.")
+    await expect(page.getByTestId("edit-quantity_kg-error")).toHaveText("The quantity kg must be at most 9999999999.99.")
+    await expect(page.getByTestId("officer-edit-error")).toHaveCount(0)
     await expect(page.getByTestId("cycle-harvest")).toHaveCount(1)
     await expectNoHorizontalScroll(page)
   })

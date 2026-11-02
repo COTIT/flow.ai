@@ -151,6 +151,7 @@ describe('RedeemScreen entry', () => {
     await lookUp('hello')
 
     expect(screen.getByTestId('redeem-not-a-voucher')).toHaveTextContent('That is not a Ruaha voucher code.')
+    expect(screen.getByTestId('redeem-not-a-voucher').querySelector('[data-variant="warning"][role="status"]')).not.toBeNull()
     expect(api.lookup).not.toHaveBeenCalled()
   })
 
@@ -227,6 +228,7 @@ describe('RedeemScreen camera', () => {
 
     expect(screen.queryByTestId('fake-scanner')).not.toBeInTheDocument()
     expect(screen.getByTestId('redeem-camera-unavailable')).toHaveTextContent('Type the code instead.')
+    expect(screen.getByTestId('redeem-camera-unavailable').querySelector('[data-variant="warning"][role="status"]')).not.toBeNull()
     expect(screen.getByTestId('redeem-code')).toBeVisible()
   })
 
@@ -317,6 +319,9 @@ describe('RedeemScreen preview', () => {
     const blocked = await screen.findByTestId('redeem-blocked')
     expect(blocked).toHaveTextContent('You cannot redeem this voucher')
     expect(blocked).toHaveTextContent('This voucher is held for an audit: ops or admin must redeem it in person')
+    // A warning, not a failure: nothing broke, the voucher is held.
+    expect(blocked.querySelector('[data-variant="warning"][role="status"]')).not.toBeNull()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByTestId('redeem-confirm')).not.toBeInTheDocument()
     expect(screen.queryByTestId('redeem-id-type')).not.toBeInTheDocument()
   })

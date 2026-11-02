@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const VILLAGE = '20000000-0000-4000-8000-000000000001'
@@ -45,5 +46,16 @@ describe('Tower data quality trace', () => {
     rows.mockReturnValue({ data: [], isLoading: false, error: null })
     render(<TowerQualityScreen />)
     expect(screen.getByTestId('empty-state')).toBeInTheDocument()
+  })
+
+  test('a failed total retries the total, not the rows', async () => {
+    const totals = vi.fn()
+    const refetchRows = vi.fn()
+    quality.mockReturnValue({ data: undefined, isLoading: false, error: new Error('Totals failed'), refetch: totals })
+    rows.mockReturnValue({ data: [], isLoading: false, error: null, refetch: refetchRows })
+    render(<TowerQualityScreen />)
+    await userEvent.setup().click(screen.getByTestId('error-retry'))
+    expect(totals).toHaveBeenCalledTimes(1)
+    expect(refetchRows).not.toHaveBeenCalled()
   })
 })

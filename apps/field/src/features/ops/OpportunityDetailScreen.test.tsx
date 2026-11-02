@@ -720,3 +720,14 @@ describe('the supply draft after a confirmed save', () => {
     await waitFor(async () => expect(await indexedDbDraftStore.get(key)).toBeUndefined())
   })
 })
+
+/** States step 4: a failed read of the available harvest used to read as "none available". */
+test('a failed available-harvest read is an error with a retry, not "none available"', async () => {
+  const refetch = vi.fn()
+  useOpportunity.mockReturnValue({ isLoading: false, error: null, opportunity: opportunity(), refetch: vi.fn() })
+  useAvailableHarvest.mockReturnValue({ isLoading: false, error: new Error('harvest failed'), data: undefined, refetch })
+  render(<OpportunityDetailScreen />)
+  expect(screen.getByRole('alert')).toHaveTextContent('harvest failed')
+  await userEvent.setup().click(screen.getByTestId('error-retry'))
+  expect(refetch).toHaveBeenCalled()
+})

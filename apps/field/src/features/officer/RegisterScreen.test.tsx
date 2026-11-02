@@ -468,6 +468,22 @@ describe('an API refusal', () => {
     expect(await screen.findByTestId('register-error')).toHaveTextContent('this registration was sent by someone else')
   })
 
+  // Gap 3: "Try again" after no answer re-sends the same registration: same client_ref, same body.
+  test('"Try again" after no answer re-sends the same registration', async () => {
+    rpc.mockRejectedValueOnce(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+    rpc.mockResolvedValueOnce({ data: { person_id: 'new-person', plot_id: 'p', village_id: VILLAGE } })
+    renderScreen()
+    await fillValid()
+    submit()
+
+    expect(await screen.findByTestId('register-error')).toHaveTextContent('No network')
+    await userEvent.click(screen.getByTestId('error-retry'))
+
+    await screen.findByTestId('register-success')
+    expect(rpc).toHaveBeenCalledTimes(2)
+    expect(rpc.mock.calls[1]).toEqual(rpc.mock.calls[0])
+  })
+
   // A retry after a timeout answers 200 `replayed: true`: the farmer is registered once, and the
   // officer sees the same success.
   test('a replay is the same success', async () => {
@@ -953,5 +969,30 @@ describe('farm GPS auto-capture', () => {
     expect(screen.getByTestId('register-farm-longitude')).toHaveValue('35.5')
     expect(screen.getByTestId('register-farm-latitude')).toBeEnabled()
     expect(getCurrentPosition).not.toHaveBeenCalled()
+  })
+})
+
+/** States step 4: a device that cannot store the draft says so, as every other form does. */
+describe('draft storage', () => {
+  test('a draft the device could not store shows the storage warning', () => {
+    useDraft.mockReturnValue({ status: 'dirty', draft: null, save, clear, storageError: true })
+    renderScreen()
+    expect(screen.getByTestId('draft-storage-error')).toHaveTextContent('Could not save this draft on this device')
+  })
+
+  test('so does a title-document draft it could not store', () => {
+    docsDraft.mockReturnValue({ status: 'empty', draft: undefined, save: docsSave, clear: docsClear, storageError: true })
+    renderScreen()
+    expect(screen.getByTestId('draft-storage-error')).toBeInTheDocument()
+  })
+})
+
+describe('a failed load', () => {
+  test('offers a retry that re-reads it', async () => {
+    const refetch = vi.fn()
+    useCrops.mockReturnValue({ isLoading: false, error: new Error('crops failed'), crops: [], refetch })
+    renderScreen()
+    await userEvent.setup().click(screen.getByTestId('error-retry'))
+    expect(refetch).toHaveBeenCalled()
   })
 })

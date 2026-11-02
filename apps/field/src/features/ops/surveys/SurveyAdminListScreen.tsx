@@ -27,6 +27,7 @@ import {
 } from '@/features/ops/surveys/useSurveyAdmin'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { localisedField } from '@/lib/names'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
 type ListRow = SurveyListRow & { title: string }
@@ -188,6 +189,9 @@ function NewSurveyPanel({ onClose, onCreated }: { onClose: () => void; onCreated
     list.find((c) => c.id === currencyId) ?? list.find((c) => c.default_currency) ?? list[0]
   // isPending is only true on the NEXT render; a ref latches in the same tick.
   const inFlight = useRef(false)
+  // The API's refusal of a field (a blank title, no reward) is shown under it.
+  const refusal = useFieldErrors(create.error, draft.setError, (key) => NEW_SURVEY_FIELD[key], (field) => NEW_SURVEY_INPUT[field])
+  const server = (field: keyof typeof NEW_SURVEY_DEFAULTS) => draft.formState.errors[field]?.message
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -219,7 +223,7 @@ function NewSurveyPanel({ onClose, onCreated }: { onClose: () => void; onCreated
       <form className="flex flex-col gap-3" noValidate onSubmit={submit}>
         <FormDraftStatus dirty={draft.dirty} storageError={draft.storageError} />
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Field label={t('surveyAdmin.fields.title_en')} htmlFor="survey-new-title">
+          <Field label={t('surveyAdmin.fields.title_en')} htmlFor="survey-new-title" error={server('title_en')}>
             <input
               id="survey-new-title"
               data-testid="survey-new-title"
@@ -229,7 +233,7 @@ function NewSurveyPanel({ onClose, onCreated }: { onClose: () => void; onCreated
               style={CONTROL}
             />
           </Field>
-          <Field label={t('surveyAdmin.fields.reward_amount')} htmlFor="survey-new-reward">
+          <Field label={t('surveyAdmin.fields.reward_amount')} htmlFor="survey-new-reward" error={server('reward_amount')}>
             <input
               id="survey-new-reward"
               data-testid="survey-new-reward"
@@ -240,7 +244,7 @@ function NewSurveyPanel({ onClose, onCreated }: { onClose: () => void; onCreated
               style={CONTROL}
             />
           </Field>
-          <Field label={t('surveyAdmin.fields.currency')} htmlFor="survey-new-currency">
+          <Field label={t('surveyAdmin.fields.currency')} htmlFor="survey-new-currency" error={server('currency_id')}>
             <select
               id="survey-new-currency"
               data-testid="survey-new-currency"
@@ -259,7 +263,11 @@ function NewSurveyPanel({ onClose, onCreated }: { onClose: () => void; onCreated
         </div>
 
         {currencies.error && <ErrorState error={currencies.error} />}
-        {create.isError && <ErrorState error={create.error} />}
+        {create.isError && refusal != null && (
+          <div data-testid="survey-create-error">
+            <ErrorState error={refusal} />
+          </div>
+        )}
 
         <Button
           type="submit"
@@ -273,3 +281,7 @@ function NewSurveyPanel({ onClose, onCreated }: { onClose: () => void; onCreated
     </Panel>
   )
 }
+
+/** The form field each API key belongs to, and its input. */
+const NEW_SURVEY_FIELD: Record<string, string> = { title_en: 'title_en', reward_minor: 'reward_amount', currency_id: 'currency_id' }
+const NEW_SURVEY_INPUT: Record<string, string> = { title_en: 'survey-new-title', reward_amount: 'survey-new-reward', currency_id: 'survey-new-currency' }

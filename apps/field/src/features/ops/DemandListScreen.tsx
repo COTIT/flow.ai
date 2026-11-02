@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { createColumnHelper } from '@tanstack/react-table'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { DataTable } from '@/components/DataTable'
@@ -25,9 +26,11 @@ import {
 } from '@/features/ops/useDemand'
 import { amountToMinor } from '@/features/ops/surveys/figures'
 import { useCurrencies } from '@/features/ops/surveys/useSurveyAdmin'
+import { firstFailure } from '@/lib/apiError'
 import { formatKg, formatPlainDate, formatPrice } from '@/lib/format'
 import { finishDraftWhenSaved } from '@/lib/drafts'
 import { hasAtMostDecimals } from '@/lib/decimals'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 import { useSession } from '@/app/session'
 
@@ -40,7 +43,10 @@ export function DemandListScreen() {
   const create = useCreateDemand()
   // shortcut: prices are in the account's default currency; add a currency picker when an account
   // trades in more than one.
-  const currencies = useCurrencies().data ?? []
+  const currencyQuery = useCurrencies()
+  const currencies = currencyQuery.data ?? []
+  // Without its buyers, crops and currency the form cannot be filled in: say why, with a retry.
+  const optionsFailure = firstFailure([options, currencyQuery])
   const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
   const session = useSession()
   const projectScope = session.data?.memberships.find(m => m.role === 'ops' || m.role === 'admin')?.project_id ?? 'project'
@@ -55,6 +61,9 @@ export function DemandListScreen() {
   const [pricePerKg, setPricePerKg] = draft.field('pricePerKg')
   const [qualityNote, setQualityNote] = draft.field('qualityNote')
   const [touched, setTouched] = useState(false)
+  // The API's refusal of a field, as written, under that field; the screen's own check wins while it fails.
+  const refusal = useFieldErrors(create.error, draft.setError, (key) => DEMAND_FIELD[key], (field) => DEMAND_INPUT[field])
+  const server = (field: keyof typeof DEMAND_DEFAULTS) => draft.formState.errors[field]?.message
   const [createOpen, setCreateOpen] = useState(false)
   /**
    * QA #23. `isPending` only becomes true on the NEXT render, so Enter and a
@@ -198,8 +207,13 @@ export function DemandListScreen() {
             }}
           >
         <FormDraftStatus dirty={draft.dirty} storageError={draft.storageError} />
+        {optionsFailure.error && (
+          <div data-testid="demand-options-error">
+            <ErrorState error={optionsFailure.error} onRetry={optionsFailure.retry} />
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Field label={t('demand.buyer')} id="demand-buyer" error={missing.buyer ? t('demand.required') : undefined} errorTestId="demand-buyer-error">
+          <Field label={t('demand.buyer')} id="demand-buyer" error={missing.buyer ? t('demand.required') : server('buyerId')} errorTestId="demand-buyer-error">
             <Select value={buyerId} onValueChange={(value) => setBuyerId(value ?? '')}>
               <SelectTrigger id="demand-buyer" data-testid="demand-buyer" className={input}>
                 {options.data?.buyers.find((buyer) => buyer.id === buyerId)?.name ?? t('demand.chooseBuyer')}
@@ -212,7 +226,7 @@ export function DemandListScreen() {
             </Select>
           </Field>
 
-          <Field label={t('demand.crop')} id="demand-crop" error={missing.crop ? t('demand.required') : undefined} errorTestId="demand-crop-error">
+          <Field label={t('demand.crop')} id="demand-crop" error={missing.crop ? t('demand.required') : server('cropId')} errorTestId="demand-crop-error">
             <Select value={cropId} onValueChange={(value) => setCropId(value ?? '')}>
               <SelectTrigger id="demand-crop" data-testid="demand-crop" className={input}>
                 {options.data?.crops.find((crop) => crop.id === cropId)?.name ?? t('demand.chooseCrop')}
@@ -225,34 +239,40 @@ export function DemandListScreen() {
             </Select>
           </Field>
 
-          <Field label={t('demand.quantity')} id="demand-quantity" error={touched && quantityError ? t(quantityError) : undefined} errorTestId="demand-quantity-error">
+          <Field label={t('demand.quantity')} id="demand-quantity" error={touched && quantityError ? t(quantityError) : server('quantity')} errorTestId="demand-quantity-error">
             <input id="demand-quantity" data-testid="demand-quantity" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} className={input} style={CONTROL} />
           </Field>
 
-          <Field label={t('demand.pricePerKg')} id="demand-price" error={touched && priceError ? t(priceError) : undefined} errorTestId="demand-price-error">
+          <Field label={t('demand.pricePerKg')} id="demand-price" error={touched && priceError ? t(priceError) : server('pricePerKg')} errorTestId="demand-price-error">
             <input id="demand-price" data-testid="demand-price" inputMode="decimal" value={pricePerKg} onChange={(e) => setPricePerKg(e.target.value)} className={input} style={CONTROL} />
           </Field>
 
-          <Field label={t('demand.windowStart')} id="demand-window-start">
+          <Field label={t('demand.windowStart')} id="demand-window-start" error={server('windowStart')} errorTestId="demand-window-start-error">
             <input id="demand-window-start" data-testid="demand-window-start" type="date" value={windowStart} onChange={(e) => setWindowStart(e.target.value)} className={input} style={CONTROL} />
           </Field>
 
-          <Field label={t('demand.windowEnd')} id="demand-window-end">
+          <Field label={t('demand.windowEnd')} id="demand-window-end" error={server('windowEnd')} errorTestId="demand-window-end-error">
             <input id="demand-window-end" data-testid="demand-window-end" type="date" value={windowEnd} onChange={(e) => setWindowEnd(e.target.value)} className={input} style={CONTROL} />
           </Field>
 
-          <Field label={t('demand.deliveryPoint')} id="demand-delivery">
+          <Field label={t('demand.deliveryPoint')} id="demand-delivery" error={server('deliveryPoint')} errorTestId="demand-delivery-error">
             <input id="demand-delivery" data-testid="demand-delivery" value={deliveryPoint} onChange={(e) => setDeliveryPoint(e.target.value)} className={input} style={CONTROL} />
           </Field>
 
-          <Field label={t('demand.qualityNote')} id="demand-quality-note">
+          <Field label={t('demand.qualityNote')} id="demand-quality-note" error={server('qualityNote')} errorTestId="demand-quality-note-error">
             <input id="demand-quality-note" data-testid="demand-quality-note" value={qualityNote} onChange={(e) => setQualityNote(e.target.value)} className={input} style={CONTROL} />
           </Field>
         </div>
 
-        {create.isError && (
+        {create.isError && refusal != null && (
           <div data-testid="demand-create-error">
-            <ErrorState error={create.error} onRetry={() => create.reset()} />
+            <ErrorState error={refusal} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} />
+          </div>
+        )}
+
+        {create.isSuccess && !draft.dirty && (
+          <div data-testid="demand-saved">
+            <Notice variant="success" title={t('demand.created')} />
           </div>
         )}
 
@@ -324,4 +344,15 @@ function priceErrorKey(value: string): string | undefined {
   // A negative price is left to the API: it is refused with its own message, not a client copy.
   if (!hasAtMostDecimals(n, 2)) return 'demand.twoDecimals'
   return undefined
+}
+
+/** The form field each API key belongs to, and its input. */
+const DEMAND_FIELD: Record<string, keyof typeof DEMAND_DEFAULTS> = {
+  buyer_id: 'buyerId', crop_id: 'cropId', quantity_kg: 'quantity', window_start: 'windowStart',
+  window_end: 'windowEnd', delivery_point: 'deliveryPoint', quality_note: 'qualityNote',
+  indicative_price_per_kg_minor: 'pricePerKg', currency_id: 'pricePerKg',
+}
+const DEMAND_INPUT: Record<string, string> = {
+  buyerId: 'demand-buyer', cropId: 'demand-crop', quantity: 'demand-quantity', windowStart: 'demand-window-start',
+  windowEnd: 'demand-window-end', deliveryPoint: 'demand-delivery', qualityNote: 'demand-quality-note', pricePerKg: 'demand-price',
 }

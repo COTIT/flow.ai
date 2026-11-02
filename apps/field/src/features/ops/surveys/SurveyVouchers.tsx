@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 import { formatMoney } from '@genesy/ui/lib/money'
 
@@ -16,6 +17,8 @@ import { Field, Panel, SectionTitle } from '@/features/ops/surveys/Field'
 import { UNKNOWN } from '@/features/ops/surveys/figures'
 import { useVoucherTimeline } from '@/features/officer/useVoucherRedeem'
 import { useSurveyVouchers, useVoidVoucher, type SurveyVoucher } from '@/features/ops/surveys/useSurveyAdmin'
+import { fieldErrorsOf } from '@/lib/apiError'
+import { errorText } from '@/lib/errors'
 import { formatTimestamp } from '@/lib/format'
 
 /**
@@ -88,7 +91,7 @@ export function SurveyVouchers({ surveyId }: { surveyId: string }) {
       )}
 
       {selected ? (
-        <VoucherPanel surveyId={surveyId} voucher={selected} timeline={timeline} />
+        <VoucherPanel key={selected.voucher_id} surveyId={surveyId} voucher={selected} timeline={timeline} />
       ) : (
         (vouchers.data?.length ?? 0) > 0 && (
           <p data-testid="voucher-select-prompt" className="type-note" style={{ color: 'var(--ink-3)' }}>
@@ -128,6 +131,8 @@ function VoucherPanel({
   timeline: ReturnType<typeof useVoucherTimeline>
 }) {
   const { t } = useTranslation()
+  // Held here, not in the void form: a voided voucher has no form left to say so.
+  const cancel = useVoidVoucher(surveyId)
 
   return (
     <Panel testId="voucher-panel">
@@ -149,15 +154,21 @@ function VoucherPanel({
 
       {/* Only an issued voucher can be voided; the API holds that rule too. An
           expired one is still `issued` — it was never collected. */}
-      {voucher.status === 'issued' && <VoidVoucher key={voucher.voucher_id} surveyId={surveyId} voucherId={voucher.voucher_id} />}
+      {cancel.isSuccess && (
+        <div data-testid="voucher-void-done">
+          <Notice variant="success" title={t('surveyAdmin.voided')} />
+        </div>
+      )}
+      {voucher.status === 'issued' && <VoidVoucher cancel={cancel} voucherId={voucher.voucher_id} />}
     </Panel>
   )
 }
 
-function VoidVoucher({ surveyId, voucherId }: { surveyId: string; voucherId: string }) {
+function VoidVoucher({ cancel, voucherId }: { cancel: ReturnType<typeof useVoidVoucher>; voucherId: string }) {
   const { t } = useTranslation()
-  const cancel = useVoidVoucher(surveyId)
   const [reason, setReason] = useState('')
+  // A refused reason is shown under it, until the next edit.
+  const refused = fieldErrorsOf(cancel.error, ['reason'])
   const [confirming, setConfirming] = useState(false)
   const reasonId = `void-reason-${voucherId}`
 
@@ -172,19 +183,22 @@ function VoidVoucher({ surveyId, voucherId }: { surveyId: string; voucherId: str
 
   return (
     <div className="flex flex-col gap-2.5 pt-3" style={{ borderTop: '1px solid var(--rule)' }}>
-      <Field label={t('surveyAdmin.voidReason')} htmlFor={reasonId}>
+      <Field label={t('surveyAdmin.voidReason')} htmlFor={reasonId} error={refused.fields.reason && errorText(refused.fields.reason, t)}>
         <textarea
           id={reasonId}
           data-testid="voucher-void-reason"
           rows={2}
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={(e) => {
+            setReason(e.target.value)
+            if (cancel.isError) cancel.reset()
+          }}
           className="w-full"
           style={CONTROL}
         />
       </Field>
 
-      {cancel.isError && <ErrorState error={cancel.error} />}
+      {cancel.isError && refused.general != null && <ErrorState error={refused.general} />}
 
       <Button
         type="button"

@@ -1,10 +1,10 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const useRequest = vi.fn()
 const mutate = vi.fn()
-const transitionState = { isPending: false, error: null as unknown }
+const transitionState = { isPending: false, error: null as unknown, isSuccess: false, variables: undefined as string | undefined }
 
 vi.mock('@/features/farmer/useRequests', () => ({
   useRequest: () => useRequest(),
@@ -22,6 +22,8 @@ beforeEach(() => {
   mutate.mockReset()
   transitionState.isPending = false
   transitionState.error = null
+  transitionState.isSuccess = false
+  transitionState.variables = undefined
 })
 
 const request = (over: Record<string, unknown> = {}) => ({
@@ -139,6 +141,39 @@ describe('RequestDetailScreen farmer actions', () => {
   })
 })
 
+describe('RequestDetailScreen after a transition', () => {
+  // Withdrawn leaves no actions, so the confirmation must not live among them.
+  test('says the request was withdrawn, once none of its actions is left', () => {
+    transitionState.isSuccess = true
+    transitionState.variables = 'withdraw'
+    show({ status: 'withdrawn' })
+    render(<RequestDetailScreen />)
+
+    expect(screen.getByTestId('request-action-done')).toHaveTextContent('Request withdrawn')
+    expect(within(screen.getByTestId('request-action-done')).getByRole('status')).toHaveTextContent('Request withdrawn')
+  })
+
+  test('a refusal offers to send the same transition again', async () => {
+    transitionState.error = { response: { status: 422, data: { message: 'illegal transition draft -> approved' } } }
+    transitionState.variables = 'submit'
+    show({ status: 'draft' })
+    render(<RequestDetailScreen />)
+
+    screen.getByTestId('error-retry').click()
+    expect(mutate).toHaveBeenCalledWith('submit')
+  })
+})
+
+describe('RequestDetailScreen with no stored estimate', () => {
+  test('explains it as info, not as an empty list', () => {
+    show({ estimate: null })
+    render(<RequestDetailScreen />)
+
+    expect(document.querySelector('[data-variant="info"][role="status"]')).toHaveTextContent('No estimate stored for this request')
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
+  })
+})
+
 describe('RequestDetailScreen content freeze', () => {
   // "A submitted request is not editable. The trigger enforces it; the UI must
   // not offer the control." A draft is not frozen, so it must not claim to be.
@@ -154,6 +189,7 @@ describe('RequestDetailScreen content freeze', () => {
     render(<RequestDetailScreen />)
 
     expect(screen.getByTestId('request-detail')).toHaveTextContent(/cannot be changed/i)
+    expect(screen.getByTestId('request-frozen').querySelector('[data-variant="info"][role="status"]')).not.toBeNull()
   })
 
   test('no edit control is offered in any state', () => {

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { Notice } from '@genesy/ui/components/notice'
 import { formatMoney } from '@genesy/ui/lib/money'
 
 import { AuditTimeline } from '@/components/AuditTimeline'
@@ -102,7 +103,14 @@ export function VoucherCard({ voucherId }: { voucherId: string }) {
         </dd>
       </dl>
 
-      {(status !== 'void' || row.void_reason) && (
+      {status === 'void' || status === 'expired' ? (
+        // Nothing to collect any more: say why as a warning, words first.
+        (status === 'expired' || row.void_reason) && (
+          <div data-testid="voucher-validity">
+            <Notice variant="warning" title={validityLine(t, row, status, redeemedByName(events))} />
+          </div>
+        )
+      ) : (
         <p data-testid="voucher-validity" className="type-body-strong" style={{ color: 'var(--ink)', textWrap: 'pretty' }}>
           {validityLine(t, row, status, redeemedByName(events))}
         </p>

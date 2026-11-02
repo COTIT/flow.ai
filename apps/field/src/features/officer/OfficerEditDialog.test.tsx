@@ -12,6 +12,7 @@ vi.mock('@/lib/usePersistentForm', async (importOriginal) => {
 
 const { OfficerEditDialog } = await import('@/features/officer/OfficerEditDialog')
 const { usePersistentForm } = await import('@/lib/usePersistentForm')
+await import('@/i18n')
 
 const fields = [
   { name: 'given_name', label: 'First name', required: true },
@@ -78,6 +79,11 @@ describe('OfficerEditDialog', () => {
     })
     renderForm({ error })
     expect(screen.getByTestId('officer-edit-error')).toHaveTextContent('harvest window must end on or after it starts')
+  })
+
+  test('no answer reads as no network, never axios wording', () => {
+    renderForm({ error: Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }) })
+    expect(screen.getByTestId('officer-edit-error')).toHaveTextContent('No network. Check your connection and try again.')
   })
 
   test('cancel calls the owner and displays server errors', async () => {

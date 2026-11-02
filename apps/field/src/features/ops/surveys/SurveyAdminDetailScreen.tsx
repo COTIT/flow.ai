@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 import { formatMoney } from '@genesy/ui/lib/money'
 
@@ -109,7 +110,12 @@ export function SurveyAdminDetailScreen() {
 
       {setStatus.isError && (
         <div data-testid="survey-status-error">
-          <ErrorState error={setStatus.error} onRetry={() => setStatus.reset()} />
+          <ErrorState error={setStatus.error} onRetry={() => setStatus.mutate(setStatus.variables!)} />
+        </div>
+      )}
+      {setStatus.isSuccess && (
+        <div data-testid="survey-status-done">
+          <Notice variant="success" title={t(`surveyAdmin.statusDone.${setStatus.variables}`)} />
         </div>
       )}
 

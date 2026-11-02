@@ -44,6 +44,7 @@ import {
   formatPlainDate,
   formatPrice,
 } from '@/lib/format'
+import { firstFailure } from '@/lib/apiError'
 import type { Enums } from '@/lib/enums'
 import { resourcesEnabled } from '@/lib/features'
 
@@ -76,9 +77,8 @@ export function TowerScreen() {
   const market = useTowerMarket(village)
   const quality = useTowerQuality(village)
 
-  const error =
-    production.error ?? pipeline.error ?? energy.error ?? market.error ?? quality.error ?? scope.error
-  if (error) return <ErrorState error={error} onRetry={() => void production.refetch()} />
+  const failure = firstFailure([production, pipeline, energy, market, quality, scope])
+  if (failure.error) return <ErrorState error={failure.error} onRetry={failure.retry} />
 
   const search = { village }
   const villageName = village ? (scope.data?.villages?.[village] ?? '') : ''

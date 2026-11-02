@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, CONTROL_FIELD } from '@/components/controlStyles'
 import { FormField } from '@/components/FormField'
-import { apiErrorMessage } from '@/lib/apiError'
+import { errorText } from '@/lib/errors'
 import { captureScreen, submitBugReport } from '@/lib/bugReports'
 import type { TrailEntry } from '@/lib/bugTrail'
 import { trailSnapshot } from '@/lib/bugTrail'
@@ -233,7 +233,7 @@ function BugReportForm({
 
       {send.error && (
         <p role="alert" data-testid="bug-send-error" className="font-medium" style={{ fontSize: 14, color: 'var(--flag-ink)' }}>
-          {apiErrorMessage(send.error) ?? send.error.message}
+          {errorText(send.error, t)}
         </p>
       )}
 

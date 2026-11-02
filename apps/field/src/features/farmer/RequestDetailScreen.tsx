@@ -1,16 +1,16 @@
 import { getRouteApi } from '@tanstack/react-router'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '@/components/controlStyles'
-import { Card, Loading, ProductNote } from '@/components/controls'
+import { Card, Loading } from '@/components/controls'
 import { StatusPill } from '@/components/StatusPill'
 import { AcquisitionPill } from '@/components/OfferedPills'
 import { ProvenanceBadge } from '@/components/ProvenanceBadge'
 import { useFarmerTransition, useRequest } from '@/features/farmer/useRequests'
 import { farmerActions } from '@/features/ops/transitions'
-import { humanizeDbError } from '@/lib/errors'
 import { formatKw, formatKwh, formatTimestamp } from '@/lib/format'
 
 const route = getRouteApi('/_farmer/farm/requests/$requestId')
@@ -118,7 +118,7 @@ export function RequestDetailScreen() {
             />
           </dl>
         ) : (
-          <EmptyState title={t('requests.noEstimate')} detail={t('requests.noEstimateDetail')} />
+          <Notice variant="info" title={t('requests.noEstimate')}>{t('requests.noEstimateDetail')}</Notice>
         )}
         <p style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 500 }}>{t('estimate.isEstimate')}</p>
       </section>
@@ -137,7 +137,18 @@ export function RequestDetailScreen() {
         </section>
       )}
 
-      {frozen && <ProductNote>{t('requests.frozen')}</ProductNote>}
+      {frozen && (
+        <div data-testid="request-frozen">
+          <Notice variant="info" title={t('requests.frozen')} />
+        </div>
+      )}
+
+      {/* Outside the actions: a withdrawn request has none left. */}
+      {transition.isSuccess && (
+        <div data-testid="request-action-done">
+          <Notice variant="success" title={t(`requests.done.${transition.variables}`)} />
+        </div>
+      )}
 
       {/* What the applicant may do from here — business-rules §2's role
           matrix, mirrored by farmerActions. A draft can be submitted or
@@ -146,21 +157,9 @@ export function RequestDetailScreen() {
       {actions.length > 0 && (
         <section className="flex flex-col gap-2.5">
           {transition.error && (
-            <p
-              data-testid="request-action-error"
-              role="alert"
-              className="px-3.5 py-3"
-              style={{
-                border: '1px solid rgba(158, 27, 27, .25)',
-                borderLeft: '4px solid var(--flag-ink)',
-                borderRadius: 'var(--radius-card)',
-                background: 'var(--flag-tint)',
-                fontSize: 14,
-                lineHeight: 1.55,
-              }}
-            >
-              {refusal(transition.error, t)}
-            </p>
+            <div data-testid="request-action-error">
+              <ErrorState error={transition.error} onRetry={() => transition.mutate(transition.variables!)} />
+            </div>
           )}
 
           <div className="flex flex-wrap gap-2.5">
@@ -192,12 +191,6 @@ export function RequestDetailScreen() {
       )}
     </section>
   )
-}
-
-/** The API's refusal, as written (or its known translation). */
-function refusal(error: unknown, t: (key: string, values?: Record<string, unknown>) => string): string {
-  const human = humanizeDbError(error)
-  return human.kind === 'verbatim' ? human.message : t(human.key, human.values)
 }
 
 /**

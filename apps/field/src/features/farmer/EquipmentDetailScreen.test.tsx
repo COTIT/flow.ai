@@ -107,7 +107,8 @@ describe('the request form as it arrives', () => {
     render(<EquipmentDetailScreen />)
 
     expect(screen.queryByTestId('estimate-panel')).not.toBeInTheDocument()
-    expect(screen.getByTestId('estimate-none')).toBeInTheDocument()
+    expect(screen.getByTestId('estimate-none').querySelector('[data-variant="info"][role="status"]')).not.toBeNull()
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument()
   })
 
   test('a refused preview is shown as the API wrote it', () => {
@@ -235,6 +236,7 @@ describe('the estimate is not asked for impossible inputs', () => {
 
     expect(useEstimatePreview).toHaveBeenLastCalledWith(null)
     expect(screen.getByTestId('estimate-blocked')).toHaveTextContent(/fill in/i)
+    expect(screen.getByTestId('estimate-blocked').querySelector('[data-variant="info"][role="status"]')).not.toBeNull()
   })
 
   test('and the figures come back when the inputs make sense again', () => {

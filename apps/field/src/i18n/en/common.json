@@ -36,7 +36,7 @@
     "submit": "Sign in",
     "submitting": "Signing in…",
     "invalid": "That phone number or email and password do not match an account.",
-    "network": "Could not reach the server. Check your connection and try again.",
+    "network": "No network. Check your connection and try again.",
     "emailRequired": "Enter your phone number or email address.",
     "emailInvalid": "Enter a Tanzanian mobile number, for example 0712 345 678, or an email address.",
     "passwordRequired": "Enter your password.",
@@ -70,7 +70,7 @@
   "error": {
     "title": "Something went wrong",
     "retry": "Try again",
-    "network": "Could not reach the server. Check your connection and try again.",
+    "network": "No network. Check your connection and try again.",
     "unexpected": "Something went wrong that should not have. Try again, and tell the programme team if it keeps happening.",
     "badId": "That record reference is not valid.",
     "numericOverflow": "One of the numbers is too large for the field it was typed into. Check the figures and try again.",
@@ -270,7 +270,8 @@
     "superseded": "Superseded",
     "window": "Harvest window",
     "unverifiedCount_one": "{{count}} record still needs verifying",
-    "unverifiedCount_other": "{{count}} records still need verifying"
+    "unverifiedCount_other": "{{count}} records still need verifying",
+    "verified": "Record verified"
   },
   "verifyDialog": {
     "title": "Verify this record?",
@@ -313,7 +314,8 @@
       "plot": "Edit plot details",
       "crop_cycle": "Edit crop cycle",
       "harvest_report": "Correct harvest figure"
-    }
+    },
+    "saved": "Correction saved"
   },
   "estimate": {
     "title": "Energy estimate",
@@ -422,7 +424,11 @@
       "submit": "Send this request",
       "withdraw": "Withdraw"
     },
-    "draftNote": "This request has not been sent yet. Nobody is reviewing it until you send it."
+    "draftNote": "This request has not been sent yet. Nobody is reviewing it until you send it.",
+    "done": {
+      "submit": "Request sent",
+      "withdraw": "Request withdrawn"
+    }
   },
   "table": {
     "emptyTitle": "Nothing to show",
@@ -470,7 +476,12 @@
     "confirmApproveDetail": "An approved request cannot be undone.",
     "confirmRejectTitle": "Reject this request?",
     "confirmRejectDetail": "A rejected request cannot be undone.",
-    "confirmCancel": "Go back"
+    "confirmCancel": "Go back",
+    "reviewDone": {
+      "start_review": "Review started",
+      "approve": "Request approved",
+      "reject": "Request rejected"
+    }
   },
   "capacityBasis": {
     "planned": "Planned",
@@ -524,7 +535,9 @@
     "createOpportunity": "Create opportunity",
     "creatingOpportunity": "Creating…",
     "notASale": "An opportunity is not a sale, a delivery or a payment. It records that a village could supply a buyer.",
-    "window": "Window"
+    "window": "Window",
+    "created": "Demand recorded",
+    "opportunityCreated": "Opportunity created"
   },
   "opportunity": {
     "notASale": "An opportunity is not a sale, a delivery or a payment. Accepted means both sides agreed to keep talking; nothing has moved.",
@@ -573,7 +586,9 @@
     "kgNotANumber": "Enter a number.",
     "kgMoreThanZero": "A contribution has to be more than zero.",
     "kgTooLarge": "This number is too large for the field.",
-    "kgDecimals": "Use at most 2 decimal places."
+    "kgDecimals": "Use at most 2 decimal places.",
+    "moved": "Status changed",
+    "attached": "Supply added"
   },
   "tower": {
     "title": "Control Tower",
@@ -705,7 +720,10 @@
     "categories": {
       "title": "Equipment categories",
       "add": "Add category"
-    }
+    },
+    "equipmentCreated": "Equipment added to the catalogue",
+    "loanCreated": "Loan listing added to the catalogue",
+    "categoryCreated": "Category added"
   },
   "people": {
     "title": "People",
@@ -801,7 +819,8 @@
     "creating": "Adding…",
     "nameRequired": "A buyer needs a name.",
     "noneTitle": "No buyers yet",
-    "noneDetail": "Add the first buyer to record demand against them."
+    "noneDetail": "Add the first buyer to record demand against them.",
+    "created": "Buyer added"
   },
   "villages": {
     "title": "Villages",
@@ -832,7 +851,9 @@
     "notANumber": "Enter a number, using a point for decimals.",
     "officerNote": "Field officers see a new village only once they are assigned to it.",
     "setCapacity": "Set capacity",
-    "capacityTitle": "New planned capacity for {{name}}"
+    "capacityTitle": "New planned capacity for {{name}}",
+    "created": "Village added",
+    "capacitySaved": "Capacity saved"
   },
   "farmerOpportunities": {
     "title": "Opportunities",
@@ -1224,7 +1245,8 @@
     "onceNote": "Your household can answer this survey once. Check your answers before you submit.",
     "notFound": "This survey is not available.",
     "badge_one": "{{count}} new survey",
-    "badge_other": "{{count}} new surveys"
+    "badge_other": "{{count}} new surveys",
+    "notSent": "Answers not sent"
   },
   "voucher": {
     "title": "Your incentive voucher",
@@ -1421,7 +1443,12 @@
     "selectVoucher": "Choose a voucher to see its audit trail.",
     "voucherFor": "Voucher for {{household}}",
     "noRedemptions": "Nothing handed over in these dates",
-    "noRedemptionsDetail": "Try a wider date range."
+    "noRedemptionsDetail": "Try a wider date range.",
+    "voided": "Voucher cancelled",
+    "statusDone": {
+      "live": "Survey published",
+      "closed": "Survey closed"
+    }
   },
   "plotDocuments": {
     "title_one": "Title documents ({{count}})",
@@ -1518,6 +1545,8 @@
     "received": "Received {{quantity}}",
     "stockTitle": "Stock of this lot",
     "stockRow": "{{available}} available · {{level}} on hand, {{reserved}} held for orders",
-    "noStock": "This lot holds no stock."
+    "noStock": "This lot holds no stock.",
+    "granted": "Link granted",
+    "revoked": "Link revoked"
   }
 }

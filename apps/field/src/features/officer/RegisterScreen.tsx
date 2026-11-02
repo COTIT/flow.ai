@@ -13,7 +13,7 @@ import { useSession } from '@/app/session'
 import { workspaceId } from '@/app/workspace'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
-import { UnsavedDraftBadge } from '@/components/UnsavedDraftBadge'
+import { FormDraftStatus } from '@/components/FormDraftStatus'
 import { BangMark, PlannedMark, VerificationMark } from '@/components/marks'
 import { Button } from '@/components/ui/button'
 import {
@@ -45,8 +45,8 @@ import {
   uploadPlotDocuments,
   type DraftFile,
 } from '@/lib/plotDocuments'
-import { apiStatus } from '@/lib/apiError'
-import { humanizeDbError } from '@/lib/errors'
+import { errorText } from '@/lib/errors'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { queryKeys, isTowerQueryForVillage } from '@/lib/queryKeys'
 
 const EMPTY: RegisterForm = {
@@ -87,18 +87,6 @@ const route = getRouteApi('/_officer/officer/register')
 /** One draft id per form instance, so a retry cannot create a second farmer. */
 function newClientRef() {
   return newUuid()
-}
-
-/**
- * A 422's `errors` split into what the form shows on a field ([form field, text]) and whether
- * anything is left for the general message (any other status, or a key with no field here).
- */
-function refusalsOf(error: unknown): { fields: Array<[string, string]>; banner: boolean } {
-  if (apiStatus(error) !== 422) return { fields: [], banner: true }
-  const errors = (error as { response?: { data?: { errors?: Record<string, string[]> } } }).response?.data?.errors ?? {}
-  const entries = Object.entries(errors).map(([key, texts]) => [registerFieldOf(key), texts?.[0]] as const)
-  const fields = entries.flatMap(([field, text]) => (field && text ? [[field, text] as [string, string]] : []))
-  return { fields, banner: fields.length === 0 || fields.length < entries.length }
 }
 
 /**
@@ -318,15 +306,6 @@ export function RegisterScreen() {
       // rather than creating a second farmer. A refusal rejects with the API body.
       return (await farmRecordsRegister(workspaceId(), payload)).data as RegistrationResult
     },
-    // The API's messages are written to be read: each one lands on the field it
-    // names, as written (or in Swahili when dbMessages knows it).
-    onError: (error) => {
-      for (const [field, text] of refusalsOf(error).fields) {
-        const human = humanizeDbError(text)
-        const message = human.kind === 'verbatim' ? human.message : t(human.key, human.values)
-        setError(field as Parameters<typeof setError>[0], { type: 'server', message }, { shouldFocus: true })
-      }
-    },
     onSuccess: async (created) => {
       // The registration is saved; now its title documents, if any.
       if (created?.plot_id && files.length > 0) {
@@ -340,9 +319,11 @@ export function RegisterScreen() {
       await queryClient.invalidateQueries({ predicate: isTowerQueryForVillage(villageId ?? '') })
     },
   })
+  // The API's messages are written to be read: each one lands on the field it names.
+  const refusal = useFieldErrors(submit.error, setError, registerFieldOf)
 
-  if (session.error) return <ErrorState error={session.error} />
-  if (cropsQuery.error) return <ErrorState error={cropsQuery.error} />
+  if (session.error) return <ErrorState error={session.error} onRetry={() => void session.refetch()} />
+  if (cropsQuery.error) return <ErrorState error={cropsQuery.error} onRetry={() => void cropsQuery.refetch()} />
 
   if (!draftIdFromUrl || session.isLoading || cropsQuery.isLoading || draft.status === 'restoring') {
     return (
@@ -387,9 +368,9 @@ export function RegisterScreen() {
               {t('register.documentsFailed')}
             </p>
             <ul className="type-note flex flex-col gap-1" style={{ color: 'var(--ink-2)' }}>
-              {fileDocs.isError && <li>{(fileDocs.error as Error).message}</li>}
+              {fileDocs.isError && <li>{errorText(fileDocs.error, t)}</li>}
               {(fileDocs.data?.failed ?? []).map((f) => (
-                <li key={f.id}>{f.name}: {f.message}</li>
+                <li key={f.id}>{f.name}: {errorText(f.message, t)}</li>
               ))}
             </ul>
             <Button type="button" variant="secondary" data-testid="register-documents-retry" className="w-fit" onClick={fileRemaining}>
@@ -1025,9 +1006,9 @@ export function RegisterScreen() {
           </fieldset>
         </Fieldset>
 
-        {submit.isError && refusalsOf(submit.error).banner && (
+        {submit.isError && refusal != null && (
           <div data-testid="register-error">
-            <ErrorState error={submit.error} onRetry={() => submit.reset()} />
+            <ErrorState error={refusal} onRetry={() => submit.mutate(submit.variables!)} />
           </div>
         )}
 
@@ -1056,7 +1037,7 @@ export function RegisterScreen() {
                 total: REGISTER_GROUPS.length,
               })}
             </span>
-            {draft.status === 'dirty' && <UnsavedDraftBadge />}
+            <FormDraftStatus dirty={draft.status === 'dirty'} storageError={draft.storageError || docsDraft.storageError} />
           </div>
           <button
             type="submit"

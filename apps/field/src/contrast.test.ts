@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 
-import { code, offendingLines, sourceFiles } from './styles/design'
+import { code, offendingLines, read, sourceFiles } from './styles/design'
 
 /**
  * `text-deep/60` on the sand ground measures 4.17:1 and was used for every
@@ -23,5 +23,56 @@ describe('colour is a named token, never an opacity', () => {
       offendingLines(code(file), OPACITY),
       'use --ink-2 for secondary text, --ink-3 for notes, and the named tints — not an opacity',
     ).toEqual([])
+  })
+})
+
+/**
+ * The shared Notice (packages/ui) draws its title and body in `--foreground`
+ * on its tone at a low alpha (`bg-info/10`, `bg-warning/15`, ...), edged in
+ * the tone itself. Read both from source so a new tone or a heavier tint is
+ * checked too: text at least 4.5:1, the edge at least 3:1, on sand and paper.
+ */
+describe('the Notice tones are legible on the RUAHA grounds', () => {
+  const root = /:root\s*\{([^}]*)\}/.exec(read('src/styles/globals.css'))?.[1] ?? ''
+  const tokens = Object.fromEntries(
+    [...root.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]),
+  )
+  const resolve = (value: string): string => {
+    const ref = /^var\((--[a-z0-9-]+)\)$/.exec(value)
+    return ref ? resolve(tokens[ref[1]] ?? '') : value
+  }
+  const rgb = (value: string) => {
+    const hex = resolve(value)
+    expect(hex, `${value} must resolve to a #rrggbb colour`).toMatch(/^#[0-9a-f]{6}$/i)
+    return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  }
+  const luminance = (c: number[]) =>
+    c
+      .map((v) => v / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+      .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0)
+  const ratio = (a: number[], b: number[]) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+    return (hi + 0.05) / (lo + 0.05)
+  }
+  const over = (tone: number[], ground: number[], alpha: number) =>
+    tone.map((v, i) => v * alpha + ground[i] * (1 - alpha))
+
+  const notice = read('../../packages/ui/src/components/notice.tsx')
+  const tones = [...notice.matchAll(/bg-([a-z]+)\/(\d+)/g)].map((m) => ({
+    token: `--${m[1]}`,
+    alpha: Number(m[2]) / 100,
+  }))
+
+  test('the four tones are read from the Notice', () => {
+    expect(tones.map((tone) => tone.token).sort()).toEqual(['--destructive', '--info', '--success', '--warning'])
+  })
+
+  test.each(tones)('$token', ({ token, alpha }) => {
+    for (const ground of ['--sand', '--paper']) {
+      const fill = over(rgb(`var(${token})`), rgb(`var(${ground})`), alpha)
+      expect(ratio(rgb('var(--foreground)'), fill), `text on ${token} over ${ground}`).toBeGreaterThanOrEqual(4.5)
+      expect(ratio(rgb(`var(${token})`), fill), `${token} edge over ${ground}`).toBeGreaterThanOrEqual(3)
+    }
   })
 })

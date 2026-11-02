@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { useSession } from '@/app/session'
@@ -18,7 +19,9 @@ import {
 } from '@/features/ops/useCatalogue'
 import { amountToMinor } from '@/features/ops/surveys/figures'
 import { useCurrencies } from '@/features/ops/surveys/useSurveyAdmin'
+import { firstFailure } from '@/lib/apiError'
 import { finishDraftWhenSaved } from '@/lib/drafts'
+import { useFieldErrors } from '@/lib/useFieldErrors'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
 /**
@@ -82,7 +85,8 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
   const categories = useEquipmentCategories()
   // shortcut: prices are in the account's default currency (the labels say TZS); add a currency
   // picker when an account prices equipment in more than one.
-  const currencies = useCurrencies().data ?? []
+  const currencyQuery = useCurrencies()
+  const currencies = currencyQuery.data ?? []
   const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
   /** Integer minor units of the currency, by string maths; null when blank or not an amount. */
   const minor = (text: string) => (text.trim() === '' ? null : amountToMinor(text.trim(), currency?.decimals ?? 0))
@@ -114,7 +118,10 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
     'buy-price': priceError(price),
     'rent-price': priceError(rent),
   }
-  const shown = (key: keyof typeof errors) => (touched && errors[key] ? t(errors[key]!) : undefined)
+  // The API's refusal of a field, as written, under that field; the form's own check wins while it fails.
+  const refusal = useFieldErrors(create.error, draft.setError, (key) => EQUIPMENT_FIELD[key], (field) => `catalogue-${EQUIPMENT_INPUT[field]}`)
+  const shown = (key: keyof typeof errors) =>
+    (touched && errors[key] ? t(errors[key]!) : undefined) ?? serverError(draft.formState.errors, EQUIPMENT_INPUT, key)
 
   const submit = () => {
     if (inFlight.current || create.isPending || !draft.ready) return
@@ -153,7 +160,7 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
   )
 
   return (
-    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} ready={draft.ready && Boolean(currency)}>
+    <CreateForm onSubmit={submit} loadFailure={firstFailure([categories, currencyQuery])} dirty={draft.dirty} storageError={draft.storageError} create={create} refusal={refusal} saved={create.isSuccess && !draft.dirty && t('catalogue.equipmentCreated')} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} ready={draft.ready && Boolean(currency)}>
       <Field label={t('catalogue.code')} id="catalogue-code" error={shown('code')} errorTestId="catalogue-code-error">
         {input('code', code, setCode)}
       </Field>
@@ -215,7 +222,8 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
   const create = useCreateLoanProduct()
   // shortcut: amounts are in the account's default currency, as for equipment; add a currency
   // picker when an account lists loans in more than one.
-  const currencies = useCurrencies().data ?? []
+  const currencyQuery = useCurrencies()
+  const currencies = currencyQuery.data ?? []
   const currency = currencies.find((c) => c.default_currency) ?? currencies[0]
   const minor = (text: string) => amountToMinor(text.trim(), currency?.decimals ?? 0)
   const amountError = (text: string) =>
@@ -238,7 +246,9 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
     min: amountError(min),
     max: amountError(max),
   }
-  const shown = (key: keyof typeof errors) => (touched && errors[key] ? t(errors[key]!) : undefined)
+  const refusal = useFieldErrors(create.error, draft.setError, (key) => LOAN_FIELD[key], (field) => `catalogue-${LOAN_INPUT[field]}`)
+  const server = (key: string) => serverError(draft.formState.errors, LOAN_INPUT, key)
+  const shown = (key: keyof typeof errors) => (touched && errors[key] ? t(errors[key]!) : undefined) ?? server(key)
 
   const submit = () => {
     if (inFlight.current || create.isPending || !draft.ready) return
@@ -273,7 +283,8 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
   )
 
   return (
-    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create}
+    <CreateForm onSubmit={submit} loadFailure={firstFailure([currencyQuery])} dirty={draft.dirty} storageError={draft.storageError} create={create} refusal={refusal} saved={create.isSuccess && !draft.dirty && t('catalogue.loanCreated')}
+      onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)}
       ready={draft.ready && Boolean(currency)} note={t('resources.loanNote')}
     >
       <Field label={t('catalogue.code')} id="catalogue-code" error={shown('code')} errorTestId="catalogue-code-error">
@@ -285,10 +296,10 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
       <Field label={t('catalogue.nameSw')} id="catalogue-name-sw" error={shown('name-sw')} errorTestId="catalogue-name-sw-error">
         {input('name-sw', nameSw, setNameSw)}
       </Field>
-      <Field label={t('catalogue.descriptionEn')} id="catalogue-description-en">
+      <Field label={t('catalogue.descriptionEn')} id="catalogue-description-en" error={server('description-en')} errorTestId="catalogue-description-en-error">
         {input('description-en', descriptionEn, setDescriptionEn)}
       </Field>
-      <Field label={t('catalogue.descriptionSw')} id="catalogue-description-sw">
+      <Field label={t('catalogue.descriptionSw')} id="catalogue-description-sw" error={server('description-sw')} errorTestId="catalogue-description-sw-error">
         {input('description-sw', descriptionSw, setDescriptionSw)}
       </Field>
       <Field label={t('catalogue.minInput')} id="catalogue-min" error={shown('min')} errorTestId="catalogue-min-error">
@@ -304,18 +315,30 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
 /** The form frame both kinds share: grid, draft status, error, submit. */
 function CreateForm({
   onSubmit,
+  loadFailure,
   dirty,
   storageError,
   ready,
   create,
+  refusal,
+  saved,
+  onRetry,
   note,
   children,
 }: {
   onSubmit: () => void
+  /** A read the form needs (categories, currency) that failed: without it "Add" stays disabled, so say why. */
+  loadFailure: { error: unknown; retry: () => void }
   dirty: boolean
   storageError: boolean
   ready: boolean
-  create: { isPending: boolean; isError: boolean; error: unknown; reset: () => void }
+  create: { isPending: boolean; isError: boolean }
+  /** What the general error Notice still has to say once refused fields show their own (null: nothing). */
+  refusal: unknown
+  /** The success Notice's title, while the saved form is untouched. */
+  saved: string | false
+  /** Re-sends the save that failed, unchanged: same id, same body. */
+  onRetry: () => void
   note?: string
   children: ReactNode
 }) {
@@ -330,12 +353,22 @@ function CreateForm({
       }}
     >
       <FormDraftStatus dirty={dirty} storageError={storageError} />
+      {loadFailure.error != null && (
+        <div data-testid="catalogue-options-error">
+          <ErrorState error={loadFailure.error} onRetry={loadFailure.retry} />
+        </div>
+      )}
       {note && <p className="type-note" style={{ color: 'var(--ink-2)', textWrap: 'pretty' }}>{note}</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{children}</div>
       <p className="type-note" style={{ color: 'var(--ink-3)' }}>{t('catalogue.indicativeNote')}</p>
-      {create.isError && (
+      {create.isError && refusal != null && (
         <div data-testid="catalogue-create-error">
-          <ErrorState error={create.error} onRetry={() => create.reset()} />
+          <ErrorState error={refusal} onRetry={onRetry} />
+        </div>
+      )}
+      {saved && (
+        <div data-testid="catalogue-saved">
+          <Notice variant="success" title={saved} />
         </div>
       )}
       <Button type="submit" data-testid="catalogue-create-submit" disabled={!ready || create.isPending} className="w-fit">
@@ -343,6 +376,31 @@ function CreateForm({
       </Button>
     </form>
   )
+}
+
+/** The form field each API key belongs to, and that field's input (`catalogue-<input>`). */
+const EQUIPMENT_FIELD: Record<string, keyof typeof EQUIPMENT_DEFAULTS> = {
+  code: 'code', name_en: 'nameEn', name_sw: 'nameSw', category_id: 'categoryId', rated_power_kw: 'power',
+  typical_hours_per_day: 'hours', typical_days_per_week: 'days', indicative_price_minor: 'price',
+  indicative_rent_per_day_minor: 'rent',
+}
+const EQUIPMENT_INPUT: Record<string, string> = {
+  code: 'code', nameEn: 'name-en', nameSw: 'name-sw', categoryId: 'category', power: 'power', hours: 'hours',
+  days: 'days', price: 'buy-price', rent: 'rent-price',
+}
+const LOAN_FIELD: Record<string, keyof typeof LOAN_DEFAULTS> = {
+  code: 'code', name_en: 'nameEn', name_sw: 'nameSw', description_en: 'descriptionEn', description_sw: 'descriptionSw',
+  indicative_min_minor: 'min', indicative_max_minor: 'max',
+}
+const LOAN_INPUT: Record<string, string> = {
+  code: 'code', nameEn: 'name-en', nameSw: 'name-sw', descriptionEn: 'description-en', descriptionSw: 'description-sw',
+  min: 'min', max: 'max',
+}
+
+/** The API's text set on the form field whose input is `input`. */
+function serverError(errors: Partial<Record<string, { message?: string }>>, inputs: Record<string, string>, input: string) {
+  const field = Object.keys(inputs).find((name) => inputs[name] === input)
+  return field ? errors[field]?.message : undefined
 }
 
 function Check({

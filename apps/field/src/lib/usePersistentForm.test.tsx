@@ -26,6 +26,21 @@ function mount(scope = 'project-1', s: DraftStore = store) {
 }
 
 describe('usePersistentForm', () => {
+  // A form without a resolver has nothing else to clear the API's refusal of a field.
+  test("an edit clears the API's refusal of that field, and only that field", async () => {
+    const { result } = mount()
+    await waitFor(() => expect(result.current.ready).toBe(true))
+    act(() => {
+      result.current.setError('name', { type: 'server', message: 'name is taken' })
+      result.current.setError('note', { type: 'server', message: 'note is too long' })
+    })
+    expect(result.current.formState.errors.name?.message).toBe('name is taken')
+
+    act(() => result.current.field('name')[1]('Kilimo Co-op'))
+    await waitFor(() => expect(result.current.formState.errors.name).toBeUndefined())
+    expect(result.current.formState.errors.note?.message).toBe('note is too long')
+  })
+
   test('is not ready until the stored draft has been read', async () => {
     let release: (() => void) | undefined
     const slow: DraftStore = {

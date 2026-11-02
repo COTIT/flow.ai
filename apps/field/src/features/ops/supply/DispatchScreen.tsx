@@ -1,9 +1,12 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
+import { fieldErrorsOf } from '@/lib/apiError'
+import { errorText } from '@/lib/errors'
 import { FormField } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader'
 import { CONTROL } from '@/components/controlStyles'
@@ -41,8 +44,12 @@ export function DispatchScreen() {
 
   const live = (links.data ?? []).filter((l) => l.status === 'live')
   const warehouseName = (id: string) => options.data?.warehouses.find((w) => w.id === id)?.name ?? id
+  // The API's refusal of a field is shown under it; an edit clears it, and a shown success.
+  const refused = fieldErrorsOf(dispatch.error, (key) => DISPATCH_INPUT[key])
+  const fieldError = (id: string) => (refused.fields[id] ? errorText(refused.fields[id], t) : undefined)
   const set = (key: keyof DispatchInput) => (e: { target: { value: string } }) => {
     setInput((now) => ({ ...now, [key]: e.target.value }))
+    if (dispatch.isError || dispatch.isSuccess) dispatch.reset()
   }
   const ready = Object.values(input).every((v) => v.trim() !== '')
 
@@ -63,7 +70,7 @@ export function DispatchScreen() {
 
   const loadError = links.error ?? options.error
   const select = (key: keyof DispatchInput, id: string, label: string, rows: { id: string; label: string }[]) => (
-    <FormField label={label} id={id}>
+    <FormField label={label} id={id} error={fieldError(id)} errorTestId={`${id}-error`}>
       <select
         id={id}
         data-testid={id}
@@ -133,7 +140,7 @@ export function DispatchScreen() {
                 )}
               </div>
             )}
-            <FormField label={t('supply.quantity')} id="dispatch-quantity">
+            <FormField label={t('supply.quantity')} id="dispatch-quantity" error={fieldError('dispatch-quantity')} errorTestId="dispatch-quantity-error">
               <input
                 id="dispatch-quantity"
                 data-testid="dispatch-quantity"
@@ -145,14 +152,14 @@ export function DispatchScreen() {
                 autoComplete="off"
               />
             </FormField>
-            {dispatch.error ? (
+            {dispatch.error && refused.general != null ? (
               <div data-testid="dispatch-error" className="sm:col-span-2">
-                <ErrorState error={dispatch.error} />
+                <ErrorState error={refused.general} />
               </div>
             ) : dispatch.isSuccess ? (
-              <p data-testid="dispatch-sent" role="status" className="sm:col-span-2">
-                {t('supply.sent')}
-              </p>
+              <div data-testid="dispatch-sent" className="sm:col-span-2">
+                <Notice variant="success" title={t('supply.sent')} />
+              </div>
             ) : null}
             <div className="sm:col-span-2">
               <Button type="submit" data-testid="dispatch-send" disabled={!ready || dispatch.isPending}>
@@ -206,3 +213,6 @@ export function DispatchScreen() {
     </section>
   )
 }
+
+/** The input each API key belongs to. */
+const DISPATCH_INPUT: Record<string, string> = { link_id: 'dispatch-link', warehouse_id: 'dispatch-warehouse', quantity: 'dispatch-quantity' }
