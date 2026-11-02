@@ -153,7 +153,7 @@ function EquipmentForm({ projectId }: { projectId: string | undefined }) {
   )
 
   return (
-    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} ready={draft.ready && Boolean(currency)}>
+    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} ready={draft.ready && Boolean(currency)}>
       <Field label={t('catalogue.code')} id="catalogue-code" error={shown('code')} errorTestId="catalogue-code-error">
         {input('code', code, setCode)}
       </Field>
@@ -273,7 +273,7 @@ function LoanForm({ projectId }: { projectId: string | undefined }) {
   )
 
   return (
-    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create}
+    <CreateForm onSubmit={submit} dirty={draft.dirty} storageError={draft.storageError} create={create} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)}
       ready={draft.ready && Boolean(currency)} note={t('resources.loanNote')}
     >
       <Field label={t('catalogue.code')} id="catalogue-code" error={shown('code')} errorTestId="catalogue-code-error">
@@ -308,6 +308,7 @@ function CreateForm({
   storageError,
   ready,
   create,
+  onRetry,
   note,
   children,
 }: {
@@ -315,7 +316,9 @@ function CreateForm({
   dirty: boolean
   storageError: boolean
   ready: boolean
-  create: { isPending: boolean; isError: boolean; error: unknown; reset: () => void }
+  create: { isPending: boolean; isError: boolean; error: unknown }
+  /** Re-sends the save that failed, unchanged: same id, same body. */
+  onRetry: () => void
   note?: string
   children: ReactNode
 }) {
@@ -335,7 +338,7 @@ function CreateForm({
       <p className="type-note" style={{ color: 'var(--ink-3)' }}>{t('catalogue.indicativeNote')}</p>
       {create.isError && (
         <div data-testid="catalogue-create-error">
-          <ErrorState error={create.error} onRetry={() => create.reset()} />
+          <ErrorState error={create.error} onRetry={onRetry} />
         </div>
       )}
       <Button type="submit" data-testid="catalogue-create-submit" disabled={!ready || create.isPending} className="w-fit">

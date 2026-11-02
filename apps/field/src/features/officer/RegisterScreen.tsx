@@ -46,7 +46,7 @@ import {
   type DraftFile,
 } from '@/lib/plotDocuments'
 import { apiStatus } from '@/lib/apiError'
-import { humanizeDbError } from '@/lib/errors'
+import { errorText, humanizeDbError } from '@/lib/errors'
 import { queryKeys, isTowerQueryForVillage } from '@/lib/queryKeys'
 
 const EMPTY: RegisterForm = {
@@ -387,9 +387,9 @@ export function RegisterScreen() {
               {t('register.documentsFailed')}
             </p>
             <ul className="type-note flex flex-col gap-1" style={{ color: 'var(--ink-2)' }}>
-              {fileDocs.isError && <li>{(fileDocs.error as Error).message}</li>}
+              {fileDocs.isError && <li>{errorText(fileDocs.error, t)}</li>}
               {(fileDocs.data?.failed ?? []).map((f) => (
-                <li key={f.id}>{f.name}: {f.message}</li>
+                <li key={f.id}>{f.name}: {errorText(f.message, t)}</li>
               ))}
             </ul>
             <Button type="button" variant="secondary" data-testid="register-documents-retry" className="w-fit" onClick={fileRemaining}>
@@ -1027,7 +1027,7 @@ export function RegisterScreen() {
 
         {submit.isError && refusalsOf(submit.error).banner && (
           <div data-testid="register-error">
-            <ErrorState error={submit.error} onRetry={() => submit.reset()} />
+            <ErrorState error={submit.error} onRetry={() => submit.mutate(submit.variables!)} />
           </div>
         )}
 

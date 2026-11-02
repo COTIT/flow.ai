@@ -399,7 +399,7 @@ export function EquipmentDetailScreen() {
 
         {submit.isError && (
           <div data-testid="request-error">
-            <ErrorState error={submit.error} onRetry={() => submit.reset()} />
+            <ErrorState error={submit.error} onRetry={() => void finishDraftWhenSaved(submit.mutateAsync(submit.variables!), draft.finish)} />
           </div>
         )}
 

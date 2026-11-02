@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { signOut } from '@/app/session'
 import { Button } from '@/components/ui/button'
+import { errorText } from '@/lib/errors'
 
 /**
  * Shared by the shell header and the no-access screen.
@@ -26,7 +27,7 @@ export function SignOutButton({ className }: { className?: string }) {
       await signOut(queryClient)
       await navigate({ to: '/login', replace: true })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause))
+      setError(errorText(cause, t))
     } finally {
       setPending(false)
     }

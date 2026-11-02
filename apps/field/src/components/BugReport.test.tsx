@@ -90,3 +90,15 @@ test('a refused report keeps the sheet open with the API message, and a retry se
   await waitFor(() => expect(submitBugReport).toHaveBeenCalledTimes(2))
   expect(submitBugReport.mock.calls[1][0].id).toBe(submitBugReport.mock.calls[0][0].id)
 })
+
+test('a report sent with no answer reads as no network, never axios wording', async () => {
+  submitBugReport.mockRejectedValueOnce(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+  renderButton()
+  await userEvent.click(screen.getByTestId('bug-fab'))
+  await userEvent.type(await screen.findByTestId('bug-description'), 'x')
+  await userEvent.click(screen.getByTestId('bug-submit'))
+
+  const banner = await screen.findByTestId('bug-send-error')
+  expect(banner).toHaveTextContent('No network. Check your connection and try again.')
+  expect(banner).not.toHaveTextContent('Network Error')
+})

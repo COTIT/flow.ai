@@ -4,11 +4,16 @@
  * the most specific, so it wins. Messages are shown as written (or translated by dbMessages).
  */
 type ApiBody = { message?: string; errors?: Record<string, string[] | undefined> }
-type MaybeAxios = { response?: { status?: number; data?: ApiBody } }
+type MaybeAxios = { isAxiosError?: boolean; response?: { status?: number; data?: ApiBody } }
 
 /** HTTP status, or undefined when the request never got an answer (offline, refused). */
 export function apiStatus(error: unknown): number | undefined {
   return (error as MaybeAxios | null)?.response?.status
+}
+
+/** The request was sent and nothing came back: offline, timed out, connection dropped. */
+export function isNoAnswer(error: unknown): boolean {
+  return (error as MaybeAxios | null)?.isAxiosError === true && apiStatus(error) === undefined
 }
 
 export function apiErrorMessage(error: unknown): string | null {

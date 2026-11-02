@@ -254,6 +254,14 @@ function VillageCreatePanel({ onClose, village }: { onClose: () => void; village
     void finishDraftWhenSaved(save, draft.finish).finally(() => { inFlight.current = false })
   }
 
+  /** "Try again": the save that failed, unchanged (same id, same body), the same way as submit. */
+  const retry = () => {
+    const save = village
+      ? setCapacity.mutateAsync(setCapacity.variables!).then(onClose)
+      : createVillage.mutateAsync(createVillage.variables!)
+    void finishDraftWhenSaved(save, draft.finish)
+  }
+
   return (
     <section
       id="village-create-panel"
@@ -323,7 +331,7 @@ function VillageCreatePanel({ onClose, village }: { onClose: () => void; village
 
         {create.isError && (
           <div data-testid="village-create-error">
-            <ErrorState error={create.error} onRetry={() => create.reset()} />
+            <ErrorState error={create.error} onRetry={retry} />
           </div>
         )}
 

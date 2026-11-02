@@ -15,7 +15,7 @@ import { BangMark } from '@/components/marks'
 import { Button } from '@/components/ui/button'
 import { clearTempPassword, peekTempPassword } from '@/app/tempPassword'
 import { translateDbMessage } from '@/lib/dbMessages'
-import { apiErrorMessage } from '@/lib/apiError'
+import { apiErrorMessage, isNoAnswer } from '@/lib/apiError'
 import { farmLoginsChangePassword } from '@genesy/api-client/endpoints/farm-logins'
 
 // Only "is it there, and typed twice the same" is checked here. What makes a
@@ -75,7 +75,7 @@ export function SetPasswordScreen() {
       const session = await queryClient.fetchQuery(sessionQuery)
       await navigate({ to: resolveLanding(session?.memberships ?? []).to, replace: true })
     } catch (cause) {
-      setFormError(apiErrorMessage(cause) ?? t('setPassword.unexpected'))
+      setFormError(isNoAnswer(cause) ? t('error.network') : (apiErrorMessage(cause) ?? t('setPassword.unexpected')))
     }
   }
 

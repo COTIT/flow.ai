@@ -294,10 +294,11 @@ describe('the answer form', () => {
   })
 
   test('a lost connection is said plainly, not as a browser message', () => {
-    submitState.error = new TypeError('Failed to fetch')
+    submitState.error = Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' })
     render(<SurveyScreen />)
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/could not reach the server/i)
+    expect(screen.getByRole('alert')).toHaveTextContent(/no network/i)
+    expect(screen.getByRole('alert')).not.toHaveTextContent('Network Error')
   })
 
   test('in flight: the control is disabled and says so', () => {

@@ -36,7 +36,7 @@
     "submit": "Sign in",
     "submitting": "Signing in…",
     "invalid": "That phone number or email and password do not match an account.",
-    "network": "Could not reach the server. Check your connection and try again.",
+    "network": "No network. Check your connection and try again.",
     "emailRequired": "Enter your phone number or email address.",
     "emailInvalid": "Enter a Tanzanian mobile number, for example 0712 345 678, or an email address.",
     "passwordRequired": "Enter your password.",
@@ -70,7 +70,7 @@
   "error": {
     "title": "Something went wrong",
     "retry": "Try again",
-    "network": "Could not reach the server. Check your connection and try again.",
+    "network": "No network. Check your connection and try again.",
     "unexpected": "Something went wrong that should not have. Try again, and tell the programme team if it keeps happening.",
     "badId": "That record reference is not valid.",
     "numericOverflow": "One of the numbers is too large for the field it was typed into. Check the figures and try again.",

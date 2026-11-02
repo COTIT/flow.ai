@@ -468,6 +468,22 @@ describe('an API refusal', () => {
     expect(await screen.findByTestId('register-error')).toHaveTextContent('this registration was sent by someone else')
   })
 
+  // Gap 3: "Try again" after no answer re-sends the same registration: same client_ref, same body.
+  test('"Try again" after no answer re-sends the same registration', async () => {
+    rpc.mockRejectedValueOnce(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+    rpc.mockResolvedValueOnce({ data: { person_id: 'new-person', plot_id: 'p', village_id: VILLAGE } })
+    renderScreen()
+    await fillValid()
+    submit()
+
+    expect(await screen.findByTestId('register-error')).toHaveTextContent('No network')
+    await userEvent.click(screen.getByTestId('error-retry'))
+
+    await screen.findByTestId('register-success')
+    expect(rpc).toHaveBeenCalledTimes(2)
+    expect(rpc.mock.calls[1]).toEqual(rpc.mock.calls[0])
+  })
+
   // A retry after a timeout answers 200 `replayed: true`: the farmer is registered once, and the
   // officer sees the same success.
   test('a replay is the same success', async () => {

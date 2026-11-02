@@ -209,7 +209,7 @@ export function OpsRequestReviewScreen() {
 
       {review.isError && !noteError && (
         <div data-testid="review-error">
-          <ErrorState error={review.error} onRetry={() => review.reset()} />
+          <ErrorState error={review.error} onRetry={() => review.mutate(review.variables!)} />
         </div>
       )}
 

@@ -109,7 +109,7 @@ export function SurveyAdminDetailScreen() {
 
       {setStatus.isError && (
         <div data-testid="survey-status-error">
-          <ErrorState error={setStatus.error} onRetry={() => setStatus.reset()} />
+          <ErrorState error={setStatus.error} onRetry={() => setStatus.mutate(setStatus.variables!)} />
         </div>
       )}
 

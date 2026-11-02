@@ -70,10 +70,16 @@ describe('ErrorState', () => {
     expect(screen.getByTestId('error-state')).not.toHaveTextContent('pue_request')
   })
 
-  test('a JS exception becomes something a field officer can act on', () => {
-    render(<ErrorState error={new TypeError('Failed to fetch')} />)
+  test('a request with no answer says No network, not the HTTP library wording', () => {
+    render(<ErrorState error={Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' })} />)
 
-    expect(screen.getByTestId('error-state')).toHaveTextContent(/check your connection/i)
+    expect(screen.getByTestId('error-state')).toHaveTextContent(/no network\. check your connection/i)
+    expect(screen.getByTestId('error-state')).not.toHaveTextContent('Network Error')
+  })
+
+  test('a JS exception becomes something a field officer can act on', () => {
+    render(<ErrorState error={new TypeError('x.map is not a function')} />)
+
     expect(screen.getByTestId('error-state')).not.toHaveTextContent('TypeError')
   })
 

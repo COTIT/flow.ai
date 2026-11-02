@@ -64,4 +64,13 @@ describe('SignOutButton', () => {
     expect(screen.getByTestId('sign-out')).not.toBeDisabled()
     expect(navigate).not.toHaveBeenCalled()
   })
+
+  test('no answer reads as no network, never axios wording', async () => {
+    signOut.mockRejectedValue(Object.assign(new Error('Network Error'), { isAxiosError: true, code: 'ERR_NETWORK' }))
+    renderButton()
+
+    await userEvent.setup().click(screen.getByTestId('sign-out'))
+    expect(screen.getByTestId('sign-out-error')).toHaveTextContent('No network. Check your connection and try again.')
+    expect(screen.getByTestId('sign-out-error')).not.toHaveTextContent('Network Error')
+  })
 })

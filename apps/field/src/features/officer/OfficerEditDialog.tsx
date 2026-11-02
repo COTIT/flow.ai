@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { FormDraftStatus } from '@/components/FormDraftStatus'
 import { usePersistentForm } from '@/lib/usePersistentForm'
 
-import { apiErrorMessage } from '@/lib/apiError'
+import { errorText } from '@/lib/errors'
 import { validateEdit, type CropMeasure, type EditableTable, type EditValues } from '@/features/officer/officerEdit'
 import type { Enums } from '@/lib/enums'
 
@@ -130,7 +130,7 @@ export function OfficerEditDialog({
         ))}
         {(validationError || error) && (
           <p role="alert" data-testid="officer-edit-error" style={{ color: 'var(--flag-ink)', fontSize: 13 }}>
-            {error ? (apiErrorMessage(error) ?? error.message) : validationError}
+            {error ? errorText(error, t) : validationError}
           </p>
         )}
         <div className="flex flex-wrap justify-end gap-2.5">

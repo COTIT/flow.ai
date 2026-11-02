@@ -199,7 +199,7 @@ export function DemandDetailScreen() {
 
         {createOpportunity.isError && (
           <div data-testid="create-opportunity-error">
-            <ErrorState error={createOpportunity.error} onRetry={() => createOpportunity.reset()} />
+            <ErrorState error={createOpportunity.error} onRetry={() => createOpportunity.mutate(createOpportunity.variables!)} />
           </div>
         )}
       </section>

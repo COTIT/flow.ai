@@ -106,7 +106,7 @@ export function CatalogueCategories() {
         </div>
         {create.isError && (
           <div data-testid="category-create-error">
-            <ErrorState error={create.error} onRetry={() => create.reset()} />
+            <ErrorState error={create.error} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} />
           </div>
         )}
         <Button type="submit" data-testid="category-submit" disabled={!draft.ready || create.isPending} className="w-fit">

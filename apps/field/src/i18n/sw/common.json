@@ -36,7 +36,7 @@
     "submit": "Ingia",
     "submitting": "Inaingia…",
     "invalid": "Namba ya simu au barua pepe na neno la siri havilingani na akaunti yoyote.",
-    "network": "Seva haikupatikana. Angalia mtandao wako kisha ujaribu tena.",
+    "network": "Hakuna mtandao. Angalia muunganisho wako kisha ujaribu tena.",
     "emailRequired": "Weka namba yako ya simu au anwani ya barua pepe.",
     "emailInvalid": "Weka namba ya simu ya mkononi ya Tanzania, kwa mfano 0712 345 678, au anwani ya barua pepe.",
     "passwordRequired": "Weka neno lako la siri.",
@@ -70,7 +70,7 @@
   "error": {
     "title": "Kuna tatizo",
     "retry": "Jaribu tena",
-    "network": "Imeshindwa kuwasiliana na seva. Angalia mtandao wako kisha ujaribu tena.",
+    "network": "Hakuna mtandao. Angalia muunganisho wako kisha ujaribu tena.",
     "unexpected": "Kumetokea hitilafu isiyotarajiwa. Jaribu tena, na uiambie timu ya mradi ikiendelea kutokea.",
     "badId": "Rejea ya rekodi hiyo si sahihi.",
     "numericOverflow": "Moja ya namba ni kubwa mno kwa kisanduku ulichoiandikia. Angalia namba kisha ujaribu tena.",

@@ -230,11 +230,13 @@ describe('PersonDetailScreen', () => {
     queryState.error = null
     verifyState.isError = true
     verifyState.error = new Error('verify failed')
+    verifyState.variables = { table: 'person', id: 'p1' }
     useVerify.mockReturnValue({ ...verifyState, mutate, reset })
     view.rerender(<PersonDetailScreen />)
     expect(screen.getByTestId('verify-error')).toHaveTextContent('verify failed')
+    // "Try again" re-sends the verify that failed.
     await userEvent.setup().click(screen.getByTestId('error-retry'))
-    expect(reset).toHaveBeenCalled()
+    expect(mutate).toHaveBeenCalledWith({ table: 'person', id: 'p1' })
   })
 
   test('renders empty relationship sections and fully verified summary', () => {

@@ -300,7 +300,7 @@ export function OpportunityDetailScreen() {
       {/* The database's message, as written. §9's error contract. */}
       {move.isError && (
         <div data-testid="status-error">
-          <ErrorState error={move.error} onRetry={() => move.reset()} />
+          <ErrorState error={move.error} onRetry={() => move.mutate(move.variables!)} />
         </div>
       )}
 
@@ -489,7 +489,7 @@ export function OpportunityDetailScreen() {
 
             {attach.isError && (
               <div data-testid="attach-error">
-                <ErrorState error={attach.error} onRetry={() => attach.reset()} />
+                <ErrorState error={attach.error} onRetry={() => void finishDraftWhenSaved(attach.mutateAsync(attach.variables!), draft.finish)} />
               </div>
             )}
 

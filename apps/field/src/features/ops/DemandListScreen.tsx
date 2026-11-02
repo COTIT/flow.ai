@@ -252,7 +252,7 @@ export function DemandListScreen() {
 
         {create.isError && (
           <div data-testid="demand-create-error">
-            <ErrorState error={create.error} onRetry={() => create.reset()} />
+            <ErrorState error={create.error} onRetry={() => void finishDraftWhenSaved(create.mutateAsync(create.variables!), draft.finish)} />
           </div>
         )}
 

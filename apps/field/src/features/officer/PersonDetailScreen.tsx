@@ -117,7 +117,7 @@ export function PersonDetailScreen() {
 
       {verify.isError && (
         <div data-testid="verify-error">
-          <ErrorState error={verify.error} onRetry={() => verify.reset()} />
+          <ErrorState error={verify.error} onRetry={() => verify.mutate(verify.variables!)} />
         </div>
       )}
 
