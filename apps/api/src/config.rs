@@ -85,6 +85,9 @@ pub struct Config {
     pub signup_enabled: bool,
     /// `GENESY_ALLOW_DEMO_SEED`: `seed-demo` may run. Only the staging compose sets it.
     pub allow_demo_seed: bool,
+    /// `SKIP_BOOT_MIGRATIONS`: boot without migrating. The VPS composes set it; their deploy
+    /// runs `genesy-360-api migrate` as its own step. Off by default, so dev and tests migrate.
+    pub skip_boot_migrations: bool,
 }
 
 // Manual Debug: database_url carries DB password.
@@ -224,6 +227,7 @@ impl Config {
         let checkout_hold_max: i64 = positive(&get, "CHECKOUT_HOLD_MAX", 500)?;
         let signup_enabled = flag(&get, "SIGNUP_ENABLED")?;
         let allow_demo_seed = flag(&get, "GENESY_ALLOW_DEMO_SEED")?;
+        let skip_boot_migrations = flag(&get, "SKIP_BOOT_MIGRATIONS")?;
         let payments_provider = get("PAYMENTS_PROVIDER").filter(|v| !v.trim().is_empty());
         let release = !cfg!(debug_assertions);
         let stripe = match payments_provider.as_deref().map(str::trim) {
@@ -288,6 +292,7 @@ impl Config {
             checkout_hold_max,
             signup_enabled,
             allow_demo_seed,
+            skip_boot_migrations,
         })
     }
 }
@@ -670,6 +675,27 @@ mod tests {
         let on = with(&[("SIGNUP_ENABLED", "true"), ("GENESY_ALLOW_DEMO_SEED", "1")]).unwrap();
         assert!(on.signup_enabled && on.allow_demo_seed);
         assert!(with(&[("SIGNUP_ENABLED", "maybe")]).is_err());
+    }
+
+    #[test]
+    fn boot_migrations_run_unless_skipped() {
+        let get = |extra: &'static [(&'static str, &'static str)]| {
+            let mut pairs = vec![("DATABASE_URL", "postgres://x")];
+            pairs.extend_from_slice(extra);
+            Config::from_lookup(lookup(Box::leak(pairs.into_boxed_slice())))
+        };
+        assert!(!get(&[]).unwrap().skip_boot_migrations);
+        assert!(
+            get(&[("SKIP_BOOT_MIGRATIONS", "true")])
+                .unwrap()
+                .skip_boot_migrations
+        );
+        assert!(
+            get(&[("SKIP_BOOT_MIGRATIONS", "1")])
+                .unwrap()
+                .skip_boot_migrations
+        );
+        assert!(get(&[("SKIP_BOOT_MIGRATIONS", "maybe")]).is_err());
     }
 
     #[test]
