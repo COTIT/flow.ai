@@ -24,9 +24,33 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  api:
+  changes:
     # Same-repo pushes and PRs only: fork code never runs on the VPS.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, genesy-ci]
+    timeout-minutes: 5
+    container:
+      # Has git; rust:*-slim has none, so the api checkout can't diff.
+      image: node:24-trixie
+    outputs:
+      api: ${{ steps.diff.outputs.api }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: diff
+        name: Did the API or CI config change?
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        # Base missing (first push, force push, all-zero sha) or diff failing = run api.
+        run: |
+          api=true
+          if [ -n "$BASE" ] && git fetch -q --depth=1 origin "$BASE" && files=$(git diff --name-only "$BASE" HEAD); then
+            printf '%s\n' "$files" | grep -qE '^(apps/api/|\.github/workflows/|rust-toolchain)' || api=false
+          fi
+          echo "api=$api" | tee -a "$GITHUB_OUTPUT"
+
+  api:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: [self-hosted, genesy-ci]
     timeout-minutes: 60
     container:
@@ -38,11 +62,16 @@ jobs:
         - genesy-ci-tools:/opt/ci-tools
     services:
       # Throwaway DB on the job's private network (no host port); removed with the job.
+      # Data in RAM and no crash safety: nothing here outlives the job.
       postgres:
         image: postgres:18-alpine
+        command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
         env:
           POSTGRES_PASSWORD: ci-only
+          # No SCRAM handshake per test connection (it runs in unoptimised test-build crypto).
+          POSTGRES_HOST_AUTH_METHOD: trust
         options: >-
+          --tmpfs /var/lib/postgresql:rw,size=2g
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 3s
@@ -59,7 +88,14 @@ jobs:
       - run: rustup component add rustfmt clippy
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test --no-fail-fast
+      # These two need an empty database, so they run before template1 is migrated.
+      - name: Migrations fill an empty database
+        run: cargo test --tests -- migrations_fill_an_empty_database migrate_fills_an_empty_database
+      # Every #[sqlx::test] DB is created from template1: migrated once here, each test clones
+      # it and sqlx finds nothing left to apply (instead of replaying every migration per test).
+      - name: Migrate template1 once
+        run: DATABASE_URL="${DATABASE_URL%/*}/template1" "$CARGO_TARGET_DIR/debug/genesy-360-api" migrate
+      - run: cargo test --no-fail-fast -- --skip migrations_fill_an_empty_database --skip migrate_fills_an_empty_database
       - name: OpenAPI spec is fresh
         run: cargo test --test openapi committed_spec
       - name: No internal names in the spec
@@ -134,8 +170,13 @@ jobs:
   images:
     # Release images for the VPS, built once per green main commit and pulled by the deploy
     # (deploy/*/README.md "Deploy"). Never for PRs: this is the only job that can push packages.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [api, web, e2e]
+    # A skipped api (no API change) counts as green; failed or cancelled blocks.
+    if: >-
+      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.changes.result == 'success'
+      && (needs.api.result == 'success' || needs.api.result == 'skipped')
+      && needs.web.result == 'success' && needs.e2e.result == 'success'
+    needs: [changes, api, web, e2e]
     runs-on: [self-hosted, genesy-ci]
     timeout-minutes: 90
     permissions:

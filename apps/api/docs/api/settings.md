@@ -51,7 +51,7 @@ A partial object keyed by section: `{"invoice": {...}, "smtp": {...}}`. Answers 
 - **Blank is null.** Strings are trimmed (not `smtp.password`) and `""` becomes null before validation, as Laravel's global TrimStrings and ConvertEmptyStringsToNull middleware did. A nullable field sent as `""` is cleared, not refused.
 - **Only listed keys are stored.** Unknown sections and keys are dropped. `order` and `purchase_order` had no rules in Laravel and stay read-only.
 - `null` for a section clears it back to its defaults.
-- One statement writes: `INSERT … ON CONFLICT (workspace_id) DO UPDATE SET data = settings.data || EXCLUDED.data`. Two first saves at the same moment both land, neither is lost (`tests/settings.rs` `parallel_first_posts_lose_nothing`).
+- One statement writes: `INSERT … ON CONFLICT (workspace_id) DO UPDATE SET data = settings.data || EXCLUDED.data`. Two first saves at the same moment both land, neither is lost (`tests/api/settings.rs` `parallel_first_posts_lose_nothing`).
 
 **Rules** (`src/modules/settings/schema.rs`, from Laravel `StoreSettingRequest`):
 

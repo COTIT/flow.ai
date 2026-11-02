@@ -92,7 +92,7 @@ pub async fn background(base: PgConnectOptions) -> Result<PgPool, sqlx::Error> {
 /// capped at 30s, so an ALTER queued behind the old color's transaction fails the boot
 /// (compose restarts it) instead of stalling the table. sqlx's session advisory lock makes
 /// replicas booting together apply them once.
-pub async fn migrate(base: &PgConnectOptions) -> Result<(), MigrateError> {
+pub async fn migrate(base: &PgConnectOptions) -> Result<Migrated, MigrateError> {
     migrate_within(base, MIGRATE_CONNECT_TIMEOUT).await
 }
 
@@ -101,7 +101,7 @@ pub async fn migrate(base: &PgConnectOptions) -> Result<(), MigrateError> {
 pub async fn migrate_within(
     base: &PgConnectOptions,
     connect_for: Duration,
-) -> Result<(), MigrateError> {
+) -> Result<Migrated, MigrateError> {
     let pool = PgPoolOptions::new()
         .max_connections(1)
         .acquire_timeout(connect_for)
@@ -110,7 +110,69 @@ pub async fn migrate_within(
                 .options([("statement_timeout", "0"), ("lock_timeout", "30s")]),
         )
         .await?;
-    let result = sqlx::migrate!().run(&pool).await;
+    let result = run_counted(&pool).await;
     pool.close().await;
     result
+}
+
+/// What one `migrate` run did, read from sqlx's own `_sqlx_migrations` ledger.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Migrated {
+    /// Migrations this run applied.
+    pub applied: i64,
+    /// Newest applied version afterwards; None only for a DB with no migrations.
+    pub version: Option<i64>,
+}
+
+impl std::fmt::Display for Migrated {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let version = self
+            .version
+            .map_or_else(|| "none".to_owned(), |v| v.to_string());
+        match self.applied {
+            0 => write!(f, "migrations up to date ({version})"),
+            1 => write!(f, "applied 1 migration, now at {version}"),
+            n => write!(f, "applied {n} migrations, now at {version}"),
+        }
+    }
+}
+
+async fn run_counted(pool: &PgPool) -> Result<Migrated, MigrateError> {
+    let (before, _) = ledger(pool).await?;
+    sqlx::migrate!().run(pool).await?;
+    let (after, version) = ledger(pool).await?;
+    Ok(Migrated {
+        applied: after - before,
+        version,
+    })
+}
+
+/// (applied count, newest version); (0, None) before sqlx has created its table.
+async fn ledger(pool: &PgPool) -> Result<(i64, Option<i64>), sqlx::Error> {
+    let exists: bool = sqlx::query_scalar("SELECT to_regclass('_sqlx_migrations') IS NOT NULL")
+        .fetch_one(pool)
+        .await?;
+    if !exists {
+        return Ok((0, None));
+    }
+    sqlx::query_as("SELECT count(*), max(version) FROM _sqlx_migrations WHERE success")
+        .fetch_one(pool)
+        .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Migrated;
+
+    #[test]
+    fn one_migration_is_singular() {
+        let one = Migrated {
+            applied: 1,
+            version: Some(20261102022109),
+        };
+        assert_eq!(
+            one.to_string(),
+            "applied 1 migration, now at 20261102022109"
+        );
+    }
 }

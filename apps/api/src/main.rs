@@ -30,17 +30,27 @@ async fn main() {
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
         .init();
 
-    let mut config = Config::from_env().expect("config");
-    let base: PgConnectOptions = config.database_url.parse().expect("DATABASE_URL");
     // `genesy-360-api migrate`: the deploy's migration step (one-off container), then exit.
+    // Reads only DATABASE_URL(_FILE), so CI can migrate its template DB without app config.
     if std::env::args().nth(1).as_deref() == Some("migrate") {
-        if let Err(err) = db::migrate(&base).await {
-            eprintln!("migrate: {err}");
-            std::process::exit(1);
+        let result = match Config::database_url_from_env()
+            .and_then(|url| url.parse::<PgConnectOptions>().map_err(|e| e.to_string()))
+        {
+            Ok(base) => db::migrate(&base).await.map_err(|e| e.to_string()),
+            Err(err) => Err(err),
+        };
+        match result {
+            Ok(migrated) => println!("{migrated}"),
+            Err(err) => {
+                eprintln!("migrate: {err}");
+                std::process::exit(1);
+            }
         }
-        println!("migrations up to date");
         return;
     }
+
+    let mut config = Config::from_env().expect("config");
+    let base: PgConnectOptions = config.database_url.parse().expect("DATABASE_URL");
     // Migrations are embedded in the binary and run on their own connection, before the pool.
     // The VPS composes skip this: their deploy runs `migrate` first.
     if !config.skip_boot_migrations {

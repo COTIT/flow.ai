@@ -19,7 +19,7 @@ The root `CLAUDE.md` still applies in full: task classification, plan first, one
 
 ## 2. TDD loop (no exceptions)
 
-1. Write the test first. HTTP behaviour goes in `tests/<feature>.rs` using `#[sqlx::test]` and `tower::ServiceExt::oneshot` against `build_app`. Pure logic goes in a `#[cfg(test)] mod tests` block at the bottom of the same file.
+1. Write the test first. HTTP behaviour goes in `tests/api/<feature>.rs` (declared as `mod <feature>;` in `tests/api/main.rs`: all integration tests share one binary) using `#[sqlx::test]` and `tower::ServiceExt::oneshot` against `build_app`. Pure logic goes in a `#[cfg(test)] mod tests` block at the bottom of the same file.
 2. Run it and confirm it fails for the reason you expect. Paste the failing line in your step summary.
 3. Write the least code that makes it pass.
 4. Refactor with the suite green.
@@ -47,7 +47,7 @@ src/
   http/        shared extractors + response wrapper
   modules/<feature>/{mod.rs, routes.rs, handlers.rs, service.rs, repo.rs, dto.rs, model.rs}
 migrations/    sqlx reversible pairs
-tests/         one file per feature + common/mod.rs
+tests/api/     one file per feature, one binary (main.rs declares each); tests/common/ helpers
 docs/api/      one contract file per feature
 ```
 

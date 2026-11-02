@@ -144,7 +144,7 @@ This gives:
 - A deal moved between the unlocked read and the locks is read again (up to 3 times, then 503). A drag that Postgres still picks as a deadlock victim runs once more.
 - A lock wait over 5 s answers 503 with `Retry-After`.
 
-Measured (`tests/load_deals.rs`, a dev Mac with load average around 40 from other builds):
+Measured (`tests/api/load_deals.rs`, a dev Mac with load average around 40 from other builds):
 
 - L-B1: a full 999-deal column reads with p95 31 ms.
 - L-B2: 50 concurrent movers over 3 columns of 1,000 deals, 10,000 drags:

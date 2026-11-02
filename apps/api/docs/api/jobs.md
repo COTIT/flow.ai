@@ -130,7 +130,7 @@ An instance therefore opens `DATABASE_MAX_CONNECTIONS + DATABASE_JOB_CONNECTIONS
 
 Blue/green: the claim only takes `jobs::kinds::KINDS`, so the older color never runs a kind it doesn't know. A new kind waits queued until the new color claims it. The `kind` column has no CHECK list for the same reason.
 
-## Load (tests/load_jobs.rs)
+## Load (tests/api/load_jobs.rs)
 
 `cargo test --release --test load_jobs -- --ignored --nocapture --test-threads=1` against local Postgres 18 (Docker on a dev Mac, 2026-10-23):
 

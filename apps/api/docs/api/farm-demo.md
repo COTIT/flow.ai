@@ -10,7 +10,7 @@ genesy-360-api seed-farm-demo   # or: cargo run -- seed-farm-demo
 - **Runs once.** If a workspace named `ruaha-demo` exists and is flagged as demo (`meta.demo = true`), it does nothing. If one exists without the flag, it refuses and exits 1: a real customer's workspace is never touched.
 - **Through the real rules.** Every step goes through the API's own routes in-process, so provenance, four-eyes checks, audit rows and voucher events are exactly what live use would write. Staff join the workspace by direct insert, so no invite mail is sent.
 
-The story (code: `src/farm_demo.rs`, test: `tests/farm_demo.rs`):
+The story (code: `src/farm_demo.rs`, test: `tests/api/farm_demo.rs`):
 - **Villages:** Ilundo and Mgama.
 - **Crops:** maize (by area), banana and coffee (by tree count).
 - **Staff:** Amina (admin, workspace owner), Asha (ops), Salima and Juma (Ilundo officers), Peter (Mgama officer).

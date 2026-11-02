@@ -6,7 +6,7 @@ Each entry: what is ready, what is left, where to start.
 
 ## Payments: Stripe (chosen 2026-11-02)
 
-- **Built:** `src/payments/stripe.rs` (Checkout Sessions, refunds, signed webhooks on `POST /v1/payments/webhooks/stripe`), config `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_API_URL` (loopback fake only), migration `payments_stripe`, tests against a local fake Stripe (`tests/payments_stripe.rs`). Contract: `docs/api/payments.md`.
+- **Built:** `src/payments/stripe.rs` (Checkout Sessions, refunds, signed webhooks on `POST /v1/payments/webhooks/stripe`), config `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_API_URL` (loopback fake only), migration `payments_stripe`, tests against a local fake Stripe (`tests/api/payments_stripe.rs`). Contract: `docs/api/payments.md`.
 - **Deploy:** `deploy/*/docker-compose.stripe.yml` overrides plus `deploy/set-provider-keys.sh`; each deploy README has "Turning on Stripe".
 - **Left (user):** create the Stripe account, put the keys in with the script, add the dashboard webhook endpoint. One platform account for every workspace for now.
 - **Later:** Stripe Connect when a second merchant sells (a `Stripe-Account` per workspace); Stripe's special currencies (HUF, TWD, ISK, UGX) if ever sold in.
