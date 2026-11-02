@@ -291,6 +291,9 @@ test.describe("server busy, then offline", () => {
     await seedQueue(page)
     await seedTill(page)
     await page.goto("/queue")
+    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+    // Go offline only once the page is up: the offline event must reach a mounted listener.
+    await expect(card).toBeVisible()
     await context.setOffline(true)
     const warning = page
       .getByRole("status")
@@ -299,7 +302,6 @@ test.describe("server busy, then offline", () => {
     await expect(
       warning.getByRole("button", { name: "Sync now" })
     ).toBeVisible()
-    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
     await expect(card.getByText("Waiting", { exact: true })).toBeVisible()
     await expect(card.getByText("Card · ≈ €12.50 estimate")).toBeVisible()
     await expect(page.getByText("1 waiting")).toBeVisible()
