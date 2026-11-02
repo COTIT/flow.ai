@@ -32,6 +32,7 @@ rootless() { as_ci docker info -f '{{.SecurityOptions}}' | grep -q rootless; }
 data_on_ci_disk() { [[ "$(as_ci docker info -f '{{.DockerRootDir}}')" == "$CI_ROOT"/* ]]; }
 own_disk() { findmnt -n -o OPTIONS "$CI_ROOT" | grep -q nosuid; }
 memory_capped() { [[ "$(systemctl show "user-$uid.slice" -p MemoryMax --value)" != infinity ]]; }
+no_swap() { [[ "$(systemctl show "user-$uid.slice" -p MemorySwapMax --value)" == 0 ]]; }
 firewall_loaded() { iptables -w -C OUTPUT -m owner --uid-owner "$CI_USER" -j GENESY-CI; }
 job_container_required() { grep -qx 'ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER=true' "$RUNNER_DIR/.env"; }
 runner_active() { systemctl is-active --quiet "$(cat "$RUNNER_DIR/.service")"; }
@@ -67,6 +68,7 @@ ok "egress firewall chain is loaded" firewall_loaded
 
 echo "== limits and runner"
 ok "memory cap on user-$uid.slice" memory_capped
+ok "no swap for user-$uid.slice" no_swap
 ok "runner refuses jobs without a container" job_container_required
 ok "runner service is active" runner_active
 

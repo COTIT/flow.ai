@@ -66,6 +66,7 @@ install -m 755 "$HERE/cleanup.sh" "$HERE/firewall.sh" "$HERE/verify.sh" "$LIB/"
 
 say "CPU, memory and IO limits for everything $CI_USER runs"
 # 4 cores / 15 GB box: CI gets at most 3 cores and 6 GB, and yields to prod when both are busy.
+# No swap: a CI job over its memory fails on its own instead of filling the swap prod shares.
 install -d "/etc/systemd/system/user-$uid.slice.d"
 cat > "/etc/systemd/system/user-$uid.slice.d/genesy-ci.conf" << 'EOF'
 [Slice]
@@ -74,6 +75,7 @@ CPUWeight=20
 IOWeight=20
 MemoryHigh=5G
 MemoryMax=6G
+MemorySwapMax=0
 TasksMax=4096
 EOF
 
