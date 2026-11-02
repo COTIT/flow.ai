@@ -44,6 +44,9 @@
   --color-gold-foreground: var(--gold-foreground);
   --color-teal: var(--teal);
   --color-teal-foreground: var(--teal-foreground);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -89,6 +92,10 @@
     #efc977 84%,
     #956e46 100%
   );
+  /* Notice/state accents (borders, tints). Text on them stays foreground, so no contrast pair. */
+  --info: #456087;
+  --success: #01909b;
+  --warning: #d0a55f;
   --chart-1: #01909b;
   --chart-2: #d0a55f;
   --chart-3: #456087;
@@ -137,6 +144,9 @@
     #efc977 84%,
     #956e46 100%
   );
+  --info: #8fa6c8;
+  --success: #01909b;
+  --warning: #efc977;
   --chart-1: #01909b;
   --chart-2: #efc977;
   --chart-3: #8fa6c8;
