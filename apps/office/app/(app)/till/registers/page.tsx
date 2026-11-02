@@ -15,6 +15,7 @@ import {
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
+import { Skeleton } from "@genesy/ui/components/skeleton"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import {
   Dialog,
@@ -327,9 +328,8 @@ function PairCode({ register }: { register: string }) {
           </p>
         </>
       ) : issue.isPending ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {t("common.loading")}
-        </p>
+        // The code's box in its final shape while the API issues it.
+        <Skeleton role="status" aria-label={t("common.loading")} className="h-[70px] rounded-[14px]" />
       ) : null}
       <DialogFooter>
         <Button

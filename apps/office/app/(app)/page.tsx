@@ -23,7 +23,6 @@ import {
 } from "@genesy/api-client/endpoints/till"
 import { Badge } from "@genesy/ui/components/badge"
 import { buttonVariants } from "@genesy/ui/components/button"
-import { Card } from "@genesy/ui/components/card"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { island } from "@genesy/ui/components/island"
 import { Skeleton } from "@genesy/ui/components/skeleton"
@@ -37,6 +36,7 @@ import {
 } from "@genesy/ui/components/table"
 import { formatMoney } from "@genesy/ui/lib/money"
 import { cn } from "@genesy/ui/lib/utils"
+import { Chip, GhostLink, Tile, type Tone } from "@/components/bento"
 import { CardState, ListSkeleton, PageHead } from "@/components/list"
 import { LoadError } from "@/components/states"
 import { StatusBadge } from "@/components/status-badge"
@@ -44,30 +44,6 @@ import { StatusBadge } from "@/components/status-badge"
 import { customerName } from "./orders/shared"
 
 const CountUp = island(() => import("@/components/rb/CountUp"))
-
-type Tone = "teal" | "gold" | "red" | "slate"
-
-// glass.css `.chip-ic`: a 36 px tinted square holding a tone-coloured icon.
-const chipTone: Record<Tone, string> = {
-  teal: "bg-(--tint-success) text-(--tone-success)",
-  gold: "bg-(--tint-warning) text-(--tone-warning)",
-  red: "bg-(--tint-error) text-(--tone-error)",
-  slate: "bg-(--tint-info) text-(--tone-info)",
-}
-
-function Chip({ icon: Icon, tone }: { icon: LucideIcon; tone: Tone }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "inline-flex size-9 shrink-0 items-center justify-center rounded-xl",
-        chipTone[tone]
-      )}
-    >
-      <Icon className="size-[18px]" strokeWidth={1.75} />
-    </span>
-  )
-}
 
 /** A list's total: the API counted it; the browser only shows it. */
 type Count = {
@@ -124,72 +100,6 @@ function Kpi({
         <Total query={query} />
       </span>
       <span className="text-[13px] text-muted-foreground">{label}</span>
-    </Link>
-  )
-}
-
-/** A bento card with a labelled title row (`.card-head`). */
-function Tile({
-  id,
-  title,
-  sub,
-  action,
-  span,
-  flush = false,
-  children,
-}: {
-  id: string
-  title: string
-  sub?: string
-  action?: React.ReactNode
-  span: string
-  flush?: boolean
-  children: React.ReactNode
-}) {
-  return (
-    <Card
-      role="region"
-      aria-labelledby={id}
-      className={cn(
-        span,
-        "max-md:col-span-12",
-        flush ? "gap-0 py-0" : "gap-4 px-6 py-6 max-md:gap-3 max-md:p-4"
-      )}
-    >
-      <div
-        className={cn(
-          "flex flex-wrap items-center justify-between gap-3",
-          flush && "px-6 pt-5 pb-4 max-md:px-4 max-md:pt-4 max-md:pb-3"
-        )}
-      >
-        <div>
-          <h2 id={id} className="text-[15px] font-semibold tracking-[0.01em]">
-            {title}
-          </h2>
-          {sub ? (
-            <p className="text-[13px] text-muted-foreground">{sub}</p>
-          ) : null}
-        </div>
-        {action}
-      </div>
-      {children}
-    </Card>
-  )
-}
-
-function GhostLink({
-  href,
-  children,
-}: {
-  href: string
-  children: React.ReactNode
-}) {
-  return (
-    <Link
-      href={href}
-      className={buttonVariants({ variant: "ghost", size: "sm" })}
-    >
-      {children}
     </Link>
   )
 }

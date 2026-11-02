@@ -21,7 +21,10 @@
       "disabled": "Uitgeschakeld",
       "nla": "Niet meer leverbaar"
     },
-    "count": "{total, plural, one {# product} other {# producten}}"
+    "count": "{total, plural, one {# product} other {# producten}}",
+    "details": "Gegevens",
+    "serverChecked": "Prijzen en status worden bij opslaan door de server gecontroleerd.",
+    "priceInclHint": "In de winkel getoond als {price} met btw."
   },
   "nav": {
     "label": "Hoofdmenu",
@@ -44,7 +47,9 @@
   "actions": {
     "save": "Opslaan",
     "saved": "Opgeslagen.",
-    "cancel": "Annuleren"
+    "cancel": "Annuleren",
+    "discard": "Verwerpen",
+    "saveChanges": "Wijzigingen opslaan"
   },
   "lots": {
     "title": "Batches",
@@ -75,7 +80,24 @@
     "passport": "Paspoort",
     "noEvents": "Nog geen geschiedenis.",
     "count": "{total, plural, one {# partij} other {# partijen}}",
-    "allProducts": "Alle producten"
+    "allProducts": "Alle producten",
+    "statusText": {
+      "released": "Vrijgegeven batches kunnen verkocht worden en tonen hun paspoort. Terugroepen stopt de verkoop en zet een waarschuwing op het paspoort.",
+      "quarantine": "Batches in quarantaine worden niet verkocht tot je ze vrijgeeft.",
+      "recalled": "Deze batch is teruggeroepen: de publieke pagina en de QR-link van elke pot tonen een waarschuwing."
+    },
+    "recallAction": "Deze batch terugroepen…",
+    "recallAsk": "Batch {code} terugroepen?",
+    "recallKeep": "Blijven verkopen",
+    "recallYes": "Terugroepen",
+    "passportPublished": "Gepubliceerd v{version}",
+    "passportDraft": "Concept",
+    "draftMatches": "Concept is gelijk aan wat klanten zien",
+    "copyLink": "Link kopiëren",
+    "linkCopied": "Link gekopieerd",
+    "editPassport": "Paspoort bewerken",
+    "lineage": "Herkomst",
+    "details": "Batchgegevens"
   },
   "secret": {
     "once": "Kopieer dit geheim nu. Het wordt maar één keer getoond.",
@@ -182,6 +204,22 @@
       "saved": "Concept opgeslagen.",
       "published": "Gepubliceerd: de publieke pagina toont deze versie.",
       "unpublished": "Offline gehaald: de publieke pagina is niet meer zichtbaar."
+    },
+    "back": "Batch {code}",
+    "publishedBadge": "Gepubliceerd v{version}",
+    "draftBadge": "Niet gepubliceerd",
+    "saveDraft": "Concept opslaan",
+    "publishVersion": "Publiceer v{version}",
+    "draftDiffersTitle": "Concept wijkt af van het gepubliceerde paspoort",
+    "draftDiffersBody": "Klanten zien nog v{version} tot je publiceert.",
+    "originMap": "Herkomst & kaartgebied",
+    "storyBlocks": "Verhaalblokken",
+    "livePreview": "Live voorbeeld · wat klanten zien",
+    "open": "Open /b/{code}",
+    "view": "Bewerken of voorbeeld",
+    "tabs": {
+      "edit": "Bewerken",
+      "preview": "Voorbeeld"
     }
   },
   "stock": {
@@ -205,7 +243,8 @@
     "reason": "Reden",
     "changeHint": "Wijziging (bv. 10 of -3)",
     "quantityChange": "Wijziging",
-    "count": "{total, plural, one {# voorraadregel} other {# voorraadregels}}"
+    "count": "{total, plural, one {# voorraadregel} other {# voorraadregels}}",
+    "onHand": "Op voorraad"
   },
   "invoices": {
     "title": "Facturen",
@@ -232,7 +271,9 @@
     "method": "Methode",
     "amount": "Bedrag",
     "customer": "Klant",
-    "count": "{total, plural, one {# factuur} other {# facturen}}"
+    "count": "{total, plural, one {# factuur} other {# facturen}}",
+    "detailTitle": "Factuur {number}",
+    "details": "Gegevens"
   },
   "orders": {
     "title": "Orders",
@@ -281,7 +322,29 @@
     "cancelTitle": "Order {number} annuleren?",
     "cancelText": "Gereserveerde voorraad komt vrij. Een betaalde order moet eerst terugbetaald worden; het systeem meldt dat.",
     "nothingToDo": "Er is niets meer te doen voor deze order.",
-    "count": "{total, plural, one {# bestelling} other {# bestellingen}}"
+    "count": "{total, plural, one {# bestelling} other {# bestellingen}}",
+    "detailTitle": "Order {number}",
+    "placed": "{source} · geplaatst {date}",
+    "sources": {
+      "office": "Kantoor",
+      "storefront": "Webwinkel"
+    },
+    "items": "{count, plural, one {# artikel} other {# artikelen}}",
+    "serverAmounts": "Bedragen zoals berekend door de server.",
+    "nextStep": "Volgende stap",
+    "next": {
+      "confirm": "Bevestig de order om de voorraad te reserveren.",
+      "pick": "Leg vast wat er tot nu toe is gepickt.",
+      "complete": "Rond de order af om de voorraad uit het magazijn te halen.",
+      "invoice": "Maak een factuur voor deze order.",
+      "return": "Neem goederen terug die de klant heeft teruggestuurd."
+    },
+    "payment": "Betaling",
+    "paidOn": "Betaald · {date}",
+    "notPaid": "Niet betaald",
+    "noCustomer": "Geen klantgegevens bij deze order.",
+    "timeline": "Tijdlijn",
+    "placedEvent": "Geplaatst"
   },
   "till": {
     "title": "Kassa",
@@ -462,7 +525,8 @@
     "add": "Afbeelding toevoegen",
     "removeOne": "Afbeelding {position} verwijderen",
     "save": "Afbeeldingen opslaan",
-    "discard": "Wijzigingen weggooien"
+    "discard": "Wijzigingen weggooien",
+    "hint": "De eerste afbeelding is de omslag in de winkel. Gebruik de pijlen om de volgorde te wijzigen."
   },
   "credits": {
     "title": "Vergoedingen aan boeren",
@@ -477,13 +541,16 @@
     "kinds": {
       "sale": "Verkoop",
       "return": "Retour"
-    }
+    },
+    "sub": "Uit verkochte potten",
+    "jarCount": "{jars} potten"
   },
   "lineage": {
     "packedFrom": "Verpakt uit batch",
     "pack": "{units} stuks uit {kg} kg",
     "receivedFrom": "Ontvangen uit batch {code} van de partner ({publicCode}).",
-    "transfers": "Bekijk overdrachten"
+    "transfers": "Bekijk overdrachten",
+    "none": "Hier gemaakt: geen eerdere batch."
   },
   "shell": {
     "openMenu": "Menu openen",

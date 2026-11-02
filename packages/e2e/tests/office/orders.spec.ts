@@ -1,4 +1,4 @@
-import { choose, expect, paged, test, type FakeApi } from "./fake-api"
+import { choose, expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 type Order = {
   id: string
@@ -150,6 +150,21 @@ test("list shows money from minor units and filters by status", async ({
   await page.getByRole("link", { name: "SO-1001" }).click()
   await expect(page.getByRole("heading", { name: "SO-1001" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "$80.00" })).toBeVisible()
+  // OfficeOrder tiles: server totals at the foot of Lines, the main action big in Next step.
+  await expect(page.getByRole("region", { name: "Lines" })).toContainText(
+    "Amounts as calculated by the server."
+  )
+  await expect(
+    page
+      .getByRole("region", { name: "Next step" })
+      .getByRole("button", { name: "Confirm order" })
+  ).toBeVisible()
+  await expect(page.getByRole("region", { name: "Customer" })).toContainText(
+    "kim@example.com"
+  )
+  await expect(page.getByRole("region", { name: "Timeline" })).toContainText(
+    "Placed"
+  )
 })
 
 test("confirm a draft, pick it (cancel sends nothing), complete it", async ({
@@ -384,6 +399,7 @@ test("only the API's allowed_actions show as buttons", async ({
     "Cancel order",
   ])
     await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0)
+  await expectFits(page)
 })
 
 test.describe(() => {

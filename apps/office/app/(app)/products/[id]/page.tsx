@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Package } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -8,6 +9,7 @@ import { useSession } from "@genesy/api-client/auth"
 import {
   getProductsGetQueryKey,
   useProductsGet,
+  useProductsImagesList,
   useProductsUpdate,
 } from "@genesy/api-client/endpoints/products"
 import {
@@ -19,6 +21,7 @@ import {
 } from "@genesy/api-client/endpoints/stock"
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
+import { Checkbox } from "@genesy/ui/components/checkbox"
 import { Button } from "@genesy/ui/components/button"
 import {
   Dialog,
@@ -29,7 +32,7 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
-import { Pager } from "@genesy/ui/components/pager"
+import { Skeleton } from "@genesy/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -39,12 +42,18 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Textarea } from "@genesy/ui/components/textarea"
+import { Bento, DetailSkeleton, Metric, Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
+import { CardState, ListPager, ListSkeleton, PageHead } from "@/components/list"
 import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
+import { StatusBadge } from "@/components/status-badge"
 
 import { ProductImages } from "./images"
 
 type Named = { name?: string; bin_code?: string; bin_name?: string } | null
+
+// The API's product statuses (as on the list page); an unknown saved one is kept as an option.
+const statuses = ["active", "disabled", "nla"]
 
 export default function ProductPage({
   params,
@@ -57,6 +66,10 @@ export default function ProductPage({
   const enabled = { query: { enabled: Boolean(workspaceId) } }
   const queryClient = useQueryClient()
   const product = useProductsGet(workspaceId, id, undefined, enabled)
+  // Same query as the images card; only once the product exists.
+  const images = useProductsImagesList(workspaceId, id, {
+    query: { enabled: Boolean(workspaceId && product.data?.data) },
+  })
   const stock = useStockWithBins(workspaceId, id, enabled)
   const [page, setPage] = React.useState(1)
   const movements = useStockMovements(workspaceId, id, { page }, enabled)
@@ -73,11 +86,25 @@ export default function ProductPage({
     },
   })
   const errors = fieldErrors(update.error)
+  const statusLabel = (s: string) =>
+    t.has(`products.statuses.${s}`) ? t(`products.statuses.${s}`) : s
+  const place = (s: { warehouse: unknown; bin: unknown }) =>
+    [
+      (s.warehouse as Named)?.name,
+      (s.bin as Named)?.bin_name ?? (s.bin as Named)?.bin_code,
+    ]
+      .filter(Boolean)
+      .join(" · ")
+  const columns = [
+    { label: t("lots.eventAt") },
+    { label: t("stock.type") },
+    { label: t("stock.warehouse") },
+    { label: t("stock.reason") },
+    { label: t("stock.quantityChange"), right: true },
+    { label: t("stock.after"), right: true },
+  ]
 
-  if (product.isPending)
-    return (
-      <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-    )
+  if (product.isPending) return <DetailSkeleton />
   if (product.isError)
     return (
       <LoadError
@@ -87,192 +114,282 @@ export default function ProductPage({
       />
     )
   const p = product.data.data
+  const cover = images.data?.data[0]?.link?.url
 
   return (
     <>
-      <section className="flex flex-col gap-3">
-        <h1 className="heading-2 text-lg">{p.name}</h1>
-        <Done message={done.message} />
-        <form
-          key={p.last_updated_at}
-          className="flex max-w-2xl flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const f = new FormData(e.currentTarget)
-            const text = (k: string) => String(f.get(k) ?? "") || null
-            // Only these keys: the API keeps every key left out.
-            update.mutate({
-              workspace: workspaceId,
-              product: id,
-              data: {
-                name: text("name"),
-                reference: text("reference"),
-                price: text("price"),
-                status: text("status"),
-                short_description: text("short_description"),
-                description: text("description"),
-                store_only: f.get("store_only") === "on",
-              },
-            })
-          }}
+      <div className="flex items-center gap-4 max-md:items-start">
+        <span
+          aria-hidden="true"
+          className="inline-flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-(--hair) bg-(--glass-subtle) text-muted-foreground"
         >
-          <Field id="p-name" label={t("products.name")} errors={errors.name}>
-            <Input name="name" defaultValue={p.name} required />
-          </Field>
-          <div className="grid gap-3 sm:grid-cols-3">
+          {cover ? (
+            <img
+              src={cover}
+              alt=""
+              referrerPolicy="no-referrer"
+              className="size-full object-cover"
+            />
+          ) : (
+            <Package className="size-6" strokeWidth={1.75} />
+          )}
+        </span>
+        {/* `title` first: it is the first read of the product (the crash spec expects 'name'). */}
+        <PageHead
+          className="min-w-0 flex-1"
+          back={{ href: "/products", label: t("products.title") }}
+          title={p.name}
+          description={
+            <span className="font-mono tracking-[0.04em]">
+              {[p.product_nr, p.reference].filter(Boolean).join(" · ")}
+            </span>
+          }
+          actions={
+            <>
+              {p.status ? (
+                <StatusBadge status={p.status} label={statusLabel(p.status)} />
+              ) : null}
+              {/* Native reset puts every field back to the saved value. */}
+              <Button
+                type="reset"
+                form="product-form"
+                variant="outline"
+                onClick={() => update.reset()}
+              >
+                {t("actions.discard")}
+              </Button>
+              <Button
+                type="submit"
+                form="product-form"
+                disabled={update.isPending}
+              >
+                {t("actions.saveChanges")}
+              </Button>
+            </>
+          }
+        />
+      </div>
+      <Done message={done.message} />
+      <Bento>
+        <Tile
+          id="product-details"
+          title={t("products.details")}
+          span="col-span-8"
+          action={
+            <span className="text-xs text-muted-foreground">
+              {t("products.serverChecked")}
+            </span>
+          }
+        >
+          <form
+            id="product-form"
+            key={p.last_updated_at}
+            className="flex flex-col gap-4 max-md:gap-3"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const f = new FormData(e.currentTarget)
+              const text = (k: string) => String(f.get(k) ?? "") || null
+              // Only these keys: the API keeps every key left out.
+              update.mutate({
+                workspace: workspaceId,
+                product: id,
+                data: {
+                  name: text("name"),
+                  reference: text("reference"),
+                  price: text("price"),
+                  status: text("status"),
+                  short_description: text("short_description"),
+                  description: text("description"),
+                  store_only: f.get("store_only") === "on",
+                },
+              })
+            }}
+          >
+            <div className="grid gap-4 max-md:gap-3 md:grid-cols-2">
+              <Field
+                id="p-name"
+                label={t("products.name")}
+                errors={errors.name}
+              >
+                <Input name="name" defaultValue={p.name} required />
+              </Field>
+              <Field
+                id="p-reference"
+                label={t("products.reference")}
+                errors={errors.reference}
+              >
+                <Input name="reference" defaultValue={p.reference ?? ""} />
+              </Field>
+              <div className="flex min-w-0 flex-col gap-1.5">
+                {/* Decimal string as the API prints it; sent back unparsed. */}
+                <Field
+                  id="p-price"
+                  label={t("products.netPrice")}
+                  errors={errors.price}
+                >
+                  <Input
+                    name="price"
+                    inputMode="decimal"
+                    defaultValue={p.price ?? ""}
+                  />
+                </Field>
+                {p.price_incl ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t("products.priceInclHint", { price: p.price_incl })}
+                  </p>
+                ) : null}
+              </div>
+              <Field
+                id="p-status"
+                label={t("products.status")}
+                errors={errors.status}
+              >
+                <select
+                  name="status"
+                  defaultValue={p.status ?? ""}
+                  className={selectClass}
+                >
+                  {[...new Set([...statuses, p.status].filter(Boolean))].map(
+                    (s) => (
+                      <option key={s} value={s}>
+                        {statusLabel(s)}
+                      </option>
+                    )
+                  )}
+                </select>
+              </Field>
+            </div>
             <Field
-              id="p-reference"
-              label={t("products.reference")}
-              errors={errors.reference}
-            >
-              <Input name="reference" defaultValue={p.reference ?? ""} />
-            </Field>
-            {/* Decimal string as the API prints it; sent back unparsed. */}
-            <Field
-              id="p-price"
-              label={t("products.netPrice")}
-              errors={errors.price}
+              id="p-short"
+              label={t("products.shortDescription")}
+              errors={errors.short_description}
             >
               <Input
-                name="price"
-                inputMode="decimal"
-                defaultValue={p.price ?? ""}
+                name="short_description"
+                defaultValue={p.short_description ?? ""}
               />
             </Field>
             <Field
-              id="p-status"
-              label={t("products.status")}
-              errors={errors.status}
+              id="p-description"
+              label={t("products.description")}
+              errors={errors.description}
             >
-              <Input name="status" defaultValue={p.status ?? ""} />
+              <Textarea
+                name="description"
+                defaultValue={p.description ?? ""}
+              />
             </Field>
-          </div>
-          <Field
-            id="p-short"
-            label={t("products.shortDescription")}
-            errors={errors.short_description}
-          >
-            <Input
-              name="short_description"
-              defaultValue={p.short_description ?? ""}
-            />
-          </Field>
-          <Field
-            id="p-description"
-            label={t("products.description")}
-            errors={errors.description}
-          >
-            <Textarea name="description" defaultValue={p.description ?? ""} />
-          </Field>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="store_only"
-              defaultChecked={p.store_only}
-            />
-            {t("products.storeOnly")}
-          </label>
-          <ApiError error={update.error} fallback={t("common.error")} />
-          <Button
-            type="submit"
-            className="self-start"
-            disabled={update.isPending}
-          >
-            {t("actions.save")}
-          </Button>
-        </form>
-      </section>
+            <label className="flex items-center gap-2 text-sm max-md:min-h-11">
+              {/* The shared checkbox: its form value is "on", and its hit area is 44 px on a phone. */}
+              <Checkbox name="store_only" defaultChecked={p.store_only} />
+              {t("products.storeOnly")}
+            </label>
+            <ApiError error={update.error} fallback={t("common.error")} />
+          </form>
+        </Tile>
 
-      <ProductImages productId={id} done={done} />
-
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="mr-auto heading-2 text-base">
-            {t("stock.perWarehouse")}
-          </h2>
-          <MutateStock
-            productId={id}
-            onDone={() => {
-              done.show(t("done.stockChanged"))
-              for (const queryKey of [
-                getStockWithBinsQueryKey(workspaceId, id),
-                getStockMovementsQueryKey(workspaceId, id),
-              ])
-                void queryClient.invalidateQueries({ queryKey })
-            }}
-          />
+        <div className="col-span-4 flex min-w-0 flex-col gap-4 max-md:gap-3">
+          <Tile
+            id="product-stock"
+            title={t("stock.title")}
+            span=""
+            action={
+              <MutateStock
+                productId={id}
+                onDone={() => {
+                  done.show(t("done.stockChanged"))
+                  for (const queryKey of [
+                    getStockWithBinsQueryKey(workspaceId, id),
+                    getStockMovementsQueryKey(workspaceId, id),
+                    getProductsGetQueryKey(workspaceId, id),
+                  ])
+                    void queryClient.invalidateQueries({ queryKey })
+                }}
+              />
+            }
+          >
+            {/* Totals as the API sums them; never added up here. */}
+            <div className="grid gap-2.5 md:grid-cols-2">
+              <Metric label={t("stock.onHand")}>
+                {p.total_available_stock ?? "—"}
+              </Metric>
+              <Metric label={t("stock.reserved")}>
+                {p.total_reserved_stock ?? "—"}
+              </Metric>
+            </div>
+            {stock.isPending ? (
+              <div aria-busy="true" className="flex flex-col gap-2">
+                <Skeleton className="h-5" />
+                <Skeleton className="h-5 w-2/3" />
+              </div>
+            ) : stock.isError ? (
+              <LoadError
+                error={stock.error}
+                onRetry={() => void stock.refetch()}
+              />
+            ) : stock.data.data.length === 0 ? (
+              <Empty title={t("stock.empty")} />
+            ) : (
+              <div className="flex flex-col gap-2 text-sm">
+                {stock.data.data.map((s) => (
+                  <div key={s.id} className="flex justify-between gap-3">
+                    <span className="min-w-0">{place(s)}</span>
+                    <span className="font-semibold tabular-nums">
+                      {s.stock_lvl}
+                    </span>
+                  </div>
+                ))}
+                {stock.data.data.map((s, _, rows) => (
+                  <div
+                    key={`min-${s.id}`}
+                    className="flex justify-between gap-3 text-muted-foreground"
+                  >
+                    <span className="min-w-0">
+                      {t("stock.minimum")}
+                      {rows.length > 1 ? ` · ${place(s)}` : ""}
+                    </span>
+                    <span className="tabular-nums">
+                      {s.minimal_stock_level}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Tile>
+          <ProductImages productId={id} done={done} />
         </div>
-        {stock.isPending ? (
-          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-        ) : stock.isError ? (
-          <LoadError error={stock.error} onRetry={() => void stock.refetch()} />
-        ) : stock.data.data.length === 0 ? (
-          <Empty title={t("stock.empty")} />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("stock.warehouse")}</TableHead>
-                <TableHead>{t("stock.bin")}</TableHead>
-                <TableHead className="text-right">{t("stock.level")}</TableHead>
-                <TableHead className="text-right">
-                  {t("stock.reserved")}
-                </TableHead>
-                <TableHead className="text-right">
-                  {t("stock.minimum")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stock.data.data.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>{(s.warehouse as Named)?.name}</TableCell>
-                  <TableCell>
-                    {(s.bin as Named)?.bin_name ??
-                      (s.bin as Named)?.bin_code ??
-                      "—"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {s.stock_lvl}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {s.reserved}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {s.minimal_stock_level}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="heading-2 text-base">{t("stock.movements")}</h2>
-        {movements.isPending ? (
-          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-        ) : movements.isError ? (
-          <LoadError
-            error={movements.error}
-            onRetry={() => void movements.refetch()}
-          />
-        ) : movements.data.data.length === 0 ? (
-          <Empty title={t("stock.noMovements")} />
-        ) : (
-          <>
+        <Tile
+          id="product-movements"
+          title={t("stock.movements")}
+          span="col-span-12"
+          flush
+        >
+          {movements.isPending ? (
+            <ListSkeleton columns={columns} />
+          ) : movements.isError ? (
+            <CardState>
+              <LoadError
+                error={movements.error}
+                onRetry={() => void movements.refetch()}
+              />
+            </CardState>
+          ) : movements.data.data.length === 0 ? (
+            <CardState>
+              <Empty title={t("stock.noMovements")} />
+            </CardState>
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("lots.eventAt")}</TableHead>
-                  <TableHead>{t("stock.type")}</TableHead>
-                  <TableHead className="text-right">
-                    {t("stock.quantityChange")}
-                  </TableHead>
-                  <TableHead className="text-right">
-                    {t("stock.after")}
-                  </TableHead>
-                  <TableHead>{t("stock.reason")}</TableHead>
+                  {columns.map((c) => (
+                    <TableHead
+                      key={c.label}
+                      className={c.right ? "text-right" : undefined}
+                    >
+                      {c.label}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -281,33 +398,36 @@ export default function ProductPage({
                     <TableCell className="tabular-nums">
                       {new Date(m.created_at).toLocaleString()}
                     </TableCell>
-                    <TableCell>{m.movement_type}</TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell data-m="sub">
+                      <StatusBadge status={m.movement_type} tone="slate" />
+                    </TableCell>
+                    <TableCell data-m="hide">
+                      {(m.relationships?.warehouse as Named)?.name}
+                    </TableCell>
+                    <TableCell data-m="hide" className="text-muted-foreground">
+                      {m.reason ?? "—"}
+                    </TableCell>
+                    <TableCell
+                      data-m="right"
+                      className="text-right font-semibold tabular-nums"
+                    >
                       {m.quantity_change}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
+                    <TableCell data-m="hide" className="text-right tabular-nums">
                       {m.quantity_after}
                     </TableCell>
-                    <TableCell>{m.reason}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-            <Pager
-              page={movements.data.meta.current_page}
-              lastPage={movements.data.meta.last_page}
-              summary={t("pager.summary", {
-                from: movements.data.meta.from ?? 0,
-                to: movements.data.meta.to ?? 0,
-                total: movements.data.meta.total,
-              })}
-              previous={t("pager.previous")}
-              next={t("pager.next")}
-              onPage={setPage}
-            />
-          </>
-        )}
-      </section>
+          )}
+          {movements.data?.data.length ? (
+            <div className="border-t border-(--hair) px-5 py-3.5 max-md:px-4 max-md:py-3">
+              <ListPager meta={movements.data.meta} onPage={setPage} />
+            </div>
+          ) : null}
+        </Tile>
+      </Bento>
     </>
   )
 }
@@ -346,7 +466,9 @@ function MutateStock({
         if (!o) mutate.reset()
       }}
     >
-      <DialogTrigger render={<Button />}>{t("stock.change")}</DialogTrigger>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        {t("stock.change")}
+      </DialogTrigger>
       <DialogContent>
         <form
           className="flex flex-col gap-3"

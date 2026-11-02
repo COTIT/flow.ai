@@ -1,6 +1,12 @@
-import { choose, expect, paged, test, type FakeApi } from "./fake-api"
+import { choose, expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 const product = { id: "prod-honey", name: "AFM Honey 500g" }
+const passport = {
+  draft: { title: "Ilundo honey" },
+  published: { title: "Ilundo honey" },
+  published_at: "2026-09-03T08:00:00Z",
+  version: 3,
+}
 
 function lotsApi(api: FakeApi) {
   const lots = [
@@ -82,6 +88,11 @@ function lotsApi(api: FakeApi) {
       return { data: lot }
     })
     .on("GET", "/workspace/:ws/lots/:lot/events", () => paged(events))
+    // The batch page names its product and shows its passport state.
+    .on("GET", "/workspace/:ws/products/:id", () => ({ data: product }))
+    .on("GET", "/workspace/:ws/lots/:lot/passport", () => ({
+      data: passport,
+    }))
   return lots
 }
 
@@ -182,26 +193,65 @@ test.describe(() => {
   })
 })
 
-test("recall asks first; cancelling sends nothing", async ({ page, api }) => {
-  lotsApi(api)
-  await page.goto("/lots/lot-1")
-  await page.getByLabel("Status").selectOption("recalled")
-  await page.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByRole("alertdialog")).toContainText("ILU-2026-01")
-  await page.getByRole("button", { name: "Cancel" }).click()
-  await expect(page.getByRole("alertdialog")).toBeHidden()
-  expect(api.callsTo("PATCH", "/workspace/:ws/lots/:lot")).toHaveLength(0)
-})
-
-test("recall confirmed: status saved and history shows the change", async ({
+test("the batch page: product and origin, status, passport and edit link", async ({
   page,
   api,
 }) => {
   lotsApi(api)
   await page.goto("/lots/lot-1")
-  await page.getByLabel("Status").selectOption("recalled")
+  await expect(page.getByRole("heading", { name: "ILU-2026-01" })).toBeVisible()
+  await expect(page.getByText("AFM Honey 500g, Ilundo, Tanzania")).toBeVisible()
+  await expect(
+    page.getByRole("main").getByRole("link", { name: "Batches" })
+  ).toHaveAttribute("href", "/lots")
+  const status = page.getByRole("region", { name: "Status" })
+  await expect(status.getByText("Released", { exact: true })).toBeVisible()
+  const pass = page.getByRole("region", { name: "Passport" })
+  await expect(pass.getByText("Published v3")).toBeVisible()
+  await expect(pass.getByText("/b/7K3M9Q2XRT")).toBeVisible()
+  await expect(
+    pass.getByRole("link", { name: "Edit passport" })
+  ).toHaveAttribute("href", "/lots/lot-1/passport")
+  await expectFits(page)
+})
+
+test("a passport never published shows as a draft", async ({ page, api }) => {
+  lotsApi(api)
+  api.on("GET", "/workspace/:ws/lots/:lot/passport", () => ({
+    data: { ...passport, published: null, published_at: null, version: 0 },
+  }))
+  await page.goto("/lots/lot-1")
+  await expect(
+    page.getByRole("region", { name: "Passport" }).getByText("Draft", {
+      exact: true,
+    })
+  ).toBeVisible()
+})
+
+test("recall asks first; keeping it sends nothing", async ({ page, api }) => {
+  lotsApi(api)
+  await page.goto("/lots/lot-1")
+  await page.getByRole("button", { name: "Recall this batch…" }).click()
+  await expect(page.getByRole("alertdialog")).toContainText(
+    "Recall batch ILU-2026-01?"
+  )
+  await page.getByRole("button", { name: "Keep selling" }).click()
+  await expect(page.getByRole("alertdialog")).toBeHidden()
+  expect(api.callsTo("PATCH", "/workspace/:ws/lots/:lot")).toHaveLength(0)
+})
+
+test("recall from the status field, confirmed: saved and history shows the change", async ({
+  page,
+  api,
+}) => {
+  lotsApi(api)
+  await page.goto("/lots/lot-1")
+  await page.getByRole("combobox", { name: "Status" }).selectOption("recalled")
   await page.getByRole("button", { name: "Save" }).click()
-  await page.getByRole("button", { name: "Recall batch" }).click()
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "Recall", exact: true })
+    .click()
   await expect(page.getByText("Released → Recalled")).toBeVisible()
   expect(
     api.callsTo("PATCH", "/workspace/:ws/lots/:lot")[0]?.body

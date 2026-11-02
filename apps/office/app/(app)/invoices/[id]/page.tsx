@@ -19,9 +19,16 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
+import { CardState, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Empty, LoadError } from "@/components/states"
 
+import { initials } from "../../orders/shared"
+
+type Text = string | null | undefined
+
+/** One invoice (Template Detail tiles): lines with the API's totals, details + PDF, customer, payments. */
 export default function InvoicePage({
   params,
 }: {
@@ -39,10 +46,7 @@ export default function InvoicePage({
     query: { enabled: wantPdf, retry: false },
   })
 
-  if (invoice.isPending)
-    return (
-      <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
-    )
+  if (invoice.isPending) return <DetailSkeleton />
   if (invoice.isError)
     return (
       <LoadError
@@ -53,129 +57,235 @@ export default function InvoicePage({
     )
   const inv = invoice.data.data
   const payments = inv.relationships.payments ?? []
+  // Snapshots on the invoice, shown as stored; any of them may be missing.
+  const relation = (inv.relationships.relation ?? {}) as {
+    company_name?: Text
+    alias?: Text
+  }
+  const contact = (inv.addressed_contact ?? {}) as {
+    first_name?: Text
+    last_name?: Text
+    email?: Text
+  }
+  const name =
+    relation.company_name ||
+    relation.alias ||
+    [contact.first_name, contact.last_name].filter(Boolean).join(" ")
+  const a = (inv.billing_address ?? {}) as Record<string, Text>
+  const address = [
+    [a.address, a.house_number, a.house_number_addition]
+      .filter(Boolean)
+      .join(" "),
+    a.address2,
+    [a.zipcode, a.city].filter(Boolean).join(" "),
+    a.state,
+    a.country,
+  ].filter(Boolean)
 
   return (
     <>
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="heading-2 text-lg">
-            {inv.invoice_nr ?? t("invoices.draft")}
-          </h1>
-          <StatusBadge status={inv.status} />
-          {inv.is_credit ? (
-            <StatusBadge status="credit" label={t("invoices.credit")} />
-          ) : null}
-          <div className="ml-auto flex items-center gap-2">
-            {pdf.data ? null : (
-              <Button
-                variant="outline"
-                disabled={pdf.isFetching}
-                onClick={() => setWantPdf(true)}
-              >
-                {t("invoices.makePdf")}
-              </Button>
-            )}
-          </div>
-        </div>
-        <div role="status">
-          {pdf.data ? (
-            <Notice
-              live={false}
-              variant="success"
-              title={t("done.pdfReady")}
-              action={
-                <a
-                  className="text-sm font-medium underline-offset-4 hover:underline"
-                  href={pdf.data.data.file_path}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {t("invoices.openPdf")}
-                </a>
-              }
-            />
-          ) : null}
-        </div>
-        <ApiError error={pdf.error} fallback={t("common.error")} />
-        <dl className="grid max-w-md grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          <dt className="text-muted-foreground">{t("invoices.date")}</dt>
-          <dd>{inv.created_at.slice(0, 10)}</dd>
-          <dt className="text-muted-foreground">{t("invoices.due")}</dt>
-          <dd>{inv.due_date?.slice(0, 10) ?? "—"}</dd>
-          <dt className="text-muted-foreground">{t("invoices.total")}</dt>
-          <dd className="tabular-nums">{String(inv.balance.total)}</dd>
-          <dt className="text-muted-foreground">{t("invoices.paid")}</dt>
-          <dd className="tabular-nums">{String(inv.balance.paid)}</dd>
-          <dt className="text-muted-foreground">{t("invoices.open")}</dt>
-          <dd className="tabular-nums">{String(inv.balance.open)}</dd>
-        </dl>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="heading-2 text-base">{t("invoices.lines")}</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("invoices.item")}</TableHead>
-              <TableHead className="text-right">
-                {t("invoices.quantity")}
-              </TableHead>
-              <TableHead className="text-right">
-                {t("invoices.unitPrice")}
-              </TableHead>
-              <TableHead className="text-right">
-                {t("invoices.lineTotal")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {inv.items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.title}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {item.quantity}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {item.price_incl}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {item.total_incl}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="heading-2 text-base">{t("invoices.payments")}</h2>
-        {payments.length === 0 ? (
-          <Empty title={t("invoices.noPayments")} />
-        ) : (
+      <PageHead
+        back={{ href: "/invoices", label: t("invoices.title") }}
+        title={t("invoices.detailTitle", {
+          number: inv.invoice_nr ?? t("invoices.draft"),
+        })}
+        actions={
+          <>
+            <StatusBadge status={inv.status} />
+            {inv.is_credit ? (
+              <StatusBadge status="credit" label={t("invoices.credit")} />
+            ) : null}
+          </>
+        }
+      />
+      <Bento>
+        <Tile
+          id="invoice-lines"
+          title={t("invoices.lines")}
+          span="col-span-8 row-span-2 max-md:row-span-1"
+          flush
+        >
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("invoices.date")}</TableHead>
-                <TableHead>{t("invoices.method")}</TableHead>
+                <TableHead>{t("invoices.item")}</TableHead>
                 <TableHead className="text-right">
-                  {t("invoices.amount")}
+                  {t("invoices.quantity")}
+                </TableHead>
+                <TableHead className="text-right">
+                  {t("invoices.unitPrice")}
+                </TableHead>
+                <TableHead className="text-right">
+                  {t("invoices.lineTotal")}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map((pay) => (
-                <TableRow key={pay.id}>
-                  <TableCell>{pay.date.slice(0, 10)}</TableCell>
-                  <TableCell>{pay.payment_method}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {pay.amount}
+              {inv.items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-semibold">{item.title}</TableCell>
+                  <TableCell data-m="sub" className="text-right tabular-nums">
+                    {item.quantity}
+                  </TableCell>
+                  <TableCell data-m="hide" className="text-right tabular-nums">
+                    {item.price_incl}
+                  </TableCell>
+                  <TableCell
+                    data-m="right"
+                    className="text-right font-semibold tabular-nums"
+                  >
+                    {item.total_incl}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        )}
-      </section>
+          {/* The API's balance, shown as it comes. */}
+          <div className="mt-auto flex flex-col gap-1 border-t border-(--hair) px-5 py-4">
+            <p className="flex justify-between text-[13px]">
+              <span className="text-muted-foreground">
+                {t("invoices.total")}
+              </span>
+              <span className="tabular-nums">{String(inv.balance.total)}</span>
+            </p>
+            <p className="flex justify-between text-[13px]">
+              <span className="text-muted-foreground">
+                {t("invoices.paid")}
+              </span>
+              <span className="tabular-nums">{String(inv.balance.paid)}</span>
+            </p>
+            <p className="flex items-center justify-between">
+              <span className="font-semibold">{t("invoices.open")}</span>
+              <span className="text-lg font-semibold tabular-nums max-md:text-base">
+                {String(inv.balance.open)}
+              </span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("orders.serverAmounts")}
+            </p>
+          </div>
+        </Tile>
+
+        <Tile
+          id="invoice-details"
+          title={t("invoices.details")}
+          span="col-span-4"
+        >
+          <dl className="flex flex-col gap-1 text-[13px]">
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">{t("invoices.date")}</dt>
+              <dd>{inv.created_at.slice(0, 10)}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">{t("invoices.due")}</dt>
+              <dd>{inv.due_date?.slice(0, 10) ?? "—"}</dd>
+            </div>
+          </dl>
+          {pdf.data ? null : (
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={pdf.isFetching}
+              onClick={() => setWantPdf(true)}
+            >
+              {t("invoices.makePdf")}
+            </Button>
+          )}
+          <div role="status">
+            {pdf.data ? (
+              <Notice
+                live={false}
+                variant="success"
+                title={t("done.pdfReady")}
+                action={
+                  <a
+                    className="inline-flex items-center text-sm font-medium underline-offset-4 hover:underline max-md:min-h-11"
+                    href={pdf.data.data.file_path}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {t("invoices.openPdf")}
+                  </a>
+                }
+              />
+            ) : null}
+          </div>
+          <ApiError error={pdf.error} fallback={t("common.error")} />
+        </Tile>
+
+        <Tile
+          id="invoice-customer"
+          title={t("invoices.customer")}
+          span="col-span-4"
+        >
+          {name ? (
+            <div className="flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] text-[13px] font-semibold text-[#0a183a]"
+              >
+                {initials(name)}
+              </span>
+              <div className="min-w-0">
+                <p className="font-semibold break-words">{name}</p>
+                {contact.email ? (
+                  <p className="text-xs break-words text-muted-foreground">
+                    {contact.email}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted-foreground">—</p>
+          )}
+          {address.length ? (
+            <SubTile className="text-[13px]">
+              {address.map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </SubTile>
+          ) : null}
+        </Tile>
+
+        <Tile
+          id="invoice-payments"
+          title={t("invoices.payments")}
+          span="col-span-12"
+          flush
+        >
+          {payments.length === 0 ? (
+            <CardState>
+              <Empty title={t("invoices.noPayments")} />
+            </CardState>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("invoices.date")}</TableHead>
+                  <TableHead>{t("invoices.method")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("invoices.amount")}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {payments.map((pay) => (
+                  <TableRow key={pay.id}>
+                    <TableCell>{pay.date.slice(0, 10)}</TableCell>
+                    <TableCell data-m="sub">{pay.payment_method}</TableCell>
+                    <TableCell
+                      data-m="right"
+                      className="text-right font-semibold tabular-nums"
+                    >
+                      {pay.amount}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Tile>
+      </Bento>
     </>
   )
 }

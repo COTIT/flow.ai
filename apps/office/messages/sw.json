@@ -21,7 +21,10 @@
       "disabled": "Imezimwa",
       "nla": "Haiuzwi tena"
     },
-    "count": "{total, plural, one {bidhaa #} other {bidhaa #}}"
+    "count": "{total, plural, one {bidhaa #} other {bidhaa #}}",
+    "details": "Maelezo",
+    "serverChecked": "Bei na hali hukaguliwa na seva unapohifadhi.",
+    "priceInclHint": "Huonyeshwa kama {price} pamoja na VAT dukani."
   },
   "nav": {
     "label": "Menyu kuu",
@@ -44,7 +47,9 @@
   "actions": {
     "save": "Hifadhi",
     "saved": "Imehifadhiwa.",
-    "cancel": "Ghairi"
+    "cancel": "Ghairi",
+    "discard": "Acha",
+    "saveChanges": "Hifadhi mabadiliko"
   },
   "lots": {
     "title": "Mafungu",
@@ -75,7 +80,24 @@
     "passport": "Pasipoti",
     "noEvents": "Bado hakuna historia.",
     "count": "{total, plural, one {kundi #} other {makundi #}}",
-    "allProducts": "Bidhaa zote"
+    "allProducts": "Bidhaa zote",
+    "statusText": {
+      "released": "Mafungu yaliyoruhusiwa yanaweza kuuzwa na kuonyesha pasipoti yao. Kurudisha kunasimamisha mauzo na kuweka onyo kwenye pasipoti.",
+      "quarantine": "Mafungu yaliyo karantini hayauzwi hadi uyaruhusu.",
+      "recalled": "Fungu hili limerudishwa: ukurasa wake wa umma na kiungo cha QR cha kila chupa vinaonyesha onyo."
+    },
+    "recallAction": "Rudisha fungu hili…",
+    "recallAsk": "Kurudisha fungu {code}?",
+    "recallKeep": "Endelea kuuza",
+    "recallYes": "Rudisha",
+    "passportPublished": "Imechapishwa v{version}",
+    "passportDraft": "Rasimu",
+    "draftMatches": "Rasimu inalingana na wanachoona wateja",
+    "copyLink": "Nakili kiungo",
+    "linkCopied": "Kiungo kimenakiliwa",
+    "editPassport": "Hariri pasipoti",
+    "lineage": "Asili",
+    "details": "Maelezo ya fungu"
   },
   "secret": {
     "once": "Nakili siri hii sasa. Inaonyeshwa mara moja tu.",
@@ -182,6 +204,22 @@
       "saved": "Rasimu imehifadhiwa.",
       "published": "Imechapishwa: ukurasa wa umma unaonyesha toleo hili.",
       "unpublished": "Imeondolewa: ukurasa wa umma hauonekani tena."
+    },
+    "back": "Kundi {code}",
+    "publishedBadge": "Imechapishwa v{version}",
+    "draftBadge": "Haijachapishwa",
+    "saveDraft": "Hifadhi rasimu",
+    "publishVersion": "Chapisha v{version}",
+    "draftDiffersTitle": "Rasimu inatofautiana na pasipoti iliyochapishwa",
+    "draftDiffersBody": "Wateja bado wanaona v{version} hadi uchapishe.",
+    "originMap": "Asili na eneo la ramani",
+    "storyBlocks": "Vipande vya hadithi",
+    "livePreview": "Onyesho la moja kwa moja · wateja wanachoona",
+    "open": "Fungua /b/{code}",
+    "view": "Hariri au onyesho",
+    "tabs": {
+      "edit": "Hariri",
+      "preview": "Onyesho"
     }
   },
   "stock": {
@@ -205,7 +243,8 @@
     "reason": "Sababu",
     "changeHint": "Mabadiliko (k.m. 10 au -3)",
     "quantityChange": "Mabadiliko",
-    "count": "{total, plural, one {safu # ya hisa} other {safu # za hisa}}"
+    "count": "{total, plural, one {safu # ya hisa} other {safu # za hisa}}",
+    "onHand": "Zilizopo"
   },
   "invoices": {
     "title": "Ankara",
@@ -232,7 +271,9 @@
     "method": "Njia",
     "amount": "Kiasi",
     "customer": "Mteja",
-    "count": "{total, plural, one {ankara #} other {ankara #}}"
+    "count": "{total, plural, one {ankara #} other {ankara #}}",
+    "detailTitle": "Ankara {number}",
+    "details": "Maelezo"
   },
   "orders": {
     "title": "Oda",
@@ -281,7 +322,29 @@
     "cancelTitle": "Ghairi oda {number}?",
     "cancelText": "Akiba iliyohifadhiwa itaachiliwa. Oda iliyolipwa inahitaji kurejeshewa pesa kwanza; mfumo utasema.",
     "nothingToDo": "Hakuna zaidi cha kufanya kwenye oda hii.",
-    "count": "{total, plural, one {oda #} other {oda #}}"
+    "count": "{total, plural, one {oda #} other {oda #}}",
+    "detailTitle": "Oda {number}",
+    "placed": "{source} · imewekwa {date}",
+    "sources": {
+      "office": "Ofisi",
+      "storefront": "Duka la mtandaoni"
+    },
+    "items": "{count, plural, one {bidhaa #} other {bidhaa #}}",
+    "serverAmounts": "Kiasi kama kilivyohesabiwa na seva.",
+    "nextStep": "Hatua inayofuata",
+    "next": {
+      "confirm": "Thibitisha oda ili kuhifadhi bidhaa zake.",
+      "pick": "Rekodi kilichochukuliwa hadi sasa.",
+      "complete": "Kamilisha oda ili kutoa bidhaa zake ghalani.",
+      "invoice": "Tengeneza ankara ya oda hii.",
+      "return": "Pokea bidhaa ambazo mteja amerudisha."
+    },
+    "payment": "Malipo",
+    "paidOn": "Imelipwa · {date}",
+    "notPaid": "Haijalipwa",
+    "noCustomer": "Hakuna taarifa za mteja kwenye oda hii.",
+    "timeline": "Mfuatano wa matukio",
+    "placedEvent": "Imewekwa"
   },
   "till": {
     "title": "Kaunta",
@@ -462,7 +525,8 @@
     "add": "Ongeza picha",
     "removeOne": "Ondoa picha {position}",
     "save": "Hifadhi picha",
-    "discard": "Acha mabadiliko"
+    "discard": "Acha mabadiliko",
+    "hint": "Picha ya kwanza ni jalada la duka. Tumia mishale kupanga upya."
   },
   "credits": {
     "title": "Malipo kwa wakulima",
@@ -477,13 +541,16 @@
     "kinds": {
       "sale": "Mauzo",
       "return": "Marejesho"
-    }
+    },
+    "sub": "Kutoka chupa zilizouzwa",
+    "jarCount": "Chupa {jars}"
   },
   "lineage": {
     "packedFrom": "Imefungashwa kutoka fungu",
     "pack": "vipande {units} kutoka kilo {kg}",
     "receivedFrom": "Imepokelewa kutoka fungu {code} la mshirika ({publicCode}).",
-    "transfers": "Angalia uhamisho"
+    "transfers": "Angalia uhamisho",
+    "none": "Limetengenezwa hapa: hakuna fungu la awali."
   },
   "shell": {
     "openMenu": "Fungua menyu",

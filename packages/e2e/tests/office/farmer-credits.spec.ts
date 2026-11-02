@@ -21,6 +21,12 @@ test.beforeEach(({ api }) => {
   api
     .on("GET", "/workspace/:ws/lots/:id", () => ({ data: lot }))
     .on("GET", "/workspace/:ws/lots/:id/events", () => paged([]))
+    .on("GET", "/workspace/:ws/products/:id", () => ({
+      data: { id: "prod-jar", name: "Ilundo honey 250 g" },
+    }))
+    .on("GET", "/workspace/:ws/lots/:id/passport", () => ({
+      data: { draft: {}, published: null, published_at: null, version: 0 },
+    }))
 })
 
 test("sales and returns that credited farmers, by group only", async ({
@@ -53,15 +59,22 @@ test("sales and returns that credited farmers, by group only", async ({
     page.getByRole("status").filter({ hasText: "Sales credit 2 farmer groups" })
   ).toBeVisible()
   await expect(
-    page.getByRole("row", { name: /POS-0007/ }).getByText("Sale")
+    page.getByRole("listitem").filter({ hasText: "POS-0007" }).getByText("Sale")
   ).toBeVisible()
   await expect(
-    page.getByRole("row", { name: /WEB-0008/ }).getByText("Return")
+    page
+      .getByRole("listitem")
+      .filter({ hasText: "WEB-0008" })
+      .getByText("Return")
   ).toBeVisible()
   await expect(page.getByRole("link", { name: "POS-0007" })).toHaveAttribute(
     "href",
     "/orders/ord-7"
   )
+  // The jars as the API states them, per sale; never summed.
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "POS-0007" })
+  ).toContainText("3 jars")
 })
 
 test("no lineage or village not shared: no groups, and no sales yet", async ({
@@ -126,4 +139,7 @@ test("lineage: a batch made here shows no lineage line", async ({ page }) => {
   await page.goto("/lots/lot-jar")
   await expect(page.getByText("Packed from batch")).toHaveCount(0)
   await expect(page.getByText(/Received from the partner/)).toHaveCount(0)
+  await expect(page.getByRole("region", { name: "Lineage" })).toContainText(
+    "Made here"
+  )
 })

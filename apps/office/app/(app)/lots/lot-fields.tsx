@@ -8,7 +8,7 @@ import { Field, selectClass } from "@/components/field"
 // The statuses the API documents for a lot, for the picker and the filter.
 export const lotStatuses = ["released", "quarantine", "recalled"] as const
 
-/** The lot fields shared by create and edit; values as the API stores them. */
+/** The lot fields shared by create and edit, flat so each caller lays them out; values as the API stores them. */
 export function LotFields({
   errors,
   lot,
@@ -27,7 +27,37 @@ export function LotFields({
   return (
     <>
       <Field id="lot-code" label={t("lots.code")} errors={errors.code}>
-        <Input name="code" defaultValue={lot?.code} required />
+        <Input
+          name="code"
+          defaultValue={lot?.code}
+          className="font-mono"
+          required
+        />
+      </Field>
+      <Field id="lot-origin" label={t("lots.origin")} errors={errors.origin}>
+        <Input name="origin" defaultValue={lot?.origin ?? ""} />
+      </Field>
+      <Field
+        id="lot-produced"
+        label={t("lots.producedOn")}
+        errors={errors.produced_on}
+      >
+        <Input
+          name="produced_on"
+          type="date"
+          defaultValue={lot?.produced_on ?? ""}
+        />
+      </Field>
+      <Field
+        id="lot-best-before"
+        label={t("lots.bestBefore")}
+        errors={errors.best_before}
+      >
+        <Input
+          name="best_before"
+          type="date"
+          defaultValue={lot?.best_before ?? ""}
+        />
       </Field>
       <Field id="lot-status" label={t("lots.status")} errors={errors.status}>
         <select
@@ -42,43 +72,16 @@ export function LotFields({
           ))}
         </select>
       </Field>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field
-          id="lot-produced"
-          label={t("lots.producedOn")}
-          errors={errors.produced_on}
-        >
-          <Input
-            name="produced_on"
-            type="date"
-            defaultValue={lot?.produced_on ?? ""}
-          />
-        </Field>
-        <Field
-          id="lot-best-before"
-          label={t("lots.bestBefore")}
-          errors={errors.best_before}
-        >
-          <Input
-            name="best_before"
-            type="date"
-            defaultValue={lot?.best_before ?? ""}
-          />
-        </Field>
-        <Field
-          id="lot-expires"
-          label={t("lots.expiresOn")}
-          errors={errors.expires_on}
-        >
-          <Input
-            name="expires_on"
-            type="date"
-            defaultValue={lot?.expires_on ?? ""}
-          />
-        </Field>
-      </div>
-      <Field id="lot-origin" label={t("lots.origin")} errors={errors.origin}>
-        <Input name="origin" defaultValue={lot?.origin ?? ""} />
+      <Field
+        id="lot-expires"
+        label={t("lots.expiresOn")}
+        errors={errors.expires_on}
+      >
+        <Input
+          name="expires_on"
+          type="date"
+          defaultValue={lot?.expires_on ?? ""}
+        />
       </Field>
     </>
   )

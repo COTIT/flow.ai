@@ -34,6 +34,13 @@ function transfersApi(api: FakeApi) {
     .on("GET", "/workspace/:ws/products", () =>
       paged([{ id: "prod-raw", name: "Raw honey (kg)" }])
     )
+    // The new batch's page reads its product and passport.
+    .on("GET", "/workspace/:ws/products/:id", () => ({
+      data: { id: "prod-raw", name: "Raw honey (kg)" },
+    }))
+    .on("GET", "/workspace/:ws/lots/:id/passport", () => ({
+      data: { draft: {}, published: null, published_at: null, version: 0 },
+    }))
     .on("GET", "/workspace/:ws/warehouses", () =>
       paged([{ id: "wh-1", name: "Dar es Salaam" }])
     )

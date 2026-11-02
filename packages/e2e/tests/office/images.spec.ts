@@ -62,8 +62,12 @@ test("no images yet; add one and save the whole list", async ({
   imagesApi(api, [])
   await page.goto("/products/p1")
   await expect(page.getByText("No images yet.")).toBeVisible()
-  await page.getByLabel("Image file").selectOption("f-jar")
   await page.getByRole("button", { name: "Add image" }).click()
+  await page.getByRole("dialog").getByLabel("Image file").selectOption("f-jar")
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Add image" })
+    .click()
   await expect(page.getByText("1. jar-front.jpg")).toBeVisible()
   await page.getByRole("button", { name: "Save images" }).click()
   await expect(
@@ -132,8 +136,12 @@ test.describe(() => {
   }) => {
     imagesApi(api, [])
     await page.goto("/products/p1")
-    await page.getByLabel("Image file").selectOption("f-label")
     await page.getByRole("button", { name: "Add image" }).click()
+    await page.getByRole("dialog").getByLabel("Image file").selectOption("f-label")
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Add image" })
+      .click()
     await page.getByRole("button", { name: "Save images" }).click()
     await expect(page.getByText("The file is not an image.")).toBeVisible()
     await expect(

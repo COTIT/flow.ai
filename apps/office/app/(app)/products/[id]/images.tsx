@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from "lucide-react"
+import { ArrowLeftIcon, ArrowRightIcon, Trash2Icon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -15,12 +15,23 @@ import {
 import type { ImageInput } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@genesy/ui/components/dialog"
+import { Skeleton } from "@genesy/ui/components/skeleton"
+import { Tile } from "@/components/bento"
+import { Field, selectClass } from "@/components/field"
 import { Capped, Empty, LoadError, type useDone } from "@/components/states"
-import { selectClass } from "@/components/field"
 
 /**
  * The product's images in display order. Edits stay local until Save, which sends the whole
- * list (the API replaces it); variant images ride along untouched.
+ * list (the API replaces it); variant images ride along untouched. "Add image" picks a file in a
+ * dialog and only adds it to the draft.
  */
 export function ProductImages({
   productId,
@@ -37,6 +48,7 @@ export function ProductImages({
   // shortcut: first 100 files in the picker (warned via Capped); add file search when needed.
   const files = useFilesList(workspaceId, { page_size: 100 }, enabled)
   const [draft, setDraft] = React.useState<ImageInput[] | null>(null)
+  const [adding, setAdding] = React.useState(false)
   const replace = useProductsImagesReplace({
     mutation: {
       onMutate: done.clear,
@@ -71,10 +83,64 @@ export function ProductImages({
     t("images.unnamed")
 
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="heading-2 text-base">{t("images.title")}</h2>
+    <Tile
+      id="product-images"
+      title={t("images.title")}
+      span=""
+      action={
+        <Dialog open={adding} onOpenChange={setAdding}>
+          {/* Only on a loaded list: a save after a failed load would drop the saved images. */}
+          <DialogTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!images.isSuccess || !files.data?.data.length}
+              />
+            }
+          >
+            {t("images.add")}
+          </DialogTrigger>
+          <DialogContent>
+            <form
+              className="flex flex-col gap-3"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const fileId = String(
+                  new FormData(e.currentTarget).get("file_id") ?? ""
+                )
+                if (fileId)
+                  set([...list, { file_id: fileId, product_variant_id: null }])
+                setAdding(false)
+              }}
+            >
+              <DialogHeader>
+                <DialogTitle>{t("images.add")}</DialogTitle>
+              </DialogHeader>
+              <Capped meta={files.data?.meta} />
+              <Field id="img-file" label={t("images.pick")}>
+                <select name="file_id" className={selectClass}>
+                  {files.data?.data.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.document_name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <DialogFooter>
+                <Button type="submit">{t("images.add")}</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      }
+    >
       {images.isPending ? (
-        <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
+        <div aria-busy="true" className="grid grid-cols-3 gap-2 max-md:grid-cols-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="aspect-square rounded-2xl" />
+          ))}
+        </div>
       ) : images.isError ? (
         <LoadError error={images.error} onRetry={() => void images.refetch()} />
       ) : (
@@ -82,92 +148,66 @@ export function ProductImages({
           {list.length === 0 ? (
             <Empty title={t("images.empty")} />
           ) : (
-            <ol className="flex flex-col gap-2">
+            <ol className="grid grid-cols-3 gap-2 max-md:grid-cols-2">
               {list.map((img, i) => (
-                <li
-                  key={`${img.file_id}-${i}`}
-                  className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-2"
-                >
-                  {src(img.file_id) ? (
-                    <img
-                      src={src(img.file_id)}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      className="size-14 rounded-md bg-muted object-cover"
-                    />
-                  ) : (
-                    <span className="size-14 rounded-md bg-muted" />
-                  )}
-                  <span className="mr-auto min-w-0 text-sm break-all">
-                    {i + 1}. {name(img.file_id)}
-                    {img.product_variant_id ? ` · ${t("images.variant")}` : ""}
-                    {errors[`images.${i}.file_id`] ? (
-                      <span className="block text-destructive">
-                        {errors[`images.${i}.file_id`]?.join(" ")}
-                      </span>
+                <li key={`${img.file_id}-${i}`} className="flex min-w-0 flex-col gap-1">
+                  <div className="relative aspect-square overflow-hidden rounded-2xl border border-(--hair) bg-(--glass-subtle)">
+                    {src(img.file_id) ? (
+                      <img
+                        src={src(img.file_id)}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        className="size-full object-cover"
+                      />
                     ) : null}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t("passport.moveUp")}
-                    disabled={i === 0}
-                    onClick={() => move(i, i - 1)}
-                  >
-                    <ArrowUpIcon />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t("passport.moveDown")}
-                    disabled={i === list.length - 1}
-                    onClick={() => move(i, i + 1)}
-                  >
-                    <ArrowDownIcon />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={t("images.removeOne", { position: i + 1 })}
-                    onClick={() => set(list.filter((_, j) => j !== i))}
-                  >
-                    <Trash2Icon />
-                  </Button>
+                    <Button
+                      variant="outline"
+                      size="icon-sm"
+                      className="absolute top-1.5 right-1.5"
+                      aria-label={t("images.removeOne", { position: i + 1 })}
+                      onClick={() => set(list.filter((_, j) => j !== i))}
+                    >
+                      <Trash2Icon />
+                    </Button>
+                    <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between">
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label={t("passport.moveUp")}
+                        disabled={i === 0}
+                        onClick={() => move(i, i - 1)}
+                      >
+                        <ArrowLeftIcon />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label={t("passport.moveDown")}
+                        disabled={i === list.length - 1}
+                        onClick={() => move(i, i + 1)}
+                      >
+                        <ArrowRightIcon />
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="truncate text-xs" title={name(img.file_id)}>
+                    {i + 1}. {name(img.file_id)}
+                  </p>
+                  {img.product_variant_id ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t("images.variant")}
+                    </p>
+                  ) : null}
+                  {errors[`images.${i}.file_id`] ? (
+                    <p className="text-xs text-destructive">
+                      {errors[`images.${i}.file_id`]?.join(" ")}
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ol>
           )}
-          <Capped meta={files.data?.meta} />
-          <form
-            className="flex flex-wrap items-end gap-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const fileId = String(
-                new FormData(e.currentTarget).get("file_id") ?? ""
-              )
-              if (fileId)
-                set([...list, { file_id: fileId, product_variant_id: null }])
-            }}
-          >
-            <select
-              name="file_id"
-              aria-label={t("images.pick")}
-              className={selectClass}
-            >
-              {files.data?.data.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.document_name}
-                </option>
-              ))}
-            </select>
-            <Button
-              type="submit"
-              variant="outline"
-              disabled={!files.data?.data.length}
-            >
-              {t("images.add")}
-            </Button>
-          </form>
+          <p className="text-xs text-muted-foreground">{t("images.hint")}</p>
           <ApiError error={replace.error} fallback={t("common.error")} />
           {draft ? (
             <div className="flex flex-wrap gap-2">
@@ -190,6 +230,6 @@ export function ProductImages({
           ) : null}
         </>
       )}
-    </section>
+    </Tile>
   )
 }

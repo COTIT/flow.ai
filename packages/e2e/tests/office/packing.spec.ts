@@ -17,6 +17,12 @@ function packingApi(api: FakeApi) {
   api
     .on("GET", "/workspace/:ws/lots/:id", () => ({ data: lot }))
     .on("GET", "/workspace/:ws/lots/:id/events", () => paged([]))
+    .on("GET", "/workspace/:ws/products/:id", () => ({
+      data: { id: "prod-raw", name: "AFM raw honey" },
+    }))
+    .on("GET", "/workspace/:ws/lots/:id/passport", () => ({
+      data: { draft: {}, published: null, published_at: null, version: 0 },
+    }))
     .on("GET", "/workspace/:ws/products", () =>
       paged([{ id: "prod-jar", name: "AFM Honey 500g" }])
     )
