@@ -5,10 +5,15 @@
   },
   "setup": {
     "title": "Deze kassa instellen",
-    "hint": "Vul het workspace-id in en de apparaatsleutel die office eenmalig toonde bij het aanmaken van de kassa.",
-    "workspace": "Workspace-id",
-    "key": "Apparaatsleutel",
-    "submit": "Opslaan"
+    "hint": "Vraag het kantoor om een koppelcode voor deze kassa en typ de winkelnaam en de code.",
+    "workspace": "Winkelnaam",
+    "submit": "Kassa koppelen",
+    "code": "Koppelcode",
+    "wrong": "Winkelnaam en code horen niet bij elkaar. Controleer ze en probeer opnieuw.",
+    "used": "Deze code is verlopen of al gebruikt. Vraag het kantoor om een nieuwe.",
+    "locked": "Te veel pogingen. Wacht 15 minuten en probeer opnieuw.",
+    "failed": "De server is niet bereikbaar. Controleer de verbinding en probeer opnieuw.",
+    "paired": "Gekoppeld. De aanmelding opent…"
   },
   "login": {
     "title": "Wie verkoopt er?",
@@ -19,8 +24,8 @@
     "wrongPin": "Verkeerde pincode.",
     "locked": "Te vaak een verkeerde pincode. Probeer het later opnieuw.",
     "pinFormat": "De pincode is 4 tot 8 cijfers.",
-    "keyRefused": "De sleutel van dit apparaat wordt niet meer geaccepteerd. Stel de kassa opnieuw in.",
-    "setupAgain": "Opnieuw instellen",
+    "keyRefused": "Deze kassa is ontkoppeld of elders gekoppeld. Koppel hem opnieuw met een nieuwe code van het kantoor.",
+    "setupAgain": "Opnieuw koppelen",
     "expired": "Je sessie is beëindigd. Log opnieuw in om verder te gaan.",
     "usersFailed": "De kassagebruikers konden niet geladen worden. Controleer de verbinding en herlaad.",
     "noUsers": "Nog geen kassagebruikers. Vraag het kantoor er een toe te voegen."

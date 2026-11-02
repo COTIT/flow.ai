@@ -10,9 +10,10 @@ import {
 } from "./fake-till"
 
 const loginUrl = `/v1/workspace/${WS}/till/login`
+const pairUrl = "/v1/till/pair"
 const usersUrl = `/v1/workspace/${WS}/till/login/users`
 
-test("an unpaired till asks for its workspace and device key", async ({
+test("an unpaired till asks for its shop name and a pairing code", async ({
   page,
 }) => {
   await page.goto("/")
@@ -27,12 +28,30 @@ test("pairing, picking a user and the right PIN open the sale screen", async ({
   page,
   api,
 }) => {
+  api.on("POST", "/till/pair", () => ({
+    data: {
+      workspace_id: WS,
+      device_key: DEVICE_KEY,
+      register: { id: "reg-1", name: "Iringa till 1" },
+    },
+  }))
   await page.goto("/setup")
-  await page.getByLabel("Workspace id").fill(WS)
-  await page.getByLabel("Device key").fill(DEVICE_KEY)
-  await page.getByRole("button", { name: "Save" }).click()
+  await page.getByLabel("Shop name").fill("afm")
+  await page.getByLabel("Pairing code").fill("k7q4 mzpx")
+  await page.getByRole("button", { name: "Pair this till" }).click()
 
   await expect(page).toHaveURL("/login")
+  // Shop name and code go as typed; the API normalizes them.
+  const [paired] = api.callsTo("POST", "/till/pair")
+  expect(paired!.body).toEqual({ workspace: "afm", code: "k7q4 mzpx" })
+  // Neither the workspace id nor the key ever shows on screen.
+  await expect(page.getByText(WS, { exact: true })).toHaveCount(0)
+  await expect(page.getByText(DEVICE_KEY)).toHaveCount(0)
+  const stored = await page.evaluate(() => localStorage.getItem("genesy.till"))
+  expect(JSON.parse(stored!).state.device).toEqual({
+    workspaceId: WS,
+    deviceKey: DEVICE_KEY,
+  })
   await page.getByRole("button", { name: "Amina" }).click()
   await page.getByLabel("PIN").fill("1234")
   await expectNoHorizontalScroll(page)
@@ -120,10 +139,10 @@ test.describe("revoked device key", () => {
     await expect(
       page.getByRole("alert").filter({
         hasText:
-          "This device's key is no longer accepted. Set up the till again.",
+          "This till was disconnected or paired elsewhere. Pair it again with a new code from the office.",
       })
     ).toBeVisible()
-    await page.getByRole("button", { name: "Set up again" }).click()
+    await page.getByRole("button", { name: "Pair again" }).click()
     await expect(page).toHaveURL("/setup")
   })
 })
@@ -188,4 +207,35 @@ test.describe("till users unavailable", () => {
         .filter({ hasText: "Couldn't load the till users." })
     ).toBeVisible()
   })
+})
+
+test.describe("pairing problems", () => {
+  for (const [status, text, role] of [
+    [401, "The shop name and code don't match. Check both and try again.", "alert"],
+    [410, "This code has expired or was already used. Ask the office for a new one.", "status"],
+    [429, "Too many tries. Wait 15 minutes, then try again.", "alert"],
+    [500, "Couldn't reach the server. Check the connection and try again.", "alert"],
+  ] as const) {
+    test.describe(`${status}`, () => {
+      test.use({ allow: { responses: [{ url: pairUrl, status }] } })
+
+      test(`shows "${text}" and stays on setup`, async ({ page, api }) => {
+        api.on("POST", "/till/pair", () => ({
+          status,
+          body: { message: "x" },
+        }))
+        await page.goto("/setup")
+        await page.getByLabel("Shop name").fill("afm")
+        await page.getByLabel("Pairing code").fill("K7Q4-MZPX")
+        await page.getByRole("button", { name: "Pair this till" }).click()
+        await expect(
+          page.getByRole(role).filter({ hasText: text })
+        ).toBeVisible()
+        await expect(page).toHaveURL("/setup")
+        await expectNoHorizontalScroll(page)
+        const stored = await page.evaluate(() => localStorage.getItem("genesy.till"))
+        expect(stored ? JSON.parse(stored).state.device : null).toBeNull()
+      })
+    })
+  }
 })
