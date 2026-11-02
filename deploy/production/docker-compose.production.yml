@@ -67,7 +67,7 @@ services:
     <<: *hardening
     # Default build: PAYMENTS_PROVIDER=fake is refused.
     build: { context: ../../apps/api }
-    image: genesy-prod/api:${GENESY_REF:?set GENESY_REF in .env.production}
+    image: ghcr.io/cotit/genesy-api:${GENESY_REF:?set GENESY_REF in .env.production}
     deploy: { resources: { limits: { cpus: "1.5", memory: 1G, pids: 512 } } }
     environment: *api-env
     secrets: [database_url, credentials_key, smtp_url]
@@ -88,7 +88,7 @@ services:
       context: ../..
       dockerfile: deploy/images/next.Dockerfile
       args: { APP: shop }
-    image: genesy-prod/shop:${GENESY_REF}
+    image: ghcr.io/cotit/genesy-shop:${GENESY_REF}
     environment:
       API_URL: http://api:8080/v1
       SITE_URL: https://shop.genesy.app
@@ -109,7 +109,7 @@ services:
       context: ../..
       dockerfile: deploy/images/next.Dockerfile
       args: { APP: office, NEXT_PUBLIC_SHOP_URL: "https://shop.genesy.app" }
-    image: genesy-prod/office:${GENESY_REF}
+    image: ghcr.io/cotit/genesy-office:${GENESY_REF}
     environment:
       API_URL: http://api:8080/v1
       FILES_ORIGIN: ${FILES_ORIGIN:-}
@@ -127,7 +127,7 @@ services:
       context: ../..
       dockerfile: deploy/images/next.Dockerfile
       args: { APP: till }
-    image: genesy-prod/till:${GENESY_REF}
+    image: ghcr.io/cotit/genesy-till:${GENESY_REF}
     environment:
       API_URL: http://api:8080/v1
     networks: [internal, edge]
@@ -145,7 +145,7 @@ services:
       context: ../..
       dockerfile: deploy/images/next.Dockerfile
       args: { APP: landing }
-    image: genesy-prod/landing:${GENESY_REF}
+    image: ghcr.io/cotit/genesy-landing:${GENESY_REF}
     environment:
       SITE_URL: https://genesy.app
       # Read at runtime; hello@genesy.app is a placeholder until the real address is chosen.
@@ -173,7 +173,7 @@ services:
       dockerfile: deploy/images/field.Dockerfile
       # No demo banner; equipment, loans and requests stay hidden (release flag off).
       args: { VITE_DATA_MODE: "", VITE_FEATURE_RESOURCES: "off" }
-    image: genesy-prod/field:${GENESY_REF}
+    image: ghcr.io/cotit/genesy-field:${GENESY_REF}
     deploy: { resources: { limits: { cpus: "0.25", memory: 128M, pids: 512 } } }
     networks: [internal, edge]
     labels:
@@ -187,7 +187,7 @@ services:
   # Its own service without Traefik labels, so a one-off container never receives web traffic.
   cli:
     profiles: [cli]
-    image: genesy-prod/api:${GENESY_REF}
+    image: ghcr.io/cotit/genesy-api:${GENESY_REF}
     environment: *api-env
     secrets: [database_url, credentials_key, smtp_url]
     depends_on:

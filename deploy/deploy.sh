@@ -5,8 +5,8 @@
 #   deploy.sh <staging|production> prune                     drop image tags but live + previous
 #   deploy.sh <staging|production> compose <args…>           docker compose with the right -f chain
 # Deploy: commit (from the checkout or a git bundle; the VPS has no git network access) →
-# images (IMAGE_SOURCE=build|pull in .env.<env>) → backup → migrate → up --wait → health →
-# record live/previous in deploy/<env>/.deploy-state → prune.
+# images (IMAGE_SOURCE=pull from GHCR, the default, or build as a fallback) → backup → migrate →
+# up --wait → health → record live/previous in deploy/<env>/.deploy-state → prune.
 # The whole body is one function: bash has read all of it before `git checkout` rewrites this file.
 set -Eeuo pipefail
 
@@ -39,19 +39,27 @@ state_write() { printf '%s\n' "$@" > "$STATE.new" && mv "$STATE.new" "$STATE"; }
 
 log() { echo "$(date -u +%FT%TZ) ${USER:-?} $GENESY_ENV $*" >> "$DIR/deploys.log"; }
 
-# use_ref <sha>: check the commit out and make its short sha the image tag in the env file.
+# use_ref <sha>: check the commit out and make its full sha the image tag in the env file (CI
+# tags the GHCR images with the full sha).
 use_ref() {
   git -C "$ROOT" checkout -q --detach "$1"
-  REF="$(git -C "$ROOT" rev-parse --short HEAD)"
+  REF="$(git -C "$ROOT" rev-parse HEAD)"
   { grep -v '^GENESY_REF=' "$ENV_FILE" || true; echo "GENESY_REF=$REF"; } > "$ENV_FILE.new"
   cat "$ENV_FILE.new" > "$ENV_FILE" && rm "$ENV_FILE.new"   # cat keeps the file's 600 mode
 }
 
+# images: pull the commit's CI-built images, or build them here (fallback). Sets UP for the
+# `up` that follows: after a pull, --no-build, so a missing image stops the deploy instead of
+# starting a 30-minute build on production's Docker.
 images() {
   case "$(env_value IMAGE_SOURCE)" in
-    "" | build) "${COMPOSE[@]}" build ;;
-    pull) "${COMPOSE[@]}" pull ;;
-    *) die "IMAGE_SOURCE must be build or pull" ;;
+    "" | pull)
+      "${COMPOSE[@]}" pull
+      UP=(up -d --wait --wait-timeout 300 --no-build) ;;
+    build)
+      "${COMPOSE[@]}" build
+      UP=(up -d --wait --wait-timeout 300) ;;
+    *) die "IMAGE_SOURCE must be pull or build" ;;
   esac
 }
 
@@ -103,7 +111,7 @@ deploy() {
   dump="$(backup "pre-$REF")"
   [[ -n "$dump" ]] || die "backup printed no dump path"
   "${COMPOSE[@]}" --profile "$MIGRATE_SVC" run --rm "$MIGRATE_SVC" migrate
-  "${COMPOSE[@]}" up -d --wait --wait-timeout 300
+  "${COMPOSE[@]}" "${UP[@]}"
 
   # A redeploy of the live commit keeps the recorded previous version.
   local previous="$was_live" previous_schema="$was_schema"
@@ -138,31 +146,36 @@ Rolling back needs --restore-db, which restores the pre-deploy dump and loses ev
 
   use_ref "$previous"
   log "rollback $live -> $REF start (restore-db=$restore)"
-  # Build mode: the previous images are still here (prune keeps them); pull fetches them.
-  if [[ "$(env_value IMAGE_SOURCE)" == pull ]] || ! docker image inspect "$("${COMPOSE[@]}" config --images | grep -v @ | head -1)" > /dev/null 2>&1; then
-    images
-  fi
+  # The previous images are still here (prune keeps them); pull is a quick no-op then, and
+  # fetches them again if someone pruned by hand.
+  images
   (( restore )) && sudo -n "$OPS_LIB/restore.sh" "$GENESY_ENV" "$dump"
-  "${COMPOSE[@]}" up -d --wait --wait-timeout 300
+  "${COMPOSE[@]}" "${UP[@]}"
   state_write "live=$REF" "live_schema=$(schema_version)" "previous=$live" \
     "previous_schema=$now_schema" "pre_deploy_dump="
   health || { log "rollback to $REF unhealthy"; die "rolled back to $REF but it is unhealthy"; }
   log "rollback to $REF ok"
 }
 
-# prune: image tags of this stack other than live and previous; dangling images; build cache
-# above 10 GB (kept warm so the next build is quick).
+# prune: image tags of this stack's repositories other than the live and previous version of
+# BOTH envs (staging and production share the GHCR repositories, and shop/till/landing share
+# the tag: `<sha>`, or `<sha>-staging` for staging's api/office/field); dangling images; build
+# cache above 10 GB (kept warm so a fallback build is quick).
 prune() {
-  local keep repo tag
-  keep=" $(state_get live) $(state_get previous) "
+  local keep="" env repo tag
+  for env in production staging; do
+    # The other env's state through its own setup; an env that isn't set up keeps nothing.
+    keep+=" $( (env_setup "$env" && STATE="$DIR/.deploy-state" && state_get live && state_get previous) 2> /dev/null | tr '\n' ' ' || true)"
+  done
+  [[ -n "${keep// /}" ]] || { echo "prune: no live version recorded anywhere, no tags removed"; return 0; }
   for repo in $("${COMPOSE[@]}" config --images | grep -v @ | sed 's/:[^:/]*$//' | sort -u); do
     for tag in $(docker image ls --format '{{.Tag}}' "$repo"); do
-      [[ "$keep" == *" $tag "* ]] || docker image rm "$repo:$tag" > /dev/null || true
+      [[ " $keep " == *" ${tag%-staging} "* ]] || docker image rm "$repo:$tag" > /dev/null || true
     done
   done
   docker image prune -f > /dev/null
   docker builder prune -f --max-used-space 10GB > /dev/null
-  echo "prune: kept${keep% }"
+  echo "prune: kept$(tr -s ' ' <<< "$keep")"
 }
 
 main "$@"; exit

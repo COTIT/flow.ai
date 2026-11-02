@@ -76,7 +76,15 @@ cp .env.production.example .env.production && chmod 600 .env.production
 ```
 
 ```bash
-# 5. The ops kit: nightly backups, restore tests, alerts, the sudo rule deploy.sh needs
+# 5. Read-only GHCR login (token: ../staging/README.md "GHCR pull token"). Skip if done for staging.
+#    One login serves staging and production: both run as user deploy.
+install -d -m 700 ~/.config/genesy && install -m 600 /dev/null ~/.config/genesy/ghcr-token
+nano ~/.config/genesy/ghcr-token   # paste the token, save; it never goes on a command line
+docker login ghcr.io -u <token owner> --password-stdin < ~/.config/genesy/ghcr-token
+```
+
+```bash
+# 6. The ops kit: nightly backups, restore tests, alerts, the sudo rule deploy.sh needs
 cd /srv/genesy-prod && sudo bash deploy/ops/setup.sh
 ```
 
@@ -84,7 +92,7 @@ Back up `secrets/credentials_key` off the VPS, for example in the password manag
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main`, and that staging already runs. The VPS can't reach GitHub, so the commit comes over in a git bundle:
+Only deploy a commit whose `ci` workflow passed on `main`, including its `images` job, which pushed `ghcr.io/cotit/genesy-<app>:<sha>`, and that staging already runs. The VPS can't reach GitHub's git, so the commit comes over in a git bundle:
 
 ```bash
 # On the laptop
@@ -100,14 +108,16 @@ cd /srv/genesy-prod && deploy/deploy.sh production <green-main-sha> --bundle /tm
 `deploy.sh` does, in order, and stops at the first failure:
 
 1. Takes a lock (one deploy at a time), checks there are 5 GB free, and checks the commit out.
-2. Writes its short sha into `GENESY_REF` in `.env.production`.
-3. Gets the images: `IMAGE_SOURCE=build` (the default) builds them here, `IMAGE_SOURCE=pull` pulls them from the registry. The old containers keep serving meanwhile.
+2. Writes its full sha into `GENESY_REF` in `.env.production`: the images' tag.
+3. Pulls that commit's images from GHCR (`IMAGE_SOURCE=pull`, the default). The old containers keep serving meanwhile.
 4. Takes a backup (`pre-<sha>`, through `/usr/local/lib/genesy-ops/backup.sh`).
 5. Runs the migrations once, in a one-off `cli` container (`genesy-360-api migrate`). The app containers never migrate: `SKIP_BOOT_MIGRATIONS=true`.
-6. `up -d --wait`, then checks every host through Traefik: `api` `/healthz` must give 200, the apps 2xx/3xx.
-7. Records the live and previous versions in `.deploy-state`, adds a line to `deploys.log`, and prunes images other than those two.
+6. `up -d --wait --no-build`, then checks every host through Traefik: `api` `/healthz` must give 200, the apps 2xx/3xx. `--no-build` means the VPS never builds by accident: a missing image stops the deploy.
+7. Records the live and previous versions in `.deploy-state`, adds a line to `deploys.log`, and prunes images.
 
 A commit already in the checkout needs no `--bundle`. If the health check fails, the new version stays up and the script prints the rollback command. Nothing rolls back on its own: someone decides.
+
+The prune keeps the images of the live and previous version of **both** stacks: staging and production share the GHCR repositories, and the shop, till and landing images even share their tag. Never run `docker image prune -a`.
 
 ## Rollback
 
@@ -122,6 +132,12 @@ deploy/deploy.sh production rollback --restore-db
 ```
 
 It restores the `pre-<sha>` dump taken before the deploy, after a fresh `pre-restore` dump and the typed words `restore production`. **Everything written since the deploy is lost.** Check with the user first, and prefer fixing forward.
+
+## Fallback: build on the VPS
+
+Only when the `images` job or GHCR is down. Set `IMAGE_SOURCE=build` in `.env.production` and deploy as above: `deploy.sh` builds the images here instead of pulling them. That takes 10–30 minutes and runs on prod's Docker, outside CI's limits. Set it back to `pull` afterwards.
+
+After a build, the prune caps the build cache at 10 GB (`docker builder prune --max-used-space 10GB`) instead of wiping it. The kept cache makes the next build fast: an unchanged API is a cache hit, a changed one rebuilds only its own crate, and the web images reuse their package store.
 
 ## Resource limits
 

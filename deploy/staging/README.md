@@ -118,11 +118,31 @@ chmod 444 secrets/*   # containers run as non-root users; the 700 folder keeps o
 cp .env.staging.example .env.staging && chmod 600 .env.staging
 ```
 
+```bash
+# 4. Read-only login to GHCR, where CI pushes the private images (token: "GHCR pull token" below).
+#    One login serves staging and production: both run as user deploy.
+install -d -m 700 ~/.config/genesy && install -m 600 /dev/null ~/.config/genesy/ghcr-token
+nano ~/.config/genesy/ghcr-token   # paste the token, save; it never goes on a command line
+docker login ghcr.io -u <token owner> --password-stdin < ~/.config/genesy/ghcr-token
+```
+
 Then deploy (next section). Keep `credentials_key` once you have it: it encrypts workspace mail credentials stored in the database. A new key makes those stored credentials unreadable.
+
+### GHCR pull token (once, in GitHub)
+
+The VPS needs read access to the six private `ghcr.io/cotit/genesy-*` packages, nothing more. These steps are yours, in GitHub.
+
+1. **COTIT → Settings → Packages:** allow private container packages to be created. The first green `images` run then creates `genesy-api`, `-shop`, `-office`, `-till`, `-field` and `-landing`. Check each one's settings: visibility **private**, and "Manage Actions access" lists `COTIT/genesy` with **Write**.
+2. **A machine account** (for example `genesy-deploy-bot`) in COTIT, given **Read** on those six packages only (package settings → Manage access). It needs no repository access.
+3. **On that account:** a **classic** personal access token with only `read:packages`, expiring in a year (set a reminder). GHCR does not take fine-grained tokens unless GitHub lists a Packages permission for them when you create one.
+
+Fallback without a machine account: your own classic token with only `read:packages`. It can read every package you can, so the machine account is safer.
+
+To rotate: write the new token into `~/.config/genesy/ghcr-token` on the VPS, run the `docker login` line again, then delete the old token.
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main`. It is the same script and the same steps as production (`../production/README.md`, "Deploy from main" and "Rollback"); only the env name changes:
+Only deploy a commit whose `ci` workflow passed on `main`, including its `images` job. That job built, scanned and pushed this commit's images (`ghcr.io/cotit/genesy-<app>:<sha>`, with `-staging` for api, office and field); the VPS only pulls them. It is the same script and the same steps as production (`../production/README.md`, "Deploy from main", "Rollback" and "Fallback: build on the VPS"); only the env name changes:
 
 ```bash
 cd /srv/genesy-staging && deploy/deploy.sh staging <green-main-sha> --bundle /tmp/genesy.bundle

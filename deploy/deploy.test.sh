@@ -14,8 +14,8 @@ mkdir -p "$d" "$t/bin" "$t/opslib"
 cp "$HERE/production/docker-compose.production.yml" "$HERE/production/docker-compose.stripe.yml" \
   "$HERE/production/docker-compose.uploads.yml" "$d/"
 g() { git -C "$root" -c user.email=t@t -c user.name=t "$@"; }
-g init -q && g add . && g commit -qm one && A="$(g rev-parse --short HEAD)"
-echo "# two" >> "$d/docker-compose.production.yml" && g commit -qam two && B="$(g rev-parse --short HEAD)"
+g init -q && g add . && g commit -qm one && A="$(g rev-parse HEAD)"
+echo "# two" >> "$d/docker-compose.production.yml" && g commit -qam two && B="$(g rev-parse HEAD)"
 printf 'TRAEFIK_NETWORK=traefik\nGENESY_REF=\nMAIL_FROM=x\n' > "$d/.env.production"
 
 echo 20261101000000 > "$t/schema"
@@ -23,13 +23,14 @@ cat > "$t/bin/docker" << 'EOF'
 #!/usr/bin/env bash
 echo "docker $*" >> "$CALLS"
 if [[ "$1" == compose ]]; then
-  while (( $# )) && [[ "$1" != config && "$1" != exec && "$1" != run ]]; do
+  while (( $# )) && [[ "$1" != config && "$1" != exec && "$1" != run && "$1" != pull ]]; do
     [[ "$1" == --env-file ]] && env_file="$2"
     shift
   done
   case "${1:-}" in
     config) ref="$(sed -n 's/^GENESY_REF=//p' "$env_file")"
-      printf 'postgres:18@sha256:abc\ngenesy-prod/api:%s\ngenesy-prod/shop:%s\n' "$ref" "$ref" ;;
+      printf 'postgres:18@sha256:abc\nghcr.io/cotit/genesy-api:%s\nghcr.io/cotit/genesy-shop:%s\n' "$ref" "$ref" ;;
+    pull) [[ -z "${STUB_PULL_FAIL:-}" ]] || exit 1 ;;
     exec) [[ "$*" == *to_regclass* ]] && echo t || cat "$T/schema" ;;
     run) [[ -n "${STUB_MIGRATE_TO:-}" ]] && echo "$STUB_MIGRATE_TO" > "$T/schema" ;;
   esac
@@ -62,9 +63,11 @@ state() { sed -n "s/^$1=//p" "$d/.deploy-state"; }
 line() { grep -n -m1 -- "$1" "$CALLS" | cut -d: -f1; }
 before() { local a b; a="$(line "$1")" b="$(line "$2")"; [[ -n "$a" && -n "$b" && "$a" -lt "$b" ]]; }
 
-# First deploy: images → backup → migrate → up → health, in that order.
-run "$A" || fail "deploy A: $(cat "$t/out")"
-before "compose .* build" "backup.sh production pre-$A" || fail "build not before backup"
+# First deploy (given a short sha): pull → backup → migrate → up --no-build → health, in that order.
+run "${A:0:7}" || fail "deploy A: $(cat "$t/out")"
+before "compose .* pull" "backup.sh production pre-$A" || fail "pull not before backup"
+if grep -q "compose .* build" "$CALLS"; then fail "pull mode built"; fi
+grep -q "up -d --wait --wait-timeout 300 --no-build" "$CALLS" || fail "up may build after a pull"
 before "backup.sh production pre-$A" "run --rm cli migrate" || fail "backup not before migrate"
 before "run --rm cli migrate" "up -d --wait --wait-timeout 300" || fail "migrate not before up"
 before "up -d --wait --wait-timeout 300" "curl " || fail "health not after up"
@@ -91,7 +94,7 @@ echo 20261101000000 > "$t/schema.after"
 run rollback --restore-db || fail "rollback --restore-db: $(cat "$t/out")"
 before "restore.sh production /srv/genesy-backups/production/genesy-production-X-pre-$B.dump" "up -d --wait" || fail "restore not before up"
 grep -qx "GENESY_REF=$A" "$d/.env.production" || fail "GENESY_REF not back to A"
-[[ "$(g rev-parse --short HEAD)" == "$A" ]] || fail "checkout not back to A"
+[[ "$(g rev-parse HEAD)" == "$A" ]] || fail "checkout not back to A"
 [[ "$(state live)" == "$A" && "$(state previous)" == "$B" && -z "$(state pre_deploy_dump)" ]] || fail "state after rollback: $(cat "$d/.deploy-state")"
 
 # Same schema: plain rollback, no restore. A redeploy of the live commit keeps previous.
@@ -115,25 +118,38 @@ echo "curl $*" >> "$CALLS"
 EOF
 run "$B" || fail "shop 503 failed the deploy: $(cat "$t/out")"
 
-# Pull mode pulls instead of building.
-echo "IMAGE_SOURCE=pull" >> "$d/.env.production"
-run "$B" || fail "pull deploy: $(cat "$t/out")"
-grep -q "compose .* pull" "$CALLS" || fail "pull mode did not pull"
-if grep -q "compose .* build" "$CALLS"; then fail "pull mode built"; fi
+# A failed pull stops before the backup; nothing changes.
+if STUB_PULL_FAIL=1 run "$B"; then fail "deployed after a failed pull"; fi
+if grep -q "backup.sh" "$CALLS"; then fail "backup after a failed pull"; fi
+
+# Build fallback builds instead of pulling, and up may then use the built images.
+echo "IMAGE_SOURCE=build" >> "$d/.env.production"
+run "$B" || fail "build deploy: $(cat "$t/out")"
+grep -q "compose .* build" "$CALLS" || fail "build mode did not build"
+if grep -q "compose .* pull" "$CALLS"; then fail "build mode pulled"; fi
+if grep -q -- "--no-build" "$CALLS"; then fail "build mode passed --no-build"; fi
 sed -i.bak '/^IMAGE_SOURCE=/d' "$d/.env.production"
 
-# Prune keeps live and previous only, never pinned images.
-printf '%s\n' "$A" "$B" old1 > "$t/tags"
+# Prune keeps live and previous of BOTH envs (shared GHCR repos; staging's -staging tags too),
+# never pinned images.
+sd="$root/deploy/staging" && mkdir -p "$sd"
+echo "GENESY_REF=s1" > "$sd/.env.staging"
+printf 'live=s1\nprevious=\n' > "$sd/.deploy-state"
+printf '%s\n' "$A" "$B" old1 s1 s1-staging old2-staging > "$t/tags"
 run prune || fail "prune: $(cat "$t/out")"
-grep -q "image rm genesy-prod/api:old1" "$CALLS" || fail "old tag kept"
-if grep -q "image rm genesy-prod/api:$A\|image rm genesy-prod/api:$B\|image rm postgres" "$CALLS"; then fail "pruned a kept image"; fi
+grep -q "image rm ghcr.io/cotit/genesy-api:old1$" "$CALLS" || fail "old tag kept"
+grep -q "image rm ghcr.io/cotit/genesy-api:old2-staging$" "$CALLS" || fail "old staging tag kept"
+for kept in "$A" "$B" s1 s1-staging; do
+  if grep -q "image rm ghcr.io/cotit/genesy-api:$kept$" "$CALLS"; then fail "pruned kept tag $kept"; fi
+done
+if grep -q "image rm postgres" "$CALLS"; then fail "pruned a pinned image"; fi
 grep -q "builder prune -f --max-used-space 10GB" "$CALLS" || fail "build cache not capped"
 
 # A commit only in a bundle: refused without it, deployed with it.
 other="$t/other" && git clone -q "$root" "$other"
 echo "# three" >> "$other/deploy/production/docker-compose.production.yml"
 git -C "$other" -c user.email=t@t -c user.name=t commit -qam three
-C="$(git -C "$other" rev-parse --short HEAD)"
+C="$(git -C "$other" rev-parse HEAD)"
 git -C "$other" bundle create -q "$t/c.bundle" HEAD 2> /dev/null || git -C "$other" bundle create "$t/c.bundle" HEAD 2> /dev/null
 if run "$C"; then fail "unknown commit deployed"; fi
 grep -q "pass --bundle" "$t/out" || fail "no bundle hint"
