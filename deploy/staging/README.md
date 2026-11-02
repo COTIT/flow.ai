@@ -35,6 +35,8 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 | `../images/field.Dockerfile` | field: a Vite build, served by nginx; shared with production                         |
 | `../images/field.nginx.conf` | SPA fallback and the `/v1` forward to the API                                        |
 | `smoke.sh`                   | Local check: build, start, probe, then remove everything it added                    |
+| `../deploy.sh`               | Deploy, rollback, prune, and `compose` with the right `-f` chain (production README)  |
+| `../ops/`                    | Backups, restore tests, alerts for both stacks (`../ops/README.md`)                   |
 | `../../apps/api/Dockerfile`  | API image. The build arg `ALLOW_FAKE_PAYMENTS=1` is set by the staging compose only. |
 
 ### The fake-payments build arg
@@ -120,38 +122,21 @@ Then deploy (next section). Keep `credentials_key` once you have it: it encrypts
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main`.
+Only deploy a commit whose `ci` workflow passed on `main`. It is the same script and the same steps as production (`../production/README.md`, "Deploy from main" and "Rollback"); only the env name changes:
 
 ```bash
-cd /srv/genesy-staging
-git fetch origin && git checkout --detach <green-main-sha>
-sed -i "s/^GENESY_REF=.*/GENESY_REF=$(git rev-parse --short HEAD)/" deploy/staging/.env.staging
+cd /srv/genesy-staging && deploy/deploy.sh staging <green-main-sha> --bundle /tmp/genesy.bundle
+deploy/deploy.sh staging rollback            # back to the previous version
 ```
 
-```bash
-docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging build
-docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging up -d --wait
-```
-
-```bash
-# Keep Docker lean: drop old staging images and the build cache
-docker image prune -af --filter label=com.docker.compose.project=genesy-staging   # unused ones only
-docker builder prune -af
-```
-
-The API runs its migrations when it boots. Check the deploy:
-
-```bash
-curl -fsS https://staging-api.genesy.app/healthz
-for h in shop office till field; do curl -s -o /dev/null -w "$h %{http_code}\n" https://staging-$h.genesy.app/; done
-```
+On staging the migrations run in a one-off `seed` container (`genesy-360-api migrate`, not the seed). Every manual compose command goes through `deploy/deploy.sh staging compose …`, which adds the Stripe and no-DNS files when they are there. The nightly backup, weekly restore test and alerts come from the ops kit, installed once from the production checkout (`../ops/README.md`).
 
 **The shop's app key.** The shop needs a storefront key before it shows a catalog:
 
 1. Log in to `staging-office`.
 2. Make an app key with scope `catalog:read`.
 3. Put it in `STOREFRONT_APP_KEY` in `.env.staging`.
-4. Run `up -d shop`.
+4. Run `deploy/deploy.sh staging compose up -d shop`.
 
 **Read mail (Mailpit).** From your own machine:
 
@@ -167,18 +152,10 @@ Staging runs the in-process fake until this is done. The staging image keeps deb
 
 1. **Stripe dashboard, test mode:** copy the test secret key (`sk_test_…`). Then add a webhook endpoint `https://staging-api.genesy.app/v1/payments/webhooks/stripe` with the same events as production (`deploy/production/README.md`, "Turning on Stripe"), and copy its signing secret (`whsec_…`).
 2. **On the VPS:** `deploy/set-provider-keys.sh staging stripe` (asks for both, no echo, refuses a live key).
-3. **Restart the API with the Stripe file in the chain.** Every later `docker compose` command for staging needs the same chain. The `seed` service keeps its own fake whatever is set.
+3. **Restart the API.** `deploy.sh` adds `docker-compose.stripe.yml` by itself once `secrets/stripe_secret_key` exists. The `seed` service keeps its own fake whatever is set.
 
    ```bash
-   docker compose -f deploy/staging/docker-compose.staging.yml -f deploy/staging/docker-compose.stripe.yml \
-     --env-file deploy/staging/.env.staging up -d --wait api
-   ```
-
-   While the VPS still has an untracked `deploy/staging/docker-compose.nodns.yml` (until DNS is live), put it between the two:
-
-   ```bash
-   docker compose -f deploy/staging/docker-compose.staging.yml -f deploy/staging/docker-compose.nodns.yml \
-     -f deploy/staging/docker-compose.stripe.yml --env-file deploy/staging/.env.staging up -d --wait api
+   deploy/deploy.sh staging compose up -d --wait api
    ```
 
 4. If `STAGING_IP_ALLOWLIST` is set, Stripe's webhook calls are blocked: add Stripe's webhook IP ranges (stripe.com/files/ips/ips_webhooks.txt) or leave the list empty.
@@ -191,21 +168,23 @@ This wipes the staging database and every caught mail, starts clean, then reseed
 
 ```bash
 cd /srv/genesy-staging
-docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging down -v
-docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging up -d --wait
-docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging --profile seed run --rm seed
+deploy/deploy.sh staging compose down -v
+deploy/deploy.sh staging compose up -d --wait db
+deploy/deploy.sh staging compose --profile seed run --rm seed migrate   # the API doesn't migrate at boot
+deploy/deploy.sh staging compose up -d --wait
+deploy/deploy.sh staging compose --profile seed run --rm seed
 ```
 
 `down -v` only removes this project's volume (`genesy-staging_pg`). The secret files stay, so the new database gets the same password.
 
-To remove staging entirely, run `down -v --rmi all`, then delete `/srv/genesy-staging` and the staging DNS records.
+To remove staging entirely, run `deploy/deploy.sh staging compose down -v --rmi all`, then delete `/srv/genesy-staging`, the staging DNS records and the staging timers (`sudo systemctl disable --now genesy-backup-staging.timer genesy-restore-test-staging.timer genesy-prune-staging.timer`).
 
 ## Demo data
 
 After the first deploy, and after each reset:
 
 ```bash
-docker compose -f deploy/staging/docker-compose.staging.yml --env-file deploy/staging/.env.staging --profile seed run --rm seed
+deploy/deploy.sh staging compose --profile seed run --rm seed
 ```
 
 This runs `genesy-360-api seed-demo` (from Phase 4c), which fills every app with demo data. It only runs where `GENESY_ALLOW_DEMO_SEED=1`, and only the staging compose sets that. If it prints demo passwords, save them somewhere safe.
