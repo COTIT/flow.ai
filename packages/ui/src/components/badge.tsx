@@ -18,6 +18,11 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // Status tones. Under `theme-glass` globals.css gives them the mockup's tint, text and dot.
+        teal: "bg-teal/15 text-foreground",
+        gold: "bg-gold/25 text-foreground",
+        red: "bg-destructive/10 text-destructive",
+        slate: "bg-info/15 text-foreground",
       },
     },
     defaultVariants: {

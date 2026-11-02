@@ -4,23 +4,22 @@
     "tagline": "Kassa en contante uitbetalingen."
   },
   "setup": {
-    "title": "Deze kassa instellen",
-    "hint": "Vraag het kantoor om een koppelcode voor deze kassa en typ de winkelnaam en de code.",
-    "workspace": "Winkelnaam",
+    "title": "Deze kassa koppelen",
+    "hint": "Open in Office Kassa › Kassa's en druk op “Kassa koppelen”. Typ de code die daar staat.",
+    "workspace": "Account",
     "submit": "Kassa koppelen",
     "code": "Koppelcode",
     "wrong": "Winkelnaam en code horen niet bij elkaar. Controleer ze en probeer opnieuw.",
     "used": "Deze code is verlopen of al gebruikt. Vraag het kantoor om een nieuwe.",
     "locked": "Te veel pogingen. Wacht 15 minuten en probeer opnieuw.",
     "failed": "De server is niet bereikbaar. Controleer de verbinding en probeer opnieuw.",
-    "paired": "Gekoppeld. De aanmelding opent…"
+    "paired": "Gekoppeld. De aanmelding opent…",
+    "codeHint": "10 minuten geldig, werkt één keer."
   },
   "login": {
-    "title": "Wie verkoopt er?",
+    "title": "Wie staat er aan de kassa?",
     "who": "Kassagebruikers",
-    "pin": "Pincode",
     "submit": "Inloggen",
-    "back": "Terug",
     "wrongPin": "Verkeerde pincode.",
     "locked": "Te vaak een verkeerde pincode. Probeer het later opnieuw.",
     "pinFormat": "De pincode is 4 tot 8 cijfers.",
@@ -28,7 +27,13 @@
     "setupAgain": "Opnieuw koppelen",
     "expired": "Je sessie is beëindigd. Log opnieuw in om verder te gaan.",
     "usersFailed": "De kassagebruikers konden niet geladen worden. Controleer de verbinding en herlaad.",
-    "noUsers": "Nog geen kassagebruikers. Vraag het kantoor er een toe te voegen."
+    "noUsers": "Nog geen kassagebruikers. Vraag het kantoor er een toe te voegen.",
+    "tap": "Tik op je naam.",
+    "pickFirst": "Tik eerst op je naam.",
+    "missing": "Sta je er niet bij? Vraag het kantoor je toe te voegen onder Kassa › Kassagebruikers.",
+    "enterPin": "Voer je pincode in",
+    "notYou": "Niet jij?",
+    "dots": "{count} van {total} cijfers ingevoerd"
   },
   "sale": {
     "title": "Verkoop",
@@ -142,5 +147,9 @@
   "offline": {
     "title": "Offline. Verkopen blijven op dit apparaat en worden verstuurd zodra er weer verbinding is.",
     "waiting": "{count, plural, one {# verkoop} other {# verkopen}} wacht op versturen"
+  },
+  "keypad": {
+    "clear": "Wissen",
+    "delete": "Verwijderen"
   }
 }
