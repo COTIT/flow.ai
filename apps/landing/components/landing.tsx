@@ -4,17 +4,13 @@ import { getTranslations, setRequestLocale } from "next-intl/server"
 import type { Locale } from "@genesy/i18n/locales"
 import { Logo, LogoIcon } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
+import { Journey } from "@/components/journey"
 import { LanguageLinks } from "@/components/language-links"
 import { appLinks, contactHref } from "@/lib/site"
 
 import "./landing.css"
 
 const HOME: Record<Locale, string> = { en: "/", nl: "/nl", sw: "/sw" }
-
-// Step 3 replaces this with the animated journey.
-function Journey() {
-  return null
-}
 
 /**
  * The whole landing page for one language, from the approved direction-B mockup

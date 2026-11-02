@@ -223,12 +223,21 @@
     transform: translateX(-120%);
     animation: gold-shine 4.2s ease-in-out infinite;
   }
+  /* Journey. Without the motion script (no JS, or reduced motion) it shows its final, complete state:
+     every step, the whole road and the coin home. The client adds .motion to pin it and play it by scroll. */
   .journey {
     position: relative;
     padding: 0;
-    height: calc(var(--n, 7) * 65vh + 100vh);
+    --p: 1;
+    --lp: 1;
   }
   .j-pin {
+    padding: 64px 0;
+  }
+  &.motion .journey {
+    height: calc(var(--n, 7) * 65vh + 100vh);
+  }
+  &.motion .j-pin {
     position: sticky;
     top: 0;
     height: 100vh;
@@ -268,8 +277,10 @@
     counter-increment: j;
     position: relative;
     padding: 8px 0 8px 42px;
-    opacity: 0.45;
     transition: opacity 0.3s;
+  }
+  &.motion .j-steps li {
+    opacity: 0.45;
   }
   .j-steps li::before {
     content: counter(j);
@@ -320,10 +331,10 @@
     .j-stage svg {
       max-height: 46svh;
     }
-    .j-steps {
+    &.motion .j-steps {
       min-height: 72px;
     }
-    .j-steps li:not([aria-current]) {
+    &.motion .j-steps li:not([aria-current]) {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -335,7 +346,7 @@
       font-size: 22px;
     }
   }
-  .j-part {
+  &.motion .j-part {
     opacity: 0;
     transform: translateY(18px) scale(0.9);
     transform-box: fill-box;
@@ -344,12 +355,12 @@
       opacity 0.6s ease,
       transform 0.8s cubic-bezier(0.2, 0.9, 0.25, 1.15);
   }
-  .st1 .p1,
-  .st2 .p2,
-  .st3 .p3,
-  .st4 .p4,
-  .st5 .p5,
-  .st6 .p6 {
+  &.motion .st1 .p1,
+  &.motion .st2 .p2,
+  &.motion .st3 .p3,
+  &.motion .st4 .p4,
+  &.motion .st5 .p5,
+  &.motion .st6 .p6 {
     opacity: 1;
     transform: none;
   }
@@ -376,7 +387,7 @@
     transform-origin: 0 0;
     animation: swing 2.6s ease-in-out infinite alternate;
   }
-  .newline {
+  &.motion .newline {
     transform-box: fill-box;
     transform-origin: 0 50%;
     transform: scaleX(var(--lp, 0));
@@ -387,39 +398,6 @@
   [data-journey]:not(.live) *,
   [data-ambient]:not(.live) * {
     animation-play-state: paused !important;
-  }
-  .reduce & .journey {
-    height: auto;
-  }
-  .reduce & .j-pin {
-    position: static;
-    height: auto;
-    padding: 64px 0;
-  }
-  .reduce & *,
-  .reduce & *::before,
-  .reduce & *::after {
-    animation: none !important;
-    transition: none !important;
-  }
-  .reduce & [data-reveal],
-  .reduce & [data-assemble] > *,
-  .reduce & .j-part {
-    opacity: 1;
-    transform: none;
-  }
-  .reduce & .j-steps li {
-    position: relative !important;
-    width: auto;
-    height: auto;
-    clip: auto;
-    white-space: normal;
-    opacity: 1;
-  }
-  .reduce & .j-steps li::before {
-    background: none;
-    color: inherit;
-    border-color: currentColor;
   }
   & {
     --bg: var(--mist);
