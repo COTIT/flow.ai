@@ -444,6 +444,13 @@ mod tests {
         assert!(bad_from.starts_with("MAIL_FROM"), "{bad_from}");
     }
 
+    // Resend: SMTP with user `resend` and the API key as password, implicit TLS on 465.
+    #[tokio::test]
+    async fn resend_smtp_url_builds_a_mailer() {
+        let url = "smtps://resend:re_AbC123_xyz@smtp.resend.com:465";
+        assert!(Mailer::smtp(url, "Genesy <no-reply@genesy.app>").is_ok());
+    }
+
     #[tokio::test]
     async fn smtp_unreachable_is_internal_error() {
         let mailer = Mailer::smtp("smtp://127.0.0.1:1", "A <a@b.co>").unwrap();
