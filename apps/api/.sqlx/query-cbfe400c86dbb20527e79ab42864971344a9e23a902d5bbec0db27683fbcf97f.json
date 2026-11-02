@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH r AS (SELECT id, (5 * row_number() OVER (ORDER BY created_at, id))::int AS k\n                    FROM farm_pue_requests WHERE workspace_id = $1)\n         UPDATE farm_pue_requests p SET\n            submitted_at = p.submitted_at - make_interval(days => r.k),\n            decided_at = p.decided_at - make_interval(days => r.k / 2)\n         FROM r WHERE p.workspace_id = $1 AND p.id = r.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cbfe400c86dbb20527e79ab42864971344a9e23a902d5bbec0db27683fbcf97f"
+}

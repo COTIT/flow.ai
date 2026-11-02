@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE orders o SET\n            created_at = d.at,\n            updated_at = d.at,\n            paid_at = CASE WHEN o.paid_at IS NOT NULL THEN d.at + interval '20 minutes' END,\n            completed_at = CASE WHEN o.completed_at IS NOT NULL THEN least(d.at + interval '1 day', now()) END,\n            cancelled_at = CASE WHEN o.cancelled_at IS NOT NULL THEN least(d.at + interval '2 days', now()) END\n         FROM (SELECT id, date_trunc('day', now() - make_interval(days => n)) + interval '10 hours' AS at\n               FROM unnest($2::uuid[], $3::int[]) AS t(id, n)) d\n         WHERE o.workspace_id = $1 AND o.id = d.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4a70387e78403b76dcae3193bfee30c4893be3d8b421bdf00717cc27c6e8e20e"
+}

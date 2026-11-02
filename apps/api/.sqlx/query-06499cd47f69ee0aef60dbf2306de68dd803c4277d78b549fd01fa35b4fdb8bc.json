@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE farm_vouchers SET issued_at = now() - interval '40 days', expires_at = now() - interval '10 days'\n         WHERE workspace_id = $1 AND id = ANY($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "06499cd47f69ee0aef60dbf2306de68dd803c4277d78b549fd01fa35b4fdb8bc"
+}

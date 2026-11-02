@@ -218,10 +218,14 @@ async fn main() {
                     "passport (QR target): {}",
                     s.passport_path.unwrap_or_default()
                 );
+                for (label, path) in &s.samples {
+                    println!("{label}: {path}");
+                }
                 println!(
-                    "note: the paid web order went through the seed's in-process Fake provider; \
-                     its payment row says `fake`."
+                    "note: web payments went through the seed's in-process Fake provider; \
+                     their payment rows say `fake`."
                 );
+                println!("seeded in {:.1} s", s.elapsed.as_secs_f64());
             }
             Ok(_) => println!("staging demo already seeded: nothing to do"),
             Err(err) => {

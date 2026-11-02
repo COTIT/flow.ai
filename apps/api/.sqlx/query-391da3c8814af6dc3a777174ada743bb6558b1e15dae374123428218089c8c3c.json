@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE lots SET created_at = produced_on::timestamptz + interval '9 hours'\n         WHERE workspace_id = $1 AND produced_on IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "391da3c8814af6dc3a777174ada743bb6558b1e15dae374123428218089c8c3c"
+}

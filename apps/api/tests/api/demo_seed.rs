@@ -143,8 +143,8 @@ async fn the_seed_runs_once_and_every_login_works(pool: PgPool) {
     .await;
     assert_eq!(status, StatusCode::OK, "{res}");
 
-    // The supply chain ran end to end: a live link, farmer credits from the web and till sales,
-    // a payout, an invoice, a paid web order.
+    // The supply chain ran end to end: one live link, farmer credits from web, office and till
+    // sales, payouts, invoices, paid web orders (counts per module: `the_seed_fills_every_module`).
     assert_eq!(
         count(
             &pool,
@@ -154,15 +154,15 @@ async fn the_seed_runs_once_and_every_login_works(pool: PgPool) {
         1
     );
     assert!(count(&pool, "SELECT count(*) FROM farm_sale_attributions").await >= 2);
-    assert_eq!(count(&pool, "SELECT count(*) FROM farm_payouts").await, 1);
-    assert_eq!(count(&pool, "SELECT count(*) FROM invoices").await, 1);
-    assert_eq!(
+    assert!(count(&pool, "SELECT count(*) FROM farm_payouts").await >= 1);
+    assert!(count(&pool, "SELECT count(*) FROM invoices").await >= 1);
+    assert!(
         count(
             &pool,
             "SELECT count(*) FROM order_payments WHERE status = 'paid'"
         )
-        .await,
-        1
+        .await
+            >= 1
     );
 
     // A second run changes nothing.
@@ -201,4 +201,545 @@ async fn a_half_seeded_staging_is_refused(pool: PgPool) {
         .err()
         .expect("refused");
     assert!(err.to_string().contains("wipe the staging volume"), "{err}");
+}
+
+/// `count(*)` of `q` with `$1` bound to the workspace named `ws`.
+async fn count_in(pool: &PgPool, ws: &str, q: &str) -> i64 {
+    sqlx::query_scalar(sqlx::AssertSqlSafe(q.to_owned()))
+        .bind(workspace_id(pool, ws).await)
+        .fetch_one(pool)
+        .await
+        .unwrap_or_else(|e| panic!("{q}: {e}"))
+}
+
+async fn workspace_id(pool: &PgPool, name: &str) -> uuid::Uuid {
+    sqlx::query_scalar("SELECT id FROM workspaces WHERE name = $1")
+        .bind(name)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+#[sqlx::test]
+async fn the_seed_fills_every_module(pool: PgPool) {
+    let seeded = demo::run(common::state(pool.clone(), Mailer::capture().0), true)
+        .await
+        .unwrap();
+    assert!(seeded.created);
+
+    // (workspace, minimum, label, query with $1 = workspace id)
+    let afm = "afm-demo";
+    let ruaha = "ruaha-demo";
+    let checks: &[(&str, i64, &str)] = &[
+        // catalog and stock
+        (
+            afm,
+            70,
+            "SELECT count(*) FROM products WHERE workspace_id = $1 AND deleted_at IS NULL",
+        ),
+        (
+            afm,
+            30,
+            "SELECT count(*) FROM product_variants WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            4,
+            "SELECT count(*) FROM products WHERE workspace_id = $1 AND store_only",
+        ),
+        (
+            afm,
+            3,
+            "SELECT count(*) FROM warehouses WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            24,
+            "SELECT count(*) FROM warehouse_section_row_bins WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            5,
+            "SELECT count(*) FROM stocks WHERE workspace_id = $1 AND stock_lvl > 0 AND stock_lvl < minimal_stock_level",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM stocks WHERE workspace_id = $1 AND stock_lvl < 0",
+        ),
+        (
+            afm,
+            100,
+            "SELECT count(*) FROM stock_movements WHERE workspace_id = $1",
+        ),
+        // customers
+        (
+            afm,
+            40,
+            "SELECT count(*) FROM relations WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            50,
+            "SELECT count(*) FROM contacts WHERE workspace_id = $1",
+        ),
+        // orders in every status, spread over time
+        (
+            afm,
+            5,
+            "SELECT count(*) FROM orders WHERE workspace_id = $1 AND status = 'draft'",
+        ),
+        (
+            afm,
+            5,
+            "SELECT count(*) FROM orders WHERE workspace_id = $1 AND status = 'open'",
+        ),
+        (
+            afm,
+            150,
+            "SELECT count(*) FROM orders WHERE workspace_id = $1 AND status = 'completed'",
+        ),
+        (
+            afm,
+            5,
+            "SELECT count(*) FROM orders WHERE workspace_id = $1 AND status = 'cancelled'",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM orders WHERE workspace_id = $1 AND status = 'partially_returned'",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM orders WHERE workspace_id = $1 AND status = 'returned'",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM orders WHERE workspace_id = $1 AND status = 'awaiting_payment'",
+        ),
+        (
+            afm,
+            60,
+            "SELECT (extract(epoch FROM max(created_at) - min(created_at)) / 86400)::bigint FROM orders WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            15,
+            "SELECT count(*) FROM order_payments WHERE workspace_id = $1 AND kind = 'payment' AND status = 'paid'",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM order_payments WHERE workspace_id = $1 AND status = 'failed'",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM order_payments WHERE workspace_id = $1 AND status = 'refunded'",
+        ),
+        // invoices, payments, credit notes, overdue
+        (
+            afm,
+            30,
+            "SELECT count(*) FROM invoices WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            3,
+            "SELECT count(*) FROM invoices WHERE workspace_id = $1 AND status = 'draft'",
+        ),
+        (
+            afm,
+            3,
+            "SELECT count(*) FROM invoices WHERE workspace_id = $1 AND status = 'partially_paid'",
+        ),
+        (
+            afm,
+            10,
+            "SELECT count(*) FROM invoices WHERE workspace_id = $1 AND status = 'paid'",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM invoices WHERE workspace_id = $1 AND is_credit",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM invoices WHERE workspace_id = $1 AND status IN ('pending', 'partially_paid') AND due_date < now()",
+        ),
+        (
+            afm,
+            20,
+            "SELECT count(*) FROM invoice_payments WHERE workspace_id = $1",
+        ),
+        // discounts and offers
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM discounts WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            3,
+            "SELECT count(*) FROM special_offers WHERE workspace_id = $1",
+        ),
+        // lots and passports
+        (afm, 8, "SELECT count(*) FROM lots WHERE workspace_id = $1"),
+        (
+            afm,
+            5,
+            "SELECT count(*) FROM lots WHERE workspace_id = $1 AND published_at IS NOT NULL",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM lots WHERE workspace_id = $1 AND status = 'quarantine' AND published_at IS NOT NULL",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM lots WHERE workspace_id = $1 AND status = 'recalled' AND published_at IS NOT NULL",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM lots WHERE workspace_id = $1 AND published_at IS NULL AND passport_draft IS NOT NULL",
+        ),
+        // supply: live, revoked and pending links; received and dispatched transfers
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM supply_links WHERE to_workspace_id = $1 AND revoked_at IS NOT NULL",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM supply_links WHERE from_workspace_id = $1 AND accepted_at IS NULL AND revoked_at IS NULL",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM supply_transfers WHERE to_workspace_id = $1 AND received_at IS NOT NULL",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM supply_transfers WHERE to_workspace_id = $1 AND received_at IS NULL",
+        ),
+        // till: registers, cashiers, a week of shifts and sales
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM till_registers WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            4,
+            "SELECT count(*) FROM till_users WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM till_users WHERE workspace_id = $1 AND NOT active",
+        ),
+        (
+            afm,
+            100,
+            "SELECT count(*) FROM till_sales WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            5,
+            "SELECT count(DISTINCT sold_at::date) FROM till_sales WHERE workspace_id = $1",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM till_sales WHERE workspace_id = $1 AND price_mismatch <> 0",
+        ),
+        (
+            afm,
+            5,
+            "SELECT count(*) FROM drawer_shifts WHERE workspace_id = $1 AND closed_at IS NOT NULL",
+        ),
+        (
+            afm,
+            2,
+            "SELECT count(*) FROM drawer_shifts WHERE workspace_id = $1 AND difference <> 0",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM drawer_shifts WHERE workspace_id = $1 AND closed_at IS NULL",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM cash_vaults WHERE workspace_id = $1",
+        ),
+        // settings
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM app_keys WHERE workspace_id = $1 AND revoked_at IS NOT NULL",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM webhook_endpoints WHERE workspace_id = $1 AND active",
+        ),
+        (
+            afm,
+            1,
+            "SELECT count(*) FROM webhook_endpoints WHERE workspace_id = $1 AND NOT active",
+        ),
+        // farm: people, records, seasons
+        (
+            ruaha,
+            5,
+            "SELECT count(*) FROM farm_villages WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            9,
+            "SELECT count(DISTINCT user_id) FROM farm_memberships WHERE workspace_id = $1 AND role <> 'farmer'",
+        ),
+        (
+            ruaha,
+            1,
+            "SELECT count(*) FROM (SELECT user_id FROM farm_memberships WHERE workspace_id = $1 AND role <> 'farmer' GROUP BY user_id HAVING count(DISTINCT role) > 1) t",
+        ),
+        (
+            ruaha,
+            60,
+            "SELECT count(*) FROM farm_persons WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            40,
+            "SELECT count(*) FROM farm_households WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            40,
+            "SELECT count(*) FROM farms WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            60,
+            "SELECT count(*) FROM farm_plots WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            90,
+            "SELECT count(*) FROM farm_crop_cycles WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            3,
+            "SELECT count(DISTINCT season_label) FROM farm_crop_cycles WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            4,
+            "SELECT count(DISTINCT status) FROM farm_crop_cycles WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            140,
+            "SELECT count(*) FROM farm_harvest_reports WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            40,
+            "SELECT count(*) FROM farm_persons WHERE workspace_id = $1 AND verification = 'verified'",
+        ),
+        (
+            ruaha,
+            60,
+            "SELECT (extract(epoch FROM max(captured_at) - min(captured_at)) / 86400)::bigint FROM farm_persons WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            6,
+            "SELECT count(*) FROM farm_persons WHERE workspace_id = $1 AND user_id IS NOT NULL",
+        ),
+        // surveys and vouchers
+        (
+            ruaha,
+            8,
+            "SELECT count(*) FROM farm_surveys WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            3,
+            "SELECT count(DISTINCT status) FROM farm_surveys WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            12,
+            "SELECT count(*) FROM farm_vouchers WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            3,
+            "SELECT count(*) FROM farm_vouchers WHERE workspace_id = $1 AND status = 'redeemed'",
+        ),
+        (
+            ruaha,
+            1,
+            "SELECT count(*) FROM farm_vouchers WHERE workspace_id = $1 AND status = 'void'",
+        ),
+        (
+            ruaha,
+            1,
+            "SELECT count(*) FROM farm_vouchers WHERE workspace_id = $1 AND status = 'issued' AND expires_at < now()",
+        ),
+        // money to farmers
+        (
+            ruaha,
+            3,
+            "SELECT count(*) FROM farm_supply_batches WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            5,
+            "SELECT count(DISTINCT person_id) FROM farm_passbook_entries WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            4,
+            "SELECT count(*) FROM farm_payouts WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            1,
+            "SELECT count(*) FROM farm_payout_voids WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            2,
+            "SELECT count(*) FROM farm_cash_ledger WHERE workspace_id = $1",
+        ),
+        // energy and the market
+        (
+            ruaha,
+            6,
+            "SELECT count(*) FROM farm_equipment WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            3,
+            "SELECT count(*) FROM farm_loan_products WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            12,
+            "SELECT count(*) FROM farm_pue_requests WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            6,
+            "SELECT count(DISTINCT status) FROM farm_pue_requests WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            4,
+            "SELECT count(*) FROM farm_buyers WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            6,
+            "SELECT count(*) FROM farm_buyer_demands WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            5,
+            "SELECT count(*) FROM farm_opportunities WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            4,
+            "SELECT count(DISTINCT status) FROM farm_opportunities WHERE workspace_id = $1",
+        ),
+        (
+            ruaha,
+            3,
+            "SELECT count(*) FROM lots WHERE workspace_id = $1",
+        ),
+    ];
+    let mut short = Vec::new();
+    for (ws, min, q) in checks {
+        let n = count_in(&pool, ws, q).await;
+        if n < *min {
+            short.push(format!("{ws}: {n} < {min}: {q}"));
+        }
+    }
+    assert!(short.is_empty(), "short:\n{}", short.join("\n"));
+
+    // Every row of the big tables belongs to one of the two demo workspaces, and no order or
+    // invoice of one points at the other's relation, product or warehouse.
+    let (a, r) = (
+        workspace_id(&pool, afm).await,
+        workspace_id(&pool, ruaha).await,
+    );
+    for t in [
+        "products",
+        "orders",
+        "invoices",
+        "lots",
+        "relations",
+        "farm_persons",
+    ] {
+        let stray: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+            "SELECT count(*) FROM {t} WHERE workspace_id NOT IN ($1, $2)"
+        )))
+        .bind(a)
+        .bind(r)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(stray, 0, "{t}");
+    }
+    for q in [
+        "SELECT count(*) FROM orders o JOIN relations x ON x.id = o.relation_id WHERE x.workspace_id <> o.workspace_id",
+        "SELECT count(*) FROM order_lines l JOIN orders o ON o.id = l.order_id JOIN products p ON p.id = l.product_id WHERE p.workspace_id <> o.workspace_id",
+        "SELECT count(*) FROM invoices i JOIN relations x ON x.id = i.relation_id WHERE x.workspace_id <> i.workspace_id",
+        "SELECT count(*) FROM stocks s JOIN warehouses w ON w.id = s.warehouse_id WHERE w.workspace_id <> s.workspace_id",
+    ] {
+        assert_eq!(count(&pool, q).await, 0, "{q}");
+    }
+
+    // Each owner is refused on the other's workspace; a farmer is refused on the shop.
+    let app = common::app(pool.clone());
+    let cred = |role: &str, app_name: &str| {
+        seeded
+            .credentials
+            .iter()
+            .find(|c| c.role == role && c.app.contains(app_name))
+            .unwrap_or_else(|| panic!("{role} {app_name}"))
+    };
+    let mut tokens = Vec::new();
+    for c in [cred("owner", "AFM"), cred("admin", "RUAHA")] {
+        let body = json!({ "email": c.login, "password": c.secret });
+        let (_, res) = send(&app, Method::POST, "/v1/login", Some(body), None).await;
+        tokens.push(res["data"]["access_token"].as_str().unwrap().to_owned());
+    }
+    let farmer = cred("farmer", "RUAHA");
+    let body = json!({ "phone": farmer.login, "password": farmer.secret });
+    let (_, res) = send(&app, Method::POST, "/v1/farm/login", Some(body), None).await;
+    let farmer_token = res["data"]["access_token"].as_str().unwrap().to_owned();
+    for (token, ws) in [(&tokens[0], r), (&tokens[1], a), (&farmer_token, a)] {
+        for tail in ["/products", "/orders", "/lots", "/farm/persons"] {
+            let uri = format!("/v1/workspace/{ws}{tail}");
+            let (status, _) = send(&app, Method::GET, &uri, None, Some(token)).await;
+            assert!(
+                matches!(status, StatusCode::FORBIDDEN | StatusCode::NOT_FOUND),
+                "{uri}: {status}"
+            );
+        }
+    }
 }

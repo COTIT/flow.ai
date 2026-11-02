@@ -173,8 +173,8 @@ async fn ready(
 }
 
 /// The numbering transaction. A second send of one draft waits on the row lock, then finds it
-/// sent (422): no Laravel dedupe window needed.
-async fn number(
+/// sent (422): no Laravel dedupe window needed. The demo seed calls it alone (no renderer there).
+pub(crate) async fn number(
     state: &AppState,
     workspace_id: Uuid,
     user_id: Uuid,
