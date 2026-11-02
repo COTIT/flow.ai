@@ -12,10 +12,14 @@
   },
   "catalog": {
     "title": "Winkel",
-    "empty": "Er zijn nu geen producten te koop.",
+    "empty": "Er zijn nu geen producten te koop",
     "previous": "Vorige",
     "next": "Volgende",
-    "page": "Pagina {page} van {last}"
+    "page": "Pagina {page} van {last}",
+    "emptyWhy": "Er komen regelmatig nieuwe oogsten bij. Kom snel terug.",
+    "pastEnd": "Niets op deze pagina",
+    "pastEndWhy": "Deze pagina ligt voorbij het einde van de catalogus.",
+    "firstPage": "Naar de eerste pagina"
   },
   "product": {
     "inStock": "Op voorraad",
@@ -23,7 +27,9 @@
     "variants": "Maten en opties",
     "back": "Terug naar de winkel",
     "noDescription": "Binnenkort meer over dit product.",
-    "imageSoon": "Foto volgt"
+    "imageSoon": "Foto volgt",
+    "soldOutTitle": "Tijdelijk uitverkocht",
+    "soldOutBody": "Dit product is niet op voorraad. Kom snel terug."
   },
   "errors": {
     "unavailableTitle": "De winkel neemt even pauze",
@@ -31,7 +37,9 @@
     "retry": "Opnieuw proberen",
     "notFoundTitle": "Pagina niet gevonden",
     "notFoundBody": "Deze pagina bestaat niet of is niet meer te koop.",
-    "home": "Naar de winkel"
+    "home": "Naar de winkel",
+    "batchTitle": "We kunnen deze batch niet vinden",
+    "batchBody": "Controleer de code op de pot: misschien is hij verkeerd getypt, of is het paspoort nog niet gepubliceerd."
   },
   "cart": {
     "title": "Je winkelwagen",
@@ -41,19 +49,18 @@
     "add": "In winkelwagen",
     "added": "Toegevoegd aan je winkelwagen.",
     "view": "Bekijk winkelwagen",
-    "empty": "Je winkelwagen is leeg.",
-    "continue": "Verder winkelen",
+    "empty": "Je winkelwagen is leeg",
     "each": "{price} per stuk",
     "less": "Eén {name} minder",
     "more": "Eén {name} meer",
     "remove": "{name} verwijderen",
     "totalAtCheckout": "Het totaal wordt bij het afrekenen berekend: prijzen, btw en voorraad worden bevestigd als je bestelt.",
-    "checkout": "Naar afrekenen"
+    "checkout": "Naar afrekenen",
+    "emptyWhy": "Voeg iets toe uit de winkel, dan zie je het hier.",
+    "browse": "Naar de winkel"
   },
   "checkout": {
     "title": "Afrekenen",
-    "empty": "Je winkelwagen is leeg.",
-    "shop": "Naar de winkel",
     "summary": "Je bestelling",
     "totalNext": "Het totaal, met btw, zie je op de volgende pagina voordat je betaalt.",
     "place": "Bestelling plaatsen",
@@ -72,7 +79,9 @@
       "invalid_input": "Er klopt iets niet in het formulier. Controleer het en probeer opnieuw.",
       "busy": "Het is nu erg druk in de winkel. Probeer het over een paar minuten opnieuw.",
       "unavailable": "We kunnen nu geen bestellingen aannemen. Probeer het over een minuut opnieuw."
-    }
+    },
+    "fieldsTitle": "Controleer de gemarkeerde velden",
+    "orderTitle": "Controleer je bestelling"
   },
   "order": {
     "title": "Je bestelling",
@@ -80,8 +89,8 @@
     "awaiting": "Wacht op betaling.",
     "heldUntil": "Je artikelen zijn gereserveerd tot <time></time>.",
     "paid": "Bedankt! Je betaling is binnen en je bestelling is bevestigd.",
-    "cancelled": "Deze bestelling is verlopen voordat hij betaald was; de artikelen zijn terug op de plank.",
-    "again": "Terug naar je winkelwagen",
+    "cancelled": "Deze bestelling is verlopen voordat hij betaald was",
+    "again": "Opnieuw winkelen",
     "status": "Status: {status}",
     "subtotal": "Subtotaal",
     "vat": "Btw",
@@ -104,6 +113,17 @@
         "title": "Betalen kon niet starten",
         "body": "Er is niets afgeschreven. Probeer het over een minuut opnieuw."
       }
+    },
+    "cancelledBody": "De artikelen zijn terug op de plank. Je kunt ze opnieuw bestellen.",
+    "retry": "Opnieuw proberen",
+    "waitingLong": {
+      "title": "We wachten nog op de betaling",
+      "body": "De betaaldienst heeft hem nog niet bevestigd. Heb je betaald? Controleer het over een minuut opnieuw. Zo niet, gebruik Nu betalen hieronder.",
+      "action": "Opnieuw controleren"
+    },
+    "loadFailed": {
+      "title": "We konden je bestelling niet laden",
+      "body": "Je bestelling is veilig. Probeer het zo opnieuw."
     }
   }
 }

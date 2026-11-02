@@ -10,8 +10,12 @@ import {
   LOT,
   MOCK_ORIGIN,
   MOCK_PORT,
+  BUSY_EMAIL,
+  EXPIRED_EMAIL,
+  FAILING_ORDER,
   LATE_PAYMENT_EMAIL,
   NO_PROVIDER_EMAIL,
+  PROVIDER_DOWN_EMAIL,
   PRODUCT,
   SECRET_BODY,
   STOCK_LIMIT,
@@ -187,7 +191,11 @@ const readJson = (req) =>
 
 function placeOrder(body, key) {
   if (byKey.has(key)) return [201, { data: view(orders.get(byKey.get(key))) }]
+  const email = body.customer?.email ?? ""
+  if (email === BUSY_EMAIL) return [429, { message: "Too many requests." }]
   const errors = {}
+  if (!email.includes("@"))
+    errors["customer.email"] = ["The email must be a valid email address."]
   let total = 0
   for (const [i, line] of (body.lines ?? []).entries()) {
     const product = products.find((p) => p.id === line.product_id)
@@ -206,14 +214,15 @@ function placeOrder(body, key) {
   const order = {
     id: randomUUID(),
     number: `WEB-${++numbers}`,
-    status: "awaiting_payment",
+    status: email === EXPIRED_EMAIL ? "cancelled" : "awaiting_payment",
     subtotal: total,
     vat: 0,
     total,
     paid_at: null,
     expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
-    noProvider: body.customer?.email === NO_PROVIDER_EMAIL,
-    latePayment: body.customer?.email === LATE_PAYMENT_EMAIL,
+    noProvider: email === NO_PROVIDER_EMAIL,
+    providerDown: email === PROVIDER_DOWN_EMAIL,
+    latePayment: email === LATE_PAYMENT_EMAIL,
     reads: 0,
   }
   orders.set(order.id, order)
@@ -255,6 +264,7 @@ createServer(async (req, res) => {
   const orderPath = path.match(
     /^\/v1\/storefront\/orders\/([^/]+)(\/payment)?$/
   )
+  if (orderPath?.[1] === FAILING_ORDER) return send(res, 503, failing)
   if (orderPath) {
     const order = orders.get(orderPath[1])
     if (!order) return send(res, 404, { message: "Not found." })
@@ -273,6 +283,8 @@ createServer(async (req, res) => {
     }
     if (order.noProvider)
       return send(res, 503, { message: "no payment provider configured" })
+    if (order.providerDown)
+      return send(res, 503, { message: "payment provider unavailable" })
     if (order.status !== "awaiting_payment")
       return send(res, 409, { message: "conflict" })
     order.redirect = (await readJson(req)).redirect_url
@@ -284,18 +296,24 @@ createServer(async (req, res) => {
       },
     })
   }
-  if (path === "/v1/storefront/products")
+  if (path === "/v1/storefront/products") {
+    // One page of products; a later page is empty, as the API answers past the end.
+    const page = Number(
+      new URL(req.url, MOCK_ORIGIN).searchParams.get("page") ?? 1
+    )
+    const data = page === 1 ? products : []
     return send(res, 200, {
-      data: products,
+      data,
       meta: {
-        current_page: 1,
-        from: 1,
-        to: products.length,
+        current_page: page,
+        from: data.length ? 1 : null,
+        to: data.length ? products.length : null,
         last_page: 1,
         per_page: 24,
         total: products.length,
       },
     })
+  }
   const product = path.match(/^\/v1\/storefront\/products\/([^/]+)$/)?.[1]
   if (product === PRODUCT.failing) return send(res, 503, failing)
   if (product) {

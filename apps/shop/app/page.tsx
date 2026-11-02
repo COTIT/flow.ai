@@ -2,6 +2,7 @@ import Link from "next/link"
 import { getLocale, getTranslations } from "next-intl/server"
 
 import { buttonVariants } from "@genesy/ui/components/button"
+import { EmptyState } from "@genesy/ui/components/empty-state"
 
 import { ProductCard } from "@/components/product-card"
 import { listProducts } from "@/lib/storefront"
@@ -35,7 +36,22 @@ export default async function CatalogPage({
       </div>
 
       {products.data.length === 0 ? (
-        <p className="text-muted-foreground">{t("catalog.empty")}</p>
+        products.meta.total > 0 ? (
+          <EmptyState
+            title={t("catalog.pastEnd")}
+            description={t("catalog.pastEndWhy")}
+            action={
+              <Link href="/" className={buttonVariants()}>
+                {t("catalog.firstPage")}
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            title={t("catalog.empty")}
+            description={t("catalog.emptyWhy")}
+          />
+        )
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products.data.map((p) => (

@@ -4,6 +4,7 @@ import * as React from "react"
 import { useTranslations } from "next-intl"
 
 import { Button } from "@genesy/ui/components/button"
+import { Notice } from "@genesy/ui/components/notice"
 
 import { payOrder, type PayState } from "@/app/actions"
 
@@ -13,24 +14,26 @@ export function PayButton({ orderId }: { orderId: string }) {
     payOrder,
     {}
   )
+  const failed =
+    state.problem === "provider_down" || state.problem === "unavailable"
   return (
     <form action={action} className="flex flex-col items-start gap-3">
       <input type="hidden" name="order" value={orderId} />
       {state.problem ? (
-        <div
-          role={state.problem === "no_provider" ? "status" : "alert"}
-          className="rounded-lg border border-gold bg-gold/15 p-4"
+        <Notice
+          // Not started for an outside reason: a calm warning. Failed: an error to retry.
+          variant={failed ? "error" : "warning"}
+          title={t(`problem.${state.problem}.title`)}
         >
-          <p className="font-medium">{t(`problem.${state.problem}.title`)}</p>
-          <p className="text-sm">{t(`problem.${state.problem}.body`)}</p>
-        </div>
+          {t(`problem.${state.problem}.body`)}
+        </Notice>
       ) : null}
       <Button
         type="submit"
         size="lg"
         disabled={pending || state.problem === "no_provider"}
       >
-        {t("pay")}
+        {failed ? t("retry") : t("pay")}
       </Button>
     </form>
   )

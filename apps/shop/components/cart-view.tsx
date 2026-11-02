@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl"
 import { MinusIcon, PlusIcon, Trash2Icon } from "lucide-react"
 
 import { Button, buttonVariants } from "@genesy/ui/components/button"
+import { EmptyState } from "@genesy/ui/components/empty-state"
 import { formatMoney } from "@genesy/ui/lib/money"
 
 import { useCart } from "@/lib/use-cart"
@@ -16,12 +17,15 @@ export function CartView() {
   if (!ready) return null
   if (!lines.length)
     return (
-      <div className="flex flex-col items-start gap-4">
-        <p className="text-muted-foreground">{t("empty")}</p>
-        <Link href="/" className={buttonVariants()}>
-          {t("continue")}
-        </Link>
-      </div>
+      <EmptyState
+        title={t("empty")}
+        description={t("emptyWhy")}
+        action={
+          <Link href="/" className={buttonVariants()}>
+            {t("browse")}
+          </Link>
+        }
+      />
     )
 
   return (
