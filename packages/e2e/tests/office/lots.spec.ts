@@ -135,7 +135,10 @@ test("status filter goes to the API", async ({ page, api }) => {
   lotsApi(api)
   await page.goto("/lots")
   await page.getByRole("combobox", { name: "Status" }).selectOption("recalled")
-  await expect(page.getByText("No batches yet.")).toBeVisible()
+  // A filter that finds nothing says so, and offers the way back.
+  await expect(page.getByText("No matches")).toBeVisible()
+  await page.getByRole("button", { name: "Clear filters" }).click()
+  await expect(page.getByRole("link", { name: "ILU-2026-01" })).toBeVisible()
   expect(api.calls.at(-1)?.path).toMatch(/\/lots$/)
 })
 

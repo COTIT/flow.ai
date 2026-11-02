@@ -31,6 +31,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { useTillMoney } from "@/lib/till-money"
+import { Empty, LoadError } from "@/components/states"
 
 export default function VaultsPage() {
   const t = useTranslations()
@@ -118,9 +119,9 @@ export default function VaultsPage() {
       {vaults.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : vaults.isError ? (
-        <ApiError error={vaults.error} fallback={t("common.error")} />
+        <LoadError error={vaults.error} onRetry={() => void vaults.refetch()} />
       ) : vaults.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("till.noVaults")}</p>
+        <Empty title={t("till.noVaults")} />
       ) : (
         <Table>
           <TableHeader>

@@ -45,6 +45,7 @@ import { formatMoney, toMinor } from "@genesy/ui/lib/money"
 import { Field } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
 import { useIdempotencyKey } from "@/lib/idempotency"
+import { LoadError } from "@/components/states"
 
 import { customerName } from "../shared"
 
@@ -97,7 +98,9 @@ export default function OrderPage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (order.isError)
-    return <ApiError error={order.error} fallback={t("common.error")} />
+    return (
+      <LoadError error={order.error} onRetry={() => void order.refetch()} />
+    )
   const o = order.data.data
   const money = (minor: number) =>
     formatMoney(minor, o.decimals, o.currency, locale)

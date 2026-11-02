@@ -30,6 +30,7 @@ import { Input } from "@genesy/ui/components/input"
 import { PassportView } from "@genesy/ui/components/passport-view"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
+import { LoadError } from "@/components/states"
 
 import { ListEditor } from "./list-editor"
 import { bpToPercent, percentToBp, toPublic } from "./to-public"
@@ -54,9 +55,12 @@ export default function PassportPage({
     )
   if (lot.isError || passport.isError)
     return (
-      <ApiError
+      <LoadError
         error={lot.error ?? passport.error}
-        fallback={t("common.error")}
+        onRetry={() => {
+          void lot.refetch()
+          void passport.refetch()
+        }}
       />
     )
   return (

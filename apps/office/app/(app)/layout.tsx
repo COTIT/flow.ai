@@ -13,6 +13,7 @@ import { Button } from "@genesy/ui/components/button"
 import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
+import { LoadError } from "@/components/states"
 
 const nav = [
   { href: "/products", label: "nav.products" },
@@ -74,6 +75,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {t("common.logout")}
         </Button>
       </header>
+      {workspaces.isError ? (
+        <LoadError
+          error={workspaces.error}
+          onRetry={() => void workspaces.refetch()}
+        />
+      ) : null}
       <nav
         aria-label={t("nav.label")}
         className="-mx-1 flex gap-1 overflow-x-auto border-b border-border pb-2"

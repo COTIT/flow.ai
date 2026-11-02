@@ -35,6 +35,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 export default function TillUsersPage() {
   const t = useTranslations()
@@ -58,9 +59,9 @@ export default function TillUsersPage() {
       {users.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : users.isError ? (
-        <ApiError error={users.error} fallback={t("common.error")} />
+        <LoadError error={users.error} onRetry={() => void users.refetch()} />
       ) : users.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("till.noUsers")}</p>
+        <Empty title={t("till.noUsers")} />
       ) : (
         <Table>
           <TableHeader>

@@ -9,7 +9,7 @@ import { LocaleSwitcher } from "@genesy/i18n/locale-switcher"
 import { LoginForm } from "@genesy/ui/components/login-form"
 import { Logo } from "@genesy/ui/components/logo"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
-import { Notice } from "@/components/notice"
+import { Notice } from "@genesy/ui/components/notice"
 
 export default function LoginPage() {
   const t = useTranslations()
@@ -39,7 +39,7 @@ export default function LoginPage() {
       <div className="gold-rule w-full max-w-sm" />
       {expired ? (
         <div className="w-full max-w-sm">
-          <Notice tone="info">{t("session.expired")}</Notice>
+          <Notice title={t("session.expired")} />
         </div>
       ) : null}
       <LoginForm

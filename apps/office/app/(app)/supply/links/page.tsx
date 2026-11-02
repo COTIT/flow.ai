@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 export default function SupplyLinksPage() {
   const t = useTranslations()
@@ -54,7 +55,9 @@ export default function SupplyLinksPage() {
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (links.isError)
-    return <ApiError error={links.error} fallback={t("common.error")} />
+    return (
+      <LoadError error={links.error} onRetry={() => void links.refetch()} />
+    )
   return (
     <>
       <p className="text-sm text-muted-foreground">{t("supply.linksHint")}</p>
@@ -63,7 +66,7 @@ export default function SupplyLinksPage() {
         fallback={t("common.error")}
       />
       {links.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("supply.noLinks")}</p>
+        <Empty title={t("supply.noLinks")} />
       ) : (
         <>
           <Table>

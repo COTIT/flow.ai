@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 import { LotFields } from "../lot-fields"
 import { PackDialog } from "./pack-dialog"
@@ -74,7 +75,7 @@ export default function LotPage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (lot.isError)
-    return <ApiError error={lot.error} fallback={t("common.error")} />
+    return <LoadError error={lot.error} onRetry={() => void lot.refetch()} />
   const current = lot.data.data
 
   return (
@@ -149,7 +150,12 @@ export default function LotPage({
         {events.isPending ? (
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : events.isError ? (
-          <ApiError error={events.error} fallback={t("common.error")} />
+          <LoadError
+            error={events.error}
+            onRetry={() => void events.refetch()}
+          />
+        ) : events.data.data.length === 0 ? (
+          <Empty title={t("lots.noEvents")} />
         ) : (
           <>
             <Table>

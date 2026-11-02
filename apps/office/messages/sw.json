@@ -65,7 +65,8 @@
     "recallTitle": "Rudisha fungu hili?",
     "recallText": "Fungu {code} litaonyeshwa kuwa limerudishwa kwenye ukurasa wake wa umma na kwenye kiungo cha QR cha kila chupa.",
     "recallConfirm": "Rudisha fungu",
-    "passport": "Pasipoti"
+    "passport": "Pasipoti",
+    "noEvents": "Bado hakuna historia."
   },
   "secret": {
     "once": "Nakili siri hii sasa. Inaonyeshwa mara moja tu.",
@@ -369,5 +370,11 @@
   },
   "session": {
     "expired": "Kikao chako kimeisha. Ingia tena ili kuendelea."
+  },
+  "states": {
+    "retry": "Jaribu tena",
+    "noMatches": "Hakuna kinacholingana",
+    "noMatchesText": "Hakuna kinacholingana na vichujio hivi.",
+    "clearFilters": "Futa vichujio"
   }
 }

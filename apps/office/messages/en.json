@@ -65,7 +65,8 @@
     "recallTitle": "Recall this batch?",
     "recallText": "Batch {code} will show as recalled on its public page and on every jar's QR link.",
     "recallConfirm": "Recall batch",
-    "passport": "Passport"
+    "passport": "Passport",
+    "noEvents": "No history yet."
   },
   "secret": {
     "once": "Copy this secret now. It is shown only once.",
@@ -369,5 +370,11 @@
   },
   "session": {
     "expired": "Your session ended. Log in again to carry on."
+  },
+  "states": {
+    "retry": "Try again",
+    "noMatches": "No matches",
+    "noMatchesText": "Nothing fits these filters.",
+    "clearFilters": "Clear filters"
   }
 }

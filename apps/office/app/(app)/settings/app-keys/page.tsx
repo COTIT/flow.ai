@@ -36,6 +36,7 @@ import {
 import { Field } from "@/components/field"
 import { SecretReveal, splitList } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 export default function AppKeysPage() {
   const t = useTranslations()
@@ -64,9 +65,9 @@ export default function AppKeysPage() {
       {keys.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : keys.isError ? (
-        <ApiError error={keys.error} fallback={t("common.error")} />
+        <LoadError error={keys.error} onRetry={() => void keys.refetch()} />
       ) : keys.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("appKeys.empty")}</p>
+        <Empty title={t("appKeys.empty")} />
       ) : (
         <>
           <Table>

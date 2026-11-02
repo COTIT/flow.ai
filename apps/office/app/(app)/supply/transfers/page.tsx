@@ -39,6 +39,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 export default function SupplyTransfersPage() {
   const t = useTranslations()
@@ -57,11 +58,14 @@ export default function SupplyTransfersPage() {
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (transfers.isError)
-    return <ApiError error={transfers.error} fallback={t("common.error")} />
-  if (transfers.data.data.length === 0)
     return (
-      <p className="text-sm text-muted-foreground">{t("supply.noTransfers")}</p>
+      <LoadError
+        error={transfers.error}
+        onRetry={() => void transfers.refetch()}
+      />
     )
+  if (transfers.data.data.length === 0)
+    return <Empty title={t("supply.noTransfers")} />
   return (
     <>
       <Table>

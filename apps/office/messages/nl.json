@@ -65,7 +65,8 @@
     "recallTitle": "Deze batch terugroepen?",
     "recallText": "Batch {code} wordt als teruggeroepen getoond op de publieke pagina en via de QR-link van elke pot.",
     "recallConfirm": "Batch terugroepen",
-    "passport": "Paspoort"
+    "passport": "Paspoort",
+    "noEvents": "Nog geen geschiedenis."
   },
   "secret": {
     "once": "Kopieer dit geheim nu. Het wordt maar één keer getoond.",
@@ -369,5 +370,11 @@
   },
   "session": {
     "expired": "Je sessie is verlopen. Log opnieuw in om verder te gaan."
+  },
+  "states": {
+    "retry": "Opnieuw proberen",
+    "noMatches": "Geen resultaten",
+    "noMatchesText": "Niets past bij deze filters.",
+    "clearFilters": "Filters wissen"
   }
 }

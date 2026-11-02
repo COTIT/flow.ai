@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 export default function InvoicePage({
   params,
@@ -42,7 +43,9 @@ export default function InvoicePage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (invoice.isError)
-    return <ApiError error={invoice.error} fallback={t("common.error")} />
+    return (
+      <LoadError error={invoice.error} onRetry={() => void invoice.refetch()} />
+    )
   const inv = invoice.data.data
   const payments = inv.relationships.payments ?? []
 
@@ -132,9 +135,7 @@ export default function InvoicePage({
       <section className="flex flex-col gap-3">
         <h2 className="heading-2 text-base">{t("invoices.payments")}</h2>
         {payments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("invoices.noPayments")}
-          </p>
+          <Empty title={t("invoices.noPayments")} />
         ) : (
           <Table>
             <TableHeader>

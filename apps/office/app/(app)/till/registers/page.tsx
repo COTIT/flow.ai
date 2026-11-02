@@ -37,6 +37,7 @@ import { Field, selectClass } from "@/components/field"
 import { SecretReveal } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"
+import { Empty, LoadError } from "@/components/states"
 
 export default function RegistersPage() {
   const t = useTranslations()
@@ -91,9 +92,12 @@ export default function RegistersPage() {
       {registers.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : registers.isError ? (
-        <ApiError error={registers.error} fallback={t("common.error")} />
+        <LoadError
+          error={registers.error}
+          onRetry={() => void registers.refetch()}
+        />
       ) : registers.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("till.noRegisters")}</p>
+        <Empty title={t("till.noRegisters")} />
       ) : (
         <>
           <Table>

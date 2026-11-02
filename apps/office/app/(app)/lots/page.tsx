@@ -35,6 +35,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Field, selectClass } from "@/components/field"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 import { LotFields, lotStatuses } from "./lot-fields"
 
@@ -117,9 +118,12 @@ export default function LotsPage({
       {lots.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : lots.isError ? (
-        <ApiError error={lots.error} fallback={t("common.error")} />
+        <LoadError error={lots.error} onRetry={() => void lots.refetch()} />
       ) : lots.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("lots.empty")}</p>
+        <Empty
+          title={t("lots.empty")}
+          onClear={q || status ? () => router.push("?") : undefined}
+        />
       ) : (
         <>
           <Table>

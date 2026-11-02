@@ -12,7 +12,10 @@ import {
   useWebhooksList,
   useWebhooksUpdate,
 } from "@genesy/api-client/endpoints/webhooks"
-import type { WebhookEndpointResource, WebhookEvent } from "@genesy/api-client/model"
+import type {
+  WebhookEndpointResource,
+  WebhookEvent,
+} from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
@@ -37,6 +40,7 @@ import {
 import { Field } from "@/components/field"
 import { SecretReveal, splitList } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
+import { Empty, LoadError } from "@/components/states"
 
 export default function WebhooksPage() {
   const t = useTranslations()
@@ -64,9 +68,9 @@ export default function WebhooksPage() {
       {hooks.isPending ? (
         <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
       ) : hooks.isError ? (
-        <ApiError error={hooks.error} fallback={t("common.error")} />
+        <LoadError error={hooks.error} onRetry={() => void hooks.refetch()} />
       ) : hooks.data.data.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("webhooks.empty")}</p>
+        <Empty title={t("webhooks.empty")} />
       ) : (
         <>
           <Table>

@@ -40,6 +40,7 @@ import {
 } from "@genesy/ui/components/table"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Field, selectClass } from "@/components/field"
+import { Empty, LoadError } from "@/components/states"
 
 type Named = { name?: string; bin_code?: string; bin_name?: string } | null
 
@@ -72,7 +73,9 @@ export default function ProductPage({
       <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
     )
   if (product.isError)
-    return <ApiError error={product.error} fallback={t("common.error")} />
+    return (
+      <LoadError error={product.error} onRetry={() => void product.refetch()} />
+    )
   const p = product.data.data
 
   return (
@@ -193,9 +196,9 @@ export default function ProductPage({
         {stock.isPending ? (
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : stock.isError ? (
-          <ApiError error={stock.error} fallback={t("common.error")} />
+          <LoadError error={stock.error} onRetry={() => void stock.refetch()} />
         ) : stock.data.data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("stock.empty")}</p>
+          <Empty title={t("stock.empty")} />
         ) : (
           <Table>
             <TableHeader>
@@ -241,11 +244,12 @@ export default function ProductPage({
         {movements.isPending ? (
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : movements.isError ? (
-          <ApiError error={movements.error} fallback={t("common.error")} />
+          <LoadError
+            error={movements.error}
+            onRetry={() => void movements.refetch()}
+          />
         ) : movements.data.data.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("stock.noMovements")}
-          </p>
+          <Empty title={t("stock.noMovements")} />
         ) : (
           <>
             <Table>
