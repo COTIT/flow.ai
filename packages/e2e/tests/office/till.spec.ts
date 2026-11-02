@@ -10,9 +10,11 @@ function tillApi(api: FakeApi) {
       warehouse_id: "wh-shop",
       currency_id: usd.id,
       key_prefix: "gtk_ab12",
+      paired_at: null as string | null,
       created_at: "2026-10-01T08:00:00Z",
     },
   ]
+  let codes = 0
   const users = [
     {
       id: "tu-1",
@@ -41,6 +43,19 @@ function tillApi(api: FakeApi) {
       return {
         status: 201,
         body: { data: { ...reg, key: "gtk_cd34_DEVICE_SECRET" } },
+      }
+    })
+    .on("POST", "/workspace/:ws/till/registers/:id/pairing", () => {
+      codes += 1
+      return {
+        status: 201,
+        body: {
+          data: {
+            code: codes === 1 ? "K7Q4-MZPX" : "R2D2-C3P0",
+            workspace: "afm",
+            expires_at: "2026-11-02T10:10:00Z",
+          },
+        },
       }
     })
     .on("POST", "/workspace/:ws/till/registers/:id/key", ({ params }) => {
@@ -142,7 +157,7 @@ function tillApi(api: FakeApi) {
   return { salesQueries }
 }
 
-test("register: device key shown once on create; rotate asks first", async ({
+test("register: create leads to a pairing code; no device key is ever shown", async ({
   page,
   api,
 }) => {
@@ -150,12 +165,14 @@ test("register: device key shown once on create; rotate asks first", async ({
   await page.goto("/till")
   await expect(page).toHaveURL(/\/till\/registers$/)
   await expect(page.getByRole("cell", { name: "Iringa shop" })).toBeVisible()
+  await expect(page.getByText("Not paired")).toBeVisible()
 
   await page.getByRole("button", { name: "New register" }).click()
   const dialog = page.getByRole("dialog")
   await dialog.getByLabel("Name").fill("Shop till 2")
   await dialog.getByRole("button", { name: "Save" }).click()
-  await expect(dialog.getByLabel("Secret")).toHaveText("gtk_cd34_DEVICE_SECRET")
+  await expect(dialog.getByLabel("Pairing code")).toHaveText("K7Q4-MZPX")
+  await expect(dialog.getByText("afm")).toBeVisible()
   expect(api.callsTo("POST", "/workspace/:ws/till/registers")[0]?.body).toEqual(
     {
       name: "Shop till 2",
@@ -163,11 +180,31 @@ test("register: device key shown once on create; rotate asks first", async ({
       currency_id: null,
     }
   )
-  await page.keyboard.press("Escape")
-  await expect(page.getByText("gtk_cd34_DEVICE_SECRET")).toHaveCount(0)
+  await expect(page.getByText(/gtk_/)).toHaveCount(0)
 
+  await dialog.getByRole("button", { name: "New code" }).click()
+  await expect(dialog.getByLabel("Pairing code")).toHaveText("R2D2-C3P0")
+  await page.keyboard.press("Escape")
+  await expect(page.getByText("R2D2-C3P0")).toHaveCount(0)
+})
+
+test("register: pair a till, and disconnect asks first and shows no key", async ({
+  page,
+  api,
+}) => {
+  tillApi(api)
+  await page.goto("/till/registers")
   const row = page.getByRole("row", { name: /Shop till 1/ })
-  await row.getByRole("button", { name: "New device key" }).click()
+  await row.getByRole("button", { name: "Pair a till" }).click()
+  await expect(
+    page.getByRole("dialog").getByLabel("Pairing code")
+  ).toHaveText("K7Q4-MZPX")
+  expect(
+    api.callsTo("POST", "/workspace/:ws/till/registers/:id/pairing")
+  ).toHaveLength(1)
+  await page.keyboard.press("Escape")
+
+  await row.getByRole("button", { name: "Disconnect till" }).click()
   await page
     .getByRole("alertdialog")
     .getByRole("button", { name: "Cancel" })
@@ -177,17 +214,44 @@ test("register: device key shown once on create; rotate asks first", async ({
     api.callsTo("POST", "/workspace/:ws/till/registers/:id/key")
   ).toHaveLength(0)
 
-  await row.getByRole("button", { name: "New device key" }).click()
+  await row.getByRole("button", { name: "Disconnect till" }).click()
   await page
     .getByRole("alertdialog")
-    .getByRole("button", { name: "New device key" })
+    .getByRole("button", { name: "Disconnect till" })
     .click()
-  await expect(page.getByRole("dialog").getByLabel("Secret")).toHaveText(
-    "gtk_ef56_NEW_SECRET"
-  )
-  await page.keyboard.press("Escape")
-  await expect(page.getByText("gtk_ef56…")).toBeVisible()
-  await expect(page.getByText("gtk_ef56_NEW_SECRET")).toHaveCount(0)
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "The till on Shop till 1 is disconnected.",
+    })
+  ).toBeVisible()
+  await expect(page.getByText(/gtk_/)).toHaveCount(0)
+})
+
+test.describe("pairing without rights", () => {
+  test.use({
+    allow: {
+      responses: [
+        { url: "/v1/workspace/w1/till/registers/reg-1/pairing", status: 403 },
+      ],
+    },
+  })
+
+  test("shows the error and no code", async ({ page, api }) => {
+    tillApi(api)
+    api.on("POST", "/workspace/:ws/till/registers/:id/pairing", () => ({
+      status: 403,
+      body: { message: "This action is unauthorized." },
+    }))
+    await page.goto("/till/registers")
+    await page
+      .getByRole("row", { name: /Shop till 1/ })
+      .getByRole("button", { name: "Pair a till" })
+      .click()
+    await expect(
+      page.getByRole("dialog").getByRole("alert")
+    ).toContainText("This action is unauthorized.")
+    await expect(page.getByLabel("Pairing code")).toHaveCount(0)
+  })
 })
 
 test("till users: add, reset PIN, deactivate (cancel sends nothing)", async ({
