@@ -11,9 +11,10 @@
 | The runner mounts `/var/run/docker.sock` (prod's socket) into every job container, which GitHub hard-codes | The mount is harmless only because `ci-runner` is not in the `docker` group. **Never add it.** `verify.sh` checks this from inside a container. |
 | CI reaches prod over the network (Postgres sits on 172.16.x) | An iptables owner match on `ci-runner` rejects this host's own addresses, 10/8, 172.16/12, 192.168/16 and link-local. DNS and the internet stay open. Rootless Docker also has host loopback disabled. |
 | CI reads prod files or secrets | `/home/deploy` is `750`. The runner gets no secrets: the workflow uses only `GITHUB_TOKEN`, read-only. |
-| CI fills the disk | Everything CI writes lives on a **40 GB file-backed disk** at `/srv/genesy-ci` (`nodev,nosuid`). The folder underneath is immutable, so nothing lands on prod's disk if the mount fails. Caches are capped: cargo target 10 GB, registry 3 GB, pnpm store 5 GB. A daily timer prunes images and build cache. |
+| CI fills the disk | Everything CI writes lives on an **80 GB file-backed disk** at `/srv/genesy-ci` (`nodev,nosuid`). The folder underneath is immutable, so nothing lands on prod's disk if the mount fails. Caches are capped: cargo target 10 GB, registry 3 GB, pnpm store 5 GB, Trivy database 1 GB, image build cache 12 GB. A daily timer prunes images and trims the build cache. |
 | CI starves prod of CPU or RAM | `user-<uid>.slice`: at most 3 of 4 cores and 6 GB RAM, with low CPU/IO weight so prod wins when both are busy. |
 | Fork PRs run code here | The workflow runs only on pushes to `main` and on PRs from this repo. The runner is registered to `COTIT/genesy` only. |
+| Image builds touch prod | The `images` job builds release images on the CI user's rootless Docker (its socket is mounted into that one job only), inside the same CPU, RAM and disk limits. It runs on pushes to `main` only, never for PRs. |
 | Two jobs at once | One runner means one job at a time. `concurrency` also cancels older runs of the same PR. |
 
 Leftovers: the runner removes each job's containers and network itself. The job-started hook (`cleanup.sh`) also wipes anything a crashed job left before the next one starts. It runs before the job's containers exist, so it is safe; the whole rootless daemon belongs to CI. The completed hook is not used because it would run before the runner stops its own containers.
@@ -66,6 +67,15 @@ Leftovers: the runner removes each job's containers and network itself. The job-
   ```bash
   sudo -u ci-runner -H env XDG_RUNTIME_DIR=/run/user/$(id -u ci-runner) systemctl --user restart docker
   ```
+
+- Grow the CI disk (from 40 GB to 80 GB on a box set up before the image builds). Online, while the runner is idle:
+  ```bash
+  sudo fallocate -l 80G /var/lib/genesy-ci.img
+  loopdev="$(findmnt -no SOURCE /srv/genesy-ci)"
+  sudo losetup -c "$loopdev" && sudo resize2fs "$loopdev"
+  df -h /srv/genesy-ci
+  ```
+- After changing a file in this folder, copy the kit again and re-run `setup.sh` (step 1 and 3 above); it installs the new `cleanup.sh` into `/usr/local/lib/genesy-ci`.
 
 ## Teardown
 
