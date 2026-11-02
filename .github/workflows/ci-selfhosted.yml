@@ -1,0 +1,293 @@
+# ROLLBACK ONLY, run by hand (Actions > ci-selfhosted > Run workflow): the old CI on the
+# self-hosted VPS runner. Delete with deploy/ci-runner/ once hosted ci.yml has been green twice.
+# CI on the self-hosted runner on the VPS (setup: deploy/ci-runner/README.md).
+# Every job runs in a container on the runner's own rootless Docker; the runner
+# refuses jobs without one. No deploy job here: `images` pushes, the VPS pulls.
+name: ci-selfhosted
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-selfhosted-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  SQLX_OFFLINE: "true"
+  CARGO_INCREMENTAL: "0"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  changes:
+    # Same-repo pushes and PRs only: fork code never runs on the VPS.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, genesy-ci]
+    timeout-minutes: 5
+    container:
+      # Has git; rust:*-slim has none, so the api checkout can't diff.
+      image: node:24-trixie
+    outputs:
+      api: ${{ steps.diff.outputs.api }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: diff
+        name: Did the API or CI config change?
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        # Base missing (first push, force push, all-zero sha) or diff failing = run api.
+        run: |
+          api=true
+          if [ -n "$BASE" ] && git fetch -q --depth=1 origin "$BASE" && files=$(git diff --name-only "$BASE" HEAD); then
+            printf '%s\n' "$files" | grep -qE '^(apps/api/|\.github/workflows/|rust-toolchain)' || api=false
+          fi
+          echo "api=$api" | tee -a "$GITHUB_OUTPUT"
+
+  api:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: [self-hosted, genesy-ci]
+    timeout-minutes: 60
+    container:
+      # Same image as apps/api/Dockerfile.
+      image: rust:1.99-slim-trixie
+      volumes:
+        - genesy-ci-cargo-registry:/usr/local/cargo/registry
+        - genesy-ci-cargo-target:/ci-target
+        - genesy-ci-tools:/opt/ci-tools
+    services:
+      # Throwaway DB on the job's private network (no host port); removed with the job.
+      # Data in RAM and no crash safety: nothing here outlives the job.
+      postgres:
+        image: postgres:18-alpine
+        command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off -c max_connections=200
+        env:
+          POSTGRES_PASSWORD: ci-only
+          # No SCRAM handshake per test connection (it runs in unoptimised test-build crypto).
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --tmpfs /var/lib/postgresql:rw,size=2g
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://postgres:ci-only@postgres:5432/postgres
+      # Outside the checkout, which is wiped each run; size capped by deploy/ci-runner/cleanup.sh.
+      CARGO_TARGET_DIR: /ci-target
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup component add rustfmt clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      # These two need an empty database, so they run before template1 is migrated.
+      - name: Migrations fill an empty database
+        run: cargo test --tests -- migrations_fill_an_empty_database migrate_fills_an_empty_database
+      # Every #[sqlx::test] DB is created from template1: migrated once here, each test clones
+      # it and sqlx finds nothing left to apply (instead of replaying every migration per test).
+      - name: Migrate template1 once
+        run: DATABASE_URL="${DATABASE_URL%/*}/template1" "$CARGO_TARGET_DIR/debug/genesy-360-api" migrate
+      - run: cargo test --no-fail-fast -- --skip migrations_fill_an_empty_database --skip migrate_fills_an_empty_database
+      - name: OpenAPI spec is fresh
+        run: cargo test --test openapi committed_spec
+      - name: No internal names in the spec
+        run: test "$(grep -ciE 'laravel|vimdesk' openapi.json)" = 0
+      - name: Known vulnerabilities
+        run: |
+          cargo install --locked --root /opt/ci-tools cargo-audit@0.22.2
+          /opt/ci-tools/bin/cargo-audit audit
+
+  web:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, genesy-ci]
+    timeout-minutes: 45
+    container:
+      # Full image: has git (checkout, generate:check's git diff) and corepack.
+      image: node:24-trixie
+      volumes:
+        - genesy-ci-pnpm-store:/pnpm-store
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      # apps/*/lib/api.ts refuses to load without it; nothing is called at build.
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile --store-dir /pnpm-store
+      # --only: skip @genesy/api#openapi (it sets UPDATE_OPENAPI, which tests/openapi.rs
+      # refuses under CI). Uses the committed openapi.json; the api job proves it fresh.
+      - name: Generated API client matches openapi.json
+        run: pnpm turbo run generate:check --filter=@genesy/api-client --only
+      - run: pnpm turbo run typecheck lint test build --filter='!@genesy/api' --concurrency=2
+      - name: Shell tests (deploy/)
+        run: for t in deploy/*.test.sh deploy/*/*.test.sh; do bash "$t"; done
+
+  e2e:
+    # Headless browser tests (packages/e2e) against production builds and a mock API.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, genesy-ci]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    container:
+      # Same version as @playwright/test in packages/e2e; browsers come preinstalled.
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      volumes:
+        - genesy-ci-pnpm-store:/pnpm-store
+    env:
+      CI: "true"
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      # The field app's equipment and catalogue screens sit behind a build-time release flag; e2e checks them.
+      VITE_FEATURE_RESOURCES: "on"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The Playwright image's Node no longer ships corepack; install the pinned pnpm from package.json.
+      - run: npm install -g "pnpm@$(node -p 'require("./package.json").packageManager.split("@")[1]')"
+      - run: pnpm install --frozen-lockfile --store-dir /pnpm-store
+      - run: pnpm turbo run e2e
+      - name: Upload report and traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            packages/e2e/playwright-report/
+            packages/e2e/test-results/
+          retention-days: 7
+
+  images:
+    # Release images for the VPS, built once per green main commit and pulled by the deploy
+    # (deploy/*/README.md "Deploy"). Never for PRs: this is the only job that can push packages.
+    # A skipped api (no API change) counts as green; failed or cancelled blocks.
+    if: >-
+      !cancelled() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      && needs.changes.result == 'success'
+      && (needs.api.result == 'success' || needs.api.result == 'skipped')
+      && needs.web.result == 'success' && needs.e2e.result == 'success'
+    needs: [changes, api, web, e2e]
+    runs-on: [self-hosted, genesy-ci]
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+    container:
+      # Docker CLI with buildx and compose, same Docker version as the VPS.
+      image: docker:29.9.1-cli@sha256:6fae2214c3121a28d5aa639d09032f61310b7c9c75ffbad1025f261a1b621800
+      volumes:
+        # The CI user's own rootless Docker, never prod's: its build cache stays warm between runs.
+        # 1001 = `id -u ci-runner` on the VPS (2026-11-02); check it again if that user is re-created.
+        - /run/user/1001/docker.sock:/run/ci-docker.sock
+        - genesy-ci-tools:/opt/ci-tools
+        - genesy-ci-trivy-cache:/trivy-cache
+      # Container env, not job env: job env also reaches the runner's own `docker exec` on the
+      # host, where /run/ci-docker.sock doesn't exist.
+      env:
+        DOCKER_HOST: unix:///run/ci-docker.sock
+    env:
+      GENESY_REF: ${{ github.sha }}
+      # The compose files need these to load; nothing is started here.
+      TRAEFIK_NETWORK: unused
+      TRAEFIK_ENTRYPOINT: unused
+      TRAEFIK_CERTRESOLVER: unused
+      MAIL_FROM: unused
+      TRIVY_VERSION: 0.76.0
+      TRIVY_SHA256: e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7
+      TRIVY_CACHE_DIR: /trivy-cache
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Build args live in the compose files only. One service at a time: the CI slice has 6 GB.
+      # Staging builds all six (api, office and field as -staging); production adds its own three.
+      - name: Build
+        run: |
+          for s in api shop office till landing field; do
+            docker compose -f deploy/staging/docker-compose.staging.yml build "$s"
+          done
+          for s in api office field; do
+            docker compose -f deploy/production/docker-compose.production.yml build "$s"
+          done
+          { docker compose -f deploy/staging/docker-compose.staging.yml config --images
+            docker compose -f deploy/production/docker-compose.production.yml config --images
+          } | grep '^ghcr.io/cotit/' | sort -u > images.txt
+          cat images.txt
+      # Before the scan: the web images start (their own HEALTHCHECK turns healthy), and the Next
+      # images carry no package managers (deploy/images/next.Dockerfile drops them).
+      - name: Web images start, Next images have no package managers
+        run: |
+          fail=0
+          grep -E '/genesy-(shop|office|till|landing|field):' images.txt > web.txt
+          while read -r img; do
+            case "$img" in
+              */genesy-field:*) ;;
+              *)
+                docker run --rm --entrypoint sh "$img" -c '
+                  found=0
+                  for t in npm npx corepack yarn yarnpkg; do command -v "$t" && found=1; done
+                  for d in /usr/local/lib/node_modules /opt/yarn-*; do [ -e "$d" ] && echo "$d" && found=1; done
+                  exit "$found"' || { echo "FAIL $img: package manager left (above)"; fail=1; }
+                ;;
+            esac
+            c="$(docker run -d "$img")"
+            status=starting
+            for _ in $(seq 18); do
+              status="$(docker inspect -f '{{.State.Health.Status}}' "$c")"
+              [ "$status" = starting ] || break
+              sleep 5
+            done
+            if [ "$status" = healthy ]; then echo "ok   $img healthy"; else
+              echo "FAIL $img: $status"; docker logs --tail 30 "$c"; fail=1
+            fi
+            docker rm -f "$c" > /dev/null
+          done < web.txt
+          exit "$fail"
+      - name: Install Trivy
+        run: |
+          bin="/opt/ci-tools/trivy-$TRIVY_VERSION"
+          if [ ! -x "$bin" ]; then
+            wget -qO /tmp/trivy.tgz "https://github.com/aquasecurity/trivy/releases/download/v$TRIVY_VERSION/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+            echo "$TRIVY_SHA256  /tmp/trivy.tgz" | sha256sum -c -
+            tar -xzf /tmp/trivy.tgz -C /tmp trivy && mv /tmp/trivy "$bin"
+          fi
+      # Every image is scanned before any is pushed. Accepted findings: .trivyignore.
+      - name: Scan (HIGH or CRITICAL with a fix fails) and write SBOMs
+        run: |
+          trivy="/opt/ci-tools/trivy-$TRIVY_VERSION"
+          mkdir -p sbom
+          fail=0
+          while read -r img; do
+            name="${img#ghcr.io/cotit/}"; name="${name%%:*}"
+            case "$img" in *-staging) name="$name-staging" ;; esac
+            "$trivy" image --image-src docker --scanners vuln --severity HIGH,CRITICAL \
+              --ignore-unfixed --exit-code 1 "$img" || fail=1
+            "$trivy" image --image-src docker --format cyclonedx --output "sbom/$name.cdx.json" "$img"
+          done < images.txt
+          exit "$fail"
+      - name: Upload SBOMs
+        if: success() || failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom/
+          retention-days: 90
+      - name: Push
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          while read -r img; do docker push -q "$img"; done < images.txt
+      - name: Log out and drop the local images (the build cache stays)
+        if: always()
+        run: |
+          docker logout ghcr.io || true
+          if [ -f images.txt ]; then xargs -r docker image rm < images.txt || true; fi

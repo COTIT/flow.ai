@@ -1,4 +1,6 @@
-# CI runner on the VPS
+# CI runner on the VPS (retired)
+
+**Retired 2026-11-02:** CI moved to GitHub-hosted runners (root `README.md`, "CI runners and cost"). This kit only serves `.github/workflows/ci-selfhosted.yml`, a by-hand rollback. Both are deleted, and the VPS cleaned up, once hosted CI has been green twice.
 
 `.github/workflows/ci.yml` runs on a self-hosted GitHub Actions runner on the VPS (`ssh genesy`). That machine also runs prod, so the runner is walled off from prod. A good comparison is a guest flat with its own front door, its own meter and no key to the main house.
 

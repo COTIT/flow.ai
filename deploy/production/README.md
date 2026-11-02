@@ -92,7 +92,7 @@ Back up `secrets/credentials_key` off the VPS, for example in the password manag
 
 ## Deploy from main (after CI is green)
 
-Only deploy a commit whose `ci` workflow passed on `main`, including its `images` job, which pushed `ghcr.io/cotit/genesy-<app>:<sha>`, and that staging already runs. The VPS can't reach GitHub's git, so the commit comes over in a git bundle:
+Only deploy a commit whose `ci` workflow passed on `main`, including its two `images` jobs (api and web), which pushed `ghcr.io/cotit/genesy-<app>:<sha>`, and that staging already runs. The VPS can't reach GitHub's git, so the commit comes over in a git bundle:
 
 ```bash
 # On the laptop
@@ -135,7 +135,7 @@ It restores the `pre-<sha>` dump taken before the deploy, after a fresh `pre-res
 
 ## Fallback: build on the VPS
 
-Only when the `images` job or GHCR is down. Set `IMAGE_SOURCE=build` in `.env.production` and deploy as above: `deploy.sh` builds the images here instead of pulling them. That takes 10–30 minutes and runs on prod's Docker, outside CI's limits. Set it back to `pull` afterwards.
+Only when the `images` jobs or GHCR are down. Set `IMAGE_SOURCE=build` in `.env.production` and deploy as above: `deploy.sh` builds the images here instead of pulling them. That takes 10–30 minutes and runs on prod's Docker. Set it back to `pull` afterwards.
 
 After a build, the prune caps the build cache at 10 GB (`docker builder prune --max-used-space 10GB`) instead of wiping it. The kept cache makes the next build fast: an unchanged API is a cache hit, a changed one rebuilds only its own crate, and the web images reuse their package store.
 
