@@ -1,16 +1,13 @@
-import { randomUUID } from "node:crypto"
-
-import type { APIRequestContext, Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
 import {
-  APP_KEY,
-  MOCK_ORIGIN,
   NO_PROVIDER_EMAIL,
   PRODUCT,
   STOCK_LIMIT,
   VARIANT,
 } from "../../mock/fixtures.mjs"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
+import { placeOrder } from "./orders"
 
 // Each test drives one stage and starts from seeded state for the rest: on a loaded
 // machine the whole purchase in one test overran its budget at whatever step it was on.
@@ -39,31 +36,6 @@ async function seedCart(page: Page, quantity: number) {
     if (!localStorage.getItem("genesy.cart"))
       localStorage.setItem("genesy.cart", v)
   }, JSON.stringify(cart))
-}
-
-/** Places a web order straight on the mock storefront API; returns its id. */
-async function placeOrder(
-  request: APIRequestContext,
-  email = "buyer@e2e.test"
-) {
-  const response = await request.post(`${MOCK_ORIGIN}/v1/storefront/orders`, {
-    headers: {
-      Authorization: `Bearer ${APP_KEY}`,
-      "Idempotency-Key": randomUUID(),
-    },
-    data: {
-      lines: [
-        {
-          product_id: PRODUCT.honey,
-          product_variant_id: VARIANT.honey500,
-          quantity: "1",
-        },
-      ],
-      customer: { email, name: "Ada Buyer" },
-    },
-  })
-  expect(response.status()).toBe(201)
-  return ((await response.json()) as { data: { id: string } }).data.id
 }
 
 async function fillCustomer(page: Page, email = "buyer@e2e.test") {

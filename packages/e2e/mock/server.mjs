@@ -10,6 +10,7 @@ import {
   LOT,
   MOCK_ORIGIN,
   MOCK_PORT,
+  LATE_PAYMENT_EMAIL,
   NO_PROVIDER_EMAIL,
   PRODUCT,
   SECRET_BODY,
@@ -212,6 +213,8 @@ function placeOrder(body, key) {
     paid_at: null,
     expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
     noProvider: body.customer?.email === NO_PROVIDER_EMAIL,
+    latePayment: body.customer?.email === LATE_PAYMENT_EMAIL,
+    reads: 0,
   }
   orders.set(order.id, order)
   byKey.set(key, order.id)
@@ -255,7 +258,19 @@ createServer(async (req, res) => {
   if (orderPath) {
     const order = orders.get(orderPath[1])
     if (!order) return send(res, 404, { message: "Not found." })
-    if (!orderPath[2]) return send(res, 200, { data: view(order) })
+    if (!orderPath[2]) {
+      // The provider's webhook "arrives" between the first and second read.
+      if (
+        order.latePayment &&
+        ++order.reads >= 2 &&
+        order.status === "awaiting_payment"
+      )
+        Object.assign(order, {
+          status: "open",
+          paid_at: new Date().toISOString(),
+        })
+      return send(res, 200, { data: view(order) })
+    }
     if (order.noProvider)
       return send(res, 503, { message: "no payment provider configured" })
     if (order.status !== "awaiting_payment")
