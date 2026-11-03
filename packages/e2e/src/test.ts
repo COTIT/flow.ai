@@ -84,6 +84,16 @@ export async function expectTapTargets(
   page: Page,
   { min = 44, within = "body" }: { min?: number; within?: string } = {}
 ) {
+  // Measure settled boxes: a sheet scaling in reports its buttons a fraction too small.
+  // Endless animations (skeleton pulse) never finish, so only finite ones are awaited.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished.catch(() => undefined))
+    )
+  )
   const small = await page.locator(within).first().evaluate((root, min) => {
     const controls = root.querySelectorAll<HTMLElement>(
       'a[href], button, input:not([type="hidden"]), select, textarea, summary, [role="button"], [role="tab"], [role="checkbox"], [role="switch"], [role="menuitem"]'
