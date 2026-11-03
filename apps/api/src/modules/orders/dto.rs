@@ -8,7 +8,10 @@ use serde_json::Value;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use crate::http::json::{Rules, Validate, present};
+use crate::{
+    http::json::{Rules, Validate, present},
+    modules::lots::public::Link,
+};
 
 /// Most lines one order may have.
 pub const LINES_MAX: usize = 50;
@@ -367,6 +370,22 @@ pub struct OrderLineResource {
     pub deducted: String,
     #[schema(example = "0.00")]
     pub returned: String,
+    /// Lots the order holds or took units of for this line's product, by lot code. Stock is
+    /// held and taken per product, so lines of the same product show the same list.
+    pub lots: Vec<OrderLineLot>,
+    /// The variant's first image, else the product's, as a signed link; null without one.
+    #[schema(required = true)]
+    pub image: Option<Link>,
+}
+
+/// A lot an order line's product came from.
+#[derive(Serialize, ToSchema)]
+pub struct OrderLineLot {
+    pub id: Uuid,
+    pub code: String,
+    /// Units held or taken from it, 2 decimals.
+    #[schema(example = "2.00")]
+    pub quantity: String,
 }
 
 /// An order with its lines. Totals in minor units of `currency`.
@@ -420,6 +439,12 @@ pub struct OrderResource {
     /// What the API would accept on this order now, from the rules its action routes enforce.
     /// Status and payment rules only, not the caller's permissions.
     pub allowed_actions: Vec<OrderAction>,
+    /// Sum of the lines' quantities, 2 decimals.
+    #[schema(example = "4.00")]
+    pub units: String,
+    /// `cash` or `card` (till sale), `online` (a paid web payment); null otherwise.
+    #[schema(required = true, example = "card")]
+    pub payment_method: Option<String>,
     pub lines: Vec<OrderLineResource>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

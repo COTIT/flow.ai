@@ -563,6 +563,7 @@ export * from './orderAction';
 export * from './orderCreated';
 export * from './orderEventResource';
 export * from './orderEventResourceMeta';
+export * from './orderLineLot';
 export * from './orderLineResource';
 export * from './orderResource';
 export * from './orderResourceCustomer';

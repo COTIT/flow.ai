@@ -30,12 +30,13 @@ fn parse(id: &str) -> Result<Uuid, AppError> {
 /// Signed links of the stored files among `ids`; none on a server without storage.
 async fn links(
     state: &AppState,
+    db: impl sqlx::PgExecutor<'_>,
     workspace_id: Uuid,
     ids: &[Uuid],
 ) -> Result<HashMap<Uuid, Link>, AppError> {
     let mut out = HashMap::new();
     if let Ok(store) = files_service::store(state) {
-        for f in files::find_many(&state.db, workspace_id, ids).await? {
+        for f in files::find_many(db, workspace_id, ids).await? {
             let (url, expires_at) = files_service::signed_link(store, &f)?;
             out.insert(f.id, Link::new(url, expires_at));
         }
@@ -49,7 +50,7 @@ async fn resources(
     rows: &[ImageRow],
 ) -> Result<Vec<ProductImageResource>, AppError> {
     let ids: Vec<Uuid> = rows.iter().map(|r| r.file_id).collect();
-    let links = links(state, workspace_id, &ids).await?;
+    let links = links(state, &state.db, workspace_id, &ids).await?;
     Ok(rows
         .iter()
         .map(|r| ProductImageResource::new(r, links.get(&r.file_id).cloned()))
@@ -119,9 +120,21 @@ pub async fn storefront_links(
     workspace_id: Uuid,
     product_ids: &[Uuid],
 ) -> Result<HashMap<(Uuid, Option<Uuid>), Vec<Link>>, AppError> {
-    let rows = repo::for_products(&state.db, workspace_id, product_ids).await?;
+    let mut conn = state.db.acquire().await?;
+    storefront_links_on(state, &mut conn, workspace_id, product_ids).await
+}
+
+/// `storefront_links` read on `conn`, so a caller inside a transaction needs no second
+/// connection.
+pub async fn storefront_links_on(
+    state: &AppState,
+    conn: &mut sqlx::PgConnection,
+    workspace_id: Uuid,
+    product_ids: &[Uuid],
+) -> Result<HashMap<(Uuid, Option<Uuid>), Vec<Link>>, AppError> {
+    let rows = repo::for_products(&mut *conn, workspace_id, product_ids).await?;
     let ids: Vec<Uuid> = rows.iter().map(|r| r.file_id).collect();
-    let links = links(state, workspace_id, &ids).await?;
+    let links = links(state, &mut *conn, workspace_id, &ids).await?;
     let mut out: HashMap<(Uuid, Option<Uuid>), Vec<Link>> = HashMap::new();
     for r in &rows {
         if let Some(l) = links.get(&r.file_id) {

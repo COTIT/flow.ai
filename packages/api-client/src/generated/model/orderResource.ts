@@ -50,6 +50,11 @@ export interface OrderResource {
   /** @nullable */
   paid_at: string | null;
   /**
+     * `cash` or `card` (till sale), `online` (a paid web payment); null otherwise.
+     * @nullable
+     */
+  payment_method: string | null;
+  /**
      * When every line was first picked in full; null until then (and on older orders).
      * @nullable
      */
@@ -67,6 +72,8 @@ export interface OrderResource {
   /** Per-rate VAT: `{"vats": [{"rate": "21", "base": 1000, "vat": 210}]}`. */
   summary: OrderResourceSummary;
   total: number;
+  /** Sum of the lines' quantities, 2 decimals. */
+  units: string;
   updated_at: string;
   vat: number;
   warehouse_id: string;

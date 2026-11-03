@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.order_id AS \"order_id!\", s.method AS \"method!\" FROM till_sales s\n           WHERE s.workspace_id = $1 AND s.order_id = ANY($2)\n           UNION\n           SELECT p.order_id, 'online' FROM order_payments p\n           WHERE p.workspace_id = $1 AND p.order_id = ANY($2) AND p.kind = 'payment'\n             AND p.status = 'paid'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "method!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "116df598a50683a9fc2010e303053eb29a3b3379bc99dfbe55a52d283acc254c"
+}

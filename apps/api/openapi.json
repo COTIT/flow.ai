@@ -12115,6 +12115,29 @@
         ],
         "type": "object"
       },
+      "OrderLineLot": {
+        "description": "A lot an order line's product came from.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "Units held or taken from it, 2 decimals.",
+            "example": "2.00",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "OrderLineResource": {
         "description": "One order line.",
         "properties": {
@@ -12130,6 +12153,17 @@
             "format": "uuid",
             "type": "string"
           },
+          "image": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Link",
+                "description": "The variant's first image, else the product's, as a signed link; null without one."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "line_excl": {
             "description": "Minor units: line total excl VAT after discount.",
             "format": "int64",
@@ -12139,6 +12173,13 @@
             "description": "Minor units: this line's own VAT (display only; order VAT is per rate).",
             "format": "int64",
             "type": "integer"
+          },
+          "lots": {
+            "description": "Lots the order holds or took units of for this line's product, by lot code. Stock is\nheld and taken per product, so lines of the same product show the same list.",
+            "items": {
+              "$ref": "#/components/schemas/OrderLineLot"
+            },
+            "type": "array"
           },
           "picked": {
             "example": "0.00",
@@ -12194,7 +12235,9 @@
           "tracked",
           "picked",
           "deducted",
-          "returned"
+          "returned",
+          "lots",
+          "image"
         ],
         "type": "object"
       },
@@ -12294,6 +12337,14 @@
               "null"
             ]
           },
+          "payment_method": {
+            "description": "`cash` or `card` (till sale), `online` (a paid web payment); null otherwise.",
+            "example": "card",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "picked_at": {
             "description": "When every line was first picked in full; null until then (and on older orders).",
             "format": "date-time",
@@ -12336,6 +12387,11 @@
             "format": "int64",
             "type": "integer"
           },
+          "units": {
+            "description": "Sum of the lines' quantities, 2 decimals.",
+            "example": "4.00",
+            "type": "string"
+          },
           "updated_at": {
             "format": "date-time",
             "type": "string"
@@ -12374,6 +12430,8 @@
           "picked_at",
           "invoice_id",
           "allowed_actions",
+          "units",
+          "payment_method",
           "lines",
           "created_at",
           "updated_at"

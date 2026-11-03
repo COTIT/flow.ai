@@ -53,6 +53,15 @@ Every order resource (get, list, each action's answer) lists the actions the API
 
 Every write takes an optional `Idempotency-Key` (1–255 visible characters): a retry of the same request replays the first answer, another request under the key is a 422, another member's key is never theirs.
 
+## Order and line extras
+
+Every order resource (get, list, action answers) also carries, loaded in three statements per page:
+
+- `units`: the sum of the lines' quantities, 2 decimals.
+- `payment_method`: `cash` or `card` for a till sale, `online` once a web payment is paid; null otherwise (office orders are paid through their invoice).
+- `lines[].lots`: `[{id, code, quantity}]`, the lots the order holds (reservations) or took (ledger decreases) for the line's product, by lot code; no-lot stock is not listed. Stock is held and taken per product, so two lines of one product show the same list. A draft holds nothing (`[]`).
+- `lines[].image`: `{url, expires_at}` of the variant's first image, else the product's; null without one or on a server without file storage.
+
 ## Create body
 
 ```json

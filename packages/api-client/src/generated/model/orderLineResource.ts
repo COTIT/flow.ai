@@ -5,6 +5,8 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { Link } from './link';
+import type { OrderLineLot } from './orderLineLot';
 
 /**
  * One order line.
@@ -13,10 +15,16 @@ export interface OrderLineResource {
   deducted: string;
   discount_percentage: string;
   id: string;
+  image: Link | null;
   /** Minor units: line total excl VAT after discount. */
   line_excl: number;
   /** Minor units: this line's own VAT (display only; order VAT is per rate). */
   line_vat: number;
+  /**
+     * Lots the order holds or took units of for this line's product, by lot code. Stock is
+     * held and taken per product, so lines of the same product show the same list.
+     */
+  lots: OrderLineLot[];
   picked: string;
   product_id: string;
   /** @nullable */

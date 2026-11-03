@@ -597,3 +597,19 @@ async fn a_till_sale_is_created_and_completed_by_its_till_user(pool: PgPool) {
         .await;
     assert_eq!(o["data"]["confirmed_at"], o["data"]["completed_at"]);
 }
+
+#[sqlx::test]
+async fn till_orders_carry_their_payment_method(pool: PgPool) {
+    let w = world(pool).await;
+    let (_, cash_sale) = post(&w, &w.t1, &sale("m-1", basket(&w), cash(5000))).await;
+    let card = json!({ "method": "card" });
+    let (_, card_sale) = post(&w, &w.t1, &sale("m-2", basket(&w), card)).await;
+    let orders = w.api.with_base("/orders");
+    for (s, method) in [(cash_sale, "cash"), (card_sale, "card")] {
+        let id = s["data"]["order_id"].as_str().unwrap();
+        let (_, o) = orders
+            .call(Method::GET, &format!("/{id}"), None, &orders.owner)
+            .await;
+        assert_eq!(o["data"]["payment_method"], method);
+    }
+}

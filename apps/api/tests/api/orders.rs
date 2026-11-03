@@ -996,3 +996,119 @@ async fn events_stay_in_their_workspace_and_a_gone_member_loses_their_name(pool:
         .await;
     assert_eq!(s, StatusCode::FORBIDDEN, "needs order.view");
 }
+
+#[sqlx::test]
+async fn lines_show_their_lots_and_image_and_the_order_its_units(pool: PgPool) {
+    let w = world(pool).await;
+    let jam = w
+        .api
+        .with_base("/products")
+        .create(json!({ "name": "Jam", "price": "4" }), "product_id")
+        .await;
+    let lots = w.api.with_base("/lots");
+    let mut ids = Vec::new();
+    for (code, expires, q) in [("JAM-A", "2027-01-01", "2"), ("JAM-B", "2027-06-01", "5")] {
+        let lot = lots
+            .create(
+                json!({ "product_id": jam, "code": code, "expires_on": expires }),
+                "id",
+            )
+            .await;
+        let (s, res) = lots
+            .call(
+                Method::POST,
+                &format!("/{lot}/stock-mutations"),
+                Some(json!({ "warehouse_id": w.main, "quantity": q })),
+                &lots.owner,
+            )
+            .await;
+        assert_eq!(s, StatusCode::OK, "{res}");
+        ids.push(lot);
+    }
+    let id = draft(&w, json!([line(&jam, "3"), line(&w.honey, "1")])).await;
+    let get = |w: &W, id: String| {
+        let api = w.api.with_base("/orders");
+        async move {
+            let (s, o) = api
+                .call(Method::GET, &format!("/{id}"), None, &api.owner)
+                .await;
+            assert_eq!(s, StatusCode::OK, "{o}");
+            o["data"].clone()
+        }
+    };
+    let o = get(&w, id.clone()).await;
+    assert_eq!(o["units"], "4.00");
+    assert_eq!(
+        o["payment_method"],
+        Value::Null,
+        "an office order isn't paid here"
+    );
+    assert_eq!(o["lines"][0]["lots"], json!([]), "a draft holds nothing");
+    assert_eq!(o["lines"][0]["image"], Value::Null);
+
+    act(&w, &id, "confirm").await;
+    let held = json!([
+        { "id": ids[0], "code": "JAM-A", "quantity": "2.00" },
+        { "id": ids[1], "code": "JAM-B", "quantity": "1.00" },
+    ]);
+    let o = get(&w, id.clone()).await;
+    assert_eq!(o["lines"][0]["lots"], held, "held, earliest expiry first");
+    assert_eq!(
+        o["lines"][1]["lots"],
+        json!([]),
+        "honey has no-lot stock only"
+    );
+
+    pick_all(&w, &id).await;
+    let (s, o) = act(&w, &id, "complete").await;
+    assert_eq!(s, StatusCode::OK, "{o}");
+    assert_eq!(
+        o["data"]["lines"][0]["lots"], held,
+        "taken from the same lots"
+    );
+
+    let file = w
+        .api
+        .with_base("/files")
+        .create(
+            json!({ "upload": "iVBORw0KGgo=", "document_name": "jam.png", "public": 1 }),
+            "file_id",
+        )
+        .await;
+    let (s, res) = w
+        .api
+        .with_base("/products")
+        .call(
+            Method::PUT,
+            &format!("/{jam}/images"),
+            Some(json!({ "images": [{ "file_id": file }] })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let o = get(&w, id.clone()).await;
+    assert!(
+        o["lines"][0]["image"]["url"]
+            .as_str()
+            .unwrap()
+            .contains("jam.png"),
+        "{o}"
+    );
+    assert_eq!(o["lines"][1]["image"], Value::Null);
+    let (_, list) = call(&w, Method::GET, "", None).await;
+    let row = list["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == id.as_str())
+        .unwrap()
+        .clone();
+    assert_eq!(row["lines"][0]["lots"], held, "list = get");
+    assert_eq!(row["units"], "4.00");
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, _) = eve
+        .call(Method::GET, &format!("/{id}"), None, &eve.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}

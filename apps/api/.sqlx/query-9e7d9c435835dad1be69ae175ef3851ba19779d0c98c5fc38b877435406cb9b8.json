@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT x.order_id AS \"order_id!\", x.product_id AS \"product_id!\",\n                  l.id AS lot_id, l.code, sum(x.q)::numeric(19,2) AS \"quantity!\"\n           FROM (SELECT m.related_id AS order_id, m.product_id, m.lot_id, -m.quantity_change AS q\n                 FROM stock_movements m\n                 WHERE m.workspace_id = $1 AND m.related_domain = 'order'\n                   AND m.related_id = ANY($2) AND m.lot_id IS NOT NULL\n                   AND m.quantity_change < 0\n                 UNION ALL\n                 SELECT r.related_id, r.product_id, s.lot_id, r.quantity\n                 FROM stock_reservations r\n                 JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id\n                 WHERE r.workspace_id = $1 AND r.related_domain = 'order'\n                   AND r.related_id = ANY($2) AND s.lot_id IS NOT NULL) x\n           JOIN lots l ON l.workspace_id = $1 AND l.id = x.lot_id\n           GROUP BY x.order_id, x.product_id, l.id, l.code\n           ORDER BY l.code, l.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "product_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "9e7d9c435835dad1be69ae175ef3851ba19779d0c98c5fc38b877435406cb9b8"
+}

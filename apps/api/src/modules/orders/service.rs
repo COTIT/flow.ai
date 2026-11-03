@@ -20,16 +20,18 @@ use crate::{
             self,
             dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
         },
+        lots::public::Link,
         orders::{
             dto::{
-                LineInput, LinesQuantity, OrderAction, OrderCreated, OrderInput, OrderLineResource,
-                OrderPatch, OrderResource,
+                LineInput, LinesQuantity, OrderAction, OrderCreated, OrderInput, OrderLineLot,
+                OrderLineResource, OrderPatch, OrderResource,
             },
             payments::{Paid, paid_totals},
             repo::{self, LineRow, NewLine, OrderRow},
             trail,
         },
         pricing::engine,
+        product_images::service as product_images,
         products, settings,
         stock::{
             repo::Cause,
@@ -425,14 +427,66 @@ async fn paid_of(conn: &mut PgConnection, workspace_id: Uuid, id: Uuid) -> Resul
 }
 
 /// The order with its lines as a resource.
-pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
+/// What a page of orders shows beyond its rows: payment method, lots per (order, product),
+/// first image per (product, variant).
+#[derive(Default)]
+pub struct Extras {
+    methods: HashMap<Uuid, String>,
+    lots: HashMap<(Uuid, Uuid), Vec<OrderLineLot>>,
+    images: HashMap<(Uuid, Option<Uuid>), Link>,
+}
+
+impl Extras {
+    /// Loaded for `orders` and their `lines`: three statements per page.
+    pub async fn load(
+        state: &AppState,
+        conn: &mut PgConnection,
+        workspace_id: Uuid,
+        orders: &[Uuid],
+        lines: &[LineRow],
+    ) -> Result<Self, AppError> {
+        let mut x = Self::default();
+        if orders.is_empty() {
+            return Ok(x);
+        }
+        x.methods = repo::payment_methods(&mut *conn, workspace_id, orders)
+            .await?
+            .into_iter()
+            .collect();
+        for l in repo::order_lots(&mut *conn, workspace_id, orders).await? {
+            x.lots
+                .entry((l.order_id, l.product_id))
+                .or_default()
+                .push(OrderLineLot {
+                    id: l.lot_id,
+                    code: l.code,
+                    quantity: format!("{:.2}", l.quantity),
+                });
+        }
+        let mut products: Vec<Uuid> = lines.iter().map(|l| l.product_id).collect();
+        products.sort_unstable();
+        products.dedup();
+        let links =
+            product_images::storefront_links_on(state, conn, workspace_id, &products).await?;
+        x.images = links
+            .into_iter()
+            .filter_map(|(k, v)| v.into_iter().next().map(|l| (k, l)))
+            .collect();
+        Ok(x)
+    }
+}
+
+pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid, x: &Extras) -> OrderResource {
     let q = |d: Decimal| format!("{d:.2}");
+    let units = q(lines.iter().map(|l| l.quantity).sum());
     let allowed_actions = OrderAction::ALL
         .into_iter()
         .filter(|a| check(*a, &o, &lines, paid).is_ok())
         .collect();
     OrderResource {
         allowed_actions,
+        units,
+        payment_method: x.methods.get(&o.id).cloned(),
         id: o.id,
         number: o.number,
         status: o.status,
@@ -473,6 +527,23 @@ pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
                 picked: q(l.picked),
                 deducted: q(l.deducted),
                 returned: q(l.returned),
+                lots: x
+                    .lots
+                    .get(&(o.id, l.product_id))
+                    .map_or_else(Vec::new, |v| {
+                        v.iter()
+                            .map(|t| OrderLineLot {
+                                id: t.id,
+                                code: t.code.clone(),
+                                quantity: t.quantity.clone(),
+                            })
+                            .collect()
+                    }),
+                image: l
+                    .product_variant_id
+                    .and_then(|v| x.images.get(&(l.product_id, Some(v))))
+                    .or_else(|| x.images.get(&(l.product_id, None)))
+                    .cloned(),
             })
             .collect(),
         created_at: o.created_at,
@@ -482,6 +553,7 @@ pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
 
 /// The order as `{data: ...}`, read in `conn`.
 pub async fn data(
+    state: &AppState,
     conn: &mut PgConnection,
     workspace_id: Uuid,
     id: Uuid,
@@ -491,7 +563,8 @@ pub async fn data(
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&mut *conn, workspace_id, &[id]).await?;
     let paid = paid_of(conn, workspace_id, id).await?;
-    serde_json::to_value(json!({ "data": resource(o, lines, paid) }))
+    let x = Extras::load(state, conn, workspace_id, &[id], &lines).await?;
+    serde_json::to_value(json!({ "data": resource(o, lines, paid, &x) }))
         .map_err(|e| AppError::Internal(e.to_string()))
 }
 
@@ -572,10 +645,13 @@ pub async fn get(
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&state.db, workspace_id, &[id]).await?;
     let paid = paid_totals(&state.db, workspace_id, &[id]).await?;
+    let mut conn = state.db.acquire().await?;
+    let x = Extras::load(state, &mut conn, workspace_id, &[id], &lines).await?;
     Ok(resource(
         o,
         lines,
         paid.get(&id).copied().unwrap_or_default(),
+        &x,
     ))
 }
 
@@ -592,8 +668,11 @@ pub async fn list(
         total = repo::count(&state.db, workspace_id, status).await?;
     }
     let ids: Vec<Uuid> = rows.iter().map(|o| o.id).collect();
+    let all = repo::lines(&state.db, workspace_id, &ids).await?;
+    let mut conn = state.db.acquire().await?;
+    let x = Extras::load(state, &mut conn, workspace_id, &ids, &all).await?;
     let mut by_order: HashMap<Uuid, Vec<LineRow>> = HashMap::new();
-    for l in repo::lines(&state.db, workspace_id, &ids).await? {
+    for l in all {
         by_order.entry(l.order_id).or_default().push(l);
     }
     let paid = paid_totals(&state.db, workspace_id, &ids).await?;
@@ -602,7 +681,7 @@ pub async fn list(
         .map(|o| {
             let lines = by_order.remove(&o.id).unwrap_or_default();
             let p = paid.get(&o.id).copied().unwrap_or_default();
-            resource(o, lines, p)
+            resource(o, lines, p, &x)
         })
         .collect();
     Ok((data, total))
@@ -644,7 +723,7 @@ where
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&mut *tx, workspace_id, &[id]).await?;
     step(&mut tx, o, lines).await?;
-    let answer = ok_json(&data(&mut tx, workspace_id, id).await?);
+    let answer = ok_json(&data(state, &mut tx, workspace_id, id).await?);
     idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
     tx.commit().await?;
     Ok(answer)

@@ -767,3 +767,16 @@ async fn web_order_events_name_the_shop_key_and_the_staff(pool: PgPool) {
     assert_eq!(t.last().unwrap(), &("expired".to_owned(), Value::Null));
     assert_eq!(order(&w, &late).await["confirmed_at"], Value::Null);
 }
+
+#[sqlx::test]
+async fn a_paid_web_order_says_online(pool: PgPool) {
+    let w = world(pool).await;
+    let (open, _) = awaiting(&w, 1).await;
+    assert_eq!(
+        order(&w, &open).await["payment_method"],
+        Value::Null,
+        "not paid yet"
+    );
+    let id = paid(&w, 1).await;
+    assert_eq!(order(&w, &id).await["payment_method"], "online");
+}
