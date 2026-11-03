@@ -502,4 +502,7 @@ pub struct FarmerCreditsPage {
     /// allow-list; null when it shows none (no supply lineage, or `village` not shared).
     #[schema(required = true, example = 1)]
     pub farmer_groups: Option<i64>,
+    /// Those groups, exactly as the public page shows them: village, farmer count (null below
+    /// 3) and harvest window, under the link's allow-list. Never names, shares or amounts.
+    pub farmers: Vec<crate::modules::lots::public::PublicFarmerGroup>,
 }

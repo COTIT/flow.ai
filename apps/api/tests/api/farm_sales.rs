@@ -594,6 +594,26 @@ async fn the_shop_reads_its_lots_farmer_credits_without_farm_data(pool: PgPool) 
         ["at", "jars", "kind", "order_id", "order_number", "till_ref"]
     );
     assert_eq!(res["farmer_groups"], 1, "the public page's village groups");
+    let groups = res["farmers"].as_array().unwrap();
+    assert_eq!(groups.len(), 1, "{res}");
+    let mut keys: Vec<&str> = groups[0]
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
+    keys.sort_unstable();
+    assert_eq!(
+        keys,
+        ["farmers", "harvest_end", "harvest_start", "village"],
+        "the passport's group, nothing more"
+    );
+    assert!(groups[0]["village"].is_string());
+    assert_eq!(
+        groups[0]["farmers"],
+        Value::Null,
+        "2 farmers: below 3, no count"
+    );
     assert_eq!(res["meta"]["total"], 3);
     let body = res.to_string();
     for secret in [
@@ -651,6 +671,7 @@ async fn a_lot_without_farmers_has_no_credits(pool: PgPool) {
     assert_eq!(status, StatusCode::OK, "{res}");
     assert_eq!(res["data"], json!([]));
     assert_eq!(res["farmer_groups"], Value::Null);
+    assert_eq!(res["farmers"], json!([]));
 }
 
 /// Each lot names where it came from: the packed lot its parent and pack, the received lot its

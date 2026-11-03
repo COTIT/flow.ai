@@ -7,6 +7,7 @@
  */
 import type { FarmerCreditResource } from './farmerCreditResource';
 import type { Meta } from './meta';
+import type { PublicFarmerGroup } from './publicFarmerGroup';
 
 /**
  * GET /lots/{lot}/farmer-credits: a page of credits and the farmer groups the public page
@@ -20,5 +21,10 @@ export interface FarmerCreditsPage {
      * @nullable
      */
   farmer_groups: number | null;
+  /**
+     * Those groups, exactly as the public page shows them: village, farmer count (null below
+     * 3) and harvest window, under the link's allow-list. Never names, shares or amounts.
+     */
+  farmers: PublicFarmerGroup[];
   meta: Meta;
 }

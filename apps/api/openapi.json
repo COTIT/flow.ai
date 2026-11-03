@@ -7808,6 +7808,13 @@
               "null"
             ]
           },
+          "farmers": {
+            "description": "Those groups, exactly as the public page shows them: village, farmer count (null below\n3) and harvest window, under the link's allow-list. Never names, shares or amounts.",
+            "items": {
+              "$ref": "#/components/schemas/PublicFarmerGroup"
+            },
+            "type": "array"
+          },
           "meta": {
             "$ref": "#/components/schemas/Meta"
           }
@@ -7815,7 +7822,8 @@
         "required": [
           "data",
           "meta",
-          "farmer_groups"
+          "farmer_groups",
+          "farmers"
         ],
         "type": "object"
       },
