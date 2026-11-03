@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { SaleLine } from './saleLine';
 
 /**
  * A till sale as booked.
@@ -17,6 +18,8 @@ export interface SaleResource {
   client_ref: string;
   /** Paid: cash rounded to the currency's step, card = total. */
   due: number;
+  /** The booked lines, in order, for the receipt. */
+  lines: SaleLine[];
   method: string;
   /** Lines charged at another unit price than the catalog's; counts even when they offset. */
   mismatched_lines: number;

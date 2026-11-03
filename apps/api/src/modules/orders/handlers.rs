@@ -8,17 +8,19 @@ use axum::{
 
 use crate::{
     AppState,
-    error::{AppError, UnprocessableBody},
+    error::{AppError, UnprocessableBody, ValidationErrorBody},
     http::{
         list::{Page, Paginated},
         response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
     idempotency::{Answer, KeyOnly, Keyed},
+    modules::lots::dto::PageQuery,
     modules::orders::{
         dto::{
-            CreateOrderRequest, LinesQuantityRequest, ListQuery, OrderCreated, OrderResource,
-            RefundCreated, RefundRequest, STATUSES, UpdateOrderRequest,
+            CreateOrderRequest, LinesQuantityRequest, ListQuery, OrderCreated, OrderEventResource,
+            OrderResource, RefundCreated, RefundRequest, STATUSES, SalesSummary, SummaryQuery,
+            UpdateOrderRequest,
         },
         payments, service,
     },
@@ -328,4 +330,59 @@ pub async fn refund(
         key,
     )
     .await
+}
+
+/// GET /orders/{order}/events -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/orders/{order}/events", tag = "orders",
+    operation_id = "orders_events", summary = "List an order's events",
+    description = "Who did what to the order, newest first. Only actions since the trail exists are listed; an older order may have none.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("order" = Uuid, Path, description = "Order id"),
+        PageQuery,
+    ),
+    responses(
+        (status = 200, body = Paginated<OrderEventResource>, description = "One page, newest first"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `order.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or order, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn events(
+    State(state): State<AppState>,
+    access: Can<OrderView>,
+    Path((_, id)): OrderPath,
+    Query(query): Query<PageQuery>,
+) -> Result<Json<Paginated<OrderEventResource>>, AppError> {
+    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let (rows, total) =
+        service::events(&state, access.workspace_id, &id, page.size, page.offset()).await?;
+    let data = rows.into_iter().map(Into::into).collect();
+    Ok(Json(Paginated::new(data, total, page)))
+}
+
+/// GET /sales-summary -> `{data: {from, to, source, currencies}}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/sales-summary", tag = "orders",
+    operation_id = "orders_sales_summary", summary = "Sales in a time range, per currency",
+    description = "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `refunded_total` the provider refunds of those orders that went through. One row per currency.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), SummaryQuery),
+    responses(
+        (status = 200, body = Envelope<SalesSummary>, description = "One row per currency sold in"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `order.list`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, or unknown `source`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn sales_summary(
+    State(state): State<AppState>,
+    access: Can<OrderList>,
+    Query(query): Query<SummaryQuery>,
+) -> Result<Data<SalesSummary>, AppError> {
+    let range = query.range()?;
+    Ok(Data(
+        service::sales_summary(&state, access.workspace_id, range).await?,
+    ))
 }

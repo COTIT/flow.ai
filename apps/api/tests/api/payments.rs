@@ -443,6 +443,16 @@ async fn a_late_payment_without_stock_is_refunded_exactly_once(pool: PgPool) {
         .await,
         1
     );
+    assert_eq!(
+        count(
+            &w,
+            "SELECT count(*) FROM order_events WHERE kind = 'refunded' AND user_id IS NULL
+             AND (meta->>'auto')::bool"
+        )
+        .await,
+        1,
+        "the owed refund is on the trail once, by the system"
+    );
 }
 
 #[sqlx::test]
@@ -696,4 +706,129 @@ async fn a_paid_web_order_lowers_the_stock_the_till_sees(pool: PgPool) {
         stocks.to_string().contains("-2.00"),
         "the office ledger shows the sale: {stocks}"
     );
+}
+
+/// `(kind, actor)` of an order's events, oldest first.
+async fn trail(w: &W, id: &str) -> Vec<(String, Value)> {
+    let (s, res) = w
+        .api
+        .call(Method::GET, &format!("/{id}/events"), None, &w.api.owner)
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let mut out: Vec<(String, Value)> = res["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (e["kind"].as_str().unwrap().to_owned(), e["actor"].clone()))
+        .collect();
+    out.reverse();
+    out
+}
+
+#[sqlx::test]
+async fn web_order_events_name_the_shop_key_and_the_staff(pool: PgPool) {
+    let w = world(pool).await;
+    let id = paid(&w, 2).await;
+    let o = order(&w, &id).await;
+    assert!(o["confirmed_at"].is_string(), "paid = confirmed: {o}");
+    let t = trail(&w, &id).await;
+    assert_eq!(t[0].0, "created");
+    assert_eq!(t[0].1["type"], "app_key");
+    assert_eq!(t[0].1["name"], "Web shop");
+    assert_eq!(
+        t[1],
+        ("paid".to_owned(), Value::Null),
+        "the provider: no actor"
+    );
+    assert_eq!(t.len(), 2);
+
+    let (s, res) = w
+        .api
+        .call(
+            Method::POST,
+            &format!("/{id}/refunds"),
+            Some(json!({ "amount": 500 })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let t = trail(&w, &id).await;
+    assert_eq!(t[2].0, "refunded");
+    assert_eq!(t[2].1["name"], "Ada Lovelace");
+    let (_, res) = w
+        .api
+        .call(Method::GET, &format!("/{id}/events"), None, &w.api.owner)
+        .await;
+    assert_eq!(res["data"][0]["meta"]["amount"], 500);
+
+    let (late, _) = awaiting(&w, 1).await;
+    expire(&w, &late).await;
+    let t = trail(&w, &late).await;
+    assert_eq!(t.last().unwrap(), &("expired".to_owned(), Value::Null));
+    assert_eq!(order(&w, &late).await["confirmed_at"], Value::Null);
+}
+
+#[sqlx::test]
+async fn a_paid_web_order_says_online(pool: PgPool) {
+    let w = world(pool).await;
+    let (open, _) = awaiting(&w, 1).await;
+    assert_eq!(
+        order(&w, &open).await["payment_method"],
+        Value::Null,
+        "not paid yet"
+    );
+    let id = paid(&w, 1).await;
+    assert_eq!(order(&w, &id).await["payment_method"], "online");
+}
+
+#[sqlx::test]
+async fn sales_summary_shows_refunds_apart_from_gross(pool: PgPool) {
+    let w = world(pool).await;
+    let id = paid(&w, 2).await;
+    let (s, res) = w
+        .api
+        .call(
+            Method::POST,
+            &format!("/{id}/refunds"),
+            Some(json!({ "amount": 500 })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let now = chrono::Utc::now();
+    let fmt = |d: chrono::DateTime<chrono::Utc>| d.format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let range = format!(
+        "from={}&to={}",
+        fmt(now - chrono::Duration::days(1)),
+        fmt(now + chrono::Duration::days(1))
+    );
+    let get = |w: &W| {
+        let uri = format!(
+            "/v1/workspace/{}/sales-summary?{range}&source=storefront",
+            w.api.ws
+        );
+        let (app, token) = (w.api.app.clone(), w.api.owner.clone());
+        async move { send(&app, Method::GET, &uri, None, Some(&token)).await }
+    };
+    let (s, res) = get(&w).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["currencies"][0]["gross_total"], 2500);
+    assert_eq!(
+        res["data"]["currencies"][0]["refunded_total"], 0,
+        "not refunded until the provider says so"
+    );
+    let pid: String = sqlx::query_scalar(
+        "SELECT provider_id FROM order_payments WHERE kind = 'refund' AND order_id = $1::uuid",
+    )
+    .bind(&id)
+    .fetch_one(&w.api.pool)
+    .await
+    .unwrap();
+    w.fake.set_status(&pid, Status::Refunded);
+    notify(&w, &pid).await;
+    drain(&w).await;
+    let (_, res) = get(&w).await;
+    assert_eq!(res["data"]["currencies"][0]["orders"], 1);
+    assert_eq!(res["data"]["currencies"][0]["gross_total"], 2500);
+    assert_eq!(res["data"]["currencies"][0]["refunded_total"], 500);
 }

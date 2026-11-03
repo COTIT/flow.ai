@@ -689,3 +689,95 @@ async fn farm_ops_dispatch_and_plain_members_do_not(pool: PgPool) {
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
 }
+
+#[sqlx::test]
+async fn the_transfer_list_filters_by_direction_and_status(pool: PgPool) {
+    let c = chain(pool).await;
+    let (_, res) = pack(&c, &c.raw, packing(&c, "ILU-J-1", "10", "7.50")).await;
+    let jar = res["data"]["id"].as_str().unwrap().to_owned();
+    let s = shop(&c, json!(["village"])).await;
+    let (_, res) = dispatch(&c, &jar, &s.link, "4").await;
+    let transfer = res["data"]["id"].as_str().unwrap().to_owned();
+    let total = |ws: String, token: String, q: &'static str| {
+        let f = &c.f;
+        async move {
+            let tail = format!("/supply-transfers{q}");
+            let (status, res) = a_call(f, &ws, Method::GET, &tail, None, &token).await;
+            assert_eq!(status, StatusCode::OK, "{q}: {res}");
+            res["meta"]["total"].clone()
+        }
+    };
+    let (a, a_ws) = (s.a.clone(), s.a_ws.clone());
+    let (r, r_ws) = (c.f.owner.clone(), c.f.ws.clone());
+
+    let arriving = "?direction=incoming&status=dispatched";
+    assert_eq!(
+        total(a_ws.clone(), a.clone(), arriving).await,
+        1,
+        "A's arriving"
+    );
+    assert_eq!(total(r_ws.clone(), r.clone(), arriving).await, 0);
+    assert_eq!(
+        total(
+            r_ws.clone(),
+            r.clone(),
+            "?direction=outgoing&status=dispatched"
+        )
+        .await,
+        1
+    );
+    assert_eq!(total(a_ws.clone(), a.clone(), "?status=received").await, 0);
+
+    let a_product = a_create(
+        &c.f,
+        &s,
+        "/products",
+        json!({ "name": "Jar", "price": 10 }),
+        "product_id",
+    )
+    .await;
+    let a_wh = a_create(
+        &c.f,
+        &s,
+        "/warehouses",
+        json!({ "name": "Hub" }),
+        "warehouse_id",
+    )
+    .await;
+    let body =
+        json!({ "product_id": a_product, "code": "AFM-1", "warehouse_id": a_wh, "quantity": "4" });
+    let tail = format!("/supply-transfers/{transfer}/receive");
+    let (status, _) = a_call(&c.f, &a_ws, Method::POST, &tail, Some(body), &a).await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(total(a_ws.clone(), a.clone(), arriving).await, 0);
+    assert_eq!(total(a_ws.clone(), a.clone(), "?status=received").await, 1);
+    assert_eq!(
+        total(
+            r_ws.clone(),
+            r.clone(),
+            "?direction=outgoing&status=received"
+        )
+        .await,
+        1
+    );
+
+    let (third, third_ws) = signup(&c.f.app, "owner@third.test", "third").await;
+    assert_eq!(
+        total(third_ws.clone(), third.clone(), "?status=received").await,
+        0
+    );
+    assert_eq!(total(third_ws, third, "?direction=incoming").await, 0);
+
+    for q in ["?status=sent", "?direction=both"] {
+        let (status, res) = a_call(
+            &c.f,
+            &a_ws,
+            Method::GET,
+            &format!("/supply-transfers{q}"),
+            None,
+            &a,
+        )
+        .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+    }
+}

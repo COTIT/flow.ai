@@ -3723,6 +3723,42 @@
         ],
         "type": "object"
       },
+      "CurrencySales": {
+        "description": "Sales in one currency.",
+        "properties": {
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "gross_total": {
+            "description": "Their totals incl VAT, minor units, before any refund or return.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "description": "Orders sold in the range.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "refunded_total": {
+            "description": "Provider refunds of those orders that went through (status `refunded`), minor units.\nCredit notes and cash handed back outside the API are not in it.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "decimals",
+          "orders",
+          "gross_total",
+          "refunded_total"
+        ],
+        "type": "object"
+      },
       "CustomStatusCreated": {
         "description": "Create response: the new row's id.",
         "properties": {
@@ -6150,6 +6186,18 @@
         ],
         "type": "object"
       },
+      "Envelope_QuickResults": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/QuickResults"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_QuoteResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -6317,6 +6365,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SalesGroupResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_SalesSummary": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SalesSummary"
           }
         },
         "required": [
@@ -7341,6 +7401,54 @@
         ],
         "type": "object"
       },
+      "EventActor": {
+        "description": "Who did an order action.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Null once a user left the workspace.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "description": "`user`, `till_user` or `app_key`.",
+            "example": "user",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "EventUser": {
+        "description": "The user behind a lot event.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Null once they left the workspace.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "Fact": {
         "additionalProperties": false,
         "description": "A label/value pair in a facts block.",
@@ -7700,6 +7808,13 @@
               "null"
             ]
           },
+          "farmers": {
+            "description": "Those groups, exactly as the public page shows them: village, farmer count (null below\n3) and harvest window, under the link's allow-list. Never names, shares or amounts.",
+            "items": {
+              "$ref": "#/components/schemas/PublicFarmerGroup"
+            },
+            "type": "array"
+          },
           "meta": {
             "$ref": "#/components/schemas/Meta"
           }
@@ -7707,7 +7822,8 @@
         "required": [
           "data",
           "meta",
-          "farmer_groups"
+          "farmer_groups",
+          "farmers"
         ],
         "type": "object"
       },
@@ -10638,6 +10754,17 @@
               "null"
             ]
           },
+          "user": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventUser",
+                "description": "Who did it, with their name while they are a member of this workspace; null with no\nuser."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "user_id": {
             "description": "Who did it; null once the user is gone.",
             "format": "uuid",
@@ -10653,6 +10780,7 @@
           "from_status",
           "to_status",
           "user_id",
+          "user",
           "meta",
           "created_at"
         ],
@@ -11999,6 +12127,73 @@
         ],
         "type": "object"
       },
+      "OrderEventResource": {
+        "description": "One action on an order.",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventActor",
+                "description": "Null when the system did it (expiry job, payment provider)."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`created`, `confirmed`, `paid`, `picked`, `completed`, `cancelled`, `expired`,\n`returned`, `refunded` or `invoiced`.",
+            "example": "confirmed",
+            "type": "string"
+          },
+          "meta": {
+            "description": "`refunded`: `{amount}` in minor units, plus `auto: true` for a refund the system owed;\nelse null.",
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "at",
+          "actor",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "OrderLineLot": {
+        "description": "A lot an order line's product came from.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "Units held or taken from it, 2 decimals.",
+            "example": "2.00",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "OrderLineResource": {
         "description": "One order line.",
         "properties": {
@@ -12014,6 +12209,17 @@
             "format": "uuid",
             "type": "string"
           },
+          "image": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Link",
+                "description": "The variant's first image, else the product's, as a signed link; null without one."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "line_excl": {
             "description": "Minor units: line total excl VAT after discount.",
             "format": "int64",
@@ -12023,6 +12229,13 @@
             "description": "Minor units: this line's own VAT (display only; order VAT is per rate).",
             "format": "int64",
             "type": "integer"
+          },
+          "lots": {
+            "description": "Lots the order holds or took units of for this line's product, by lot code. Stock is\nheld and taken per product, so lines of the same product show the same list.",
+            "items": {
+              "$ref": "#/components/schemas/OrderLineLot"
+            },
+            "type": "array"
           },
           "picked": {
             "example": "0.00",
@@ -12078,7 +12291,9 @@
           "tracked",
           "picked",
           "deducted",
-          "returned"
+          "returned",
+          "lots",
+          "image"
         ],
         "type": "object"
       },
@@ -12100,6 +12315,14 @@
             ]
           },
           "completed_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confirmed_at": {
+            "description": "First time it became `open` (office confirm, web payment) or `completed` (till sale).\nNull on orders from before the trail existed.",
             "format": "date-time",
             "type": [
               "string",
@@ -12170,6 +12393,22 @@
               "null"
             ]
           },
+          "payment_method": {
+            "description": "`cash` or `card` (till sale), `online` (a paid web payment); null otherwise.",
+            "example": "card",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "picked_at": {
+            "description": "When every line was first picked in full; null until then (and on older orders).",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "reference": {
             "type": [
               "string",
@@ -12203,6 +12442,11 @@
           "total": {
             "format": "int64",
             "type": "integer"
+          },
+          "units": {
+            "description": "Sum of the lines' quantities, 2 decimals.",
+            "example": "4.00",
+            "type": "string"
           },
           "updated_at": {
             "format": "date-time",
@@ -12238,8 +12482,12 @@
           "paid_at",
           "completed_at",
           "cancelled_at",
+          "confirmed_at",
+          "picked_at",
           "invoice_id",
           "allowed_actions",
+          "units",
+          "payment_method",
           "lines",
           "created_at",
           "updated_at"
@@ -13128,6 +13376,25 @@
         ],
         "type": "object"
       },
+      "Paginated_OrderEventResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/OrderEventResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
       "Paginated_OrderResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -13951,6 +14218,19 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "PassportRef": {
+        "description": "Where a product's lot passport lives.",
+        "properties": {
+          "public_code": {
+            "example": "7K3M9Q2XAB",
+            "type": "string"
+          }
+        },
+        "required": [
+          "public_code"
+        ],
         "type": "object"
       },
       "PassportResource": {
@@ -15477,6 +15757,20 @@
               "null"
             ]
           },
+          "labels": {
+            "description": "Short public labels the shop shows as chips, e.g. `[\"Raw\", \"Unheated\"]`: at most 8,\neach 1 to 32 characters, no repeats (any case). `[]` or null clears them.",
+            "example": [
+              "Raw",
+              "Unheated"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "meta": {
             "type": [
               "object",
@@ -15788,7 +16082,7 @@
             "type": "string"
           },
           "images": {
-            "description": "Always empty.",
+            "description": "Always empty; see `thumbnail`.",
             "items": {},
             "type": "array"
           },
@@ -15817,6 +16111,13 @@
           },
           "is_serialized": {
             "type": "boolean"
+          },
+          "labels": {
+            "description": "Short public labels (\"Raw\", \"Unheated\"), in order.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "last_updated_at": {
             "format": "date-time",
@@ -16078,12 +16379,23 @@
           "supplier_wholesale_price": {
             "type": "string"
           },
+          "thumbnail": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Link",
+                "description": "The product's first own image (variant images skipped) as a signed link; null without\none, or on a server without file storage."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "total_available_stock": {
             "format": "double",
             "type": "number"
           },
           "total_reserved_stock": {
-            "description": "Always 0 until orders exist.",
+            "description": "Units open orders hold, over every stock row of the product.",
             "format": "double",
             "type": "number"
           },
@@ -16198,6 +16510,7 @@
           "country_of_origin",
           "weight",
           "images",
+          "thumbnail",
           "stock_level_supplier",
           "supplier_discount_code",
           "sales_group",
@@ -16228,6 +16541,7 @@
           "vat_group_id",
           "export_enabled",
           "store_only",
+          "labels",
           "export_price_sync",
           "export_product_data",
           "export_data"
@@ -17982,6 +18296,214 @@
         ],
         "type": "object"
       },
+      "QuickInvoice": {
+        "description": "A numbered invoice hit: the digits of `q` equal its number.",
+        "properties": {
+          "customer_name": {
+            "description": "Company name, else alias, else first contact's full name.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "number": {
+            "example": "INV-1000",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "status",
+          "customer_name"
+        ],
+        "type": "object"
+      },
+      "QuickLot": {
+        "description": "A lot hit: code or public (QR) code.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "public_code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "public_code",
+          "product_name"
+        ],
+        "type": "object"
+      },
+      "QuickOrder": {
+        "description": "An order hit: number or reference.",
+        "properties": {
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "number": {
+            "example": "ORD-0001",
+            "type": "string"
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "total": {
+            "description": "Minor units of `currency`, incl VAT.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "reference",
+          "status",
+          "total",
+          "currency",
+          "decimals"
+        ],
+        "type": "object"
+      },
+      "QuickProduct": {
+        "description": "A product hit: name, product number, EAN-13 or barcode.",
+        "properties": {
+          "ean13": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "product_nr": {
+            "example": "P-00042",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "product_nr",
+          "ean13"
+        ],
+        "type": "object"
+      },
+      "QuickRelation": {
+        "description": "A relation hit: company name, alias or a contact's first or last name.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Company name, else alias, else first contact's full name.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "QuickResults": {
+        "description": "Each group is null when the caller may not list that kind, else at most `limit` rows,\nnewest first.",
+        "properties": {
+          "invoices": {
+            "items": {
+              "$ref": "#/components/schemas/QuickInvoice"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "lots": {
+            "items": {
+              "$ref": "#/components/schemas/QuickLot"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "orders": {
+            "items": {
+              "$ref": "#/components/schemas/QuickOrder"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/QuickProduct"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "relations": {
+            "items": {
+              "$ref": "#/components/schemas/QuickRelation"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "products",
+          "orders",
+          "invoices",
+          "lots",
+          "relations"
+        ],
+        "type": "object"
+      },
       "QuoteLine": {
         "description": "One quoted line, as the sale would book it.",
         "properties": {
@@ -19643,6 +20165,60 @@
         ],
         "type": "object"
       },
+      "SaleLine": {
+        "description": "One booked line of a till sale. Minor units.",
+        "properties": {
+          "line_excl": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "line_total": {
+            "description": "line_excl + line_vat.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "line_vat": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_variant_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity": {
+            "description": "Decimal string.",
+            "example": "2.00",
+            "type": "string"
+          },
+          "title": {
+            "example": "Honey 500 g",
+            "type": "string"
+          },
+          "unit_price": {
+            "description": "What the till charged per unit, excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "product_id",
+          "product_variant_id",
+          "quantity",
+          "unit_price",
+          "line_excl",
+          "line_vat",
+          "line_total"
+        ],
+        "type": "object"
+      },
       "SaleRequest": {
         "description": "A till sale. Lines carry the unit price the till charged (minor units excl VAT). Send the same body again under the same `client_ref` to replay it from an offline queue.",
         "properties": {
@@ -19703,6 +20279,13 @@
             "description": "Paid: cash rounded to the currency's step, card = total.",
             "format": "int64",
             "type": "integer"
+          },
+          "lines": {
+            "description": "The booked lines, in order, for the receipt.",
+            "items": {
+              "$ref": "#/components/schemas/SaleLine"
+            },
+            "type": "array"
           },
           "method": {
             "example": "cash",
@@ -19777,7 +20360,8 @@
           "tendered",
           "change",
           "card_reference",
-          "sold_at"
+          "sold_at",
+          "lines"
         ],
         "type": "object"
       },
@@ -19892,6 +20476,39 @@
           "created_at",
           "last_updated_at",
           "meta"
+        ],
+        "type": "object"
+      },
+      "SalesSummary": {
+        "description": "Sales in a range, one row per currency (never summed across currencies).",
+        "properties": {
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/CurrencySales"
+            },
+            "type": "array"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "description": "The `source` asked for; null = every source.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "source",
+          "currencies"
         ],
         "type": "object"
       },
@@ -21584,6 +22201,13 @@
             "format": "uuid",
             "type": "string"
           },
+          "lines": {
+            "description": "What was ordered, in order.",
+            "items": {
+              "$ref": "#/components/schemas/StorefrontOrderLine"
+            },
+            "type": "array"
+          },
           "number": {
             "example": "ORD-0001",
             "type": "string"
@@ -21623,7 +22247,56 @@
           "vat",
           "total",
           "expires_at",
-          "paid_at"
+          "paid_at",
+          "lines"
+        ],
+        "type": "object"
+      },
+      "StorefrontOrderLine": {
+        "description": "One line of a web order, as the customer may see it.",
+        "properties": {
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_variant_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity": {
+            "example": "2.00",
+            "type": "string"
+          },
+          "title": {
+            "example": "Raw honey 500 g",
+            "type": "string"
+          },
+          "total_gross": {
+            "description": "The line incl VAT, minor units (the line's own VAT; the order's VAT is per rate).",
+            "example": 2725,
+            "format": "int64",
+            "type": "integer"
+          },
+          "unit_price_gross": {
+            "description": "One unit incl VAT, minor units; null only when out of range.",
+            "example": 1363,
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "product_id",
+          "product_variant_id",
+          "quantity",
+          "unit_price_gross",
+          "total_gross"
         ],
         "type": "object"
       },
@@ -21683,8 +22356,30 @@
             },
             "type": "array"
           },
+          "labels": {
+            "description": "Short public labels to show as chips, in order.",
+            "example": [
+              "Raw",
+              "Unheated"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "name": {
             "type": "string"
+          },
+          "passport": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PassportRef",
+                "description": "The lot passport of the jar the shop sells next: the published, released, unexpired lot\nwith free stock and the earliest expiry or best-before (undated last). Read it at\n`GET /storefront/lots/{public_code}`. Null when no such lot."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "price_gross": {
             "description": "Consumer price including VAT, in minor units.",
@@ -21699,6 +22394,14 @@
             "type": "integer"
           },
           "short_description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stock_status": {
+            "description": "`in_stock`, `low` (at most the workspace's `product.low_stock_threshold` units left,\ndefault 5) or `sold_out` (none available); null when the product isn't stock-tracked.",
+            "example": "low",
             "type": [
               "string",
               "null"
@@ -21730,6 +22433,9 @@
           "currency",
           "currency_decimals",
           "available_stock",
+          "stock_status",
+          "labels",
+          "passport",
           "images",
           "variants"
         ],
@@ -63060,6 +63766,151 @@
         ]
       }
     },
+    "/workspace/{workspace}/orders/{order}/events": {
+      "get": {
+        "description": "Who did what to the order, newest first. Only actions since the trail exists are listed; an older order may have none.",
+        "operationId": "orders_events",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_OrderEventResource"
+                }
+              }
+            },
+            "description": "One page, newest first"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `order.view`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or order, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List an order's events",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
     "/workspace/{workspace}/orders/{order}/invoice": {
       "post": {
         "operationId": "orders_invoice",
@@ -69251,6 +70102,16 @@
             }
           },
           {
+            "description": "Only these movement types, comma-separated: `increase`, `decrease`, `set_level`,\n`set_requirements`.",
+            "example": "increase,decrease",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -69311,6 +70172,16 @@
               }
             },
             "description": "Unknown workspace or product, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown movement `type`"
           },
           "429": {
             "content": {
@@ -70835,6 +71706,151 @@
         ]
       }
     },
+    "/workspace/{workspace}/quick-search": {
+      "get": {
+        "description": "Contains-match on `q` (any case; `%` and `_` literal): products by name, number, EAN-13 or barcode; orders by number or reference; lots by code or public code; relations by company name, alias or a contact's first or last name. Invoices match when the digits of `q` are their number. Each group is null when the caller lacks that list permission (`product.list`, `order.list`, `invoice.list`, `relation.list`; lots: any member), else at most `limit` rows, newest first.",
+        "operationId": "search_quick",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "3 to 100 characters after trimming; contains-match, any case, `%` and `_` literal.",
+            "example": "honey",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Rows per group: default 5, at most 10; junk falls back to 5.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_QuickResults"
+                }
+              }
+            },
+            "description": "Hits per group"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `workspace.global-search`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`q` missing, under 3 or over 100 characters"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search products, orders, invoices, lots and relations at once",
+        "tags": [
+          "search"
+        ]
+      }
+    },
     "/workspace/{workspace}/relations": {
       "get": {
         "operationId": "relations_list",
@@ -72211,6 +73227,162 @@
         "summary": "Get a relation's financial summary",
         "tags": [
           "relations"
+        ]
+      }
+    },
+    "/workspace/{workspace}/sales-summary": {
+      "get": {
+        "description": "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `refunded_total` the provider refunds of those orders that went through. One row per currency.",
+        "operationId": "orders_sales_summary",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold at or after (RFC 3339). Required.",
+            "example": "2026-11-02T00:00:00+01:00",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold before (RFC 3339), at most 366 days after `from`. Required.",
+            "example": "2026-11-09T00:00:00+01:00",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only `office`, `storefront` or `till` orders.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SalesSummary"
+                }
+              }
+            },
+            "description": "One row per currency sold in"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `order.list`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, or unknown `source`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sales in a time range, per currency",
+        "tags": [
+          "orders"
         ]
       }
     },
@@ -76491,6 +77663,26 @@
             }
           },
           {
+            "description": "Only links in this status: `pending`, `live` or `revoked`.",
+            "example": "pending",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only links this workspace granted (`outgoing`) or received (`incoming`).",
+            "example": "incoming",
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -76551,6 +77743,16 @@
               }
             },
             "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown `status` or `direction`"
           },
           "429": {
             "content": {
@@ -77054,6 +78256,26 @@
             }
           },
           {
+            "description": "Only `dispatched` (on the way, not received yet) or `received` transfers.",
+            "example": "dispatched",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only transfers this workspace sent (`outgoing`) or is sent (`incoming`).",
+            "example": "incoming",
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -77104,6 +78326,16 @@
               }
             },
             "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown `status` or `direction`"
           },
           "429": {
             "content": {
@@ -78522,6 +79754,37 @@
             }
           },
           {
+            "description": "Only this register's sales.",
+            "in": "query",
+            "name": "register_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold at or after this time (RFC 3339).",
+            "example": "2026-11-02T00:00:00+01:00",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold before this time (RFC 3339).",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -78582,6 +79845,16 @@
               }
             },
             "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Malformed `register_id`, `from` or `to`"
           },
           "429": {
             "content": {
@@ -79490,6 +80763,46 @@
             }
           },
           {
+            "description": "`true`: only shifts still open; `false`: only closed ones.",
+            "in": "query",
+            "name": "open",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Only this register's shifts.",
+            "in": "query",
+            "name": "register_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opened at or after this time (RFC 3339).",
+            "example": "2026-11-02T00:00:00+01:00",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opened before this time (RFC 3339).",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -79550,6 +80863,16 @@
               }
             },
             "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Malformed `open`, `register_id`, `from` or `to`"
           },
           "429": {
             "content": {

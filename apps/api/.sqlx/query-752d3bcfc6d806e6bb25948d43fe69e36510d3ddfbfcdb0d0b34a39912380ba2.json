@@ -1,0 +1,146 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, e.kind, e.from_status, e.to_status, e.user_id, e.meta, e.created_at,\n                  u.first_name AS \"first_name?\", u.middle_name, u.last_name AS \"last_name?\",\n                  count(*) OVER () AS \"total!\"\n           FROM lot_events e\n           LEFT JOIN workspace_members m ON m.workspace_id = e.workspace_id AND m.user_id = e.user_id\n           LEFT JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL\n           WHERE e.lot_id = $1 AND e.workspace_id = $2\n           ORDER BY e.created_at DESC, e.id DESC\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lot_events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lot_events",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "from_status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lot_events",
+            "name": "from_status"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "to_status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lot_events",
+            "name": "to_status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lot_events",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "lot_events",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "lot_events",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "first_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "first_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "middle_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "middle_name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "last_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "752d3bcfc6d806e6bb25948d43fe69e36510d3ddfbfcdb0d0b34a39912380ba2"
+}

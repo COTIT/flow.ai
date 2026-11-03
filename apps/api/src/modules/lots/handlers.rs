@@ -231,14 +231,17 @@ pub async fn farmer_credits(
     Query(query): Query<PageQuery>,
 ) -> Result<Json<FarmerCreditsPage>, AppError> {
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
-    let (rows, total, farmer_groups) =
+    let (rows, total, farmers) =
         service::farmer_credits(&state, access.workspace_id, &id, page.size, page.offset()).await?;
     let data = rows.into_iter().map(Into::into).collect();
     let (data, meta) = Paginated::new(data, total, page).into_parts();
+    let farmer_groups =
+        (!farmers.is_empty()).then(|| i64::try_from(farmers.len()).unwrap_or(i64::MAX));
     Ok(Json(FarmerCreditsPage {
         data,
         meta,
         farmer_groups,
+        farmers,
     }))
 }
 

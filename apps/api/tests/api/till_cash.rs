@@ -378,3 +378,67 @@ async fn office_cash_routes_need_cashregister_rights(pool: PgPool) {
         StatusCode::UNAUTHORIZED
     );
 }
+
+#[sqlx::test]
+async fn office_shifts_filter_by_open_register_and_time(pool: PgPool) {
+    let t = till(pool).await;
+    t.open(&t.t1, &[]).await;
+    t.close(&t.t1, &[]).await;
+    t.open(&t.t2, &[]).await;
+    let list = |q: String| {
+        let t = &t;
+        async move {
+            let (status, res) = t
+                .call(Method::GET, &format!("/shifts{q}"), None, &t.api.owner)
+                .await;
+            (status, res)
+        }
+    };
+    let (_, all) = list(String::new()).await;
+    assert_eq!(all["meta"]["total"], 2);
+    let (open, closed) = (&all["data"][0], &all["data"][1]);
+    assert_eq!(open["closed_at"], Value::Null, "newest first: register 2");
+
+    let (_, res) = list("?open=true".into()).await;
+    assert_eq!(res["meta"]["total"], 1);
+    assert_eq!(res["data"][0]["id"], open["id"]);
+    let (_, res) = list("?open=false".into()).await;
+    assert_eq!(res["meta"]["total"], 1);
+    assert_eq!(res["data"][0]["id"], closed["id"]);
+    let reg = closed["register_id"].as_str().unwrap();
+    let (_, res) = list(format!("?register_id={reg}")).await;
+    assert_eq!(res["meta"]["total"], 1);
+    assert_eq!(res["data"][0]["id"], closed["id"]);
+
+    // `from` inclusive, `to` exclusive, on opened_at.
+    let at = open["opened_at"].as_str().unwrap();
+    let (_, res) = list(format!("?from={at}")).await;
+    assert_eq!(res["meta"]["total"], 1, "from = opened_at includes it");
+    let (_, res) = list(format!("?to={at}")).await;
+    assert_eq!(res["meta"]["total"], 1, "to = opened_at excludes it");
+    assert_eq!(res["data"][0]["id"], closed["id"]);
+    let (_, res) = list("?from=2000-01-01T00:00:00Z&to=2000-01-02T00:00:00Z".into()).await;
+    assert_eq!(res["meta"]["total"], 0);
+
+    for q in [
+        "?from=yesterday",
+        "?to=2026-13-01T00:00:00Z",
+        "?open=maybe",
+        "?register_id=nope",
+    ] {
+        let (status, res) = list(q.into()).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+    }
+
+    let eve = till_of(&t, "eve@example.com", "evil").await;
+    let (_, res) = eve
+        .0
+        .call(
+            Method::GET,
+            &format!("/shifts?open=true&register_id={reg}"),
+            None,
+            &eve.0.owner,
+        )
+        .await;
+    assert_eq!(res["meta"]["total"], 0, "acme's register under evil");
+}

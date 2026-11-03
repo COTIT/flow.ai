@@ -1,0 +1,129 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.from_workspace_id, l.to_workspace_id, w.id AS partner_id,\n                w.name AS partner_name, l.fields, l.granted_at, l.accepted_at, l.revoked_at\n         FROM supply_links l\n         JOIN workspaces w ON w.id = CASE WHEN l.from_workspace_id = $1\n                                          THEN l.to_workspace_id ELSE l.from_workspace_id END\n         WHERE (l.from_workspace_id = $1 OR l.to_workspace_id = $1)\n           AND ($2::uuid IS NULL OR l.id = $2)\n           AND ($5::text IS NULL OR $5 = CASE WHEN l.revoked_at IS NOT NULL THEN 'revoked'\n                                             WHEN l.accepted_at IS NOT NULL THEN 'live'\n                                             ELSE 'pending' END)\n           AND ($6::text IS NULL OR ($6 = 'outgoing') = (l.from_workspace_id = $1))\n         ORDER BY l.granted_at DESC, l.id DESC LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_links",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "from_workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_links",
+            "name": "from_workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "to_workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_links",
+            "name": "to_workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "partner_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workspaces",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "partner_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workspaces",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "fields",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "supply_links",
+            "name": "fields"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "granted_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "supply_links",
+            "name": "granted_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "accepted_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "supply_links",
+            "name": "accepted_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "revoked_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "supply_links",
+            "name": "revoked_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "cd426e85c9b0c87672d1b2fbb77c1be198c370f18a3c1fec6729383d34ac8e83"
+}

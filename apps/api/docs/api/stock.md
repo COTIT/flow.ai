@@ -142,6 +142,7 @@ Every write answers `{"message":"ok"}`.
 
 - **Query:**
   - `warehouse_id`, `shelf_id`, `bin_id`: each filters on its own. Laravel dropped `bin_id` without `shelf_id`, which the web filter sends.
+  - `type`: one or more movement types, comma-separated (`increase`, `decrease`, `set_level`, `set_requirements`). An unknown type is a 422 on `type`; `meta.total` counts the filtered list.
   - `page`, `per_page` (default 15, max 100)
   - A malformed or unknown id matches nothing; Laravel answered 404 or 422.
 - **Order:** newest first.
@@ -182,7 +183,7 @@ Every write answers `{"message":"ok"}`.
   - The live rows, in Laravel `StockWithoutRelationsResource` shape: `{id, stock_lvl, reserved, minimal_stock_level, maximum_stock_level, warehouse {id, name, alias, color: null, icon: null, is_store, pickup_enabled, location}, shelf, bin, updated_at, meta}`. There is no `product` key.
   - Then a zero `fallback-<warehouse>` row for the default warehouse and for the first store, when they have no row.
 - **`total_available_stock`:** the sum of the levels. Whole numbers print without a fraction, as PHP did (`9`, `8.5`, `0`).
-- **`total_reserved_stock`:** `0` until orders.
+- **`total_reserved_stock`:** sum of `reserved` over the product's stock rows (what open orders hold).
 - **`pos_*`** (only for physical products with `has_stock`, else `0` / `not_applicable`). The pick is the highest pickup-enabled row:
   - in `?warehouse_id` when one was asked (none there gives `0` / `unavailable`);
   - otherwise in the default warehouse, then anywhere.

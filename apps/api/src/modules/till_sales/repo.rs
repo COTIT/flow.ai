@@ -128,7 +128,7 @@ pub async fn stamp_order(
     sold_at: DateTime<Utc>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "UPDATE orders SET paid_at = $3, completed_at = $3, updated_at = now()
+        "UPDATE orders SET paid_at = $3, completed_at = $3, confirmed_at = $3, updated_at = now()
          WHERE workspace_id = $1 AND id = $2",
         workspace_id,
         order_id,
@@ -165,13 +165,23 @@ pub async fn book_cash(
     .map(|_| ())
 }
 
-/// One page of the workspace's till sales, newest first (only those with a line off the
-/// catalog price when asked),
-/// and the total.
+/// Which sales the office list returns; `None` = any.
+#[derive(Default)]
+pub struct ListFilter {
+    /// Only sales with a line charged at another price than the catalog's.
+    pub mismatch: bool,
+    pub register_id: Option<Uuid>,
+    /// `sold_at` at or after.
+    pub from: Option<DateTime<Utc>>,
+    /// `sold_at` before.
+    pub to: Option<DateTime<Utc>>,
+}
+
+/// One page of the workspace's till sales matching `f`, newest first, and the total.
 pub async fn list(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
-    mismatch: bool,
+    f: &ListFilter,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<SaleRow>, i64), sqlx::Error> {
@@ -184,12 +194,18 @@ pub async fn list(
            FROM till_sales s
            JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id
            WHERE s.workspace_id = $1 AND (NOT $2 OR s.mismatched_lines > 0)
+             AND ($5::uuid IS NULL OR s.register_id = $5)
+             AND ($6::timestamptz IS NULL OR s.sold_at >= $6)
+             AND ($7::timestamptz IS NULL OR s.sold_at < $7)
            ORDER BY s.created_at DESC, s.order_id DESC
            LIMIT $3 OFFSET $4"#,
         workspace_id,
-        mismatch,
+        f.mismatch,
         limit,
         offset,
+        f.register_id,
+        f.from,
+        f.to,
     )
     .fetch_all(db)
     .await?;

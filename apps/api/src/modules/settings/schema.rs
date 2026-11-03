@@ -206,6 +206,8 @@ const PRODUCT: &[Field] = &[
     f("user_search_history_count", Rule::Int(1, 40)),
     f("supplier_wholesale_prices_active", Rule::Bool),
     f("advice_prices_active", Rule::Bool),
+    // Storefront "few left" badge: at most this many units available.
+    f("low_stock_threshold", Rule::Int(0, 1_000_000)),
 ];
 
 const SHIPPING_OPTION: &[Field] = &[
@@ -502,7 +504,7 @@ pub fn defaults(section: &str) -> Option<Value> {
                              "warning_below_preferred_marge": null,
                              "user_search_history_active": false, "user_search_history_count": 10,
                              "supplier_wholesale_prices_active": false,
-                             "advice_prices_active": false }),
+                             "advice_prices_active": false, "low_stock_threshold": 5 }),
         "cash_register" => json!({ "prefix": null, "suffix": null, "start_number": null,
                                    "digits": null, "default_relation_id": null,
                                    "receipt_footer": null, "receipt_header": null,

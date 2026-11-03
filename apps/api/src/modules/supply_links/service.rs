@@ -12,7 +12,7 @@ use crate::{
     idempotency::{self, Actor, Answer, Key},
     modules::supply_links::{
         dto::{LinkResource, NewLink},
-        repo::{self, LinkRow},
+        repo::{self, Filter, LinkRow},
     },
 };
 
@@ -21,7 +21,7 @@ const NOT_PENDING: &str = "This link is not pending.";
 const NOT_RECEIVER: &str = "Only the receiving workspace accepts a link.";
 
 async fn one(state: &AppState, ws: Uuid, id: Uuid) -> Result<LinkRow, AppError> {
-    let (mut rows, _) = repo::list(&state.db, ws, Some(id), 1, 0).await?;
+    let (mut rows, _) = repo::list(&state.db, ws, Filter::id(id), 1, 0).await?;
     rows.pop().ok_or(AppError::NotFound)
 }
 
@@ -66,7 +66,7 @@ pub async fn grant(
             _ => e.into(),
         },
     )?;
-    let row = repo::rows(&mut *tx, ws, Some(id), 1, 0)
+    let row = repo::rows(&mut *tx, ws, Filter::id(id), 1, 0)
         .await?
         .pop()
         .ok_or(AppError::NotFound)?;
@@ -80,10 +80,11 @@ pub async fn grant(
 pub async fn list(
     state: &AppState,
     access: &WorkspaceAccess,
+    f: Filter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<LinkRow>, i64), AppError> {
-    Ok(repo::list(&state.db, access.workspace_id, None, limit, offset).await?)
+    Ok(repo::list(&state.db, access.workspace_id, f, limit, offset).await?)
 }
 
 /// Accept a pending link addressed to this workspace.

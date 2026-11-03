@@ -23,6 +23,12 @@ export interface OrderResource {
   cancelled_at: string | null;
   /** @nullable */
   completed_at: string | null;
+  /**
+     * First time it became `open` (office confirm, web payment) or `completed` (till sale).
+     * Null on orders from before the trail existed.
+     * @nullable
+     */
+  confirmed_at: string | null;
   created_at: string;
   currency: string;
   currency_id: string;
@@ -43,6 +49,16 @@ export interface OrderResource {
   number: string;
   /** @nullable */
   paid_at: string | null;
+  /**
+     * `cash` or `card` (till sale), `online` (a paid web payment); null otherwise.
+     * @nullable
+     */
+  payment_method: string | null;
+  /**
+     * When every line was first picked in full; null until then (and on older orders).
+     * @nullable
+     */
+  picked_at: string | null;
   /** @nullable */
   reference: string | null;
   /** @nullable */
@@ -56,6 +72,8 @@ export interface OrderResource {
   /** Per-rate VAT: `{"vats": [{"rate": "21", "base": 1000, "vat": 210}]}`. */
   summary: OrderResourceSummary;
   total: number;
+  /** Sum of the lines' quantities, 2 decimals. */
+  units: string;
   updated_at: string;
   vat: number;
   warehouse_id: string;

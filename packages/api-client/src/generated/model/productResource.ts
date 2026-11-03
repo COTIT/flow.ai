@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { Link } from './link';
 import type { ProductResourceAttributes } from './productResourceAttributes';
 import type { ProductResourceDefaultWarehouse } from './productResourceDefaultWarehouse';
 import type { ProductResourceDimensions } from './productResourceDimensions';
@@ -75,7 +76,7 @@ export interface ProductResource {
      */
   hs_group: ProductResourceHsGroup;
   id: string;
-  /** Always empty. */
+  /** Always empty; see `thumbnail`. */
   images: unknown[];
   impact_on_price: string;
   impact_on_wholesale_price: string;
@@ -86,6 +87,8 @@ export interface ProductResource {
   /** @nullable */
   import_source: string | null;
   is_serialized: boolean;
+  /** Short public labels ("Raw", "Unheated"), in order. */
+  labels: string[];
   last_updated_at: string;
   /** @nullable */
   meta: ProductResourceMeta;
@@ -158,8 +161,9 @@ export interface ProductResource {
   /** @nullable */
   supplier_relation: ProductResourceSupplierRelation;
   supplier_wholesale_price: string;
+  thumbnail: Link | null;
   total_available_stock: number;
-  /** Always 0 until orders exist. */
+  /** Units open orders hold, over every stock row of the product. */
   total_reserved_stock: number;
   type: string;
   /** @nullable */

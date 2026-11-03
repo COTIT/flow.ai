@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, coalesce(nullif(r.company_name, ''), nullif(r.alias, ''),\n                      (SELECT nullif(concat_ws(' ', c.first_name, c.middle_name, c.last_name), '')\n                       FROM contacts c\n                       WHERE c.workspace_id = r.workspace_id AND c.relation_id = r.id\n                         AND c.deleted_at IS NULL\n                       ORDER BY c.created_at, c.id LIMIT 1)) AS name\n           FROM relations r\n           WHERE r.workspace_id = $1 AND r.deleted_at IS NULL\n             AND (r.company_name ILIKE $2 OR r.alias ILIKE $2\n                  OR r.id IN (SELECT c.relation_id FROM contacts c\n                              WHERE c.workspace_id = $1 AND c.deleted_at IS NULL\n                                AND (c.first_name ILIKE $2 OR c.last_name ILIKE $2)))\n           ORDER BY r.created_at DESC, r.id DESC LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "relations",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "bb1e7e5a4df402cb99b837a040041edf00a2912dd153d0d790287b49f6eaf1c6"
+}

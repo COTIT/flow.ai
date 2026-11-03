@@ -902,7 +902,7 @@ export const getTillSalesListQueryKey = (workspace: string,
     }
 
 
-export const getTillSalesListQueryOptions = <TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getTillSalesListQueryOptions = <TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: TillSalesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -922,10 +922,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type TillSalesListQueryResult = NonNullable<Awaited<ReturnType<typeof tillSalesList>>>
-export type TillSalesListQueryError = ErrorType<MessageBody>
+export type TillSalesListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(
+export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  TillSalesListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -936,7 +936,7 @@ export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(
+export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: TillSalesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -947,7 +947,7 @@ export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(
+export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: TillSalesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -956,7 +956,7 @@ export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList
  * @summary List till sales
  */
 
-export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody>>(
+export function useTillSalesList<TData = Awaited<ReturnType<typeof tillSalesList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: TillSalesListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillSalesList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -1468,7 +1468,7 @@ export const getTillShiftsListQueryKey = (workspace: string,
     }
 
 
-export const getTillShiftsListQueryOptions = <TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getTillShiftsListQueryOptions = <TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: TillShiftsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -1488,10 +1488,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type TillShiftsListQueryResult = NonNullable<Awaited<ReturnType<typeof tillShiftsList>>>
-export type TillShiftsListQueryError = ErrorType<MessageBody>
+export type TillShiftsListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(
+export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  TillShiftsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -1502,7 +1502,7 @@ export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsLi
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(
+export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: TillShiftsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -1513,7 +1513,7 @@ export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsLi
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(
+export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: TillShiftsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -1522,7 +1522,7 @@ export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsLi
  * @summary List drawer shifts
  */
 
-export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody>>(
+export function useTillShiftsList<TData = Awaited<ReturnType<typeof tillShiftsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: TillShiftsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof tillShiftsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient

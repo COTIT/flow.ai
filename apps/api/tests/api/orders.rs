@@ -773,3 +773,457 @@ async fn allowed_actions_are_what_the_api_accepts(pool: PgPool) {
     .unwrap();
     allows(&w, &id, &["pick", "cancel"]).await;
 }
+
+#[sqlx::test]
+async fn products_show_what_open_orders_reserve(pool: PgPool) {
+    let w = world(pool).await;
+    let products = w.api.with_base("/products");
+    let reserved = |id: String| {
+        let products = &products;
+        async move {
+            let (s, p) = products
+                .call(Method::GET, &format!("/{id}"), None, &products.owner)
+                .await;
+            assert_eq!(s, StatusCode::OK, "{p}");
+            let (_, list) = products.call(Method::GET, "", None, &products.owner).await;
+            let row = list["data"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["id"] == id.as_str())
+                .unwrap()
+                .clone();
+            assert_eq!(
+                row["total_reserved_stock"], p["data"]["total_reserved_stock"],
+                "list = get"
+            );
+            p["data"]["total_reserved_stock"].clone()
+        }
+    };
+    assert_eq!(reserved(w.honey.clone()).await, json!(0));
+    let a = draft(&w, json!([line(&w.honey, "3")])).await;
+    act(&w, &a, "confirm").await;
+    let b = draft(&w, json!([line(&w.honey, "1.5")])).await;
+    act(&w, &b, "confirm").await;
+    assert_eq!(reserved(w.honey.clone()).await, json!(4.5));
+    assert_eq!(reserved(w.wax.clone()).await, json!(0));
+    act(&w, &b, "cancel").await;
+    assert_eq!(reserved(w.honey.clone()).await, json!(3));
+    pick_all(&w, &a).await;
+    act(&w, &a, "complete").await;
+    assert_eq!(
+        reserved(w.honey.clone()).await,
+        json!(0),
+        "taken, no longer held"
+    );
+}
+
+/// `(kind, actor type, actor name)` of an order's events, newest first.
+async fn events(w: &W, id: &str) -> Vec<(String, Value, Value)> {
+    let (s, res) = call(w, Method::GET, &format!("/{id}/events"), None).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    res["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            assert!(e["at"].is_string(), "{e}");
+            let a = &e["actor"];
+            (
+                e["kind"].as_str().unwrap().to_owned(),
+                a["type"].clone(),
+                a["name"].clone(),
+            )
+        })
+        .collect()
+}
+
+fn ada(kind: &str) -> (String, Value, Value) {
+    (kind.to_owned(), json!("user"), json!("Ada Lovelace"))
+}
+
+#[sqlx::test]
+async fn every_office_action_leaves_one_event_with_its_actor(pool: PgPool) {
+    let w = world(pool).await;
+    let id = draft(&w, json!([line(&w.honey, "2"), line(&w.wax, "1")])).await;
+    assert_eq!(events(&w, &id).await, [ada("created")]);
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert_eq!(o["data"]["confirmed_at"], Value::Null);
+    assert_eq!(o["data"]["picked_at"], Value::Null);
+
+    act(&w, &id, "confirm").await;
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert!(o["data"]["confirmed_at"].is_string(), "{o}");
+
+    // A partial pick is an event; picked_at waits for the last line.
+    let first = &o["data"]["lines"][0];
+    let body = json!({ "lines": [{ "line_id": first["id"], "quantity": first["quantity"] }] });
+    let (s, o) = call(&w, Method::POST, &format!("/{id}/pick"), Some(body)).await;
+    assert_eq!(s, StatusCode::OK, "{o}");
+    assert_eq!(o["data"]["picked_at"], Value::Null, "one line left");
+    pick_all(&w, &id).await;
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    let picked_at = o["data"]["picked_at"].clone();
+    assert!(picked_at.is_string(), "{o}");
+    pick_all(&w, &id).await;
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert_eq!(o["data"]["picked_at"], picked_at, "stamped once");
+
+    act(&w, &id, "complete").await;
+    let wax_line = o["data"]["lines"][1]["id"].clone();
+    let body = json!({ "lines": [{ "line_id": wax_line, "quantity": "1" }] });
+    let (s, res) = call(&w, Method::POST, &format!("/{id}/returns"), Some(body)).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(
+        events(&w, &id).await,
+        [
+            ada("returned"),
+            ada("completed"),
+            ada("picked"),
+            ada("picked"),
+            ada("picked"),
+            ada("confirmed"),
+            ada("created"),
+        ]
+    );
+
+    let b = draft(&w, json!([line(&w.honey, "1")])).await;
+    act(&w, &b, "confirm").await;
+    act(&w, &b, "cancel").await;
+    assert_eq!(
+        events(&w, &b).await,
+        [ada("cancelled"), ada("confirmed"), ada("created")]
+    );
+    let (_, res) = call(
+        &w,
+        Method::GET,
+        &format!("/{b}/events?page_size=1&page=2"),
+        None,
+    )
+    .await;
+    assert_eq!(res["meta"]["total"], 3);
+    assert_eq!(res["data"][0]["kind"], "confirmed");
+}
+
+#[sqlx::test]
+async fn an_invoice_is_an_event_and_a_refused_action_is_none(pool: PgPool) {
+    let w = world(pool).await;
+    let rel = w
+        .api
+        .with_base("/relations")
+        .create(
+            json!({ "company_name": "Client", "type": "business" }),
+            "relation_id",
+        )
+        .await;
+    let (s, res) = call(
+        &w,
+        Method::POST,
+        "",
+        Some(json!({ "relation_id": rel, "lines": [line(&w.honey, "1")] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let id = res["data"]["order_id"].as_str().unwrap().to_owned();
+    let (s, _) = act(&w, &id, "complete").await;
+    assert_eq!(s, StatusCode::CONFLICT, "a draft can't complete");
+    act(&w, &id, "confirm").await;
+    pick_all(&w, &id).await;
+    act(&w, &id, "complete").await;
+    let (s, res) = act(&w, &id, "invoice").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let kinds: Vec<String> = events(&w, &id).await.into_iter().map(|e| e.0).collect();
+    assert_eq!(
+        kinds,
+        ["invoiced", "completed", "picked", "confirmed", "created"]
+    );
+}
+
+#[sqlx::test]
+async fn events_stay_in_their_workspace_and_a_gone_member_loses_their_name(pool: PgPool) {
+    let w = world(pool).await;
+    let clerk = common::member_with(
+        &w.api.app,
+        &w.api.pool,
+        &w.api.ws,
+        "clerk@example.com",
+        &["order.create", "order.update", "order.view"],
+    )
+    .await;
+    let (s, res) = w
+        .api
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "lines": [line(&w.honey, "1")] })),
+            &clerk,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let id = res["data"]["order_id"].as_str().unwrap().to_owned();
+    let (_, res) = call(&w, Method::GET, &format!("/{id}/events"), None).await;
+    let actor = res["data"][0]["actor"].clone();
+    assert_eq!(actor["type"], "user");
+    assert!(actor["name"].is_string(), "{actor}");
+    let clerk_id = actor["id"].clone();
+
+    sqlx::query(
+        "DELETE FROM workspace_members WHERE workspace_id = $1::uuid AND user_id = $2::uuid",
+    )
+    .bind(&w.api.ws)
+    .bind(clerk_id.as_str().unwrap())
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+    let (_, res) = call(&w, Method::GET, &format!("/{id}/events"), None).await;
+    assert_eq!(res["data"][0]["actor"]["id"], clerk_id, "id kept");
+    assert_eq!(
+        res["data"][0]["actor"]["name"],
+        Value::Null,
+        "no longer a member"
+    );
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, _) = eve
+        .call(Method::GET, &format!("/{id}/events"), None, &eve.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "acme's order under evil");
+    let viewer =
+        common::member_with(&w.api.app, &w.api.pool, &w.api.ws, "v@example.com", &[]).await;
+    let (s, _) = w
+        .api
+        .call(Method::GET, &format!("/{id}/events"), None, &viewer)
+        .await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "needs order.view");
+}
+
+#[sqlx::test]
+async fn lines_show_their_lots_and_image_and_the_order_its_units(pool: PgPool) {
+    let w = world(pool).await;
+    let jam = w
+        .api
+        .with_base("/products")
+        .create(json!({ "name": "Jam", "price": "4" }), "product_id")
+        .await;
+    let lots = w.api.with_base("/lots");
+    let mut ids = Vec::new();
+    for (code, expires, q) in [("JAM-A", "2027-01-01", "2"), ("JAM-B", "2027-06-01", "5")] {
+        let lot = lots
+            .create(
+                json!({ "product_id": jam, "code": code, "expires_on": expires }),
+                "id",
+            )
+            .await;
+        let (s, res) = lots
+            .call(
+                Method::POST,
+                &format!("/{lot}/stock-mutations"),
+                Some(json!({ "warehouse_id": w.main, "quantity": q })),
+                &lots.owner,
+            )
+            .await;
+        assert_eq!(s, StatusCode::OK, "{res}");
+        ids.push(lot);
+    }
+    let id = draft(&w, json!([line(&jam, "3"), line(&w.honey, "1")])).await;
+    let get = |w: &W, id: String| {
+        let api = w.api.with_base("/orders");
+        async move {
+            let (s, o) = api
+                .call(Method::GET, &format!("/{id}"), None, &api.owner)
+                .await;
+            assert_eq!(s, StatusCode::OK, "{o}");
+            o["data"].clone()
+        }
+    };
+    let o = get(&w, id.clone()).await;
+    assert_eq!(o["units"], "4.00");
+    assert_eq!(
+        o["payment_method"],
+        Value::Null,
+        "an office order isn't paid here"
+    );
+    assert_eq!(o["lines"][0]["lots"], json!([]), "a draft holds nothing");
+    assert_eq!(o["lines"][0]["image"], Value::Null);
+
+    act(&w, &id, "confirm").await;
+    let held = json!([
+        { "id": ids[0], "code": "JAM-A", "quantity": "2.00" },
+        { "id": ids[1], "code": "JAM-B", "quantity": "1.00" },
+    ]);
+    let o = get(&w, id.clone()).await;
+    assert_eq!(o["lines"][0]["lots"], held, "held, earliest expiry first");
+    assert_eq!(
+        o["lines"][1]["lots"],
+        json!([]),
+        "honey has no-lot stock only"
+    );
+
+    pick_all(&w, &id).await;
+    let (s, o) = act(&w, &id, "complete").await;
+    assert_eq!(s, StatusCode::OK, "{o}");
+    assert_eq!(
+        o["data"]["lines"][0]["lots"], held,
+        "taken from the same lots"
+    );
+
+    let file = w
+        .api
+        .with_base("/files")
+        .create(
+            json!({ "upload": "iVBORw0KGgo=", "document_name": "jam.png", "public": 1 }),
+            "file_id",
+        )
+        .await;
+    let (s, res) = w
+        .api
+        .with_base("/products")
+        .call(
+            Method::PUT,
+            &format!("/{jam}/images"),
+            Some(json!({ "images": [{ "file_id": file }] })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let o = get(&w, id.clone()).await;
+    assert!(
+        o["lines"][0]["image"]["url"]
+            .as_str()
+            .unwrap()
+            .contains("jam.png"),
+        "{o}"
+    );
+    assert_eq!(o["lines"][1]["image"], Value::Null);
+    let (_, list) = call(&w, Method::GET, "", None).await;
+    let row = list["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == id.as_str())
+        .unwrap()
+        .clone();
+    assert_eq!(row["lines"][0]["lots"], held, "list = get");
+    assert_eq!(row["units"], "4.00");
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, _) = eve
+        .call(Method::GET, &format!("/{id}"), None, &eve.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}
+
+async fn summary(w: &W, token: &str, ws: &str, q: &str) -> (StatusCode, Value) {
+    common::send(
+        &w.api.app,
+        Method::GET,
+        &format!("/v1/workspace/{ws}/sales-summary?{q}"),
+        None,
+        Some(token),
+    )
+    .await
+}
+
+#[sqlx::test]
+async fn sales_summary_counts_sold_orders_per_currency(pool: PgPool) {
+    let w = world(pool).await;
+    // 2 honey (9 %): 2500 + 225 = 2725. 1 wax (21 %): 300 + 63 = 363.
+    let a = draft(&w, json!([line(&w.honey, "2")])).await;
+    act(&w, &a, "confirm").await;
+    let b = draft(&w, json!([line(&w.wax, "1")])).await;
+    act(&w, &b, "confirm").await;
+    pick_all(&w, &b).await;
+    act(&w, &b, "complete").await;
+    let _draft = draft(&w, json!([line(&w.honey, "1")])).await;
+    let c = draft(&w, json!([line(&w.honey, "1")])).await;
+    act(&w, &c, "confirm").await;
+    act(&w, &c, "cancel").await;
+    // One sale in another currency.
+    let usd = w
+        .api
+        .with_base("/currencies")
+        .create(
+            json!({ "name": "Dollar", "asset_type": "usd", "decimals": 2,
+                    "default_currency": false, "active": true }),
+            "currency_id",
+        )
+        .await;
+    let d = draft(&w, json!([line(&w.wax, "2")])).await;
+    act(&w, &d, "confirm").await;
+    sqlx::query("UPDATE orders SET currency_id = $1::uuid WHERE id = $2::uuid")
+        .bind(&usd)
+        .bind(&d)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+
+    let (ws, owner) = (w.api.ws.clone(), w.api.owner.clone());
+    let past = "from=2000-01-01T00:00:00Z&to=2001-01-01T00:00:00Z";
+    let (s, res) = summary(&w, &owner, &ws, past).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["currencies"], json!([]), "nothing sold then");
+
+    let now = chrono::Utc::now();
+    let range = format!(
+        "from={}&to={}",
+        (now - chrono::Duration::days(1)).format("%Y-%m-%dT%H:%M:%SZ"),
+        (now + chrono::Duration::days(1)).format("%Y-%m-%dT%H:%M:%SZ")
+    );
+    let (s, res) = summary(&w, &owner, &ws, &range).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(
+        res["data"]["currencies"],
+        json!([
+            { "currency": "EUR", "decimals": 2, "orders": 2, "gross_total": 2725 + 363,
+              "refunded_total": 0 },
+            { "currency": "USD", "decimals": 2, "orders": 1, "gross_total": 726,
+              "refunded_total": 0 },
+        ]),
+        "draft and cancelled don't count; currencies never mix"
+    );
+    let (_, res) = summary(&w, &owner, &ws, &format!("{range}&source=office")).await;
+    assert_eq!(res["data"]["currencies"][0]["orders"], 2);
+    let (_, res) = summary(&w, &owner, &ws, &format!("{range}&source=till")).await;
+    assert_eq!(res["data"]["currencies"], json!([]));
+
+    // `from` inclusive, `to` exclusive, on confirmed_at.
+    let (_, o) = call(&w, Method::GET, &format!("/{a}"), None).await;
+    let at = o["data"]["confirmed_at"].as_str().unwrap().to_owned();
+    let enc = at.replace('+', "%2B");
+    let fmt = |d: chrono::DateTime<chrono::Utc>| d.format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let (day_before, day_after) = (
+        fmt(now - chrono::Duration::days(1)),
+        fmt(now + chrono::Duration::days(1)),
+    );
+    let (_, res) = summary(&w, &owner, &ws, &format!("from={day_before}&to={enc}")).await;
+    assert_eq!(res["data"]["currencies"], json!([]), "a is at `to`: out");
+    let (_, res) = summary(&w, &owner, &ws, &format!("from={enc}&to={day_after}")).await;
+    assert_eq!(res["data"]["currencies"][0]["orders"], 2, "a at `from`: in");
+
+    for q in [
+        "",
+        "from=2026-01-01T00:00:00Z",
+        "to=2026-01-01T00:00:00Z",
+        "from=yesterday&to=2026-01-01T00:00:00Z",
+        "from=2026-02-01T00:00:00Z&to=2026-01-01T00:00:00Z",
+        "from=2024-01-01T00:00:00Z&to=2026-01-01T00:00:00Z",
+        "from=2026-01-01T00:00:00Z&to=2026-01-02T00:00:00Z&source=web",
+    ] {
+        let (s, res) = summary(&w, &owner, &ws, q).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+    }
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, res) = summary(&w, &eve.owner, &eve.ws, &range).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(
+        res["data"]["currencies"],
+        json!([]),
+        "acme's sales never count for evil"
+    );
+    let (s, _) = summary(&w, &eve.owner, &ws, &range).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let clerk = member_with(&w.api.app, &w.api.pool, &ws, "c@example.com", &[]).await;
+    let (s, _) = summary(&w, &clerk, &ws, &range).await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "needs order.list");
+}

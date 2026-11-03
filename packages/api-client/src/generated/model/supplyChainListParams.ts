@@ -8,6 +8,14 @@
 
 export type SupplyChainListParams = {
 /**
+ * Only `dispatched` (on the way, not received yet) or `received` transfers.
+ */
+status?: string;
+/**
+ * Only transfers this workspace sent (`outgoing`) or is sent (`incoming`).
+ */
+direction?: string;
+/**
  * 1-based; junk falls back to 1.
  */
 page?: number;

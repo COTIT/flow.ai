@@ -20,6 +20,11 @@ shelf_id?: string;
  */
 bin_id?: string;
 /**
+ * Only these movement types, comma-separated: `increase`, `decrease`, `set_level`,
+ * `set_requirements`.
+ */
+type?: string;
+/**
  * 1-based; junk falls back to 1.
  */
 page?: number;

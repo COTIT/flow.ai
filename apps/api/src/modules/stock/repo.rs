@@ -729,6 +729,8 @@ pub struct MovementFilter {
     pub warehouse_id: Option<Uuid>,
     pub shelf_id: Option<Uuid>,
     pub bin_id: Option<Uuid>,
+    /// Movement types to keep; None = all.
+    pub types: Option<Vec<String>>,
     pub limit: i64,
     pub offset: i64,
 }
@@ -812,6 +814,7 @@ pub async fn movements(
                    AND ($3::uuid IS NULL OR warehouse_id = $3)
                    AND ($4::uuid IS NULL OR shelf_id = $4)
                    AND ($5::uuid IS NULL OR bin_id = $5)
+                   AND ($8::text[] IS NULL OR movement_type = ANY($8))
                  ORDER BY created_at DESC, id DESC
                  LIMIT $6 OFFSET $7) m
            LEFT JOIN warehouses w ON w.id = m.warehouse_id AND w.deleted_at IS NULL
@@ -829,6 +832,7 @@ pub async fn movements(
         f.bin_id,
         f.limit,
         f.offset,
+        f.types.as_deref(),
     )
     .fetch_all(db)
     .await
@@ -846,12 +850,14 @@ pub async fn movements_count(
            WHERE m.workspace_id = $1 AND m.product_id = $2
              AND ($3::uuid IS NULL OR m.warehouse_id = $3)
              AND ($4::uuid IS NULL OR m.shelf_id = $4)
-             AND ($5::uuid IS NULL OR m.bin_id = $5)"#,
+             AND ($5::uuid IS NULL OR m.bin_id = $5)
+             AND ($6::text[] IS NULL OR m.movement_type = ANY($6))"#,
         workspace_id,
         product_id,
         f.warehouse_id,
         f.shelf_id,
         f.bin_id,
+        f.types.as_deref(),
     )
     .fetch_one(db)
     .await

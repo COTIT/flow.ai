@@ -48,10 +48,44 @@ pub struct StorefrontProduct {
     /// product isn't stock-tracked.
     #[schema(required = true, example = "7.50")]
     available_stock: Option<String>,
+    /// `in_stock`, `low` (at most the workspace's `product.low_stock_threshold` units left,
+    /// default 5) or `sold_out` (none available); null when the product isn't stock-tracked.
+    #[schema(required = true, example = "low")]
+    stock_status: Option<&'static str>,
+    /// Short public labels to show as chips, in order.
+    #[schema(example = json!(["Raw", "Unheated"]))]
+    labels: Vec<String>,
+    /// The lot passport of the jar the shop sells next: the published, released, unexpired lot
+    /// with free stock and the earliest expiry or best-before (undated last). Read it at
+    /// `GET /storefront/lots/{public_code}`. Null when no such lot.
+    #[schema(required = true)]
+    passport: Option<PassportRef>,
     /// The product's own images in order, as signed links (fetch before `expires_at`).
     images: Vec<Link>,
     /// Default variant first.
     variants: Vec<StorefrontVariant>,
+}
+
+/// Where a product's lot passport lives.
+#[derive(Serialize, ToSchema)]
+pub struct PassportRef {
+    #[schema(example = "7K3M9Q2XAB")]
+    public_code: String,
+}
+
+/// Fallback for `product.low_stock_threshold`.
+pub const LOW_STOCK_DEFAULT: i64 = 5;
+
+/// `in_stock`, `low` (0 < available ≤ `threshold`) or `sold_out` (≤ 0); None when untracked.
+pub fn stock_status(available: Option<&str>, threshold: i64) -> Option<&'static str> {
+    let units = available?.parse::<rust_decimal::Decimal>().ok()?;
+    Some(if units <= rust_decimal::Decimal::ZERO {
+        "sold_out"
+    } else if units <= rust_decimal::Decimal::from(threshold) {
+        "low"
+    } else {
+        "in_stock"
+    })
 }
 
 /// A sellable variant of a product.
@@ -115,10 +149,15 @@ impl StorefrontVariant {
 }
 
 impl StorefrontProduct {
-    /// `p` with its images from `images`.
-    pub fn new(p: ProductRow, images: &Images) -> Self {
+    /// `p` with its images from `images`; `low_stock` is the workspace's threshold.
+    pub fn new(p: ProductRow, images: &Images, low_stock: i64) -> Self {
         let id = p.id;
         Self {
+            stock_status: stock_status(p.available_stock.as_deref(), low_stock),
+            labels: p.labels,
+            passport: p
+                .passport_code
+                .map(|public_code| PassportRef { public_code }),
             images: images.get(&(id, None)).cloned().unwrap_or_default(),
             id: p.id,
             name: p.name,

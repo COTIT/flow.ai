@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::{
     modules::{
         currencies::dto::CurrencyResource,
+        lots::public::Link,
         products::{
             dto::PHYSICAL,
             pricing::{
@@ -56,6 +57,8 @@ pub struct Embeds {
     pub offers: HashMap<Uuid, Vec<OfferRow>>,
     /// The UTC date the offers were loaded for (one per request).
     pub today: NaiveDate,
+    /// Each product's first own image (variant images skipped), signed.
+    pub thumbnails: HashMap<Uuid, Link>,
 }
 
 /// One product. `detail`: GET one (Laravel loaded more there).
@@ -153,6 +156,7 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "country_of_origin": p.country_of_origin,
         "weight": p.weight.map_or_else(|| "0.1".to_owned(), |w| column(Some(w), 2)),
         "images": [],
+        "thumbnail": e.thumbnails.get(&p.id),
         "stock_level_supplier": p.stock_level_supplier,
         "supplier_discount_code": p.supplier_discount_code,
         "sales_group": null,
@@ -166,8 +170,7 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "second_chance_reason": null,
         "exclude_price_corrections": p.exclude_price_corrections,
         "total_available_stock": php_number(lines.iter().map(|l| l.stock_lvl).sum()),
-        // shortcut: no orders or transfer lists yet (final batch), so nothing is reserved.
-        "total_reserved_stock": 0,
+        "total_reserved_stock": php_number(lines.iter().map(|l| l.reserved).sum()),
         "pos_available_stock": php_number(pos.map_or(Decimal::ZERO, |l| l.stock_lvl)),
         "pos_stock_status": match pos {
             _ if !mutates => "not_applicable",
@@ -205,6 +208,7 @@ pub fn render(p: &ProductRow, e: &Embeds, detail: bool) -> Value {
         "vat_group_id": p.vat_group_id,
         "export_enabled": p.export_enabled,
         "store_only": p.store_only,
+        "labels": p.labels,
         "export_price_sync": p.export_price_sync,
         "export_product_data": p.export_product_data,
         "export_data": p.export_data.clone().unwrap_or_else(|| json!({
@@ -411,8 +415,12 @@ pub struct ProductDoc {
     country_of_origin: Option<String>,
     /// 2 decimals; `"0.1"` when unset.
     weight: String,
-    /// Always empty.
+    /// Always empty; see `thumbnail`.
     images: Vec<Value>,
+    /// The product's first own image (variant images skipped) as a signed link; null without
+    /// one, or on a server without file storage.
+    #[schema(required = true)]
+    thumbnail: Option<Link>,
     #[schema(required = true)]
     stock_level_supplier: Option<i32>,
     #[schema(required = true)]
@@ -440,7 +448,7 @@ pub struct ProductDoc {
     second_chance_reason: Option<Value>,
     exclude_price_corrections: bool,
     total_available_stock: f64,
-    /// Always 0 until orders exist.
+    /// Units open orders hold, over every stock row of the product.
     total_reserved_stock: f64,
     pos_available_stock: f64,
     /// `available`, `unavailable` or `not_applicable`.
@@ -473,6 +481,8 @@ pub struct ProductDoc {
     export_enabled: bool,
     /// Sold at the till only; the web shop never lists it (Genesy addition).
     store_only: bool,
+    /// Short public labels ("Raw", "Unheated"), in order.
+    labels: Vec<String>,
     export_price_sync: bool,
     export_product_data: bool,
     /// `title`, `description_short`, `description`, `meta_title`, `meta_description`,

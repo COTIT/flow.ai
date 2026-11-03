@@ -8,6 +8,14 @@
 
 export type SupplyLinksListParams = {
 /**
+ * Only links in this status: `pending`, `live` or `revoked`.
+ */
+status?: string;
+/**
+ * Only links this workspace granted (`outgoing`) or received (`incoming`).
+ */
+direction?: string;
+/**
  * 1-based; junk falls back to 1.
  */
 page?: number;

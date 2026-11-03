@@ -75,6 +75,7 @@ mod product_brands;
 mod product_images;
 mod product_variants;
 mod products;
+mod quick_search;
 mod rate_limit;
 mod relations;
 mod request_timeouts;

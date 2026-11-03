@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { StorefrontOrderLine } from './storefrontOrderLine';
 
 /**
  * What the shop sees of its order: ids, number, status, totals and currency; never the
@@ -19,6 +20,8 @@ export interface StorefrontOrder {
      */
   expires_at: string | null;
   id: string;
+  /** What was ordered, in order. */
+  lines: StorefrontOrderLine[];
   number: string;
   /** @nullable */
   paid_at: string | null;

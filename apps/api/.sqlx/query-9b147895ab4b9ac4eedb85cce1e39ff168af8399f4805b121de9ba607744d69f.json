@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM supply_transfers\n           WHERE (from_workspace_id = $1 OR to_workspace_id = $1)\n             AND ($2::uuid IS NULL OR id = $2)\n             AND ($3::text IS NULL OR ($3 = 'received') = (received_at IS NOT NULL))\n             AND ($4::text IS NULL OR ($4 = 'outgoing') = (from_workspace_id = $1))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9b147895ab4b9ac4eedb85cce1e39ff168af8399f4805b121de9ba607744d69f"
+}

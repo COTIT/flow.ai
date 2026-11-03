@@ -21,7 +21,10 @@ Only sellable web products show: `status = active`, not archived, not deleted, n
   "id": "…", "name": "Ilundo honey", "brand": null, "type": "physical",
   "short_description": null, "description": null, "ean13": null, "barcode": null,
   "price_gross": 1250, "price_net": 1033, "currency": "EUR", "currency_decimals": 2,
-  "available_stock": "7.50",
+  "available_stock": "7.50", "stock_status": "in_stock",
+  "labels": ["Raw", "Unheated"],
+  "passport": { "public_code": "7K3M9Q2XAB" },
+  "images": [],
   "variants": [
     { "id": "…", "sku": "H-500", "barcode": null, "ean13": null, "is_default": true,
       "price_gross": 1250, "price_net": 1033, "options": [{ "type": "Size", "value": "500 g" }] }
@@ -31,6 +34,9 @@ Only sellable web products show: `status = active`, not archived, not deleted, n
 
 - **Prices** are integers in minor units of `currency` (`round(price × 10^currency_decimals)`, half away from zero). `price_gross` includes VAT. Base prices only: special offers and price corrections are not applied yet.
 - **`available_stock`** is on hand minus reserved over every live stock row, as a decimal string, or `null` when the product isn't stock-tracked. Stock is per product (variants have none).
+- **`stock_status`:** `sold_out` (available ≤ 0), `low` (at most the workspace setting `product.low_stock_threshold` units, default 5, set through `POST /settings`) or `in_stock`; `null` when not stock-tracked. The rule lives here, so the shop shows a "few left" badge without its own threshold.
+- **`labels`:** the product's short public labels in order (`products.md`), `[]` without.
+- **`passport`:** `{public_code}` of the lot the shop sells next: the product's published, released, unexpired lot with free stock (level − reserved > 0) and the earliest of expiry and best-before (undated last), over every warehouse. Read the page with `GET /storefront/lots/{public_code}`. `null` when no lot qualifies (no lots, none published, recalled, expired or empty).
 - **Never shown:** purchase, wholesale or cost prices, supplier data, internal references or notes, stock locations. A test pins the exact key set.
 
 One SQL statement per call (variants, options, stock and currency joined in), so no N+1.

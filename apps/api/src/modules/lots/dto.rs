@@ -144,10 +144,23 @@ pub struct LotEventResource {
     /// Who did it; null once the user is gone.
     #[schema(required = true)]
     user_id: Option<Uuid>,
+    /// Who did it, with their name while they are a member of this workspace; null with no
+    /// user.
+    #[schema(required = true)]
+    user: Option<EventUser>,
     /// `updated`: `{changed: [field, ...]}`; passport events: `{version}`.
     #[schema(required = true, value_type = Option<Object>)]
     meta: Option<Value>,
     created_at: DateTime<Utc>,
+}
+
+/// The user behind a lot event.
+#[derive(Serialize, ToSchema)]
+pub struct EventUser {
+    id: Uuid,
+    /// Null once they left the workspace.
+    #[schema(required = true)]
+    name: Option<String>,
 }
 
 impl From<EventRow> for LotEventResource {
@@ -157,6 +170,10 @@ impl From<EventRow> for LotEventResource {
             kind: e.kind,
             from_status: e.from_status,
             to_status: e.to_status,
+            user: e.user_id.map(|id| EventUser {
+                id,
+                name: e.user_name,
+            }),
             user_id: e.user_id,
             meta: e.meta,
             created_at: e.created_at,
@@ -485,4 +502,7 @@ pub struct FarmerCreditsPage {
     /// allow-list; null when it shows none (no supply lineage, or `village` not shared).
     #[schema(required = true, example = 1)]
     pub farmer_groups: Option<i64>,
+    /// Those groups, exactly as the public page shows them: village, farmer count (null below
+    /// 3) and harvest window, under the link's allow-list. Never names, shares or amounts.
+    pub farmers: Vec<crate::modules::lots::public::PublicFarmerGroup>,
 }

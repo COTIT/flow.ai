@@ -5,6 +5,8 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde_json::Value;
 use sqlx::{PgConnection, PgExecutor};
+
+use crate::modules::orders::dto::CurrencySales;
 use uuid::Uuid;
 
 /// A catalog product as an order line prices it.
@@ -238,6 +240,8 @@ pub struct OrderRow {
     pub paid_at: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
     pub cancelled_at: Option<DateTime<Utc>>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub picked_at: Option<DateTime<Utc>>,
     pub invoice_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -255,6 +259,7 @@ pub async fn lock(
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.confirmed_at, o.picked_at,
                   o.updated_at
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE o.workspace_id = $1 AND o.id = $2
@@ -278,6 +283,7 @@ pub async fn find(
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.confirmed_at, o.picked_at,
                   o.updated_at
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE o.workspace_id = $1 AND o.id = $2"#,
@@ -301,6 +307,7 @@ pub async fn list(
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.confirmed_at, o.picked_at,
                   o.updated_at, count(*) OVER () AS "total_rows!"
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)
@@ -337,6 +344,8 @@ pub async fn list(
             paid_at: r.paid_at,
             completed_at: r.completed_at,
             cancelled_at: r.cancelled_at,
+            confirmed_at: r.confirmed_at,
+            picked_at: r.picked_at,
             invoice_id: r.invoice_id,
             created_at: r.created_at,
             updated_at: r.updated_at,
@@ -400,7 +409,8 @@ pub async fn lines(
     .await
 }
 
-/// Move an order to `status` and stamp the matching time.
+/// Move an order to `status` and stamp the matching time. `confirmed_at` is stamped the first
+/// time it becomes `open` or `completed`.
 pub async fn set_status(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -411,12 +421,31 @@ pub async fn set_status(
         "UPDATE orders SET status = $3, updated_at = now(),
              expires_at = CASE WHEN $3 = 'awaiting_payment' THEN expires_at END,
              completed_at = CASE WHEN $3 = 'completed' THEN now() ELSE completed_at END,
+             confirmed_at = CASE WHEN $3 IN ('open', 'completed') THEN coalesce(confirmed_at, now())
+                                 ELSE confirmed_at END,
              cancelled_at = CASE WHEN $3 = 'cancelled' THEN now()
                                  WHEN $3 = 'open' THEN NULL ELSE cancelled_at END
          WHERE workspace_id = $1 AND id = $2",
         workspace_id,
         id,
         status,
+    )
+    .execute(conn)
+    .await
+    .map(|_| ())
+}
+
+/// Stamp `picked_at` once: every line is now picked in full.
+pub async fn stamp_picked(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE orders SET picked_at = coalesce(picked_at, now()), updated_at = now()
+         WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
     )
     .execute(conn)
     .await
@@ -506,4 +535,106 @@ pub async fn set_invoice(
     .execute(conn)
     .await
     .map(|_| ())
+}
+
+/// How a page's orders were paid: `cash`/`card` (till sale) or `online` (a paid provider
+/// payment); orders without either are absent.
+pub async fn payment_methods(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    order_ids: &[Uuid],
+) -> Result<Vec<(Uuid, String)>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT s.order_id AS "order_id!", s.method AS "method!" FROM till_sales s
+           WHERE s.workspace_id = $1 AND s.order_id = ANY($2)
+           UNION
+           SELECT p.order_id, 'online' FROM order_payments p
+           WHERE p.workspace_id = $1 AND p.order_id = ANY($2) AND p.kind = 'payment'
+             AND p.status = 'paid'"#,
+        workspace_id,
+        order_ids,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.order_id, r.method)).collect())
+}
+
+/// A lot an order holds or took units of, per product.
+pub struct OrderLotRow {
+    pub order_id: Uuid,
+    pub product_id: Uuid,
+    pub lot_id: Uuid,
+    pub code: String,
+    pub quantity: Decimal,
+}
+
+/// The lots a page's orders hold (reservations) or took (ledger decreases), per product, by
+/// lot code. No-lot stock is left out.
+pub async fn order_lots(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    order_ids: &[Uuid],
+) -> Result<Vec<OrderLotRow>, sqlx::Error> {
+    sqlx::query_as!(
+        OrderLotRow,
+        r#"SELECT x.order_id AS "order_id!", x.product_id AS "product_id!",
+                  l.id AS lot_id, l.code, sum(x.q)::numeric(19,2) AS "quantity!"
+           FROM (SELECT m.related_id AS order_id, m.product_id, m.lot_id, -m.quantity_change AS q
+                 FROM stock_movements m
+                 WHERE m.workspace_id = $1 AND m.related_domain = 'order'
+                   AND m.related_id = ANY($2) AND m.lot_id IS NOT NULL
+                   AND m.quantity_change < 0
+                 UNION ALL
+                 SELECT r.related_id, r.product_id, s.lot_id, r.quantity
+                 FROM stock_reservations r
+                 JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id
+                 WHERE r.workspace_id = $1 AND r.related_domain = 'order'
+                   AND r.related_id = ANY($2) AND s.lot_id IS NOT NULL) x
+           JOIN lots l ON l.workspace_id = $1 AND l.id = x.lot_id
+           GROUP BY x.order_id, x.product_id, l.id, l.code
+           ORDER BY l.code, l.id"#,
+        workspace_id,
+        order_ids,
+    )
+    .fetch_all(db)
+    .await
+}
+
+// shortcut: scans the workspace's orders (no index on the sold-at expression); add one when a
+// workspace passes ~100k orders.
+/// Orders sold in `[from, to)` per currency: status `open`, `completed`, `partially_returned`
+/// or `returned`, at `confirmed_at`, else `paid_at`, `completed_at`, `created_at` (older
+/// orders have no `confirmed_at`).
+pub async fn sales_summary(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    source: Option<&str>,
+) -> Result<Vec<CurrencySales>, sqlx::Error> {
+    sqlx::query_as!(
+        CurrencySales,
+        r#"SELECT upper(c.asset_type) AS "currency!", c.decimals, count(*) AS "orders!",
+                  sum(o.total)::bigint AS "gross_total!",
+                  coalesce(sum(r.amount), 0)::bigint AS "refunded_total!"
+           FROM orders o
+           JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
+           LEFT JOIN LATERAL (
+               SELECT sum(p.amount) AS amount FROM order_payments p
+               WHERE p.workspace_id = o.workspace_id AND p.order_id = o.id
+                 AND p.kind = 'refund' AND p.status = 'refunded') r ON true
+           WHERE o.workspace_id = $1
+             AND o.status IN ('open', 'completed', 'partially_returned', 'returned')
+             AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) >= $2
+             AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) < $3
+             AND ($4::text IS NULL OR o.source = $4)
+           GROUP BY c.asset_type, c.decimals
+           ORDER BY 1"#,
+        workspace_id,
+        from,
+        to,
+        source,
+    )
+    .fetch_all(db)
+    .await
 }

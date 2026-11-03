@@ -24,6 +24,7 @@ use crate::{
             DispatchRequest, ListQuery, PackedLotResource, PackingRequest, ReceiveRequest,
             SupplyTransferResource,
         },
+        repo::Filter,
         service,
     },
 };
@@ -122,6 +123,7 @@ impl FromRequestParts<AppState> for Shipper {
     responses(
         (status = 200, body = Paginated<SupplyTransferResource>, description = "One page"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown `status` or `direction`"),
     ),
     security(("bearer" = []))
 )]
@@ -131,7 +133,13 @@ pub async fn list(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Paginated<SupplyTransferResource>>, AppError> {
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
-    let (rows, total) = service::list(&state, &access, page.size, page.offset()).await?;
+    let (status, direction) = query.filter()?;
+    let f = Filter {
+        id: None,
+        status: status.as_deref(),
+        direction: direction.as_deref(),
+    };
+    let (rows, total) = service::list(&state, &access, f, page.size, page.offset()).await?;
     let ws = access.workspace_id;
     let data = rows
         .into_iter()

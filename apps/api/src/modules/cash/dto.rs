@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::{
     http::json::{Rules, Validate},
-    modules::cash::repo::{ShiftRow, VaultRow},
+    modules::cash::repo::{ShiftFilter, ShiftRow, VaultRow},
 };
 
 const COUNT_MAX: usize = 50;
@@ -245,12 +245,40 @@ pub struct TransferResource {
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct ShiftQuery {
+    /// `true`: only shifts still open; `false`: only closed ones.
+    #[param(value_type = Option<bool>)]
+    pub open: Option<String>,
+    /// Only this register's shifts.
+    #[param(value_type = Option<Uuid>)]
+    pub register_id: Option<String>,
+    /// Opened at or after this time (RFC 3339).
+    #[param(value_type = Option<String>, format = DateTime, example = "2026-11-02T00:00:00+01:00")]
+    pub from: Option<String>,
+    /// Opened before this time (RFC 3339).
+    #[param(value_type = Option<String>, format = DateTime)]
+    pub to: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+}
+
+impl ShiftQuery {
+    /// The filter; 422 on a malformed `open`, `register_id`, `from` or `to`.
+    pub fn filter(&self) -> Result<ShiftFilter, crate::error::AppError> {
+        use crate::http::list;
+        let mut r = Rules::default();
+        let f = ShiftFilter {
+            open: list::boolean(&mut r, "open", self.open.as_deref()),
+            register_id: list::id(&mut r, "register_id", self.register_id.as_deref()),
+            from: list::time(&mut r, "from", self.from.as_deref()),
+            to: list::time(&mut r, "to", self.to.as_deref()),
+        };
+        r.into_result()?;
+        Ok(f)
+    }
 }
 
 #[cfg(test)]

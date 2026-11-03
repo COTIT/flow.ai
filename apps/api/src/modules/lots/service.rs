@@ -309,19 +309,22 @@ pub async fn resource(
 }
 
 /// GET /lots/{lot}/farmer-credits: a page of the farmer credits of this workspace's lot, the
-/// total, and the number of farmer groups its public page shows (None when none).
+/// total, and the farmer groups its public page shows.
 pub async fn farmer_credits(
     state: &AppState,
     workspace_id: Uuid,
     id: &str,
     limit: i64,
     offset: i64,
-) -> Result<(Vec<repo::CreditRow>, i64, Option<i64>), AppError> {
+) -> Result<(Vec<repo::CreditRow>, i64, Vec<PublicFarmerGroup>), AppError> {
     let lot = get(state, workspace_id, id).await?;
     let (rows, total) =
         repo::farmer_credits(&state.db, workspace_id, lot.id, limit, offset).await?;
-    let groups = farm_supply::service::public_farmers(&state.db, lot.id).await?;
-    let groups = (!groups.is_empty()).then(|| i64::try_from(groups.len()).unwrap_or(i64::MAX));
+    let groups = farm_supply::service::public_farmers(&state.db, lot.id)
+        .await?
+        .into_iter()
+        .map(|g| PublicFarmerGroup::new(g.village, g.farmers, g.harvest_start, g.harvest_end))
+        .collect();
     Ok((rows, total, groups))
 }
 

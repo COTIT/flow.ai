@@ -1342,3 +1342,51 @@ async fn a_long_held_row_answers_busy(pool: PgPool) {
     );
     holder.rollback().await.unwrap();
 }
+
+#[sqlx::test]
+async fn stock_movements_filter_by_type(pool: PgPool) {
+    let w = world(pool).await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 3 }))
+        .await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 2 }))
+        .await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": -1 }))
+        .await;
+    let (status, _) = w
+        .post(
+            "set-stock-requirements",
+            json!({ "warehouses": [{ "warehouse_id": w.main, "minimal_stock_level": 1,
+                                     "maximum_stock_level": 5 }] }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+
+    for (q, n) in [
+        ("type=increase", 2),
+        ("type=decrease", 1),
+        ("type=set_requirements", 1),
+        ("type=set_level", 0),
+        ("type=increase,decrease", 3),
+        ("type=decrease&warehouse_id=", 1),
+    ] {
+        let res = w.read(&format!("stock-movements?{q}")).await;
+        assert_eq!(res["meta"]["total"], n, "{q}");
+        assert_eq!(res["data"].as_array().unwrap().len(), n as usize, "{q}");
+    }
+    let res = w.read("stock-movements?type=decrease").await;
+    assert_eq!(res["data"][0]["movement_type"], "decrease");
+
+    for q in ["type=sold", "type=increase,,x"] {
+        let (status, res) = w
+            .api
+            .call(
+                Method::GET,
+                &format!("/{}/stock-movements?{q}", w.product),
+                None,
+                &w.api.owner,
+            )
+            .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+        assert!(res["errors"]["type"].is_array(), "{res}");
+    }
+}

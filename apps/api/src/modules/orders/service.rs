@@ -20,15 +20,18 @@ use crate::{
             self,
             dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
         },
+        lots::public::Link,
         orders::{
             dto::{
-                LineInput, LinesQuantity, OrderAction, OrderCreated, OrderInput, OrderLineResource,
-                OrderPatch, OrderResource,
+                LineInput, LinesQuantity, OrderAction, OrderCreated, OrderInput, OrderLineLot,
+                OrderLineResource, OrderPatch, OrderResource, SalesSummary, SummaryRange,
             },
             payments::{Paid, paid_totals},
             repo::{self, LineRow, NewLine, OrderRow},
+            trail,
         },
         pricing::engine,
+        product_images::service as product_images,
         products, settings,
         stock::{
             repo::Cause,
@@ -283,12 +286,16 @@ pub async fn number(conn: &mut PgConnection, workspace_id: Uuid) -> Result<Strin
     Ok(Appendix::from_section(&section).format(n))
 }
 
-/// `order.created`: ids, number, status and totals; never customer details.
+/// `order.created` (ids, number, status and totals; never customer details) and the trail's
+/// `created` by `actor` (`at` None = now).
 pub async fn created_event(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     order_id: Uuid,
+    actor: trail::Actor,
+    at: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<(), AppError> {
+    trail::log(conn, workspace_id, order_id, "created", actor, None, at).await?;
     let o = repo::find(&mut *conn, workspace_id, order_id)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -420,14 +427,66 @@ async fn paid_of(conn: &mut PgConnection, workspace_id: Uuid, id: Uuid) -> Resul
 }
 
 /// The order with its lines as a resource.
-pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
+/// What a page of orders shows beyond its rows: payment method, lots per (order, product),
+/// first image per (product, variant).
+#[derive(Default)]
+pub struct Extras {
+    methods: HashMap<Uuid, String>,
+    lots: HashMap<(Uuid, Uuid), Vec<OrderLineLot>>,
+    images: HashMap<(Uuid, Option<Uuid>), Link>,
+}
+
+impl Extras {
+    /// Loaded for `orders` and their `lines`: three statements per page.
+    pub async fn load(
+        state: &AppState,
+        conn: &mut PgConnection,
+        workspace_id: Uuid,
+        orders: &[Uuid],
+        lines: &[LineRow],
+    ) -> Result<Self, AppError> {
+        let mut x = Self::default();
+        if orders.is_empty() {
+            return Ok(x);
+        }
+        x.methods = repo::payment_methods(&mut *conn, workspace_id, orders)
+            .await?
+            .into_iter()
+            .collect();
+        for l in repo::order_lots(&mut *conn, workspace_id, orders).await? {
+            x.lots
+                .entry((l.order_id, l.product_id))
+                .or_default()
+                .push(OrderLineLot {
+                    id: l.lot_id,
+                    code: l.code,
+                    quantity: format!("{:.2}", l.quantity),
+                });
+        }
+        let mut products: Vec<Uuid> = lines.iter().map(|l| l.product_id).collect();
+        products.sort_unstable();
+        products.dedup();
+        let links =
+            product_images::storefront_links_on(state, conn, workspace_id, &products).await?;
+        x.images = links
+            .into_iter()
+            .filter_map(|(k, v)| v.into_iter().next().map(|l| (k, l)))
+            .collect();
+        Ok(x)
+    }
+}
+
+pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid, x: &Extras) -> OrderResource {
     let q = |d: Decimal| format!("{d:.2}");
+    let units = q(lines.iter().map(|l| l.quantity).sum());
     let allowed_actions = OrderAction::ALL
         .into_iter()
         .filter(|a| check(*a, &o, &lines, paid).is_ok())
         .collect();
     OrderResource {
         allowed_actions,
+        units,
+        payment_method: x.methods.get(&o.id).cloned(),
         id: o.id,
         number: o.number,
         status: o.status,
@@ -448,6 +507,8 @@ pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
         paid_at: o.paid_at,
         completed_at: o.completed_at,
         cancelled_at: o.cancelled_at,
+        confirmed_at: o.confirmed_at,
+        picked_at: o.picked_at,
         invoice_id: o.invoice_id,
         lines: lines
             .into_iter()
@@ -466,6 +527,23 @@ pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
                 picked: q(l.picked),
                 deducted: q(l.deducted),
                 returned: q(l.returned),
+                lots: x
+                    .lots
+                    .get(&(o.id, l.product_id))
+                    .map_or_else(Vec::new, |v| {
+                        v.iter()
+                            .map(|t| OrderLineLot {
+                                id: t.id,
+                                code: t.code.clone(),
+                                quantity: t.quantity.clone(),
+                            })
+                            .collect()
+                    }),
+                image: l
+                    .product_variant_id
+                    .and_then(|v| x.images.get(&(l.product_id, Some(v))))
+                    .or_else(|| x.images.get(&(l.product_id, None)))
+                    .cloned(),
             })
             .collect(),
         created_at: o.created_at,
@@ -475,6 +553,7 @@ pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
 
 /// The order as `{data: ...}`, read in `conn`.
 pub async fn data(
+    state: &AppState,
     conn: &mut PgConnection,
     workspace_id: Uuid,
     id: Uuid,
@@ -484,7 +563,8 @@ pub async fn data(
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&mut *conn, workspace_id, &[id]).await?;
     let paid = paid_of(conn, workspace_id, id).await?;
-    serde_json::to_value(json!({ "data": resource(o, lines, paid) }))
+    let x = Extras::load(state, conn, workspace_id, &[id], &lines).await?;
+    serde_json::to_value(json!({ "data": resource(o, lines, paid, &x) }))
         .map_err(|e| AppError::Internal(e.to_string()))
 }
 
@@ -546,7 +626,7 @@ pub async fn create(
         &p.summary,
     )
     .await?;
-    created_event(&mut tx, workspace_id, id).await?;
+    created_event(&mut tx, workspace_id, id, trail::Actor::User(user_id), None).await?;
     let answer = Answer::created(&json!({ "data": OrderCreated { order_id: id, number } }));
     idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
     tx.commit().await?;
@@ -565,10 +645,13 @@ pub async fn get(
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&state.db, workspace_id, &[id]).await?;
     let paid = paid_totals(&state.db, workspace_id, &[id]).await?;
+    let mut conn = state.db.acquire().await?;
+    let x = Extras::load(state, &mut conn, workspace_id, &[id], &lines).await?;
     Ok(resource(
         o,
         lines,
         paid.get(&id).copied().unwrap_or_default(),
+        &x,
     ))
 }
 
@@ -585,8 +668,11 @@ pub async fn list(
         total = repo::count(&state.db, workspace_id, status).await?;
     }
     let ids: Vec<Uuid> = rows.iter().map(|o| o.id).collect();
+    let all = repo::lines(&state.db, workspace_id, &ids).await?;
+    let mut conn = state.db.acquire().await?;
+    let x = Extras::load(state, &mut conn, workspace_id, &ids, &all).await?;
     let mut by_order: HashMap<Uuid, Vec<LineRow>> = HashMap::new();
-    for l in repo::lines(&state.db, workspace_id, &ids).await? {
+    for l in all {
         by_order.entry(l.order_id).or_default().push(l);
     }
     let paid = paid_totals(&state.db, workspace_id, &ids).await?;
@@ -595,10 +681,22 @@ pub async fn list(
         .map(|o| {
             let lines = by_order.remove(&o.id).unwrap_or_default();
             let p = paid.get(&o.id).copied().unwrap_or_default();
-            resource(o, lines, p)
+            resource(o, lines, p, &x)
         })
         .collect();
     Ok((data, total))
+}
+
+/// The trail's `kind` by the office user `user_id`.
+async fn log(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    order_id: Uuid,
+    kind: &str,
+    user_id: Uuid,
+) -> Result<(), AppError> {
+    let actor = trail::Actor::User(user_id);
+    Ok(trail::log(conn, workspace_id, order_id, kind, actor, None, None).await?)
 }
 
 /// A state change under the order lock: replay, lock, `step`, answer the order.
@@ -625,7 +723,7 @@ where
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&mut *tx, workspace_id, &[id]).await?;
     step(&mut tx, o, lines).await?;
-    let answer = ok_json(&data(&mut tx, workspace_id, id).await?);
+    let answer = ok_json(&data(state, &mut tx, workspace_id, id).await?);
     idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
     tx.commit().await?;
     Ok(answer)
@@ -699,7 +797,7 @@ pub async fn confirm(
             check(OrderAction::Confirm, &o, &lines, Paid::default())?;
             hold(conn, workspace_id, &o, &lines).await?;
             repo::set_status(conn, workspace_id, o.id, "open").await?;
-            Ok(())
+            log(conn, workspace_id, o.id, "confirmed", user_id).await
         },
     )
     .await
@@ -738,9 +836,20 @@ pub async fn pick(
                 }
                 rows.push((l.id, *q, l.deducted, l.returned));
             }
-            repo::set_line_quantities(conn, workspace_id, &rows)
-                .await
-                .map_err(Into::into)
+            repo::set_line_quantities(conn, workspace_id, &rows).await?;
+            // Stock lines only, the ones `complete` needs picked.
+            let full = lines.iter().filter(|l| l.tracked).all(|l| {
+                let now = rows
+                    .iter()
+                    .rev()
+                    .find(|r| r.0 == l.id)
+                    .map_or(l.picked, |r| r.1);
+                now == l.quantity
+            });
+            if full {
+                repo::stamp_picked(conn, workspace_id, o.id).await?;
+            }
+            log(conn, workspace_id, o.id, "picked", user_id).await
         },
     )
     .await
@@ -779,7 +888,7 @@ pub async fn complete(
             repo::set_line_quantities(conn, workspace_id, &rows).await?;
             farm_supply::sale::on_sale(conn, workspace_id, o.id, &o.number).await?;
             repo::set_status(conn, workspace_id, o.id, "completed").await?;
-            Ok(())
+            log(conn, workspace_id, o.id, "completed", user_id).await
         },
     )
     .await
@@ -800,7 +909,10 @@ pub async fn cancel(
         user_id,
         id,
         key,
-        async |conn, o, lines| cancel_locked(conn, workspace_id, &o, &lines).await,
+        async |conn, o, lines| {
+            cancel_locked(conn, workspace_id, &o, &lines).await?;
+            log(conn, workspace_id, o.id, "cancelled", user_id).await
+        },
     )
     .await
 }
@@ -930,7 +1042,7 @@ pub async fn returns(
                 "partially_returned"
             };
             repo::set_status(conn, workspace_id, o.id, status).await?;
-            Ok(())
+            log(conn, workspace_id, o.id, "returned", user_id).await
         },
     )
     .await
@@ -1029,10 +1141,41 @@ pub async fn invoice(
                 invoices::service::create_in(conn, workspace_id, user_id, input).await?;
             repo::set_invoice(conn, workspace_id, o.id, invoice_id).await?;
             book_paid(conn, workspace_id, user_id, &o, invoice_id).await?;
-            Ok(())
+            log(conn, workspace_id, o.id, "invoiced", user_id).await
         },
     )
     .await
+}
+
+/// A page of the order's events, newest first; 404 for another workspace's order.
+pub async fn events(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<trail::EventRow>, i64), AppError> {
+    let id = parse(id)?;
+    repo::find(&state.db, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(trail::list(&state.db, workspace_id, id, limit, offset).await?)
+}
+
+/// Sales of the workspace in the range, per currency.
+pub async fn sales_summary(
+    state: &AppState,
+    workspace_id: Uuid,
+    r: SummaryRange,
+) -> Result<SalesSummary, AppError> {
+    let currencies =
+        repo::sales_summary(&state.db, workspace_id, r.from, r.to, r.source.as_deref()).await?;
+    Ok(SalesSummary {
+        from: r.from,
+        to: r.to,
+        source: r.source,
+        currencies,
+    })
 }
 
 #[cfg(test)]

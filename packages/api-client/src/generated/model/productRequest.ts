@@ -76,6 +76,12 @@ export interface ProductRequest {
   import_source?: string | null;
   /** @nullable */
   is_serialized?: boolean | null;
+  /**
+     * Short public labels the shop shows as chips, e.g. `["Raw", "Unheated"]`: at most 8,
+     * each 1 to 32 characters, no repeats (any case). `[]` or null clears them.
+     * @nullable
+     */
+  labels?: string[] | null;
   /** @nullable */
   meta?: ProductRequestMeta;
   /**

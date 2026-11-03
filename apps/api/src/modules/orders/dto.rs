@@ -8,7 +8,10 @@ use serde_json::Value;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use crate::http::json::{Rules, Validate, present};
+use crate::{
+    http::json::{Rules, Validate, present},
+    modules::lots::public::Link,
+};
 
 /// Most lines one order may have.
 pub const LINES_MAX: usize = 50;
@@ -367,6 +370,22 @@ pub struct OrderLineResource {
     pub deducted: String,
     #[schema(example = "0.00")]
     pub returned: String,
+    /// Lots the order holds or took units of for this line's product, by lot code. Stock is
+    /// held and taken per product, so lines of the same product show the same list.
+    pub lots: Vec<OrderLineLot>,
+    /// The variant's first image, else the product's, as a signed link; null without one.
+    #[schema(required = true)]
+    pub image: Option<Link>,
+}
+
+/// A lot an order line's product came from.
+#[derive(Serialize, ToSchema)]
+pub struct OrderLineLot {
+    pub id: Uuid,
+    pub code: String,
+    /// Units held or taken from it, 2 decimals.
+    #[schema(example = "2.00")]
+    pub quantity: String,
 }
 
 /// An order with its lines. Totals in minor units of `currency`.
@@ -408,11 +427,24 @@ pub struct OrderResource {
     pub completed_at: Option<DateTime<Utc>>,
     #[schema(required = true)]
     pub cancelled_at: Option<DateTime<Utc>>,
+    /// First time it became `open` (office confirm, web payment) or `completed` (till sale).
+    /// Null on orders from before the trail existed.
+    #[schema(required = true)]
+    pub confirmed_at: Option<DateTime<Utc>>,
+    /// When every line was first picked in full; null until then (and on older orders).
+    #[schema(required = true)]
+    pub picked_at: Option<DateTime<Utc>>,
     #[schema(required = true)]
     pub invoice_id: Option<Uuid>,
     /// What the API would accept on this order now, from the rules its action routes enforce.
     /// Status and payment rules only, not the caller's permissions.
     pub allowed_actions: Vec<OrderAction>,
+    /// Sum of the lines' quantities, 2 decimals.
+    #[schema(example = "4.00")]
+    pub units: String,
+    /// `cash` or `card` (till sale), `online` (a paid web payment); null otherwise.
+    #[schema(required = true, example = "card")]
+    pub payment_method: Option<String>,
     pub lines: Vec<OrderLineResource>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -584,6 +616,26 @@ pub struct StorefrontOrder {
     pub expires_at: Option<DateTime<Utc>>,
     #[schema(required = true)]
     pub paid_at: Option<DateTime<Utc>>,
+    /// What was ordered, in order.
+    pub lines: Vec<StorefrontOrderLine>,
+}
+
+/// One line of a web order, as the customer may see it.
+#[derive(Serialize, ToSchema)]
+pub struct StorefrontOrderLine {
+    #[schema(example = "Raw honey 500 g")]
+    pub title: String,
+    pub product_id: Uuid,
+    #[schema(required = true)]
+    pub product_variant_id: Option<Uuid>,
+    #[schema(example = "2.00")]
+    pub quantity: String,
+    /// One unit incl VAT, minor units; null only when out of range.
+    #[schema(required = true, example = 1363)]
+    pub unit_price_gross: Option<i64>,
+    /// The line incl VAT, minor units (the line's own VAT; the order's VAT is per rate).
+    #[schema(example = 2725)]
+    pub total_gross: i64,
 }
 
 /// A payment intent.
@@ -663,4 +715,157 @@ mod tests {
             assert!(!redirect(bad), "{bad}");
         }
     }
+}
+
+/// Who did an order action.
+#[derive(Serialize, ToSchema)]
+pub struct EventActor {
+    /// `user`, `till_user` or `app_key`.
+    #[schema(example = "user")]
+    pub r#type: &'static str,
+    pub id: Uuid,
+    /// Null once a user left the workspace.
+    #[schema(required = true)]
+    pub name: Option<String>,
+}
+
+/// One action on an order.
+#[derive(Serialize, ToSchema)]
+pub struct OrderEventResource {
+    pub id: Uuid,
+    /// `created`, `confirmed`, `paid`, `picked`, `completed`, `cancelled`, `expired`,
+    /// `returned`, `refunded` or `invoiced`.
+    #[schema(example = "confirmed")]
+    pub kind: String,
+    pub at: DateTime<Utc>,
+    /// Null when the system did it (expiry job, payment provider).
+    #[schema(required = true)]
+    pub actor: Option<EventActor>,
+    /// `refunded`: `{amount}` in minor units, plus `auto: true` for a refund the system owed;
+    /// else null.
+    #[schema(required = true, value_type = Option<Object>)]
+    pub meta: Option<Value>,
+}
+
+impl From<crate::modules::orders::trail::EventRow> for OrderEventResource {
+    fn from(e: crate::modules::orders::trail::EventRow) -> Self {
+        let user_name = match (&e.first_name, &e.last_name) {
+            (Some(f), Some(l)) => Some(crate::modules::users::dto::full_name(
+                f,
+                e.middle_name.as_deref(),
+                l,
+            )),
+            _ => None,
+        };
+        let actor = match (e.user_id, e.till_user_id, e.app_key_id) {
+            (Some(id), _, _) => Some(EventActor {
+                r#type: "user",
+                id,
+                name: user_name,
+            }),
+            (_, Some(id), _) => Some(EventActor {
+                r#type: "till_user",
+                id,
+                name: e.till_user_name,
+            }),
+            (_, _, Some(id)) => Some(EventActor {
+                r#type: "app_key",
+                id,
+                name: e.app_key_name,
+            }),
+            _ => None,
+        };
+        Self {
+            id: e.id,
+            kind: e.kind,
+            at: e.created_at,
+            actor,
+            meta: e.meta,
+        }
+    }
+}
+
+/// Order sources (`orders.source`).
+pub const SOURCES: &[&str] = &["office", "storefront", "till"];
+/// Longest sales summary range.
+pub const SUMMARY_DAYS_MAX: i64 = 366;
+
+/// GET /sales-summary query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct SummaryQuery {
+    /// Sold at or after (RFC 3339). Required.
+    #[param(required = true, value_type = String, format = DateTime, example = "2026-11-02T00:00:00+01:00")]
+    pub from: Option<String>,
+    /// Sold before (RFC 3339), at most 366 days after `from`. Required.
+    #[param(required = true, value_type = String, format = DateTime, example = "2026-11-09T00:00:00+01:00")]
+    pub to: Option<String>,
+    /// Only `office`, `storefront` or `till` orders.
+    pub source: Option<String>,
+}
+
+/// Validated summary range.
+pub struct SummaryRange {
+    pub from: DateTime<Utc>,
+    pub to: DateTime<Utc>,
+    pub source: Option<String>,
+}
+
+impl SummaryQuery {
+    /// The range; 422 when `from`/`to` are missing or malformed, `to` isn't after `from`, the
+    /// span passes 366 days, or `source` is unknown.
+    pub fn range(&self) -> Result<SummaryRange, crate::error::AppError> {
+        use crate::http::list::time;
+        let mut r = Rules::default();
+        let from = time(&mut r, "from", self.from.as_deref());
+        let to = time(&mut r, "to", self.to.as_deref());
+        if self.from.as_deref().is_none_or(|v| v.trim().is_empty()) {
+            r.missing("from");
+        }
+        if self.to.as_deref().is_none_or(|v| v.trim().is_empty()) {
+            r.missing("to");
+        }
+        if let (Some(f), Some(t)) = (from, to) {
+            r.check("to", t > f, "The to must be after from.");
+            r.check(
+                "to",
+                t - f <= chrono::Duration::days(SUMMARY_DAYS_MAX),
+                format!("The range must not pass {SUMMARY_DAYS_MAX} days."),
+            );
+        }
+        let source = r.one_of("source", self.source.clone(), SOURCES, None);
+        r.into_result()?;
+        match (from, to) {
+            (Some(from), Some(to)) => Ok(SummaryRange { from, to, source }),
+            _ => Err(crate::error::AppError::Internal(
+                "summary range lost".into(),
+            )),
+        }
+    }
+}
+
+/// Sales in a range, one row per currency (never summed across currencies).
+#[derive(Serialize, ToSchema)]
+pub struct SalesSummary {
+    pub from: DateTime<Utc>,
+    pub to: DateTime<Utc>,
+    /// The `source` asked for; null = every source.
+    #[schema(required = true)]
+    pub source: Option<String>,
+    pub currencies: Vec<CurrencySales>,
+}
+
+/// Sales in one currency.
+#[derive(Serialize, ToSchema)]
+pub struct CurrencySales {
+    #[schema(example = "EUR")]
+    pub currency: String,
+    pub decimals: i16,
+    /// Orders sold in the range.
+    pub orders: i64,
+    /// Their totals incl VAT, minor units, before any refund or return.
+    pub gross_total: i64,
+    /// Provider refunds of those orders that went through (status `refunded`), minor units.
+    /// Credit notes and cash handed back outside the API are not in it.
+    pub refunded_total: i64,
 }

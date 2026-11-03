@@ -411,3 +411,21 @@ fn no_code_updates_or_deletes_lot_events() {
     );
     assert!(hits.is_empty(), "lot_events rewritten in {hits:?}");
 }
+
+#[sqlx::test]
+async fn lot_events_name_who_did_it_while_they_are_a_member(pool: PgPool) {
+    let (api, honey) = world(pool).await;
+    let created = create(&api, lot(&honey, "ILU-9")).await;
+    let id = created["id"].as_str().unwrap();
+    let trail = events(&api, id).await;
+    assert_eq!(trail[0]["user"]["name"], "Ada Lovelace", "{trail:?}");
+    assert_eq!(trail[0]["user"]["id"], trail[0]["user_id"]);
+
+    sqlx::query("UPDATE lot_events SET user_id = NULL WHERE lot_id = $1::uuid")
+        .bind(id)
+        .execute(&api.pool)
+        .await
+        .unwrap();
+    let trail = events(&api, id).await;
+    assert_eq!(trail[0]["user"], Value::Null, "user gone");
+}

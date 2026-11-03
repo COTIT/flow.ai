@@ -48,9 +48,30 @@ Every order resource (get, list, each action's answer) lists the actions the API
 | POST | `/orders/{order}/cancel` | `order.update` | 200 |
 | POST | `/orders/{order}/returns` | `order.update` | 200; `{lines:[{line_id, quantity}], restock}`: quantity returned now, more than 0 and at most taken − returned; `restock` (default true) puts it back on the order's warehouse |
 | POST | `/orders/{order}/refunds` | `order.delete` | 201 `{data:{refund_id, amount, status}}`; `{amount}` in minor units, 1 to paid − refunds not failed (422 above); 409 when nothing paid is left to refund (`Nothing paid on this order is left to refund.`). See `payments.md`. |
+| GET | `/orders/{order}/events?page=&page_size=` | `order.view` | 200 page of the order's trail, newest first (see "Trail") |
 | POST | `/orders/{order}/invoice` | `order.update` | 200; one draft invoice of every line (open, completed or returned orders; 409 when already invoiced; 422 `relation_id` until the order has a relation). The invoice's lines move no stock: the order did. |
 
 Every write takes an optional `Idempotency-Key` (1–255 visible characters): a retry of the same request replays the first answer, another request under the key is a 422, another member's key is never theirs.
+
+## Sales summary `GET /sales-summary?from&to&source` (`order.list`)
+
+For an office tile like "Sales this week". The client sends its own week (or day) as RFC 3339 times in its time zone.
+
+- `from` (inclusive) and `to` (exclusive) are required; `to` must be after `from`, at most 366 days later. `source`: `office`, `storefront` or `till` (blank = all). Anything else is a 422 on that field.
+- A sale is an order now `open`, `completed`, `partially_returned` or `returned`, counted at `confirmed_at` (else `paid_at`, `completed_at`, `created_at` for orders from before the trail). Drafts, unpaid web orders and cancelled ones never count.
+- 200 `{data: {from, to, source, currencies: [{currency, decimals, orders, gross_total, refunded_total}]}}`, one row per currency, by code; never summed across currencies.
+  - `gross_total`: the orders' totals incl VAT, minor units, before any refund or return.
+  - `refunded_total`: provider refunds of those orders that went through (status `refunded`), minor units. Credit notes and cash handed back outside the API are not in it. Gross minus refunded is the office's to show, not computed here.
+- Every row is this workspace's; another workspace's orders never count.
+
+## Order and line extras
+
+Every order resource (get, list, action answers) also carries, loaded in three statements per page:
+
+- `units`: the sum of the lines' quantities, 2 decimals.
+- `payment_method`: `cash` or `card` for a till sale, `online` once a web payment is paid; null otherwise (office orders are paid through their invoice).
+- `lines[].lots`: `[{id, code, quantity}]`, the lots the order holds (reservations) or took (ledger decreases) for the line's product, by lot code; no-lot stock is not listed. Stock is held and taken per product, so two lines of one product show the same list. A draft holds nothing (`[]`).
+- `lines[].image`: `{url, expires_at}` of the variant's first image, else the product's; null without one or on a server without file storage.
 
 ## Create body
 
@@ -70,6 +91,28 @@ Every write takes an optional `Idempotency-Key` (1–255 visible characters): a 
 
 `order.created` on create (see `webhooks.md`): ids, number, status, source and totals only.
 
+## Trail (`order_events`, migration `order_events`)
+
+Every action writes one row in its own transaction: `{id, kind, at, actor, meta}`.
+
+| `kind` | Written by | `actor` |
+|---|---|---|
+| `created` | office create, web checkout, till sale (`at` = the sale's `sold_at`) | `user`, `app_key` (the shop key, never the customer), `till_user` |
+| `confirmed` | office confirm | `user` |
+| `paid` | the provider confirmed a web payment | null (system) |
+| `picked` | each office pick | `user` |
+| `completed` | office complete; till sale (`at` = `sold_at`) | `user`, `till_user` |
+| `cancelled` | office cancel | `user` |
+| `expired` | the expiry job cancelled an unpaid web order | null |
+| `returned` | office returns | `user` |
+| `refunded` | office refund (`meta.amount`), or the refund the system owes for a late payment without stock (`meta: {amount, auto: true}`) | `user`, null |
+| `invoiced` | office invoice | `user` |
+
+- `actor`: `{type: "user" | "till_user" | "app_key", id, name}` or null. A user's `name` is null once they are no longer a member of this workspace (the id stays).
+- No backfill: orders acted on before the migration have no rows for those actions, and their `confirmed_at`/`picked_at` stay null. Show what is there.
+- Orders gain `confirmed_at` (the first time it became `open` or a till sale `completed`) and `picked_at` (the first time every stock line was picked in full).
+- Another workspace's order is 404; `order.view` is needed (403).
+
 ## Web shop (`/v1/storefront`, app key with `checkout:write`)
 
 | Method | Path | Success |
@@ -78,7 +121,7 @@ Every write takes an optional `Idempotency-Key` (1–255 visible characters): a 
 | GET | `/storefront/orders/{order}` | 200 `{data: order}` |
 | POST | `/storefront/orders/{order}/payment` | 200 `{data:{payment_id, status, checkout_url}}` |
 
-The shop's order view holds `id, number, status, currency, decimals, subtotal, vat, total, expires_at, paid_at` only: never the customer. Office orders and other workspaces' orders are 404.
+The shop's order view holds `id, number, status, currency, decimals, subtotal, vat, total, expires_at, paid_at` and `lines` only: never the customer. Each line is `{title, product_id, product_variant_id, quantity, unit_price_gross, total_gross}` in minor units: `unit_price_gross` is one unit incl VAT priced like a one-line order (null only when out of range), `total_gross` the line's own excl + VAT. Office orders and other workspaces' orders are 404.
 
 Checkout body: `{lines: [{product_id, product_variant_id?, quantity}], customer: {email, name, phone?, shipping_address?, billing_address?}}`.
 - Prices come from the catalog only: a sent `unit_price`, `discount_percentage` or `title` is a 422. Products must be active and not archived.

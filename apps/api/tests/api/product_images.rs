@@ -296,3 +296,67 @@ async fn only_this_workspaces_images_of_this_product(pool: PgPool) {
     let (status, _) = put(&w, &writer, json!([])).await;
     assert_eq!(status, StatusCode::OK, "no files, no file.get needed");
 }
+
+/// `thumbnail` of honey on GET one; the list row must say the same.
+async fn thumbnail(w: &W) -> Value {
+    let (status, p) = w
+        .api
+        .call(Method::GET, &format!("/{}", w.honey), None, &w.api.owner)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{p}");
+    let (_, list) = w.api.call(Method::GET, "", None, &w.api.owner).await;
+    let row = list["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == w.honey.as_str())
+        .unwrap()
+        .clone();
+    // Signed per request: same file, own expiry.
+    assert_eq!(
+        row["thumbnail"]["url"], p["data"]["thumbnail"]["url"],
+        "list = get"
+    );
+    p["data"]["thumbnail"].clone()
+}
+
+#[sqlx::test]
+async fn product_rows_carry_the_first_product_image_as_thumbnail(pool: PgPool) {
+    let w = world(pool).await;
+    assert_eq!(thumbnail(&w).await, Value::Null, "no images");
+
+    let (status, _) = put(
+        &w,
+        &w.api.owner,
+        json!([{ "file_id": w.front, "product_variant_id": w.variant }]),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        thumbnail(&w).await,
+        Value::Null,
+        "variant images don't count"
+    );
+
+    let (status, _) = put(
+        &w,
+        &w.api.owner,
+        json!([
+            { "file_id": w.front, "product_variant_id": w.variant },
+            { "file_id": w.back },
+        ]),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let t = thumbnail(&w).await;
+    assert!(t["url"].as_str().unwrap().contains("back.png"), "{t}");
+    assert!(t["expires_at"].is_string(), "{t}");
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (status, _) = eve
+        .call(Method::GET, &format!("/{}", w.honey), None, &eve.owner)
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "acme's product under evil");
+    let (_, list) = eve.call(Method::GET, "", None, &eve.owner).await;
+    assert_eq!(list["data"], json!([]));
+}

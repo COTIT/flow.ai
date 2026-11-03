@@ -33,9 +33,12 @@ The raw lot's kg are put into stock with the lot stock route (`POST /lots/{lot}/
 - Farm ops and admin ship without `product.update`; a field officer, farmer or plain member gets `403`. Granting a link stays with workspace admins (it shares farmer data).
 - Send an `Idempotency-Key` header (1 to 255 visible characters) to make a retry after a lost reply safe: the same key and body replay the first answer byte for byte, another request under the key is `422 Idempotency-Key reused with different request payload`, keys are per workspace and per caller, kept a day. One retry = one transfer, one stock movement, one event.
 
-## `GET …/supply-transfers?page&page_size` (members)
+## `GET …/supply-transfers?status&direction&page&page_size` (members)
 
 Transfers this workspace sent (`direction: "outgoing"`) or is sent (`"incoming"`), newest first.
+
+- `status`: only `dispatched` (on the way, not received yet) or `received`. `direction`: only `outgoing` or `incoming`. Blank = no filter; any other value is a 422 on that field.
+- `?direction=incoming&status=dispatched` lists what is arriving; `meta.total` counts it.
 
 Transfer: `{id, link_id, direction, partner: {id, name}, from_lot: {code, public_code}, quantity, status, dispatched_at, to_lot, received_quantity, received_at}`.
 - `status` is `dispatched` or `received`.

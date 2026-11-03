@@ -270,11 +270,46 @@ pub struct SaleResource {
     #[schema(required = true)]
     card_reference: Option<String>,
     sold_at: DateTime<Utc>,
+    /// The booked lines, in order, for the receipt.
+    lines: Vec<SaleLine>,
 }
 
-impl From<SaleRow> for SaleResource {
-    fn from(s: SaleRow) -> Self {
+/// One booked line of a till sale. Minor units.
+#[derive(Serialize, ToSchema)]
+pub struct SaleLine {
+    #[schema(example = "Honey 500 g")]
+    title: String,
+    product_id: Uuid,
+    #[schema(required = true)]
+    product_variant_id: Option<Uuid>,
+    /// Decimal string.
+    #[schema(example = "2.00")]
+    quantity: String,
+    /// What the till charged per unit, excl VAT.
+    unit_price: i64,
+    line_excl: i64,
+    line_vat: i64,
+    /// line_excl + line_vat.
+    line_total: i64,
+}
+
+impl SaleResource {
+    /// `s` with its order's `lines`.
+    pub fn new(s: SaleRow, lines: &[crate::modules::orders::repo::LineRow]) -> Self {
         Self {
+            lines: lines
+                .iter()
+                .map(|l| SaleLine {
+                    title: l.title.clone(),
+                    product_id: l.product_id,
+                    product_variant_id: l.product_variant_id,
+                    quantity: format!("{:.2}", l.quantity),
+                    unit_price: l.unit_price,
+                    line_excl: l.line_excl,
+                    line_vat: l.line_vat,
+                    line_total: l.line_excl + l.line_vat,
+                })
+                .collect(),
             order_id: s.order_id,
             number: s.number,
             client_ref: s.client_ref,
@@ -302,10 +337,38 @@ pub struct SaleQuery {
     /// `true`: only sales with a line charged at another price than the catalog's.
     #[param(value_type = Option<bool>)]
     pub mismatch: Option<String>,
+    /// Only this register's sales.
+    #[param(value_type = Option<Uuid>)]
+    pub register_id: Option<String>,
+    /// Sold at or after this time (RFC 3339).
+    #[param(value_type = Option<String>, format = DateTime, example = "2026-11-02T00:00:00+01:00")]
+    pub from: Option<String>,
+    /// Sold before this time (RFC 3339).
+    #[param(value_type = Option<String>, format = DateTime)]
+    pub to: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+}
+
+impl SaleQuery {
+    /// The filter; 422 on a malformed `register_id`, `from` or `to`. A `mismatch` other than
+    /// `true`/`1` means no filter, as before.
+    pub fn filter(
+        &self,
+    ) -> Result<crate::modules::till_sales::repo::ListFilter, crate::error::AppError> {
+        use crate::http::list;
+        let mut r = Rules::default();
+        let f = crate::modules::till_sales::repo::ListFilter {
+            mismatch: matches!(self.mismatch.as_deref(), Some("true" | "1")),
+            register_id: list::id(&mut r, "register_id", self.register_id.as_deref()),
+            from: list::time(&mut r, "from", self.from.as_deref()),
+            to: list::time(&mut r, "to", self.to.as_deref()),
+        };
+        r.into_result()?;
+        Ok(f)
+    }
 }

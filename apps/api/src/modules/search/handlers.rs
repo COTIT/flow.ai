@@ -1,6 +1,7 @@
-//! HTTP edge for /v1/workspace/{workspace}/searches. Dispatches `domain` to the module's list
-//! service and answers in that module's list shape. Postgres ILIKE on the name column instead
-//! of Laravel's Meilisearch; results stay in insertion order.
+//! HTTP edge for /v1/workspace/{workspace}/searches and /quick-search. `searches` dispatches
+//! `domain` to the module's list service and answers in that module's list shape: Postgres
+//! ILIKE on the name column instead of Laravel's Meilisearch; results stay in insertion order.
+//! `quick-search` returns a few rows per entity kind (see `service::quick`).
 // shortcut: no relevance ranking; fine for reference lists, revisit for products/relations.
 
 use std::borrow::Cow;
@@ -18,8 +19,9 @@ use crate::{
     AppState,
     error::{AppError, ValidationErrorBody},
     http::{
+        json::Rules,
         list::{Page, Paginated, flag, search as pattern_of},
-        response::MessageBody,
+        response::{Data, Envelope, MessageBody},
         workspace::{Can, permissions},
     },
     modules::{
@@ -38,6 +40,10 @@ use crate::{
         },
         relations,
         sales_groups::{dto::SalesGroupResource, service as sales_groups},
+        search::{
+            dto::{QuickQuery, QuickResults},
+            service,
+        },
         shipment_methods::{
             dto::ShipmentMethodResource, repo::ListFilter as ShipmentFilter,
             service as shipment_methods,
@@ -47,6 +53,13 @@ use crate::{
         warehouses::dto::WarehouseCompacted,
     },
 };
+
+/// Shortest and longest quick-search `q` (trigram indexes need 3 characters).
+const QUICK_MIN: usize = 3;
+const QUICK_MAX: usize = 100;
+/// Rows per quick-search group: default and most.
+const QUICK_LIMIT: i64 = 5;
+const QUICK_LIMIT_MAX: i64 = 10;
 
 permissions! {
     GlobalSearch => "workspace.global-search",
@@ -243,4 +256,43 @@ pub async fn search(
         }
         _ => return Err(AppError::NotFound),
     })
+}
+
+/// GET /quick-search?q=: a few rows per kind for the office top bar.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/quick-search", tag = "search",
+    operation_id = "search_quick", summary = "Search products, orders, invoices, lots and relations at once",
+    description = "Contains-match on `q` (any case; `%` and `_` literal): products by name, number, EAN-13 or barcode; orders by number or reference; lots by code or public code; relations by company name, alias or a contact's first or last name. Invoices match when the digits of `q` are their number. Each group is null when the caller lacks that list permission (`product.list`, `order.list`, `invoice.list`, `relation.list`; lots: any member), else at most `limit` rows, newest first.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        QuickQuery,
+    ),
+    responses(
+        (status = 200, body = Envelope<QuickResults>, description = "Hits per group"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `workspace.global-search`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "`q` missing, under 3 or over 100 characters"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn quick(
+    State(state): State<AppState>,
+    access: Can<GlobalSearch>,
+    Query(query): Query<QuickQuery>,
+) -> Result<Data<QuickResults>, AppError> {
+    let q = query.q.as_deref().map(str::trim).unwrap_or_default();
+    let mut r = Rules::default();
+    r.check(
+        "q",
+        (QUICK_MIN..=QUICK_MAX).contains(&q.chars().count()),
+        format!("The q must be {QUICK_MIN} to {QUICK_MAX} characters."),
+    );
+    r.into_result()?;
+    let limit = query
+        .limit
+        .as_deref()
+        .and_then(|l| l.trim().parse::<i64>().ok())
+        .filter(|l| *l > 0)
+        .map_or(QUICK_LIMIT, |l| l.min(QUICK_LIMIT_MAX));
+    Ok(Data(service::quick(&state, &access, q, limit).await?))
 }

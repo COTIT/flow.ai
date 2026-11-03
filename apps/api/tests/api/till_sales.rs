@@ -510,3 +510,133 @@ async fn a_replay_with_the_same_time_written_otherwise_is_the_same_sale(pool: Pg
     assert_eq!(status, StatusCode::OK, "{again}");
     assert_eq!(again, first);
 }
+
+#[sqlx::test]
+async fn office_sales_filter_by_time_and_register(pool: PgPool) {
+    let w = world(pool).await;
+    let (status, _) = post(&w, &w.t1, &sale("a-1", basket(&w), cash(5000))).await;
+    assert_eq!(status, StatusCode::CREATED);
+    let card = json!({ "method": "card" });
+    let old = json!([line(&w.wax, "1", 200)]);
+    let (status, _) = post(&w, &w.t2, &sale("b-1", old, card)).await;
+    assert_eq!(status, StatusCode::CREATED);
+    let list = |q: String| {
+        let w = &w;
+        async move {
+            w.api
+                .call(Method::GET, &format!("/sales{q}"), None, &w.api.owner)
+                .await
+        }
+    };
+    let (_, all) = list(String::new()).await;
+    assert_eq!(all["meta"]["total"], 2);
+    let (newest, oldest) = (&all["data"][0], &all["data"][1]);
+    assert_eq!(newest["client_ref"], "b-1");
+
+    let at = newest["sold_at"].as_str().unwrap();
+    let (_, res) = list(format!("?from={at}")).await;
+    assert_eq!(res["meta"]["total"], 1, "from inclusive");
+    assert_eq!(res["data"][0]["client_ref"], "b-1");
+    let (_, res) = list(format!("?to={at}")).await;
+    assert_eq!(res["meta"]["total"], 1, "to exclusive");
+    assert_eq!(res["data"][0]["client_ref"], "a-1");
+    let reg = oldest["register_id"].as_str().unwrap();
+    let (_, res) = list(format!("?register_id={reg}")).await;
+    assert_eq!(res["meta"]["total"], 1);
+    assert_eq!(res["data"][0]["client_ref"], "a-1");
+    let (_, res) = list(format!("?mismatch=true&from={at}")).await;
+    assert_eq!(res["meta"]["total"], 1, "combines with mismatch");
+    let (_, res) = list(format!("?mismatch=true&to={at}")).await;
+    assert_eq!(res["meta"]["total"], 0);
+
+    for q in ["?from=today", "?to=1", "?register_id=x"] {
+        let (status, res) = list(q.into()).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+    }
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (_, res) = eve
+        .call(
+            Method::GET,
+            &format!("/sales?register_id={reg}"),
+            None,
+            &eve.owner,
+        )
+        .await;
+    assert_eq!(res["meta"]["total"], 0, "acme's register under evil");
+}
+
+#[sqlx::test]
+async fn a_till_sale_is_created_and_completed_by_its_till_user(pool: PgPool) {
+    let w = world(pool).await;
+    let (status, res) = post(&w, &w.t1, &sale("ev-1", basket(&w), cash(5000))).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let order = res["data"]["order_id"].as_str().unwrap();
+    let orders = w.api.with_base("/orders");
+    let (status, ev) = orders
+        .call(
+            Method::GET,
+            &format!("/{order}/events"),
+            None,
+            &orders.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{ev}");
+    let kinds: Vec<&str> = ev["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["kind"].as_str().unwrap())
+        .collect();
+    assert_eq!(kinds, ["completed", "created"]);
+    for e in ev["data"].as_array().unwrap() {
+        assert_eq!(e["actor"]["type"], "till_user");
+        assert_eq!(e["actor"]["name"], "Till 1 user");
+    }
+    let (_, o) = orders
+        .call(Method::GET, &format!("/{order}"), None, &orders.owner)
+        .await;
+    assert_eq!(o["data"]["confirmed_at"], o["data"]["completed_at"]);
+}
+
+#[sqlx::test]
+async fn till_orders_carry_their_payment_method(pool: PgPool) {
+    let w = world(pool).await;
+    let (_, cash_sale) = post(&w, &w.t1, &sale("m-1", basket(&w), cash(5000))).await;
+    let card = json!({ "method": "card" });
+    let (_, card_sale) = post(&w, &w.t1, &sale("m-2", basket(&w), card)).await;
+    let orders = w.api.with_base("/orders");
+    for (s, method) in [(cash_sale, "cash"), (card_sale, "card")] {
+        let id = s["data"]["order_id"].as_str().unwrap();
+        let (_, o) = orders
+            .call(Method::GET, &format!("/{id}"), None, &orders.owner)
+            .await;
+        assert_eq!(o["data"]["payment_method"], method);
+    }
+}
+
+#[sqlx::test]
+async fn a_sale_carries_its_lines_for_the_receipt(pool: PgPool) {
+    let w = world(pool).await;
+    let body = sale("r-1", basket(&w), cash(5000));
+    let (status, res) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let want = json!([
+        { "title": "Honey", "product_id": w.honey, "product_variant_id": null,
+          "quantity": "2.00", "unit_price": 1250, "line_excl": 2500, "line_vat": 225,
+          "line_total": 2725 },
+        { "title": "Wax", "product_id": w.wax, "product_variant_id": null,
+          "quantity": "1.00", "unit_price": 300, "line_excl": 300, "line_vat": 63,
+          "line_total": 363 },
+    ]);
+    assert_eq!(res["data"]["lines"], want, "booked lines");
+    let (status, again) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(again["data"]["lines"], want, "a replay answers the same");
+    let (status, got) = w.api.call(Method::GET, "/sales/r-1", None, &w.t1).await;
+    assert_eq!(status, StatusCode::OK, "{got}");
+    assert_eq!(got["data"]["lines"], want, "reprint after a reload");
+    let (_, list) = w.api.call(Method::GET, "/sales", None, &w.api.owner).await;
+    assert_eq!(list["data"][0]["lines"], want, "office list");
+    let (status, _) = w.api.call(Method::GET, "/sales/r-1", None, &w.t2).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another register");
+}

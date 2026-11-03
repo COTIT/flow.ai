@@ -1,0 +1,170 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, e.kind, e.meta, e.created_at, e.user_id, e.till_user_id, e.app_key_id,\n                  u.first_name AS \"first_name?\", u.middle_name, u.last_name AS \"last_name?\",\n                  t.name AS \"till_user_name?\", k.name AS \"app_key_name?\",\n                  count(*) OVER () AS \"total!\"\n           FROM order_events e\n           LEFT JOIN workspace_members m ON m.workspace_id = e.workspace_id AND m.user_id = e.user_id\n           LEFT JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL\n           LEFT JOIN till_users t ON t.workspace_id = e.workspace_id AND t.id = e.till_user_id\n           LEFT JOIN app_keys k ON k.workspace_id = e.workspace_id AND k.id = e.app_key_id\n           WHERE e.workspace_id = $1 AND e.order_id = $2\n           ORDER BY e.created_at DESC, e.id DESC\n           LIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "order_events",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "meta",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "order_events",
+            "name": "meta"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "order_events",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_events",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "till_user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_events",
+            "name": "till_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "app_key_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "order_events",
+            "name": "app_key_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "first_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "first_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "middle_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "middle_name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "last_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "till_user_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "till_users",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "app_key_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "app_keys",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "ed265406a8caa77d2f1fc856ea0be06e0ad647a9195d6375bf8f6a68d40586fd"
+}

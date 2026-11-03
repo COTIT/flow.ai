@@ -16,6 +16,7 @@ use crate::{
     modules::{
         currencies::{dto::CurrencyResource, repo as currencies},
         discounts, invoices, price_corrections,
+        product_images::service as product_images,
         products::{
             dto::{BAD_CURRENCY, Fields, PHYSICAL, SET_TYPES, bad_id},
             pricing::{Priority, normalise, out_of_range},
@@ -311,6 +312,7 @@ pub async fn duplicate(
         import_source: Some(src.import_source.clone()),
         export_enabled: Some(src.export_enabled),
         store_only: Some(src.store_only),
+        labels: Some(src.labels.clone()),
         export_price_sync: Some(src.export_price_sync),
         export_product_data: Some(src.export_product_data),
         export_data: Some(src.export_data.clone()),
@@ -420,6 +422,7 @@ async fn blank(state: &AppState, workspace_id: Uuid, f: &Fields) -> Result<Produ
         import_source: None,
         export_enabled: false,
         store_only: false,
+        labels: Vec::new(),
         export_price_sync: false,
         export_product_data: false,
         export_data: None,
@@ -507,6 +510,9 @@ fn apply(p: &mut ProductRow, f: &Fields) {
         if let Some(v) = src {
             *dst = v;
         }
+    }
+    if let Some(v) = &f.labels {
+        p.labels = v.clone();
     }
     if PHYSICAL.contains(&p.kind.as_str()) {
         if let Some(v) = &f.dimensions {
@@ -651,6 +657,14 @@ async fn embeds(
         let child_ids: Vec<Uuid> = children.iter().map(|c| c.1).collect();
         if !child_ids.is_empty() {
             all.extend(repo::find_many(&state.db, workspace_id, &child_ids).await?);
+        }
+    }
+    let ids: Vec<Uuid> = rows.iter().map(|p| p.id).collect();
+    for ((product, variant), links) in
+        product_images::storefront_links(state, workspace_id, &ids).await?
+    {
+        if let (None, Some(first)) = (variant, links.into_iter().next()) {
+            e.thumbnails.insert(product, first);
         }
     }
     e.vat_groups = vat_groups::all(&state.db, workspace_id)

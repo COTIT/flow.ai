@@ -47,21 +47,47 @@ pub async fn insert(
     .await
 }
 
-/// Links `workspace_id` is a side of (only `id` when given), newest first, and the count.
+/// Which links a list returns; `None` = any.
+#[derive(Clone, Copy, Default)]
+pub struct Filter<'a> {
+    pub id: Option<Uuid>,
+    /// `pending`, `live` or `revoked`.
+    pub status: Option<&'a str>,
+    /// `outgoing` (this workspace granted it) or `incoming`.
+    pub direction: Option<&'a str>,
+}
+
+impl Filter<'_> {
+    /// Just the link `id`.
+    pub fn id(id: Uuid) -> Self {
+        Self {
+            id: Some(id),
+            ..Self::default()
+        }
+    }
+}
+
+/// Links `workspace_id` is a side of matching `f`, newest first, and the count.
 pub async fn list(
     db: &sqlx::PgPool,
     workspace_id: Uuid,
-    id: Option<Uuid>,
+    f: Filter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<LinkRow>, i64), sqlx::Error> {
-    let rows = rows(db, workspace_id, id, limit, offset).await?;
+    let rows = rows(db, workspace_id, f, limit, offset).await?;
     let total = sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM supply_links
            WHERE (from_workspace_id = $1 OR to_workspace_id = $1)
-             AND ($2::uuid IS NULL OR id = $2)"#,
+             AND ($2::uuid IS NULL OR id = $2)
+             AND ($3::text IS NULL OR $3 = CASE WHEN revoked_at IS NOT NULL THEN 'revoked'
+                                               WHEN accepted_at IS NOT NULL THEN 'live'
+                                               ELSE 'pending' END)
+             AND ($4::text IS NULL OR ($4 = 'outgoing') = (from_workspace_id = $1))"#,
         workspace_id,
-        id,
+        f.id,
+        f.status,
+        f.direction,
     )
     .fetch_one(db)
     .await?;
@@ -72,7 +98,7 @@ pub async fn list(
 pub async fn rows(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
-    id: Option<Uuid>,
+    f: Filter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<LinkRow>, sqlx::Error> {
@@ -85,11 +111,17 @@ pub async fn rows(
                                           THEN l.to_workspace_id ELSE l.from_workspace_id END
          WHERE (l.from_workspace_id = $1 OR l.to_workspace_id = $1)
            AND ($2::uuid IS NULL OR l.id = $2)
+           AND ($5::text IS NULL OR $5 = CASE WHEN l.revoked_at IS NOT NULL THEN 'revoked'
+                                             WHEN l.accepted_at IS NOT NULL THEN 'live'
+                                             ELSE 'pending' END)
+           AND ($6::text IS NULL OR ($6 = 'outgoing') = (l.from_workspace_id = $1))
          ORDER BY l.granted_at DESC, l.id DESC LIMIT $3 OFFSET $4",
         workspace_id,
-        id,
+        f.id,
         limit,
         offset,
+        f.status,
+        f.direction,
     )
     .fetch_all(db)
     .await

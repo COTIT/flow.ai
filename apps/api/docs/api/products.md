@@ -47,6 +47,7 @@ The last three answer every product page's automatic calls. Without them the pag
 The product resource follows Laravel `ProductResource`; see `src/modules/products/resource.rs` for every key.
 
 - **One shape for list and detail:** list rows also carry the detail-only keys.
+- **`labels`** (Genesy addition, migration `product_labels`; set on create/update): short public labels the shop shows as chips, e.g. `["Raw", "Unheated"]`. At most 8, each 1 to 32 characters after trimming, no repeats in any case (422 on `labels` or `labels.N`). Absent keeps them; `[]` or null clears them. Duplicating a product copies them.
 - **`store_only`** (Genesy addition, boolean, default false; set on create/update): sold at the till only. `/storefront` never lists it; the till catalog does (`till.md`).
 - **`default_warehouse`:** the full warehouse resource on GET one and search, the compact form in lists.
 - **Prices are strings, printed by `money::format_decimals` the way Laravel's `MoneyHelper` did:**
@@ -67,7 +68,8 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - One query for the whole page.
 - **Price corrections** (`price-corrections.md`): `price`, `original_price` and `business_price` go through the workspace's price bands; `price_without_correction` doesn't. With setting `product.disable_double_discount_for_business`, a product priced below gross takes `business_price` and `price_without_correction` from `gross_price`. Bands load once per page.
 - **Special offers** (`special-offers.md`): the product's active offer (highest priority, then newest) sets `price`, `business_price` and `price_without_correction` before the price band; `original_price` skips it. With the setting above, a product below gross starts its consumer price from gross while an offer is active. `relationships.active_special_offer` prints SpecialOfferResource; `relationships.special_offers` lists every offer on the detail only (`[]` in lists). Lists load only today's offers, in one query per page. A special price never goes below 0.
-- **Stock** (`stocks`, `total_available_stock`, `pos_*`, `?warehouse_id=`): see `stock.md`, "Product resource stock fields".
+- **Stock** (`stocks`, `total_available_stock`, `pos_*`, `?warehouse_id=`): see `stock.md`, "Product resource stock fields". `total_reserved_stock` is the sum of `reserved` over the product's live stock rows: what open orders hold (it printed 0 before orders existed).
+- **`thumbnail`** (list and detail): the product's first own image (variant images skipped) as `{url, expires_at}`, signed per request like the storefront's links; null without one or on a server without file storage. One extra statement per page.
 - **Product create seeds zero stock rows** in the main warehouse and every store (see `stock.md`).
 - **Other keys:**
   - `has_stock` and `archived` print 0/1, as Laravel left them uncast.

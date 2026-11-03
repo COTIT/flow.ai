@@ -271,14 +271,39 @@ impl SupplyTransferResource {
     }
 }
 
+/// Transfer statuses, as `SupplyTransferResource.status` prints them.
+pub const STATUSES: &[&str] = &["dispatched", "received"];
+
 /// GET list query.
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct ListQuery {
+    /// Only `dispatched` (on the way, not received yet) or `received` transfers.
+    #[param(value_type = Option<String>, example = "dispatched")]
+    pub status: Option<String>,
+    /// Only transfers this workspace sent (`outgoing`) or is sent (`incoming`).
+    #[param(value_type = Option<String>, example = "incoming")]
+    pub direction: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+}
+
+impl ListQuery {
+    /// `(status, direction)`, each None when absent or blank; 422 on another value.
+    pub fn filter(&self) -> Result<(Option<String>, Option<String>), crate::error::AppError> {
+        let mut r = Rules::default();
+        let status = r.one_of("status", self.status.clone(), STATUSES, None);
+        let direction = r.one_of(
+            "direction",
+            self.direction.clone(),
+            crate::modules::supply_links::dto::DIRECTIONS,
+            None,
+        );
+        r.into_result()?;
+        Ok((status, direction))
+    }
 }
