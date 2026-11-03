@@ -16,6 +16,7 @@ use crate::{
     modules::{
         currencies::{dto::CurrencyResource, repo as currencies},
         discounts, invoices, price_corrections,
+        product_images::service as product_images,
         products::{
             dto::{BAD_CURRENCY, Fields, PHYSICAL, SET_TYPES, bad_id},
             pricing::{Priority, normalise, out_of_range},
@@ -651,6 +652,14 @@ async fn embeds(
         let child_ids: Vec<Uuid> = children.iter().map(|c| c.1).collect();
         if !child_ids.is_empty() {
             all.extend(repo::find_many(&state.db, workspace_id, &child_ids).await?);
+        }
+    }
+    let ids: Vec<Uuid> = rows.iter().map(|p| p.id).collect();
+    for ((product, variant), links) in
+        product_images::storefront_links(state, workspace_id, &ids).await?
+    {
+        if let (None, Some(first)) = (variant, links.into_iter().next()) {
+            e.thumbnails.insert(product, first);
         }
     }
     e.vat_groups = vat_groups::all(&state.db, workspace_id)

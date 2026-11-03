@@ -773,3 +773,47 @@ async fn allowed_actions_are_what_the_api_accepts(pool: PgPool) {
     .unwrap();
     allows(&w, &id, &["pick", "cancel"]).await;
 }
+
+#[sqlx::test]
+async fn products_show_what_open_orders_reserve(pool: PgPool) {
+    let w = world(pool).await;
+    let products = w.api.with_base("/products");
+    let reserved = |id: String| {
+        let products = &products;
+        async move {
+            let (s, p) = products
+                .call(Method::GET, &format!("/{id}"), None, &products.owner)
+                .await;
+            assert_eq!(s, StatusCode::OK, "{p}");
+            let (_, list) = products.call(Method::GET, "", None, &products.owner).await;
+            let row = list["data"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| r["id"] == id.as_str())
+                .unwrap()
+                .clone();
+            assert_eq!(
+                row["total_reserved_stock"], p["data"]["total_reserved_stock"],
+                "list = get"
+            );
+            p["data"]["total_reserved_stock"].clone()
+        }
+    };
+    assert_eq!(reserved(w.honey.clone()).await, json!(0));
+    let a = draft(&w, json!([line(&w.honey, "3")])).await;
+    act(&w, &a, "confirm").await;
+    let b = draft(&w, json!([line(&w.honey, "1.5")])).await;
+    act(&w, &b, "confirm").await;
+    assert_eq!(reserved(w.honey.clone()).await, json!(4.5));
+    assert_eq!(reserved(w.wax.clone()).await, json!(0));
+    act(&w, &b, "cancel").await;
+    assert_eq!(reserved(w.honey.clone()).await, json!(3));
+    pick_all(&w, &a).await;
+    act(&w, &a, "complete").await;
+    assert_eq!(
+        reserved(w.honey.clone()).await,
+        json!(0),
+        "taken, no longer held"
+    );
+}

@@ -15788,7 +15788,7 @@
             "type": "string"
           },
           "images": {
-            "description": "Always empty.",
+            "description": "Always empty; see `thumbnail`.",
             "items": {},
             "type": "array"
           },
@@ -16078,12 +16078,23 @@
           "supplier_wholesale_price": {
             "type": "string"
           },
+          "thumbnail": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Link",
+                "description": "The product's first own image (variant images skipped) as a signed link; null without\none, or on a server without file storage."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "total_available_stock": {
             "format": "double",
             "type": "number"
           },
           "total_reserved_stock": {
-            "description": "Always 0 until orders exist.",
+            "description": "Units open orders hold, over every stock row of the product.",
             "format": "double",
             "type": "number"
           },
@@ -16198,6 +16209,7 @@
           "country_of_origin",
           "weight",
           "images",
+          "thumbnail",
           "stock_level_supplier",
           "supplier_discount_code",
           "sales_group",
