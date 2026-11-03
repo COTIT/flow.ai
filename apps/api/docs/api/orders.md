@@ -121,7 +121,7 @@ Every action writes one row in its own transaction: `{id, kind, at, actor, meta}
 | GET | `/storefront/orders/{order}` | 200 `{data: order}` |
 | POST | `/storefront/orders/{order}/payment` | 200 `{data:{payment_id, status, checkout_url}}` |
 
-The shop's order view holds `id, number, status, currency, decimals, subtotal, vat, total, expires_at, paid_at` only: never the customer. Office orders and other workspaces' orders are 404.
+The shop's order view holds `id, number, status, currency, decimals, subtotal, vat, total, expires_at, paid_at` and `lines` only: never the customer. Each line is `{title, product_id, product_variant_id, quantity, unit_price_gross, total_gross}` in minor units: `unit_price_gross` is one unit incl VAT priced like a one-line order (null only when out of range), `total_gross` the line's own excl + VAT. Office orders and other workspaces' orders are 404.
 
 Checkout body: `{lines: [{product_id, product_variant_id?, quantity}], customer: {email, name, phone?, shipping_address?, billing_address?}}`.
 - Prices come from the catalog only: a sent `unit_price`, `discount_percentage` or `title` is a 422. Products must be active and not archived.

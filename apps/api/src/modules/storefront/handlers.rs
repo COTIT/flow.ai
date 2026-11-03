@@ -16,9 +16,9 @@ use crate::{
     },
     modules::{
         app_keys::secret::CATALOG_READ,
-        product_images,
+        product_images, settings,
         storefront::{
-            dto::{ListQuery, StorefrontProduct},
+            dto::{LOW_STOCK_DEFAULT, ListQuery, StorefrontProduct},
             repo,
         },
     },
@@ -51,9 +51,10 @@ pub async fn list(
     };
     let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
     let images = product_images::service::storefront_links(&state, key.workspace_id, &ids).await?;
+    let low = low_stock(&state, key.workspace_id).await?;
     let data = rows
         .into_iter()
-        .map(|r| StorefrontProduct::new(r, &images))
+        .map(|r| StorefrontProduct::new(r, &images, low))
         .collect();
     Ok(Json(Paginated::new(data, total, page)))
 }
@@ -83,5 +84,14 @@ pub async fn get(
         .pop()
         .ok_or(AppError::NotFound)?;
     let images = product_images::service::storefront_links(&state, key.workspace_id, &[id]).await?;
-    Ok(Data(StorefrontProduct::new(row, &images)))
+    let low = low_stock(&state, key.workspace_id).await?;
+    Ok(Data(StorefrontProduct::new(row, &images, low)))
+}
+
+/// Setting `product.low_stock_threshold`, else 5.
+async fn low_stock(state: &AppState, workspace_id: Uuid) -> Result<i64, AppError> {
+    Ok(settings::repo::section(&state.db, workspace_id, "product")
+        .await?
+        .and_then(|s| s.get("low_stock_threshold")?.as_i64())
+        .unwrap_or(LOW_STOCK_DEFAULT))
 }

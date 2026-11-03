@@ -87,6 +87,8 @@ export interface ProductResource {
   /** @nullable */
   import_source: string | null;
   is_serialized: boolean;
+  /** Short public labels ("Raw", "Unheated"), in order. */
+  labels: string[];
   last_updated_at: string;
   /** @nullable */
   meta: ProductResourceMeta;

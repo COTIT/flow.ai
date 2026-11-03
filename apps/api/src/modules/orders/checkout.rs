@@ -15,8 +15,11 @@ use crate::{
     idempotency::{self, Actor, Answer, Key},
     jobs::runner::Step,
     modules::orders::{
-        dto::{CheckoutInput, PaymentInput, PaymentIntentResource, StorefrontOrder},
-        repo::{self, OrderRow},
+        dto::{
+            CheckoutInput, PaymentInput, PaymentIntentResource, StorefrontOrder,
+            StorefrontOrderLine,
+        },
+        repo::{self, LineRow, OrderRow},
         service, trail,
     },
     payments::{self, NewIntent},
@@ -31,8 +34,20 @@ const PROVIDER_DOWN: &str = "payment provider unavailable, try again";
 const NOT_PAYABLE: &str = "This order takes no payment.";
 
 /// The shop's view of an order.
-pub fn minimal(o: &OrderRow) -> StorefrontOrder {
+pub fn minimal(o: &OrderRow, lines: &[LineRow]) -> StorefrontOrder {
+    let dp = u32::try_from(o.decimals).unwrap_or(2);
     StorefrontOrder {
+        lines: lines
+            .iter()
+            .map(|l| StorefrontOrderLine {
+                title: l.title.clone(),
+                product_id: l.product_id,
+                product_variant_id: l.product_variant_id,
+                quantity: format!("{:.2}", l.quantity),
+                unit_price_gross: service::unit_gross(l.unit_price, l.vat_rate, dp),
+                total_gross: l.line_excl + l.line_vat,
+            })
+            .collect(),
         id: o.id,
         number: o.number.clone(),
         status: o.status.clone(),
@@ -110,7 +125,7 @@ pub async fn create(
     let lines = repo::lines(&mut *tx, ws, &[id]).await?;
     service::hold(&mut tx, ws, &o, &lines).await?;
     service::created_event(&mut tx, ws, id, trail::Actor::AppKey(key.id), None).await?;
-    let answer = Answer::created(&json!({ "data": minimal(&o) }));
+    let answer = Answer::created(&json!({ "data": minimal(&o, &lines) }));
     idempotency::finish(&mut tx, ws, idem.as_ref(), &answer).await?;
     tx.commit().await?;
     Ok(answer)
@@ -136,9 +151,9 @@ async fn web_order(
 /// The shop's view of one of its orders.
 pub async fn get(state: &AppState, key: &AppKey, id: &str) -> Result<StorefrontOrder, AppError> {
     let mut conn = state.db.acquire().await?;
-    Ok(minimal(
-        &web_order(&mut conn, key.workspace_id, id, false).await?,
-    ))
+    let o = web_order(&mut conn, key.workspace_id, id, false).await?;
+    let lines = repo::lines(&mut *conn, key.workspace_id, &[o.id]).await?;
+    Ok(minimal(&o, &lines))
 }
 
 /// A live payment row of an order.

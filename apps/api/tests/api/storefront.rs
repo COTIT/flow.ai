@@ -121,10 +121,13 @@ async fn product_and_variant_carry_exactly_the_public_fields(pool: PgPool) {
             "ean13",
             "id",
             "images",
+            "labels",
             "name",
+            "passport",
             "price_gross",
             "price_net",
             "short_description",
+            "stock_status",
             "type",
             "variants",
         ]
@@ -353,4 +356,249 @@ async fn page_of_100_is_one_query(pool: PgPool) {
     let elapsed = started.elapsed();
     assert_eq!(res["data"].as_array().unwrap().len(), 100);
     assert!(elapsed.as_millis() < 1_000, "page took {elapsed:?}");
+}
+
+/// `(stock_status, passport public code)` of a product on the storefront.
+async fn shelf(api: &Api, key: &str, id: &str) -> (Value, Value) {
+    let (status, res) = get(api, &format!("/products/{id}"), key).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let (_, list) = get(api, "/products", key).await;
+    let row = list["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == id)
+        .unwrap()
+        .clone();
+    assert_eq!(
+        row["stock_status"], res["data"]["stock_status"],
+        "list = get"
+    );
+    assert_eq!(row["passport"], res["data"]["passport"], "list = get");
+    (
+        res["data"]["stock_status"].clone(),
+        res["data"]["passport"]["public_code"].clone(),
+    )
+}
+
+#[sqlx::test]
+async fn few_left_follows_the_threshold_setting(pool: PgPool) {
+    let (api, key) = world(pool).await;
+    let id = product(&api, "Honey").await;
+    let wh = api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Main" }), "warehouse_id")
+        .await;
+    assert_eq!(
+        shelf(&api, &key, &id).await.0,
+        "sold_out",
+        "tracked, no rows"
+    );
+    let add = |q: i64| {
+        let (api, id, wh) = (&api, id.clone(), wh.clone());
+        async move {
+            let (s, res) = api
+                .call(
+                    Method::POST,
+                    &format!("/{id}/stocks"),
+                    Some(json!({ "warehouse_id": wh, "mutation_value": q })),
+                    &api.owner,
+                )
+                .await;
+            assert_eq!(s, StatusCode::OK, "{res}");
+        }
+    };
+    add(5).await;
+    assert_eq!(
+        shelf(&api, &key, &id).await.0,
+        "low",
+        "5 left, default threshold 5"
+    );
+    add(1).await;
+    assert_eq!(shelf(&api, &key, &id).await.0, "in_stock");
+    let (s, res) = send(
+        &api.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/settings", api.ws),
+        Some(json!({ "product": { "low_stock_threshold": 10 } })),
+        Some(&api.owner),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(
+        shelf(&api, &key, &id).await.0,
+        "low",
+        "6 left, threshold 10"
+    );
+    add(-6).await;
+    assert_eq!(shelf(&api, &key, &id).await.0, "sold_out");
+    sql(
+        &api,
+        "UPDATE products SET has_stock = false WHERE id = $1::uuid",
+        &id,
+    )
+    .await;
+    assert_eq!(shelf(&api, &key, &id).await.0, Value::Null, "not tracked");
+}
+
+#[sqlx::test]
+async fn the_jar_links_the_passport_of_the_lot_sold_next(pool: PgPool) {
+    let (api, key) = world(pool).await;
+    let id = product(&api, "Honey").await;
+    let wh = api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Main" }), "warehouse_id")
+        .await;
+    let lots = api.with_base("/lots");
+    let lot = |code: &'static str, expires: &'static str, q: &'static str, publish: bool| {
+        let (lots, id, wh) = (&lots, id.clone(), wh.clone());
+        async move {
+            let lot = lots
+                .create(
+                    json!({ "product_id": id, "code": code, "expires_on": expires }),
+                    "id",
+                )
+                .await;
+            let (s, res) = lots
+                .call(
+                    Method::POST,
+                    &format!("/{lot}/stock-mutations"),
+                    Some(json!({ "warehouse_id": wh, "quantity": q })),
+                    &lots.owner,
+                )
+                .await;
+            assert_eq!(s, StatusCode::OK, "{res}");
+            if publish {
+                let put = json!({ "title": code });
+                lots.call(
+                    Method::PUT,
+                    &format!("/{lot}/passport"),
+                    Some(put),
+                    &lots.owner,
+                )
+                .await;
+                let (s, res) = lots
+                    .call(
+                        Method::POST,
+                        &format!("/{lot}/passport/publish"),
+                        None,
+                        &lots.owner,
+                    )
+                    .await;
+                assert_eq!(s, StatusCode::OK, "{res}");
+            }
+            let (_, l) = lots
+                .call(Method::GET, &format!("/{lot}"), None, &lots.owner)
+                .await;
+            (lot, l["data"]["public_code"].as_str().unwrap().to_owned())
+        }
+    };
+    assert_eq!(shelf(&api, &key, &id).await.1, Value::Null, "no lots");
+    let (_hidden, _) = lot("H-0", "2026-12-01", "4", false).await;
+    let (a, a_code) = lot("H-A", "2027-01-01", "1", true).await;
+    let (_b, b_code) = lot("H-B", "2027-06-01", "5", true).await;
+    assert_eq!(
+        shelf(&api, &key, &id).await.1,
+        a_code.as_str(),
+        "earliest published"
+    );
+
+    let (s, res) = lots
+        .call(
+            Method::POST,
+            &format!("/{a}/stock-mutations"),
+            Some(json!({ "warehouse_id": wh, "quantity": "-1" })),
+            &lots.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(
+        shelf(&api, &key, &id).await.1,
+        b_code.as_str(),
+        "A is empty"
+    );
+
+    let (b_id, _) = (_b, ());
+    lots.call(
+        Method::PATCH,
+        &format!("/{b_id}"),
+        Some(json!({ "status": "recalled" })),
+        &lots.owner,
+    )
+    .await;
+    assert_eq!(
+        shelf(&api, &key, &id).await.1,
+        Value::Null,
+        "recalled, and H-0 unpublished"
+    );
+
+    let eve = api.as_new_owner("eve@example.com", "evil").await;
+    let eve_key = key_for(&eve, &["catalog:read"]).await;
+    let (s, _) = get(&api, &format!("/products/{id}"), &eve_key).await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "another workspace's key");
+}
+
+#[sqlx::test]
+async fn labels_are_set_on_the_product_and_shown_to_the_shop(pool: PgPool) {
+    let (api, key) = world(pool).await;
+    let (s, res) = api
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "name": "Honey", "price": 10, "labels": [" Raw ", "Unheated"] })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let id = res["data"]["product_id"].as_str().unwrap().to_owned();
+    let (_, p) = api
+        .call(Method::GET, &format!("/{id}"), None, &api.owner)
+        .await;
+    assert_eq!(p["data"]["labels"], json!(["Raw", "Unheated"]));
+    let (_, s) = get(&api, &format!("/products/{id}"), &key).await;
+    assert_eq!(s["data"]["labels"], json!(["Raw", "Unheated"]));
+
+    let update = |body: Value| {
+        let (api, id) = (&api, id.clone());
+        async move {
+            api.call(Method::POST, &format!("/{id}"), Some(body), &api.owner)
+                .await
+        }
+    };
+    let (s, res) = update(json!({ "name": "Honey 2" })).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let (_, p) = api
+        .call(Method::GET, &format!("/{id}"), None, &api.owner)
+        .await;
+    assert_eq!(
+        p["data"]["labels"],
+        json!(["Raw", "Unheated"]),
+        "absent keeps them"
+    );
+    update(json!({ "labels": ["Creamed"] })).await;
+    let (_, p) = api
+        .call(Method::GET, &format!("/{id}"), None, &api.owner)
+        .await;
+    assert_eq!(p["data"]["labels"], json!(["Creamed"]));
+    update(json!({ "labels": null })).await;
+    let (_, p) = api
+        .call(Method::GET, &format!("/{id}"), None, &api.owner)
+        .await;
+    assert_eq!(p["data"]["labels"], json!([]), "null clears");
+
+    for (body, field) in [
+        (json!({ "labels": "Raw" }), "labels"),
+        (
+            json!({ "labels": ["a", "b", "c", "d", "e", "f", "g", "h", "i"] }),
+            "labels",
+        ),
+        (json!({ "labels": [""] }), "labels.0"),
+        (json!({ "labels": ["x".repeat(33)] }), "labels.0"),
+        (json!({ "labels": [7] }), "labels.0"),
+        (json!({ "labels": ["Raw", "raw"] }), "labels.1"),
+    ] {
+        let (s, res) = update(body.clone()).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{body}: {res}");
+        assert!(res["errors"][field].is_array(), "{body}: {res}");
+    }
 }

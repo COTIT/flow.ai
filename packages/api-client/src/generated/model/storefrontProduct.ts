@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Link } from './link';
+import type { PassportRef } from './passportRef';
 import type { StorefrontVariant } from './storefrontVariant';
 
 /**
@@ -32,13 +33,22 @@ export interface StorefrontProduct {
   id: string;
   /** The product's own images in order, as signed links (fetch before `expires_at`). */
   images: Link[];
+  /** Short public labels to show as chips, in order. */
+  labels: string[];
   name: string;
+  passport: PassportRef | null;
   /** Consumer price including VAT, in minor units. */
   price_gross: number;
   /** Price excluding VAT, in minor units. */
   price_net: number;
   /** @nullable */
   short_description: string | null;
+  /**
+     * `in_stock`, `low` (at most the workspace's `product.low_stock_threshold` units left,
+     * default 5) or `sold_out` (none available); null when the product isn't stock-tracked.
+     * @nullable
+     */
+  stock_status: string | null;
   /** physical, digital, service, giftcard, … */
   type: string;
   /** Default variant first. */

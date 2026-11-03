@@ -20,6 +20,9 @@ pub struct ProductRow {
     pub currency: String,
     pub currency_decimals: i16,
     pub available_stock: Option<String>,
+    pub labels: Vec<String>,
+    /// Public code of the published lot FEFO sells next, if any.
+    pub passport_code: Option<String>,
     pub variants: Json<Vec<VariantRow>>,
     pub total: i64,
 }
@@ -58,6 +61,7 @@ pub async fn products(
         r#"WITH page AS (
                SELECT p.id, p.name, p.brand, p.type, p.short_description, p.description,
                       p.ean13, p.barcode, p.price, p.gross_price, p.has_stock, p.currency_id,
+                      p.labels,
                       count(*) OVER () AS total
                FROM products p
                WHERE p.workspace_id = $1 AND p.deleted_at IS NULL
@@ -79,6 +83,16 @@ pub async fn products(
                         AND (s.lot_id IS NULL OR (l.status = 'released'
                              AND (l.expires_on IS NULL OR l.expires_on >= current_date)))
                   ) END AS available_stock,
+                  pg.labels,
+                  (SELECT l.public_code FROM lots l
+                   WHERE l.workspace_id = $1 AND l.product_id = pg.id
+                     AND l.published_at IS NOT NULL AND l.status = 'released'
+                     AND (l.expires_on IS NULL OR l.expires_on >= current_date)
+                     AND EXISTS (SELECT 1 FROM stocks s
+                                 WHERE s.workspace_id = $1 AND s.lot_id = l.id
+                                   AND s.deleted_at IS NULL AND s.stock_lvl - s.reserved > 0)
+                   ORDER BY least(l.expires_on, l.best_before) NULLS LAST, l.id
+                   LIMIT 1) AS passport_code,
                   (SELECT coalesce(json_agg(json_build_object(
                               'id', v.id, 'sku', v.sku, 'barcode', v.barcode, 'ean13', v.ean13,
                               'is_default', v.is_default,

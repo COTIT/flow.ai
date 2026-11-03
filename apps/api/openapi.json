@@ -14220,6 +14220,19 @@
         },
         "type": "object"
       },
+      "PassportRef": {
+        "description": "Where a product's lot passport lives.",
+        "properties": {
+          "public_code": {
+            "example": "7K3M9Q2XAB",
+            "type": "string"
+          }
+        },
+        "required": [
+          "public_code"
+        ],
+        "type": "object"
+      },
       "PassportResource": {
         "description": "Draft and published copy of a lot's passport.",
         "properties": {
@@ -15744,6 +15757,20 @@
               "null"
             ]
           },
+          "labels": {
+            "description": "Short public labels the shop shows as chips, e.g. `[\"Raw\", \"Unheated\"]`: at most 8,\neach 1 to 32 characters, no repeats (any case). `[]` or null clears them.",
+            "example": [
+              "Raw",
+              "Unheated"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "meta": {
             "type": [
               "object",
@@ -16084,6 +16111,13 @@
           },
           "is_serialized": {
             "type": "boolean"
+          },
+          "labels": {
+            "description": "Short public labels (\"Raw\", \"Unheated\"), in order.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "last_updated_at": {
             "format": "date-time",
@@ -16507,6 +16541,7 @@
           "vat_group_id",
           "export_enabled",
           "store_only",
+          "labels",
           "export_price_sync",
           "export_product_data",
           "export_data"
@@ -22166,6 +22201,13 @@
             "format": "uuid",
             "type": "string"
           },
+          "lines": {
+            "description": "What was ordered, in order.",
+            "items": {
+              "$ref": "#/components/schemas/StorefrontOrderLine"
+            },
+            "type": "array"
+          },
           "number": {
             "example": "ORD-0001",
             "type": "string"
@@ -22205,7 +22247,56 @@
           "vat",
           "total",
           "expires_at",
-          "paid_at"
+          "paid_at",
+          "lines"
+        ],
+        "type": "object"
+      },
+      "StorefrontOrderLine": {
+        "description": "One line of a web order, as the customer may see it.",
+        "properties": {
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_variant_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity": {
+            "example": "2.00",
+            "type": "string"
+          },
+          "title": {
+            "example": "Raw honey 500 g",
+            "type": "string"
+          },
+          "total_gross": {
+            "description": "The line incl VAT, minor units (the line's own VAT; the order's VAT is per rate).",
+            "example": 2725,
+            "format": "int64",
+            "type": "integer"
+          },
+          "unit_price_gross": {
+            "description": "One unit incl VAT, minor units; null only when out of range.",
+            "example": 1363,
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "product_id",
+          "product_variant_id",
+          "quantity",
+          "unit_price_gross",
+          "total_gross"
         ],
         "type": "object"
       },
@@ -22265,8 +22356,30 @@
             },
             "type": "array"
           },
+          "labels": {
+            "description": "Short public labels to show as chips, in order.",
+            "example": [
+              "Raw",
+              "Unheated"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "name": {
             "type": "string"
+          },
+          "passport": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PassportRef",
+                "description": "The lot passport of the jar the shop sells next: the published, released, unexpired lot\nwith free stock and the earliest expiry or best-before (undated last). Read it at\n`GET /storefront/lots/{public_code}`. Null when no such lot."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "price_gross": {
             "description": "Consumer price including VAT, in minor units.",
@@ -22281,6 +22394,14 @@
             "type": "integer"
           },
           "short_description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stock_status": {
+            "description": "`in_stock`, `low` (at most the workspace's `product.low_stock_threshold` units left,\ndefault 5) or `sold_out` (none available); null when the product isn't stock-tracked.",
+            "example": "low",
             "type": [
               "string",
               "null"
@@ -22312,6 +22433,9 @@
           "currency",
           "currency_decimals",
           "available_stock",
+          "stock_status",
+          "labels",
+          "passport",
           "images",
           "variants"
         ],

@@ -147,11 +147,12 @@ fn keys(v: &Value) -> Vec<&str> {
     k
 }
 
-const MINIMAL: [&str; 10] = [
+const MINIMAL: [&str; 11] = [
     "currency",
     "decimals",
     "expires_at",
     "id",
+    "lines",
     "number",
     "paid_at",
     "status",
@@ -526,5 +527,26 @@ async fn the_hold_cap_counts_per_workspace(pool: PgPool) {
         s,
         StatusCode::CREATED,
         "bobs is not held back by acme's cap: {res}"
+    );
+}
+
+#[sqlx::test]
+async fn the_shop_sees_its_order_lines(pool: PgPool) {
+    let w = world(pool).await;
+    let (s, res) = checkout(&w, "2").await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    // 2 × €12.50 excl at 9 %: 2500 + 225; one unit 1362.5 → 1363.
+    let want = json!([{
+        "title": "Honey", "product_id": w.honey, "product_variant_id": null,
+        "quantity": "2.00", "unit_price_gross": 1363, "total_gross": 2725,
+    }]);
+    assert_eq!(res["data"]["lines"], want);
+    let id = res["data"]["id"].as_str().unwrap().to_owned();
+    let (s, got) = shop(&w, Method::GET, &format!("/orders/{id}"), None, &w.key).await;
+    assert_eq!(s, StatusCode::OK, "{got}");
+    assert_eq!(got["data"]["lines"], want, "get = create");
+    assert!(
+        !got.to_string().contains("kim@example.com"),
+        "never the customer"
     );
 }

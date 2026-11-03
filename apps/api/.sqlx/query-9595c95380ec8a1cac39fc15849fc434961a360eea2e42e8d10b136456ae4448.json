@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_number, product_nr_formatted, name, brand, type AS kind, status, has_stock,\n           is_serialized, warranty_default_mode, warranty_duration_value, warranty_duration_unit,\n           reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,\n           barcode, barcode_vendor, supplier_discount_code, short_description, description,\n           stock_level_supplier, supplier_relation_id, currency_id, vat_group_id, sales_group_id,\n           default_warehouse_id, price, gross_price, wholesale_price, supplier_wholesale_price,\n           impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,\n           dimensions, country_of_origin, url_vendor, url_vendor_override,\n           exclude_price_corrections, archived, import_id, import_source, export_enabled,\n           export_price_sync, export_product_data, export_data, meta, store_only, created_at, updated_at FROM products\n         WHERE id = ANY($1) AND workspace_id = $2 AND deleted_at IS NULL",
+  "query": "SELECT id, product_number, product_nr_formatted, name, brand, type AS kind, status, has_stock,\n           is_serialized, warranty_default_mode, warranty_duration_value, warranty_duration_unit,\n           reference, reference_vendor, reference_vendor2, reference_vendor3, ean13, hs_code,\n           barcode, barcode_vendor, supplier_discount_code, short_description, description,\n           stock_level_supplier, supplier_relation_id, currency_id, vat_group_id, sales_group_id,\n           default_warehouse_id, price, gross_price, wholesale_price, supplier_wholesale_price,\n           impact_on_price, impact_on_wholesale_price, order_unit, sale_unit, weight, unit,\n           dimensions, country_of_origin, url_vendor, url_vendor_override,\n           exclude_price_corrections, archived, import_id, import_source, export_enabled,\n           export_price_sync, export_product_data, export_data, meta, store_only, labels, created_at, updated_at, count(*) OVER () AS \"total!\" FROM products\n         WHERE workspace_id = $1 AND deleted_at IS NULL AND status = $2\n           AND ($3::text IS NULL OR name ILIKE $3 OR reference ILIKE $3\n                OR reference_vendor ILIKE $3 OR ean13 ILIKE $3 OR barcode ILIKE $3\n                OR product_nr_formatted ILIKE $3)\n           AND ($4::uuid IS NULL OR supplier_relation_id = $4)\n           AND ($5::text IS NULL OR lower(ean13) = lower($5))\n           AND NOT (id = ANY($6))\n         ORDER BY id DESC\n         LIMIT $7 OFFSET $8",
   "describe": {
     "columns": [
       {
@@ -588,6 +588,17 @@
       },
       {
         "ordinal": 53,
+        "name": "labels",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "labels"
+          }
+        }
+      },
+      {
+        "ordinal": 54,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -598,7 +609,7 @@
         }
       },
       {
-        "ordinal": 54,
+        "ordinal": 55,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -607,12 +618,24 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 56,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Uuid",
+        "Text",
         "UuidArray",
-        "Uuid"
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -670,8 +693,10 @@
       true,
       false,
       false,
-      false
+      false,
+      false,
+      null
     ]
   },
-  "hash": "949c8cd463abecb63f8ea14fdc1b24f4517e82779357d7f9aa2a48ca43840703"
+  "hash": "9595c95380ec8a1cac39fc15849fc434961a360eea2e42e8d10b136456ae4448"
 }

@@ -616,6 +616,26 @@ pub struct StorefrontOrder {
     pub expires_at: Option<DateTime<Utc>>,
     #[schema(required = true)]
     pub paid_at: Option<DateTime<Utc>>,
+    /// What was ordered, in order.
+    pub lines: Vec<StorefrontOrderLine>,
+}
+
+/// One line of a web order, as the customer may see it.
+#[derive(Serialize, ToSchema)]
+pub struct StorefrontOrderLine {
+    #[schema(example = "Raw honey 500 g")]
+    pub title: String,
+    pub product_id: Uuid,
+    #[schema(required = true)]
+    pub product_variant_id: Option<Uuid>,
+    #[schema(example = "2.00")]
+    pub quantity: String,
+    /// One unit incl VAT, minor units; null only when out of range.
+    #[schema(required = true, example = 1363)]
+    pub unit_price_gross: Option<i64>,
+    /// The line incl VAT, minor units (the line's own VAT; the order's VAT is per rate).
+    #[schema(example = 2725)]
+    pub total_gross: i64,
 }
 
 /// A payment intent.

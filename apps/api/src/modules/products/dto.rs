@@ -81,6 +81,8 @@ pub struct Fields {
     pub import_source: Option<Option<String>>,
     pub export_enabled: Option<bool>,
     pub store_only: Option<bool>,
+    /// Absent keeps them; `[]` or null clears them.
+    pub labels: Option<Vec<String>>,
     pub export_price_sync: Option<bool>,
     pub export_product_data: Option<bool>,
     pub export_data: Option<Option<Value>>,
@@ -170,6 +172,49 @@ fn decimal(
     max: Decimal,
 ) -> Option<Option<Decimal>> {
     key(m, k).map(|v| v.and_then(|v| r.decimal(k, &v, min, max)))
+}
+
+/// Most labels per product, and their longest length.
+pub const LABELS_MAX: usize = 8;
+const LABEL_CHARS: usize = 32;
+
+/// `labels`: a list of 1 to 32-character strings, at most 8, no repeats in any case; null =
+/// none. Trimmed.
+fn labels(r: &mut Rules, v: Option<Value>) -> Vec<String> {
+    let Some(v) = v else {
+        return Vec::new();
+    };
+    let Some(list) = v.as_array() else {
+        r.add("labels", "The labels must be a list of texts.");
+        return Vec::new();
+    };
+    if list.len() > LABELS_MAX {
+        r.add(
+            "labels",
+            format!("The labels must not have more than {LABELS_MAX} items."),
+        );
+        return Vec::new();
+    }
+    let mut out: Vec<String> = Vec::with_capacity(list.len());
+    for (n, item) in list.iter().enumerate() {
+        let field = format!("labels.{n}");
+        let Some(s) = item.as_str().map(str::trim) else {
+            r.add(&field, "Each label must be a text.");
+            continue;
+        };
+        let len = s.chars().count();
+        if len == 0 || len > LABEL_CHARS {
+            r.add(
+                &field,
+                format!("Each label must be 1 to {LABEL_CHARS} characters."),
+            );
+        } else if out.iter().any(|o| o.to_lowercase() == s.to_lowercase()) {
+            r.add(&field, "The label is listed twice.");
+        } else {
+            out.push(s.to_owned());
+        }
+    }
+    out
 }
 
 fn flag(r: &mut Rules, m: &Map<String, Value>, k: &str) -> Option<bool> {
@@ -337,6 +382,7 @@ fn fields(r: &mut Rules, m: &Map<String, Value>, create: bool) -> Fields {
         import_source: text(r, m, "import_source", 255),
         export_enabled: flag(r, m, "export_enabled"),
         store_only: flag(r, m, "store_only"),
+        labels: key(m, "labels").map(|v| labels(r, v)),
         export_price_sync: flag(r, m, "export_price_sync"),
         export_product_data: flag(r, m, "export_product_data"),
         export_data: key(m, "export_data").map(|v| v.and_then(|v| object(r, "export_data", v))),
@@ -565,6 +611,10 @@ pub struct ProductRequestDoc {
     export_enabled: Option<bool>,
     /// Sold at the till only; the web shop never lists it.
     store_only: Option<bool>,
+    /// Short public labels the shop shows as chips, e.g. `["Raw", "Unheated"]`: at most 8,
+    /// each 1 to 32 characters, no repeats (any case). `[]` or null clears them.
+    #[schema(value_type = Option<Vec<String>>, example = json!(["Raw", "Unheated"]))]
+    labels: Option<Value>,
     export_price_sync: Option<bool>,
     export_product_data: Option<bool>,
     #[schema(value_type = Option<Object>)]
