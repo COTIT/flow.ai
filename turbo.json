@@ -11,7 +11,10 @@
         "API_URL",
         "SITE_URL",
         "STOREFRONT_APP_KEY",
-        "FILES_ORIGIN"
+        "FILES_ORIGIN",
+        "NEXT_OUTPUT",
+        "NOINDEX",
+        "NODE_ENV"
       ],
       "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"]
     },

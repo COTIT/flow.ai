@@ -12,7 +12,9 @@ import { config as baseConfig } from "./base.js"
  */
 export const nextJsConfig = [
   ...baseConfig,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores(["out/**", "build/**", "next-env.d.ts"]),
+  // Third-party React Bits files, kept byte-for-byte (see components/rb/README.md).
+  globalIgnores(["components/rb/**"]),
   {
     languageOptions: {
       globals: {
@@ -28,6 +30,8 @@ export const nextJsConfig = [
     rules: {
       ...pluginNext.configs.recommended.rules,
       ...pluginNext.configs["core-web-vitals"].rules,
+      // Images are API-served uploads and Satori og-images; next/image would change how they load.
+      "@next/next/no-img-element": "off",
     },
   },
   pluginReactHooks.configs.flat.recommended,

@@ -1,11 +1,9 @@
-import { createRequire } from "node:module"
-import babelParser from "@babel/eslint-parser"
 import js from "@eslint/js"
 import eslintConfigPrettier from "eslint-config-prettier"
-import onlyWarn from "eslint-plugin-only-warn"
+import { globalIgnores } from "eslint/config"
 import turboPlugin from "eslint-plugin-turbo"
-
-const require = createRequire(import.meta.url)
+import globals from "globals"
+import tseslint from "typescript-eslint"
 
 /**
  * Shared ESLint rules for every package in the repo.
@@ -13,17 +11,15 @@ const require = createRequire(import.meta.url)
  * @type {import("eslint").Linter.Config[]}
  */
 export const config = [
+  globalIgnores(["dist/**", ".next/**", "coverage/**", "src/generated/**"]),
+  // ESLint only picks up .js/.mjs/.cjs by default; claim the TS/JSX files too.
+  { files: ["**/*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"] },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   eslintConfigPrettier,
   {
     languageOptions: {
-      parser: babelParser,
-      parserOptions: {
-        requireConfigFile: false,
-        babelOptions: {
-          presets: [require.resolve("@babel/preset-typescript")],
-        },
-      },
+      globals: globals.node,
     },
     plugins: {
       turbo: turboPlugin,
@@ -31,13 +27,5 @@ export const config = [
     rules: {
       "turbo/no-undeclared-env-vars": "warn",
     },
-  },
-  {
-    plugins: {
-      onlyWarn,
-    },
-  },
-  {
-    ignores: ["dist/**"],
   },
 ]

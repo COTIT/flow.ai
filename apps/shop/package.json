@@ -6,7 +6,7 @@
     "dev": "next dev --port 3000",
     "build": "next build && node scripts/check-client-bundle.mjs",
     "start": "next start --port 3000",
-    "lint": "eslint",
+    "lint": "eslint --max-warnings 0",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
