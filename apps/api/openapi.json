@@ -3723,6 +3723,42 @@
         ],
         "type": "object"
       },
+      "CurrencySales": {
+        "description": "Sales in one currency.",
+        "properties": {
+          "currency": {
+            "example": "EUR",
+            "type": "string"
+          },
+          "decimals": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "gross_total": {
+            "description": "Their totals incl VAT, minor units, before any refund or return.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "orders": {
+            "description": "Orders sold in the range.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "refunded_total": {
+            "description": "Provider refunds of those orders that went through (status `refunded`), minor units.\nCredit notes and cash handed back outside the API are not in it.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "decimals",
+          "orders",
+          "gross_total",
+          "refunded_total"
+        ],
+        "type": "object"
+      },
       "CustomStatusCreated": {
         "description": "Create response: the new row's id.",
         "properties": {
@@ -6329,6 +6365,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/SalesGroupResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_SalesSummary": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SalesSummary"
           }
         },
         "required": [
@@ -20323,6 +20371,39 @@
           "created_at",
           "last_updated_at",
           "meta"
+        ],
+        "type": "object"
+      },
+      "SalesSummary": {
+        "description": "Sales in a range, one row per currency (never summed across currencies).",
+        "properties": {
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/CurrencySales"
+            },
+            "type": "array"
+          },
+          "from": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "source": {
+            "description": "The `source` asked for; null = every source.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "to": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "source",
+          "currencies"
         ],
         "type": "object"
       },
@@ -72952,6 +73033,162 @@
         "summary": "Get a relation's financial summary",
         "tags": [
           "relations"
+        ]
+      }
+    },
+    "/workspace/{workspace}/sales-summary": {
+      "get": {
+        "description": "Orders now `open`, `completed`, `partially_returned` or `returned`, counted at the time they were confirmed (else paid, completed or created). `gross_total` is their totals incl VAT; `refunded_total` the provider refunds of those orders that went through. One row per currency.",
+        "operationId": "orders_sales_summary",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold at or after (RFC 3339). Required.",
+            "example": "2026-11-02T00:00:00+01:00",
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold before (RFC 3339), at most 366 days after `from`. Required.",
+            "example": "2026-11-09T00:00:00+01:00",
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only `office`, `storefront` or `till` orders.",
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SalesSummary"
+                }
+              }
+            },
+            "description": "One row per currency sold in"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `order.list`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "`from`/`to` missing or malformed, `to` not after `from`, over 366 days, or unknown `source`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Sales in a time range, per currency",
+        "tags": [
+          "orders"
         ]
       }
     },

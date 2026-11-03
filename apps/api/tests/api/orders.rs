@@ -1112,3 +1112,118 @@ async fn lines_show_their_lots_and_image_and_the_order_its_units(pool: PgPool) {
         .await;
     assert_eq!(s, StatusCode::NOT_FOUND);
 }
+
+async fn summary(w: &W, token: &str, ws: &str, q: &str) -> (StatusCode, Value) {
+    common::send(
+        &w.api.app,
+        Method::GET,
+        &format!("/v1/workspace/{ws}/sales-summary?{q}"),
+        None,
+        Some(token),
+    )
+    .await
+}
+
+#[sqlx::test]
+async fn sales_summary_counts_sold_orders_per_currency(pool: PgPool) {
+    let w = world(pool).await;
+    // 2 honey (9 %): 2500 + 225 = 2725. 1 wax (21 %): 300 + 63 = 363.
+    let a = draft(&w, json!([line(&w.honey, "2")])).await;
+    act(&w, &a, "confirm").await;
+    let b = draft(&w, json!([line(&w.wax, "1")])).await;
+    act(&w, &b, "confirm").await;
+    pick_all(&w, &b).await;
+    act(&w, &b, "complete").await;
+    let _draft = draft(&w, json!([line(&w.honey, "1")])).await;
+    let c = draft(&w, json!([line(&w.honey, "1")])).await;
+    act(&w, &c, "confirm").await;
+    act(&w, &c, "cancel").await;
+    // One sale in another currency.
+    let usd = w
+        .api
+        .with_base("/currencies")
+        .create(
+            json!({ "name": "Dollar", "asset_type": "usd", "decimals": 2,
+                    "default_currency": false, "active": true }),
+            "currency_id",
+        )
+        .await;
+    let d = draft(&w, json!([line(&w.wax, "2")])).await;
+    act(&w, &d, "confirm").await;
+    sqlx::query("UPDATE orders SET currency_id = $1::uuid WHERE id = $2::uuid")
+        .bind(&usd)
+        .bind(&d)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+
+    let (ws, owner) = (w.api.ws.clone(), w.api.owner.clone());
+    let past = "from=2000-01-01T00:00:00Z&to=2001-01-01T00:00:00Z";
+    let (s, res) = summary(&w, &owner, &ws, past).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["currencies"], json!([]), "nothing sold then");
+
+    let now = chrono::Utc::now();
+    let range = format!(
+        "from={}&to={}",
+        (now - chrono::Duration::days(1)).format("%Y-%m-%dT%H:%M:%SZ"),
+        (now + chrono::Duration::days(1)).format("%Y-%m-%dT%H:%M:%SZ")
+    );
+    let (s, res) = summary(&w, &owner, &ws, &range).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(
+        res["data"]["currencies"],
+        json!([
+            { "currency": "EUR", "decimals": 2, "orders": 2, "gross_total": 2725 + 363,
+              "refunded_total": 0 },
+            { "currency": "USD", "decimals": 2, "orders": 1, "gross_total": 726,
+              "refunded_total": 0 },
+        ]),
+        "draft and cancelled don't count; currencies never mix"
+    );
+    let (_, res) = summary(&w, &owner, &ws, &format!("{range}&source=office")).await;
+    assert_eq!(res["data"]["currencies"][0]["orders"], 2);
+    let (_, res) = summary(&w, &owner, &ws, &format!("{range}&source=till")).await;
+    assert_eq!(res["data"]["currencies"], json!([]));
+
+    // `from` inclusive, `to` exclusive, on confirmed_at.
+    let (_, o) = call(&w, Method::GET, &format!("/{a}"), None).await;
+    let at = o["data"]["confirmed_at"].as_str().unwrap().to_owned();
+    let enc = at.replace('+', "%2B");
+    let fmt = |d: chrono::DateTime<chrono::Utc>| d.format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let (day_before, day_after) = (
+        fmt(now - chrono::Duration::days(1)),
+        fmt(now + chrono::Duration::days(1)),
+    );
+    let (_, res) = summary(&w, &owner, &ws, &format!("from={day_before}&to={enc}")).await;
+    assert_eq!(res["data"]["currencies"], json!([]), "a is at `to`: out");
+    let (_, res) = summary(&w, &owner, &ws, &format!("from={enc}&to={day_after}")).await;
+    assert_eq!(res["data"]["currencies"][0]["orders"], 2, "a at `from`: in");
+
+    for q in [
+        "",
+        "from=2026-01-01T00:00:00Z",
+        "to=2026-01-01T00:00:00Z",
+        "from=yesterday&to=2026-01-01T00:00:00Z",
+        "from=2026-02-01T00:00:00Z&to=2026-01-01T00:00:00Z",
+        "from=2024-01-01T00:00:00Z&to=2026-01-01T00:00:00Z",
+        "from=2026-01-01T00:00:00Z&to=2026-01-02T00:00:00Z&source=web",
+    ] {
+        let (s, res) = summary(&w, &owner, &ws, q).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+    }
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, res) = summary(&w, &eve.owner, &eve.ws, &range).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(
+        res["data"]["currencies"],
+        json!([]),
+        "acme's sales never count for evil"
+    );
+    let (s, _) = summary(&w, &eve.owner, &ws, &range).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+    let clerk = member_with(&w.api.app, &w.api.pool, &ws, "c@example.com", &[]).await;
+    let (s, _) = summary(&w, &clerk, &ws, &range).await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "needs order.list");
+}

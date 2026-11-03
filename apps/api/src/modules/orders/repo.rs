@@ -5,6 +5,8 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde_json::Value;
 use sqlx::{PgConnection, PgExecutor};
+
+use crate::modules::orders::dto::CurrencySales;
 use uuid::Uuid;
 
 /// A catalog product as an order line prices it.
@@ -593,6 +595,45 @@ pub async fn order_lots(
            ORDER BY l.code, l.id"#,
         workspace_id,
         order_ids,
+    )
+    .fetch_all(db)
+    .await
+}
+
+// shortcut: scans the workspace's orders (no index on the sold-at expression); add one when a
+// workspace passes ~100k orders.
+/// Orders sold in `[from, to)` per currency: status `open`, `completed`, `partially_returned`
+/// or `returned`, at `confirmed_at`, else `paid_at`, `completed_at`, `created_at` (older
+/// orders have no `confirmed_at`).
+pub async fn sales_summary(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    source: Option<&str>,
+) -> Result<Vec<CurrencySales>, sqlx::Error> {
+    sqlx::query_as!(
+        CurrencySales,
+        r#"SELECT upper(c.asset_type) AS "currency!", c.decimals, count(*) AS "orders!",
+                  sum(o.total)::bigint AS "gross_total!",
+                  coalesce(sum(r.amount), 0)::bigint AS "refunded_total!"
+           FROM orders o
+           JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
+           LEFT JOIN LATERAL (
+               SELECT sum(p.amount) AS amount FROM order_payments p
+               WHERE p.workspace_id = o.workspace_id AND p.order_id = o.id
+                 AND p.kind = 'refund' AND p.status = 'refunded') r ON true
+           WHERE o.workspace_id = $1
+             AND o.status IN ('open', 'completed', 'partially_returned', 'returned')
+             AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) >= $2
+             AND coalesce(o.confirmed_at, o.paid_at, o.completed_at, o.created_at) < $3
+             AND ($4::text IS NULL OR o.source = $4)
+           GROUP BY c.asset_type, c.decimals
+           ORDER BY 1"#,
+        workspace_id,
+        from,
+        to,
+        source,
     )
     .fetch_all(db)
     .await

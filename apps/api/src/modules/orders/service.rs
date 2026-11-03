@@ -24,7 +24,7 @@ use crate::{
         orders::{
             dto::{
                 LineInput, LinesQuantity, OrderAction, OrderCreated, OrderInput, OrderLineLot,
-                OrderLineResource, OrderPatch, OrderResource,
+                OrderLineResource, OrderPatch, OrderResource, SalesSummary, SummaryRange,
             },
             payments::{Paid, paid_totals},
             repo::{self, LineRow, NewLine, OrderRow},
@@ -1160,6 +1160,22 @@ pub async fn events(
         .await?
         .ok_or(AppError::NotFound)?;
     Ok(trail::list(&state.db, workspace_id, id, limit, offset).await?)
+}
+
+/// Sales of the workspace in the range, per currency.
+pub async fn sales_summary(
+    state: &AppState,
+    workspace_id: Uuid,
+    r: SummaryRange,
+) -> Result<SalesSummary, AppError> {
+    let currencies =
+        repo::sales_summary(&state.db, workspace_id, r.from, r.to, r.source.as_deref()).await?;
+    Ok(SalesSummary {
+        from: r.from,
+        to: r.to,
+        source: r.source,
+        currencies,
+    })
 }
 
 #[cfg(test)]

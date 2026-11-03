@@ -1196,6 +1196,7 @@ fn every_orders_operation_is_documented() {
         ("/orders/{order}/invoice", "post", "orders_invoice", "200"),
         ("/orders/{order}/refunds", "post", "orders_refund", "201"),
         ("/orders/{order}/events", "get", "orders_events", "200"),
+        ("/sales-summary", "get", "orders_sales_summary", "200"),
     ]);
 }
 

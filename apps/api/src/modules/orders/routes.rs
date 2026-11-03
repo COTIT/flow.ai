@@ -21,6 +21,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::invoice))
         .routes(routes!(handlers::refund))
         .routes(routes!(handlers::events))
+        .routes(routes!(handlers::sales_summary))
 }
 
 /// Web shop routes (`/storefront/orders`); each handler checks the key's `checkout:write`.

@@ -764,3 +764,88 @@ impl From<crate::modules::orders::trail::EventRow> for OrderEventResource {
         }
     }
 }
+
+/// Order sources (`orders.source`).
+pub const SOURCES: &[&str] = &["office", "storefront", "till"];
+/// Longest sales summary range.
+pub const SUMMARY_DAYS_MAX: i64 = 366;
+
+/// GET /sales-summary query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct SummaryQuery {
+    /// Sold at or after (RFC 3339). Required.
+    #[param(required = true, value_type = String, format = DateTime, example = "2026-11-02T00:00:00+01:00")]
+    pub from: Option<String>,
+    /// Sold before (RFC 3339), at most 366 days after `from`. Required.
+    #[param(required = true, value_type = String, format = DateTime, example = "2026-11-09T00:00:00+01:00")]
+    pub to: Option<String>,
+    /// Only `office`, `storefront` or `till` orders.
+    pub source: Option<String>,
+}
+
+/// Validated summary range.
+pub struct SummaryRange {
+    pub from: DateTime<Utc>,
+    pub to: DateTime<Utc>,
+    pub source: Option<String>,
+}
+
+impl SummaryQuery {
+    /// The range; 422 when `from`/`to` are missing or malformed, `to` isn't after `from`, the
+    /// span passes 366 days, or `source` is unknown.
+    pub fn range(&self) -> Result<SummaryRange, crate::error::AppError> {
+        use crate::http::list::time;
+        let mut r = Rules::default();
+        let from = time(&mut r, "from", self.from.as_deref());
+        let to = time(&mut r, "to", self.to.as_deref());
+        if self.from.as_deref().is_none_or(|v| v.trim().is_empty()) {
+            r.missing("from");
+        }
+        if self.to.as_deref().is_none_or(|v| v.trim().is_empty()) {
+            r.missing("to");
+        }
+        if let (Some(f), Some(t)) = (from, to) {
+            r.check("to", t > f, "The to must be after from.");
+            r.check(
+                "to",
+                t - f <= chrono::Duration::days(SUMMARY_DAYS_MAX),
+                format!("The range must not pass {SUMMARY_DAYS_MAX} days."),
+            );
+        }
+        let source = r.one_of("source", self.source.clone(), SOURCES, None);
+        r.into_result()?;
+        match (from, to) {
+            (Some(from), Some(to)) => Ok(SummaryRange { from, to, source }),
+            _ => Err(crate::error::AppError::Internal(
+                "summary range lost".into(),
+            )),
+        }
+    }
+}
+
+/// Sales in a range, one row per currency (never summed across currencies).
+#[derive(Serialize, ToSchema)]
+pub struct SalesSummary {
+    pub from: DateTime<Utc>,
+    pub to: DateTime<Utc>,
+    /// The `source` asked for; null = every source.
+    #[schema(required = true)]
+    pub source: Option<String>,
+    pub currencies: Vec<CurrencySales>,
+}
+
+/// Sales in one currency.
+#[derive(Serialize, ToSchema)]
+pub struct CurrencySales {
+    #[schema(example = "EUR")]
+    pub currency: String,
+    pub decimals: i16,
+    /// Orders sold in the range.
+    pub orders: i64,
+    /// Their totals incl VAT, minor units, before any refund or return.
+    pub gross_total: i64,
+    /// Provider refunds of those orders that went through (status `refunded`), minor units.
+    /// Credit notes and cash handed back outside the API are not in it.
+    pub refunded_total: i64,
+}

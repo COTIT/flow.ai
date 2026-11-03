@@ -53,6 +53,17 @@ Every order resource (get, list, each action's answer) lists the actions the API
 
 Every write takes an optional `Idempotency-Key` (1–255 visible characters): a retry of the same request replays the first answer, another request under the key is a 422, another member's key is never theirs.
 
+## Sales summary `GET /sales-summary?from&to&source` (`order.list`)
+
+For an office tile like "Sales this week". The client sends its own week (or day) as RFC 3339 times in its time zone.
+
+- `from` (inclusive) and `to` (exclusive) are required; `to` must be after `from`, at most 366 days later. `source`: `office`, `storefront` or `till` (blank = all). Anything else is a 422 on that field.
+- A sale is an order now `open`, `completed`, `partially_returned` or `returned`, counted at `confirmed_at` (else `paid_at`, `completed_at`, `created_at` for orders from before the trail). Drafts, unpaid web orders and cancelled ones never count.
+- 200 `{data: {from, to, source, currencies: [{currency, decimals, orders, gross_total, refunded_total}]}}`, one row per currency, by code; never summed across currencies.
+  - `gross_total`: the orders' totals incl VAT, minor units, before any refund or return.
+  - `refunded_total`: provider refunds of those orders that went through (status `refunded`), minor units. Credit notes and cash handed back outside the API are not in it. Gross minus refunded is the office's to show, not computed here.
+- Every row is this workspace's; another workspace's orders never count.
+
 ## Order and line extras
 
 Every order resource (get, list, action answers) also carries, loaded in three statements per page:
