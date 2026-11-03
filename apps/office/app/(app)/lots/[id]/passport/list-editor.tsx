@@ -36,18 +36,24 @@ export function ListEditor<T>({
 }) {
   const t = useTranslations("passport")
   // Stable row keys, so inputs keep their own state when rows move.
-  const ids = React.useRef<number[]>([])
-  const nextId = React.useRef(0)
-  while (ids.current.length < items.length) ids.current.push(nextId.current++)
-  ids.current.length = items.length
+  const [ids, setIds] = React.useState<number[]>([])
+  if (ids.length !== items.length) {
+    // The parent added rows: keep the keys we have, mint new ones past the highest.
+    let nextId = ids.reduce((max, id) => Math.max(max, id + 1), 0)
+    const fitted = ids.slice(0, items.length)
+    while (fitted.length < items.length) fitted.push(nextId++)
+    setIds(fitted)
+  }
   const move = (from: number, to: number) => {
     const next = [...items]
     next.splice(to, 0, ...next.splice(from, 1))
-    ids.current.splice(to, 0, ...ids.current.splice(from, 1))
+    const keys = [...ids]
+    keys.splice(to, 0, ...keys.splice(from, 1))
+    setIds(keys)
     onChange(next)
   }
   const remove = (i: number) => {
-    ids.current.splice(i, 1)
+    setIds(ids.filter((_, j) => j !== i))
     onChange(items.filter((_, j) => j !== i))
   }
   return (
@@ -60,7 +66,7 @@ export function ListEditor<T>({
       {items.map((item, i) => {
         const k = kind(item, i)
         return (
-          <SubTile key={ids.current[i]}>
+          <SubTile key={ids[i]}>
             <div role="group" aria-label={`${label} ${i + 1}`} className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
                 <Badge variant={k.tone} data-dot="false">

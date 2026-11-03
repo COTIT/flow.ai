@@ -1,4 +1,3 @@
-import { expectNoHorizontalScroll } from "../../src/test"
 import { expectTillLook, tapKeys } from "./look"
 import {
   DEVICE_KEY,

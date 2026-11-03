@@ -123,8 +123,16 @@ test("story blocks: add, reorder and save in that order", async ({
     .fill("Bees first.")
   await page
     .getByRole("group", { name: "Story 2" })
+    .getByLabel("Quote")
+    .evaluate((el) => (el.dataset.probe = "moved"))
+  await page
+    .getByRole("group", { name: "Story 2" })
     .getByRole("button", { name: "Move up" })
     .click()
+  // Stable row keys: the moved row keeps its own input element.
+  await expect(
+    page.getByRole("group", { name: "Story 1" }).locator("[data-probe=moved]")
+  ).toHaveValue("Bees first.")
   await page.getByRole("button", { name: "Save draft" }).click()
   await expect(
     page.getByRole("status").filter({ hasText: "Draft saved." })

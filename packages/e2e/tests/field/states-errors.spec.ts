@@ -5,7 +5,7 @@ import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { me, role, villages } from "./api"
 import { CYCLE, PLOT as CYCLE_PLOT, before, crops as cycleCrops, cycle, page as cyclePage, plot as cyclePlotReply } from "./cycle.api"
-import { FARM, PLOT, crops, farm, page as listPage, plot, record, tourSeen } from "./officer-records.api"
+import { FARM, crops, farm, page as listPage, plot, record, tourSeen } from "./officer-records.api"
 import { crops as registerCrops } from "./register.api"
 import { V, VILLAGE, W, crops as towerCrops, energy, matches, pipeline, production, quality, villages as towerVillages } from "./tower.api"
 
