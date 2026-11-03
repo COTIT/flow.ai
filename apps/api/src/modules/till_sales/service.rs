@@ -5,6 +5,8 @@
 //! to the currency's step and goes into the open drawer shift. One `client_ref` per register
 //! is one sale: a replay answers the stored sale, another body under it is 409.
 
+use std::collections::HashMap;
+
 use chrono::Utc;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -28,7 +30,7 @@ use crate::{
         },
         till::repo::SessionRow,
         till_sales::{
-            dto::{NewQuote, NewSale, Payment, QuoteLine, QuoteResource},
+            dto::{NewQuote, NewSale, Payment, QuoteLine, QuoteResource, SaleResource},
             repo::{self, NewSaleRow, SaleRow},
         },
     },
@@ -325,4 +327,24 @@ pub async fn list(
     offset: i64,
 ) -> Result<(Vec<SaleRow>, i64), AppError> {
     Ok(repo::list(&state.db, workspace_id, f, limit, offset).await?)
+}
+
+/// `rows` as resources with their booked lines: one statement for every row's lines.
+pub async fn resources(
+    state: &AppState,
+    workspace_id: Uuid,
+    rows: Vec<SaleRow>,
+) -> Result<Vec<SaleResource>, AppError> {
+    let ids: Vec<Uuid> = rows.iter().map(|r| r.order_id).collect();
+    let mut by_order: HashMap<Uuid, Vec<orders::LineRow>> = HashMap::new();
+    for l in orders::lines(&state.db, workspace_id, &ids).await? {
+        by_order.entry(l.order_id).or_default().push(l);
+    }
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            let lines = by_order.remove(&r.order_id).unwrap_or_default();
+            SaleResource::new(r, &lines)
+        })
+        .collect())
 }

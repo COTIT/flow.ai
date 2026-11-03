@@ -20130,6 +20130,60 @@
         ],
         "type": "object"
       },
+      "SaleLine": {
+        "description": "One booked line of a till sale. Minor units.",
+        "properties": {
+          "line_excl": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "line_total": {
+            "description": "line_excl + line_vat.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "line_vat": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "product_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "product_variant_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quantity": {
+            "description": "Decimal string.",
+            "example": "2.00",
+            "type": "string"
+          },
+          "title": {
+            "example": "Honey 500 g",
+            "type": "string"
+          },
+          "unit_price": {
+            "description": "What the till charged per unit, excl VAT.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "title",
+          "product_id",
+          "product_variant_id",
+          "quantity",
+          "unit_price",
+          "line_excl",
+          "line_vat",
+          "line_total"
+        ],
+        "type": "object"
+      },
       "SaleRequest": {
         "description": "A till sale. Lines carry the unit price the till charged (minor units excl VAT). Send the same body again under the same `client_ref` to replay it from an offline queue.",
         "properties": {
@@ -20190,6 +20244,13 @@
             "description": "Paid: cash rounded to the currency's step, card = total.",
             "format": "int64",
             "type": "integer"
+          },
+          "lines": {
+            "description": "The booked lines, in order, for the receipt.",
+            "items": {
+              "$ref": "#/components/schemas/SaleLine"
+            },
+            "type": "array"
           },
           "method": {
             "example": "cash",
@@ -20264,7 +20325,8 @@
           "tendered",
           "change",
           "card_reference",
-          "sold_at"
+          "sold_at",
+          "lines"
         ],
         "type": "object"
       },

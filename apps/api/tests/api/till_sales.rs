@@ -613,3 +613,30 @@ async fn till_orders_carry_their_payment_method(pool: PgPool) {
         assert_eq!(o["data"]["payment_method"], method);
     }
 }
+
+#[sqlx::test]
+async fn a_sale_carries_its_lines_for_the_receipt(pool: PgPool) {
+    let w = world(pool).await;
+    let body = sale("r-1", basket(&w), cash(5000));
+    let (status, res) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let want = json!([
+        { "title": "Honey", "product_id": w.honey, "product_variant_id": null,
+          "quantity": "2.00", "unit_price": 1250, "line_excl": 2500, "line_vat": 225,
+          "line_total": 2725 },
+        { "title": "Wax", "product_id": w.wax, "product_variant_id": null,
+          "quantity": "1.00", "unit_price": 300, "line_excl": 300, "line_vat": 63,
+          "line_total": 363 },
+    ]);
+    assert_eq!(res["data"]["lines"], want, "booked lines");
+    let (status, again) = post(&w, &w.t1, &body).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(again["data"]["lines"], want, "a replay answers the same");
+    let (status, got) = w.api.call(Method::GET, "/sales/r-1", None, &w.t1).await;
+    assert_eq!(status, StatusCode::OK, "{got}");
+    assert_eq!(got["data"]["lines"], want, "reprint after a reload");
+    let (_, list) = w.api.call(Method::GET, "/sales", None, &w.api.owner).await;
+    assert_eq!(list["data"][0]["lines"], want, "office list");
+    let (status, _) = w.api.call(Method::GET, "/sales/r-1", None, &w.t2).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another register");
+}

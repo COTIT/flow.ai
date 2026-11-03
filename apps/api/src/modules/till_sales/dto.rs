@@ -270,11 +270,46 @@ pub struct SaleResource {
     #[schema(required = true)]
     card_reference: Option<String>,
     sold_at: DateTime<Utc>,
+    /// The booked lines, in order, for the receipt.
+    lines: Vec<SaleLine>,
 }
 
-impl From<SaleRow> for SaleResource {
-    fn from(s: SaleRow) -> Self {
+/// One booked line of a till sale. Minor units.
+#[derive(Serialize, ToSchema)]
+pub struct SaleLine {
+    #[schema(example = "Honey 500 g")]
+    title: String,
+    product_id: Uuid,
+    #[schema(required = true)]
+    product_variant_id: Option<Uuid>,
+    /// Decimal string.
+    #[schema(example = "2.00")]
+    quantity: String,
+    /// What the till charged per unit, excl VAT.
+    unit_price: i64,
+    line_excl: i64,
+    line_vat: i64,
+    /// line_excl + line_vat.
+    line_total: i64,
+}
+
+impl SaleResource {
+    /// `s` with its order's `lines`.
+    pub fn new(s: SaleRow, lines: &[crate::modules::orders::repo::LineRow]) -> Self {
         Self {
+            lines: lines
+                .iter()
+                .map(|l| SaleLine {
+                    title: l.title.clone(),
+                    product_id: l.product_id,
+                    product_variant_id: l.product_variant_id,
+                    quantity: format!("{:.2}", l.quantity),
+                    unit_price: l.unit_price,
+                    line_excl: l.line_excl,
+                    line_vat: l.line_vat,
+                    line_total: l.line_excl + l.line_vat,
+                })
+                .collect(),
             order_id: s.order_id,
             number: s.number,
             client_ref: s.client_ref,

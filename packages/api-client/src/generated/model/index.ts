@@ -851,6 +851,7 @@ export * from './rowResourceLocationAccess';
 export * from './rowResourcePhysicalDimensions';
 export * from './rowResourceRelationships';
 export * from './rowResourceShelfConfiguration';
+export * from './saleLine';
 export * from './saleRequest';
 export * from './saleResource';
 export * from './salesGroupCreated';

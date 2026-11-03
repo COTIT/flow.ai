@@ -243,7 +243,9 @@ The drawer's expected cash uses `due`, the amount actually taken, so it balances
 
 ### `GET /till/sales/{client_ref}`
 
-The sale of **this register** under that ref, else 404. Use it before replaying a queued sale whose answer got lost.
+The sale of **this register** under that ref, else 404. Use it before replaying a queued sale whose answer got lost, or to reprint a receipt.
+
+Every sale answer (the sale, a replay, this read and the office list) carries `lines`: the booked lines in order, `{title, product_id, product_variant_id, quantity, unit_price, line_excl, line_vat, line_total}` in minor units (`unit_price` excl VAT as charged; `line_total` = `line_excl + line_vat`). One extra statement per page.
 
 ### `GET /till/sales` (`cashregister.list`)
 

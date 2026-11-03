@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Redesign API gaps, till receipt lines (no migration): every till sale answer (`POST /till/sales`, a replay, `GET /till/sales/{client_ref}`, the office list) carries `lines` (title, product, quantity, unit price as charged, line excl, VAT and total), so a receipt can be reprinted after a reload.
 - Redesign API gaps, step 7 (no migration): `GET /lots/{lot}/farmer-credits` gains `farmers`, the lot's farmer groups exactly as its public page shows them (village, count hidden below 3, harvest window) under the link's allow-list. Farmer names and per-farmer shares stay out: links can't grant them until the data-protection gate opens.
 - Redesign API gaps, step 6, sales summary (contract `docs/api/orders.md`, no migration): `GET /workspace/{workspace}/sales-summary?from=&to=&source=` (`order.list`) counts orders sold in `[from, to)` (status open, completed or returned; at `confirmed_at`, else paid, completed or created) per currency: `orders`, `gross_total` and, apart, `refunded_total` (provider refunds that went through). `from`/`to` required, at most 366 days apart.
 - Redesign API gaps, step 5, order extras (no migration): orders gain `units` (sum of line quantities) and `payment_method` (`cash`/`card` from the till sale, `online` once a web payment is paid, else null); lines gain `lots` (`[{id, code, quantity}]` held or taken for the line's product) and `image` (variant's first image, else the product's). Three statements per page, on get, list and action answers.
