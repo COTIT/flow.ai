@@ -18,7 +18,7 @@ use crate::{
         repo::{self as jobs, Claimed, NewJob},
         runner::Step,
     },
-    modules::orders::{checkout, dto::OrderAction, repo as orders, service},
+    modules::orders::{checkout, dto::OrderAction, repo as orders, service, trail},
     payments::{self, NewRefund, Provider, Status},
 };
 
@@ -345,6 +345,16 @@ async fn paid(
     )
     .execute(&mut *conn)
     .await?;
+    trail::log(
+        conn,
+        workspace_id,
+        o.id,
+        "paid",
+        trail::Actor::System,
+        None,
+        None,
+    )
+    .await?;
     let reopen = match o.status.as_str() {
         "awaiting_payment" => true,
         "cancelled" => {
@@ -377,7 +387,7 @@ async fn auto_refund(
         sqlx::query_scalar!("SELECT provider FROM order_payments WHERE id = $1", row.id)
             .fetch_one(&mut *conn)
             .await?;
-    sqlx::query!(
+    let done = sqlx::query!(
         "INSERT INTO order_payments (workspace_id, order_id, kind, provider, parent_id, auto,
                                      amount, currency)
          VALUES ($1, $2, 'refund', $3, $4, true, $5, $6)
@@ -389,9 +399,22 @@ async fn auto_refund(
         row.amount,
         row.currency,
     )
-    .execute(conn)
-    .await
-    .map(|_| ())
+    .execute(&mut *conn)
+    .await?;
+    if done.rows_affected() == 1 {
+        let meta = json!({ "amount": row.amount, "auto": true });
+        trail::log(
+            conn,
+            workspace_id,
+            order_id,
+            "refunded",
+            trail::Actor::System,
+            Some(meta),
+            None,
+        )
+        .await?;
+    }
+    Ok(())
 }
 
 /// A row waiting for its create call.
@@ -652,6 +675,18 @@ pub async fn refund(
         user_id,
     )
     .fetch_one(&mut *tx)
+    .await?;
+    let meta = json!({ "amount": amount });
+    let by = trail::Actor::User(user_id);
+    trail::log(
+        &mut tx,
+        workspace_id,
+        o.id,
+        "refunded",
+        by,
+        Some(meta),
+        None,
+    )
     .await?;
     let answer = Answer::created(&json!({
         "data": { "refund_id": refund_id, "amount": amount, "status": "creating" }

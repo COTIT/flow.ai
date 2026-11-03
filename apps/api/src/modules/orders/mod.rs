@@ -9,4 +9,5 @@ pub mod repo;
 pub mod routes;
 pub mod service;
 pub mod storefront;
+pub mod trail;
 pub mod webhook;

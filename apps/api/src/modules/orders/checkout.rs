@@ -17,7 +17,7 @@ use crate::{
     modules::orders::{
         dto::{CheckoutInput, PaymentInput, PaymentIntentResource, StorefrontOrder},
         repo::{self, OrderRow},
-        service,
+        service, trail,
     },
     payments::{self, NewIntent},
 };
@@ -109,7 +109,7 @@ pub async fn create(
         .ok_or(AppError::NotFound)?;
     let lines = repo::lines(&mut *tx, ws, &[id]).await?;
     service::hold(&mut tx, ws, &o, &lines).await?;
-    service::created_event(&mut tx, ws, id).await?;
+    service::created_event(&mut tx, ws, id, trail::Actor::AppKey(key.id), None).await?;
     let answer = Answer::created(&json!({ "data": minimal(&o) }));
     idempotency::finish(&mut tx, ws, idem.as_ref(), &answer).await?;
     tx.commit().await?;
@@ -328,6 +328,7 @@ pub async fn expire(db: &PgPool) -> Result<Step, AppError> {
         let lines = repo::lines(&mut *tx, ws, &[id]).await?;
         service::unhold(&mut tx, ws, &o, &lines).await?;
         repo::set_status(&mut tx, ws, id, "cancelled").await?;
+        trail::log(&mut tx, ws, id, "expired", trail::Actor::System, None, None).await?;
         tx.commit().await?;
     }
     Ok(if i64::try_from(due.len()).unwrap_or(0) == EXPIRE_CHUNK {

@@ -408,6 +408,13 @@ pub struct OrderResource {
     pub completed_at: Option<DateTime<Utc>>,
     #[schema(required = true)]
     pub cancelled_at: Option<DateTime<Utc>>,
+    /// First time it became `open` (office confirm, web payment) or `completed` (till sale).
+    /// Null on orders from before the trail existed.
+    #[schema(required = true)]
+    pub confirmed_at: Option<DateTime<Utc>>,
+    /// When every line was first picked in full; null until then (and on older orders).
+    #[schema(required = true)]
+    pub picked_at: Option<DateTime<Utc>>,
     #[schema(required = true)]
     pub invoice_id: Option<Uuid>,
     /// What the API would accept on this order now, from the rules its action routes enforce.
@@ -661,6 +668,74 @@ mod tests {
             "javascript:alert(1)",
         ] {
             assert!(!redirect(bad), "{bad}");
+        }
+    }
+}
+
+/// Who did an order action.
+#[derive(Serialize, ToSchema)]
+pub struct EventActor {
+    /// `user`, `till_user` or `app_key`.
+    #[schema(example = "user")]
+    pub r#type: &'static str,
+    pub id: Uuid,
+    /// Null once a user left the workspace.
+    #[schema(required = true)]
+    pub name: Option<String>,
+}
+
+/// One action on an order.
+#[derive(Serialize, ToSchema)]
+pub struct OrderEventResource {
+    pub id: Uuid,
+    /// `created`, `confirmed`, `paid`, `picked`, `completed`, `cancelled`, `expired`,
+    /// `returned`, `refunded` or `invoiced`.
+    #[schema(example = "confirmed")]
+    pub kind: String,
+    pub at: DateTime<Utc>,
+    /// Null when the system did it (expiry job, payment provider).
+    #[schema(required = true)]
+    pub actor: Option<EventActor>,
+    /// `refunded`: `{amount}` in minor units, plus `auto: true` for a refund the system owed;
+    /// else null.
+    #[schema(required = true, value_type = Option<Object>)]
+    pub meta: Option<Value>,
+}
+
+impl From<crate::modules::orders::trail::EventRow> for OrderEventResource {
+    fn from(e: crate::modules::orders::trail::EventRow) -> Self {
+        let user_name = match (&e.first_name, &e.last_name) {
+            (Some(f), Some(l)) => Some(crate::modules::users::dto::full_name(
+                f,
+                e.middle_name.as_deref(),
+                l,
+            )),
+            _ => None,
+        };
+        let actor = match (e.user_id, e.till_user_id, e.app_key_id) {
+            (Some(id), _, _) => Some(EventActor {
+                r#type: "user",
+                id,
+                name: user_name,
+            }),
+            (_, Some(id), _) => Some(EventActor {
+                r#type: "till_user",
+                id,
+                name: e.till_user_name,
+            }),
+            (_, _, Some(id)) => Some(EventActor {
+                r#type: "app_key",
+                id,
+                name: e.app_key_name,
+            }),
+            _ => None,
+        };
+        Self {
+            id: e.id,
+            kind: e.kind,
+            at: e.created_at,
+            actor,
+            meta: e.meta,
         }
     }
 }

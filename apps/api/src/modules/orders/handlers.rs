@@ -15,10 +15,11 @@ use crate::{
         workspace::{Can, permissions},
     },
     idempotency::{Answer, KeyOnly, Keyed},
+    modules::lots::dto::PageQuery,
     modules::orders::{
         dto::{
-            CreateOrderRequest, LinesQuantityRequest, ListQuery, OrderCreated, OrderResource,
-            RefundCreated, RefundRequest, STATUSES, UpdateOrderRequest,
+            CreateOrderRequest, LinesQuantityRequest, ListQuery, OrderCreated, OrderEventResource,
+            OrderResource, RefundCreated, RefundRequest, STATUSES, UpdateOrderRequest,
         },
         payments, service,
     },
@@ -328,4 +329,34 @@ pub async fn refund(
         key,
     )
     .await
+}
+
+/// GET /orders/{order}/events -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/orders/{order}/events", tag = "orders",
+    operation_id = "orders_events", summary = "List an order's events",
+    description = "Who did what to the order, newest first. Only actions since the trail exists are listed; an older order may have none.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("order" = Uuid, Path, description = "Order id"),
+        PageQuery,
+    ),
+    responses(
+        (status = 200, body = Paginated<OrderEventResource>, description = "One page, newest first"),
+        (status = 403, body = MessageBody, description = "Inactive membership or missing `order.view`"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or order, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn events(
+    State(state): State<AppState>,
+    access: Can<OrderView>,
+    Path((_, id)): OrderPath,
+    Query(query): Query<PageQuery>,
+) -> Result<Json<Paginated<OrderEventResource>>, AppError> {
+    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let (rows, total) =
+        service::events(&state, access.workspace_id, &id, page.size, page.offset()).await?;
+    let data = rows.into_iter().map(Into::into).collect();
+    Ok(Json(Paginated::new(data, total, page)))
 }

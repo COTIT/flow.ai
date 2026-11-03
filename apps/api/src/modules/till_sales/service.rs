@@ -19,6 +19,7 @@ use crate::{
             dto::LineInput,
             repo::{self as orders, NewOrder},
             service::{self as order_rules, Priced},
+            trail,
         },
         settings,
         stock::{
@@ -298,7 +299,9 @@ pub async fn sell(
         )
         .await?;
     }
-    order_rules::created_event(&mut tx, ws, order_id).await?;
+    let by = trail::Actor::TillUser(s.till_user_id);
+    order_rules::created_event(&mut tx, ws, order_id, by, Some(sold_at)).await?;
+    trail::log(&mut tx, ws, order_id, "completed", by, None, Some(sold_at)).await?;
     let row = repo::find(&mut *tx, ws, s.register_id, &sale.client_ref)
         .await?
         .ok_or_else(|| AppError::Internal("till sale vanished".into()))?;

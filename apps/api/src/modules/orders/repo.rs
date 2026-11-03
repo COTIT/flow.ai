@@ -238,6 +238,8 @@ pub struct OrderRow {
     pub paid_at: Option<DateTime<Utc>>,
     pub completed_at: Option<DateTime<Utc>>,
     pub cancelled_at: Option<DateTime<Utc>>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub picked_at: Option<DateTime<Utc>>,
     pub invoice_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -255,6 +257,7 @@ pub async fn lock(
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.confirmed_at, o.picked_at,
                   o.updated_at
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE o.workspace_id = $1 AND o.id = $2
@@ -278,6 +281,7 @@ pub async fn find(
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.confirmed_at, o.picked_at,
                   o.updated_at
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE o.workspace_id = $1 AND o.id = $2"#,
@@ -301,6 +305,7 @@ pub async fn list(
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
                   o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.confirmed_at, o.picked_at,
                   o.updated_at, count(*) OVER () AS "total_rows!"
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
            WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)
@@ -337,6 +342,8 @@ pub async fn list(
             paid_at: r.paid_at,
             completed_at: r.completed_at,
             cancelled_at: r.cancelled_at,
+            confirmed_at: r.confirmed_at,
+            picked_at: r.picked_at,
             invoice_id: r.invoice_id,
             created_at: r.created_at,
             updated_at: r.updated_at,
@@ -400,7 +407,8 @@ pub async fn lines(
     .await
 }
 
-/// Move an order to `status` and stamp the matching time.
+/// Move an order to `status` and stamp the matching time. `confirmed_at` is stamped the first
+/// time it becomes `open` or `completed`.
 pub async fn set_status(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -411,12 +419,31 @@ pub async fn set_status(
         "UPDATE orders SET status = $3, updated_at = now(),
              expires_at = CASE WHEN $3 = 'awaiting_payment' THEN expires_at END,
              completed_at = CASE WHEN $3 = 'completed' THEN now() ELSE completed_at END,
+             confirmed_at = CASE WHEN $3 IN ('open', 'completed') THEN coalesce(confirmed_at, now())
+                                 ELSE confirmed_at END,
              cancelled_at = CASE WHEN $3 = 'cancelled' THEN now()
                                  WHEN $3 = 'open' THEN NULL ELSE cancelled_at END
          WHERE workspace_id = $1 AND id = $2",
         workspace_id,
         id,
         status,
+    )
+    .execute(conn)
+    .await
+    .map(|_| ())
+}
+
+/// Stamp `picked_at` once: every line is now picked in full.
+pub async fn stamp_picked(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE orders SET picked_at = coalesce(picked_at, now()), updated_at = now()
+         WHERE workspace_id = $1 AND id = $2",
+        workspace_id,
+        id,
     )
     .execute(conn)
     .await

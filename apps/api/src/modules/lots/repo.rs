@@ -6,6 +6,8 @@ use serde_json::Value;
 use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
+use crate::modules::users::dto::full_name;
+
 /// A lot row (passport columns excluded).
 #[derive(Clone, Debug)]
 pub struct LotRow {
@@ -29,6 +31,8 @@ pub struct EventRow {
     pub from_status: Option<String>,
     pub to_status: Option<String>,
     pub user_id: Option<Uuid>,
+    /// The user's full name while they are a member of the workspace.
+    pub user_name: Option<String>,
     pub meta: Option<Value>,
     pub created_at: DateTime<Utc>,
 }
@@ -221,11 +225,14 @@ pub async fn events(
     offset: i64,
 ) -> Result<(Vec<EventRow>, i64), sqlx::Error> {
     let rows = sqlx::query!(
-        r#"SELECT id, kind, from_status, to_status, user_id, meta, created_at,
+        r#"SELECT e.id, e.kind, e.from_status, e.to_status, e.user_id, e.meta, e.created_at,
+                  u.first_name AS "first_name?", u.middle_name, u.last_name AS "last_name?",
                   count(*) OVER () AS "total!"
-           FROM lot_events
-           WHERE lot_id = $1 AND workspace_id = $2
-           ORDER BY created_at DESC, id DESC
+           FROM lot_events e
+           LEFT JOIN workspace_members m ON m.workspace_id = e.workspace_id AND m.user_id = e.user_id
+           LEFT JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL
+           WHERE e.lot_id = $1 AND e.workspace_id = $2
+           ORDER BY e.created_at DESC, e.id DESC
            LIMIT $3 OFFSET $4"#,
         lot_id,
         workspace_id,
@@ -243,6 +250,10 @@ pub async fn events(
             from_status: r.from_status,
             to_status: r.to_status,
             user_id: r.user_id,
+            user_name: r
+                .first_name
+                .zip(r.last_name)
+                .map(|(f, l)| full_name(&f, r.middle_name.as_deref(), &l)),
             meta: r.meta,
             created_at: r.created_at,
         })

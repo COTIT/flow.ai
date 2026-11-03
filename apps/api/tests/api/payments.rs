@@ -443,6 +443,16 @@ async fn a_late_payment_without_stock_is_refunded_exactly_once(pool: PgPool) {
         .await,
         1
     );
+    assert_eq!(
+        count(
+            &w,
+            "SELECT count(*) FROM order_events WHERE kind = 'refunded' AND user_id IS NULL
+             AND (meta->>'auto')::bool"
+        )
+        .await,
+        1,
+        "the owed refund is on the trail once, by the system"
+    );
 }
 
 #[sqlx::test]
@@ -696,4 +706,64 @@ async fn a_paid_web_order_lowers_the_stock_the_till_sees(pool: PgPool) {
         stocks.to_string().contains("-2.00"),
         "the office ledger shows the sale: {stocks}"
     );
+}
+
+/// `(kind, actor)` of an order's events, oldest first.
+async fn trail(w: &W, id: &str) -> Vec<(String, Value)> {
+    let (s, res) = w
+        .api
+        .call(Method::GET, &format!("/{id}/events"), None, &w.api.owner)
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let mut out: Vec<(String, Value)> = res["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| (e["kind"].as_str().unwrap().to_owned(), e["actor"].clone()))
+        .collect();
+    out.reverse();
+    out
+}
+
+#[sqlx::test]
+async fn web_order_events_name_the_shop_key_and_the_staff(pool: PgPool) {
+    let w = world(pool).await;
+    let id = paid(&w, 2).await;
+    let o = order(&w, &id).await;
+    assert!(o["confirmed_at"].is_string(), "paid = confirmed: {o}");
+    let t = trail(&w, &id).await;
+    assert_eq!(t[0].0, "created");
+    assert_eq!(t[0].1["type"], "app_key");
+    assert_eq!(t[0].1["name"], "Web shop");
+    assert_eq!(
+        t[1],
+        ("paid".to_owned(), Value::Null),
+        "the provider: no actor"
+    );
+    assert_eq!(t.len(), 2);
+
+    let (s, res) = w
+        .api
+        .call(
+            Method::POST,
+            &format!("/{id}/refunds"),
+            Some(json!({ "amount": 500 })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let t = trail(&w, &id).await;
+    assert_eq!(t[2].0, "refunded");
+    assert_eq!(t[2].1["name"], "Ada Lovelace");
+    let (_, res) = w
+        .api
+        .call(Method::GET, &format!("/{id}/events"), None, &w.api.owner)
+        .await;
+    assert_eq!(res["data"][0]["meta"]["amount"], 500);
+
+    let (late, _) = awaiting(&w, 1).await;
+    expire(&w, &late).await;
+    let t = trail(&w, &late).await;
+    assert_eq!(t.last().unwrap(), &("expired".to_owned(), Value::Null));
+    assert_eq!(order(&w, &late).await["confirmed_at"], Value::Null);
 }

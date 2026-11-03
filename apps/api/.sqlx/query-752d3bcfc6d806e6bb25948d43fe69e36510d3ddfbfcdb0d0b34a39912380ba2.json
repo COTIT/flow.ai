@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, kind, from_status, to_status, user_id, meta, created_at,\n                  count(*) OVER () AS \"total!\"\n           FROM lot_events\n           WHERE lot_id = $1 AND workspace_id = $2\n           ORDER BY created_at DESC, id DESC\n           LIMIT $3 OFFSET $4",
+  "query": "SELECT e.id, e.kind, e.from_status, e.to_status, e.user_id, e.meta, e.created_at,\n                  u.first_name AS \"first_name?\", u.middle_name, u.last_name AS \"last_name?\",\n                  count(*) OVER () AS \"total!\"\n           FROM lot_events e\n           LEFT JOIN workspace_members m ON m.workspace_id = e.workspace_id AND m.user_id = e.user_id\n           LEFT JOIN users u ON u.id = m.user_id AND u.deleted_at IS NULL\n           WHERE e.lot_id = $1 AND e.workspace_id = $2\n           ORDER BY e.created_at DESC, e.id DESC\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -82,6 +82,39 @@
       },
       {
         "ordinal": 7,
+        "name": "first_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "first_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "middle_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "middle_name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "last_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "last_name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
         "name": "total!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -103,8 +136,11 @@
       true,
       true,
       false,
+      false,
+      true,
+      false,
       null
     ]
   },
-  "hash": "7a381afd8503cb7b8c6f02779af3ff72f24e97ba8c9f90931d1103a9c82ec8b2"
+  "hash": "752d3bcfc6d806e6bb25948d43fe69e36510d3ddfbfcdb0d0b34a39912380ba2"
 }

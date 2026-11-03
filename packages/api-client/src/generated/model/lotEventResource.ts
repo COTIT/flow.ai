@@ -5,6 +5,7 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { EventUser } from './eventUser';
 import type { LotEventResourceMeta } from './lotEventResourceMeta';
 
 /**
@@ -24,6 +25,7 @@ export interface LotEventResource {
   meta: LotEventResourceMeta;
   /** @nullable */
   to_status: string | null;
+  user: EventUser | null;
   /**
      * Who did it; null once the user is gone.
      * @nullable

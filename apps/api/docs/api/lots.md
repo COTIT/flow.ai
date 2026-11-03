@@ -40,7 +40,7 @@ Never shown (G10): farmer names or ids, per-farmer or total amounts, kg, price p
 
 ## Trail (`lot_events`)
 
-Written in the same transaction as the change; never updated or deleted (a test greps the code for it).
+Written in the same transaction as the change; never updated or deleted (a test greps the code for it). Each event carries `user_id` and `user: {id, name}` (null without a user; `name` null once they are no longer a member of this workspace).
 
 | `kind` | When | Extra |
 |---|---|---|

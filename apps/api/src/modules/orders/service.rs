@@ -27,6 +27,7 @@ use crate::{
             },
             payments::{Paid, paid_totals},
             repo::{self, LineRow, NewLine, OrderRow},
+            trail,
         },
         pricing::engine,
         products, settings,
@@ -283,12 +284,16 @@ pub async fn number(conn: &mut PgConnection, workspace_id: Uuid) -> Result<Strin
     Ok(Appendix::from_section(&section).format(n))
 }
 
-/// `order.created`: ids, number, status and totals; never customer details.
+/// `order.created` (ids, number, status and totals; never customer details) and the trail's
+/// `created` by `actor` (`at` None = now).
 pub async fn created_event(
     conn: &mut PgConnection,
     workspace_id: Uuid,
     order_id: Uuid,
+    actor: trail::Actor,
+    at: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<(), AppError> {
+    trail::log(conn, workspace_id, order_id, "created", actor, None, at).await?;
     let o = repo::find(&mut *conn, workspace_id, order_id)
         .await?
         .ok_or(AppError::NotFound)?;
@@ -448,6 +453,8 @@ pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid) -> OrderResource {
         paid_at: o.paid_at,
         completed_at: o.completed_at,
         cancelled_at: o.cancelled_at,
+        confirmed_at: o.confirmed_at,
+        picked_at: o.picked_at,
         invoice_id: o.invoice_id,
         lines: lines
             .into_iter()
@@ -546,7 +553,7 @@ pub async fn create(
         &p.summary,
     )
     .await?;
-    created_event(&mut tx, workspace_id, id).await?;
+    created_event(&mut tx, workspace_id, id, trail::Actor::User(user_id), None).await?;
     let answer = Answer::created(&json!({ "data": OrderCreated { order_id: id, number } }));
     idempotency::finish(&mut tx, workspace_id, key.as_ref(), &answer).await?;
     tx.commit().await?;
@@ -599,6 +606,18 @@ pub async fn list(
         })
         .collect();
     Ok((data, total))
+}
+
+/// The trail's `kind` by the office user `user_id`.
+async fn log(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    order_id: Uuid,
+    kind: &str,
+    user_id: Uuid,
+) -> Result<(), AppError> {
+    let actor = trail::Actor::User(user_id);
+    Ok(trail::log(conn, workspace_id, order_id, kind, actor, None, None).await?)
 }
 
 /// A state change under the order lock: replay, lock, `step`, answer the order.
@@ -699,7 +718,7 @@ pub async fn confirm(
             check(OrderAction::Confirm, &o, &lines, Paid::default())?;
             hold(conn, workspace_id, &o, &lines).await?;
             repo::set_status(conn, workspace_id, o.id, "open").await?;
-            Ok(())
+            log(conn, workspace_id, o.id, "confirmed", user_id).await
         },
     )
     .await
@@ -738,9 +757,20 @@ pub async fn pick(
                 }
                 rows.push((l.id, *q, l.deducted, l.returned));
             }
-            repo::set_line_quantities(conn, workspace_id, &rows)
-                .await
-                .map_err(Into::into)
+            repo::set_line_quantities(conn, workspace_id, &rows).await?;
+            // Stock lines only, the ones `complete` needs picked.
+            let full = lines.iter().filter(|l| l.tracked).all(|l| {
+                let now = rows
+                    .iter()
+                    .rev()
+                    .find(|r| r.0 == l.id)
+                    .map_or(l.picked, |r| r.1);
+                now == l.quantity
+            });
+            if full {
+                repo::stamp_picked(conn, workspace_id, o.id).await?;
+            }
+            log(conn, workspace_id, o.id, "picked", user_id).await
         },
     )
     .await
@@ -779,7 +809,7 @@ pub async fn complete(
             repo::set_line_quantities(conn, workspace_id, &rows).await?;
             farm_supply::sale::on_sale(conn, workspace_id, o.id, &o.number).await?;
             repo::set_status(conn, workspace_id, o.id, "completed").await?;
-            Ok(())
+            log(conn, workspace_id, o.id, "completed", user_id).await
         },
     )
     .await
@@ -800,7 +830,10 @@ pub async fn cancel(
         user_id,
         id,
         key,
-        async |conn, o, lines| cancel_locked(conn, workspace_id, &o, &lines).await,
+        async |conn, o, lines| {
+            cancel_locked(conn, workspace_id, &o, &lines).await?;
+            log(conn, workspace_id, o.id, "cancelled", user_id).await
+        },
     )
     .await
 }
@@ -930,7 +963,7 @@ pub async fn returns(
                 "partially_returned"
             };
             repo::set_status(conn, workspace_id, o.id, status).await?;
-            Ok(())
+            log(conn, workspace_id, o.id, "returned", user_id).await
         },
     )
     .await
@@ -1029,10 +1062,25 @@ pub async fn invoice(
                 invoices::service::create_in(conn, workspace_id, user_id, input).await?;
             repo::set_invoice(conn, workspace_id, o.id, invoice_id).await?;
             book_paid(conn, workspace_id, user_id, &o, invoice_id).await?;
-            Ok(())
+            log(conn, workspace_id, o.id, "invoiced", user_id).await
         },
     )
     .await
+}
+
+/// A page of the order's events, newest first; 404 for another workspace's order.
+pub async fn events(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<trail::EventRow>, i64), AppError> {
+    let id = parse(id)?;
+    repo::find(&state.db, workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(trail::list(&state.db, workspace_id, id, limit, offset).await?)
 }
 
 #[cfg(test)]

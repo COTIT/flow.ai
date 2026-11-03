@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,\n                  o.updated_at, count(*) OVER () AS \"total_rows!\"\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)\n           ORDER BY o.created_at DESC, o.id DESC\n           LIMIT $3 OFFSET $4",
+  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at, count(*) OVER () AS \"total_rows!\"\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)\n           ORDER BY o.created_at DESC, o.id DESC\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -242,6 +242,28 @@
       },
       {
         "ordinal": 22,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "confirmed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "picked_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "picked_at"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -252,7 +274,7 @@
         }
       },
       {
-        "ordinal": 23,
+        "ordinal": 25,
         "name": "total_rows!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -289,9 +311,11 @@
       true,
       true,
       false,
+      true,
+      true,
       false,
       null
     ]
   },
-  "hash": "fb4f00eaad70768a07e8ecfb1a4e97ee608e7395367d4ad22a1720918fa03670"
+  "hash": "f7ab2a4c0c660b6a881cfe0a3f15d8058bff5e8a4bcfbbc37abdd8c4bb78d4df"
 }

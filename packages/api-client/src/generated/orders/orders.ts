@@ -31,7 +31,9 @@ import type {
   EnvelopeRefundCreated,
   LinesQuantityRequest,
   MessageBody,
+  OrdersEventsParams,
   OrdersListParams,
+  PaginatedOrderEventResource,
   PaginatedOrderResource,
   RefundRequest,
   UnprocessableBody,
@@ -662,6 +664,114 @@ export const useOrdersConfirm = <TError = ErrorType<MessageBody | UnprocessableB
       return useMutation(getOrdersConfirmMutationOptions(options), queryClient);
     }
     /**
+ * Who did what to the order, newest first. Only actions since the trail exists are listed; an older order may have none.
+ * @summary List an order's events
+ */
+export const ordersEvents = (
+    workspace: string,
+    order: string,
+    params?: OrdersEventsParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedOrderEventResource>(
+      {url: `/workspace/${workspace}/orders/${order}/events`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getOrdersEventsQueryKey = (workspace: string,
+    order: string,
+    params?: OrdersEventsParams,) => {
+    return [
+    `/workspace/${workspace}/orders/${order}/events`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getOrdersEventsQueryOptions = <TData = Awaited<ReturnType<typeof ordersEvents>>, TError = ErrorType<MessageBody>>(workspace: string,
+    order: string,
+    params?: OrdersEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersEvents>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getOrdersEventsQueryKey(workspace,order,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof ordersEvents>>> = ({ signal }) => ordersEvents(workspace,order,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && order !== null && order !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof ordersEvents>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type OrdersEventsQueryResult = NonNullable<Awaited<ReturnType<typeof ordersEvents>>>
+export type OrdersEventsQueryError = ErrorType<MessageBody>
+
+
+export function useOrdersEvents<TData = Awaited<ReturnType<typeof ordersEvents>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    params: undefined |  OrdersEventsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersEvents>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof ordersEvents>>,
+          TError,
+          Awaited<ReturnType<typeof ordersEvents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useOrdersEvents<TData = Awaited<ReturnType<typeof ordersEvents>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    params?: OrdersEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersEvents>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof ordersEvents>>,
+          TError,
+          Awaited<ReturnType<typeof ordersEvents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useOrdersEvents<TData = Awaited<ReturnType<typeof ordersEvents>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    params?: OrdersEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersEvents>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List an order's events
+ */
+
+export function useOrdersEvents<TData = Awaited<ReturnType<typeof ordersEvents>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    order: string,
+    params?: OrdersEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof ordersEvents>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getOrdersEventsQueryOptions(workspace,order,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * @summary Make the order's invoice
  */
 export const ordersInvoice = (

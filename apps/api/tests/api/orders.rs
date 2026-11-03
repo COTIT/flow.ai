@@ -817,3 +817,182 @@ async fn products_show_what_open_orders_reserve(pool: PgPool) {
         "taken, no longer held"
     );
 }
+
+/// `(kind, actor type, actor name)` of an order's events, newest first.
+async fn events(w: &W, id: &str) -> Vec<(String, Value, Value)> {
+    let (s, res) = call(w, Method::GET, &format!("/{id}/events"), None).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    res["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            assert!(e["at"].is_string(), "{e}");
+            let a = &e["actor"];
+            (
+                e["kind"].as_str().unwrap().to_owned(),
+                a["type"].clone(),
+                a["name"].clone(),
+            )
+        })
+        .collect()
+}
+
+fn ada(kind: &str) -> (String, Value, Value) {
+    (kind.to_owned(), json!("user"), json!("Ada Lovelace"))
+}
+
+#[sqlx::test]
+async fn every_office_action_leaves_one_event_with_its_actor(pool: PgPool) {
+    let w = world(pool).await;
+    let id = draft(&w, json!([line(&w.honey, "2"), line(&w.wax, "1")])).await;
+    assert_eq!(events(&w, &id).await, [ada("created")]);
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert_eq!(o["data"]["confirmed_at"], Value::Null);
+    assert_eq!(o["data"]["picked_at"], Value::Null);
+
+    act(&w, &id, "confirm").await;
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert!(o["data"]["confirmed_at"].is_string(), "{o}");
+
+    // A partial pick is an event; picked_at waits for the last line.
+    let first = &o["data"]["lines"][0];
+    let body = json!({ "lines": [{ "line_id": first["id"], "quantity": first["quantity"] }] });
+    let (s, o) = call(&w, Method::POST, &format!("/{id}/pick"), Some(body)).await;
+    assert_eq!(s, StatusCode::OK, "{o}");
+    assert_eq!(o["data"]["picked_at"], Value::Null, "one line left");
+    pick_all(&w, &id).await;
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    let picked_at = o["data"]["picked_at"].clone();
+    assert!(picked_at.is_string(), "{o}");
+    pick_all(&w, &id).await;
+    let (_, o) = call(&w, Method::GET, &format!("/{id}"), None).await;
+    assert_eq!(o["data"]["picked_at"], picked_at, "stamped once");
+
+    act(&w, &id, "complete").await;
+    let wax_line = o["data"]["lines"][1]["id"].clone();
+    let body = json!({ "lines": [{ "line_id": wax_line, "quantity": "1" }] });
+    let (s, res) = call(&w, Method::POST, &format!("/{id}/returns"), Some(body)).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(
+        events(&w, &id).await,
+        [
+            ada("returned"),
+            ada("completed"),
+            ada("picked"),
+            ada("picked"),
+            ada("picked"),
+            ada("confirmed"),
+            ada("created"),
+        ]
+    );
+
+    let b = draft(&w, json!([line(&w.honey, "1")])).await;
+    act(&w, &b, "confirm").await;
+    act(&w, &b, "cancel").await;
+    assert_eq!(
+        events(&w, &b).await,
+        [ada("cancelled"), ada("confirmed"), ada("created")]
+    );
+    let (_, res) = call(
+        &w,
+        Method::GET,
+        &format!("/{b}/events?page_size=1&page=2"),
+        None,
+    )
+    .await;
+    assert_eq!(res["meta"]["total"], 3);
+    assert_eq!(res["data"][0]["kind"], "confirmed");
+}
+
+#[sqlx::test]
+async fn an_invoice_is_an_event_and_a_refused_action_is_none(pool: PgPool) {
+    let w = world(pool).await;
+    let rel = w
+        .api
+        .with_base("/relations")
+        .create(
+            json!({ "company_name": "Client", "type": "business" }),
+            "relation_id",
+        )
+        .await;
+    let (s, res) = call(
+        &w,
+        Method::POST,
+        "",
+        Some(json!({ "relation_id": rel, "lines": [line(&w.honey, "1")] })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let id = res["data"]["order_id"].as_str().unwrap().to_owned();
+    let (s, _) = act(&w, &id, "complete").await;
+    assert_eq!(s, StatusCode::CONFLICT, "a draft can't complete");
+    act(&w, &id, "confirm").await;
+    pick_all(&w, &id).await;
+    act(&w, &id, "complete").await;
+    let (s, res) = act(&w, &id, "invoice").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let kinds: Vec<String> = events(&w, &id).await.into_iter().map(|e| e.0).collect();
+    assert_eq!(
+        kinds,
+        ["invoiced", "completed", "picked", "confirmed", "created"]
+    );
+}
+
+#[sqlx::test]
+async fn events_stay_in_their_workspace_and_a_gone_member_loses_their_name(pool: PgPool) {
+    let w = world(pool).await;
+    let clerk = common::member_with(
+        &w.api.app,
+        &w.api.pool,
+        &w.api.ws,
+        "clerk@example.com",
+        &["order.create", "order.update", "order.view"],
+    )
+    .await;
+    let (s, res) = w
+        .api
+        .call(
+            Method::POST,
+            "",
+            Some(json!({ "lines": [line(&w.honey, "1")] })),
+            &clerk,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let id = res["data"]["order_id"].as_str().unwrap().to_owned();
+    let (_, res) = call(&w, Method::GET, &format!("/{id}/events"), None).await;
+    let actor = res["data"][0]["actor"].clone();
+    assert_eq!(actor["type"], "user");
+    assert!(actor["name"].is_string(), "{actor}");
+    let clerk_id = actor["id"].clone();
+
+    sqlx::query(
+        "DELETE FROM workspace_members WHERE workspace_id = $1::uuid AND user_id = $2::uuid",
+    )
+    .bind(&w.api.ws)
+    .bind(clerk_id.as_str().unwrap())
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+    let (_, res) = call(&w, Method::GET, &format!("/{id}/events"), None).await;
+    assert_eq!(res["data"][0]["actor"]["id"], clerk_id, "id kept");
+    assert_eq!(
+        res["data"][0]["actor"]["name"],
+        Value::Null,
+        "no longer a member"
+    );
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, _) = eve
+        .call(Method::GET, &format!("/{id}/events"), None, &eve.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "acme's order under evil");
+    let viewer =
+        common::member_with(&w.api.app, &w.api.pool, &w.api.ws, "v@example.com", &[]).await;
+    let (s, _) = w
+        .api
+        .call(Method::GET, &format!("/{id}/events"), None, &viewer)
+        .await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "needs order.view");
+}

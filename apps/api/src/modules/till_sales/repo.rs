@@ -128,7 +128,7 @@ pub async fn stamp_order(
     sold_at: DateTime<Utc>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
-        "UPDATE orders SET paid_at = $3, completed_at = $3, updated_at = now()
+        "UPDATE orders SET paid_at = $3, completed_at = $3, confirmed_at = $3, updated_at = now()
          WHERE workspace_id = $1 AND id = $2",
         workspace_id,
         order_id,

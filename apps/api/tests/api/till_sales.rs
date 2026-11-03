@@ -564,3 +564,36 @@ async fn office_sales_filter_by_time_and_register(pool: PgPool) {
         .await;
     assert_eq!(res["meta"]["total"], 0, "acme's register under evil");
 }
+
+#[sqlx::test]
+async fn a_till_sale_is_created_and_completed_by_its_till_user(pool: PgPool) {
+    let w = world(pool).await;
+    let (status, res) = post(&w, &w.t1, &sale("ev-1", basket(&w), cash(5000))).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let order = res["data"]["order_id"].as_str().unwrap();
+    let orders = w.api.with_base("/orders");
+    let (status, ev) = orders
+        .call(
+            Method::GET,
+            &format!("/{order}/events"),
+            None,
+            &orders.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{ev}");
+    let kinds: Vec<&str> = ev["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["kind"].as_str().unwrap())
+        .collect();
+    assert_eq!(kinds, ["completed", "created"]);
+    for e in ev["data"].as_array().unwrap() {
+        assert_eq!(e["actor"]["type"], "till_user");
+        assert_eq!(e["actor"]["name"], "Till 1 user");
+    }
+    let (_, o) = orders
+        .call(Method::GET, &format!("/{order}"), None, &orders.owner)
+        .await;
+    assert_eq!(o["data"]["confirmed_at"], o["data"]["completed_at"]);
+}

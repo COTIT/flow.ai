@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,\n                  o.updated_at\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND o.id = $2",
+  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND o.id = $2\n           FOR UPDATE OF o",
   "describe": {
     "columns": [
       {
@@ -242,6 +242,28 @@
       },
       {
         "ordinal": 22,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "confirmed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "picked_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "orders",
+            "name": "picked_at"
+          }
+        }
+      },
+      {
+        "ordinal": 24,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -281,8 +303,10 @@
       true,
       true,
       false,
+      true,
+      true,
       false
     ]
   },
-  "hash": "c08a28ab7da10635cc0a8773a4bc41bbd21a2253c72610eb02517c2bf277933b"
+  "hash": "6def593b45c24c7ae2d332aea0129c64491dc6f8b86b7d0b62a461877181f660"
 }

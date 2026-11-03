@@ -48,6 +48,7 @@ Every order resource (get, list, each action's answer) lists the actions the API
 | POST | `/orders/{order}/cancel` | `order.update` | 200 |
 | POST | `/orders/{order}/returns` | `order.update` | 200; `{lines:[{line_id, quantity}], restock}`: quantity returned now, more than 0 and at most taken − returned; `restock` (default true) puts it back on the order's warehouse |
 | POST | `/orders/{order}/refunds` | `order.delete` | 201 `{data:{refund_id, amount, status}}`; `{amount}` in minor units, 1 to paid − refunds not failed (422 above); 409 when nothing paid is left to refund (`Nothing paid on this order is left to refund.`). See `payments.md`. |
+| GET | `/orders/{order}/events?page=&page_size=` | `order.view` | 200 page of the order's trail, newest first (see "Trail") |
 | POST | `/orders/{order}/invoice` | `order.update` | 200; one draft invoice of every line (open, completed or returned orders; 409 when already invoiced; 422 `relation_id` until the order has a relation). The invoice's lines move no stock: the order did. |
 
 Every write takes an optional `Idempotency-Key` (1–255 visible characters): a retry of the same request replays the first answer, another request under the key is a 422, another member's key is never theirs.
@@ -69,6 +70,28 @@ Every write takes an optional `Idempotency-Key` (1–255 visible characters): a 
 ## Events
 
 `order.created` on create (see `webhooks.md`): ids, number, status, source and totals only.
+
+## Trail (`order_events`, migration `order_events`)
+
+Every action writes one row in its own transaction: `{id, kind, at, actor, meta}`.
+
+| `kind` | Written by | `actor` |
+|---|---|---|
+| `created` | office create, web checkout, till sale (`at` = the sale's `sold_at`) | `user`, `app_key` (the shop key, never the customer), `till_user` |
+| `confirmed` | office confirm | `user` |
+| `paid` | the provider confirmed a web payment | null (system) |
+| `picked` | each office pick | `user` |
+| `completed` | office complete; till sale (`at` = `sold_at`) | `user`, `till_user` |
+| `cancelled` | office cancel | `user` |
+| `expired` | the expiry job cancelled an unpaid web order | null |
+| `returned` | office returns | `user` |
+| `refunded` | office refund (`meta.amount`), or the refund the system owes for a late payment without stock (`meta: {amount, auto: true}`) | `user`, null |
+| `invoiced` | office invoice | `user` |
+
+- `actor`: `{type: "user" | "till_user" | "app_key", id, name}` or null. A user's `name` is null once they are no longer a member of this workspace (the id stays).
+- No backfill: orders acted on before the migration have no rows for those actions, and their `confirmed_at`/`picked_at` stay null. Show what is there.
+- Orders gain `confirmed_at` (the first time it became `open` or a till sale `completed`) and `picked_at` (the first time every stock line was picked in full).
+- Another workspace's order is 404; `order.view` is needed (403).
 
 ## Web shop (`/v1/storefront`, app key with `checkout:write`)
 

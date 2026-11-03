@@ -7353,6 +7353,54 @@
         ],
         "type": "object"
       },
+      "EventActor": {
+        "description": "Who did an order action.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Null once a user left the workspace.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "description": "`user`, `till_user` or `app_key`.",
+            "example": "user",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "EventUser": {
+        "description": "The user behind a lot event.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "Null once they left the workspace.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
       "Fact": {
         "additionalProperties": false,
         "description": "A label/value pair in a facts block.",
@@ -10650,6 +10698,17 @@
               "null"
             ]
           },
+          "user": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventUser",
+                "description": "Who did it, with their name while they are a member of this workspace; null with no\nuser."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "user_id": {
             "description": "Who did it; null once the user is gone.",
             "format": "uuid",
@@ -10665,6 +10724,7 @@
           "from_status",
           "to_status",
           "user_id",
+          "user",
           "meta",
           "created_at"
         ],
@@ -12011,6 +12071,50 @@
         ],
         "type": "object"
       },
+      "OrderEventResource": {
+        "description": "One action on an order.",
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EventActor",
+                "description": "Null when the system did it (expiry job, payment provider)."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`created`, `confirmed`, `paid`, `picked`, `completed`, `cancelled`, `expired`,\n`returned`, `refunded` or `invoiced`.",
+            "example": "confirmed",
+            "type": "string"
+          },
+          "meta": {
+            "description": "`refunded`: `{amount}` in minor units, plus `auto: true` for a refund the system owed;\nelse null.",
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "at",
+          "actor",
+          "meta"
+        ],
+        "type": "object"
+      },
       "OrderLineResource": {
         "description": "One order line.",
         "properties": {
@@ -12118,6 +12222,14 @@
               "null"
             ]
           },
+          "confirmed_at": {
+            "description": "First time it became `open` (office confirm, web payment) or `completed` (till sale).\nNull on orders from before the trail existed.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "created_at": {
             "format": "date-time",
             "type": "string"
@@ -12176,6 +12288,14 @@
             "type": "string"
           },
           "paid_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "picked_at": {
+            "description": "When every line was first picked in full; null until then (and on older orders).",
             "format": "date-time",
             "type": [
               "string",
@@ -12250,6 +12370,8 @@
           "paid_at",
           "completed_at",
           "cancelled_at",
+          "confirmed_at",
+          "picked_at",
           "invoice_id",
           "allowed_actions",
           "lines",
@@ -13127,6 +13249,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/OpportunityResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_OrderEventResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/OrderEventResource"
             },
             "type": "array"
           },
@@ -63287,6 +63428,151 @@
           }
         ],
         "summary": "Confirm a draft",
+        "tags": [
+          "orders"
+        ]
+      }
+    },
+    "/workspace/{workspace}/orders/{order}/events": {
+      "get": {
+        "description": "Who did what to the order, newest first. Only actions since the trail exists are listed; an older order may have none.",
+        "operationId": "orders_events",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Order id",
+            "in": "path",
+            "name": "order",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_OrderEventResource"
+                }
+              }
+            },
+            "description": "One page, newest first"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership or missing `order.view`"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or order, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List an order's events",
         "tags": [
           "orders"
         ]

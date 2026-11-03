@@ -23,6 +23,12 @@ export interface OrderResource {
   cancelled_at: string | null;
   /** @nullable */
   completed_at: string | null;
+  /**
+     * First time it became `open` (office confirm, web payment) or `completed` (till sale).
+     * Null on orders from before the trail existed.
+     * @nullable
+     */
+  confirmed_at: string | null;
   created_at: string;
   currency: string;
   currency_id: string;
@@ -43,6 +49,11 @@ export interface OrderResource {
   number: string;
   /** @nullable */
   paid_at: string | null;
+  /**
+     * When every line was first picked in full; null until then (and on older orders).
+     * @nullable
+     */
+  picked_at: string | null;
   /** @nullable */
   reference: string | null;
   /** @nullable */
