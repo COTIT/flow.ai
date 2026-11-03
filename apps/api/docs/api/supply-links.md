@@ -16,9 +16,12 @@ All routes are for workspace admins (the owner or `workspace_admin`). Other memb
 
 `201` with the link, `status: "pending"`. Send an `Idempotency-Key` header (1 to 255 visible characters) to make a retry after a lost reply safe: the same key and body replay the first answer byte for byte, another request under the key is `422 Idempotency-Key reused with different request payload`, keys are per workspace and per caller, kept a day.
 
-## `GET …/supply-links?page&page_size`
+## `GET …/supply-links?status&direction&page&page_size`
 
 Links this workspace granted (`direction: "outgoing"`) or received (`"incoming"`), newest first. A workspace that is not a side of a link never sees it.
+
+- `status`: only `pending`, `live` or `revoked` links. `direction`: only `outgoing` or `incoming`. Blank = no filter; any other value is a 422 on that field.
+- `meta.total` counts the filtered list, so `?status=pending&direction=incoming` gives the "links waiting for you" count.
 
 Link: `{id, direction, partner: {id, name}, fields, status, granted_at, accepted_at, revoked_at}`. `status` is `pending`, `live` or `revoked`.
 

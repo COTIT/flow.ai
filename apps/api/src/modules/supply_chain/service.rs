@@ -25,7 +25,7 @@ use crate::{
         },
         supply_chain::{
             dto::{NewDispatch, NewPacking, NewReceipt, PackedLotResource, SupplyTransferResource},
-            repo::{self, TransferRow},
+            repo::{self, Filter, TransferRow},
         },
         warehouses::repo as warehouses,
     },
@@ -181,7 +181,7 @@ pub async fn pack(
 }
 
 async fn one(state: &AppState, ws: Uuid, id: Uuid) -> Result<TransferRow, AppError> {
-    let (mut rows, _) = repo::list(&state.db, ws, Some(id), 1, 0).await?;
+    let (mut rows, _) = repo::list(&state.db, ws, Filter::id(id), 1, 0).await?;
     rows.pop().ok_or(AppError::NotFound)
 }
 
@@ -261,7 +261,7 @@ pub async fn dispatch(
         meta: Some(json!({ "transfer_id": tid, "quantity": format!("{:.2}", d.quantity) })),
     };
     lots::add_event(&mut tx, ws, &event).await?;
-    let row = repo::rows(&mut *tx, ws, Some(tid), 1, 0)
+    let row = repo::rows(&mut *tx, ws, Filter::id(tid), 1, 0)
         .await?
         .pop()
         .ok_or(AppError::NotFound)?;
@@ -275,10 +275,11 @@ pub async fn dispatch(
 pub async fn list(
     state: &AppState,
     access: &WorkspaceAccess,
+    f: Filter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<TransferRow>, i64), AppError> {
-    Ok(repo::list(&state.db, access.workspace_id, None, limit, offset).await?)
+    Ok(repo::list(&state.db, access.workspace_id, f, limit, offset).await?)
 }
 
 /// POST /supply-transfers/{transfer}/receive: a new lot here with the received stock.

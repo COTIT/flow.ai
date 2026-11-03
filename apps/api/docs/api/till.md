@@ -182,7 +182,10 @@ Shift:
 
 - `GET /till/vaults` (`cashregister.list`) → `{data: [{id, name, currency_id, balance, created_at}]}`
 - `POST /till/vaults` (`cashregister.create`) `{name, currency_id?}` → 201. The currency defaults to the main one.
-- `GET /till/shifts` (`cashregister.list`) `?page=&page_size=` → shifts of every register, newest first.
+- `GET /till/shifts` (`cashregister.list`) `?open=&register_id=&from=&to=&page=&page_size=` → shifts of every register, newest first.
+  - `open=true` only shifts still open, `open=false` only closed ones. `register_id` one register (another workspace's register matches nothing).
+  - `from` (inclusive) and `to` (exclusive) are RFC 3339 times on `opened_at`. The client picks the day boundaries in its own time zone.
+  - Blank = no filter. A malformed `open`, `register_id`, `from` or `to` is a 422 on that field.
 
 Vaults fill only from drawer drops for now. Bank deposits and withdrawals come later.
 
@@ -244,7 +247,7 @@ The sale of **this register** under that ref, else 404. Use it before replaying 
 
 ### `GET /till/sales` (`cashregister.list`)
 
-`?mismatch=true` (only sales with `mismatched_lines > 0`), `?page=&page_size=`. Newest first.
+`?mismatch=true` (only sales with `mismatched_lines > 0`), `?register_id=` (one register), `?from=&to=` (RFC 3339 on `sold_at`, `from` inclusive, `to` exclusive), `?page=&page_size=`. Newest first. Filters combine. A malformed `register_id`, `from` or `to` is a 422 on that field; a `mismatch` other than `true`/`1` means no filter, as before.
 
 Known limits, accepted:
 - `order.created` carries no mismatch; the office finds price differences through `GET /till/sales?mismatch=true`.

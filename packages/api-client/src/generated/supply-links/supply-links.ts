@@ -85,7 +85,7 @@ export const getSupplyLinksListQueryKey = (workspace: string,
     }
 
 
-export const getSupplyLinksListQueryOptions = <TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getSupplyLinksListQueryOptions = <TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     params?: SupplyLinksListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplyLinksList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
 
@@ -105,10 +105,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type SupplyLinksListQueryResult = NonNullable<Awaited<ReturnType<typeof supplyLinksList>>>
-export type SupplyLinksListQueryError = ErrorType<MessageBody>
+export type SupplyLinksListQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody>>(
+export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params: undefined |  SupplyLinksListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplyLinksList>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
@@ -119,7 +119,7 @@ export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinks
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody>>(
+export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: SupplyLinksListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplyLinksList>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
@@ -130,7 +130,7 @@ export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinks
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody>>(
+export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: SupplyLinksListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplyLinksList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
@@ -139,7 +139,7 @@ export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinks
  * @summary List supply links
  */
 
-export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody>>(
+export function useSupplyLinksList<TData = Awaited<ReturnType<typeof supplyLinksList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     params?: SupplyLinksListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof supplyLinksList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient

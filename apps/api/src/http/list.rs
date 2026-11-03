@@ -1,7 +1,9 @@
 //! List helpers shared by index endpoints: Laravel paging params + `meta`, ILIKE escaping.
 
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::{error::AppError, http::json::Rules};
 
@@ -93,6 +95,39 @@ pub fn search(q: Option<&str>) -> Result<Option<String>, AppError> {
         r.into_result()?;
     }
     Ok(q.map(contains_pattern))
+}
+
+/// Query `field` as an RFC 3339 time; blank = None, anything else a 422 on `field`.
+pub fn time(r: &mut Rules, field: &str, v: Option<&str>) -> Option<DateTime<Utc>> {
+    let v = v.map(str::trim).filter(|v| !v.is_empty())?;
+    let at = DateTime::parse_from_rfc3339(v).ok();
+    let msg = format!("The {} must be an RFC 3339 time.", field.replace('_', " "));
+    r.check(field, at.is_some(), msg);
+    at.map(|t| t.with_timezone(&Utc))
+}
+
+/// Query `field` as an id; blank = None, anything else a 422 on `field`.
+pub fn id(r: &mut Rules, field: &str, v: Option<&str>) -> Option<Uuid> {
+    let v = v.map(str::trim).filter(|v| !v.is_empty())?;
+    let id = Uuid::parse_str(v).ok();
+    let msg = format!("The {} must be a valid UUID.", field.replace('_', " "));
+    r.check(field, id.is_some(), msg);
+    id
+}
+
+/// Query `field` as `true`/`false` (or `1`/`0`); blank = None, anything else a 422.
+pub fn boolean(r: &mut Rules, field: &str, v: Option<&str>) -> Option<bool> {
+    let b = match v.map(str::trim).filter(|v| !v.is_empty())? {
+        "true" | "1" => Some(true),
+        "false" | "0" => Some(false),
+        _ => None,
+    };
+    let msg = format!(
+        "The {} field must be true or false.",
+        field.replace('_', " ")
+    );
+    r.check(field, b.is_some(), msg);
+    b
 }
 
 /// Laravel `$request->boolean()` on a query param: "1", "true", "on", "yes" (any case) = true.

@@ -302,10 +302,38 @@ pub struct SaleQuery {
     /// `true`: only sales with a line charged at another price than the catalog's.
     #[param(value_type = Option<bool>)]
     pub mismatch: Option<String>,
+    /// Only this register's sales.
+    #[param(value_type = Option<Uuid>)]
+    pub register_id: Option<String>,
+    /// Sold at or after this time (RFC 3339).
+    #[param(value_type = Option<String>, format = DateTime, example = "2026-11-02T00:00:00+01:00")]
+    pub from: Option<String>,
+    /// Sold before this time (RFC 3339).
+    #[param(value_type = Option<String>, format = DateTime)]
+    pub to: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,
     /// Default 50, max 100.
     #[param(value_type = Option<i64>)]
     pub page_size: Option<String>,
+}
+
+impl SaleQuery {
+    /// The filter; 422 on a malformed `register_id`, `from` or `to`. A `mismatch` other than
+    /// `true`/`1` means no filter, as before.
+    pub fn filter(
+        &self,
+    ) -> Result<crate::modules::till_sales::repo::ListFilter, crate::error::AppError> {
+        use crate::http::list;
+        let mut r = Rules::default();
+        let f = crate::modules::till_sales::repo::ListFilter {
+            mismatch: matches!(self.mismatch.as_deref(), Some("true" | "1")),
+            register_id: list::id(&mut r, "register_id", self.register_id.as_deref()),
+            from: list::time(&mut r, "from", self.from.as_deref()),
+            to: list::time(&mut r, "to", self.to.as_deref()),
+        };
+        r.into_result()?;
+        Ok(f)
+    }
 }

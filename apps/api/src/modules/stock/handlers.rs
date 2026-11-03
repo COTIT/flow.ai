@@ -211,6 +211,7 @@ pub async fn configured_bins(
         (status = 200, body = Paginated<MovementDoc>, description = "One page of movements"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown movement `type`"),
     ),
     security(("bearer" = []))
 )]
@@ -220,7 +221,7 @@ pub async fn movements(
     Path((_, p)): ProductPath,
     Query(q): Query<MovementQuery>,
 ) -> Result<Json<Paginated<Value>>, AppError> {
-    let (f, page) = q.filter();
+    let (f, page) = q.filter()?;
     let (data, total) = service::movements(&state, access.workspace_id, &p, &f).await?;
     Ok(Json(Paginated::new(data, total, page)))
 }

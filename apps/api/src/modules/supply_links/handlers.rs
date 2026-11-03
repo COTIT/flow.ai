@@ -18,6 +18,7 @@ use crate::{
     idempotency::{Answer, Keyed},
     modules::supply_links::{
         dto::{GrantLinkRequest, LinkResource, ListQuery},
+        repo::Filter,
         service,
     },
 };
@@ -36,6 +37,7 @@ permissions! {
         (status = 200, body = Paginated<LinkResource>, description = "One page"),
         (status = 403, body = MessageBody, description = "Inactive membership, or caller not a workspace admin"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Unknown `status` or `direction`"),
     ),
     security(("bearer" = []))
 )]
@@ -45,7 +47,13 @@ pub async fn list(
     Query(query): Query<ListQuery>,
 ) -> Result<Json<Paginated<LinkResource>>, AppError> {
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
-    let (rows, total) = service::list(&state, &access, page.size, page.offset()).await?;
+    let (status, direction) = query.filter()?;
+    let f = Filter {
+        id: None,
+        status: status.as_deref(),
+        direction: direction.as_deref(),
+    };
+    let (rows, total) = service::list(&state, &access, f, page.size, page.offset()).await?;
     let ws = access.workspace_id;
     let data = rows.into_iter().map(|l| LinkResource::new(l, ws)).collect();
     Ok(Json(Paginated::new(data, total, page)))

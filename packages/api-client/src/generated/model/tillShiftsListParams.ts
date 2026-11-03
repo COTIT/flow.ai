@@ -8,6 +8,22 @@
 
 export type TillShiftsListParams = {
 /**
+ * `true`: only shifts still open; `false`: only closed ones.
+ */
+open?: boolean;
+/**
+ * Only this register's shifts.
+ */
+register_id?: string;
+/**
+ * Opened at or after this time (RFC 3339).
+ */
+from?: string;
+/**
+ * Opened before this time (RFC 3339).
+ */
+to?: string;
+/**
  * 1-based; junk falls back to 1.
  */
 page?: number;

@@ -398,6 +398,10 @@ pub struct MovementQuery {
     /// Only this bin.
     #[param(value_type = Option<Uuid>)]
     pub bin_id: Option<String>,
+    /// Only these movement types, comma-separated: `increase`, `decrease`, `set_level`,
+    /// `set_requirements`.
+    #[param(value_type = Option<String>, example = "increase,decrease")]
+    pub r#type: Option<String>,
     /// 1-based; junk falls back to 1.
     #[param(value_type = Option<i64>)]
     pub page: Option<String>,
@@ -406,14 +410,36 @@ pub struct MovementQuery {
     pub per_page: Option<String>,
 }
 
+/// Stock movement types (`stock_movements.movement_type`).
+pub const MOVEMENT_TYPES: &[&str] = &["increase", "decrease", "set_level", "set_requirements"];
+
 impl MovementQuery {
-    /// The filter and its page. A malformed id matches nothing (nil).
+    /// The filter and its page. A malformed id matches nothing (nil); an unknown `type` is a
+    /// 422.
     pub fn filter(
         &self,
-    ) -> (
-        crate::modules::stock::repo::MovementFilter,
-        crate::http::list::Page,
-    ) {
+    ) -> Result<
+        (
+            crate::modules::stock::repo::MovementFilter,
+            crate::http::list::Page,
+        ),
+        crate::error::AppError,
+    > {
+        let types: Option<Vec<String>> = self
+            .r#type
+            .as_deref()
+            .map(str::trim)
+            .filter(|t| !t.is_empty())
+            .map(|t| t.split(',').map(|v| v.trim().to_owned()).collect());
+        if let Some(t) = &types {
+            let mut r = Rules::default();
+            r.check(
+                "type",
+                t.iter().all(|v| MOVEMENT_TYPES.contains(&v.as_str())),
+                "The selected type is invalid.",
+            );
+            r.into_result()?;
+        }
         let id = |v: &Option<String>| {
             v.as_deref()
                 .map(str::trim)
@@ -431,10 +457,11 @@ impl MovementQuery {
             warehouse_id: id(&self.warehouse_id),
             shelf_id: id(&self.shelf_id),
             bin_id: id(&self.bin_id),
+            types,
             limit: page.size,
             offset: page.offset(),
         };
-        (f, page)
+        Ok((f, page))
     }
 }
 

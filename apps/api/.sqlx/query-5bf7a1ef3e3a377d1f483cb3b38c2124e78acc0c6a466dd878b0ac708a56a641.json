@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM supply_links\n           WHERE (from_workspace_id = $1 OR to_workspace_id = $1)\n             AND ($2::uuid IS NULL OR id = $2)\n             AND ($3::text IS NULL OR $3 = CASE WHEN revoked_at IS NOT NULL THEN 'revoked'\n                                               WHEN accepted_at IS NOT NULL THEN 'live'\n                                               ELSE 'pending' END)\n             AND ($4::text IS NULL OR ($4 = 'outgoing') = (from_workspace_id = $1))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5bf7a1ef3e3a377d1f483cb3b38c2124e78acc0c6a466dd878b0ac708a56a641"
+}

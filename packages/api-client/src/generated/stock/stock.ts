@@ -600,7 +600,7 @@ export const getStockMovementsQueryKey = (workspace: string,
     }
 
 
-export const getStockMovementsQueryOptions = <TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody>>(workspace: string,
+export const getStockMovementsQueryOptions = <TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
     product: string,
     params?: StockMovementsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof stockMovements>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
 ) => {
@@ -621,10 +621,10 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type StockMovementsQueryResult = NonNullable<Awaited<ReturnType<typeof stockMovements>>>
-export type StockMovementsQueryError = ErrorType<MessageBody>
+export type StockMovementsQueryError = ErrorType<MessageBody | ValidationErrorBody>
 
 
-export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody>>(
+export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     product: string,
     params: undefined |  StockMovementsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof stockMovements>>, TError, TData>> & Pick<
@@ -636,7 +636,7 @@ export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovemen
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody>>(
+export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     product: string,
     params?: StockMovementsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof stockMovements>>, TError, TData>> & Pick<
@@ -648,7 +648,7 @@ export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovemen
       >, request?: SecondParameter<typeof apiRequest>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody>>(
+export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     product: string,
     params?: StockMovementsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof stockMovements>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
@@ -658,7 +658,7 @@ export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovemen
  * @summary List a product's stock movements
  */
 
-export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody>>(
+export function useStockMovements<TData = Awaited<ReturnType<typeof stockMovements>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
  workspace: string,
     product: string,
     params?: StockMovementsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof stockMovements>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}

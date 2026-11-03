@@ -103,28 +103,52 @@ pub async fn insert_transfer(
 pub async fn list(
     db: impl PgExecutor<'_> + Copy,
     workspace_id: Uuid,
-    id: Option<Uuid>,
+    f: Filter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<TransferRow>, i64), sqlx::Error> {
-    let rows = rows(db, workspace_id, id, limit, offset).await?;
+    let rows = rows(db, workspace_id, f, limit, offset).await?;
     let total = sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM supply_transfers
            WHERE (from_workspace_id = $1 OR to_workspace_id = $1)
-             AND ($2::uuid IS NULL OR id = $2)"#,
+             AND ($2::uuid IS NULL OR id = $2)
+             AND ($3::text IS NULL OR ($3 = 'received') = (received_at IS NOT NULL))
+             AND ($4::text IS NULL OR ($4 = 'outgoing') = (from_workspace_id = $1))"#,
         workspace_id,
-        id,
+        f.id,
+        f.status,
+        f.direction,
     )
     .fetch_one(db)
     .await?;
     Ok((rows, total))
 }
 
+/// Which transfers a list returns; `None` = any.
+#[derive(Clone, Copy, Default)]
+pub struct Filter<'a> {
+    pub id: Option<Uuid>,
+    /// `dispatched` (not received yet) or `received`.
+    pub status: Option<&'a str>,
+    /// `outgoing` (this workspace sent it) or `incoming`.
+    pub direction: Option<&'a str>,
+}
+
+impl Filter<'_> {
+    /// Just the transfer `id`.
+    pub fn id(id: Uuid) -> Self {
+        Self {
+            id: Some(id),
+            ..Self::default()
+        }
+    }
+}
+
 /// The rows of `list`, without the count (usable inside a transaction).
 pub async fn rows(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
-    id: Option<Uuid>,
+    f: Filter<'_>,
     limit: i64,
     offset: i64,
 ) -> Result<Vec<TransferRow>, sqlx::Error> {
@@ -141,11 +165,15 @@ pub async fn rows(
                                             THEN t.to_workspace_id ELSE t.from_workspace_id END
            WHERE (t.from_workspace_id = $1 OR t.to_workspace_id = $1)
              AND ($2::uuid IS NULL OR t.id = $2)
+             AND ($5::text IS NULL OR ($5 = 'received') = (t.received_at IS NOT NULL))
+             AND ($6::text IS NULL OR ($6 = 'outgoing') = (t.from_workspace_id = $1))
            ORDER BY t.dispatched_at DESC, t.id DESC LIMIT $3 OFFSET $4"#,
         workspace_id,
-        id,
+        f.id,
         limit,
         offset,
+        f.status,
+        f.direction,
     )
     .fetch_all(db)
     .await

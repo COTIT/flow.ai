@@ -176,10 +176,23 @@ pub async fn shift(
     .await
 }
 
-/// One page of shifts, newest first, and the total.
+/// Which shifts the office list returns; `None` = any.
+#[derive(Default)]
+pub struct ShiftFilter {
+    /// Still open (`true`) or closed.
+    pub open: Option<bool>,
+    pub register_id: Option<Uuid>,
+    /// `opened_at` at or after.
+    pub from: Option<DateTime<Utc>>,
+    /// `opened_at` before.
+    pub to: Option<DateTime<Utc>>,
+}
+
+/// One page of shifts matching `f`, newest first, and the total.
 pub async fn list_shifts(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
+    f: &ShiftFilter,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<ShiftRow>, i64), sqlx::Error> {
@@ -192,11 +205,19 @@ pub async fn list_shifts(
                   s.closed_by, s.closed_at, s.counted, s.difference,
                   count(*) OVER () AS "total!"
            FROM drawer_shifts s WHERE s.workspace_id = $1
+             AND ($4::bool IS NULL OR (s.closed_at IS NULL) = $4)
+             AND ($5::uuid IS NULL OR s.register_id = $5)
+             AND ($6::timestamptz IS NULL OR s.opened_at >= $6)
+             AND ($7::timestamptz IS NULL OR s.opened_at < $7)
            ORDER BY s.opened_at DESC, s.id DESC
            LIMIT $2 OFFSET $3"#,
         workspace_id,
         limit,
         offset,
+        f.open,
+        f.register_id,
+        f.from,
+        f.to,
     )
     .fetch_all(db)
     .await?;

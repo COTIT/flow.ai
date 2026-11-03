@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM stock_movements m\n           WHERE m.workspace_id = $1 AND m.product_id = $2\n             AND ($3::uuid IS NULL OR m.warehouse_id = $3)\n             AND ($4::uuid IS NULL OR m.shelf_id = $4)\n             AND ($5::uuid IS NULL OR m.bin_id = $5)\n             AND ($6::text[] IS NULL OR m.movement_type = ANY($6))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "958d7790b532ea5f20c74dbd6197954cd76fde591331b939909092fe2991eb03"
+}

@@ -12,6 +12,18 @@ export type TillSalesListParams = {
  */
 mismatch?: boolean;
 /**
+ * Only this register's sales.
+ */
+register_id?: string;
+/**
+ * Sold at or after this time (RFC 3339).
+ */
+from?: string;
+/**
+ * Sold before this time (RFC 3339).
+ */
+to?: string;
+/**
  * 1-based; junk falls back to 1.
  */
 page?: number;

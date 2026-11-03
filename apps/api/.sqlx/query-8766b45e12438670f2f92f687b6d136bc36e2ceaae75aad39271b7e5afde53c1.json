@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, s.register_id, s.opened_by, s.opened_at, s.opening,\n                  coalesce(s.expected,\n                           (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                            WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id\n                              AND l.kind <> 'close_count')) AS \"expected!\",\n                  s.closed_by, s.closed_at, s.counted, s.difference,\n                  count(*) OVER () AS \"total!\"\n           FROM drawer_shifts s WHERE s.workspace_id = $1\n           ORDER BY s.opened_at DESC, s.id DESC\n           LIMIT $2 OFFSET $3",
+  "query": "SELECT s.id, s.register_id, s.opened_by, s.opened_at, s.opening,\n                  coalesce(s.expected,\n                           (SELECT coalesce(sum(l.amount), 0)::bigint FROM cash_ledger l\n                            WHERE l.workspace_id = s.workspace_id AND l.shift_id = s.id\n                              AND l.kind <> 'close_count')) AS \"expected!\",\n                  s.closed_by, s.closed_at, s.counted, s.difference,\n                  count(*) OVER () AS \"total!\"\n           FROM drawer_shifts s WHERE s.workspace_id = $1\n             AND ($4::bool IS NULL OR (s.closed_at IS NULL) = $4)\n             AND ($5::uuid IS NULL OR s.register_id = $5)\n             AND ($6::timestamptz IS NULL OR s.opened_at >= $6)\n             AND ($7::timestamptz IS NULL OR s.opened_at < $7)\n           ORDER BY s.opened_at DESC, s.id DESC\n           LIMIT $2 OFFSET $3",
   "describe": {
     "columns": [
       {
@@ -119,7 +119,11 @@
       "Left": [
         "Uuid",
         "Int8",
-        "Int8"
+        "Int8",
+        "Bool",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -136,5 +140,5 @@
       null
     ]
   },
-  "hash": "3eab12265fb496b0fbf25a0ca9ade1cd6c09bb72d80f8934d534a3b791f9b908"
+  "hash": "8766b45e12438670f2f92f687b6d136bc36e2ceaae75aad39271b7e5afde53c1"
 }

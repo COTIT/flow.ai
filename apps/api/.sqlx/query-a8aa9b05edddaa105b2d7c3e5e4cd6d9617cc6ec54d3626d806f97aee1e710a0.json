@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,\n                  s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,\n                s.mismatched_lines, s.due,\n                  s.rounding, s.tendered, s.change, s.card_reference, s.sold_at,\n                  count(*) OVER () AS \"total_rows!\"\n           FROM till_sales s\n           JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id\n           WHERE s.workspace_id = $1 AND (NOT $2 OR s.mismatched_lines > 0)\n           ORDER BY s.created_at DESC, s.order_id DESC\n           LIMIT $3 OFFSET $4",
+  "query": "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,\n                  s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,\n                s.mismatched_lines, s.due,\n                  s.rounding, s.tendered, s.change, s.card_reference, s.sold_at,\n                  count(*) OVER () AS \"total_rows!\"\n           FROM till_sales s\n           JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id\n           WHERE s.workspace_id = $1 AND (NOT $2 OR s.mismatched_lines > 0)\n             AND ($5::uuid IS NULL OR s.register_id = $5)\n             AND ($6::timestamptz IS NULL OR s.sold_at >= $6)\n             AND ($7::timestamptz IS NULL OR s.sold_at < $7)\n           ORDER BY s.created_at DESC, s.order_id DESC\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -202,7 +202,10 @@
         "Uuid",
         "Bool",
         "Int8",
-        "Int8"
+        "Int8",
+        "Uuid",
+        "Timestamptz",
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -226,5 +229,5 @@
       null
     ]
   },
-  "hash": "51c7505f7f692c0a61036413fa417b1630b8354616d450eb408775f2bda86cf8"
+  "hash": "a8aa9b05edddaa105b2d7c3e5e4cd6d9617cc6ec54d3626d806f97aee1e710a0"
 }

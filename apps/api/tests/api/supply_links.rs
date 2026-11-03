@@ -277,3 +277,66 @@ async fn a_retried_grant_makes_one_link(pool: PgPool) {
         "Idempotency-Key reused with different request payload"
     );
 }
+
+/// `meta.total` of the list `ws` sees under `query`.
+async fn total(t: &Two, ws: &str, token: &str, query: &str) -> Value {
+    let (status, res) = call(t, Method::GET, ws, query, None, token).await;
+    assert_eq!(status, StatusCode::OK, "{query}: {res}");
+    res["meta"]["total"].clone()
+}
+
+#[sqlx::test]
+async fn the_list_filters_by_status_and_direction(pool: PgPool) {
+    let t = two(pool).await;
+    let (_, res) = grant(&t, json!(["village"])).await;
+    let id = res["data"]["id"].as_str().unwrap().to_owned();
+
+    let pending_in = "?status=pending&direction=incoming";
+    assert_eq!(total(&t, &t.a_ws, &t.a, pending_in).await, 1, "A's badge");
+    assert_eq!(total(&t, &t.r.ws, &t.r.owner, pending_in).await, 0);
+    assert_eq!(
+        total(&t, &t.r.ws, &t.r.owner, "?direction=outgoing").await,
+        1
+    );
+    assert_eq!(total(&t, &t.a_ws, &t.a, "?status=live").await, 0);
+
+    call(
+        &t,
+        Method::POST,
+        &t.a_ws,
+        &format!("/{id}/accept"),
+        None,
+        &t.a,
+    )
+    .await;
+    assert_eq!(total(&t, &t.a_ws, &t.a, pending_in).await, 0);
+    assert_eq!(total(&t, &t.a_ws, &t.a, "?status=live").await, 1);
+
+    call(
+        &t,
+        Method::DELETE,
+        &t.r.ws,
+        &format!("/{id}"),
+        None,
+        &t.r.owner,
+    )
+    .await;
+    assert_eq!(total(&t, &t.a_ws, &t.a, "?status=live").await, 0);
+    assert_eq!(total(&t, &t.r.ws, &t.r.owner, "?status=revoked").await, 1);
+    let (_, res) = call(&t, Method::GET, &t.a_ws, "?status=revoked", None, &t.a).await;
+    assert_eq!(res["data"][0]["id"], id.as_str());
+
+    let (c, c_ws) = signup(&t.r.app, "owner@third.test", "third").await;
+    for q in [
+        "?status=revoked",
+        "?direction=incoming",
+        "?direction=outgoing",
+    ] {
+        assert_eq!(total(&t, &c_ws, &c, q).await, 0, "third workspace, {q}");
+    }
+
+    for q in ["?status=open", "?direction=both"] {
+        let (status, res) = call(&t, Method::GET, &t.a_ws, q, None, &t.a).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
+    }
+}

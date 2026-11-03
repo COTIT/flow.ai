@@ -11,7 +11,7 @@ use crate::{
     modules::{
         cash::{
             dto::{Count, NewVault, Transfer, TransferResource},
-            repo::{self, Entry, ShiftRow, VaultRow},
+            repo::{self, Entry, ShiftFilter, ShiftRow, VaultRow},
         },
         currencies, products,
         till::repo::SessionRow,
@@ -195,10 +195,11 @@ pub async fn list_vaults(state: &AppState, workspace_id: Uuid) -> Result<Vec<Vau
 pub async fn list_shifts(
     state: &AppState,
     workspace_id: Uuid,
+    f: &ShiftFilter,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<ShiftRow>, i64), AppError> {
-    Ok(repo::list_shifts(&state.db, workspace_id, limit, offset).await?)
+    Ok(repo::list_shifts(&state.db, workspace_id, f, limit, offset).await?)
 }
 
 /// Cash due for `total` (minor units) in steps of `step` minor units, half up: 1.02 → 1.00,

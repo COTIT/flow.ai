@@ -142,6 +142,7 @@ Every write answers `{"message":"ok"}`.
 
 - **Query:**
   - `warehouse_id`, `shelf_id`, `bin_id`: each filters on its own. Laravel dropped `bin_id` without `shelf_id`, which the web filter sends.
+  - `type`: one or more movement types, comma-separated (`increase`, `decrease`, `set_level`, `set_requirements`). An unknown type is a 422 on `type`; `meta.total` counts the filtered list.
   - `page`, `per_page` (default 15, max 100)
   - A malformed or unknown id matches nothing; Laravel answered 404 or 422.
 - **Order:** newest first.

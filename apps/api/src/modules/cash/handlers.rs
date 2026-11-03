@@ -179,6 +179,7 @@ pub async fn create_vault(
         (status = 200, body = Paginated<ShiftResource>, description = "One page of shifts, newest first"),
         (status = 403, body = MessageBody, description = "Inactive membership, or no `cashregister.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed `open`, `register_id`, `from` or `to`"),
     ),
     security(("bearer" = []))
 )]
@@ -188,8 +189,9 @@ pub async fn list_shifts(
     Query(query): Query<ShiftQuery>,
 ) -> Result<Json<Paginated<ShiftResource>>, AppError> {
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let f = query.filter()?;
     let (rows, total) =
-        service::list_shifts(&state, access.workspace_id, page.size, page.offset()).await?;
+        service::list_shifts(&state, access.workspace_id, &f, page.size, page.offset()).await?;
     let data = rows.into_iter().map(Into::into).collect();
     Ok(Json(Paginated::new(data, total, page)))
 }

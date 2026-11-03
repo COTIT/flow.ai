@@ -317,9 +317,9 @@ pub async fn get(state: &AppState, s: &SessionRow, client_ref: &str) -> Result<S
 pub async fn list(
     state: &AppState,
     workspace_id: Uuid,
-    mismatch: bool,
+    f: &repo::ListFilter,
     limit: i64,
     offset: i64,
 ) -> Result<(Vec<SaleRow>, i64), AppError> {
-    Ok(repo::list(&state.db, workspace_id, mismatch, limit, offset).await?)
+    Ok(repo::list(&state.db, workspace_id, f, limit, offset).await?)
 }

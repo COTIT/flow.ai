@@ -120,6 +120,7 @@ pub async fn get(
         (status = 200, body = Paginated<SaleResource>, description = "One page, newest first"),
         (status = 403, body = MessageBody, description = "Inactive membership, or no `cashregister.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed `register_id`, `from` or `to`"),
     ),
     security(("bearer" = []))
 )]
@@ -129,15 +130,9 @@ pub async fn list(
     Query(query): Query<SaleQuery>,
 ) -> Result<Json<Paginated<SaleResource>>, AppError> {
     let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
-    let mismatch = matches!(query.mismatch.as_deref(), Some("true" | "1"));
-    let (rows, total) = service::list(
-        &state,
-        access.workspace_id,
-        mismatch,
-        page.size,
-        page.offset(),
-    )
-    .await?;
+    let f = query.filter()?;
+    let (rows, total) =
+        service::list(&state, access.workspace_id, &f, page.size, page.offset()).await?;
     let data = rows.into_iter().map(Into::into).collect();
     Ok(Json(Paginated::new(data, total, page)))
 }

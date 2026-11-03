@@ -69251,6 +69251,16 @@
             }
           },
           {
+            "description": "Only these movement types, comma-separated: `increase`, `decrease`, `set_level`,\n`set_requirements`.",
+            "example": "increase,decrease",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -69311,6 +69321,16 @@
               }
             },
             "description": "Unknown workspace or product, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown movement `type`"
           },
           "429": {
             "content": {
@@ -76491,6 +76511,26 @@
             }
           },
           {
+            "description": "Only links in this status: `pending`, `live` or `revoked`.",
+            "example": "pending",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only links this workspace granted (`outgoing`) or received (`incoming`).",
+            "example": "incoming",
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -76551,6 +76591,16 @@
               }
             },
             "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown `status` or `direction`"
           },
           "429": {
             "content": {
@@ -77054,6 +77104,26 @@
             }
           },
           {
+            "description": "Only `dispatched` (on the way, not received yet) or `received` transfers.",
+            "example": "dispatched",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only transfers this workspace sent (`outgoing`) or is sent (`incoming`).",
+            "example": "incoming",
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -77104,6 +77174,16 @@
               }
             },
             "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Unknown `status` or `direction`"
           },
           "429": {
             "content": {
@@ -78522,6 +78602,37 @@
             }
           },
           {
+            "description": "Only this register's sales.",
+            "in": "query",
+            "name": "register_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold at or after this time (RFC 3339).",
+            "example": "2026-11-02T00:00:00+01:00",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sold before this time (RFC 3339).",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -78582,6 +78693,16 @@
               }
             },
             "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Malformed `register_id`, `from` or `to`"
           },
           "429": {
             "content": {
@@ -79490,6 +79611,46 @@
             }
           },
           {
+            "description": "`true`: only shifts still open; `false`: only closed ones.",
+            "in": "query",
+            "name": "open",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Only this register's shifts.",
+            "in": "query",
+            "name": "register_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opened at or after this time (RFC 3339).",
+            "example": "2026-11-02T00:00:00+01:00",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Opened before this time (RFC 3339).",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
             "description": "1-based; junk falls back to 1.",
             "in": "query",
             "name": "page",
@@ -79550,6 +79711,16 @@
               }
             },
             "description": "Unknown workspace, or caller not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Malformed `open`, `register_id`, `from` or `to`"
           },
           "429": {
             "content": {
