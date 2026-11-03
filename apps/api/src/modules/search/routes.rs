@@ -7,5 +7,7 @@ use crate::{AppState, modules::search::handlers};
 
 /// Routes for this module; the handler runs the workspace guard.
 pub fn private() -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().routes(routes!(handlers::search))
+    OpenApiRouter::new()
+        .routes(routes!(handlers::search))
+        .routes(routes!(handlers::quick))
 }

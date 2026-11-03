@@ -403,6 +403,12 @@ fn group_b_operations_are_documented() {
             "search_search".into(),
             "200",
         ),
+        (
+            format!("{ws}/quick-search"),
+            "get",
+            "search_quick".into(),
+            "200",
+        ),
     ]);
     for (path, method, id, ok) in table {
         let op = &s["paths"][&path][method];

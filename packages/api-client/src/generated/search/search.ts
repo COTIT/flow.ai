@@ -21,8 +21,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  EnvelopeQuickResults,
   MessageBody,
   PaginatedSearchRow,
+  SearchQuickParams,
   SearchSearchParams,
   ValidationErrorBody
 } from '../model';
@@ -49,6 +51,107 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+/**
+ * Contains-match on `q` (any case; `%` and `_` literal): products by name, number, EAN-13 or barcode; orders by number or reference; lots by code or public code; relations by company name, alias or a contact's first or last name. Invoices match when the digits of `q` are their number. Each group is null when the caller lacks that list permission (`product.list`, `order.list`, `invoice.list`, `relation.list`; lots: any member), else at most `limit` rows, newest first.
+ * @summary Search products, orders, invoices, lots and relations at once
+ */
+export const searchQuick = (
+    workspace: string,
+    params: SearchQuickParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeQuickResults>(
+      {url: `/workspace/${workspace}/quick-search`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getSearchQuickQueryKey = (workspace: string,
+    params?: SearchQuickParams,) => {
+    return [
+    `/workspace/${workspace}/quick-search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchQuickQueryOptions = <TData = Awaited<ReturnType<typeof searchQuick>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params: SearchQuickParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchQuick>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchQuickQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchQuick>>> = ({ signal }) => searchQuick(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchQuick>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SearchQuickQueryResult = NonNullable<Awaited<ReturnType<typeof searchQuick>>>
+export type SearchQuickQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useSearchQuick<TData = Awaited<ReturnType<typeof searchQuick>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SearchQuickParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchQuick>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchQuick>>,
+          TError,
+          Awaited<ReturnType<typeof searchQuick>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchQuick<TData = Awaited<ReturnType<typeof searchQuick>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SearchQuickParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchQuick>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchQuick>>,
+          TError,
+          Awaited<ReturnType<typeof searchQuick>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchQuick<TData = Awaited<ReturnType<typeof searchQuick>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SearchQuickParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchQuick>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Search products, orders, invoices, lots and relations at once
+ */
+
+export function useSearchQuick<TData = Awaited<ReturnType<typeof searchQuick>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: SearchQuickParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchQuick>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSearchQuickQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 /**
  * @summary Search one domain
