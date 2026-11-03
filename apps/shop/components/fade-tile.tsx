@@ -1,6 +1,6 @@
 "use client"
 
-import { createElement, useLayoutEffect, useRef, type ReactNode } from "react"
+import { useLayoutEffect, useRef, type ReactNode } from "react"
 import { animate, inView } from "motion"
 
 /**
@@ -9,7 +9,7 @@ import { animate, inView } from "motion"
  * no layout shift. Loaded through `island` (see motion.tsx), never on the server.
  */
 export default function FadeTile({
-  as,
+  as: Tag,
   children,
   ...props
 }: {
@@ -18,7 +18,8 @@ export default function FadeTile({
   "aria-labelledby"?: string
   children: ReactNode
 }) {
-  const ref = useRef<HTMLElement>(null)
+  // Div-typed so JSX accepts it on either tag; only HTMLElement members are used.
+  const ref = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     const el = ref.current
     if (!el || el.getBoundingClientRect().top < window.innerHeight) return
@@ -35,5 +36,9 @@ export default function FadeTile({
       el.style.opacity = ""
     }
   }, [])
-  return createElement(as, { ref, ...props }, children)
+  return (
+    <Tag ref={ref} {...props}>
+      {children}
+    </Tag>
+  )
 }
