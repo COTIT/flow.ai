@@ -125,11 +125,17 @@ export async function pairTill(page: Page, request: APIRequestContext) {
   const owner = await apiAs(request, cred("office (AFM)", "owner"))
   // The seeded counter (first device key printed): the AFM store, where the shop's stock is.
   const counter = cred("till (AFM)", "device key").login
-  const seeded = (await owner.get<Register[]>(owner.ws("/till/registers"))).find((r) => r.name === counter)
+  // Newest first and paged: every test adds a register, so walk back to the seeded one.
+  let seeded: Register | undefined
+  for (let n = 1; !seeded; n++) {
+    const rows = await owner.get<Register[]>(owner.ws(`/till/registers?page=${n}&page_size=100`))
+    if (!rows.length) throw new Error(`no seeded register "${counter}"`)
+    seeded = rows.find((r) => r.name === counter)
+  }
   const register = await owner.post<Register>(owner.ws("/till/registers"), {
     name: `e2e till ${unique()}`,
-    warehouse_id: seeded!.warehouse_id,
-    currency_id: seeded!.currency_id,
+    warehouse_id: seeded.warehouse_id,
+    currency_id: seeded.currency_id,
   })
   const pairing = await owner.post<{ code: string; workspace: string }>(
     owner.ws(`/till/registers/${register.id}/pairing`)
