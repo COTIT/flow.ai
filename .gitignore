@@ -3,6 +3,8 @@ node_modules/
 
 # build output
 .next/
+.next-stack/
+dist-stack/
 dist/
 out/
 target/
