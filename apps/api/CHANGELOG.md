@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Buying harvests stocks the raw lot (FG1, `docs/api/farm-supply.md`): `POST /farm/supply-batches` puts the bought kg into the raw lot at `warehouse_id` (new, optional), else the workspace's default warehouse, in the batch's transaction (`increase`, reason `bought`, related `supply_batch`). The lot is dispatchable without a manual stock-in. With neither warehouse the lot is made empty as before. The demo seed no longer adds that stock by hand.
 - Idempotency-Key on three stock writes that had none, so a retry after a lost reply no longer moves stock twice: `POST /products/{product}/stocks`, `POST /lots/{lot}/stock-mutations` and `POST /lots/{lot}/packings` (which made a second jar batch from the same kg). Same mechanism as orders and payments: the same key and request replay the first answer, another request under the key is a 422. The header stays optional.
 - Storefront: a product sold in sizes no longer lists the option-less default variant made with the product (the shop showed it as an extra, unnamed size next to 8/16/32 oz). Products without sizes keep their default.
 - Fake pay page: Pay or Cancel now applies to the payment row at once (`orders::payments::settle_now`, the inbox's own re-fetch), so Pay right after Cancel gets a fresh payment instead of "This payment is no longer open"; the page links back to the shop.

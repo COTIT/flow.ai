@@ -22,6 +22,7 @@ ops or admin only (`403` otherwise).
 | `raw_product_id` | required, a live stock-tracked product of this workspace |
 | `price_per_kg` | required integer ≥ 1, minor units per kg; frozen with the batch. `price_per_kg × total kg` must fit a 64-bit integer (credits are bigint) |
 | `currency_id` | required, an active currency of this workspace |
+| `warehouse_id` | optional, a live warehouse of this workspace (`422` otherwise): where the bought kg go in. Default: the workspace's default warehouse |
 | `lines` | 1–500; each harvest once; `kg` > 0, at most 2 decimals; total ≤ 9,999,999,999.99. Error keys use the index as sent |
 
 Each line's harvest report must be the **current, verified, actual** figure of a crop cycle of that village and crop, and not deleted. Anything else is `422` on `lines.{n}.harvest_report_id`. This includes another workspace's reports, expected figures, figures replaced by a newer one, and unverified or disputed ones.
@@ -29,7 +30,8 @@ Each line's harvest report must be the **current, verified, actual** figure of a
 - **Who is credited:** the primary manager of the harvest's farm, fixed on the line when the batch is made. A farm without a primary manager is a `422` on that line.
 - **Four eyes:** whoever verified one of the harvests can't buy it (`403`).
 - **No double commit:** for each harvest, the kg in all batches together may not pass its `quantity_kg`. Otherwise `422` on `lines.{n}.kg`, worded like RUAHA's guard: `over-commitment: 100.00 kg available, 70.00 kg already committed, 30.01 kg requested`. The harvest rows are locked (in id order) before the sum, so parallel batches can't overcommit. The sum is the SQL function `farm_harvest_committed_kg(harvest_report_id)`, shared with the market module's opportunity supply. It counts every figure of the same cycle and kind, so a newer figure never frees kg already bought on an older one.
-- **One transaction:** the raw lot (status `released`, origin = village name, a `created` event with `meta.supply_batch_client_ref`, `lot.created`), the batch and its lines. Stock in arrives with lot stock (a later step).
+- **One transaction:** the raw lot (status `released`, origin = village name, a `created` event with `meta.supply_batch_client_ref`, `lot.created`), the batch and its lines.
+- **Buying is the receipt:** in that transaction the bought kg (the lines' total) go into the raw lot at `warehouse_id`, else the default warehouse. That is a ledger `increase` with reason `bought` and related `supply_batch`. The lot can then be packed or dispatched with no further step. With no warehouse sent and no default one, the lot is made empty, and stock goes in later with `POST /lots/{lot}/stock-mutations`.
 - **Retry:** the same `client_ref` with the same body (kg spelling and line order don't matter) returns the stored batch with `200`. Another body, or another member under the same key, gets `409`. Parallel copies write one batch.
 - **Frozen:** there is no edit or delete route, and a database trigger refuses `UPDATE` and `DELETE` on batches and lines.
 

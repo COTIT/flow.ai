@@ -2453,6 +2453,14 @@
           "village_id": {
             "format": "uuid",
             "type": "string"
+          },
+          "warehouse_id": {
+            "description": "Where the bought kg go in (buying is the receipt). Default: the workspace's default\nwarehouse; with neither, the raw lot is made empty.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [

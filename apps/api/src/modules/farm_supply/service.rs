@@ -24,9 +24,14 @@ use crate::{
         },
         farm_villages::repo as villages,
         lots::{repo::LotRow, service as lots},
+        orders::repo as orders,
         products::{dto::Fields, repo as products, service as catalog},
-        stock::service::tracks_stock,
+        stock::{
+            repo::{self as stock, Cause, Floor, Mutated, Slot},
+            service::tracks_stock,
+        },
         supply_links::dto::Partner,
+        warehouses::repo as warehouses,
     },
 };
 
@@ -64,8 +69,18 @@ async fn check_refs(
     state: &AppState,
     ws: Uuid,
     input: &NewBatch,
-) -> Result<(String, BTreeMap<String, Vec<String>>), AppError> {
+) -> Result<(String, Option<Uuid>, BTreeMap<String, Vec<String>>), AppError> {
     let mut errors = BTreeMap::new();
+    // The farm's store: the one sent, else the default warehouse, else none (an empty lot).
+    let warehouse = match input.warehouse_id {
+        Some(w) => {
+            if !warehouses::exists(&state.db, ws, w).await? {
+                errors.insert("warehouse_id".into(), vec![invalid("warehouse_id")]);
+            }
+            Some(w)
+        }
+        None => orders::default_warehouse(&state.db, ws).await?,
+    };
     let village = villages::find(&state.db, ws, input.village_id).await?;
     if village.is_none() {
         errors.insert("village_id".into(), vec![invalid("village_id")]);
@@ -81,7 +96,11 @@ async fn check_refs(
     if !currency.is_some_and(|c| c.active) {
         errors.insert("currency_id".into(), vec![invalid("currency_id")]);
     }
-    Ok((village.map(|v| v.name).unwrap_or_default(), errors))
+    Ok((
+        village.map(|v| v.name).unwrap_or_default(),
+        warehouse,
+        errors,
+    ))
 }
 
 /// The share line of each input line, or field errors / 403.
@@ -149,7 +168,7 @@ pub async fn create(
     if let Some(done) = replay(state, access, &input, &hash).await? {
         return Ok((done, false));
     }
-    let (village_name, errors) = check_refs(state, ws, &input).await?;
+    let (village_name, warehouse, errors) = check_refs(state, ws, &input).await?;
     if !errors.is_empty() {
         return Err(AppError::Validation(errors));
     }
@@ -204,6 +223,30 @@ pub async fn create(
         }
     })?;
     repo::insert_lines(&mut tx, ws, input.village_id, id, &lines).await?;
+    // Buying is the receipt: the kg go into the raw lot at the farm's store.
+    if let Some(warehouse_id) = warehouse {
+        let slot = Slot {
+            product_id: input.raw_product_id,
+            warehouse_id,
+            bin: None,
+            lot_id: Some(lot.id),
+        };
+        let cause = Cause {
+            reason: Some("bought"),
+            user_id: Some(access.user_id),
+            related: Some(("supply_batch", id)),
+            ..Cause::default()
+        };
+        let kg: Decimal = lines.iter().map(|l| l.2).sum();
+        if let Mutated::OutOfRange =
+            stock::mutate(&mut tx, ws, slot, kg, Floor::None, &cause).await?
+        {
+            return Err(AppError::field(
+                "lines",
+                "The stock level would be out of range.",
+            ));
+        }
+    }
     tx.commit().await?;
     Ok((get_one(state, ws, id, true, &[]).await?, true))
 }
