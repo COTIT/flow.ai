@@ -18,6 +18,9 @@ export const PRODUCT = {
   coffee: "33333333-3333-4333-8333-333333333333",
   /** The mock answers 503 for this one. */
   failing: "55555555-5555-4555-8555-555555555555",
+  /** Accounts specs: the API refuses the shop's key as revoked (401) or short of a scope (403). */
+  accountsKeyRevoked: "acc00401-0000-4000-8000-000000000401",
+  accountsKeyNoScope: "acc00403-0000-4000-8000-000000000403",
 }
 
 export const LOT = {
