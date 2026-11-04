@@ -11,16 +11,17 @@ import {
   crops,
   currencies,
   dispatched,
+  dispatchOptions,
   granted,
   honeyJar,
   links,
   lotStock,
   notLive,
+  officeOnly,
   rawCoffee,
   rawProductMade,
   transfers,
   unavailable,
-  warehouses,
 } from "./supply.api"
 
 const KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
@@ -41,7 +42,8 @@ async function open(page: Page, path: string, dispatchReplies: Reply[] = [{ stat
     "POST /workspace/w1/supply-links": granted,
     "GET /workspace/w1/supply-transfers": transfers,
     "GET /workspace/w1/farm/supply-batches": batches,
-    "GET /workspace/w1/warehouses": warehouses,
+    "GET /workspace/w1/farm/dispatch/options": dispatchOptions,
+    "GET /workspace/w1/warehouses": officeOnly,
     "GET /workspace/w1/lots/lot1/stock": lotStock,
     "GET /workspace/w1/farm/crops": crops,
     "GET /workspace/w1/currencies": currencies,

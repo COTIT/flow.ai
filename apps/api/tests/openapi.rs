@@ -1520,6 +1520,12 @@ fn every_farm_supply_operation_is_documented() {
             "200",
         ),
         (
+            "/farm/dispatch/options",
+            "get",
+            "farm_supply_dispatch_options",
+            "200",
+        ),
+        (
             "/farm/supply-batches/raw-product",
             "post",
             "farm_supply_raw_product",

@@ -9,6 +9,9 @@ use uuid::Uuid;
 use super::{Shop, farm::Ruaha};
 use crate::{error::AppError, farm_demo::text};
 
+/// Verified coffee harvests of Ilundo the seed leaves unbought.
+const UNBOUGHT: usize = 4;
+
 /// What the sales need: the AFM coffee product and its published passport.
 pub struct Supplied {
     pub coffee_id: String,
@@ -110,6 +113,13 @@ pub async fn seed(
             continue;
         }
         let n = n + 1;
+        // Ilundo leaves its last few unbought (at least one bought), so Buy harvest has
+        // something to buy on staging; the other villages sell every harvest.
+        let keep = match *code {
+            "ILUNDO" => harvests.len().saturating_sub(1).min(UNBOUGHT),
+            _ => 0,
+        };
+        let harvests = &harvests[..harvests.len() - keep];
         let kg: i64 = harvests.iter().map(|(_, kg)| kg).sum();
         let lines: Vec<_> = harvests
             .iter()

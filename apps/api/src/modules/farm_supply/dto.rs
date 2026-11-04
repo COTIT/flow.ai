@@ -436,3 +436,35 @@ pub struct RawProductCreated {
     #[schema(example = "kg")]
     pub unit: Option<String>,
 }
+
+/// What the Field dispatch form may send: farm-guarded, so ops need no office rights.
+#[derive(Serialize, ToSchema)]
+pub struct DispatchOptions {
+    /// Live supply links this workspace granted.
+    pub links: Vec<DispatchLinkResource>,
+    /// Raw lots of supply batches, newest first (`POST /lots/{lot}/transfers` sends these).
+    pub lots: Vec<DispatchLot>,
+    /// Warehouses holding free stock of those lots, by name.
+    pub warehouses: Vec<DispatchWarehouse>,
+}
+
+/// A live link and the shop it goes to.
+#[derive(Serialize, ToSchema)]
+pub struct DispatchLinkResource {
+    pub id: Uuid,
+    pub partner: crate::modules::supply_links::dto::Partner,
+}
+
+/// A lot that can be sent.
+#[derive(Serialize, ToSchema)]
+pub struct DispatchLot {
+    pub id: Uuid,
+    pub code: String,
+}
+
+/// A warehouse to send from.
+#[derive(Serialize, ToSchema)]
+pub struct DispatchWarehouse {
+    pub id: Uuid,
+    pub name: String,
+}

@@ -17,8 +17,8 @@ use crate::{
         currencies::repo as currencies,
         farm_supply::{
             dto::{
-                BatchResource, BuyableHarvest, NewBatch, OptionsResource, RawProduct,
-                RawProductCreated,
+                BatchResource, BuyableHarvest, DispatchLinkResource, DispatchLot, DispatchOptions,
+                DispatchWarehouse, NewBatch, OptionsResource, RawProduct, RawProductCreated,
             },
             repo::{self, HarvestRow, NewBatchRow},
         },
@@ -26,6 +26,7 @@ use crate::{
         lots::{repo::LotRow, service as lots},
         products::{dto::Fields, repo as products, service as catalog},
         stock::service::tracks_stock,
+        supply_links::dto::Partner,
     },
 };
 
@@ -421,5 +422,43 @@ pub async fn create_raw_product(
         id: p.id,
         name: p.name,
         unit: p.unit,
+    })
+}
+
+/// GET /dispatch/options: ops or admin; the live links, batch lots and stocked warehouses a
+/// dispatch may use.
+pub async fn dispatch_options(
+    state: &AppState,
+    access: &FarmAccess,
+) -> Result<DispatchOptions, AppError> {
+    if !access.manages() {
+        return Err(AppError::Forbidden(NOT_ALLOWED));
+    }
+    let (db, ws) = (&state.db, access.workspace_id);
+    let links = repo::dispatch_links(db, ws).await?;
+    let lots = repo::batch_lots(db, ws).await?;
+    let warehouses = repo::dispatch_warehouses(db, ws).await?;
+    Ok(DispatchOptions {
+        links: links
+            .into_iter()
+            .map(|l| DispatchLinkResource {
+                id: l.id,
+                partner: Partner::new(l.partner_id, l.partner_name),
+            })
+            .collect(),
+        lots: lots
+            .into_iter()
+            .map(|l| DispatchLot {
+                id: l.id,
+                code: l.name,
+            })
+            .collect(),
+        warehouses: warehouses
+            .into_iter()
+            .map(|w| DispatchWarehouse {
+                id: w.id,
+                name: w.name,
+            })
+            .collect(),
     })
 }
