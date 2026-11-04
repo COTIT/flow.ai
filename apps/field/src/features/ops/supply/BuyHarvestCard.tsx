@@ -201,7 +201,7 @@ export function BuyHarvestCard() {
                   t('supply.product'),
                   productId,
                   setProductId,
-                  options.data.raw_products.map((p) => ({ id: p.id, label: p.unit ? `${p.name} (${p.unit})` : p.name })),
+                  options.data.raw_products.map((p) => ({ id: p.id, label: p.unit ? `${p.name} · ${p.unit}` : p.name })),
                 )}
                 <FormField label={t('supply.code')} id="batch-code" error={fieldError('batch-code')} errorTestId="batch-code-error">
                   <input

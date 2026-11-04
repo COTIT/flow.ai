@@ -258,7 +258,7 @@ async function buying(
 }
 
 async function buy(page: Page) {
-  await page.getByTestId("batch-product").selectOption({ label: "Raw Coffee (kg)" })
+  await page.getByTestId("batch-product").selectOption({ label: "Coffee cherries (raw) · kg" })
   await page.getByTestId("batch-code").fill("ILU-C-01")
   await page.getByTestId("batch-price").fill("8000")
   await page.getByTestId("batch-submit").click()
@@ -280,7 +280,7 @@ test("ops buy verified harvest with an existing raw product: the farmer's kg lef
 test("with nothing left to buy, the card says why and cannot be sent", async ({ page }) => {
   const sent = await buying(page, [batchMade as Reply], nothingToBuy)
   await expect(page.getByTestId("batch-no-harvests")).toContainText("No harvest to buy")
-  await page.getByTestId("batch-product").selectOption({ label: "Raw Coffee (kg)" })
+  await page.getByTestId("batch-product").selectOption({ label: "Coffee cherries (raw) · kg" })
   await page.getByTestId("batch-code").fill("ILU-C-01")
   await page.getByTestId("batch-price").fill("8000")
   await expect(page.getByTestId("batch-submit")).toBeDisabled()
