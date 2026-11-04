@@ -1,4 +1,5 @@
 import { expect, test, urls } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 import { ownProduct, storefront } from "./shop"
 
 type Variant = {
@@ -41,6 +42,7 @@ test("every catalogue card on page 1 shows the API's price incl. VAT", async ({
     await expect(card, p.name).toContainText(money(p, shown(p)))
   }
   await expect(page.getByRole("main")).not.toContainText("$0.00")
+  await expectNoRawValues(page)
 })
 
 test("a single-price product: the product page price is the API's incl. VAT", async ({
@@ -54,6 +56,7 @@ test("a single-price product: the product page price is the API's incl. VAT", as
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name)
   await expect(page.getByRole("main")).toContainText(money(p, p.price_gross))
   await expect(page.getByRole("group", { name: "Size" })).toHaveCount(0)
+  await expectNoRawValues(page)
 })
 
 test("a product sold by size: each size button shows its API price, and picking one changes the price", async ({
@@ -82,6 +85,7 @@ test("a product sold by size: each size button shows its API price, and picking 
     .getByRole("button", { name: new RegExp(`^${big.options[0]!.value} `) })
     .click()
   await expect(price).toHaveText(money(p, big.price_gross))
+  await expectNoRawValues(page)
 })
 
 test("a product sold by size shows no nameless size", async ({
