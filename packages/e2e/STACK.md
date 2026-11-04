@@ -35,7 +35,7 @@ Extra arguments to `stack:test` go to Playwright, e.g. `stack:test tests-stack/t
 
 ## Write a spec
 
-Specs live in `tests-stack/*.spec.ts` and run at desktop and 375 px (`stack-desktop`, `stack-mobile`).
+Specs live in `tests-stack/*.spec.ts` (Field's in `tests-stack/field/`, with a Field sign-in helper that skips the first-visit tour) and run at desktop and 375 px (`stack-desktop`, `stack-mobile`).
 Import everything from `../src/stack`:
 
 ```ts
@@ -121,7 +121,7 @@ build (password hashing included). CI's estimate: ~12 min warm, ~25 min cold (2 
 
 - `price.spec.ts`: an office price edit doesn't reach the shop or the till (default variant keeps
   a stale price copy). Fails at the shop's "after" check.
-- `field-ops.spec.ts`: ops gets 403 on `supply-links` and `warehouses` at Field Dispatch.
+- `field/dispatch.spec.ts`: RUAHA's default currency is EUR, so Buy harvest starts in euros, not shillings.
 
 ## Follow-ups
 
