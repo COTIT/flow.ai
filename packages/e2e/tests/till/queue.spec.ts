@@ -1,6 +1,5 @@
 import type { Page } from "@playwright/test"
 
-import { expectNoHorizontalScroll } from "../../src/test"
 import { expectTillLook } from "./look"
 import { expect, honey, seedTill, test, type FakeApi, WS } from "./fake-till"
 
@@ -101,7 +100,7 @@ test.describe("offline", () => {
     const saved = page.getByRole("dialog", { name: "Saved offline" })
     await expect(saved.getByText("≈ €25.00")).toBeVisible()
     await expect(page.getByText("Offline · 1 to sync")).toBeVisible()
-    await expectNoHorizontalScroll(page)
+    await expectTillLook(page, { shift: false })
     await saved.getByRole("button", { name: "New sale" }).click()
     expect(api.callsTo("POST", `/workspace/${WS}/till/sales`)).toHaveLength(0)
 
@@ -127,6 +126,15 @@ test.describe("offline", () => {
         .getByRole("status")
         .filter({ hasText: "All offline sales are booked." })
     ).toBeVisible()
+
+    // Sync now, a reload and the 30 s timer replay only what still waits: nothing here.
+    await page.getByRole("button", { name: "Sync now" }).click()
+    await page.reload()
+    await expect(page.getByText("Booked as sale 1042 · €25.00")).toBeVisible()
+    expect(api.callsTo("POST", `/workspace/${WS}/till/sales`)).toHaveLength(1)
+    expect(
+      api.callsTo("GET", `/workspace/${WS}/till/sales/${REF}`)
+    ).toHaveLength(1)
   })
 })
 
@@ -342,4 +350,72 @@ test("a replayed sale booked at other prices is flagged", async ({
       hasText: "Charged at prices that differ from the current catalog.",
     })
   ).toBeVisible()
+})
+
+test.describe("replay refused as invalid", () => {
+  test.use({
+    allow: {
+      responses: [
+        { url: refUrl, status: 404 },
+        { url: salesUrl, status: 422 },
+      ],
+    },
+  })
+
+  test("a 422 marks the sale for review with the API's reason, and it is not retried", async ({
+    page,
+    api,
+  }) => {
+    serverApi(api)
+    // Rung up after the product went off sale: the API refuses the replay too.
+    api.on("POST", "/workspace/:ws/till/sales", () => ({
+      status: 422,
+      body: {
+        message: "This product is not for sale.",
+        errors: { "lines.0.product_id": ["This product is not for sale."] },
+      },
+    }))
+    await seedQueue(page)
+    await seedTill(page)
+    await page.goto("/queue")
+    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+    await expect(card.getByText("Needs review", { exact: true })).toBeVisible()
+    await expect(
+      card
+        .getByRole("alert")
+        .filter({ hasText: "This product is not for sale." })
+    ).toBeVisible()
+    await expect(page.getByText("1 needs the office")).toBeVisible()
+    await expectTillLook(page, { shift: false })
+
+    await page.getByRole("button", { name: "Sync now" }).click()
+    await expect(card.getByText("Needs review", { exact: true })).toBeVisible()
+    expect(api.callsTo("POST", `/workspace/${WS}/till/sales`)).toHaveLength(1)
+  })
+})
+
+test.describe("replay of a product since taken off sale", () => {
+  test.use({ allow: { responses: [{ url: refUrl, status: 404 }] } })
+
+  test("rung up before the change, it is booked and the till flags it for the office", async ({
+    page,
+    api,
+  }) => {
+    // BUG: the API books the line and counts it in `unsellable_lines`, but the till never reads
+    // that field (apps/till/app/(till)/queue/page.tsx shows only price_mismatch), so the cashier
+    // and office get no warning. Remove test.fail once the queue card flags it.
+    test.fail(true, "till ignores SaleResource.unsellable_lines")
+    serverApi(api)
+    api.on("POST", "/workspace/:ws/till/sales", () => ({
+      status: 201,
+      body: { data: { ...sale, unsellable_lines: 1 } },
+    }))
+    await seedQueue(page)
+    await seedTill(page)
+    await page.goto("/queue")
+    const card = page.getByRole("listitem").filter({ hasText: "1 item" })
+    await expect(card.getByText("Booked", { exact: true })).toBeVisible()
+    // A warning on the card itself, like the price-mismatch one.
+    await expect(card.getByRole("status")).toBeVisible({ timeout: 2_000 })
+  })
 })
