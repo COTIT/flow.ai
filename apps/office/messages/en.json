@@ -51,7 +51,8 @@
     "orders": "Orders",
     "till": "Till",
     "supply": "Supply",
-    "overview": "Overview"
+    "overview": "Overview",
+    "invites": "Invites"
   },
   "pager": {
     "summary": "{from}–{to} of {total}",
@@ -558,7 +559,10 @@
     "pdfReady": "The PDF is ready.",
     "imagesSaved": "Images saved.",
     "productCreated": "Product created.",
-    "sizeAdded": "Size added."
+    "sizeAdded": "Size added.",
+    "inviteSent": "Invite sent to {email}",
+    "inviteWithdrawn": "Invite withdrawn.",
+    "lotStockChanged": "Stock changed."
   },
   "images": {
     "title": "Images",
@@ -652,5 +656,62 @@
     "tooShort": "Type at least 3 characters to search.",
     "nothing": "Nothing found for “{q}”",
     "ean": "EAN-13"
+  },
+  "invites": {
+    "title": "Invites",
+    "intro": "Invite people by email to work in this account.",
+    "new": "Invite someone",
+    "newText": "They get an email with a link to join this account.",
+    "email": "Email",
+    "team": "Team (role)",
+    "teamHint": "The team decides what they may do.",
+    "noTeam": "No team",
+    "send": "Send invite",
+    "empty": "No invites yet",
+    "status": "Status",
+    "sent": "Sent",
+    "expires": "Expires",
+    "actions": "Actions",
+    "withdraw": "Withdraw",
+    "withdrawTitle": "Withdraw the invite for {email}?",
+    "withdrawText": "The link in their email stops working.",
+    "statuses": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "denied": "Declined",
+      "expired": "Expired"
+    }
+  },
+  "invite": {
+    "title": "Your invite",
+    "incomplete": "This invite link is incomplete",
+    "invalid": "This invite link is not valid",
+    "ended": {
+      "expired": "This invite has expired",
+      "accepted": "This invite was already accepted",
+      "denied": "This invite was declined"
+    },
+    "goLogin": "Go to login",
+    "join": "Join {workspace}",
+    "signUp": "Make your login to start.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "passwordRule": "At least 8 characters with upper and lower case, a number and a symbol.",
+    "create": "Create account",
+    "loginFirst": "Log in to accept",
+    "accept": "Accept",
+    "decline": "Decline",
+    "declined": "Invite declined",
+    "joined": "You joined {workspace}",
+    "joinedHint": "Log in again to open it.",
+    "loginAgain": "Log in again"
+  },
+  "lotStock": {
+    "title": "Change stock in {code}",
+    "available": "Available",
+    "quantity": "Quantity",
+    "quantityHint": "Positive adds, negative takes out",
+    "correction": "This is a correction",
+    "empty": "No stock in this batch yet"
   }
 }

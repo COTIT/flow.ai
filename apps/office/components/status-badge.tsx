@@ -17,6 +17,7 @@ const tones: Record<string, Tone> = {
   partially_returned: "gold",
   recalled: "red",
   revoked: "red",
+  denied: "red",
   cancelled: "red",
   disabled: "slate",
   nla: "slate",

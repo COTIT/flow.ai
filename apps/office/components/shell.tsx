@@ -19,6 +19,7 @@ import {
   Search,
   ShoppingBag,
   Truck,
+  UserPlus,
   Zap,
   type LucideIcon,
 } from "lucide-react"
@@ -76,6 +77,7 @@ const items: Item[] = [
   { href: "/till/registers", match: "/till", label: "nav.till", icon: Calculator, group: "shell.store" },
   { href: "/settings/app-keys", match: "/settings/app-keys", label: "nav.appKeys", icon: KeyRound, group: "shell.settings" },
   { href: "/settings/webhooks", match: "/settings/webhooks", label: "nav.webhooks", icon: Zap },
+  { href: "/settings/invites", match: "/settings/invites", label: "nav.invites", icon: UserPlus },
 ]
 
 const current = (pathname: string) =>

@@ -51,7 +51,8 @@
     "orders": "Oda",
     "till": "Kaunta",
     "supply": "Ugavi",
-    "overview": "Muhtasari"
+    "overview": "Muhtasari",
+    "invites": "Mialiko"
   },
   "pager": {
     "summary": "{from}–{to} kati ya {total}",
@@ -558,7 +559,10 @@
     "pdfReady": "PDF iko tayari.",
     "imagesSaved": "Picha zimehifadhiwa.",
     "productCreated": "Bidhaa imeundwa.",
-    "sizeAdded": "Saizi imeongezwa."
+    "sizeAdded": "Saizi imeongezwa.",
+    "inviteSent": "Mwaliko umetumwa kwa {email}",
+    "inviteWithdrawn": "Mwaliko umeondolewa.",
+    "lotStockChanged": "Akiba imebadilishwa."
   },
   "images": {
     "title": "Picha",
@@ -652,5 +656,62 @@
     "tooShort": "Andika angalau herufi 3 ili kutafuta.",
     "nothing": "Hakuna kilichopatikana kwa “{q}”",
     "ean": "EAN-13"
+  },
+  "invites": {
+    "title": "Mialiko",
+    "intro": "Alika watu kwa barua pepe wafanye kazi kwenye akaunti hii.",
+    "new": "Alika mtu",
+    "newText": "Watapata barua pepe yenye kiungo cha kujiunga na akaunti hii.",
+    "email": "Barua pepe",
+    "team": "Timu (jukumu)",
+    "teamHint": "Timu inaamua wanachoweza kufanya.",
+    "noTeam": "Hakuna timu",
+    "send": "Tuma mwaliko",
+    "empty": "Bado hakuna mialiko",
+    "status": "Hali",
+    "sent": "Imetumwa",
+    "expires": "Inaisha",
+    "actions": "Vitendo",
+    "withdraw": "Ondoa",
+    "withdrawTitle": "Ondoa mwaliko wa {email}?",
+    "withdrawText": "Kiungo kwenye barua pepe yao hakitafanya kazi tena.",
+    "statuses": {
+      "pending": "Inasubiri",
+      "accepted": "Imekubaliwa",
+      "denied": "Imekataliwa",
+      "expired": "Imeisha muda"
+    }
+  },
+  "invite": {
+    "title": "Mwaliko wako",
+    "incomplete": "Kiungo hiki cha mwaliko hakijakamilika",
+    "invalid": "Kiungo hiki cha mwaliko si halali",
+    "ended": {
+      "expired": "Mwaliko huu umeisha muda",
+      "accepted": "Mwaliko huu tayari umekubaliwa",
+      "denied": "Mwaliko huu ulikataliwa"
+    },
+    "goLogin": "Nenda kuingia",
+    "join": "Jiunge na {workspace}",
+    "signUp": "Tengeneza akaunti yako ili uanze.",
+    "firstName": "Jina la kwanza",
+    "lastName": "Jina la ukoo",
+    "passwordRule": "Angalau herufi 8 zenye herufi kubwa na ndogo, namba na alama.",
+    "create": "Fungua akaunti",
+    "loginFirst": "Ingia ili ukubali",
+    "accept": "Kubali",
+    "decline": "Kataa",
+    "declined": "Mwaliko umekataliwa",
+    "joined": "Umejiunga na {workspace}",
+    "joinedHint": "Ingia tena ili kuifungua.",
+    "loginAgain": "Ingia tena"
+  },
+  "lotStock": {
+    "title": "Badilisha akiba katika {code}",
+    "available": "Inapatikana",
+    "quantity": "Kiasi",
+    "quantityHint": "Chanya inaongeza, hasi inatoa",
+    "correction": "Hii ni marekebisho",
+    "empty": "Bado hakuna akiba katika kundi hili"
   }
 }

@@ -13,6 +13,7 @@ import { Label } from "@genesy/ui/components/label"
 import { Logo } from "@genesy/ui/components/logo"
 import { Notice } from "@genesy/ui/components/notice"
 import { LocaleMenu } from "@/components/shell"
+import { safeNext } from "@/lib/safe-next"
 
 export default function LoginPage() {
   const t = useTranslations()
@@ -24,7 +25,10 @@ export default function LoginPage() {
   const errorId = React.useId()
 
   React.useEffect(() => {
-    if (token) router.replace("/")
+    // Back to the page that sent us here (an invite), only ever a path on this site. Read
+    // here, not with useSearchParams, so the form still renders on the server.
+    const next = new URLSearchParams(window.location.search).get("next")
+    if (token) router.replace(safeNext(next))
   }, [token, router])
 
   const status = login.error?.response?.status
