@@ -93,6 +93,8 @@ Postgres, API and five apps per worker). So:
    impossible, and claim it in the table below first. One spec file per record; both projects
    run it, so it must stand being run twice at once.
 4. **Never** reset or reseed from a spec. `stack:reset` is for people between runs.
+5. **Remove what a workspace caps.** AFM allows at most 10 webhook endpoints: a spec that adds
+   one deletes it again (see `tests-stack/office/settings.spec.ts`).
 
 | Seeded record | Claimed by | What it changes |
 | --- | --- | --- |
