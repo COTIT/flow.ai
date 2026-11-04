@@ -28831,7 +28831,7 @@
     },
     "/payments/fake/{id}": {
       "get": {
-        "description": "Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons.",
+        "description": "Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons and a link back to the shop.",
         "operationId": "payments_fake_page",
         "parameters": [
           {
@@ -28911,7 +28911,7 @@
         ]
       },
       "post": {
-        "description": "Dev and staging only. Sets the fake payment's status, queues the same re-fetch as its webhook, and redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.",
+        "description": "Dev and staging only. Sets the fake payment's status and applies it at once through the same re-fetch as its webhook (queued when that fails), then redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.",
         "operationId": "payments_fake_decide",
         "parameters": [
           {

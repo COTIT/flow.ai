@@ -53,7 +53,7 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 };
 
 /**
- * Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons.
+ * Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons and a link back to the shop.
  * @summary The test provider's pay page
  */
 export const paymentsFakePage = (
@@ -146,7 +146,7 @@ export function usePaymentsFakePage<TData = Awaited<ReturnType<typeof paymentsFa
 
 
 /**
- * Dev and staging only. Sets the fake payment's status, queues the same re-fetch as its webhook, and redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.
+ * Dev and staging only. Sets the fake payment's status and applies it at once through the same re-fetch as its webhook (queued when that fails), then redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.
  * @summary Pay or cancel on the test provider's page
  */
 export const paymentsFakeDecide = (
