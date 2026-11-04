@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET price = $3, original_price = $4, impact_on_price = $5,\n             updated_at = now()\n         WHERE workspace_id = $1 AND product_id = $2 AND inherits_price AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Numeric",
+        "Numeric",
+        "Numeric"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "184a52e759d10197c2e229efa3f6b1fc92c29f68b6a269708b69c68d1145cbd7"
+}

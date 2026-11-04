@@ -595,8 +595,9 @@ pub async fn insert_default_variant(
         "INSERT INTO product_variants (workspace_id, product_id, is_default, barcode, ean13,
              price, original_price, wholesale_price, original_wholesale_price, gross_price,
              supplier_wholesale_price, impact_on_price, impact_on_wholesale_price, weight,
-             reference_vendor, reference_vendor2, reference_vendor3)
-         VALUES ($1, $2, true, $3, $4, $5, $15, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+             reference_vendor, reference_vendor2, reference_vendor3, inherits_price)
+         VALUES ($1, $2, true, $3, $4, $5, $15, $6, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+                 true)
          RETURNING id",
         workspace_id,
         p.id,
@@ -616,6 +617,30 @@ pub async fn insert_default_variant(
     )
     .fetch_one(&mut *conn)
     .await
+}
+
+/// Give the product's inheriting variants its new price (as the default variant was made).
+pub async fn sync_inheriting_variants(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    product_id: Uuid,
+    price: Decimal,
+    original_price: Decimal,
+    impact_on_price: Option<Decimal>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE product_variants SET price = $3, original_price = $4, impact_on_price = $5,
+             updated_at = now()
+         WHERE workspace_id = $1 AND product_id = $2 AND inherits_price AND deleted_at IS NULL",
+        workspace_id,
+        product_id,
+        price,
+        original_price,
+        impact_on_price,
+    )
+    .execute(&mut *conn)
+    .await
+    .map(|_| ())
 }
 
 /// Record price changes in one statement. `variant_id` set = the variant's own history.

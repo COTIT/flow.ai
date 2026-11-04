@@ -237,6 +237,19 @@ pub async fn update(
         normalise_row(&mut row, priority)?;
     }
     repo::update(&mut tx, workspace_id, &row).await?;
+    if row.price != before.price {
+        // Inheriting variants (the default size made with the product) follow, priced as at
+        // create.
+        let (price, impact) = normalise(
+            Some(row.price),
+            Some(row.price),
+            row.impact_on_price,
+            Priority::Price,
+        )
+        .map_err(out_of_range)?;
+        let price = price.unwrap_or(row.price);
+        repo::sync_inheriting_variants(&mut tx, workspace_id, id, price, row.price, impact).await?;
+    }
     let changes = changed_prices(&before, &row);
     repo::insert_history(
         &mut tx,

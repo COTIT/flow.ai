@@ -695,3 +695,187 @@ async fn a_product_off_sale_is_refused_unless_rung_up_before_it_changed(pool: Pg
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
     assert!(res["errors"]["lines.0.product_id"].is_array(), "{res}");
 }
+
+/// What the shop, the till catalog and the till quote price `product`'s variant `variant` at,
+/// in minor units excl VAT: (storefront variant, till catalog variant, quote line).
+async fn variant_prices(w: &W, product: &str, variant: &str) -> (i64, i64, i64) {
+    let (status, shop) = send(
+        &w.api.app,
+        Method::GET,
+        &format!("/v1/storefront/products/{product}"),
+        None,
+        Some(&w.shop_key),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{shop}");
+    let pick = |rows: &Value| {
+        rows.as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["id"] == variant)
+            .unwrap()
+            .clone()
+    };
+    let in_shop = pick(&shop["data"]["variants"])["price_net"]
+        .as_i64()
+        .unwrap();
+    let (status, cat) = w.api.call(Method::GET, "/catalog", None, &w.t1).await;
+    assert_eq!(status, StatusCode::OK, "{cat}");
+    let row = cat["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == product)
+        .unwrap()
+        .clone();
+    let in_till = pick(&row["variants"])["unit_price"].as_i64().unwrap();
+    let quote = json!({ "lines": [{ "product_id": product, "product_variant_id": variant,
+                                    "quantity": "1", "unit_price": in_till }],
+                        "payment": { "method": "card" } });
+    let (status, q) = w
+        .api
+        .call(Method::POST, "/sales/quote", Some(quote), &w.t1)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{q}");
+    (
+        in_shop,
+        in_till,
+        q["data"]["server_total"].as_i64().unwrap(),
+    )
+}
+
+/// The auto-made default size follows the product price; a size priced on its own keeps it.
+#[sqlx::test]
+async fn the_default_size_follows_the_product_price_a_priced_size_keeps_its_own(pool: PgPool) {
+    let w = world(pool).await;
+    let products = w.api.with_base("/products");
+    let (_, p) = products
+        .call(Method::GET, &format!("/{}", w.wax), None, &products.owner)
+        .await;
+    let default = p["data"]["relationships"]["variants"][0]["id"]
+        .as_str()
+        .map(str::to_owned);
+    let default = match default {
+        Some(d) => d,
+        None => sqlx::query_scalar::<_, String>(
+            "SELECT id::text FROM product_variants WHERE product_id = $1::uuid AND is_default",
+        )
+        .bind(&w.wax)
+        .fetch_one(&w.api.pool)
+        .await
+        .unwrap(),
+    };
+    let (s, res) = products
+        .call(
+            Method::POST,
+            &format!("/{}/variants", w.wax),
+            Some(json!({ "sku": "WAX-L", "price": "5" })),
+            &products.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let large = res["data"]["variant_id"].as_str().unwrap().to_owned();
+    // Wax: €3 excl at 21 %; one unit incl VAT = 363.
+    assert_eq!(variant_prices(&w, &w.wax, &default).await, (300, 300, 363));
+
+    let (s, res) = products
+        .call(
+            Method::POST,
+            &format!("/{}", w.wax),
+            Some(json!({ "price": "4" })),
+            &products.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    // €4 + 21 % = 484.
+    assert_eq!(
+        variant_prices(&w, &w.wax, &default).await,
+        (400, 400, 484),
+        "the default size follows"
+    );
+    assert_eq!(
+        variant_prices(&w, &w.wax, &large).await,
+        (500, 500, 605),
+        "a priced size keeps its own"
+    );
+
+    // Pricing the default size itself makes it its own.
+    let (s, res) = products
+        .call(
+            Method::PUT,
+            &format!("/{}/variants/{default}", w.wax),
+            Some(json!({ "price": "4.50" })),
+            &products.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    products
+        .call(
+            Method::POST,
+            &format!("/{}", w.wax),
+            Some(json!({ "price": "6" })),
+            &products.owner,
+        )
+        .await;
+    assert_eq!(
+        variant_prices(&w, &w.wax, &default).await.0,
+        450,
+        "now its own price"
+    );
+}
+
+/// After the deploy a stale default (the price copied when the product was made) inherits:
+/// the product's only, default variant takes the product price; a priced size is untouched.
+#[sqlx::test]
+async fn the_backfill_lets_stale_defaults_inherit(pool: PgPool) {
+    let w = world(pool).await;
+    let products = w.api.with_base("/products");
+    products
+        .call(
+            Method::POST,
+            &format!("/{}/variants", w.wax),
+            Some(json!({ "sku": "WAX-L", "price": "5" })),
+            &products.owner,
+        )
+        .await;
+    // As before the migration: honey's only variant holds a stale copy; wax's default is a
+    // stale copy too but wax has a priced size, and that size is explicit.
+    sqlx::query(
+        "UPDATE product_variants SET inherits_price = false, price = 9.99
+         WHERE product_id IN ($1::uuid, $2::uuid) AND is_default",
+    )
+    .bind(&w.honey)
+    .bind(&w.wax)
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+    sqlx::query("UPDATE product_variants SET inherits_price = false WHERE product_id = $1::uuid")
+        .bind(&w.wax)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    sqlx::raw_sql(include_str!(
+        "../../migrations/20261104100100_variant_inherits_price_backfill.up.sql"
+    ))
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+    let rows: Vec<(String, bool, bool, String)> = sqlx::query_as(
+        "SELECT p.name, v.is_default, v.inherits_price, v.price::numeric(12,2)::text
+         FROM product_variants v JOIN products p ON p.id = v.product_id
+         WHERE v.product_id IN ($1::uuid, $2::uuid) ORDER BY p.name, v.is_default DESC",
+    )
+    .bind(&w.honey)
+    .bind(&w.wax)
+    .fetch_all(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        rows,
+        [
+            ("Honey".into(), true, true, "12.50".into()),
+            ("Wax".into(), true, false, "9.99".into()),
+            ("Wax".into(), false, false, "5.00".into()),
+        ]
+    );
+}

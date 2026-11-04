@@ -113,7 +113,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
   - A derived price outside 0…9999999999999999 or a markup outside ±9999999999999999 is a 422 on the field that drove it: "The price is out of range." or "The impact on price is out of range." Laravel answered 500.
 - **`order_unit`:** 0 is stored as 1 (Laravel saving hook).
 - **Numbers:** `PRO-00001`, MAX+1 per workspace under an advisory lock. Deleted products keep their number.
-- **Default variant:** create also writes it, copying the product's codes and prices.
+- **Default variant:** create also writes it, copying the product's codes and prices. It **follows the product price** (`product_variants.inherits_price`, migration `variant_inherits_price`): when the product's `price` changes, the variant's price changes in the same transaction, priced as at create. The storefront, till catalog, till quote and checkout all read the variant price, so they follow too. Giving a variant its own price (`PUT …/variants/{variant}` with another `price`) ends that for good. Other variants never follow. Migration `variant_inherits_price_backfill` turned it on for existing default variants that are the product's only variant, or still at the product's price, and gave stale ones the product price.
   - Its saving hook normalises the product price against itself: the price is rounded to cents, and the markup is what that rounding left (`743.057847` → price `743.06`, markup `0.0003`).
   - `original_price` keeps the raw product price.
 - **Price history:** create writes a row for each non-null `gross_price` / `price` / `supplier_wholesale_price` / `wholesale_price`. A gross price that wasn't sent gets no product row (null in Laravel).

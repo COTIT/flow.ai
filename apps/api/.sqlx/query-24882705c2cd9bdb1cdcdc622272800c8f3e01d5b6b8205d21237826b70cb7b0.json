@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE product_variants SET is_default = $3, sku = $4, barcode = $5, ean13 = $6,\n             price = $7, gross_price = $8, original_price = $9, wholesale_price = $10,\n             original_wholesale_price = $11, supplier_wholesale_price = $12,\n             impact_on_price = $13, impact_on_wholesale_price = $14, weight = $15,\n             reference_vendor = $16, reference_vendor2 = $17, reference_vendor3 = $18,\n             meta = $19, inherits_price = inherits_price AND price = $7, updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "24882705c2cd9bdb1cdcdc622272800c8f3e01d5b6b8205d21237826b70cb7b0"
+}
