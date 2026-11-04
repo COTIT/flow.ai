@@ -77,7 +77,7 @@ const CountUp = island(() => import("../rb/CountUp"))
 
 | App | Artboards in `canvas/` | Notes |
 |---|---|---|
-| Office | `OfficeOverview` (bento + sidebar), `OfficeProducts` (list template; rows become cards at 375), `OfficeProduct`, `OfficeLot`, `OfficeOrder` (bento detail), `OfficePassport` (editor + live preview; Edit/Preview tabs at 375), `OfficeSettings` (list + "copy it now" dialog), `OfficeLogin`, `OfficeStates` | Overview at `/` uses list endpoints with `per_page=1` and reads `meta.total`; no client sums. "Sales this week" tile is not built (needs an API summary). Dialogs become bottom sheets at 375. |
+| Office | `OfficeOverview` (bento + sidebar), `OfficeProducts` (list template; rows become cards at 375), `OfficeProduct`, `OfficeLot`, `OfficeOrder` (bento detail), `OfficePassport` (editor + live preview; Edit/Preview tabs at 375), `OfficeSettings` (list + "copy it now" dialog), `OfficeLogin`, `OfficeStates` | Overview at `/` uses list endpoints with `page_size=1` and reads `meta.total`; no client sums. "Sales this week" comes from `GET /sales-summary` (gross and refunded per currency). Dialogs become bottom sheets at 375. |
 | Shop | `ShopCatalogue`, `ShopProduct` (bento), `ShopCart`, `ShopCheckout`, `ShopOrder` (`status` = awaiting / paid / cancelled), `ShopPassport` (bento; `status="recalled"` puts the recall banner first), `ShopStates` | Cart shows unit prices only; totals come from the server at checkout. |
 | Till | `TillSale` (`layout="a"`; `sheet` = cash / card / receipt), `TillLogin` (user tiles + PIN pad; `step="setup"` pairs the device), `TillDrawer` (`step` = count / result), `TillQueue` | iPad first. Keys 72–84 px, every target ≥ 44 px, no hover-only actions. Portrait: basket docks at the bottom. Cash notes come from `register.accepted_cash`. |
 
@@ -93,7 +93,7 @@ Templates: **List** = `OfficeProducts` (page head + one card holding filters, ta
 
 | Route | Mock / template | Notes |
 |---|---|---|
-| `/` | Mock `OfficeOverview` | Replaces today's redirect. KPI counts from list endpoints with `per_page=1` → `meta.total`. Sidebar item "Overview". Skip the "Sales this week" tile. |
+| `/` | Mock `OfficeOverview` | Replaces today's redirect. KPI counts from list endpoints with `page_size=1` → `meta.total`. Sidebar item "Overview". "Sales this week" from `GET /sales-summary`. |
 | `/login` | Mock `OfficeLogin` | Session-ended info Notice as drawn; errors as error Notice above the fields. |
 | `/products` | Mock `OfficeProducts` | |
 | `/products/[id]` | Mock `OfficeProduct` | "Change stock" opens a Dialog; images card = today's image editor. |
