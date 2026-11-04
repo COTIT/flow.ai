@@ -111,36 +111,14 @@ describe("path guards", () => {
 })
 
 describe("getLot", () => {
-  const reply = (expiresInMs: number) => ({
-    data: {
-      public_code: "7K3M9QX2WD",
-      farmers: [],
-      passport: {
-        banner: {
-          url: "https://f/b",
-          expires_at: new Date(Date.now() + expiresInMs).toISOString(),
-        },
-        certificates: [],
-        story: [],
-      },
-    },
-  })
-
-  it("uses the cached reply while its signed links have time left", async () => {
-    api.storefrontLotsGet.mockResolvedValue(reply(9 * 60_000))
+  it("always asks the API, never the data cache, so a recall shows at once", async () => {
+    api.storefrontLotsGet.mockResolvedValue({
+      data: { public_code: "7K3M9QX2WD" },
+    })
     const lot = await getLot("7K3M9QX2WD")
     expect(lot.public_code).toBe("7K3M9QX2WD")
     expect(api.storefrontLotsGet).toHaveBeenCalledTimes(1)
-    expect(api.storefrontLotsGet.mock.calls[0]![0]).toBe("7K3M9QX2WD")
-  })
-
-  it("asks again, past the cache, when a link would expire within 2 minutes", async () => {
-    api.storefrontLotsGet
-      .mockResolvedValueOnce(reply(60_000))
-      .mockResolvedValueOnce(reply(10 * 60_000))
-    await getLot("7K3M9QX2WD")
-    expect(api.storefrontLotsGet).toHaveBeenCalledTimes(2)
-    expect(api.storefrontLotsGet.mock.calls[1]![1].fetchOptions).toEqual({
+    expect(api.storefrontLotsGet.mock.calls[0]![1].fetchOptions).toEqual({
       cache: "no-store",
     })
   })
