@@ -67,7 +67,7 @@ pub async fn seed(
     let raw = api
         .post(
             &ws_r("/products"),
-            json!({ "name": "Coffee cherries (raw)", "price": "1" }),
+            json!({ "name": "Coffee cherries (raw)", "price": "1", "unit": "kg" }),
             &r.owner,
         )
         .await?;
@@ -81,7 +81,7 @@ pub async fn seed(
     for (name, price) in [("Maize grain, bulk", "0.40"), ("Beans, bulk", "1.10")] {
         api.post(
             &ws_r("/products"),
-            json!({ "name": name, "price": price }),
+            json!({ "name": name, "price": price, "unit": "kg" }),
             &r.owner,
         )
         .await?;

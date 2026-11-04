@@ -4,7 +4,7 @@
 use axum::http::Method;
 use serde_json::{Value, json};
 
-use super::{Shop, days_ago, dollars, ean13, names};
+use super::{Shop, days_ago, days_ago_read, dollars, ean13, names};
 use crate::{error::AppError, farm_demo::text};
 
 /// One sellable product, with its variants as (id, price in cents).
@@ -347,7 +347,7 @@ async fn lots(
                           "body": "Supers pulled at the end of the flow, extracted cold and strained once." },
                         { "kind": "facts", "items": [
                             { "label": "Hives", "value": "40" },
-                            { "label": "Extracted", "value": days_ago(*produced) }] },
+                            { "label": "Extracted", "value": days_ago_read(*produced) }] },
                         { "kind": "quote", "text": "The bees did the hard part.", "by": "DEMO beekeeper" }
                     ] })),
                 Some(&shop.owner),

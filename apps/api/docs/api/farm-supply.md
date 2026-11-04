@@ -54,7 +54,7 @@ ops or admin (others `403`; a non-member `404`). What the Field dispatch form ma
 
 ```json
 { "data": {
-  "links": [{ "id": "…", "partner": { "id": "…", "name": "AFM" } }],
+  "links": [{ "id": "…", "partner": { "id": "…", "name": "afm-demo", "display_name": "AFM Shop" } }],
   "lots": [{ "id": "…", "code": "ILU-RAW-1" }],
   "warehouses": [{ "id": "…", "name": "Iringa store" }]
 } }

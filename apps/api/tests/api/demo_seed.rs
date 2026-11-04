@@ -792,4 +792,41 @@ async fn the_seed_fills_every_module(pool: PgPool) {
             assert!(n >= 3, "{email} can buy {n} {k} harvests in {v}: {res}");
         }
     }
+
+    // Raw values read as a person would: raw products in kg, passport dates in words,
+    // the shop's company name beside its slug.
+    let unitless: Vec<String> = sqlx::query_scalar(
+        "SELECT p.name FROM products p JOIN workspaces w ON w.id = p.workspace_id
+         WHERE w.name = 'ruaha-demo' AND p.name IN
+               ('Coffee cherries (raw)', 'Maize grain, bulk', 'Beans, bulk')
+           AND p.unit IS DISTINCT FROM 'kg'",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert!(unitless.is_empty(), "raw products not in kg: {unitless:?}");
+    let extracted: Vec<String> = sqlx::query_scalar(
+        "SELECT f->>'value' FROM lots l
+           CROSS JOIN LATERAL jsonb_array_elements(l.passport_draft->'story') s
+           CROSS JOIN LATERAL jsonb_array_elements(s->'items') f
+         WHERE s->>'kind' = 'facts' AND f->>'label' = 'Extracted'",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert!(!extracted.is_empty());
+    for v in &extracted {
+        let (day, rest) = v.split_once(' ').unwrap_or_else(|| panic!("{v}"));
+        assert!(day.parse::<u8>().is_ok() && rest.len() > 5, "readable date: {v}");
+    }
+    let (_, res) = send(
+        &app,
+        Method::GET,
+        &format!("/v1/workspace/{r}/farm/dispatch/options"),
+        None,
+        Some(&tokens[1]),
+    )
+    .await;
+    assert_eq!(res["data"]["links"][0]["partner"]["name"], "afm-demo", "{res}");
+    assert_eq!(res["data"]["links"][0]["partner"]["display_name"], "AFM Shop", "{res}");
 }

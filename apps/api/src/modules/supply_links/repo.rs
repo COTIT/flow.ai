@@ -11,6 +11,7 @@ pub struct LinkRow {
     pub to_workspace_id: Uuid,
     pub partner_id: Uuid,
     pub partner_name: String,
+    pub partner_display_name: String,
     pub fields: Vec<String>,
     pub granted_at: DateTime<Utc>,
     pub accepted_at: Option<DateTime<Utc>>,
@@ -105,7 +106,10 @@ pub async fn rows(
     sqlx::query_as!(
         LinkRow,
         "SELECT l.id, l.from_workspace_id, l.to_workspace_id, w.id AS partner_id,
-                w.name AS partner_name, l.fields, l.granted_at, l.accepted_at, l.revoked_at
+                w.name AS partner_name,
+                coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name)
+                    AS \"partner_display_name!\",
+                l.fields, l.granted_at, l.accepted_at, l.revoked_at
          FROM supply_links l
          JOIN workspaces w ON w.id = CASE WHEN l.from_workspace_id = $1
                                           THEN l.to_workspace_id ELSE l.from_workspace_id END

@@ -809,7 +809,7 @@ async fn farm_ops_read_dispatch_options_and_dispatch(pool: PgPool) {
     let d = &res["data"];
     assert_eq!(
         d["links"],
-        json!([{ "id": s.link, "partner": { "id": s.a_ws, "name": "afm" } }]),
+        json!([{ "id": s.link, "partner": { "id": s.a_ws, "name": "afm", "display_name": "afm" } }]),
         "live outgoing links only"
     );
     assert_eq!(d["lots"][0]["id"], c.raw.as_str());

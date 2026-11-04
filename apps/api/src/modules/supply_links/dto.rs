@@ -41,13 +41,20 @@ pub struct LinkResource {
 #[derive(Serialize, ToSchema)]
 pub struct Partner {
     id: Uuid,
+    /// The workspace slug.
     name: String,
+    /// The workspace's company name, or its slug when it has none.
+    display_name: String,
 }
 
 impl Partner {
-    /// The workspace `id` named `name`.
-    pub fn new(id: Uuid, name: String) -> Self {
-        Self { id, name }
+    /// The workspace `id` named `name`, shown as `display_name`.
+    pub fn new(id: Uuid, name: String, display_name: String) -> Self {
+        Self {
+            id,
+            name,
+            display_name,
+        }
     }
 }
 
@@ -69,6 +76,7 @@ impl LinkResource {
             partner: Partner {
                 id: l.partner_id,
                 name: l.partner_name,
+                display_name: l.partner_display_name,
             },
             fields: l.fields,
             status,

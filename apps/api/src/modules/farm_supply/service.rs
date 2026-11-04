@@ -486,7 +486,7 @@ pub async fn dispatch_options(
             .into_iter()
             .map(|l| DispatchLinkResource {
                 id: l.id,
-                partner: Partner::new(l.partner_id, l.partner_name),
+                partner: Partner::new(l.partner_id, l.partner_name, l.partner_display_name),
             })
             .collect(),
         lots: lots
