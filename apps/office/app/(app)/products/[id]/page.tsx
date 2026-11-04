@@ -32,7 +32,6 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
-import { Skeleton } from "@genesy/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -123,7 +122,8 @@ export default function ProductPage({
     { label: t("stock.after"), right: true },
   ]
 
-  if (product.isPending) return <DetailSkeleton />
+  // Stock too: its tile's height (rows or "none yet") would move Sizes and Images below it.
+  if (product.isPending || stock.isPending) return <DetailSkeleton />
   if (product.isError)
     return (
       <LoadError
@@ -353,12 +353,7 @@ export default function ProductPage({
                 {p.total_reserved_stock ?? "—"}
               </Metric>
             </div>
-            {stock.isPending ? (
-              <div aria-busy="true" className="flex flex-col gap-2">
-                <Skeleton className="h-5" />
-                <Skeleton className="h-5 w-2/3" />
-              </div>
-            ) : stock.isError ? (
+            {stock.isError ? (
               <LoadError
                 error={stock.error}
                 onRetry={() => void stock.refetch()}
