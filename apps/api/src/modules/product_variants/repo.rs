@@ -166,7 +166,7 @@ pub async fn update(
              original_wholesale_price = $11, supplier_wholesale_price = $12,
              impact_on_price = $13, impact_on_wholesale_price = $14, weight = $15,
              reference_vendor = $16, reference_vendor2 = $17, reference_vendor3 = $18,
-             meta = $19, updated_at = now()
+             meta = $19, inherits_price = inherits_price AND price = $7, updated_at = now()
          WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
         v.id,
         workspace_id,
