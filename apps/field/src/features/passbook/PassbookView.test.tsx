@@ -54,6 +54,27 @@ describe('the passbook', () => {
     expect(screen.getByTestId('payouts-empty')).toBeVisible()
   })
 
+  // A line kind or ID type the bundle does not know yet reads as a word, never as its code.
+  test('an unknown line kind or ID type is not shown as its code', () => {
+    render(
+      <PassbookView
+        passbook={ok({ balances: [tzs(100)], lines: [line('l1', 'fee_charge', 100, 100)] })}
+        payouts={ok([{ ...payout('po1', 100), id_type: 'pass_port' }])}
+      />,
+    )
+    expect(screen.getByTestId('passbook-line')).not.toHaveTextContent('fee_charge')
+    expect(screen.getByTestId('passbook-line')).toHaveTextContent('Other')
+    expect(screen.getByTestId('payout-row')).not.toHaveTextContent('pass_port')
+    expect(screen.getByTestId('payout-row')).toHaveTextContent('Other')
+  })
+
+  // Farmers grow more than honey: the empty passbook speaks of any harvest.
+  test('the empty passbook does not assume one crop, in either language', async () => {
+    const i18n = (await import('@/i18n')).default
+    expect(i18n.t('passbook.emptyDetail', { lng: 'en' })).not.toMatch(/honey/i)
+    expect(i18n.t('passbook.emptyDetail', { lng: 'sw' })).not.toMatch(/asali/i)
+  })
+
   test('a failed read offers a retry', () => {
     const passbook = { isLoading: false, error: new Error('down'), data: undefined, refetch: vi.fn() }
     render(<PassbookView passbook={passbook} payouts={ok([])} />)

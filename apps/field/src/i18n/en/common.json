@@ -135,7 +135,17 @@
     "cropNeedsUnits": "This crop is measured by unit count, so the number of units is required.",
     "addPhoneFirst": "Add a phone number before issuing a login.",
     "staffPasswordNotHere": "This person signs in as staff, so their password cannot be reset here.",
-    "phoneHasLogin": "This phone number already has an app login."
+    "phoneHasLogin": "This phone number already has an app login.",
+    "outsideYourVillages": "Outside your villages",
+    "payoutOverLimit": "This payout is above the officer limit: ops or admin must pay it.",
+    "payoutOwnRegistration": "You registered this household, so another staff member must pay this farmer.",
+    "payoutOwnVerification": "You verified this household, so another staff member must pay this farmer.",
+    "payoutOwnHousehold": "You cannot pay your own household.",
+    "payoutAlreadyVoid": "This payout is already voided.",
+    "payoutOverBalance": "The amount must not be greater than the balance of {{balance}}.",
+    "buyOwnVerification": "A harvest you verified must be bought by someone else.",
+    "buyBadHarvest": "The harvest figure must be the current, verified actual figure for this village and crop.",
+    "buyNoManager": "The harvest's farm has no primary manager."
   },
   "empty": {
     "noAccessToThis": "Nothing to show",
@@ -152,7 +162,8 @@
     "no": "No",
     "close": "Close",
     "back": "Back",
-    "optional": "optional"
+    "optional": "optional",
+    "other": "Other"
   },
   "draft": {
     "notSubmitted": "Not yet submitted",
@@ -1448,7 +1459,8 @@
     "statusDone": {
       "live": "Survey published",
       "closed": "Survey closed"
-    }
+    },
+    "removedOption": "Removed option ({{value}})"
   },
   "plotDocuments": {
     "title_one": "Title documents ({{count}})",
@@ -1581,7 +1593,7 @@
     "balance": "Balance",
     "after": "Balance after: {{balance}}",
     "emptyTitle": "No money lines yet",
-    "emptyDetail": "Credits appear here when honey from your harvest is sold, and payouts when you are paid.",
+    "emptyDetail": "Credits appear here when your harvest is sold, and payouts when you are paid.",
     "payouts": "Payouts",
     "noPayouts": "No payouts yet.",
     "voided": "Voided: {{reason}}",

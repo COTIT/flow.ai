@@ -17,7 +17,8 @@ import { localiseDbDate } from '@/lib/format'
  * back to English.
  *
  * Scope: the farmer surface, and the officer's registration, verification,
- * login-card and voucher-redemption messages, as the Genesy API words them.
+ * login-card, voucher-redemption, payout and buy-harvest messages, as the Genesy
+ * API words them.
  * Everything else is still verbatim.
  */
 export interface DbMessageRule {
@@ -173,6 +174,36 @@ export const DB_MESSAGE_RULES: DbMessageRule[] = [
   fixed('error.unexpected', 'unknown crop'),
   // The API's (apps/api farm_pue dto.rs): approve and reject without a note.
   fixed('dbError.noteRequired', 'The note field is required to approve or reject.'),
+  // farm_vouchers writes this into a refused scan's audit detail.
+  fixed('dbError.outsideYourVillages', 'outside your villages'),
+
+  // ── payouts (apps/api farm_payouts) ──
+  fixed('dbError.payoutOverLimit', 'this payout is above the officer limit: ops or admin must pay it'),
+  fixed(
+    'dbError.payoutOwnRegistration',
+    'you registered this household, so another staff member must pay this farmer',
+  ),
+  fixed(
+    'dbError.payoutOwnVerification',
+    'you verified this household, so another staff member must pay this farmer',
+  ),
+  fixed('dbError.payoutOwnHousehold', 'you cannot pay your own household'),
+  fixed('dbError.payoutAlreadyVoid', 'This payout is already void.'),
+  {
+    key: 'dbError.payoutOverBalance',
+    source: '"The amount must not be greater than the balance of {balance}."',
+    pattern: /^The amount must not be greater than the balance of (.+)\.$/,
+    values: (m) => ({ balance: m[1] }),
+    example: 'The amount must not be greater than the balance of 5000.',
+  },
+
+  // ── buying a harvest (apps/api farm_supply) ──
+  fixed('dbError.buyOwnVerification', 'A harvest you verified must be bought by someone else.'),
+  fixed(
+    'dbError.buyBadHarvest',
+    'The harvest report must be the current, verified actual figure of this village and crop.',
+  ),
+  fixed('dbError.buyNoManager', "The harvest's farm has no primary manager."),
 ]
 
 /**

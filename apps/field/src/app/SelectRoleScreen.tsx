@@ -7,6 +7,7 @@ import { useSession } from '@/app/session'
 import { EmptyState } from '@/components/EmptyState'
 import { Loading } from '@/components/controls'
 import { ErrorState } from '@/components/ErrorState'
+import { UNKNOWN } from '@/lib/format'
 
 /**
  * Spec 4.3: lists memberships as role + project + village. Selection is held
@@ -46,11 +47,11 @@ export function SelectRoleScreen() {
 
       <ul className="flex flex-col gap-2.5">
         {memberships.map((m) => {
-          const project = scope.data.projects[m.project_id] ?? m.project_id
+          const project = scope.data.projects[m.project_id] ?? UNKNOWN
           // village_id NULL is whole-project scope, which is ops and admin.
-          // Falling back to the id keeps a row identifiable rather than blank.
+          // A name that has not loaded is unknown: an id means nothing to the user.
           const village = m.village_id
-            ? (scope.data.villages[m.village_id] ?? m.village_id)
+            ? (scope.data.villages[m.village_id] ?? UNKNOWN)
             : t('selectRole.wholeProject')
 
           return (

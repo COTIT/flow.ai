@@ -140,11 +140,13 @@ describe('VerifyQueueScreen content', () => {
     expect(screen.getByTestId('verify-queue-row')).toBeInTheDocument()
   })
 
-  test('falls back to the raw village ID when scope names are unavailable', () => {
+  // An id means nothing to an officer: an unnamed village is unknown, shown as a dash.
+  test('shows a dash, not the village ID, when scope names are unavailable', () => {
     scopeState.data = undefined
     useVerifyQueue.mockReturnValue({ isLoading: false, error: null, data: [row()] })
     render(<VerifyQueueScreen />)
-    expect(screen.getByTestId('verify-queue-row')).toHaveTextContent('v1')
+    expect(screen.getByTestId('verify-queue-row')).not.toHaveTextContent('v1')
+    expect(screen.getByTestId('verify-queue-row')).toHaveTextContent('—')
   })
 
   test('verifying one record sends only that record', async () => {

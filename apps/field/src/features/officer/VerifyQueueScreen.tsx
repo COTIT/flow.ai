@@ -11,6 +11,7 @@ import { VerificationMark } from '@/components/marks'
 import { VerifyButton } from '@/features/officer/VerifyButton'
 import { useVerifyFromQueue, useVerifyQueue, type QueueRow } from '@/features/officer/useVerifyQueue'
 import { getVerifyTarget } from '@/features/officer/verifyNavigation'
+import { UNKNOWN } from '@/lib/format'
 
 /**
  * Spec 5.7 — the officer's verify queue: records still carrying
@@ -110,7 +111,7 @@ export function VerifyQueueScreen() {
                   <QueueSummary
                     row={row}
                     tableLabel={t(`verifyQueue.table.${row.table}`)}
-                    villageLabel={scope.data?.villages[row.village_id] ?? row.village_id}
+                    villageLabel={scope.data?.villages[row.village_id] ?? UNKNOWN}
                   />
                 </Link>
                 ) : (
@@ -118,7 +119,7 @@ export function VerifyQueueScreen() {
                   <QueueSummary
                     row={row}
                     tableLabel={t(`verifyQueue.table.${row.table}`)}
-                    villageLabel={scope.data?.villages[row.village_id] ?? row.village_id}
+                    villageLabel={scope.data?.villages[row.village_id] ?? UNKNOWN}
                   />
                 </div>
                 )

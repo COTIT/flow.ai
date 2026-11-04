@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { FileImage, FileText, Paperclip } from 'lucide-react'
 
 import { ErrorState } from '@/components/ErrorState'
+import { errorText } from '@/lib/errors'
 import { newUuid } from '@/lib/ids'
 import {
   PLOT_DOCUMENT_ACCEPT,
@@ -90,7 +91,7 @@ export function PlotDocuments({ plotId, villageId }: { plotId: string; villageId
       {upload.data && upload.data.failed.length > 0 && (
         <ul data-testid="plot-documents-failed" className="type-note flex flex-col gap-1" style={{ color: 'var(--flag-ink)' }}>
           {upload.data.failed.map((f) => (
-            <li key={f.id}>{f.name}: {f.message}</li>
+            <li key={f.id}>{f.name}: {errorText(f.message, t)}</li>
           ))}
         </ul>
       )}

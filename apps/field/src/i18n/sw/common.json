@@ -135,7 +135,17 @@
     "cropNeedsUnits": "Zao hili hupimwa kwa idadi ya vitengo, kwa hiyo idadi ya vitengo inahitajika.",
     "addPhoneFirst": "Ongeza namba ya simu kabla ya kutoa akaunti ya kuingia.",
     "staffPasswordNotHere": "Mtu huyu huingia kama mfanyakazi, kwa hiyo neno lake la siri haliwezi kurudishwa hapa.",
-    "phoneHasLogin": "Namba hii ya simu tayari ina akaunti ya kuingia kwenye programu."
+    "phoneHasLogin": "Namba hii ya simu tayari ina akaunti ya kuingia kwenye programu.",
+    "outsideYourVillages": "Nje ya vijiji vyako",
+    "payoutOverLimit": "Malipo haya yanazidi kikomo cha afisa: mtu wa uendeshaji au msimamizi lazima ayalipe.",
+    "payoutOwnRegistration": "Ulisajili kaya hii, kwa hiyo mfanyakazi mwingine lazima amlipe mkulima huyu.",
+    "payoutOwnVerification": "Ulihakiki kaya hii, kwa hiyo mfanyakazi mwingine lazima amlipe mkulima huyu.",
+    "payoutOwnHousehold": "Huwezi kulipa kaya yako mwenyewe.",
+    "payoutAlreadyVoid": "Malipo haya yameshabatilishwa.",
+    "payoutOverBalance": "Kiasi kisizidi salio la {{balance}}.",
+    "buyOwnVerification": "Mavuno uliyoyahakiki lazima yanunuliwe na mtu mwingine.",
+    "buyBadHarvest": "Kiasi cha mavuno lazima kiwe kiasi halisi cha sasa kilichohakikiwa cha kijiji hiki na zao hili.",
+    "buyNoManager": "Shamba la mavuno haya halina msimamizi mkuu."
   },
   "empty": {
     "noAccessToThis": "Hakuna cha kuonyesha",
@@ -152,7 +162,8 @@
     "no": "Hapana",
     "close": "Funga",
     "back": "Rudi nyuma",
-    "optional": "si lazima"
+    "optional": "si lazima",
+    "other": "Nyingine"
   },
   "draft": {
     "notSubmitted": "Haijawasilishwa bado",
@@ -1448,7 +1459,8 @@
     "statusDone": {
       "live": "Dodoso limechapishwa",
       "closed": "Dodoso limefungwa"
-    }
+    },
+    "removedOption": "Chaguo lililoondolewa ({{value}})"
   },
   "plotDocuments": {
     "title_one": "Hati za ardhi ({{count}})",
@@ -1581,7 +1593,7 @@
     "balance": "Salio",
     "after": "Salio baada: {{balance}}",
     "emptyTitle": "Bado hakuna miamala",
-    "emptyDetail": "Malipo ya mauzo huonekana hapa asali ya mavuno yako ikiuzwa, na malipo unapolipwa.",
+    "emptyDetail": "Malipo ya mauzo huonekana hapa mavuno yako yakiuzwa, na malipo unapolipwa.",
     "payouts": "Malipo",
     "noPayouts": "Bado hakuna malipo.",
     "voided": "Yamebatilishwa: {{reason}}",

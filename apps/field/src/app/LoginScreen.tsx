@@ -16,6 +16,7 @@ import { resolveLanding, safeRedirect } from '@/app/membership'
 import { sessionQuery } from '@/app/session'
 import { holdTempPassword } from '@/app/tempPassword'
 import { apiErrorMessage, apiStatus } from '@/lib/apiError'
+import { errorText } from '@/lib/errors'
 import { normalizePhone } from '@/lib/phone'
 import { authLogin } from '@genesy/api-client/endpoints/auth'
 import { farmLoginsLogin } from '@genesy/api-client/endpoints/farm-logins'
@@ -101,7 +102,7 @@ export function LoginScreen() {
       const status = apiStatus(cause)
       if (status === 401) setFormError(t('login.invalid'))
       else if (status === undefined) setFormError(t('login.network'))
-      else setFormError(apiErrorMessage(cause) ?? t('login.unexpected'))
+      else setFormError(apiErrorMessage(cause) ? errorText(cause, t) : t('login.unexpected'))
     }
   }
 

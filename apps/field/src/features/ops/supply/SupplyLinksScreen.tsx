@@ -70,7 +70,7 @@ export function SupplyLinksScreen() {
                   </p>
                   <p className="type-note" style={{ color: 'var(--ink-3)' }}>
                     {link.fields.length
-                      ? link.fields.map((f) => t(`supply.field.${f}`, { defaultValue: f })).join(', ')
+                      ? link.fields.map((f) => t(`supply.field.${f}`, { defaultValue: t('common.other') })).join(', ')
                       : t('supply.noFields')}
                   </p>
                 </div>

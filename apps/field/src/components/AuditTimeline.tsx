@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
+import { dbReasonText } from '@/lib/dbMessages'
 import { formatTimestamp } from '@/lib/format'
 
 /** One row of `app_voucher_timeline`, already filtered for the caller. */
@@ -38,13 +39,13 @@ export function AuditTimeline({ events }: { events: AuditEvent[] }) {
           style={{ borderLeft: '2px solid var(--rule-2)' }}
         >
           <span className="type-body-strong">
-            {t(`auditTrail.kind.${event.kind}`, { defaultValue: event.kind })}
+            {t(`auditTrail.kind.${event.kind}`, { defaultValue: t('common.other') })}
           </span>
           <span className="type-note" style={{ color: 'var(--ink-2)' }}>
             {[
               event.actor_name,
               event.actor_role &&
-                t(`auditTrail.role.${event.actor_role}`, { defaultValue: event.actor_role }),
+                t(`auditTrail.role.${event.actor_role}`, { defaultValue: t('auditTrail.role.unknown') }),
               formatTimestamp(event.occurred_at),
             ]
               .filter(Boolean)
@@ -54,13 +55,13 @@ export function AuditTimeline({ events }: { events: AuditEvent[] }) {
             <span key={line.key} className="type-note" style={{ color: 'var(--ink-3)' }}>
               {line.key === 'id'
                 ? t('auditTrail.idSeen', {
-                    type: t(`auditTrail.idType.${line.value}`, { defaultValue: line.value }),
+                    type: t(`auditTrail.idType.${line.value}`, { defaultValue: t('common.other') }),
                   })
                 : line.key === 'held'
                   ? t('auditTrail.heldForAudit')
                   : line.key === 'blocked'
-                    ? t('auditTrail.blocked', { reason: line.value })
-                    : t('auditTrail.reason', { reason: line.value })}
+                    ? t('auditTrail.blocked', { reason: dbReasonText(t, line.value) })
+                    : t('auditTrail.reason', { reason: dbReasonText(t, line.value) })}
             </span>
           ))}
         </li>
