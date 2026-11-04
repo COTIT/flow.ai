@@ -12,7 +12,7 @@ async function glassLogin(page: Page) {
   await page.goto("/login")
   await page.evaluate(() => document.body.classList.add("theme-glass"))
   // Buttons have `transition-all`; measure once the switch has settled.
-  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)))
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))))
 }
 
 /** Adds markup to the page and returns the computed style of `[data-probe]` inside it. */

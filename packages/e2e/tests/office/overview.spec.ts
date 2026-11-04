@@ -248,8 +248,8 @@ test("recent orders, needs attention, till, sales this week and batches by statu
 
   const till = page.getByRole("region", { name: "Till today" })
   await expect(till.getByText("Open shifts")).toBeVisible()
-  await expect(till.getByText("7")).toBeVisible()
-  await expect(till.getByText("38")).toBeVisible()
+  await expect(till.getByText("7", { exact: true })).toBeVisible()
+  await expect(till.getByText("38", { exact: true })).toBeVisible()
   await expect(till.getByRole("link", { name: "Shifts" })).toHaveAttribute(
     "href",
     "/till/shifts?open=true"
@@ -268,7 +268,7 @@ test("recent orders, needs attention, till, sales this week and batches by statu
   await expect(week.getByRole("link", { name: "Orders" })).toHaveAttribute("href", "/orders")
 
   const byStatus = page.getByRole("region", { name: "Batches by status" })
-  await expect(byStatus.getByText("18")).toBeVisible()
+  await expect(byStatus.getByText("18", { exact: true })).toBeVisible()
   await expect(byStatus.getByText("1", { exact: true })).toBeVisible()
 
   await expectFits(page)
@@ -327,7 +327,7 @@ test.describe(() => {
     fail = false
     await alert.getByRole("button", { name: "Try again" }).click()
     await expect(alert).toHaveCount(0)
-    await expect(page.getByRole("region", { name: "Till today" }).getByText("7")).toBeVisible()
+    await expect(page.getByRole("region", { name: "Till today" }).getByText("7", { exact: true })).toBeVisible()
   })
 })
 

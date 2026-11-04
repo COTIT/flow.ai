@@ -10,7 +10,7 @@ test("a dialog is a centred panel on a desktop and a bottom sheet on a phone", a
   await page.getByRole("button", { name: "New app key" }).click()
   const dialog = page.getByRole("dialog")
   await expect(dialog.getByLabel("Name")).toBeVisible()
-  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)))
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))))
   const box = (await dialog.boundingBox())!
   const view = page.viewportSize()!
   if (view.width < 768) {
