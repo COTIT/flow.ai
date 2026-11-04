@@ -1,3 +1,4 @@
+import { expectNoRawValues } from "../../src/test"
 import { type Api, apiAs, cred, expect, loginOffice, stackAllow, test, unique, urls, workspaces } from "../../src/stack"
 
 type StockRow = { stock_lvl: string; reserved: string; warehouse: { id: string } | null }
@@ -53,6 +54,7 @@ test("office order: confirm, pick, complete takes stock once; the invoice moves 
   await expect(page.getByRole("status").filter({ hasText: "Order completed; stock taken." })).toBeVisible()
   await expect(page.getByText("Completed", { exact: true }).first()).toBeVisible()
   expect(await level(owner, o.product, o.warehouse)).toBe(before - 3)
+  await expectNoRawValues(page, { allow: [o.number] })
   // Done once: the page offers no second Complete.
   await expect(page.getByRole("main").getByRole("button", { name: "Complete", exact: true })).toHaveCount(0)
 
@@ -64,6 +66,7 @@ test("office order: confirm, pick, complete takes stock once; the invoice moves 
   await open.click()
   await expect(page).toHaveURL(/\/invoices\/[0-9a-f-]{36}$/)
   await expect(page.getByRole("region", { name: "Lines" })).toContainText(`e2e order jar`)
+  await expectNoRawValues(page)
 
   // The API refuses a second complete and a second invoice; stock stays where it was.
   await expect(owner.post(owner.ws(`/orders/${o.id}/complete`))).rejects.toThrow(/: 409|: 422/)
