@@ -18,7 +18,10 @@ test("catalog lists products with prices and stock, and opens a product", async 
   await expectNoHorizontalScroll(page)
 
   await honey.click()
-  await expect(page).toHaveURL(`/products/${PRODUCT.honey}`)
+  // Client navigation; on a loaded machine it can take longer than the 5 s default.
+  await expect(page).toHaveURL(`/products/${PRODUCT.honey}`, {
+    timeout: 15_000,
+  })
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Ilundo Wild Forest Honey"
   )

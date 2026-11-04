@@ -18,7 +18,15 @@ export const PRODUCT = {
   coffee: "33333333-3333-4333-8333-333333333333",
   /** The mock answers 503 for this one. */
   failing: "55555555-5555-4555-8555-555555555555",
+  /** Alone on catalogue page 2, with a name far longer than a card is wide. */
+  long: "77777777-7777-4777-8777-777777777777",
 }
+
+/** The long product's name, as the API sends it. */
+export const LONG_NAME =
+  "Ilundo Village Cooperative Extra Rare Single-Origin Wild Miombo Forest Blossom Raw Unfiltered Honey Gift Box"
+/** Asking for this catalogue page gets the API's 503. */
+export const FAILING_PAGE = 66
 
 export const LOT = {
   released: "7K3M9QX2WD",
@@ -39,6 +47,7 @@ export const VARIANT = {
   wax: "a3333333-3333-4333-8333-333333333333",
   coffee250: "a4444444-4444-4444-8444-444444444444",
   coffee1k: "a5555555-5555-4555-8555-555555555555",
+  long: "a7777777-7777-4777-8777-777777777777",
 }
 
 /** More than this many of one line and the mock answers the API's stock 422. */
@@ -55,3 +64,7 @@ export const PROVIDER_DOWN_EMAIL = "provider-down@e2e.test"
 export const BUSY_EMAIL = "busy@e2e.test"
 /** Reading this order fails with a 503 (API trouble while loading the order page). */
 export const FAILING_ORDER = "66666666-6666-4666-8666-666666666666"
+/** Checkout with this email gets a 503 (the API is down when the order is placed). */
+export const CHECKOUT_DOWN_EMAIL = "checkout-down@e2e.test"
+/** Orders placed with this email are cancelled on the provider's page: back unpaid. */
+export const CANCEL_PAYMENT_EMAIL = "cancel-payment@e2e.test"
