@@ -15,10 +15,8 @@ test("ops open Dispatch: the seeded transfers, the dispatch form and the Buy har
   await expectNoRawValues(page)
 })
 
-// Bug: RUAHA's default currency is Euro, so Buy harvest prices a Tanzanian harvest in euros and
-// farmers are credited in euros unless ops change it by hand.
+// RUAHA's default currency is TZS (FB1), so Buy harvest prices and credits farmers in shillings.
 test("Buy harvest in the Tanzanian programme starts in shillings", async ({ page, request }) => {
-  test.fail(true, "RUAHA workspace default currency is EUR (demo seed / workspace settings), not TZS (e2e-field)")
   await signIn(page, request, cred("field (RUAHA)", "ops"))
   await page.goto(`${urls.field}/ops/dispatch`)
   const currency = page.getByTestId("batch-currency")
