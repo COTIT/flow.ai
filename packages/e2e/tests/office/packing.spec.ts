@@ -162,3 +162,72 @@ test.describe(() => {
     )
   })
 })
+
+async function fillPack(page: import("@playwright/test").Page) {
+  const dialog = page.getByRole("dialog")
+  await dialog.getByLabel("New batch code").fill("ILU-J-2026-03")
+  await dialog.getByLabel("Jars made").fill("10")
+  await dialog.getByLabel("Kg used").fill("7.50")
+  await dialog.getByRole("button", { name: "Pack into jars" }).click()
+}
+
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/lots/lot-raw/packings", status: 403 }],
+    },
+  })
+
+  test("/lots/[id] pack: the API's 403 shows in the dialog; no batch is made", async ({
+    page,
+    api,
+  }) => {
+    packingApi(api)
+    api.on("POST", "/workspace/:ws/lots/:id/packings", () => ({
+      status: 403,
+      body: { message: "This action is unauthorized." },
+    }))
+    await page.goto("/lots/lot-raw")
+    await page.getByRole("button", { name: "Pack into jars" }).click()
+    await fillPack(page)
+    const dialog = page.getByRole("dialog")
+    await expect(
+      dialog.getByRole("alert").filter({ hasText: "This action is unauthorized." })
+    ).toBeVisible()
+    await expect(dialog.getByRole("link", { name: /Open batch/ })).toHaveCount(0)
+    expect(api.callsTo("POST", "/workspace/:ws/lots/:id/packings")).toHaveLength(1)
+  })
+})
+
+test("/lots/[id] pack: retried after a network failure, the same Idempotency-Key goes out; one batch is made", async ({
+  page,
+  api,
+}) => {
+  test.fail(
+    true,
+    "BUG: packing sends no Idempotency-Key (apps/office/app/(app)/lots/[id]/pack-dialog.tsx:42) and POST /lots/{lot}/packings takes none, so a retry after a lost reply makes a second jar batch from the same kg"
+  )
+  packingApi(api)
+  const keys: string[] = []
+  let fail = true
+  await page.route("**/v1/workspace/w1/lots/lot-raw/packings", async (route) => {
+    keys.push(route.request().headers()["idempotency-key"] ?? "")
+    if (fail) {
+      fail = false
+      return route.abort("aborted")
+    }
+    return route.fallback()
+  })
+  await page.goto("/lots/lot-raw")
+  await page.getByRole("button", { name: "Pack into jars" }).click()
+  await fillPack(page)
+  const dialog = page.getByRole("dialog")
+  await expect(
+    dialog.getByRole("alert").filter({ hasText: "Something went wrong. Try again." })
+  ).toBeVisible()
+  await dialog.getByRole("button", { name: "Pack into jars" }).click()
+  await expect(dialog.getByRole("link", { name: "Open batch ILU-J-2026-03" })).toBeVisible()
+  expect(keys).toHaveLength(2)
+  expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/)
+  expect(keys[1]).toBe(keys[0])
+})

@@ -180,3 +180,34 @@ test.describe(() => {
     ).toBeVisible()
   })
 })
+
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/supply-transfers/tr-1/receive", status: 403 }],
+    },
+  })
+
+  test("/supply/transfers receive: the API's 403 shows in the dialog; the transfer stays on its way", async ({
+    page,
+    api,
+  }) => {
+    transfersApi(api)
+    api.on("POST", "/workspace/:ws/supply-transfers/:id/receive", () => ({
+      status: 403,
+      body: { message: "This action is unauthorized." },
+    }))
+    await page.goto("/supply/transfers")
+    await page.getByRole("button", { name: "Receive batch ILU-H-2026-01" }).click()
+    const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("New batch code").fill("AFM-RAW-01")
+    await dialog.getByRole("button", { name: "Receive" }).click()
+    await expect(
+      dialog.getByRole("alert").filter({ hasText: "This action is unauthorized." })
+    ).toBeVisible()
+    await expect(page).toHaveURL(/\/supply\/transfers$/)
+    await page.keyboard.press("Escape")
+    await expect(page.getByText("On its way")).toBeVisible()
+    expect(api.callsTo("POST", "/workspace/:ws/supply-transfers/:id/receive")).toHaveLength(1)
+  })
+})

@@ -407,3 +407,164 @@ test("till sales: per register, next to the mismatch switch", async ({ page, api
   await expect(page).toHaveURL(/\/till\/sales\?mismatch=true$/)
   await expectFits(page)
 })
+
+test("vault: create in a picked currency or the main one; the list shows it", async ({
+  page,
+  api,
+}) => {
+  tillApi(api)
+  const vaults: Record<string, unknown>[] = []
+  api
+    .on("GET", "/workspace/:ws/till/vaults", () => ({ data: vaults }))
+    .on("POST", "/workspace/:ws/till/vaults", ({ body }) => {
+      const v = { id: `v-${vaults.length + 1}`, balance: 0, ...(body as object) }
+      vaults.push(v)
+      return { status: 201, body: { data: v } }
+    })
+  await page.goto("/till/vaults")
+  await expect(page.getByText("No vaults yet.")).toBeVisible()
+
+  await page.getByRole("button", { name: "New vault" }).click()
+  const dialog = page.getByRole("dialog")
+  await dialog.getByLabel("Name").fill("Market float")
+  await dialog.getByLabel("Currency").selectOption({ label: "USD" })
+  await dialog.getByRole("button", { name: "Save" }).click()
+  await expect(dialog).toBeHidden()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Vault added." })
+  ).toBeVisible()
+  await expect(page.getByRole("cell", { name: "Market float" })).toBeVisible()
+  await expect(page.getByRole("cell", { name: "$0.00" })).toBeVisible()
+
+  await page.getByRole("button", { name: "New vault" }).click()
+  await dialog.getByLabel("Name").fill("Office safe")
+  await dialog.getByRole("button", { name: "Save" }).click()
+  await expect(page.getByRole("cell", { name: "Office safe" })).toBeVisible()
+  expect(api.callsTo("POST", "/workspace/:ws/till/vaults").map((c) => c.body)).toEqual([
+    { name: "Market float", currency_id: "cur-usd" },
+    { name: "Office safe", currency_id: null },
+  ])
+  await expectFits(page)
+})
+
+// Each till admin form, filled the way a person would, and the API call it makes.
+const tillForms = [
+  {
+    form: "new register",
+    route: "/till/registers",
+    path: "/workspace/:ws/till/registers",
+    url: "/v1/workspace/w1/till/registers",
+    open: "New register",
+    fill: { Name: "Shop till 2" },
+    field: "name",
+  },
+  {
+    form: "new till user",
+    route: "/till/users",
+    path: "/workspace/:ws/till/users",
+    url: "/v1/workspace/w1/till/users",
+    open: "New till user",
+    fill: { Name: "Baraka", "PIN (4 to 8 digits)": "12" },
+    field: "pin",
+  },
+  {
+    form: "new vault",
+    route: "/till/vaults",
+    path: "/workspace/:ws/till/vaults",
+    url: "/v1/workspace/w1/till/vaults",
+    open: "New vault",
+    fill: { Name: "Market float" },
+    field: "name",
+  },
+]
+const labelOf: Record<string, string> = { name: "Name", pin: "PIN (4 to 8 digits)" }
+
+for (const f of tillForms) {
+  test.describe(() => {
+    test.use({ allow: { responses: [{ url: f.url, status: 422 }] } })
+
+    test(`${f.route} ${f.form}: the API's 422 shows at the ${f.field} field; the dialog keeps what was typed`, async ({
+      page,
+      api,
+    }) => {
+      tillApi(api)
+      const message = `The ${f.field} is not valid.`
+      api.on("POST", f.path, () => ({
+        status: 422,
+        body: {
+          message: "The given data was invalid.",
+          errors: { [f.field]: [message] },
+        },
+      }))
+      await page.goto(f.route)
+      await page.getByRole("button", { name: f.open }).click()
+      const dialog = page.getByRole("dialog")
+      for (const [label, value] of Object.entries(f.fill))
+        await dialog.getByLabel(label).fill(value)
+      await dialog.getByRole("button", { name: "Save" }).click()
+      await expect(dialog.getByText(message), `${f.route} ${f.form} 422`).toBeVisible()
+      const input = dialog.getByLabel(labelOf[f.field]!)
+      await expect(input).toHaveAttribute("aria-invalid", "true")
+      await expect(dialog.getByLabel("Name")).toHaveValue(f.fill.Name)
+      expect(api.callsTo("POST", f.path)).toHaveLength(1)
+      await expectFits(page)
+    })
+  })
+
+  for (const { status, message } of [
+    { status: 403, message: "This action is unauthorized." },
+    { status: 409, message: "That name is already taken." },
+  ])
+    test.describe(() => {
+      test.use({ allow: { responses: [{ url: f.url, status }] } })
+
+      test(`${f.route} ${f.form}: the API's ${status} shows in the dialog; nothing is added`, async ({
+        page,
+        api,
+      }) => {
+        tillApi(api)
+        api.on("POST", f.path, () => ({ status, body: { message } }))
+        await page.goto(f.route)
+        await page.getByRole("button", { name: f.open }).click()
+        const dialog = page.getByRole("dialog")
+        for (const [label, value] of Object.entries(f.fill))
+          await dialog.getByLabel(label).fill(value === "12" ? "4821" : value)
+        await dialog.getByRole("button", { name: "Save" }).click()
+        await expect(
+          dialog.getByRole("alert").filter({ hasText: message }),
+          `${f.route} ${f.form} ${status}`
+        ).toBeVisible()
+        await expect(page.getByRole("status").filter({ hasText: /added/ })).toHaveCount(0)
+        await expect(dialog.getByLabel("Pairing code")).toHaveCount(0)
+        expect(api.callsTo("POST", f.path)).toHaveLength(1)
+      })
+    })
+}
+
+test.describe(() => {
+  test.use({
+    allow: { responses: [{ url: "/v1/workspace/w1/till/users/tu-1", status: 422 }] },
+  })
+
+  test("/till/users reset PIN: the API's 422 shows at the PIN; the user stays locked", async ({
+    page,
+    api,
+  }) => {
+    tillApi(api)
+    api.on("PATCH", "/workspace/:ws/till/users/:id", () => ({
+      status: 422,
+      body: {
+        message: "The given data was invalid.",
+        errors: { pin: ["The PIN must be 4 to 8 digits."] },
+      },
+    }))
+    await page.goto("/till/users")
+    await page.getByRole("button", { name: "New PIN for Amina" }).click()
+    const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("PIN (4 to 8 digits)").fill("99")
+    await dialog.getByRole("button", { name: "Save" }).click()
+    await expect(dialog.getByText("The PIN must be 4 to 8 digits.")).toBeVisible()
+    await page.keyboard.press("Escape")
+    await expect(page.getByText("Locked")).toBeVisible()
+  })
+})

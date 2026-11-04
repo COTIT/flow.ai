@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test"
+
 import { expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 const product = {
@@ -328,4 +330,160 @@ test("all stock and below-zero lists", async ({ page, api }) => {
   await expect(
     page.getByRole("heading", { name: "AFM Honey 500g" })
   ).toBeVisible()
+})
+
+test("/products/[id] edit: a new price and status are sent as typed and shown after the save", async ({
+  page,
+  api,
+}) => {
+  stockApi(api)
+  await page.goto("/products/prod-honey")
+  await page.getByLabel("Price excl. VAT").fill("12.40")
+  await page.getByLabel("Status").selectOption({ label: "No longer sold" })
+  await page.getByRole("button", { name: "Save" }).click()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Product saved." })
+  ).toBeVisible()
+  expect(api.callsTo("POST", "/workspace/:ws/products/:id")[0]?.body).toMatchObject({
+    price: "12.40",
+    status: "nla",
+  })
+  // The page reads the product again: the badge and the field show the API's answer.
+  await expect(page.getByText("No longer sold", { exact: true }).first()).toBeVisible()
+  await expect(page.getByLabel("Price excl. VAT")).toHaveValue("12.40")
+  await expect(page.getByLabel("Status")).toHaveValue("nla")
+})
+
+test("/products/[id] edit: a very long name saves and the page still fits", async ({
+  page,
+  api,
+}) => {
+  stockApi(api)
+  const long = "Ilundo raw forest honey from the miombo woodland ".repeat(5).trim()
+  await page.goto("/products/prod-honey")
+  await page.getByLabel("Name").fill(long)
+  await page.getByRole("button", { name: "Save" }).click()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Product saved." })
+  ).toBeVisible()
+  expect(api.callsTo("POST", "/workspace/:ws/products/:id")[0]?.body).toMatchObject({
+    name: long,
+  })
+  await expect(page.getByRole("heading", { name: long })).toBeVisible()
+  await expectFits(page)
+})
+
+// The product page's two writes, and how to start each.
+const productWrites = [
+  {
+    write: "edit",
+    path: "/workspace/:ws/products/:id",
+    url: "/v1/workspace/w1/products/prod-honey",
+    run: async (page: Page) => {
+      await page.getByLabel("Price excl. VAT").fill("11.00")
+      await page.getByRole("button", { name: "Save" }).click()
+    },
+    saved: "Product saved.",
+  },
+  {
+    write: "stock change",
+    path: "/workspace/:ws/products/:id/stocks",
+    url: "/v1/workspace/w1/products/prod-honey/stocks",
+    run: async (page: Page) => {
+      const dialog = page.getByRole("dialog")
+      if (!(await dialog.isVisible()))
+        await page.getByRole("button", { name: "Change stock" }).click()
+      await dialog.getByLabel("Change (e.g. 10 or -3)").fill("10")
+      await dialog.getByRole("button", { name: "Save" }).click()
+    },
+    saved: "Stock changed",
+  },
+]
+
+for (const w of productWrites)
+  for (const { status, message } of [
+    { status: 403, message: "You may not change products." },
+    { status: 500, message: "The server could not finish this." },
+  ])
+    test.describe(() => {
+      test.use({ allow: { responses: [{ url: w.url, status }] } })
+
+      test(`/products/[id] ${w.write}: the API's ${status} shows; nothing marked saved`, async ({
+        page,
+        api,
+      }) => {
+        stockApi(api)
+        api.on("POST", w.path, () => ({ status, body: { message } }))
+        await page.goto("/products/prod-honey")
+        await w.run(page)
+        await expect(
+          page.getByRole("alert").filter({ hasText: message }),
+          `/products/[id] ${w.write} ${status}`
+        ).toBeVisible()
+        await expect(page.getByRole("status").filter({ hasText: w.saved })).toHaveCount(0)
+        expect(api.callsTo("POST", w.path)).toHaveLength(1)
+      })
+    })
+
+test("/products/[id] edit: a network failure says so; saving again sends the same form", async ({
+  page,
+  api,
+}) => {
+  stockApi(api)
+  let fail = true
+  await page.route("**/v1/workspace/w1/products/prod-honey", async (route) => {
+    if (route.request().method() === "POST" && fail) {
+      fail = false
+      return route.abort("aborted")
+    }
+    return route.fallback()
+  })
+  await page.goto("/products/prod-honey")
+  await page.getByLabel("Price excl. VAT").fill("11.00")
+  await page.getByRole("button", { name: "Save" }).click()
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Something went wrong. Try again." })
+  ).toBeVisible()
+  await expect(page.getByLabel("Price excl. VAT")).toHaveValue("11.00")
+  await page.getByRole("button", { name: "Save" }).click()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Product saved." })
+  ).toBeVisible()
+  // Saving a product sets fields, so a repeat is harmless: one save reached the API.
+  const saves = api.callsTo("POST", "/workspace/:ws/products/:id")
+  expect(saves).toHaveLength(1)
+  expect(saves[0]?.body).toMatchObject({ price: "11.00" })
+})
+
+test("/products/[id] stock change: retried after a network failure, the API can tell it is the same change", async ({
+  page,
+  api,
+}) => {
+  test.fail(
+    true,
+    "BUG: a stock change is sent without an Idempotency-Key (apps/office/app/(app)/products/[id]/page.tsx:501), and POST /products/{p}/stocks takes none, so a retry after a lost reply moves stock twice"
+  )
+  stockApi(api)
+  const keys: string[] = []
+  let fail = true
+  await page.route("**/v1/workspace/w1/products/prod-honey/stocks", async (route) => {
+    keys.push(route.request().headers()["idempotency-key"] ?? "")
+    if (fail) {
+      fail = false
+      return route.abort("aborted")
+    }
+    return route.fallback()
+  })
+  await page.goto("/products/prod-honey")
+  await productWrites[1]!.run(page)
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Something went wrong. Try again." })
+  ).toBeVisible()
+  await productWrites[1]!.run(page)
+  await expect(
+    page.getByRole("status").filter({ hasText: "Stock changed" })
+  ).toBeVisible()
+  expect(keys).toHaveLength(2)
+  expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/)
+  expect(keys[1]).toBe(keys[0])
 })

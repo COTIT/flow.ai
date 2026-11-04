@@ -145,3 +145,34 @@ test.describe(() => {
     ).toBeVisible()
   })
 })
+
+for (const r of [
+  { status: 403, message: "Only workspace admins can do this." },
+  { status: 409, message: "This link was already revoked by the partner." },
+])
+  test.describe(() => {
+    test.use({
+      allow: { responses: [{ url: "/v1/workspace/w1/supply-links/link-1", status: r.status }] },
+    })
+
+    test(`/supply/links revoke: the API's ${r.status} shows; the link stays as it was`, async ({
+      page,
+      api,
+    }) => {
+      linksApi(api)
+      api.on("DELETE", "/workspace/:ws/supply-links/:id", () => ({
+        status: r.status,
+        body: { message: r.message },
+      }))
+      await page.goto("/supply/links")
+      const ruaha = page.getByRole("row", { name: /RUAHA Project/ })
+      await ruaha.getByRole("button", { name: "Revoke" }).click()
+      await page.getByRole("alertdialog").getByRole("button", { name: "Revoke" }).click()
+      await expect(
+        page.getByRole("alert").filter({ hasText: r.message }),
+        `/supply/links revoke ${r.status}`
+      ).toBeVisible()
+      await expect(ruaha.getByText("Revoked", { exact: true })).toHaveCount(0)
+      expect(api.callsTo("DELETE", "/workspace/:ws/supply-links/:id")).toHaveLength(1)
+    })
+  })

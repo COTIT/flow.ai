@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test"
+
 import { choose, expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 type Order = {
@@ -548,4 +550,172 @@ test("timeline: an older order without a trail shows its own times and says why"
   await expect(
     timeline.getByText("Who did what is recorded from now on; older steps show their times only.")
   ).toBeVisible()
+})
+
+// Asks first: open the question (once the last one has closed), then answer it.
+async function askThen(page: Page, opener: string, action: string) {
+  const ask = page.getByRole("alertdialog")
+  await expect(ask).toBeHidden()
+  await page.getByRole("main").getByRole("button", { name: opener }).click()
+  await ask.getByRole("button", { name: action }).click()
+}
+
+// Every order action, how to start it, and the order state that offers it.
+const orderActions: {
+  action: string
+  path: string
+  start: Partial<Order>
+  run: (page: Page) => Promise<void>
+}[] = [
+  {
+    action: "confirm",
+    path: "confirm",
+    start: { status: "draft" },
+    run: (page) => page.getByRole("button", { name: "Confirm order" }).click(),
+  },
+  {
+    action: "pick",
+    path: "pick",
+    start: { status: "open" },
+    run: async (page) => {
+      await page.getByRole("button", { name: "Record picking" }).click()
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Record picking" })
+        .click()
+    },
+  },
+  {
+    action: "complete",
+    path: "complete",
+    start: { status: "open" },
+    run: (page) => askThen(page, "Complete", "Complete"),
+  },
+  {
+    action: "cancel",
+    path: "cancel",
+    start: { status: "open" },
+    run: (page) => askThen(page, "Cancel order", "Cancel order"),
+  },
+  {
+    action: "return",
+    path: "returns",
+    start: { status: "completed" },
+    run: async (page) => {
+      await page.getByRole("button", { name: "Take back returns" }).click()
+      await page.getByRole("dialog").getByLabel("AFM Honey 500g (8)").fill("1")
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Take back returns" })
+        .click()
+    },
+  },
+  {
+    action: "invoice",
+    path: "invoice",
+    start: { status: "completed" },
+    run: (page) => page.getByRole("button", { name: "Make invoice" }).click(),
+  },
+  {
+    action: "refund",
+    path: "refunds",
+    start: { status: "completed", paid_at: "2026-10-30T10:00:00Z" },
+    run: async (page) => {
+      await page.getByRole("button", { name: "Refund" }).click()
+      await page.getByRole("dialog").getByLabel("Amount (USD)").fill("1")
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Refund" })
+        .click()
+    },
+  },
+]
+
+// A refusal the API gives for a stale order (another user moved it on) or a missing right.
+const refusals = [
+  { status: 403, message: "You may not change orders in this workspace." },
+  { status: 409, message: "This order was changed by someone else. Reload it." },
+  { status: 500, message: "The server could not finish this." },
+]
+
+for (const { action, path, start, run } of orderActions)
+  for (const { status, message } of refusals)
+    test.describe(() => {
+      test.use({
+        allow: {
+          responses: [
+            { url: `/v1/workspace/w1/orders/ord-1/${path}`, status },
+          ],
+        },
+      })
+
+      test(`orders/[id] ${action}: the API's ${status} shows, sent once, nothing marked done`, async ({
+        page,
+        api,
+      }) => {
+        ordersApi(api, start)
+        api.on("POST", `/workspace/:ws/orders/:id/${path}`, () => ({
+          status,
+          body: { message },
+        }))
+        await page.goto("/orders/ord-1")
+        await expect(page.getByRole("heading", { name: "SO-1001" })).toBeVisible()
+        const reads = api.callsTo("GET", "/workspace/:ws/orders/:id").length
+        await run(page)
+        await expect(
+          page.getByRole("alert").filter({ hasText: message }),
+          `orders/[id] ${action} ${status}`
+        ).toBeVisible()
+        // A write is never retried by itself, and a refusal does not reload the order as if done.
+        expect(api.callsTo("POST", `/workspace/:ws/orders/:id/${path}`)).toHaveLength(1)
+        expect(api.callsTo("GET", "/workspace/:ws/orders/:id")).toHaveLength(reads)
+        // The returns dialog's restock box is checked on its own below.
+        if (action !== "return") await expectFits(page)
+      })
+    })
+
+for (const { action, path, start, run } of orderActions.filter((a) =>
+  ["confirm", "complete", "cancel", "invoice"].includes(a.action)
+))
+  test(`orders/[id] ${action}: retried after a network failure, the key is reused; the API sees it once`, async ({
+    page,
+    api,
+  }) => {
+    ordersApi(api, start)
+    const keys: string[] = []
+    let fail = true
+    await page.route(`**/v1/workspace/w1/orders/ord-1/${path}`, async (route) => {
+      keys.push(route.request().headers()["idempotency-key"] ?? "")
+      if (fail) {
+        fail = false
+        return route.abort("aborted")
+      }
+      return route.fallback()
+    })
+    await page.goto("/orders/ord-1")
+    await run(page)
+    await expect(
+      page.getByRole("alert").filter({ hasText: "Something went wrong. Try again." }),
+      `orders/[id] ${action} network`
+    ).toBeVisible()
+    await run(page)
+    await expect.poll(() => api.callsTo("POST", `/workspace/:ws/orders/:id/${path}`).length).toBe(1)
+    expect(keys).toHaveLength(2)
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/)
+    expect(keys[1], `orders/[id] ${action} retry key`).toBe(keys[0])
+  })
+
+test("orders/[id] returns dialog: every control is a 44 px target on a phone", async ({
+  page,
+  api,
+}) => {
+  test.fail(
+    (page.viewportSize()?.width ?? 0) < 768,
+    "BUG: the Restock box is a bare 13x13 <input type=checkbox> (apps/office/app/(app)/orders/[id]/page.tsx:789), not the 44 px Checkbox"
+  )
+  ordersApi(api, { status: "completed" })
+  await page.goto("/orders/ord-1")
+  await page.getByRole("button", { name: "Take back returns" }).click()
+  await expect(page.getByRole("dialog").getByLabel("Put returned goods back on stock")).toBeChecked()
+  await expectFits(page)
 })
