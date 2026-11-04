@@ -4,15 +4,15 @@ import { mockApi, type MockReply } from "../../src/api-mock"
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { me, villages } from "./api"
-import { VOUCHER, held, lookup, redeemed, timeline } from "./redeem.api"
+import { VOUCHER, expired, held, lookup, redeemed, timeline } from "./redeem.api"
 
 /** Opens /officer/redeem signed in as a field officer; returns how many redeems reached the API. */
-async function open(page: Page, lookupReply: MockReply) {
+async function open(page: Page, lookupReply: MockReply, locale: "en" | "sw" = "en") {
   await seedSession(page)
   // The first-visit guided tour would take the officer to /officer; this officer has seen it.
   await page.addInitScript(() => localStorage.setItem("ruaha360:tours-seen", JSON.stringify(["officer:u1"])))
   await mockApi(page, {
-    "GET /farm/me": me(),
+    "GET /farm/me": me({ locale }),
     "GET /workspace/w1/farm/villages": villages,
     "POST /workspace/w1/farm/vouchers/lookup": lookupReply,
     [`GET /workspace/w1/farm/vouchers/${VOUCHER}/timeline`]: timeline,
@@ -66,6 +66,26 @@ test("a voucher the API blocks shows its reason and no hand-over", async ({ page
   await expect(page.getByTestId("redeem-confirm")).toHaveCount(0)
   expect(redeems.count).toBe(0)
   await expectNoHorizontalScroll(page)
+})
+
+test("an expired voucher reads Expired, says when, and offers no hand-over", async ({ page }) => {
+  const redeems = await open(page, expired)
+  await lookUp(page)
+  await expect(page.getByTestId("redeem-preview")).toContainText("Expired")
+  await expect(page.getByTestId("redeem-blocked")).toContainText("You cannot redeem this voucher")
+  await expect(page.getByTestId("redeem-blocked")).toContainText(/This voucher expired on 21 Oct\w* 2026\./)
+  await expect(page.getByTestId("redeem-confirm")).toHaveCount(0)
+  expect(redeems.count).toBe(0)
+  await expectNoHorizontalScroll(page)
+})
+
+test("a Swahili officer reads the expiry in Swahili", async ({ page }) => {
+  await open(page, expired, "sw")
+  await lookUp(page)
+  await expect(page.getByTestId("redeem-preview")).toContainText("Imeisha muda wake")
+  await expect(page.getByTestId("redeem-blocked")).toContainText("Huwezi kukabidhi vocha hii")
+  await expect(page.getByTestId("redeem-blocked")).toContainText("Vocha hii iliisha muda wake tarehe 21")
+  await expect(page.getByTestId("redeem-confirm")).toHaveCount(0)
 })
 
 test("a double tap on confirm pays once", async ({ page }) => {

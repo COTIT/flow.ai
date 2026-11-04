@@ -34,6 +34,14 @@ export const held = lookup({
   blocked_reason: "this voucher is held for an audit: ops or admin must redeem it in person",
 })
 
+/** Past its expiry: the API refuses the hand-over and says when (farm_vouchers/rules.rs). */
+export const expired = lookup({
+  expired: true,
+  expires_at: "2026-10-21T07:00:00Z",
+  can_redeem: false,
+  blocked_reason: "this voucher expired on 21 Oct 2026",
+})
+
 /** POST /workspace/w1/farm/vouchers/redeem. */
 export const redeemed = {
   data: {

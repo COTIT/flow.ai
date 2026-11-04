@@ -10,6 +10,7 @@ import {
   VOUCHER,
   eligibilityAfter,
   eligibilityBefore,
+  expiredVouchers,
   farmerMe,
   myVouchers,
   noVouchers,
@@ -20,7 +21,7 @@ import {
   voidedVouchers,
 } from "./farmer.api"
 import { noOpportunities } from "./market.api"
-import { emptyPassbook } from "./passbook.api"
+import { emptyPassbook, passbook } from "./passbook.api"
 import { requestList } from "./requests.api"
 
 const RESPONSES = `/v1/workspace/w1/farm/surveys/${SURVEY}/responses`
@@ -94,6 +95,18 @@ test("the farmer's home shows the farm summary and the new survey", async ({ pag
   await expectNoHorizontalScroll(page)
 })
 
+test("the farmer's home shows their passbook balance and opens the passbook", async ({ page }) => {
+  await open(page, "/farm", [], {
+    "GET /workspace/w1/farm/passbook/mine": passbook,
+    "GET /workspace/w1/farm/payouts": { body: { data: [], meta: { current_page: 1, from: null, to: null, last_page: 1, per_page: 100, total: 0 } } },
+  })
+  await expect(page.getByTestId("passbook-home-TZS")).toContainText("5,000.00")
+  await page.getByTestId("farm-home-passbook").getByRole("link").click()
+  await expect(page).toHaveURL(/\/farm\/passbook$/)
+  await expect(page.getByTestId("passbook-balance-TZS")).toContainText("5,000.00")
+  await expectNoHorizontalScroll(page)
+})
+
 test("my farm shows the household, farm, plot and crop with its current expected harvest", async ({ page }) => {
   await open(page, "/farm/my-farm")
 
@@ -145,6 +158,19 @@ test("a voucher ops voided says so, with their reason and no QR code", async ({ 
   const card = page.getByTestId("voucher-card")
   await expect(card).toHaveAttribute("data-status", "void")
   await expect(card.getByTestId("voucher-validity")).toHaveText("Cancelled: Duplicate household")
+  await expect(card.getByTestId("voucher-qr")).toHaveCount(0)
+  await expectNoHorizontalScroll(page)
+})
+
+test("a voucher left past its expiry says when it expired, and shows no QR code", async ({ page }) => {
+  await open(page, `/farm/surveys/${SURVEY}`, [], {
+    "GET /workspace/w1/farm/surveys/eligibility": eligibilityAfter,
+    "GET /workspace/w1/farm/vouchers/mine": expiredVouchers,
+  })
+  const card = page.getByTestId("voucher-card")
+  await expect(card).toHaveAttribute("data-status", "expired")
+  await expect(card).toContainText("Expired")
+  await expect(card.getByTestId("voucher-validity")).toContainText(/This voucher expired on 21 Oct\w* 2026/)
   await expect(card.getByTestId("voucher-qr")).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 })
