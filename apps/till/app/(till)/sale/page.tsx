@@ -70,11 +70,7 @@ export default function SalePage() {
   const [tendered, setTendered] = React.useState("")
   const [reference, setReference] = React.useState("")
   const [badTendered, setBadTendered] = React.useState(false)
-  const [done, setDone] = React.useState<{
-    sale: SaleResource
-    lines: CartLine[]
-    quoted?: QuoteLine[]
-  } | null>(null)
+  const [done, setDone] = React.useState<SaleResource | null>(null)
   const [saved, setSaved] = React.useState<CartLine[] | null>(null)
   const sheetRef = React.useRef<HTMLElement>(null)
   const cash = method === "cash" && tendered ? Number(tendered) : null
@@ -87,7 +83,7 @@ export default function SalePage() {
   const sale = useTillSalesCreate({
     mutation: {
       onSuccess: ({ data }) => {
-        setDone({ sale: data, lines, quoted: quote?.lines })
+        setDone(data)
         setSheet("done")
         cartStore.getState().clear()
         setTendered("")
@@ -583,12 +579,7 @@ export default function SalePage() {
                 </div>
               </>
             ) : sheet === "done" && done ? (
-              <Receipt
-                sale={done.sale}
-                lines={done.lines}
-                quoted={done.quoted}
-                onDone={newSale}
-              />
+              <Receipt sale={done} onDone={newSale} />
             ) : saved ? (
               <Saved lines={saved} onDone={newSale} />
             ) : null}

@@ -99,6 +99,18 @@ test("a booked sale says so; a price mismatch on it is flagged", async ({
           change: null,
           card_reference: null,
           sold_at: "2026-11-01T09:12:00Z",
+          lines: [
+            {
+              title: "Ilundo honey 500 g",
+              product_id: "p-honey",
+              product_variant_id: null,
+              quantity: "1.00",
+              unit_price: 1147,
+              line_excl: 1147,
+              line_vat: 103,
+              line_total: 1250,
+            },
+          ],
         },
       },
     }
