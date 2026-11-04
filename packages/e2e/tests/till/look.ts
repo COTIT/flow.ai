@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 
 import {
   expect,
@@ -42,4 +42,16 @@ export async function expectTillLook(page: Page, { shift = true } = {}) {
 export async function tapKeys(page: Page, digits: string) {
   for (const d of digits)
     await page.getByRole("button", { name: d, exact: true }).click()
+}
+
+/**
+ * A failed query is retried three times with back-off (1 s, 2 s, 4 s) before the screen shows
+ * the error. On an installed `page.clock`, moves time on until `shown` appears; each retry's
+ * timer only exists once the try before it has failed, hence the loop.
+ */
+export async function skipRetries(page: Page, shown: Locator) {
+  await expect(async () => {
+    await page.clock.fastForward(4_000)
+    await expect(shown).toBeVisible({ timeout: 250 })
+  }).toPass()
 }

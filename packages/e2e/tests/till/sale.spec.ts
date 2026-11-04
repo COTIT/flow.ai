@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test"
 
-import { expectTillLook, tapKeys } from "./look"
+import { expectTillLook, skipRetries, tapKeys } from "./look"
 import {
   catalogPage,
   expect,
@@ -376,5 +376,204 @@ test.describe("refused sales", () => {
     await expect(
       page.getByRole("link", { name: "Open the drawer" })
     ).toBeVisible()
+  })
+})
+
+test("one less, removing the last one and Clear change the basket and its total", async ({
+  page,
+  api,
+}) => {
+  saleApi(api)
+  await seedTill(page)
+  await page.goto("/sale")
+  await ringUp(page)
+  const basket = page.getByRole("complementary", { name: "Basket" })
+  await expect(basket.getByText("Basket · 3 items")).toBeVisible()
+
+  await basket
+    .getByRole("button", { name: "One less Ilundo honey 500 g" })
+    .click()
+  await expect(basket.getByLabel("Quantity of Ilundo honey 500 g")).toHaveText(
+    "1"
+  )
+  await basket
+    .getByRole("button", { name: "One less Beeswax candle · Large" })
+    .click()
+  await expect(basket.getByText("Beeswax candle · Large")).toHaveCount(0)
+  await expect(basket.getByText("Basket · 1 item")).toBeVisible()
+  // The quote for one honey alone (asked when the first tile was tapped) prices the line.
+  await expect(basket.locator(".lp")).toHaveText(["€12.50"])
+  await expect(basket.getByRole("button", { name: /^Charge/ })).toHaveText(
+    "Charge€12.50"
+  )
+
+  await basket.getByRole("button", { name: "Clear" }).click()
+  await expect(basket.getByText("The basket is empty.")).toBeVisible()
+  await expect(basket.getByRole("button", { name: "Clear" })).toBeDisabled()
+  await expect(basket.getByRole("button", { name: /^Charge/ })).toBeDisabled()
+  await expect(page.getByRole("button", { name: /in the basket/ })).toHaveCount(
+    0
+  )
+})
+
+test("New sale starts over: the next sale gets its own client_ref", async ({
+  page,
+  api,
+}) => {
+  saleApi(api)
+  await seedTill(page)
+  await page.goto("/sale")
+  const tile = page
+    .getByRole("list", { name: "Products" })
+    .getByRole("button", { name: /Ilundo honey 500 g/ })
+  for (const n of ["1042", "1042"]) {
+    await tile.click()
+    const sheet = await charge(page, "Card")
+    await sheet.getByRole("button", { name: /^Book card sale/ }).click()
+    const receipt = page.getByRole("dialog", { name: "Done" })
+    await expect(receipt.getByText(`Sale ${n} booked`)).toBeVisible()
+    await receipt.getByRole("button", { name: "New sale" }).click()
+    await expect(page.getByText("The basket is empty.")).toBeVisible()
+  }
+  const refs = api
+    .callsTo("POST", `/workspace/${WS}/till/sales`)
+    .map((p) => (p.body as { client_ref: string }).client_ref)
+  expect(refs).toHaveLength(2)
+  expect(refs[0]).not.toBe(refs[1])
+})
+
+test.describe("server busy at charge", () => {
+  test.use({ allow: { responses: [{ url: salesUrl, status: 503 }] } })
+
+  test("says so, keeps the sale off the offline queue, and the retry books it once", async ({
+    page,
+    api,
+  }) => {
+    saleApi(api)
+    let busy = true
+    api.on("POST", "/workspace/:ws/till/sales", ({ body }) => {
+      if (!busy) return booked(body as Parameters<typeof booked>[0])
+      busy = false
+      return {
+        status: 503,
+        body: { message: "The server is busy, please try again." },
+      }
+    })
+    await seedTill(page)
+    await page.goto("/sale")
+    await ringUp(page)
+    const sheet = await charge(page)
+    await sheet.getByRole("button", { name: "€50.00" }).click()
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
+    await expect(
+      sheet
+        .getByRole("alert")
+        .filter({ hasText: "The server is busy, please try again." })
+    ).toBeVisible()
+    // An answer came back, so this is not an offline sale: nothing waits in the queue.
+    await expect(
+      page.getByRole("dialog", { name: "Saved offline" })
+    ).toHaveCount(0)
+    expect(
+      await page.evaluate(() => localStorage.getItem("genesy.till.queue"))
+    ).not.toContain("client_ref")
+    await expectTillLook(page, { shift: false })
+
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
+    await expect(
+      page.getByRole("dialog", { name: "Done" }).getByText("Sale 1042 booked")
+    ).toBeVisible()
+    const refs = api
+      .callsTo("POST", `/workspace/${WS}/till/sales`)
+      .map((p) => (p.body as { client_ref: string }).client_ref)
+    expect(refs).toHaveLength(2)
+    expect(refs[0]).toBe(refs[1])
+  })
+})
+
+test.describe("product taken off sale", () => {
+  const quoteUrl = `${salesUrl}/quote`
+  test.use({
+    allow: {
+      responses: [
+        { url: quoteUrl, status: 422 },
+        { url: salesUrl, status: 422 },
+      ],
+    },
+  })
+
+  test("the API refuses the line; the till shows why and books nothing", async ({
+    page,
+    api,
+  }) => {
+    saleApi(api)
+    // The API's answer once the candle is disabled in the office, to the quote and the sale.
+    const offSale = () => ({
+      status: 422,
+      body: {
+        message: "This product is not for sale.",
+        errors: { "lines.1.product_id": ["This product is not for sale."] },
+      },
+    })
+    api.on("POST", "/workspace/:ws/till/sales/quote", offSale)
+    api.on("POST", "/workspace/:ws/till/sales", offSale)
+    // The quote's 422 is retried like any failed query; the clock skips the waits.
+    await page.clock.install()
+    await seedTill(page)
+    await page.goto("/sale")
+    await ringUp(page)
+    const basket = page.getByRole("complementary", { name: "Basket" })
+    await skipRetries(
+      page,
+      basket
+        .getByRole("alert")
+        .filter({ hasText: "This product is not for sale." })
+    )
+
+    const sheet = await charge(page, "Card")
+    await sheet.getByRole("button", { name: /^Book card sale/ }).click()
+    await expect(
+      sheet
+        .getByRole("alert")
+        .filter({ hasText: "This product is not for sale." })
+    ).toBeVisible()
+    await expect(page.getByRole("dialog", { name: "Done" })).toHaveCount(0)
+    await expect(
+      page.getByRole("dialog", { name: "Saved offline" })
+    ).toHaveCount(0)
+    await expectTillLook(page, { shift: false })
+  })
+})
+
+test.describe("quote unavailable", () => {
+  test.use({
+    allow: { responses: [{ url: `${salesUrl}/quote`, status: 503 }] },
+  })
+
+  test("the basket says the API couldn't price it, after the retries", async ({
+    page,
+    api,
+  }) => {
+    saleApi(api)
+    api.on("POST", "/workspace/:ws/till/sales/quote", () => ({
+      status: 503,
+      body: { message: "The server is busy, please try again." },
+    }))
+    // The query retries with back-off; the clock skips the waits.
+    await page.clock.install()
+    await seedTill(page)
+    await page.goto("/sale")
+    await ringUp(page)
+    const basket = page.getByRole("complementary", { name: "Basket" })
+    await skipRetries(
+      page,
+      basket
+        .getByRole("alert")
+        .filter({ hasText: "The server is busy, please try again." })
+    )
+    // No figure is made up while the API can't price the basket.
+    await expect(basket.getByRole("button", { name: /^Charge/ })).toHaveText(
+      "Charge—"
+    )
   })
 })
