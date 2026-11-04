@@ -34,6 +34,7 @@ import {
 } from "@genesy/ui/components/table"
 import { cn } from "@genesy/ui/lib/utils"
 import { formatDateTime } from "@genesy/ui/lib/format"
+import { useCan } from "@/lib/can"
 import { Bento, Chip, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { CardState, ListPager, ListSkeleton, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
@@ -72,11 +73,13 @@ export default function LotPage({
   })
   // Read once the batch is known, so a missing batch makes no further calls.
   const known = { query: { enabled: lot.isSuccess } }
+  // The product's name only for a member who may read products (the API answers 403 otherwise).
+  const viewProduct = useCan("product.view")
   const product = useProductsGet(
     workspaceId,
     lot.data?.data.product_id ?? "",
     undefined,
-    known
+    { query: { enabled: lot.isSuccess && viewProduct } }
   )
   const passport = useLotsPassportGet(workspaceId, id, known)
   // The same first page the Farmer credits card reads (one request): its village groups.

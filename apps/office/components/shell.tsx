@@ -277,8 +277,15 @@ export function LocaleMenu({ withName = false }: { withName?: boolean }) {
   )
 }
 
+/** The quick search is the API's global search: offered while /me loads, then only with the right. */
+function useSearchAllowed() {
+  const { read, may } = useRights()
+  return !read || may("workspace.global-search")
+}
+
 function TopBar() {
   const t = useTranslations()
+  const search = useSearchAllowed()
   const router = useRouter()
   const pathname = usePathname()
   const workspaceId = useSession((s) => s.workspaceId)
@@ -302,10 +309,14 @@ function TopBar() {
           </>
         ) : null}
       </p>
-      {/* Anchored right with a fixed width, so names loading on the left never move it. */}
+      {/* Anchored right with a fixed width, so names loading on the left never move it. Kept in
+          place but invisible (out of reach) for a member who may not search. */}
       <form
         role="search"
-        className="relative w-[340px] shrink-0 max-xl:w-auto max-xl:min-w-0 max-xl:flex-1 min-[1400px]:w-[420px]"
+        className={cn(
+          "relative w-[340px] shrink-0 max-xl:w-auto max-xl:min-w-0 max-xl:flex-1 min-[1400px]:w-[420px]",
+          !search && "invisible"
+        )}
         onSubmit={(e) => {
           e.preventDefault()
           const q = String(new FormData(e.currentTarget).get("q") ?? "")
@@ -335,6 +346,7 @@ function TopBar() {
 function MobileBar({ onMenu }: { onMenu: () => void }) {
   const t = useTranslations()
   const user = useUsersMe().data?.data.user
+  const search = useSearchAllowed()
   return (
     <div className="glass-strong flex items-center gap-2.5 rounded-[18px] py-2 pr-2 pl-3.5 md:hidden">
       <Button
@@ -347,13 +359,15 @@ function MobileBar({ onMenu }: { onMenu: () => void }) {
       </Button>
       <Logo className="h-auto w-[112px]" />
       <span className="flex-1" />
-      <Link
-        href="/search"
-        aria-label={t("shell.search")}
-        className={buttonVariants({ variant: "ghost", size: "icon" })}
-      >
-        <Search aria-hidden="true" />
-      </Link>
+      {search ? (
+        <Link
+          href="/search"
+          aria-label={t("shell.search")}
+          className={buttonVariants({ variant: "ghost", size: "icon" })}
+        >
+          <Search aria-hidden="true" />
+        </Link>
+      ) : null}
       <Avatar initials={user?.initials} />
     </div>
   )

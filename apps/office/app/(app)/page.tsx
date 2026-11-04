@@ -145,6 +145,8 @@ export default function OverviewPage() {
     stock: useCan("stock.list"),
     till: useCan("cashregister.list"),
     links: useCan("workspace_admin"),
+    products: useCan("product.list"),
+    changeProducts: useCan("product.update"),
   }
   const show = (allowed: boolean) => !meRead || allowed
   const on = { query: { enabled: Boolean(ws) } }
@@ -318,10 +320,12 @@ export default function OverviewPage() {
             >
               {t("overview.receiveTransfer")}
             </Link>
-            <Link href="/lots?new=1" className={buttonVariants()}>
-              <Plus aria-hidden="true" />
-              {t("lots.new")}
-            </Link>
+            {show(may.products && may.changeProducts) ? (
+              <Link href="/lots?new=1" className={buttonVariants()}>
+                <Plus aria-hidden="true" />
+                {t("lots.new")}
+              </Link>
+            ) : null}
           </>
         }
       />

@@ -40,6 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { useRights } from "@/lib/can"
 import { Field, selectClass } from "@/components/field"
 import {
   CardState,
@@ -79,14 +80,20 @@ export default function LotsPage({
     },
     { query: { enabled: Boolean(workspaceId) } }
   )
+  // Product names, the product filter and New batch need the product list (and New batch the
+  // right to change products); a member without them sees the batches alone.
+  const { may } = useRights()
+  const readProducts = may("product.list")
   // shortcut: first 100 products only; swap for a search picker when the catalog grows past that.
   const products = useProductsList(
     workspaceId,
     { page_size: 100 },
-    { query: { enabled: Boolean(workspaceId) } }
+    { query: { enabled: Boolean(workspaceId) && readProducts } }
   )
   const productName = (id: string) =>
-    products.data?.data.find((p) => p.id === id)?.name ?? ""
+    readProducts
+      ? (products.data?.data.find((p) => p.id === id)?.name ?? "")
+      : "—"
   const go = (next: {
     q?: string
     status?: string
@@ -119,12 +126,14 @@ export default function LotsPage({
         eyebrow={t("shell.trace")}
         title={t("lots.title")}
         actions={
-          <CreateLot
-            products={products.data?.data ?? []}
-            productsMeta={products.data?.meta}
-            startOpen={startNew === "1"}
-            onCreated={(id) => router.push(`/lots/${id}?done=created`)}
-          />
+          readProducts && may("product.update") ? (
+            <CreateLot
+              products={products.data?.data ?? []}
+              productsMeta={products.data?.meta}
+              startOpen={startNew === "1"}
+              onCreated={(id) => router.push(`/lots/${id}?done=created`)}
+            />
+          ) : null
         }
       />
       <ListCard
@@ -164,18 +173,20 @@ export default function LotsPage({
               ]}
               onChange={(v) => go({ status: v })}
             />
-            <FilterSelect
-              label={t("lots.product")}
-              value={product}
-              items={[
-                { value: "", label: t("lots.allProducts") },
-                ...(products.data?.data ?? []).map((p) => ({
-                  value: p.id,
-                  label: p.name,
-                })),
-              ]}
-              onChange={(v) => go({ product: v })}
-            />
+            {readProducts ? (
+              <FilterSelect
+                label={t("lots.product")}
+                value={product}
+                items={[
+                  { value: "", label: t("lots.allProducts") },
+                  ...(products.data?.data ?? []).map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                  })),
+                ]}
+                onChange={(v) => go({ product: v })}
+              />
+            ) : null}
           </>
         }
         count={

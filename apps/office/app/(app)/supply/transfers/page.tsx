@@ -36,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { useRights } from "@/lib/can"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
@@ -43,6 +44,10 @@ import { Capped, Empty, LoadError } from "@/components/states"
 
 export default function SupplyTransfersPage() {
   const t = useTranslations()
+  // Receiving makes a batch (product.update) from the product and warehouse lists it reads.
+  const { may } = useRights()
+  const mayReceive =
+    may("product.update") && may("product.list") && may("warehouse.list")
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const [page, setPage] = React.useState(1)
   const transfers = useSupplyChainList(
@@ -145,7 +150,9 @@ export default function SupplyTransfersPage() {
                   )}
                 </TableCell>
                 <TableCell data-m="sub" className="text-right">
-                  {tr.direction === "incoming" && tr.status === "dispatched" ? (
+                  {tr.direction === "incoming" &&
+                  tr.status === "dispatched" &&
+                  mayReceive ? (
                     <ReceiveDialog transfer={tr} />
                   ) : null}
                 </TableCell>

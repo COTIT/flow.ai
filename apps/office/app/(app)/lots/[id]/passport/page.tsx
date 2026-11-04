@@ -34,6 +34,7 @@ import { PassportView } from "@genesy/ui/components/passport-view"
 import { Tabs, TabsList, TabsTrigger } from "@genesy/ui/components/tabs"
 import { Textarea } from "@genesy/ui/components/textarea"
 import { cn } from "@genesy/ui/lib/utils"
+import { useCan } from "@/lib/can"
 import { Bento, DetailSkeleton, Tile, type Tone } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { PageHead } from "@/components/list"
@@ -80,7 +81,12 @@ export default function PassportPage({
   const lot = useLotsGet(workspaceId, id, enabled)
   const passport = useLotsPassportGet(workspaceId, id, enabled)
   // shortcut: pickers and preview see the first 100 files; add file search when workspaces hold more.
-  const files = useFilesList(workspaceId, { page_size: 100 }, enabled)
+  const listFiles = useCan("file.list")
+  const files = useFilesList(
+    workspaceId,
+    { page_size: 100 },
+    { query: { enabled: Boolean(workspaceId) && listFiles } }
+  )
   // Lives here, not in Editor: Editor remounts after each save, which would wipe the notice.
   const done = useDone()
   // The editor starts from a settled read, never a cached copy still being read again, and
@@ -136,7 +142,10 @@ function Editor({
   const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
-  const product = useProductsGet(workspaceId, lot.product_id)
+  // Name and brand for the preview, when the member may read products.
+  const product = useProductsGet(workspaceId, lot.product_id, undefined, {
+    query: { enabled: useCan("product.view") },
+  })
   const [draft, setDraft] = React.useState<Passport>(resource.draft)
   const set = (patch: Partial<Passport>) =>
     setDraft((d) => ({ ...d, ...patch }))
