@@ -1,4 +1,16 @@
+import type { Locator } from "@playwright/test"
+
 import { expect, expectFits, paged, test, type FakeApi } from "./fake-api"
+
+/** Types into a text field, picks a select's option by value, or ticks a box (`true`). */
+async function enter(dialog: Locator, label: string, value: string | boolean) {
+  if (typeof value === "boolean")
+    return dialog.getByRole("checkbox", { name: label }).setChecked(value)
+  const control = dialog.getByLabel(label)
+  if (await control.evaluate((e) => e.tagName === "SELECT"))
+    await control.selectOption(value)
+  else await control.fill(value)
+}
 
 function keysApi(api: FakeApi) {
   const keys = [
@@ -219,7 +231,7 @@ const settingsForms = [
     url: "/v1/workspace/w1/app-keys",
     open: (page: import("@playwright/test").Page) =>
       page.getByRole("button", { name: "New app key" }).click(),
-    fill: { Name: "Till", Kind: "till", Scopes: "catalog:read" },
+    fill: { Name: "Counter", Kind: "till", "Read catalogue": true } as Record<string, string | boolean>,
     field: { key: "name", label: "Name" },
   },
   {
@@ -231,7 +243,7 @@ const settingsForms = [
     url: "/v1/workspace/w1/webhook-endpoints",
     open: (page: import("@playwright/test").Page) =>
       page.getByRole("button", { name: "New endpoint" }).click(),
-    fill: { URL: "http://localhost/in", Events: "order.paid" },
+    fill: { URL: "http://localhost/in", "Order placed": true } as Record<string, string | boolean>,
     field: { key: "url", label: "URL" },
   },
   {
@@ -243,7 +255,7 @@ const settingsForms = [
     url: "/v1/workspace/w1/webhook-endpoints/wh-1",
     open: (page: import("@playwright/test").Page) =>
       page.getByRole("button", { name: "Edit: https://erp.example.com/hooks" }).click(),
-    fill: { URL: "ftp://erp.example.com/hooks" },
+    fill: { URL: "ftp://erp.example.com/hooks" } as Record<string, string | boolean>,
     field: { key: "url", label: "URL" },
   },
 ]
@@ -275,13 +287,15 @@ for (const f of settingsForms)
         await f.open(page)
         const dialog = page.getByRole("dialog")
         for (const [label, value] of Object.entries(f.fill))
-          await dialog.getByLabel(label).fill(value)
+          await enter(dialog, label, value)
         await dialog.getByRole("button", { name: "Save" }).click()
         await expect(dialog.getByText(message), `${f.form} ${status}`).toBeVisible()
         if (status === 422)
           await expect(dialog.getByLabel(f.field.label)).toHaveAttribute("aria-invalid", "true")
         for (const [label, value] of Object.entries(f.fill))
-          await expect(dialog.getByLabel(label)).toHaveValue(value)
+          if (typeof value === "boolean")
+            await expect(dialog.getByRole("checkbox", { name: label })).toBeChecked({ checked: value })
+          else await expect(dialog.getByLabel(label)).toHaveValue(value)
         await expect(dialog.getByLabel("Secret")).toHaveCount(0)
         expect(api.callsTo(f.method, f.path)).toHaveLength(1)
         // The edit dialog's Active box is checked on its own below.

@@ -79,7 +79,6 @@ test.describe("a refused revision", () => {
 // Bug (raw value): the Verify dialog names a harvest figure by its API code ("expected"/"actual"),
 // in English in every language; harvestKind.* has the labels. Same on the person page.
 test("the Verify dialog names the figure's kind in words, not the API code", async ({ page }) => {
-  test.fail(true, "OfficerRecordScreens.tsx:409 and PersonDetailScreen.tsx:277 build recordLabel from h.kind, the raw code")
   await open(page, { status: 201, body: { data: after[0] } })
   await page.getByTestId(`verify-harvest_report-${FIRST}`).click()
   const dialog = page.getByTestId("confirm-dialog")

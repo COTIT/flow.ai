@@ -132,7 +132,6 @@ test.describe("the officer limit", () => {
   // Bug (raw value): payout refusals are API English shown as is; a Swahili officer cannot read them.
   // dbMessages.ts translates voucher and registration messages, not farm_payouts/service.rs.
   test("a Swahili officer reads the refusal in Swahili", async ({ page }) => {
-    test.fail(true, "payout refusals are not translated: farm_payouts messages missing from dbMessages.ts")
     await asStaff(page, [overLimit], { locale: "sw" })
     await page.getByTestId("pay-out-TZS").click()
     await page.getByTestId("payout-amount").fill("4000")
