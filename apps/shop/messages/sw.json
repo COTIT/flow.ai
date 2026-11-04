@@ -84,6 +84,7 @@
     "totalNext": "Jumla, pamoja na VAT, inaonyeshwa kwenye ukurasa unaofuata kabla ya kulipa.",
     "place": "Weka oda",
     "required": "Tafadhali jaza hapa.",
+    "invalid": "Hii haionekani sawa.",
     "field": {
       "email": "Barua pepe",
       "name": "Jina kamili",
@@ -120,7 +121,7 @@
     "paid": "Asante! Malipo yamepokelewa na oda yako imethibitishwa.",
     "cancelled": "Oda hii iliisha muda kabla ya kulipwa",
     "again": "Nunua tena",
-    "status": "Hali: {status}",
+    "status": "Hali: {status, select, draft {Rasimu} awaiting_payment {Inasubiri malipo} open {Inaandaliwa} completed {Imekamilika} cancelled {Imeghairiwa} partially_returned {Imerudishwa kiasi} returned {Imerudishwa} refunded {Pesa imerejeshwa} other {Inashughulikiwa}}",
     "subtotal": "Jumla ndogo",
     "vat": "VAT",
     "total": "Jumla",

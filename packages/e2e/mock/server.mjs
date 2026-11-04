@@ -275,7 +275,10 @@ function placeOrder(body, key) {
   const order = {
     id: randomUUID(),
     number: `WEB-${++numbers}`,
-    status: email === EXPIRED_EMAIL ? "cancelled" : "awaiting_payment",
+    // `status-<code>@e2e.test` places an order already in that status (label checks).
+    status:
+      /^status-([a-z_]+)@e2e\.test$/.exec(email)?.[1] ??
+      (email === EXPIRED_EMAIL ? "cancelled" : "awaiting_payment"),
     subtotal: total,
     vat: 0,
     total,

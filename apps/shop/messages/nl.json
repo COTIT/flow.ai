@@ -84,6 +84,7 @@
     "totalNext": "Het totaal, met btw, zie je op de volgende pagina voordat je betaalt.",
     "place": "Bestelling plaatsen",
     "required": "Vul dit in.",
+    "invalid": "Dit klopt nog niet.",
     "field": {
       "email": "E-mail",
       "name": "Volledige naam",
@@ -120,7 +121,7 @@
     "paid": "Bedankt! Je betaling is binnen en je bestelling is bevestigd.",
     "cancelled": "Deze bestelling is verlopen voordat hij betaald was",
     "again": "Opnieuw winkelen",
-    "status": "Status: {status}",
+    "status": "Status: {status, select, draft {Concept} awaiting_payment {Wacht op betaling} open {Wordt klaargemaakt} completed {Afgerond} cancelled {Geannuleerd} partially_returned {Deels retour} returned {Retour} refunded {Terugbetaald} other {In behandeling}}",
     "subtotal": "Subtotaal",
     "vat": "Btw",
     "total": "Totaal",

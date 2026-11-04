@@ -71,7 +71,10 @@ export function CheckoutForm() {
 
   const field = ([name, type, autoComplete]: Field, className?: string) => {
     const missing = state.missing?.includes(name)
-    const messages = missing ? [t("required")] : fieldMessages[name]
+    // The API's text is English only: a translated line first, its words after as the detail.
+    const messages = missing
+      ? [t("required")]
+      : fieldMessages[name] && [t("invalid"), ...fieldMessages[name]]
     // The error first: it is what the buyer must act on.
     const described = [
       messages && `${name}-error`,
