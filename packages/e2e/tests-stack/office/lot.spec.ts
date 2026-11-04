@@ -1,12 +1,24 @@
+import type { Page } from "@playwright/test"
+
+import { expectNoRawValues } from "../../src/test"
 import { type Api, apiAs, cred, expect, loginOffice, stackAllow, test, unique, urls, workspaces } from "../../src/stack"
 
 type Lot = { id: string; code: string; public_code: string; status: string }
 
 /**
- * Types into the passport form. The form is editable before its saved draft arrives and the
- * draft then overwrites it (seen on a phone under load), so type again until it sticks.
+ * Opens a batch's passport form and waits for its saved draft: the form is editable before the
+ * draft arrives and the draft then overwrites what was typed (O8), so read first, type after.
  */
-async function typeDraft(page: import("@playwright/test").Page, label: string, value: string) {
+async function openPassport(page: Page, open: () => Promise<unknown>) {
+  const read = page.waitForResponse(
+    (r) => r.request().method() === "GET" && /\/lots\/[^/]+\/passport$/.test(new URL(r.url()).pathname)
+  )
+  await open()
+  await read
+}
+
+/** Types into the passport form until it sticks (the draft can still land just after its read). */
+async function typeDraft(page: Page, label: string, value: string) {
   await expect(async () => {
     await page.getByLabel(label).fill(value)
     await expect(page.getByRole("button", { name: "Save draft" })).toBeEnabled({ timeout: 1_000 })
@@ -43,8 +55,9 @@ test("office batch: create, publish its passport, recall it; the public page fol
   const lotId = new URL(page.url()).pathname.split("/").at(-1)!
   const lot = await owner.get<Lot>(owner.ws(`/lots/${lotId}`))
   expect(lot).toMatchObject({ code, status: "released" })
+  await expectNoRawValues(page, { allow: [code] })
 
-  await page.getByRole("link", { name: "Edit passport" }).click()
+  await openPassport(page, () => page.getByRole("link", { name: "Edit passport" }).click())
   await typeDraft(page, "Title", title)
   await page.getByRole("button", { name: "Save draft" }).click()
   await expect(page.getByRole("button", { name: "Publish v1" })).toBeEnabled()
@@ -56,6 +69,7 @@ test("office batch: create, publish its passport, recall it; the public page fol
   await page.goto(`${urls.shop}/b/${lot.public_code}`)
   await expect(page.getByRole("heading", { name: title })).toBeVisible()
   await expect(page.getByRole("alert").filter({ hasText: "This batch has been recalled" })).toHaveCount(0)
+  await expectNoRawValues(page, { allow: [code] })
 
   await recall(page, lotId)
   expect((await owner.get<Lot>(owner.ws(`/lots/${lotId}`))).status).toBe("recalled")
@@ -65,7 +79,7 @@ test("office batch: create, publish its passport, recall it; the public page fol
 })
 
 /** Recalls a batch from its office page and waits for the new status. */
-async function recall(page: import("@playwright/test").Page, lotId: string) {
+async function recall(page: Page, lotId: string) {
   await page.goto(`${urls.office}/lots/${lotId}`)
   await page.getByRole("button", { name: "Recall this batch…" }).click()
   await page.getByRole("alertdialog").getByRole("button", { name: "Recall", exact: true }).click()
@@ -122,7 +136,7 @@ test.describe(() => {
     await expect(page.getByRole("heading", { name: "We can't find this batch" })).toBeVisible()
 
     await loginOffice(page, cred("office (AFM)", "owner"))
-    await page.goto(`${urls.office}/lots/${lot.id}/passport`)
+    await openPassport(page, () => page.goto(`${urls.office}/lots/${lot.id}/passport`))
     await typeDraft(page, "Introduction", "No title yet.")
     await page.getByRole("button", { name: "Save draft" }).click()
     await expect(page.getByRole("button", { name: "Publish v1" })).toBeEnabled()

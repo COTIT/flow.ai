@@ -1,3 +1,4 @@
+import { expectNoRawValues } from "../../src/test"
 import {
   apiAs,
   cred,
@@ -37,6 +38,7 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   await size.getByRole("button", { name: "Save" }).click()
   await expect(page.getByRole("status").filter({ hasText: "Size added." })).toBeVisible()
   await expect(sizes.getByText("250 g")).toBeVisible()
+  await expectNoRawValues(page)
 
   // The office list finds it by name.
   await page.goto(`${urls.office}/products?q=${encodeURIComponent(name)}`)
@@ -56,6 +58,7 @@ test("office: a new product and its size reach the shop and the till", async ({ 
   await page.goto(`${urls.shop}/products/${id}`)
   await expect(page.getByRole("heading", { name })).toBeVisible()
   await expect(page.getByRole("main").getByRole("button", { name: "250 g" })).toBeVisible()
+  await expectNoRawValues(page)
 
   // Till: a tile on the sale screen.
   await page.goto(`${urls.till}/sale`)

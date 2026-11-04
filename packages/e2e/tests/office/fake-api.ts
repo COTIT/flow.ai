@@ -140,8 +140,13 @@ export const test = base.extend<{ api: FakeApi }>({
 
 /** On a phone the menu is a sheet behind "Open menu"; this opens it (no-op on a desktop). */
 export async function openMenu(page: Page) {
-  const button = page.getByRole("button", { name: "Open menu" })
-  if (await button.isVisible()) await button.click()
+  // By width, not by whether the button is drawn yet: a slow first paint skipped the click.
+  if ((page.viewportSize()?.width ?? 0) >= 768) return
+  const nav = page.getByRole("navigation", { name: "Main menu" })
+  // Already open (e.g. still open after picking a workspace).
+  if (await nav.isVisible()) return
+  await page.getByRole("button", { name: "Open menu" }).click()
+  await expect(nav).toBeVisible()
 }
 
 /** Picks `option` in the shadcn Select named `name` (a combobox button, not a native select). */
