@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest"
 
-import { formatDay, formatShare } from "./format"
+import {
+  formatDate,
+  formatDateTime,
+  formatDay,
+  formatShare,
+  formatTime,
+} from "./format"
 
 describe("formatShare", () => {
   it("shows basis points as a percentage, exactly", () => {
@@ -15,5 +21,26 @@ describe("formatDay", () => {
   it("shows an API date without shifting it by the server's time zone", () => {
     expect(formatDay("2026-07-14", "en")).toBe("July 14, 2026")
     expect(formatDay("2026-01-01", "nl")).toBe("1 januari 2026")
+  })
+})
+
+describe("formatDate / formatDateTime / formatTime", () => {
+  // Midday UTC: the same calendar day in every time zone the tests may run in.
+  const at = "2026-11-04T12:12:49Z"
+
+  it("shows a timestamp's day in words, never a machine date", () => {
+    expect(formatDate(at, "en")).toBe("Nov 4, 2026")
+    expect(formatDate(at, "nl")).toBe("4 nov 2026")
+  })
+
+  it("shows a plain API day without shifting it", () => {
+    expect(formatDate("2026-01-01", "en")).toBe("Jan 1, 2026")
+    expect(formatDate("2026-01-01", "sw")).not.toMatch(/\d{4}-\d{2}/)
+  })
+
+  it("adds the time in the locale's style", () => {
+    expect(formatDateTime(at, "en")).toMatch(/^Nov 4, 2026, \d{1,2}:\d{2}\s[AP]M$/)
+    expect(formatDateTime(at, "nl")).toMatch(/^4 nov 2026.* \d{2}:\d{2}$/)
+    expect(formatTime(at, "nl")).toMatch(/^\d{2}:\d{2}$/)
   })
 })

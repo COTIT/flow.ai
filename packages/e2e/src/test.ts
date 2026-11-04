@@ -150,3 +150,55 @@ export async function expectNoLayoutShift(page: Page, max = 0.01) {
 export async function expectNoMotion(page: Page) {
   await expect(page.locator("[data-motion]"), "animated islands").toHaveCount(0)
 }
+
+// Internal values that should have reached the screen as a label, a badge or a formatted date.
+const RAW_PATTERNS: [string, RegExp][] = [
+  ["scope key", /\b[a-z]+:[a-z_]+\b/],
+  ["event name", /\b[a-z]+\.[a-z_]{3,}\b/],
+  ["snake_case", /\b[a-z0-9]+(?:_[a-z0-9]+)+\b/],
+  ["UUID", /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i],
+  ["boolean", /^(?:true|false)$/],
+  ["ISO date", /\b\d{4}-\d{2}-\d{2}(?!\d)/],
+  ["US date", /\b\d{1,2}\/\d{1,2}\/\d{4}\b/],
+]
+// Readable text that looks like a pattern above: links, mail addresses, host names, key prefixes.
+const NOT_RAW = [
+  /\b[a-z][a-z0-9+.-]*:\/\/\S+/gi,
+  /\S+@\S+\.\S+/g,
+  /\b[\w-]+(?:\.[\w-]+)*\.(?:app|com|eu|org|net|io|nl|tz|co|dev|test|localhost)\b/gi,
+  /\bgsk_\w+/g,
+]
+
+/**
+ * No visible text is a raw internal value: a scope key (`catalog:read`), an event name
+ * (`stock.changed`), a snake_case code, a UUID, a bare `true`/`false`, or an ISO or US machine
+ * date. Inputs, `code`/`pre`/`kbd` and anything marked `data-raw` are skipped; `allow` lets legit
+ * codes through (exact strings or patterns), `within` limits the check to part of the page.
+ */
+export async function expectNoRawValues(
+  page: Page,
+  { allow = [], within = "body" }: { allow?: (string | RegExp)[]; within?: string } = {}
+) {
+  const texts = await page.locator(within).first().evaluate((root) => {
+    const skip = 'input, textarea, select, option, code, pre, kbd, script, style, template, [data-raw], [aria-hidden="true"]'
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+    const out: string[] = []
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const el = n.parentElement
+      const text = n.textContent?.trim()
+      if (!el || !text || el.closest(skip) || !el.checkVisibility()) continue
+      out.push(text)
+    }
+    return out
+  })
+  const cleared = [...NOT_RAW, ...allow]
+  const raw = texts.flatMap((text) => {
+    const left = cleared.reduce<string>(
+      (t, a) => (typeof a === "string" ? t.split(a).join(" ") : t.replace(new RegExp(a.source, "g" + a.flags.replace("g", "")), " ")),
+      text
+    ).trim()
+    const hit = RAW_PATTERNS.find(([, re]) => re.test(left))
+    return hit ? [`${hit[0]}: "${text}"`] : []
+  })
+  expect(raw, "raw values on screen").toEqual([])
+}

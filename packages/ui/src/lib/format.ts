@@ -15,3 +15,26 @@ export const formatDay = (day: string, locale: string) =>
     dateStyle: "long",
     timeZone: "UTC",
   }).format(new Date(`${day}T00:00:00Z`))
+
+// A plain `YYYY-MM-DD` is a calendar day: read and shown as UTC so it never moves.
+const instant = (iso: string) =>
+  iso.length === 10 ? new Date(`${iso}T00:00:00Z`) : new Date(iso)
+const zone = (iso: string) => (iso.length === 10 ? "UTC" : undefined)
+
+/** An API date or timestamp as a short day ("Nov 4, 2026"), in the app's locale. */
+export const formatDate = (iso: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: zone(iso),
+  }).format(instant(iso))
+
+/** An API timestamp as day and time ("Nov 4, 2026, 6:12 PM"), in the app's locale. */
+export const formatDateTime = (iso: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(iso))
+
+/** An API timestamp's time of day ("18:12"), in the app's locale. */
+export const formatTime = (iso: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(new Date(iso))

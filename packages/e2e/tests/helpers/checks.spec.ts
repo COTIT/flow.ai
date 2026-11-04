@@ -2,6 +2,7 @@ import {
   expect,
   expectNoLayoutShift,
   expectNoMotion,
+  expectNoRawValues,
   expectTapTargets,
   test,
 } from "../../src/test"
@@ -63,4 +64,35 @@ test("motion: none rendered passes, an animated island fails", async ({ page }) 
 
   await page.setContent(`<span data-motion style="display:contents"><b>12</b></span>`)
   await expect(expectNoMotion(page)).rejects.toThrow()
+})
+
+test("raw values: passes readable text, keys, URLs and allowed codes", async ({ page }) => {
+  await page.setContent(
+    `<h1>App keys</h1><p>Last used 4 Nov 2026, 18:12. Note: read the docs at https://genesy.app/docs or mail ops@genesy.app, e.g. now.</p>
+     <span>gsk_0f6b</span><span>Read catalogue</span><span>Price 12.50</span><span>06:12</span>
+     <input value="catalog:read"><code>stock.changed</code><pre>till_login</pre><kbd>pending_review</kbd>
+     <span data-raw>lot_code_7</span><span hidden>store_only</span><span style="display:none">true</span>`
+  )
+  await expectNoRawValues(page)
+})
+
+for (const [name, html] of [
+  ["scope key", "<td>catalog:read, till:login</td>"],
+  ["event name", "<td>stock.changed, order.created</td>"],
+  ["snake_case", "<span>pending_review</span>"],
+  ["UUID", "<td>3f2b8c1e-9a4d-4e2b-8c1f-0a9b8c7d6e5f</td>"],
+  ["boolean", "<td>false</td>"],
+  ["ISO date", "<td>2026-11-04</td>"],
+  ["ISO timestamp", "<td>2026-11-04T18:12:49Z</td>"],
+  ["US date", "<td>11/4/2026, 6:12:49 PM</td>"],
+] as const)
+  test(`raw values: catches a ${name}`, async ({ page }) => {
+    await page.setContent(`<p>Fine text</p>${html}`)
+    await expect(expectNoRawValues(page)).rejects.toThrow(/raw values/)
+  })
+
+test("raw values: an allowlist and a scope let legit codes through", async ({ page }) => {
+  await page.setContent(`<main><span>AFM_LOT_7</span> <span>lot_7a</span></main><nav>till_login</nav>`)
+  await expect(expectNoRawValues(page)).rejects.toThrow(/lot_7a/)
+  await expectNoRawValues(page, { allow: [/lot_\w+/, "AFM_LOT_7"], within: "main" })
 })
