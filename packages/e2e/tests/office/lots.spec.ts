@@ -293,3 +293,122 @@ test("history says who did it: a name, the system, or a user who left", async ({
     await expect(history.getByRole("columnheader", { name: "Who" })).toBeVisible()
   await expectFits(page)
 })
+
+// Each field of the new-batch form, a value the API refuses for it, and the label it sits under.
+const createFields = [
+  { field: "code", label: "Batch code", message: "The code may only hold letters, digits and dashes." },
+  { field: "produced_on", label: "Produced on", message: "Produced on may not be in the future." },
+  { field: "best_before", label: "Best before", message: "Best before must be on or after produced on." },
+]
+
+for (const f of createFields)
+  test.describe(() => {
+    test.use({ allow: { responses: [{ url: "/v1/workspace/w1/lots", status: 422 }] } })
+
+    test(`/lots new batch: the API's 422 on ${f.field} shows at ${f.label}`, async ({
+      page,
+      api,
+    }) => {
+      lotsApi(api)
+      api.on("POST", "/workspace/:ws/lots", () => ({
+        status: 422,
+        body: { message: "The given data was invalid.", errors: { [f.field]: [f.message] } },
+      }))
+      await page.goto("/lots")
+      await page.getByRole("button", { name: "New batch" }).click()
+      const dialog = page.getByRole("dialog")
+      await dialog.getByLabel("Batch code").fill("ILU 2026/02")
+      await dialog.getByRole("button", { name: "Save" }).click()
+      await expect(dialog.getByText(f.message), `/lots create ${f.field}`).toBeVisible()
+      await expect(dialog.getByLabel(f.label)).toHaveAttribute("aria-invalid", "true")
+      await expect(page).toHaveURL(/\/lots$/)
+      await expectFits(page)
+    })
+  })
+
+for (const w of [
+  {
+    write: "new batch",
+    method: "POST",
+    path: "/workspace/:ws/lots",
+    url: "/v1/workspace/w1/lots",
+    route: "/lots",
+    run: async (page: import("@playwright/test").Page) => {
+      await page.getByRole("button", { name: "New batch" }).click()
+      await page.getByRole("dialog").getByLabel("Batch code").fill("ILU-2026-02")
+      await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
+    },
+  },
+  {
+    write: "status save",
+    method: "PATCH",
+    path: "/workspace/:ws/lots/:lot",
+    url: "/v1/workspace/w1/lots/lot-1",
+    route: "/lots/lot-1",
+    run: async (page: import("@playwright/test").Page) => {
+      await page.getByRole("combobox", { name: "Status" }).selectOption("quarantine")
+      await page.getByRole("button", { name: "Save" }).click()
+    },
+  },
+])
+  test.describe(() => {
+    test.use({ allow: { responses: [{ url: w.url, status: 403 }] } })
+
+    test(`${w.route} ${w.write}: the API's 403 shows; nothing changes`, async ({
+      page,
+      api,
+    }) => {
+      const lots = lotsApi(api)
+      api.on(w.method, w.path, () => ({
+        status: 403,
+        body: { message: "This action is unauthorized." },
+      }))
+      await page.goto(w.route)
+      await w.run(page)
+      await expect(
+        page.getByRole("alert").filter({ hasText: "This action is unauthorized." }),
+        `${w.route} ${w.write} 403`
+      ).toBeVisible()
+      await expect(page).toHaveURL(new RegExp(`${w.route}$`))
+      expect(lots).toHaveLength(1)
+      expect(lots[0]!.status).toBe("released")
+      expect(api.callsTo(w.method, w.path)).toHaveLength(1)
+    })
+  })
+
+test("/lots/[id] recall: a network failure says so and keeps it on sale; recalling again saves it once", async ({
+  page,
+  api,
+}) => {
+  const lots = lotsApi(api)
+  let fail = true
+  await page.route("**/v1/workspace/w1/lots/lot-1", async (route) => {
+    if (route.request().method() === "PATCH" && fail) {
+      fail = false
+      return route.abort("aborted")
+    }
+    return route.fallback()
+  })
+  await page.goto("/lots/lot-1")
+  const recall = async () => {
+    await page.getByRole("combobox", { name: "Status" }).selectOption("recalled")
+    await page.getByRole("button", { name: "Save" }).click()
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Recall", exact: true })
+      .click()
+  }
+  await recall()
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Something went wrong. Try again." })
+  ).toBeVisible()
+  const status = page.getByRole("region", { name: "Status" })
+  await expect(status.getByText("Released", { exact: true })).toBeVisible()
+  expect(lots[0]!.status).toBe("released")
+
+  await expect(page.getByRole("alertdialog")).toBeHidden()
+  await recall()
+  await expect(page.getByText("Released → Recalled")).toBeVisible()
+  expect(api.callsTo("PATCH", "/workspace/:ws/lots/:lot")).toHaveLength(1)
+  expect(lots[0]!.status).toBe("recalled")
+})

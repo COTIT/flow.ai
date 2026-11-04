@@ -284,3 +284,32 @@ test("phone: Edit and Preview tabs switch between form and preview; desktop show
     await expect(heading).toBeVisible()
   }
 })
+
+test("/lots/[id]/passport save: a network failure says so and keeps the draft; saving again stores it once", async ({
+  page,
+  api,
+}) => {
+  const state = passportApi(api)
+  let fail = true
+  await page.route("**/v1/workspace/w1/lots/lot-1/passport", async (route) => {
+    if (route.request().method() === "PUT" && fail) {
+      fail = false
+      return route.abort("aborted")
+    }
+    return route.fallback()
+  })
+  await page.goto("/lots/lot-1/passport")
+  await page.getByLabel("Title").fill("Wild forest honey")
+  await page.getByRole("button", { name: "Save draft" }).click()
+  await expect(
+    page.getByRole("alert").filter({ hasText: "Something went wrong. Try again." })
+  ).toBeVisible()
+  await expect(page.getByLabel("Title")).toHaveValue("Wild forest honey")
+  await expect(page.getByRole("button", { name: "Publish v1" })).toBeDisabled()
+
+  await page.getByRole("button", { name: "Save draft" }).click()
+  await expect(page.getByRole("button", { name: "Publish v1" })).toBeEnabled()
+  // Saving a draft replaces it whole, so a repeat is harmless: one save reached the API.
+  expect(api.callsTo("PUT", "/workspace/:ws/lots/:lot/passport")).toHaveLength(1)
+  expect(state.draft).toMatchObject({ title: "Wild forest honey" })
+})

@@ -105,3 +105,47 @@ test("PDF is made only on request", async ({ page, api }) => {
     api.callsTo("GET", "/workspace/:ws/invoices/:id/preview")
   ).toHaveLength(1)
 })
+
+test.describe(() => {
+  test.use({
+    allow: { responses: [{ url: "/v1/workspace/w1/invoices/inv-1/preview", status: 500 }] },
+  })
+
+  test("/invoices/[id] PDF: a failure says so and no link is offered", async ({ page, api }) => {
+    invoicesApi(api)
+    api.on("GET", "/workspace/:ws/invoices/:id/preview", () => ({
+      status: 500,
+      body: { message: "The PDF could not be made." },
+    }))
+    await page.goto("/invoices/inv-1")
+    await page.getByRole("button", { name: "Make PDF" }).click()
+    await expect(
+      page.getByRole("alert").filter({ hasText: "The PDF could not be made." })
+    ).toBeVisible()
+    await expect(page.getByRole("link", { name: "Open PDF" })).toHaveCount(0)
+    // No silent retries of a PDF the server just failed to make.
+    expect(api.callsTo("GET", "/workspace/:ws/invoices/:id/preview")).toHaveLength(1)
+  })
+
+  test("/invoices/[id] PDF: after a failure, Make PDF asks the API again", async ({ page, api }) => {
+    test.fail(
+      true,
+      "BUG: after a failed PDF, Make PDF only sets wantPdf (already true), so nothing is asked again until a reload (apps/office/app/(app)/invoices/[id]/page.tsx:189)"
+    )
+    invoicesApi(api)
+    let fail = true
+    api.on("GET", "/workspace/:ws/invoices/:id/preview", () =>
+      fail
+        ? { status: 500, body: { message: "The PDF could not be made." } }
+        : { data: { id: "file-1", file_path: "https://files.example.com/inv.pdf?sig=x" } }
+    )
+    await page.goto("/invoices/inv-1")
+    await page.getByRole("button", { name: "Make PDF" }).click()
+    await expect(
+      page.getByRole("alert").filter({ hasText: "The PDF could not be made." })
+    ).toBeVisible()
+    fail = false
+    await page.getByRole("button", { name: "Make PDF" }).click()
+    await expect(page.getByRole("link", { name: "Open PDF" })).toBeVisible({ timeout: 5_000 })
+  })
+})

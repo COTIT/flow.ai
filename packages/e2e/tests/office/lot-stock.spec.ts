@@ -149,3 +149,68 @@ test.describe(() => {
     await expect(dialog.getByLabel("Quantity")).toHaveAttribute("aria-invalid", "true")
   })
 })
+
+async function changeStock(page: import("@playwright/test").Page) {
+  const dialog = page.getByRole("dialog")
+  await dialog.getByLabel("Quantity").fill("1.50")
+  await dialog.getByRole("button", { name: "Save" }).click()
+}
+
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/lots/lot-1/stock-mutations", status: 403 }],
+    },
+  })
+
+  test("/lots/[id] change stock: the API's 403 shows; stock is not marked changed", async ({
+    page,
+    api,
+  }) => {
+    lotApi(api)
+    api.on("POST", "/workspace/:ws/lots/:id/stock-mutations", () => ({
+      status: 403,
+      body: { message: "This action is unauthorized." },
+    }))
+    await page.goto("/lots/lot-1")
+    await page.getByRole("button", { name: "Change stock" }).click()
+    await changeStock(page)
+    await expect(
+      page.getByRole("dialog").getByRole("alert").filter({ hasText: "This action is unauthorized." })
+    ).toBeVisible()
+    await expect(page.getByRole("status").filter({ hasText: "Stock changed." })).toHaveCount(0)
+    expect(api.callsTo("POST", "/workspace/:ws/lots/:id/stock-mutations")).toHaveLength(1)
+  })
+})
+
+test("/lots/[id] change stock: retried after a network failure, the API can tell it is the same change", async ({
+  page,
+  api,
+}) => {
+  test.fail(
+    true,
+    "BUG: a batch stock change is sent without an Idempotency-Key (apps/office/app/(app)/lots/[id]/stock-dialog.tsx:57), and POST /lots/{lot}/stock-mutations takes none, so a retry after a lost reply moves stock twice"
+  )
+  lotApi(api)
+  const keys: string[] = []
+  let fail = true
+  await page.route("**/v1/workspace/w1/lots/lot-1/stock-mutations", async (route) => {
+    keys.push(route.request().headers()["idempotency-key"] ?? "")
+    if (fail) {
+      fail = false
+      return route.abort("aborted")
+    }
+    return route.fallback()
+  })
+  await page.goto("/lots/lot-1")
+  await page.getByRole("button", { name: "Change stock" }).click()
+  await changeStock(page)
+  await expect(
+    page.getByRole("dialog").getByRole("alert").filter({ hasText: "Something went wrong. Try again." })
+  ).toBeVisible()
+  await page.getByRole("dialog").getByRole("button", { name: "Save" }).click()
+  await expect(page.getByRole("status").filter({ hasText: "Stock changed." })).toBeVisible()
+  expect(keys).toHaveLength(2)
+  expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/)
+  expect(keys[1]).toBe(keys[0])
+})

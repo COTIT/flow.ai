@@ -389,3 +389,50 @@ test.describe("VAT groups refused", () => {
     ])
   })
 })
+
+test("/products/[id] sizes: a product without sizes says so", async ({ page, api }) => {
+  catalogApi(api)
+  api.on("GET", "/workspace/:ws/products/:id/variants", () => ({ data: [] }))
+  await page.goto("/products/p1")
+  const sizes = page.getByRole("region", { name: "Sizes" })
+  await expect(sizes.getByText("No sizes yet.")).toBeVisible()
+  await expect(sizes.getByRole("button", { name: "Add size" })).toBeEnabled()
+})
+
+for (const r of [
+  { status: 409, message: "This product already has a size 250 g." },
+  { status: 403, message: "This action is unauthorized." },
+])
+  test.describe(() => {
+    test.use({
+      allow: {
+        responses: [{ url: "/v1/workspace/w1/products/p1/variants/generate", status: r.status }],
+      },
+    })
+
+    test(`/products/[id] add size: the API's ${r.status} shows in the dialog; no size is added`, async ({
+      page,
+      api,
+    }) => {
+      catalogApi(api)
+      api.on("POST", "/workspace/:ws/products/:id/variants/generate", () => ({
+        status: r.status,
+        body: { message: r.message },
+      }))
+      await page.goto("/products/p1")
+      const sizes = page.getByRole("region", { name: "Sizes" })
+      await sizes.getByRole("button", { name: "Add size" }).click()
+      const dialog = page.getByRole("dialog")
+      await dialog.getByLabel("Size").fill("250 g")
+      await dialog.getByLabel("Price excl. VAT").fill("4.20")
+      await dialog.getByRole("button", { name: "Save" }).click()
+      await expect(
+        dialog.getByRole("alert").filter({ hasText: r.message }),
+        `/products/[id] add size ${r.status}`
+      ).toBeVisible()
+      await expect(dialog.getByLabel("Size")).toHaveValue("250 g")
+      await page.keyboard.press("Escape")
+      await expect(sizes.getByText("250 g")).toHaveCount(0)
+      await expect(page.getByRole("status").filter({ hasText: "Size added." })).toHaveCount(0)
+    })
+  })

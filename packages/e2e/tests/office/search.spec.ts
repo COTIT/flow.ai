@@ -111,3 +111,26 @@ test("searching again from the page keeps the query in the address", async ({ pa
   await expect(page.getByRole("searchbox", { name: "Quick search" })).toHaveValue("honey jar")
   expect(asked.at(-1)).toBe("q=honey+jar&limit=10")
 })
+
+test.describe(() => {
+  test.use({
+    allow: { responses: [{ url: "/v1/workspace/w1/quick-search?q=honey&limit=10", status: 500 }] },
+  })
+
+  test("/search: a failed search says so; Try again shows the results", async ({ page, api }) => {
+    let fail = true
+    api.on("GET", "/workspace/:ws/quick-search", () =>
+      fail
+        ? { status: 500, body: { message: "Search is unavailable right now." } }
+        : { data: { ...Object.fromEntries(Object.keys(results).map((k) => [k, []])), products: results.products } }
+    )
+    await page.goto("/search?q=honey")
+    const alert = page.getByRole("alert").filter({ hasText: "Search is unavailable right now." })
+    await expect(alert).toBeVisible({ timeout: 20_000 })
+    fail = false
+    await alert.getByRole("button", { name: "Try again" }).click()
+    await expect(page.getByRole("link", { name: /Honey jar 500 g/ })).toBeVisible()
+    await expect(alert).toHaveCount(0)
+    await expectFits(page)
+  })
+})
