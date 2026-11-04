@@ -1,6 +1,8 @@
 //! In-process test provider: no HTTP, state in memory, scriptable from tests (set a status,
 //! fail the next call, count creates per idempotency key). Selected only by
-//! `PAYMENTS_PROVIDER=fake` in debug builds; clones share one state.
+//! `PAYMENTS_PROVIDER=fake` in debug builds; clones share one state. Its checkout URL is this
+//! API's own pay page (`/v1/payments/fake/{id}`, `modules::orders::fake_pay`), on the origin of
+//! the webhook URL it is given, so a staging order can be paid by hand.
 
 use std::{
     collections::HashMap,
@@ -23,6 +25,18 @@ struct State {
     creates: HashMap<String, u32>,
     fail_next: Option<Error>,
     next: u64,
+    /// The pay page's view per payment id: where to send the customer back, and decimals.
+    pages: HashMap<String, (String, u32)>,
+}
+
+/// What the pay page shows and does for one open payment.
+pub struct PayPage {
+    pub workspace_id: Uuid,
+    pub amount: i64,
+    pub currency: String,
+    pub decimals: u32,
+    pub status: Status,
+    pub redirect_url: String,
 }
 
 /// The fake provider; clones share state.
@@ -61,9 +75,11 @@ impl Fake {
             status: Status::Open,
             amount: p.amount,
             currency: p.currency.to_owned(),
-            checkout_url: Some(format!("https://pay.fake.test/{id}")),
+            checkout_url: Some(format!("{}/v1/payments/fake/{id}", origin(p.webhook_url))),
             metadata: p.metadata.clone(),
         };
+        let page = (p.redirect_url.to_owned(), p.decimals);
+        s.pages.insert(id.clone(), page);
         s.by_key.insert(p.idempotency_key.to_owned(), id.clone());
         s.intents.insert(id, (p.workspace_id, intent.clone()));
         Ok(intent)
@@ -129,6 +145,21 @@ impl Fake {
         }
     }
 
+    /// The pay page of payment `id`; None for an unknown id or a refund.
+    pub fn page(&self, id: &str) -> Option<PayPage> {
+        let s = self.state();
+        let (redirect_url, decimals) = s.pages.get(id)?.clone();
+        let (workspace_id, i) = s.intents.get(id)?;
+        Some(PayPage {
+            workspace_id: *workspace_id,
+            amount: i.amount,
+            currency: i.currency.clone(),
+            decimals,
+            status: i.status,
+            redirect_url,
+        })
+    }
+
     /// Test script: the provider now reports `id` as `status`.
     pub fn set_status(&self, id: &str, status: Status) {
         if let Some((_, i)) = self.state().intents.get_mut(id) {
@@ -164,6 +195,14 @@ impl Fake {
         all.sort_by(|a, b| a.id.cmp(&b.id));
         all
     }
+}
+
+/// `https://api.example.com` of `https://api.example.com/v1/payments/webhooks/fake/{ws}`.
+fn origin(webhook_url: &str) -> &str {
+    webhook_url
+        .split("/v1/payments/webhooks/")
+        .next()
+        .unwrap_or(webhook_url)
 }
 
 /// The fake's webhook body: `id=<fk_… or fr_…>` (form encoded, as most providers send).

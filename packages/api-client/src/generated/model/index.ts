@@ -661,6 +661,7 @@ export * from './passbookPage';
 export * from './passport';
 export * from './passportRef';
 export * from './passportResource';
+export * from './payChoice';
 export * from './paymentCreated';
 export * from './paymentIntentResource';
 export * from './paymentRequest';

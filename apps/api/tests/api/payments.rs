@@ -832,3 +832,122 @@ async fn sales_summary_shows_refunds_apart_from_gross(pool: PgPool) {
     assert_eq!(res["data"]["currencies"][0]["gross_total"], 2500);
     assert_eq!(res["data"]["currencies"][0]["refunded_total"], 500);
 }
+
+/// A form POST (or GET without body) to the fake's pay page; (status, Location, body text).
+async fn pay_page(
+    w: &W,
+    method: Method,
+    path: &str,
+    form: Option<&str>,
+) -> (StatusCode, String, String) {
+    let mut req = Request::builder().method(method).uri(path);
+    if form.is_some() {
+        req = req.header("content-type", "application/x-www-form-urlencoded");
+    }
+    let mut req = req
+        .body(Body::from(form.unwrap_or_default().to_owned()))
+        .unwrap();
+    req.extensions_mut().insert(ConnectInfo(
+        "203.0.113.9:4000".parse::<SocketAddr>().unwrap(),
+    ));
+    let res = w.api.app.clone().oneshot(req).await.unwrap();
+    let status = res.status();
+    let location = res
+        .headers()
+        .get("location")
+        .map(|v| v.to_str().unwrap().to_owned())
+        .unwrap_or_default();
+    let bytes = to_bytes(res.into_body(), usize::MAX).await.unwrap();
+    (
+        status,
+        location,
+        String::from_utf8_lossy(&bytes).into_owned(),
+    )
+}
+
+/// A web order of `q` honey and its checkout URL.
+async fn checkout_url(w: &W, q: u32) -> (String, String) {
+    let body = json!({ "lines": [{ "product_id": w.honey, "quantity": q }],
+                       "customer": { "email": "kim@example.com", "name": "Kim" } });
+    let (s, o) = shop(w, Method::POST, "/orders", Some(body)).await;
+    assert_eq!(s, StatusCode::CREATED, "{o}");
+    let id = o["data"]["id"].as_str().unwrap().to_owned();
+    let (s, p) = shop(
+        w,
+        Method::POST,
+        &format!("/orders/{id}/payment"),
+        Some(json!({ "redirect_url": "https://shop.example.com/t" })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{p}");
+    (id, p["data"]["checkout_url"].as_str().unwrap().to_owned())
+}
+
+/// Staging pays with the fake: its checkout URL is a page on this API whose Pay button settles
+/// the payment through the same re-fetch as a webhook, then returns to the shop.
+#[sqlx::test]
+async fn the_fake_pay_page_pays_or_cancels_and_returns_to_the_shop(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, url) = checkout_url(&w, 2).await;
+    let path = url
+        .find("/v1/payments/fake/")
+        .map(|i| url[i..].to_owned())
+        .unwrap_or_else(|| panic!("not our pay page: {url}"));
+    assert!(!url.contains("pay.fake.test"), "{url}");
+
+    let (s, _, html) = pay_page(&w, Method::GET, &path, None).await;
+    assert_eq!(s, StatusCode::OK);
+    assert!(html.contains("25.00") && html.contains("EUR"), "{html}");
+    assert!(
+        html.contains(r#"value="paid""#) && html.contains(r#"value="canceled""#),
+        "{html}"
+    );
+
+    let (s, location, _) = pay_page(&w, Method::POST, &path, Some("outcome=paid")).await;
+    assert_eq!(
+        (s, location.as_str()),
+        (StatusCode::SEE_OTHER, "https://shop.example.com/t")
+    );
+    drain(&w).await;
+    let o = order_of(&w, &order).await;
+    assert_eq!(o["status"], "open", "paid through the webhook path: {o}");
+    assert!(o["paid_at"].is_string());
+
+    let (other, url) = checkout_url(&w, 1).await;
+    let path = url[url.find("/v1/payments/fake/").unwrap()..].to_owned();
+    let (s, location, _) = pay_page(&w, Method::POST, &path, Some("outcome=canceled")).await;
+    assert_eq!(
+        (s, location.as_str()),
+        (StatusCode::SEE_OTHER, "https://shop.example.com/t")
+    );
+    drain(&w).await;
+    assert_eq!(
+        order_of(&w, &other).await["status"],
+        "awaiting_payment",
+        "not paid"
+    );
+
+    let (s, _, _) = pay_page(&w, Method::POST, &path, Some("outcome=maybe")).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    for m in [Method::GET, Method::POST] {
+        let form = (m == Method::POST).then_some("outcome=paid");
+        let (s, _, _) = pay_page(&w, m, "/v1/payments/fake/fk_999", form).await;
+        assert_eq!(s, StatusCode::NOT_FOUND, "unknown payment");
+    }
+}
+
+/// Without the fake provider (production refuses it at boot) the pay page doesn't exist.
+#[sqlx::test]
+async fn the_pay_page_is_404_without_the_fake_provider(pool: PgPool) {
+    let mut w = world(pool.clone()).await;
+    w.api.app = build_app(common::state(pool, Mailer::capture().0));
+    for m in [Method::GET, Method::POST] {
+        let form = (m == Method::POST).then_some("outcome=paid");
+        let (s, _, _) = pay_page(&w, m, "/v1/payments/fake/fk_1", form).await;
+        assert_eq!(s, StatusCode::NOT_FOUND);
+    }
+}
+
+async fn order_of(w: &W, id: &str) -> Value {
+    order(w, id).await
+}
