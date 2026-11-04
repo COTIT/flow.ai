@@ -98,7 +98,7 @@ pub async fn send(
         .mailer
         .send(invite_mail(
             &state.frontend_url,
-            &ws.name,
+            &ws.display_name,
             email,
             code.expose(),
         ))
@@ -298,6 +298,7 @@ mod tests {
             id: Uuid::nil(),
             workspace_id: Uuid::nil(),
             workspace_name: "acme".into(),
+            display_name: "Acme".into(),
             email: "a@b.co".into(),
             status: status.into(),
             expires_at: Utc::now() + expires_in,

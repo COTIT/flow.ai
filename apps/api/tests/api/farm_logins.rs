@@ -306,6 +306,11 @@ async fn ten_failures_lock_the_phone_until_an_officer_resets(pool: PgPool) {
         StatusCode::TOO_MANY_REQUESTS,
         "locked even with the right password"
     );
+    let body = json!({ "phone": "0712000001", "password": temp(&login) });
+    let (status, secs) = common::retry_after(&f.app, "/v1/farm/login", body).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+    let secs = secs.expect("Retry-After on the lock");
+    assert!((890..=900).contains(&secs), "{secs}");
     for _ in 0..11 {
         sign_in(&f, "0719999999", "wrong-password").await;
     }

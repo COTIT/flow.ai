@@ -325,11 +325,30 @@ async fn status_for_new_user(pool: PgPool) {
     assert_eq!(data["status"], "pending");
     assert_eq!(data["new_user"], true);
     assert_eq!(data["workspace_name"], "acme");
+    assert_eq!(data["display_name"], "acme", "no company name: the slug");
     assert_eq!(data["email"], "new@example.com");
     assert!(
         data["invited_on"].as_str().unwrap().starts_with("20"),
         "{data}"
     );
+}
+
+#[sqlx::test]
+async fn invites_name_the_company_not_the_slug(pool: PgPool) {
+    let w = world(pool).await;
+    sqlx::query("UPDATE workspaces SET profile = '{\"company_name\": \"Acme BV\"}'")
+        .execute(&w.pool)
+        .await
+        .unwrap();
+    w.invite("new@example.com").await;
+
+    let mails = common::invite_mails(&w.outbox);
+    let mail = mails.last().unwrap();
+    assert!(mail.subject.contains("Acme BV"), "{}", mail.subject);
+    assert!(mail.body.contains("the Acme BV workspace"), "{}", mail.body);
+    let (_, res) = w.status(&w.last_code()).await;
+    assert_eq!(res["data"]["display_name"], "Acme BV");
+    assert_eq!(res["data"]["workspace_name"], "acme", "the slug stays");
 }
 
 #[sqlx::test]

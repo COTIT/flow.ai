@@ -131,7 +131,10 @@ pub struct InviteStatusResponse {
     // True when no account uses the invited email yet (frontend shows signup form).
     /// No account uses this email yet: show the sign-up form.
     new_user: bool,
+    /// The workspace slug.
     workspace_name: String,
+    /// The workspace's profile `company_name`, or the slug when it has none. Show this.
+    display_name: String,
     email: String,
     invited_on: DateTime<Utc>,
 }
@@ -143,6 +146,7 @@ impl From<StatusView> for InviteStatusResponse {
             status: view.status,
             new_user: view.new_user,
             workspace_name: view.invite.workspace_name,
+            display_name: view.invite.display_name,
             email: view.invite.email,
             invited_on: view.invite.created_at,
         }

@@ -162,6 +162,7 @@ async fn pending_invites_listed_for_verified_user_with_id_as_code(pool: PgPool) 
     );
     assert_eq!(item["status"], "pending");
     assert_eq!(item["workspace_name"], "acme");
+    assert_eq!(item["display_name"], "acme", "no company name: the slug");
     assert!(item["invited_on"].is_string());
     assert_eq!(
         item["invited_by"],

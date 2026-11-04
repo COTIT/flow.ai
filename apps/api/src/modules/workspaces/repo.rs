@@ -34,9 +34,9 @@ pub async fn name_taken(db: impl PgExecutor<'_>, name: &str) -> Result<bool, sql
     .await
 }
 
-/// Name of a live workspace.
+/// Display name of a live workspace: the profile's company name, else the slug.
 pub struct WorkspaceRef {
-    pub name: String,
+    pub display_name: String,
 }
 
 /// Live workspace by id. None = unknown or deleted.
@@ -46,7 +46,8 @@ pub async fn find(
 ) -> Result<Option<WorkspaceRef>, sqlx::Error> {
     sqlx::query_as!(
         WorkspaceRef,
-        "SELECT name FROM workspaces WHERE id = $1 AND deleted_at IS NULL",
+        r#"SELECT coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "display_name!"
+           FROM workspaces w WHERE w.id = $1 AND w.deleted_at IS NULL"#,
         workspace_id,
     )
     .fetch_optional(db)
@@ -262,7 +263,7 @@ mod tests {
 
         let ws = insert(&pool, "acme", "manufacturing", owner).await.unwrap();
 
-        assert_eq!(find(&pool, ws).await.unwrap().unwrap().name, "acme");
+        assert_eq!(find(&pool, ws).await.unwrap().unwrap().display_name, "acme");
         let (ty, by): (String, Uuid) = sqlx::query_as(
             "SELECT workspace_type, created_by_user_id FROM workspaces WHERE id = $1",
         )

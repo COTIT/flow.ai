@@ -89,7 +89,7 @@ Laravel returned `200` here. vimdesk-web accepts both (`handleAuthResponse`).
 | `200` | token body. `workspace_ids` = every live workspace where the user is an active member, oldest membership first. |
 | `401` | `{"message": "Invalid login details"}` for an unknown email, a wrong password or a deleted user. Same body and similar timing in each case (unknown emails still run one argon2 verify). |
 | `403` | `{"message": "No workspace found associated with your account"}`. Checked only after the password matched, and no token is issued. |
-| `429` | `{"message": "Too Many Attempts."}`: 10 failed logins for this email (any case) in the last 15 minutes, from any IP. Unknown emails lock the same way, so a 429 doesn't reveal whether an account exists. Checked before any password hashing. A successful login clears the count. |
+| `429` | `{"message": "Too Many Attempts."}`: 10 failed logins for this email (any case) in the last 15 minutes, from any IP. Unknown emails lock the same way, so a 429 doesn't reveal whether an account exists. Checked before any password hashing. A successful login clears the count. `Retry-After` gives the seconds until the attempt that holds the lock leaves the 15-minute window, so the next try passes (a try before then counts and keeps the lock). |
 | `422` | missing field or bad email format |
 
 Laravel differences: the `401` message sits at the top level instead of `data.message`; vimdesk-web reads both. The "no workspace" case is `403` (Laravel sent a malformed `422`).

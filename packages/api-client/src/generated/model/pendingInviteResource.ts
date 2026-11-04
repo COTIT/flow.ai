@@ -11,11 +11,14 @@ import type { Inviter } from './inviter';
  * An invite waiting for the user to accept or decline.
  */
 export interface PendingInviteResource {
+  /** The workspace's profile `company_name`, or the slug when it has none. Show this. */
+  display_name: string;
   id: string;
   /** Code to send to `POST /invites` to accept or decline. */
   invite_code: string;
   invited_by: Inviter;
   invited_on: string;
   status: string;
+  /** The workspace slug. */
   workspace_name: string;
 }

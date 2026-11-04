@@ -72,6 +72,27 @@ pub async fn recent_login_attempts(
     .await
 }
 
+/// Seconds until `key` may try again, once more than `max` attempts sit in the window: when the
+/// `max`-th newest attempt leaves it, a new attempt makes `max` again and passes. At least 1.
+pub async fn lock_seconds_left(
+    db: impl PgExecutor<'_>,
+    key: &str,
+    max: i64,
+) -> Result<u64, sqlx::Error> {
+    let secs = sqlx::query_scalar!(
+        r#"SELECT ceil(extract(epoch FROM failed_at + interval '15 minutes' - now()))::bigint
+                  AS "secs!"
+           FROM login_failures
+           WHERE email_norm = lower($1) AND failed_at > now() - interval '15 minutes'
+           ORDER BY failed_at DESC OFFSET $2::bigint - 1 LIMIT 1"#,
+        key,
+        max,
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(secs.unwrap_or(1).max(1) as u64)
+}
+
 pub async fn record_login_attempt(db: impl PgExecutor<'_>, email: &str) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "INSERT INTO login_failures (email_norm) VALUES (lower($1))",

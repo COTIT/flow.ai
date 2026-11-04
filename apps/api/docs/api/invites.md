@@ -56,7 +56,7 @@ Public.
 
 ```json
 { "data": { "id": "<uuid>", "status": "pending", "new_user": true,
-            "workspace_name": "acme", "email": "new@example.com",
+            "workspace_name": "acme", "display_name": "Acme BV", "email": "new@example.com",
             "invited_on": "2026-10-20T06:47:35.174246Z" } }
 ```
 

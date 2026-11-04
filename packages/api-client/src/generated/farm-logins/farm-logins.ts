@@ -60,7 +60,7 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
 };
 
 /**
- * Unknown phone and wrong password get the same 401. Ten failures in 15 minutes lock the phone (429) until an officer issues a new password.
+ * Unknown phone and wrong password get the same 401. Ten failures in 15 minutes lock the phone (429, `Retry-After` in seconds) until they leave the window, or until an officer issues a new password.
  * @summary Farmer sign-in by phone
  */
 export const farmLoginsLogin = (

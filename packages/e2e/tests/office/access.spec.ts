@@ -358,7 +358,8 @@ const invite = (new_user: boolean) => ({
     invited_on: "2026-11-01T08:00:00Z",
     new_user,
     status: "pending",
-    workspace_name: "Ilundo Honey Co.",
+    workspace_name: "ilundo-honey",
+    display_name: "Ilundo Honey Co.",
   },
 })
 

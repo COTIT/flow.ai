@@ -10,6 +10,8 @@
  * What an invite link points to, for the accept or sign-up screen.
  */
 export interface InviteStatusResponse {
+  /** The workspace's profile `company_name`, or the slug when it has none. Show this. */
+  display_name: string;
   email: string;
   id: string;
   invited_on: string;
@@ -17,5 +19,6 @@ export interface InviteStatusResponse {
   new_user: boolean;
   /** `pending` | `accepted` | `denied` | `expired`. */
   status: string;
+  /** The workspace slug. */
   workspace_name: string;
 }

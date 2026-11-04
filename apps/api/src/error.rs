@@ -81,6 +81,9 @@ pub enum AppError {
     /// 429. Same body as the IP rate limiter (Laravel ThrottleRequests text).
     #[error("too many requests")]
     TooManyRequests,
+    /// 429 as `TooManyRequests`, with `Retry-After`: seconds until a login lock lifts.
+    #[error("locked")]
+    Locked(u64),
     /// 408: the request body didn't arrive before the body deadline (`http::timeout`).
     #[error("request body timeout")]
     BodyTimeout,
@@ -252,6 +255,12 @@ impl IntoResponse for AppError {
                 .into_response(),
             Self::TooManyRequests => (
                 StatusCode::TOO_MANY_REQUESTS,
+                Json(json!({ "message": TOO_MANY })),
+            )
+                .into_response(),
+            Self::Locked(secs) => (
+                StatusCode::TOO_MANY_REQUESTS,
+                [(header::RETRY_AFTER, secs.to_string())],
                 Json(json!({ "message": TOO_MANY })),
             )
                 .into_response(),
