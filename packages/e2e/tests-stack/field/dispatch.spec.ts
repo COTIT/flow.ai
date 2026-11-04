@@ -25,7 +25,7 @@ test("Dispatch names the partner as people know it, and Buy harvest shows each p
   await expect(page.getByTestId("supply-transfer-row").first()).toContainText("→ AFM Shop")
   await page.getByTestId("batch-village").selectOption({ label: "Mwangeza" })
   await page.getByTestId("batch-crop").selectOption({ label: "Coffee" })
-  await expect(page.getByTestId("batch-product").locator("option", { hasText: "Coffee cherries (raw) (kg)" })).toHaveCount(1)
+  await expect(page.getByTestId("batch-product").locator("option", { hasText: "Coffee cherries (raw) · kg" })).toHaveCount(1)
 })
 
 // RUAHA's default currency is TZS (FB1), so Buy harvest prices and credits farmers in shillings.

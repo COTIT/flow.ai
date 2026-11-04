@@ -39,7 +39,7 @@ test("a farmer's harvest bought in Field, shipped to AFM and sold at its till co
     await page.goto(`${urls.field}/ops/dispatch`)
     await page.getByTestId("batch-village").selectOption({ label: "Mwangeza" })
     await page.getByTestId("batch-crop").selectOption({ label: "Coffee" })
-    await page.getByTestId("batch-product").selectOption({ label: "Coffee cherries (raw) (kg)" })
+    await page.getByTestId("batch-product").selectOption({ label: "Coffee cherries (raw) · kg" })
     for (const h of before) await page.getByTestId(`batch-kg-${h.harvest_report_id}`).fill(h === harvest ? "1.00" : "")
     await page.getByTestId("batch-code").fill(code)
     await page.getByTestId("batch-price").fill("8000")
