@@ -4,6 +4,7 @@ import { mockApi, type MockReply } from "../../src/api-mock"
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { me, role, villages } from "./api"
+import { emptyPassbook, noPayouts } from "./passbook.api"
 import { MILL, mill, one as oneMachine } from "./equipment.api"
 import { eligibilityBefore, farmerMe } from "./farmer.api"
 import { FARM, PERSON, PLOT, crops, documents, holdings, person, record, tourSeen } from "./officer-records.api"
@@ -25,6 +26,8 @@ async function openPerson(page: Page, correction: { status: number; body: unknow
     "GET /workspace/w1/farm/villages": villages,
     [`GET /workspace/w1/farm/persons/${PERSON}`]: { body: { data: person() } },
     [`GET /workspace/w1/farm/persons/${PERSON}/login-history`]: { body: { data: [] } },
+    [`GET /workspace/w1/farm/persons/${PERSON}/passbook`]: emptyPassbook,
+    "GET /workspace/w1/farm/payouts": noPayouts,
     "GET /workspace/w1/farm/crops": crops,
     [`GET /workspace/w1/farm/plots/${PLOT}/documents`]: documents,
   })

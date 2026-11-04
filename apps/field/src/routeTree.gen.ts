@@ -23,6 +23,7 @@ import { Route as OpsOpsRouteImport } from './routes/_ops/ops'
 import { Route as FarmerFarmIndexRouteImport } from './routes/_farmer/farm.index'
 import { Route as FarmerFarmMyFarmRouteImport } from './routes/_farmer/farm.my-farm'
 import { Route as FarmerFarmOpportunitiesRouteImport } from './routes/_farmer/farm.opportunities'
+import { Route as FarmerFarmPassbookRouteImport } from './routes/_farmer/farm.passbook'
 import { Route as OfficerOfficerIndexRouteImport } from './routes/_officer/officer.index'
 import { Route as OfficerOfficerRedeemRouteImport } from './routes/_officer/officer.redeem'
 import { Route as OfficerOfficerRegisterRouteImport } from './routes/_officer/officer.register'
@@ -123,6 +124,11 @@ const FarmerFarmMyFarmRoute = FarmerFarmMyFarmRouteImport.update({
 const FarmerFarmOpportunitiesRoute = FarmerFarmOpportunitiesRouteImport.update({
   id: '/opportunities',
   path: '/opportunities',
+  getParentRoute: () => FarmerFarmRoute,
+} as any)
+const FarmerFarmPassbookRoute = FarmerFarmPassbookRouteImport.update({
+  id: '/passbook',
+  path: '/passbook',
   getParentRoute: () => FarmerFarmRoute,
 } as any)
 const OfficerOfficerIndexRoute = OfficerOfficerIndexRouteImport.update({
@@ -317,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/ops': typeof OpsOpsRouteWithChildren
   '/farm/my-farm': typeof FarmerFarmMyFarmRoute
   '/farm/opportunities': typeof FarmerFarmOpportunitiesRoute
+  '/farm/passbook': typeof FarmerFarmPassbookRoute
   '/officer/redeem': typeof OfficerOfficerRedeemRoute
   '/officer/register': typeof OfficerOfficerRegisterRoute
   '/officer/verify': typeof OfficerOfficerVerifyRoute
@@ -361,6 +368,7 @@ export interface FileRoutesByTo {
   '/set-password': typeof authSetPasswordRoute
   '/farm/my-farm': typeof FarmerFarmMyFarmRoute
   '/farm/opportunities': typeof FarmerFarmOpportunitiesRoute
+  '/farm/passbook': typeof FarmerFarmPassbookRoute
   '/officer/redeem': typeof OfficerOfficerRedeemRoute
   '/officer/register': typeof OfficerOfficerRegisterRoute
   '/officer/verify': typeof OfficerOfficerVerifyRoute
@@ -411,6 +419,7 @@ export interface FileRoutesById {
   '/_ops/ops': typeof OpsOpsRouteWithChildren
   '/_farmer/farm/my-farm': typeof FarmerFarmMyFarmRoute
   '/_farmer/farm/opportunities': typeof FarmerFarmOpportunitiesRoute
+  '/_farmer/farm/passbook': typeof FarmerFarmPassbookRoute
   '/_officer/officer/redeem': typeof OfficerOfficerRedeemRoute
   '/_officer/officer/register': typeof OfficerOfficerRegisterRoute
   '/_officer/officer/verify': typeof OfficerOfficerVerifyRoute
@@ -460,6 +469,7 @@ export interface FileRouteTypes {
     | '/ops'
     | '/farm/my-farm'
     | '/farm/opportunities'
+    | '/farm/passbook'
     | '/officer/redeem'
     | '/officer/register'
     | '/officer/verify'
@@ -504,6 +514,7 @@ export interface FileRouteTypes {
     | '/set-password'
     | '/farm/my-farm'
     | '/farm/opportunities'
+    | '/farm/passbook'
     | '/officer/redeem'
     | '/officer/register'
     | '/officer/verify'
@@ -553,6 +564,7 @@ export interface FileRouteTypes {
     | '/_ops/ops'
     | '/_farmer/farm/my-farm'
     | '/_farmer/farm/opportunities'
+    | '/_farmer/farm/passbook'
     | '/_officer/officer/redeem'
     | '/_officer/officer/register'
     | '/_officer/officer/verify'
@@ -699,6 +711,13 @@ declare module '@tanstack/react-router' {
       path: '/opportunities'
       fullPath: '/farm/opportunities'
       preLoaderRoute: typeof FarmerFarmOpportunitiesRouteImport
+      parentRoute: typeof FarmerFarmRoute
+    }
+    '/_farmer/farm/passbook': {
+      id: '/_farmer/farm/passbook'
+      path: '/passbook'
+      fullPath: '/farm/passbook'
+      preLoaderRoute: typeof FarmerFarmPassbookRouteImport
       parentRoute: typeof FarmerFarmRoute
     }
     '/_officer/officer/': {
@@ -945,6 +964,7 @@ declare module '@tanstack/react-router' {
 interface FarmerFarmRouteChildren {
   FarmerFarmMyFarmRoute: typeof FarmerFarmMyFarmRoute
   FarmerFarmOpportunitiesRoute: typeof FarmerFarmOpportunitiesRoute
+  FarmerFarmPassbookRoute: typeof FarmerFarmPassbookRoute
   FarmerFarmIndexRoute: typeof FarmerFarmIndexRoute
   FarmerFarmEquipmentEquipmentIdRoute: typeof FarmerFarmEquipmentEquipmentIdRoute
   FarmerFarmRequestsRequestIdRoute: typeof FarmerFarmRequestsRequestIdRoute
@@ -957,6 +977,7 @@ interface FarmerFarmRouteChildren {
 const FarmerFarmRouteChildren: FarmerFarmRouteChildren = {
   FarmerFarmMyFarmRoute: FarmerFarmMyFarmRoute,
   FarmerFarmOpportunitiesRoute: FarmerFarmOpportunitiesRoute,
+  FarmerFarmPassbookRoute: FarmerFarmPassbookRoute,
   FarmerFarmIndexRoute: FarmerFarmIndexRoute,
   FarmerFarmEquipmentEquipmentIdRoute: FarmerFarmEquipmentEquipmentIdRoute,
   FarmerFarmRequestsRequestIdRoute: FarmerFarmRequestsRequestIdRoute,

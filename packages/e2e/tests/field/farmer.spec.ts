@@ -20,6 +20,7 @@ import {
   voidedVouchers,
 } from "./farmer.api"
 import { noOpportunities } from "./market.api"
+import { emptyPassbook } from "./passbook.api"
 import { requestList } from "./requests.api"
 
 const RESPONSES = `/v1/workspace/w1/farm/surveys/${SURVEY}/responses`
@@ -42,6 +43,7 @@ async function open(
     ...records,
     ...surveys,
     "GET /workspace/w1/farm/surveys/eligibility": eligibilityBefore,
+    "GET /workspace/w1/farm/passbook/mine": emptyPassbook,
     "GET /workspace/w1/farm/vouchers/mine": noVouchers,
     [`GET /workspace/w1/farm/vouchers/${VOUCHER}/timeline`]: timeline,
     // The home's latest-request card (the e2e build has the resources feature on).

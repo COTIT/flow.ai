@@ -29,6 +29,7 @@
  *   plot_document upload     plotDocuments(plot)
  *   equipment insert         equipment('mine')
  *   loan_product insert      loanProducts
+ *   payout create            passbook (all), payouts (all)
  */
 export const queryKeys = {
   session: () => ['session'] as const,
@@ -115,6 +116,10 @@ export const queryKeys = {
   redemptionLog: (from: string, to: string) => ['redemptionLog', from, to] as const,
   /** Who issued or reset a person's app login. */
   loginHistory: (personId: string) => ['loginHistory', personId] as const,
+  /** A passbook: the caller's own (`mine`) or a person's; lines and balances per currency. */
+  passbook: (personId: string | 'mine') => ['passbook', personId] as const,
+  /** Payouts of one person, or every payout the caller may read (`all`). */
+  payouts: (personId: string | 'all') => ['payouts', personId] as const,
 
   tower: {
     production: (villageId: string) => ['tower', 'production', villageId] as const,

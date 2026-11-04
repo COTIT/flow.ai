@@ -84,6 +84,8 @@ describe('the Swahili bundle is complete and well formed', () => {
       'Control Tower',
       // A sales-channel acronym, shown as written.
       'AFM',
+      // Tanzania's national ID, named by its acronym in both languages.
+      'NIDA',
     ])
     const copies = Object.entries(SW)
       .filter(([key, value]) => value === EN[key])

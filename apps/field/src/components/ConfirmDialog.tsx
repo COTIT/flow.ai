@@ -7,6 +7,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   confirming = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
   children,
@@ -16,6 +17,8 @@ export function ConfirmDialog({
   confirmLabel: string
   cancelLabel: string
   confirming?: boolean
+  /** The fields in `children` are not complete yet. */
+  confirmDisabled?: boolean
   onConfirm: () => void
   onCancel: () => void
   /** Fields to review before confirming (a pre-filled name); shown under the detail. */
@@ -86,7 +89,7 @@ export function ConfirmDialog({
             ref={confirmRef}
             type="button"
             data-testid="confirm-dialog-confirm"
-            disabled={confirming}
+            disabled={confirming || confirmDisabled}
             onClick={onConfirm}
             className="px-4 font-semibold disabled:opacity-60"
             style={{

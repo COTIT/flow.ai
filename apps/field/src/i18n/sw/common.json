@@ -1573,5 +1573,42 @@
     "buyConfirmTitle": "Nunua mavuno haya?",
     "buyConfirmDetail": "Mistari {{count}} ya mavuno kwenye loti {{code}} kwa {{price}} {{currency}} kwa kilo. Kundi haliwezi kubadilishwa baadaye.",
     "bought": "Imenunuliwa kwenye loti {{code}}."
+  },
+  "passbook": {
+    "title": "Daftari la fedha",
+    "mine": "Daftari langu la fedha",
+    "open": "Fungua daftari langu",
+    "balance": "Salio",
+    "after": "Salio baada: {{balance}}",
+    "emptyTitle": "Bado hakuna miamala",
+    "emptyDetail": "Malipo ya mauzo huonekana hapa asali ya mavuno yako ikiuzwa, na malipo unapolipwa.",
+    "payouts": "Malipo",
+    "noPayouts": "Bado hakuna malipo.",
+    "voided": "Yamebatilishwa: {{reason}}",
+    "notRegisteredTitle": "Hakuna daftari",
+    "notRegisteredDetail": "Akaunti hii si mkulima aliyesajiliwa wa mradi huu, kwa hiyo haina daftari.",
+    "kind": {
+      "sale_credit": "Mapato ya mauzo",
+      "sale_reversal": "Mauzo yamerudishwa",
+      "payout": "Malipo",
+      "payout_void": "Malipo yamebatilishwa"
+    },
+    "idType": {
+      "nida": "NIDA",
+      "voter": "Kadi ya mpiga kura",
+      "driving_licence": "Leseni ya udereva",
+      "village_letter": "Barua ya kijiji"
+    },
+    "payOut": "Lipa",
+    "payTitle": "Mlipe {{name}} taslimu?",
+    "payDetail": "Salio {{balance}}. Lipa tu baada ya kukagua kitambulisho; malipo yanaandikwa kwenye daftari mara moja.",
+    "amount": "Kiasi ({{currency}})",
+    "idTypeLabel": "Kitambulisho kilichokaguliwa",
+    "nameConfirmed": "Jina kwenye kitambulisho linalingana na mkulima huyu",
+    "pay": "Lipa",
+    "paying": "Inalipa…",
+    "paid": "Imelipwa {{amount}}.",
+    "cancel": "Ghairi",
+    "choose": "Chagua…"
   }
 }
