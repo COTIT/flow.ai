@@ -114,7 +114,16 @@
     "lineage": "Herkomst",
     "details": "Batchgegevens",
     "eventWho": "Wie",
-    "system": "Systeem"
+    "system": "Systeem",
+    "eventKinds": {
+      "created": "Aangemaakt",
+      "updated": "Bijgewerkt",
+      "status_changed": "Status gewijzigd",
+      "passport_published": "Paspoort gepubliceerd",
+      "passport_unpublished": "Paspoort ingetrokken",
+      "packed": "Verpakt",
+      "dispatched": "Verzonden"
+    }
   },
   "secret": {
     "once": "Kopieer dit geheim nu. Het wordt maar één keer getoond.",
@@ -139,7 +148,24 @@
     "revokeText": "Apps met deze sleutel stoppen meteen. Dit kan niet ongedaan worden gemaakt.",
     "intro": "Met sleutels praten de webshop en de kassa met Genesy. Elk account heeft eigen sleutels.",
     "created": "Sleutel aangemaakt",
-    "secretHint": "Bewaar hem waar de server van de shop hem kan lezen."
+    "secretHint": "Bewaar hem waar de server van de shop hem kan lezen.",
+    "kinds": {
+      "shop": "Webwinkel",
+      "till": "Kassa",
+      "field": "Veld-app",
+      "partner": "Partner"
+    },
+    "scopeNames": {
+      "catalog_read": "Catalogus lezen",
+      "checkout_write": "Webbestellingen aannemen",
+      "till_login": "Inloggen op kassa"
+    },
+    "scopeHints": {
+      "catalog_read": "Producten, prijzen en voorraad zien",
+      "checkout_write": "Bestellingen plaatsen vanuit de webwinkel",
+      "till_login": "Medewerkers laten inloggen op de kassa"
+    },
+    "chooseKind": "Kies waarvoor de sleutel is"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -157,7 +183,15 @@
     "deleteText": "{url} krijgt geen gebeurtenissen meer. Dit kan niet ongedaan worden gemaakt.",
     "intro": "Webhooks laten je andere systemen weten wanneer er iets verandert in dit account.",
     "created": "Endpoint aangemaakt",
-    "secretHint": "Gebruik het om te controleren dat events echt van Genesy komen."
+    "secretHint": "Gebruik het om te controleren dat events echt van Genesy komen.",
+    "eventNames": {
+      "lot_created": "Batch aangemaakt",
+      "order_created": "Order geplaatst",
+      "passport_published": "Paspoort gepubliceerd",
+      "product_changed": "Product gewijzigd",
+      "sale_attributed": "Verkoop toegekend aan boer",
+      "stock_changed": "Voorraad gewijzigd"
+    }
   },
   "passport": {
     "title": "Paspoort · {code}",
@@ -265,7 +299,13 @@
     "movementType": "Soort mutatie",
     "typeAll": "Alle",
     "typeDecrease": "Afnames",
-    "typeCount": "Tellingen"
+    "typeCount": "Tellingen",
+    "movementTypes": {
+      "increase": "Bijgeboekt",
+      "decrease": "Afgeboekt",
+      "set_level": "Telling ingesteld",
+      "set_requirements": "Minimum ingesteld"
+    }
   },
   "invoices": {
     "title": "Facturen",
@@ -294,7 +334,16 @@
     "customer": "Klant",
     "count": "{total, plural, one {# factuur} other {# facturen}}",
     "detailTitle": "Factuur {number}",
-    "details": "Gegevens"
+    "details": "Gegevens",
+    "statuses": {
+      "draft": "Concept",
+      "sent": "Verzonden",
+      "open": "Open",
+      "partially_paid": "Deels betaald",
+      "paid": "Betaald",
+      "cancelled": "Geannuleerd",
+      "credited": "Gecrediteerd"
+    }
   },
   "orders": {
     "title": "Orders",
@@ -713,5 +762,16 @@
     "quantityHint": "Positief voegt toe, negatief haalt eruit",
     "correction": "Dit is een correctie",
     "empty": "Nog geen voorraad in deze batch"
+  },
+  "payMethods": {
+    "cash": "Contant",
+    "card": "Kaart",
+    "pin": "Pin",
+    "manual": "Handmatig",
+    "provider": "Online",
+    "bank": "Bankoverschrijving",
+    "bank_transfer": "Bankoverschrijving",
+    "mollie": "Online",
+    "online": "Online"
   }
 }

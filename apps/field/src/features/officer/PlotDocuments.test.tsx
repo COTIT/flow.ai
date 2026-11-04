@@ -121,4 +121,15 @@ describe('PlotDocuments', () => {
     expect(screen.getByTestId('plot-documents-failed')).toHaveTextContent('notes.txt')
     expect(screen.getByTestId('plot-documents-failed')).toHaveTextContent('not supported')
   })
+
+  // axios's own English for a dropped connection is not a reason a user can read.
+  test('a file lost to the connection says so in words, keeping its name', () => {
+    usePlotDocuments.mockReturnValue({ isLoading: false, error: null, data: [] })
+    uploadState.data = { filed: [], failed: [{ id: 'x', name: 'deed.jpg', message: 'Network Error' }] }
+    render(<PlotDocuments plotId={PLOT} villageId={VILLAGE} />)
+
+    const failed = screen.getByTestId('plot-documents-failed')
+    expect(failed).toHaveTextContent('deed.jpg')
+    expect(failed).not.toHaveTextContent('Network Error')
+  })
 })

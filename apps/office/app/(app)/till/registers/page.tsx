@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { formatDateTime, formatTime } from "@genesy/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
@@ -42,6 +43,7 @@ import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
 
 export default function RegistersPage() {
   const t = useTranslations()
+  const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
   const [page, setPage] = React.useState(1)
@@ -153,7 +155,7 @@ export default function RegistersPage() {
                   </TableCell>
                   <TableCell data-m="right" className="tabular-nums">
                     {r.paired_at ? (
-                      new Date(r.paired_at).toLocaleString()
+                      formatDateTime(r.paired_at, locale)
                     ) : (
                       <StatusBadge status="draft" label={t("till.notPaired")} />
                     )}
@@ -290,6 +292,7 @@ function CreateRegister({
 /** A fresh one-time pairing code for `register`: the shop name and code to type on the till. */
 function PairCode({ register }: { register: string }) {
   const t = useTranslations()
+  const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const issue = useTillRegistersPairing()
   const { mutate } = issue
@@ -320,10 +323,7 @@ function PairCode({ register }: { register: string }) {
           </dl>
           <p className="text-sm text-muted-foreground">
             {t("till.pairValid", {
-              time: new Date(code.expires_at).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
+              time: formatTime(code.expires_at, locale),
             })}
           </p>
         </>

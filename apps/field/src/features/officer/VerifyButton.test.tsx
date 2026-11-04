@@ -23,6 +23,18 @@ function renderButton(over: Partial<React.ComponentProps<typeof VerifyButton>> =
 
 beforeEach(() => onVerify.mockReset())
 
+describe('VerifyButton wording', () => {
+  // The table name is a database identifier; with no label the dialog names the kind of record.
+  test('with no label the dialog names the record kind, not the table', async () => {
+    const user = userEvent.setup()
+    renderButton({ table: 'harvest_report', id: 'h1', recordLabel: undefined })
+
+    await user.click(screen.getByTestId('verify-harvest_report-h1'))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Harvest figure')
+    expect(screen.getByRole('alertdialog')).not.toHaveTextContent('harvest_report')
+  })
+})
+
 describe('VerifyButton safety', () => {
   test('does not mutate before confirmation and confirms once', async () => {
     const user = userEvent.setup()
@@ -69,13 +81,6 @@ describe('VerifyButton safety', () => {
   test('verified rows have no action', () => {
     renderButton({ verification: 'verified' })
     expect(screen.queryByTestId('verify-person-p1')).not.toBeInTheDocument()
-  })
-
-  test('uses the table name when a record label is absent', async () => {
-    const user = userEvent.setup()
-    renderButton({ recordLabel: undefined })
-    await user.click(screen.getByTestId('verify-person-p1'))
-    expect(screen.getByRole('alertdialog')).toHaveTextContent('person')
   })
 
   test('pending rows remain actionable until submitted', async () => {

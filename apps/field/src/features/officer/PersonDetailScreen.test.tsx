@@ -51,8 +51,8 @@ vi.mock('@/features/officer/useOfficerEdit', () => ({
   useOfficerEdit: () => ({ mutateAsync: editMutate, reset: editReset, isPending: false, error: null }),
 }))
 vi.mock('@/features/officer/VerifyButton', () => ({
-  VerifyButton: ({ table, id, onVerify }: { table: string; id: string; onVerify: (value: { table: string; id: string }) => void }) => (
-    <button type="button" data-testid={`verify-${table}-${id}`} onClick={() => onVerify({ table, id })}>Verify</button>
+  VerifyButton: ({ table, id, recordLabel, onVerify }: { table: string; id: string; recordLabel?: string; onVerify: (value: { table: string; id: string }) => void }) => (
+    <button type="button" data-testid={`verify-${table}-${id}`} data-record-label={recordLabel} onClick={() => onVerify({ table, id })}>Verify</button>
   ),
 }))
 vi.mock('@/features/officer/OfficerEditDialog', () => ({
@@ -159,6 +159,12 @@ describe('PersonDetailScreen', () => {
       await user.click(screen.getByTestId('screen-edit-cancel'))
     }
     expect(editReset).toHaveBeenCalled()
+  })
+
+  // The confirm dialog names the harvest in words, not by its enum value.
+  test('a harvest is named by its kind in words for the verify dialog', () => {
+    render(<PersonDetailScreen />)
+    expect(screen.getByTestId('verify-harvest_report-h-current')).toHaveAttribute('data-record-label', 'Expected 100.00 kg')
   })
 
   // The verifier checks a plot against its title documents, so they sit on it.

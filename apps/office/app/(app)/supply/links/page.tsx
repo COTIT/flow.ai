@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -21,12 +21,14 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { formatDate } from "@genesy/ui/lib/format"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 export default function SupplyLinksPage() {
   const t = useTranslations()
+  const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
   const [page, setPage] = React.useState(1)
@@ -56,7 +58,7 @@ export default function SupplyLinksPage() {
     fields.length
       ? fields.map((f) => label("fields", f)).join(", ")
       : t("supply.noFields")
-  const day = (s: string | null) => s?.slice(0, 10) ?? "—"
+  const day = (s: string | null) => (s ? formatDate(s, locale) : "—")
 
   const columns = [
     { label: t("supply.partner") },

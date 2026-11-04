@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Package } from "lucide-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -41,6 +41,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { Textarea } from "@genesy/ui/components/textarea"
+import { formatDateTime } from "@genesy/ui/lib/format"
 import { Bento, DetailSkeleton, Metric, Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import {
@@ -70,6 +71,7 @@ export default function ProductPage({
   searchParams: Promise<{ done?: string }>
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const { id } = React.use(params)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const enabled = { query: { enabled: Boolean(workspaceId) } }
@@ -443,10 +445,14 @@ export default function ProductPage({
                 {movements.data.data.map((m) => (
                   <TableRow key={m.id}>
                     <TableCell className="tabular-nums">
-                      {new Date(m.created_at).toLocaleString()}
+                      {formatDateTime(m.created_at, locale)}
                     </TableCell>
                     <TableCell data-m="sub">
-                      <StatusBadge status={m.movement_type} tone="slate" />
+                      <StatusBadge
+                        status={m.movement_type}
+                        tone="slate"
+                        label={t(`stock.movementTypes.${m.movement_type}`)}
+                      />
                     </TableCell>
                     <TableCell data-m="hide">
                       {(m.relationships?.warehouse as Named)?.name}

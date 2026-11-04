@@ -70,7 +70,8 @@ function stockApi(api: FakeApi) {
       rows[0]!.stock_lvl = "130.00"
       movements.unshift({
         id: "mv-1",
-        movement_type: "mutation",
+        // The API books a change as an increase or a decrease.
+        movement_type: b.mutation_value.startsWith("-") ? "decrease" : "increase",
         quantity_change: b.mutation_value,
         quantity_before: "120.00",
         quantity_after: "130.00",

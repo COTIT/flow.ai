@@ -303,6 +303,15 @@ describe('OfficerCycleScreen', () => {
     await waitFor(() => expect(queueMutate).toHaveBeenCalledTimes(2))
   })
 
+  // The confirm dialog names the harvest in words, not by its enum value.
+  test('the harvest verify dialog names the kind in words', async () => {
+    const user = userEvent.setup()
+    useCycleDetail.mockReturnValue({ isLoading: false, error: null, cycle: cycle({ harvests: cycle().harvests.map((h) => ({ ...h, verification: 'unverified' })) }) })
+    render(<OfficerCycleScreen />)
+    await user.click(screen.getByTestId('verify-harvest_report-h1'))
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Expected 4,100.00 kg')
+  })
+
   test('passes pending state through plot, cycle, and harvest controls', () => {
     queueState.isPending = true
     queueState.variables = { table: 'plot', id: 'pl1' }

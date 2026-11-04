@@ -133,6 +133,18 @@ describe('SelectRoleScreen content', () => {
     expect(row).toHaveTextContent(/whole project/i)
   })
 
+  // A name that has not loaded is unknown, not an id: a UUID means nothing to a farmer.
+  test('a project or village with no name shows a dash, never its id', () => {
+    useScopeNames.mockReturnValue({ ...names, data: { villages: {}, projects: {} } })
+    useSession.mockReturnValue({ data: { memberships: [m('field_officer', VILLAGE)] }, isLoading: false, error: null })
+    renderScreen()
+
+    const row = screen.getByTestId('select-role-field_officer')
+    expect(row).not.toHaveTextContent(PROJECT)
+    expect(row).not.toHaveTextContent(VILLAGE)
+    expect(row).toHaveTextContent('—')
+  })
+
   test('choosing a role navigates to that role home', async () => {
     useSession.mockReturnValue({
       data: { memberships: [m('farmer', VILLAGE), m('ops', null)] },
@@ -146,7 +158,7 @@ describe('SelectRoleScreen content', () => {
     expect(navigate).toHaveBeenCalledWith({ to: '/ops', replace: true })
   })
 
-  test('a village whose name has not loaded falls back to the id, never to blank', () => {
+  test('a village whose name has not loaded shows a dash, never the id or blank', () => {
     useSession.mockReturnValue({
       data: { memberships: [m('farmer', 'unknown-village-id')] },
       isLoading: false,
@@ -154,6 +166,7 @@ describe('SelectRoleScreen content', () => {
     })
     renderScreen()
 
-    expect(screen.getByTestId('select-role-farmer')).toHaveTextContent('unknown-village-id')
+    expect(screen.getByTestId('select-role-farmer')).not.toHaveTextContent('unknown-village-id')
+    expect(screen.getByTestId('select-role-farmer')).toHaveTextContent('—')
   })
 })

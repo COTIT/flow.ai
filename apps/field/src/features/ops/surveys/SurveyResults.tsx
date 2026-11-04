@@ -185,7 +185,7 @@ interface ChoiceRow {
 function choiceRows(
   question: SurveyQuestion,
   choices: TallyRow[],
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string>) => string,
   language: string | undefined,
 ): ChoiceRow[] {
   const countOf = (value: string) => choices.find((row) => row.option_value === value)?.answers ?? 0
@@ -203,6 +203,6 @@ function choiceRows(
   const known = new Set(listed.map((row) => row.key))
   const unlisted = choices
     .filter((row) => !known.has(row.option_value))
-    .map((row) => ({ key: row.option_value, label: row.option_value, count: row.answers }))
+    .map((row) => ({ key: row.option_value, label: t('surveyAdmin.removedOption', { value: row.option_value }), count: row.answers }))
   return [...listed, ...unlisted]
 }

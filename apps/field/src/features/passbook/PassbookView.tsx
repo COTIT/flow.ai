@@ -65,7 +65,7 @@ export function PassbookView({
             {lines.map((l: EntryResource) => (
               <li key={l.id} data-testid="passbook-line">
                 <Card className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <span className="font-semibold">{t(`passbook.kind.${l.kind}`, { defaultValue: l.kind })}</span>
+                  <span className="font-semibold">{t(`passbook.kind.${l.kind}`, { defaultValue: t('common.other') })}</span>
                   <span className="tabular font-semibold">{money(l.amount)}</span>
                   <span className="type-note tabular w-full" style={{ color: 'var(--ink-2)' }}>
                     {formatTimestamp(l.created_at)} · {t('passbook.after', { balance: money(l.balance_after) })}
@@ -95,7 +95,7 @@ export function PassbookView({
               <Card className="flex flex-col gap-1">
                 <p className="flex flex-wrap justify-between gap-x-3">
                   <span className="tabular font-semibold">{money(p.amount)}</span>
-                  <span className="type-note">{t(`passbook.idType.${p.id_type}`, { defaultValue: p.id_type })}</span>
+                  <span className="type-note">{t(`passbook.idType.${p.id_type}`, { defaultValue: t('common.other') })}</span>
                 </p>
                 <p className="type-note tabular" style={{ color: 'var(--ink-2)' }}>
                   {formatTimestamp(p.paid_at)}

@@ -178,7 +178,10 @@ export default function SearchPage({
                       {inv.customer_name ?? "—"}
                     </TableCell>
                     <TableCell data-m="badge">
-                      <StatusBadge status={inv.status} />
+                      <StatusBadge
+                        status={inv.status}
+                        label={t(`invoices.statuses.${inv.status}`)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

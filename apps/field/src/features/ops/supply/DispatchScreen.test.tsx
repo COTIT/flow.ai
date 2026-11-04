@@ -150,8 +150,8 @@ describe('the form', () => {
     expect(useLotStock).toHaveBeenLastCalledWith('lot1')
     const row = screen.getByTestId('dispatch-stock-row')
     expect(row).toHaveTextContent('Iringa store')
-    expect(row).toHaveTextContent('35.00 available')
-    expect(row).toHaveTextContent('40.00 on hand, 5.00 held for orders')
+    expect(row).toHaveTextContent('35.00 kg available')
+    expect(row).toHaveTextContent('40.00 kg on hand, 5.00 kg held for orders')
   })
 
   test('a lot with no stock says so', () => {
@@ -174,7 +174,6 @@ describe('sent transfers', () => {
     const row = screen.getByTestId('supply-transfer-row')
     expect(row).toHaveTextContent('ILU-H-2026-01')
     expect(row).toHaveTextContent('AFM shop')
-    expect(row).toHaveTextContent('40.00')
-    expect(row).toHaveTextContent('Dispatched')
+    expect(row).toHaveTextContent('40.00 kg · Dispatched')
   })
 })

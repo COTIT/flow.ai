@@ -406,7 +406,7 @@ export function OfficerCycleScreen() {
                   <VerifyButton
                     table="harvest_report"
                     id={h.id}
-                    recordLabel={`${h.kind} ${formatKg(h.quantity_kg)}`}
+                    recordLabel={`${t(`harvestKind.${h.kind}`)} ${formatKg(h.quantity_kg)}`}
                     verification={h.verification}
                     pending={verify.isPending && verify.variables?.table === 'harvest_report' && verify.variables?.id === h.id}
                     onVerify={(target) => verify.mutateAsync(target)}

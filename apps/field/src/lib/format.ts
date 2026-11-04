@@ -19,7 +19,7 @@ export type AreaUnit = 'hectare' | 'acre'
 export const DISPLAY_TIMEZONE = 'Africa/Dar_es_Salaam'
 
 /** Shown wherever a value is genuinely absent. Never rendered as 0. */
-const UNKNOWN = '—'
+export const UNKNOWN = '—'
 
 // en-GB gives "10 Sep 2026" and 24-hour time, which is what the surfaces use.
 const LOCALE = 'en-GB'

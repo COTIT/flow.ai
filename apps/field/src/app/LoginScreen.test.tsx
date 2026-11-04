@@ -337,6 +337,20 @@ describe('sign-in failure states', () => {
     expect(await screen.findByTestId('login-error')).toHaveTextContent('Unknown email.')
   })
 
+  // A message the app names exactly is shown in the user's language, like every other screen.
+  test("an API message the app knows is shown from the bundle", async () => {
+    authLogin.mockRejectedValue(
+      failed(422, { message: 'phone number must be a Tanzanian mobile number, for example +255 712 345 678' }),
+    )
+
+    renderLogin()
+    await signInAs('neema@demo.ruaha360.test', 'demo1234')
+
+    expect(await screen.findByTestId('login-error')).toHaveTextContent(
+      'The phone number must be a Tanzanian mobile number, for example +255 712 345 678.',
+    )
+  })
+
   test('an answer with no message still says something', async () => {
     authLogin.mockRejectedValue(failed(500))
 

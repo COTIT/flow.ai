@@ -117,7 +117,8 @@ describe('the answer tally', () => {
   test('an answered value the question no longer lists is still shown', () => {
     renderResults()
     const [choice] = screen.getAllByTestId('tally-question')
-    expect(within(choice).getAllByTestId('tally-option')[2]).toHaveTextContent('sorghum')
+    // Said to be removed, so the stored value is not mistaken for a label.
+    expect(within(choice).getAllByTestId('tally-option')[2]).toHaveTextContent('Removed option (sorghum)')
   })
 
   test('yes/no answers read as Yes and No', () => {

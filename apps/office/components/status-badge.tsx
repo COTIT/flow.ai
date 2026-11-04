@@ -15,6 +15,7 @@ const tones: Record<string, Tone> = {
   pending: "gold",
   draft: "gold",
   partially_returned: "gold",
+  partially_paid: "gold",
   recalled: "red",
   revoked: "red",
   denied: "red",

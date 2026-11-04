@@ -77,10 +77,10 @@ describe('pay out', () => {
     expect(screen.getByTestId('payout-amount-error')).toHaveTextContent('greater than the balance')
   })
 
-  test("a 403 shows the API's reason, not a generic error", () => {
+  test("a 403 shows the API's reason in the user's words, not a generic error", () => {
     payout.error = refused(403, { message: 'you registered this household, so another staff member must pay this farmer' })
     open()
-    expect(screen.getByTestId('payout-error')).toHaveTextContent('you registered this household')
+    expect(screen.getByTestId('payout-error')).toHaveTextContent('You registered this household, so another staff member must pay this farmer.')
   })
 
   test('a payout made shows a success notice', () => {

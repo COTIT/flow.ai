@@ -14,8 +14,8 @@ import { Card } from '@/components/controls'
 import { BangMark } from '@/components/marks'
 import { Button } from '@/components/ui/button'
 import { clearTempPassword, peekTempPassword } from '@/app/tempPassword'
-import { translateDbMessage } from '@/lib/dbMessages'
 import { apiErrorMessage, isNoAnswer } from '@/lib/apiError'
+import { errorText } from '@/lib/errors'
 import { farmLoginsChangePassword } from '@genesy/api-client/endpoints/farm-logins'
 
 // Only "is it there, and typed twice the same" is checked here. What makes a
@@ -52,10 +52,9 @@ export function SetPasswordScreen() {
   const [heldCurrent] = useState(peekTempPassword)
   useEffect(() => clearTempPassword(), [])
   // The raw message is kept and read at render, so it follows a language
-  // switch. A message the app names exactly is read from the bundle; any other
-  // (a GoTrue sentence, say) is shown as written.
-  const named = formError ? translateDbMessage(formError) : null
-  const shownError = named ? t(named.key, named.values) : formError
+  // switch. A message the app names exactly is read from the bundle, machine
+  // noise reads as the generic error, and any other sentence is shown as written.
+  const shownError = formError ? errorText(formError, t) : null
 
   const {
     register,

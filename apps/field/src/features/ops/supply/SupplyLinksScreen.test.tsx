@@ -42,6 +42,15 @@ describe('the list', () => {
     expect(rows[1]).toHaveTextContent('Revoked')
   })
 
+  // A field the bundle does not know yet reads as a word, never as its code.
+  test('an unknown shared field is not shown as its code', () => {
+    useSupplyLinks.mockReturnValue({ isLoading: false, error: null, data: [link('l1', 'live', ['farm_gps'])] })
+    render(<SupplyLinksScreen />)
+    const row = screen.getByTestId('supply-link-row')
+    expect(row).not.toHaveTextContent('farm_gps')
+    expect(row).toHaveTextContent('Other')
+  })
+
   test('a revoked link offers no revoke', () => {
     render(<SupplyLinksScreen />)
     const rows = screen.getAllByTestId('supply-link-row')

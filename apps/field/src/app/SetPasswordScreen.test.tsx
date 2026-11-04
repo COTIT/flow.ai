@@ -131,6 +131,18 @@ describe('choosing your own password', () => {
     expect(navigate).not.toHaveBeenCalled()
   })
 
+  // Machine noise in an API body is never copied to the screen.
+  test('a JS exception the API passed on reads as the generic error', async () => {
+    changePassword.mockRejectedValue(failed(500, { message: 'TypeError: x is not a function' }))
+
+    renderScreen()
+    await fill('mango-tree-42')
+
+    const error = await screen.findByTestId('set-password-error')
+    expect(error).not.toHaveTextContent('TypeError')
+    expect(error).toHaveTextContent(i18n.t('error.unexpected'))
+  })
+
   test('a lost connection still says something', async () => {
     changePassword.mockRejectedValue(new Error('Network Error'))
 

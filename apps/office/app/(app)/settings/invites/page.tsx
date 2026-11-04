@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { UserPlus } from "lucide-react"
 
@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { formatDate } from "@genesy/ui/lib/format"
 import { Field, selectClass } from "@/components/field"
 import {
   CardState,
@@ -49,6 +50,7 @@ import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
 /** People invited to this account by email (Template List, as OfficeSettings). */
 export default function InvitesPage() {
   const t = useTranslations()
+  const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const [page, setPage] = React.useState(1)
   const queryClient = useQueryClient()
@@ -77,7 +79,7 @@ export default function InvitesPage() {
     email: string
     open: boolean
   }>()
-  const when = (s: string) => new Date(s).toLocaleDateString()
+  const when = (s: string) => formatDate(s, locale)
   const statusLabel = (s: string) =>
     t.has(`invites.statuses.${s}`) ? t(`invites.statuses.${s}`) : s
   const columns = [

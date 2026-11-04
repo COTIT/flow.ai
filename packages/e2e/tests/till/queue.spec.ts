@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test"
 
+import { expectNoRawValues } from "../../src/test"
 import { expectTillLook } from "./look"
 import { expect, honey, seedTill, test, type FakeApi, WS } from "./fake-till"
 
@@ -232,11 +233,13 @@ test.describe("refused replay", () => {
         .getByRole("alert")
         .filter({ hasText: "Show it to the office before dismissing it." })
     ).toBeVisible()
+    // The API's sentence names an internal field; the cashier reads it in their own words.
     await expect(
       page.getByText(
-        "This client_ref was used for another sale on this register."
+        "This sale's number was already used for another sale. Show it to the office."
       )
     ).toBeVisible()
+    await expectNoRawValues(page)
     await expect(page.getByText("Needs the office")).toBeVisible()
     // The replay's answer turned the card into a conflict after load: shift checked elsewhere.
     await expectTillLook(page, { shift: false })

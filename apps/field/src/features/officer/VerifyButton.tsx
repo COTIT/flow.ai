@@ -62,7 +62,7 @@ export function VerifyButton({
       {confirming && (
         <ConfirmDialog
           title={t('verifyDialog.title')}
-          detail={t('verifyDialog.detail', { record: recordLabel ?? table })}
+          detail={t('verifyDialog.detail', { record: recordLabel ?? t(`verifyQueue.table.${table}`) })}
           confirmLabel={pending ? t('person.verifying') : t('verifyDialog.confirm')}
           cancelLabel={t('verifyDialog.cancel')}
           confirming={pending}

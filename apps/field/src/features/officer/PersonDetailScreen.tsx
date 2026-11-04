@@ -274,7 +274,7 @@ export function PersonDetailScreen() {
                                   <VerifyButton
                                     table="harvest_report"
                                     id={h.id}
-                                    recordLabel={`${h.kind} ${formatKg(h.quantity_kg)}`}
+                                    recordLabel={`${t(`harvestKind.${h.kind}`)} ${formatKg(h.quantity_kg)}`}
                                 verification={h.verification}
                                 onVerify={verify.mutateAsync}
                                 pending={verifying('harvest_report', h.id)}

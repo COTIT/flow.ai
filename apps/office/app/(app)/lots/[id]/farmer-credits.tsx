@@ -9,6 +9,7 @@ import { useSession } from "@genesy/api-client/auth"
 import { useLotsFarmerCredits } from "@genesy/api-client/endpoints/lots"
 import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
+import { formatDateTime } from "@genesy/ui/lib/format"
 import { Chip, Tile } from "@/components/bento"
 import { ListPager } from "@/components/list"
 import { Empty, LoadError } from "@/components/states"
@@ -119,7 +120,7 @@ export function FarmerCredits({ lotId }: { lotId: string }) {
                           : c.kind}
                         {" · "}
                         <span className="tabular-nums">
-                          {new Date(c.at).toLocaleString()}
+                          {formatDateTime(c.at, locale)}
                         </span>
                       </p>
                     </div>

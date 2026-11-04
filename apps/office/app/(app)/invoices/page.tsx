@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { Search } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { formatDate } from "@genesy/ui/lib/format"
 import {
   CardState,
   ListCard,
@@ -33,6 +34,7 @@ export default function InvoicesPage({
   searchParams: Promise<{ q?: string; page?: string }>
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const router = useRouter()
   const { q, page } = React.use(searchParams)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
@@ -140,13 +142,16 @@ export default function InvoicesPage({
                   </TableCell>
                   <TableCell data-m="sub">{inv.customer_name ?? "—"}</TableCell>
                   <TableCell data-m="badge">
-                    <StatusBadge status={inv.status} />
+                    <StatusBadge
+                      status={inv.status}
+                      label={t(`invoices.statuses.${inv.status}`)}
+                    />
                   </TableCell>
                   <TableCell data-m="hide" className="text-muted-foreground">
-                    {inv.created_at.slice(0, 10)}
+                    {formatDate(inv.created_at, locale)}
                   </TableCell>
                   <TableCell data-m="hide" className="text-muted-foreground">
-                    {inv.due_date?.slice(0, 10)}
+                    {inv.due_date ? formatDate(inv.due_date, locale) : "—"}
                   </TableCell>
                   {/* Amounts exactly as the API prints them; never added up here. */}
                   <TableCell

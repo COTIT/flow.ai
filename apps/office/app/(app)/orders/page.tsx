@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { formatMoney } from "@genesy/ui/lib/money"
+import { formatDate } from "@genesy/ui/lib/format"
 import {
   CardState,
   ListCard,
@@ -160,7 +161,7 @@ export default function OrdersPage({
                     />
                   </TableCell>
                   <TableCell data-m="hide" className="text-muted-foreground">
-                    {o.created_at.slice(0, 10)}
+                    {formatDate(o.created_at, locale)}
                   </TableCell>
                   <TableCell
                     data-m="right"

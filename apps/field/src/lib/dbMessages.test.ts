@@ -80,6 +80,33 @@ describe('translateDbMessage', () => {
     )
   })
 
+  // farm_payouts: a staff member refused a payout reads why in their language.
+  test('payout refusals are named', () => {
+    expect(translateDbMessage('this payout is above the officer limit: ops or admin must pay it')?.key).toBe('dbError.payoutOverLimit')
+    expect(translateDbMessage('you registered this household, so another staff member must pay this farmer')?.key).toBe('dbError.payoutOwnRegistration')
+    expect(translateDbMessage('you verified this household, so another staff member must pay this farmer')?.key).toBe('dbError.payoutOwnVerification')
+    expect(translateDbMessage('you cannot pay your own household')?.key).toBe('dbError.payoutOwnHousehold')
+    expect(translateDbMessage('This payout is already void.')?.key).toBe('dbError.payoutAlreadyVoid')
+    expect(translateDbMessage('The amount must not be greater than the balance of 5000.')).toEqual({
+      key: 'dbError.payoutOverBalance',
+      values: { balance: '5000' },
+    })
+  })
+
+  // farm_supply: buying a harvest.
+  test('buy-harvest refusals are named', () => {
+    expect(translateDbMessage('A harvest you verified must be bought by someone else.')?.key).toBe('dbError.buyOwnVerification')
+    expect(
+      translateDbMessage('The harvest report must be the current, verified actual figure of this village and crop.')?.key,
+    ).toBe('dbError.buyBadHarvest')
+    expect(translateDbMessage("The harvest's farm has no primary manager.")?.key).toBe('dbError.buyNoManager')
+  })
+
+  // farm_vouchers writes this into a refused scan's audit detail.
+  test('a scan outside the officer villages is named', () => {
+    expect(translateDbMessage('outside your villages')?.key).toBe('dbError.outsideYourVillages')
+  })
+
   // An unfamiliar sentence is far more likely to be one of ours than noise, so
   // it is shown as written.
   test('a message it does not know is left for verbatim display', () => {

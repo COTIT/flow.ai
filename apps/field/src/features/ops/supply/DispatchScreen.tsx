@@ -20,7 +20,7 @@ import {
   useLotStock,
   useSupplyTransfers,
 } from '@/features/ops/supply/useSupply'
-import { formatTimestamp } from '@/lib/format'
+import { formatKg, formatTimestamp, UNKNOWN } from '@/lib/format'
 import { newUuid } from '@/lib/ids'
 
 /** `/ops/dispatch`: buy harvest into a raw lot, send lot stock to a shop over a live link, and the transfers sent so far. */
@@ -43,7 +43,7 @@ export function DispatchScreen() {
 
   // The API lists live links only.
   const live = options.data?.links ?? []
-  const warehouseName = (id: string) => options.data?.warehouses.find((w) => w.id === id)?.name ?? id
+  const warehouseName = (id: string) => options.data?.warehouses.find((w) => w.id === id)?.name ?? UNKNOWN
   // The API's refusal of a field is shown under it; an edit clears it, and a shown success.
   const refused = fieldErrorsOf(dispatch.error, (key) => DISPATCH_INPUT[key])
   const fieldError = (id: string) => (refused.fields[id] ? errorText(refused.fields[id], t) : undefined)
@@ -134,7 +134,11 @@ export function DispatchScreen() {
                       <li key={row.warehouse_id} data-testid="dispatch-stock-row" className="type-note tabular">
                         <b>{warehouseName(row.warehouse_id)}</b>
                         {': '}
-                        {t('supply.stockRow', { available: row.available, level: row.level, reserved: row.reserved })}
+                        {t('supply.stockRow', {
+                          available: formatKg(Number(row.available)),
+                          level: formatKg(Number(row.level)),
+                          reserved: formatKg(Number(row.reserved)),
+                        })}
                       </li>
                     ))}
                   </ul>
@@ -187,8 +191,8 @@ export function DispatchScreen() {
                   {tr.from_lot.code} → {tr.partner.name}
                 </p>
                 <p className="type-note tabular" style={{ color: 'var(--ink-2)' }}>
-                  {tr.quantity} · {t(`supply.status.${tr.status}`)} · {formatTimestamp(tr.dispatched_at)}
-                  {tr.received_quantity !== null && ` · ${t('supply.received', { quantity: tr.received_quantity })}`}
+                  {formatKg(Number(tr.quantity))} · {t(`supply.status.${tr.status}`)} · {formatTimestamp(tr.dispatched_at)}
+                  {tr.received_quantity !== null && ` · ${t('supply.received', { quantity: formatKg(Number(tr.received_quantity)) })}`}
                 </p>
               </Card>
             </li>

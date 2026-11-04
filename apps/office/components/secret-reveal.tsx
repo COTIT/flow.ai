@@ -52,10 +52,3 @@ export function SecretReveal({
     </div>
   )
 }
-
-/** "a, b c" → ["a", "b", "c"]: the list inputs for scopes and events. */
-export function splitList(value: FormDataEntryValue | null): string[] {
-  return String(value ?? "")
-    .split(/[\s,]+/)
-    .filter(Boolean)
-}

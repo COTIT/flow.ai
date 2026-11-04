@@ -84,6 +84,7 @@
     "totalNext": "The total, with VAT, is shown on the next page before you pay.",
     "place": "Place order",
     "required": "Please fill this in.",
+    "invalid": "This doesn't look right.",
     "field": {
       "email": "Email",
       "name": "Full name",
@@ -120,7 +121,7 @@
     "paid": "Thank you! Your payment is in and your order is confirmed.",
     "cancelled": "This order expired before it was paid",
     "again": "Shop again",
-    "status": "Status: {status}",
+    "status": "Status: {status, select, draft {Draft} awaiting_payment {Awaiting payment} open {Being prepared} completed {Completed} cancelled {Cancelled} partially_returned {Partly returned} returned {Returned} refunded {Refunded} other {Being processed}}",
     "subtotal": "Subtotal",
     "vat": "VAT",
     "total": "Total",

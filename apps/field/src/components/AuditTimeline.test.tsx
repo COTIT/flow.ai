@@ -29,7 +29,7 @@ describe('AuditTimeline', () => {
   test('shows an audit hold and a refusal reason when the caller may see them', () => {
     render(<AuditTimeline events={EVENTS} />)
     expect(screen.getByTestId('audit-event-issued')).toHaveTextContent('Held for an in-person audit')
-    expect(screen.getByTestId('audit-event-refused')).toHaveTextContent('Reason: outside your villages')
+    expect(screen.getByTestId('audit-event-refused')).toHaveTextContent('Reason: Outside your villages')
   })
 
   test('keeps the order the database gave, oldest first', () => {
@@ -41,6 +41,35 @@ describe('AuditTimeline', () => {
       'redeemed',
       'refused',
     ])
+  })
+
+  // The API writes the refusal reason in English; a Swahili officer reads it in Swahili.
+  test('a refusal reason the app knows is shown in the user language', async () => {
+    const i18n = (await import('@/i18n')).default
+    await i18n.changeLanguage('sw')
+    try {
+      render(<AuditTimeline events={EVENTS} />)
+      const refused = screen.getByTestId('audit-event-refused')
+      expect(refused).not.toHaveTextContent('outside your villages')
+      expect(refused).toHaveTextContent(i18n.t('dbError.outsideYourVillages'))
+    } finally {
+      await i18n.changeLanguage('en')
+    }
+  })
+
+  // A code the bundle does not know yet reads as a word, never as snake_case.
+  test('an unknown kind, role or ID type falls back to a word, not the code', () => {
+    render(
+      <AuditTimeline
+        events={[
+          { occurred_at: '2026-09-29T08:40:00Z', kind: 'new_kind', actor_name: 'Peter', actor_role: 'super_user', detail: { id_type_seen: 'pass_port' } },
+        ]}
+      />,
+    )
+    const row = screen.getByTestId('audit-event-new_kind')
+    expect(row).not.toHaveTextContent(/new_kind|super_user|pass_port/)
+    expect(row).toHaveTextContent('Unknown role')
+    expect(row).toHaveTextContent('Other')
   })
 
   test('an empty trail says so rather than rendering nothing', () => {

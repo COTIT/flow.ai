@@ -14,7 +14,6 @@ import type {
   SaleRequest,
   SaleResource,
 } from "@genesy/api-client/model"
-import { ApiError } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
 import { EmptyState } from "@genesy/ui/components/empty-state"
 import { Notice } from "@genesy/ui/components/notice"
@@ -34,6 +33,7 @@ import { useTill } from "@/lib/till-store"
 import { useTillCatalog, type Sellable } from "@/lib/use-catalog"
 import { useTillMoney } from "@/lib/use-money"
 import { useQuote } from "@/lib/use-quote"
+import { refusal } from "@/lib/refusal"
 
 const same = (
   a: { productId: string; variantId: string | null },
@@ -54,7 +54,7 @@ const quoted = (lines: QuoteLine[] | undefined, l: CartLine) =>
  */
 export default function SalePage() {
   const t = useTranslations("sale")
-  const tc = useTranslations("common")
+  const tr = useTranslations("refusals")
   const workspace = useTill((s) => s.device?.workspaceId) ?? ""
   const accepted = useTill((s) => s.session?.register.accepted_cash)
   const catalog = useTillCatalog()
@@ -186,6 +186,10 @@ export default function SalePage() {
           .filter((v) => v >= cover)
           .slice(0, 3)
   const status = sale.error?.response?.status
+  const saleRefusal = sale.error ? refusal(sale.error, tr, t("refused")) : null
+  const quoteRefusal = quoteError
+    ? refusal(quoteError, tr, t("quoteRefused"))
+    : null
   const fieldErrors = sale.error?.response?.data
     ? Object.values(
         (sale.error.response.data as { errors?: Record<string, string[]> })
@@ -352,7 +356,11 @@ export default function SalePage() {
           )}
         </div>
         <div className="mt-auto flex flex-col gap-2.5">
-          <ApiError error={quoteError} fallback={tc("error")} />
+          {quoteRefusal ? (
+            <Notice variant="error" title={quoteRefusal.title}>
+              {quoteRefusal.detail}
+            </Notice>
+          ) : null}
           {quote?.mismatched_lines ? (
             <Notice variant="warning" title={t("mismatch")} />
           ) : null}
@@ -545,15 +553,10 @@ export default function SalePage() {
                   {badTendered ? (
                     <Notice variant="error" title={t("badTendered")} />
                   ) : null}
-                  {sale.error ? (
+                  {saleRefusal ? (
                     <Notice
                       variant="error"
-                      title={
-                        (
-                          sale.error.response?.data as
-                            { message?: string } | undefined
-                        )?.message ?? tc("error")
-                      }
+                      title={saleRefusal.title}
                       action={
                         status === 409 ? (
                           <Link href="/drawer" className="badge-link underline">
@@ -562,9 +565,10 @@ export default function SalePage() {
                         ) : null
                       }
                     >
-                      {fieldErrors.length
-                        ? fieldErrors.map((m) => <p key={m}>{m}</p>)
-                        : null}
+                      {saleRefusal.detail ? <p>{saleRefusal.detail}</p> : null}
+                      {fieldErrors.map((m) => (
+                        <p key={m}>{m}</p>
+                      ))}
                     </Notice>
                   ) : null}
                   <button

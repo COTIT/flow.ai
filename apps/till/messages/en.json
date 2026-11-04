@@ -81,7 +81,9 @@
     "change": "Change",
     "referenceHint": "Run the card on the terminal first, then type its slip number.",
     "book": "Book sale",
-    "bookCard": "Book card sale"
+    "bookCard": "Book card sale",
+    "refused": "This sale was not booked.",
+    "quoteRefused": "The basket could not be priced."
   },
   "nav": {
     "label": "Till menu",
@@ -111,7 +113,8 @@
     "floatHint": "Count what goes in the drawer to start the shift.",
     "closedBody": "The office sees this on the shift report. Nothing else to do here.",
     "lock": "Lock till",
-    "openNew": "Open new shift"
+    "openNew": "Open new shift",
+    "refused": "The drawer could not be changed."
   },
   "count": {
     "denomination": "Value of row {n}",
@@ -159,7 +162,7 @@
     "online": "Online",
     "offline": "{count, plural, =0 {Offline} other {Offline · # to sync}}",
     "waiting": "{count} waiting",
-    "needsOffice": "{count} needs the office",
+    "needsOffice": "{count, plural, one {# needs the office} other {# need the office}}",
     "items": "{count, plural, one {# item} other {# items}}",
     "estimate": "{method} · ≈ {amount} estimate"
   },
@@ -178,5 +181,10 @@
   "keypad": {
     "clear": "Clear",
     "delete": "Delete"
+  },
+  "refusals": {
+    "refReused": "This sale's number was already used for another sale. Show it to the office.",
+    "noShift": "No shift is open on this register. Open the drawer first.",
+    "alreadyOpen": "A shift is already open on this register."
   }
 }

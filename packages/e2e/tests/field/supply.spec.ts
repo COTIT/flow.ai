@@ -109,7 +109,7 @@ test("a dispatch goes through the dialog: cancel sends nothing, confirm sends on
 
   await fill(page)
   // The picked lot's stock, for reading: the API still refuses an over-send.
-  await expect(page.getByTestId("dispatch-stock-row")).toHaveText("Iringa store: 35.00 available · 40.00 on hand, 5.00 held for orders")
+  await expect(page.getByTestId("dispatch-stock-row")).toHaveText("Iringa store: 35.00 kg available · 40.00 kg on hand, 5.00 kg held for orders")
   await page.getByTestId("dispatch-send").click()
   await expect(page.getByTestId("confirm-dialog")).toContainText("12.50 of lot ILU-H-2026-01 to AFM shop")
   await page.getByTestId("confirm-dialog-cancel").click()

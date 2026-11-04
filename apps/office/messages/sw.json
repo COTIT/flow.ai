@@ -114,7 +114,16 @@
     "lineage": "Asili",
     "details": "Maelezo ya fungu",
     "eventWho": "Nani",
-    "system": "Mfumo"
+    "system": "Mfumo",
+    "eventKinds": {
+      "created": "Limeundwa",
+      "updated": "Limesasishwa",
+      "status_changed": "Hali imebadilika",
+      "passport_published": "Pasipoti imechapishwa",
+      "passport_unpublished": "Pasipoti imeondolewa",
+      "packed": "Limefungashwa",
+      "dispatched": "Limetumwa"
+    }
   },
   "secret": {
     "once": "Nakili siri hii sasa. Inaonyeshwa mara moja tu.",
@@ -139,7 +148,24 @@
     "revokeText": "Programu zinazotumia ufunguo huu zitaacha kufanya kazi mara moja. Hili haliwezi kutenduliwa.",
     "intro": "Funguo huruhusu duka la mtandaoni na kaunta kuwasiliana na Genesy. Kila akaunti ina funguo zake.",
     "created": "Ufunguo umeundwa",
-    "secretHint": "Uhifadhi mahali ambapo seva ya duka inaweza kuusoma."
+    "secretHint": "Uhifadhi mahali ambapo seva ya duka inaweza kuusoma.",
+    "kinds": {
+      "shop": "Duka la mtandaoni",
+      "till": "Kaunta",
+      "field": "Programu ya shambani",
+      "partner": "Mshirika"
+    },
+    "scopeNames": {
+      "catalog_read": "Soma katalogi",
+      "checkout_write": "Pokea oda za mtandaoni",
+      "till_login": "Kuingia kaunta"
+    },
+    "scopeHints": {
+      "catalog_read": "Ona bidhaa, bei na akiba",
+      "checkout_write": "Weka oda kutoka duka la mtandaoni",
+      "till_login": "Ruhusu wafanyakazi kuingia kwenye kaunta"
+    },
+    "chooseKind": "Chagua ufunguo ni wa nini"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -157,7 +183,15 @@
     "deleteText": "{url} haitapokea matukio tena. Hili haliwezi kutenduliwa.",
     "intro": "Webhooks huarifu mifumo yako mingine kitu kinapobadilika katika akaunti hii.",
     "created": "Endpoint imeundwa",
-    "secretHint": "Uitumie kuthibitisha kwamba matukio yanatoka kweli kwa Genesy."
+    "secretHint": "Uitumie kuthibitisha kwamba matukio yanatoka kweli kwa Genesy.",
+    "eventNames": {
+      "lot_created": "Fungu limeundwa",
+      "order_created": "Oda imewekwa",
+      "passport_published": "Pasipoti imechapishwa",
+      "product_changed": "Bidhaa imebadilishwa",
+      "sale_attributed": "Mauzo yamehusishwa na mkulima",
+      "stock_changed": "Akiba imebadilika"
+    }
   },
   "passport": {
     "title": "Pasipoti · {code}",
@@ -265,7 +299,13 @@
     "movementType": "Aina ya mabadiliko",
     "typeAll": "Zote",
     "typeDecrease": "Mapunguzo",
-    "typeCount": "Hesabu"
+    "typeCount": "Hesabu",
+    "movementTypes": {
+      "increase": "Imeongezwa",
+      "decrease": "Imetolewa",
+      "set_level": "Hesabu imewekwa",
+      "set_requirements": "Kiwango cha chini kimewekwa"
+    }
   },
   "invoices": {
     "title": "Ankara",
@@ -294,7 +334,16 @@
     "customer": "Mteja",
     "count": "{total, plural, one {ankara #} other {ankara #}}",
     "detailTitle": "Ankara {number}",
-    "details": "Maelezo"
+    "details": "Maelezo",
+    "statuses": {
+      "draft": "Rasimu",
+      "sent": "Imetumwa",
+      "open": "Wazi",
+      "partially_paid": "Imelipwa kiasi",
+      "paid": "Imelipwa",
+      "cancelled": "Imeghairiwa",
+      "credited": "Imepunguzwa"
+    }
   },
   "orders": {
     "title": "Oda",
@@ -713,5 +762,16 @@
     "quantityHint": "Chanya inaongeza, hasi inatoa",
     "correction": "Hii ni marekebisho",
     "empty": "Bado hakuna akiba katika kundi hili"
+  },
+  "payMethods": {
+    "cash": "Taslimu",
+    "card": "Kadi",
+    "pin": "PIN",
+    "manual": "Kwa mkono",
+    "provider": "Mtandaoni",
+    "bank": "Benki",
+    "bank_transfer": "Benki",
+    "mollie": "Mtandaoni",
+    "online": "Mtandaoni"
   }
 }
