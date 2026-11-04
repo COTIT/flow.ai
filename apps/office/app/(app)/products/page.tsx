@@ -90,12 +90,11 @@ export default function ProductsPage({
             >
               {t("nav.stock")}
             </Link>
-            {canCreate ? (
-              <CreateProduct
-                startOpen={startNew === "1"}
-                onCreated={(id) => router.push(`/products/${id}?done=created`)}
-              />
-            ) : null}
+            <CreateProduct
+              disabled={!canCreate}
+              startOpen={startNew === "1"}
+              onCreated={(id) => router.push(`/products/${id}?done=created`)}
+            />
           </>
         }
       />

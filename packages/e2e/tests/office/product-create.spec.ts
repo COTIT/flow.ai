@@ -134,6 +134,30 @@ function grant(api: FakeApi, permissions: string[]) {
   }))
 }
 
+test("the create buttons wait for /me without moving the page", async ({
+  page,
+  api,
+}) => {
+  catalogApi(api)
+  // `/me` answers after the list and the sizes: what a slow runner does.
+  await page.route("**/v1/me", async (route) => {
+    await new Promise((r) => setTimeout(r, 600))
+    await api.handle(route)
+  })
+  await page.goto("/products")
+  await expect(page.getByRole("link", { name: "Beeswax Block" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "New product" })).toBeEnabled()
+  // Zero: on a phone the head's buttons wrap, so one that pops in moves the list down.
+  await expectNoLayoutShift(page, 0)
+
+  await page.goto("/products/p1")
+  await expect(
+    page.getByRole("region", { name: "Sizes" }).getByText("Standard")
+  ).toBeVisible()
+  await expect(page.getByRole("button", { name: "Add size" })).toBeEnabled()
+  await expectNoLayoutShift(page, 0)
+})
+
 test("create a product: it opens on its page and shows in the list", async ({
   page,
   api,
@@ -252,7 +276,7 @@ test.describe("422", () => {
   })
 })
 
-test("without product.create there is no New product or Add size", async ({
+test("without product.create, New product and Add size are off", async ({
   page,
   api,
 }) => {
@@ -262,13 +286,13 @@ test("without product.create there is no New product or Add size", async ({
   await page.goto("/products?new=1")
   await meRead
   await expect(page.getByRole("link", { name: "Beeswax Block" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "New product" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "New product" })).toBeDisabled()
   await expect(page.getByRole("dialog")).toHaveCount(0)
 
   await page.getByRole("link", { name: "Beeswax Block" }).click()
   const sizes = page.getByRole("region", { name: "Sizes" })
   await expect(sizes.getByText("Standard")).toBeVisible()
-  await expect(page.getByRole("button", { name: "Add size" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Add size" })).toBeDisabled()
   // Editing stays as it was.
   await expect(page.getByRole("button", { name: "Save changes" })).toBeVisible()
   await expectFits(page)

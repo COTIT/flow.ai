@@ -53,25 +53,23 @@ export function ProductSizes({
       title={t("products.sizes")}
       span=""
       action={
-        canAdd ? (
-          <AddSize
-            productId={productId}
-            onAdded={() => {
-              done.show(t("done.sizeAdded"))
-              void queryClient.invalidateQueries({
-                queryKey: getProductVariantsListQueryKey(
-                  workspaceId,
-                  productId
-                ),
-              })
-            }}
-          />
-        ) : null
+        // Always drawn, off without the permission, so the head keeps its size.
+        <AddSize
+          disabled={!canAdd}
+          productId={productId}
+          onAdded={() => {
+            done.show(t("done.sizeAdded"))
+            void queryClient.invalidateQueries({
+              queryKey: getProductVariantsListQueryKey(workspaceId, productId),
+            })
+          }}
+        />
       }
     >
       {variants.isPending ? (
         <div aria-busy="true" className="flex flex-col gap-2">
-          <Skeleton className="h-5" />
+          {/* One size row's height (badge included), so the cards below stay put. */}
+          <Skeleton className="h-6" />
         </div>
       ) : variants.isError ? (
         <LoadError
@@ -83,7 +81,10 @@ export function ProductSizes({
       ) : (
         <div className="flex flex-col gap-2 text-sm">
           {variants.data.data.map((v) => (
-            <div key={v.id} className="flex items-center justify-between gap-3">
+            <div
+              key={v.id}
+              className="flex min-h-6 items-center justify-between gap-3"
+            >
               <span className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="font-semibold">
                   {v.relationships.option_values
@@ -114,9 +115,11 @@ export function ProductSizes({
 }
 
 function AddSize({
+  disabled,
   productId,
   onAdded,
 }: {
+  disabled: boolean
   productId: string
   onAdded: () => void
 }) {
@@ -144,7 +147,9 @@ function AddSize({
         if (!o) generate.reset()
       }}
     >
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+      <DialogTrigger
+        render={<Button variant="outline" size="sm" disabled={disabled} />}
+      >
         {t("products.addSize")}
       </DialogTrigger>
       <DialogContent>

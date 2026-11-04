@@ -31,14 +31,19 @@ import { Capped } from "@/components/states"
  * shop list it at once; the product page edits everything else.
  */
 export function CreateProduct({
+  disabled = false,
   startOpen = false,
   onCreated,
 }: {
+  /** Shown but off until `/me` grants it: the head keeps its size (no layout shift). */
+  disabled?: boolean
+  /** Opens once it is enabled (`?new=1`), unless the user has already closed it. */
   startOpen?: boolean
   onCreated: (id: string) => void
 }) {
   const t = useTranslations()
-  const [open, setOpen] = React.useState(startOpen)
+  const [choice, setOpen] = React.useState<boolean | null>(null)
+  const open = !disabled && (choice ?? startOpen)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const queryClient = useQueryClient()
   const vatGroups = useVatGroupsList(
@@ -67,7 +72,9 @@ export function CreateProduct({
         if (!o) create.reset()
       }}
     >
-      <DialogTrigger render={<Button />}>{t("products.new")}</DialogTrigger>
+      <DialogTrigger render={<Button disabled={disabled} />}>
+        {t("products.new")}
+      </DialogTrigger>
       <DialogContent>
         <form
           className="flex flex-col gap-3"
