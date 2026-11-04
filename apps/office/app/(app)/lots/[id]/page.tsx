@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { Check, Copy, Package, QrCode, Sprout, Truck } from "lucide-react"
 
@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@genesy/ui/components/table"
 import { cn } from "@genesy/ui/lib/utils"
+import { formatDateTime } from "@genesy/ui/lib/format"
 import { Bento, Chip, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { CardState, ListPager, ListSkeleton, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
@@ -56,6 +57,7 @@ export default function LotPage({
   searchParams: Promise<{ done?: string }>
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const { id } = React.use(params)
   const arrived = React.use(searchParams).done
   const done = useDone(
@@ -396,9 +398,11 @@ export default function LotPage({
                   {events.data.data.map((ev) => (
                     <TableRow key={ev.id}>
                       <TableCell className="tabular-nums">
-                        {new Date(ev.created_at).toLocaleString()}
+                        {formatDateTime(ev.created_at, locale)}
                       </TableCell>
-                      <TableCell data-m="sub">{ev.kind}</TableCell>
+                      <TableCell data-m="sub">
+                        {t(`lots.eventKinds.${ev.kind}`)}
+                      </TableCell>
                       {/* No user: the system did it. A user without a name has left. */}
                       <TableCell data-m="hide">
                         {ev.user ? (ev.user.name ?? "—") : t("lots.system")}

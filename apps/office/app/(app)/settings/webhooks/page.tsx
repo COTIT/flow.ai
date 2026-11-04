@@ -13,11 +13,12 @@ import {
   useWebhooksList,
   useWebhooksUpdate,
 } from "@genesy/api-client/endpoints/webhooks"
-import type {
-  WebhookEndpointResource,
+import {
+  type WebhookEndpointResource,
   WebhookEvent,
 } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
+import { Badge } from "@genesy/ui/components/badge"
 import { Button } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import {
@@ -37,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
-import { Field } from "@/components/field"
+import { Choices, Field } from "@/components/field"
 import {
   CardState,
   ListCard,
@@ -45,9 +46,10 @@ import {
   ListSkeleton,
   PageHead,
 } from "@/components/list"
-import { SecretReveal, splitList } from "@/components/secret-reveal"
+import { SecretReveal } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
+import { labelKey } from "@/lib/labels"
 
 export default function WebhooksPage() {
   const t = useTranslations()
@@ -143,8 +145,14 @@ export default function WebhooksPage() {
                   <TableCell className="max-w-64 truncate font-mono font-semibold tracking-[0.04em]">
                     {h.url}
                   </TableCell>
-                  <TableCell data-m="sub" className="text-muted-foreground">
-                    {h.events.join(", ")}
+                  <TableCell data-m="sub">
+                    <span className="flex flex-wrap gap-1">
+                      {h.events.map((e) => (
+                        <Badge key={e} variant="slate">
+                          {t(`webhooks.eventNames.${labelKey(e)}`)}
+                        </Badge>
+                      ))}
+                    </span>
                   </TableCell>
                   <TableCell data-m="badge">
                     <StatusBadge
@@ -257,8 +265,7 @@ function EndpointDialog({
               const f = new FormData(e.currentTarget)
               const data = {
                 url: String(f.get("url") ?? ""),
-                // Free text; the API's 422 refuses unknown events.
-                events: splitList(f.get("events")) as WebhookEvent[],
+                events: f.getAll("events").map(String) as WebhookEvent[],
                 description: String(f.get("description") ?? "") || null,
               }
               if (endpoint)
@@ -278,17 +285,16 @@ function EndpointDialog({
                 required
               />
             </Field>
-            <Field
-              id="hook-events"
-              label={t("webhooks.events")}
+            <Choices
+              name="events"
+              legend={t("webhooks.events")}
               errors={errors.events}
-            >
-              <Input
-                name="events"
-                defaultValue={endpoint?.events.join(", ")}
-                required
-              />
-            </Field>
+              defaultValue={endpoint?.events}
+              options={Object.values(WebhookEvent).map((e) => ({
+                value: e,
+                label: t(`webhooks.eventNames.${labelKey(e)}`),
+              }))}
+            />
             <Field
               id="hook-description"
               label={t("webhooks.description")}

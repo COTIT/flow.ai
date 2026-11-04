@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
 import {
@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { formatDate } from "@genesy/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { CardState, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
@@ -35,6 +36,7 @@ export default function InvoicePage({
   params: Promise<{ id: string }>
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const { id } = React.use(params)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const invoice = useInvoicesGet(workspaceId, id, {
@@ -91,7 +93,10 @@ export default function InvoicePage({
         })}
         actions={
           <>
-            <StatusBadge status={inv.status} />
+            <StatusBadge
+              status={inv.status}
+              label={t(`invoices.statuses.${inv.status}`)}
+            />
             {inv.is_credit ? (
               <StatusBadge status="credit" label={t("invoices.credit")} />
             ) : null}
@@ -174,11 +179,11 @@ export default function InvoicePage({
           <dl className="flex flex-col gap-1 text-[13px]">
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">{t("invoices.date")}</dt>
-              <dd>{inv.created_at.slice(0, 10)}</dd>
+              <dd>{formatDate(inv.created_at, locale)}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-muted-foreground">{t("invoices.due")}</dt>
-              <dd>{inv.due_date?.slice(0, 10) ?? "—"}</dd>
+              <dd>{inv.due_date ? formatDate(inv.due_date, locale) : "—"}</dd>
             </div>
           </dl>
           {pdf.data ? null : (
@@ -271,8 +276,10 @@ export default function InvoicePage({
               <TableBody>
                 {payments.map((pay) => (
                   <TableRow key={pay.id}>
-                    <TableCell>{pay.date.slice(0, 10)}</TableCell>
-                    <TableCell data-m="sub">{pay.payment_method}</TableCell>
+                    <TableCell>{formatDate(pay.date, locale)}</TableCell>
+                    <TableCell data-m="sub">
+                      {t(`payMethods.${pay.payment_method}`)}
+                    </TableCell>
                     <TableCell
                       data-m="right"
                       className="text-right font-semibold tabular-nums"

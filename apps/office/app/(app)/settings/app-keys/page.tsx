@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react"
 
@@ -12,7 +12,10 @@ import {
   useAppKeysList,
   useAppKeysRevoke,
 } from "@genesy/api-client/endpoints/app-keys"
-import type { AppKeyIssuableScope, AppKeyKind } from "@genesy/api-client/model"
+import {
+  AppKeyIssuableScope,
+  AppKeyKind,
+} from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Badge } from "@genesy/ui/components/badge"
 import { Button } from "@genesy/ui/components/button"
@@ -26,6 +29,7 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
+import { formatDateTime } from "@genesy/ui/lib/format"
 import {
   Table,
   TableBody,
@@ -34,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
-import { Field } from "@/components/field"
+import { Choices, Field, selectClass } from "@/components/field"
 import {
   CardState,
   ListCard,
@@ -42,12 +46,14 @@ import {
   ListSkeleton,
   PageHead,
 } from "@/components/list"
-import { SecretReveal, splitList } from "@/components/secret-reveal"
+import { SecretReveal } from "@/components/secret-reveal"
 import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
+import { labelKey } from "@/lib/labels"
 
 export default function AppKeysPage() {
   const t = useTranslations()
+  const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const [page, setPage] = React.useState(1)
   const queryClient = useQueryClient()
@@ -76,7 +82,7 @@ export default function AppKeysPage() {
     name: string
     open: boolean
   }>()
-  const when = (s: string | null) => (s ? new Date(s).toLocaleString() : "—")
+  const when = (s: string | null) => (s ? formatDateTime(s, locale) : "—")
   const columns = [
     { label: t("appKeys.name") },
     { label: t("appKeys.kind") },
@@ -138,11 +144,23 @@ export default function AppKeysPage() {
                         label={t("appKeys.revoked")}
                       />
                     ) : (
-                      <Badge variant="teal">{k.kind}</Badge>
+                      <Badge variant="teal">
+                        {t(`appKeys.kinds.${labelKey(k.kind)}`)}
+                      </Badge>
                     )}
                   </TableCell>
-                  <TableCell data-m="hide" className="text-muted-foreground">
-                    {k.scopes.join(", ")}
+                  <TableCell data-m="hide">
+                    <span className="flex flex-wrap gap-1">
+                      {k.scopes.map((s) => (
+                        <Badge
+                          key={s}
+                          variant="slate"
+                          title={t(`appKeys.scopeHints.${labelKey(s)}`)}
+                        >
+                          {t(`appKeys.scopeNames.${labelKey(s)}`)}
+                        </Badge>
+                      ))}
+                    </span>
                   </TableCell>
                   <TableCell data-m="hide" className="font-mono tracking-[0.04em]">
                     {k.prefix}
@@ -231,9 +249,8 @@ function CreateKey({ onCreated }: { onCreated: () => void }) {
                 workspace: workspaceId,
                 data: {
                   name: String(f.get("name") ?? ""),
-                  // Free text; the API's 422 refuses unknown values.
                   kind: String(f.get("kind") ?? "") as AppKeyKind,
-                  scopes: splitList(f.get("scopes")) as AppKeyIssuableScope[],
+                  scopes: f.getAll("scopes").map(String) as AppKeyIssuableScope[],
                 },
               })
             }}
@@ -242,15 +259,27 @@ function CreateKey({ onCreated }: { onCreated: () => void }) {
               <Input name="name" required />
             </Field>
             <Field id="key-kind" label={t("appKeys.kind")} errors={errors.kind}>
-              <Input name="kind" required />
+              <select name="kind" className={selectClass} required defaultValue="">
+                <option value="" disabled>
+                  {t("appKeys.chooseKind")}
+                </option>
+                {Object.values(AppKeyKind).map((k) => (
+                  <option key={k} value={k}>
+                    {t(`appKeys.kinds.${k}`)}
+                  </option>
+                ))}
+              </select>
             </Field>
-            <Field
-              id="key-scopes"
-              label={t("appKeys.scopes")}
+            <Choices
+              name="scopes"
+              legend={t("appKeys.scopes")}
               errors={errors.scopes}
-            >
-              <Input name="scopes" required />
-            </Field>
+              options={Object.values(AppKeyIssuableScope).map((s) => ({
+                value: s,
+                label: t(`appKeys.scopeNames.${labelKey(s)}`),
+                hint: t(`appKeys.scopeHints.${labelKey(s)}`),
+              }))}
+            />
             <ApiError error={create.error} fallback={t("common.error")} />
             <DialogFooter>
               <Button type="submit" disabled={create.isPending}>

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useTillShiftsList } from "@genesy/api-client/endpoints/till"
@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { formatDateTime } from "@genesy/ui/lib/format"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"
@@ -28,6 +29,7 @@ export default function ShiftsPage({
   searchParams: Promise<{ open?: string; register_id?: string; page?: string }>
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const router = useRouter()
   const { open, register_id, page } = React.use(searchParams)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
@@ -49,7 +51,7 @@ export default function ShiftsPage({
     if (next.page && next.page > 1) params.set("page", String(next.page))
     router.push(`?${params}`)
   }
-  const when = (s: string | null) => (s ? new Date(s).toLocaleString() : "—")
+  const when = (s: string | null) => (s ? formatDateTime(s, locale) : "—")
   const columns = [
     { label: t("till.register") },
     { label: t("till.openedAt") },

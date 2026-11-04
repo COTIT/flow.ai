@@ -114,7 +114,16 @@
     "lineage": "Lineage",
     "details": "Batch details",
     "eventWho": "Who",
-    "system": "System"
+    "system": "System",
+    "eventKinds": {
+      "created": "Created",
+      "updated": "Updated",
+      "status_changed": "Status changed",
+      "passport_published": "Passport published",
+      "passport_unpublished": "Passport withdrawn",
+      "packed": "Packed",
+      "dispatched": "Dispatched"
+    }
   },
   "secret": {
     "once": "Copy this secret now. It is shown only once.",
@@ -139,7 +148,24 @@
     "revokeText": "Apps using this key stop working at once. This cannot be undone.",
     "intro": "Keys let the web shop and the till talk to Genesy. Each account has its own.",
     "created": "Key created",
-    "secretHint": "Store it where the shop server can read it."
+    "secretHint": "Store it where the shop server can read it.",
+    "kinds": {
+      "shop": "Web shop",
+      "till": "Till",
+      "field": "Field app",
+      "partner": "Partner"
+    },
+    "scopeNames": {
+      "catalog_read": "Read catalogue",
+      "checkout_write": "Take web orders",
+      "till_login": "Till login"
+    },
+    "scopeHints": {
+      "catalog_read": "See products, prices and stock",
+      "checkout_write": "Place orders from the web shop",
+      "till_login": "Let staff sign in at the till"
+    },
+    "chooseKind": "Choose what the key is for"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -157,7 +183,15 @@
     "deleteText": "{url} will get no more events. This cannot be undone.",
     "intro": "Webhooks tell your other systems when something changes in this account.",
     "created": "Endpoint created",
-    "secretHint": "Use it to check that events really come from Genesy."
+    "secretHint": "Use it to check that events really come from Genesy.",
+    "eventNames": {
+      "lot_created": "Batch created",
+      "order_created": "Order placed",
+      "passport_published": "Passport published",
+      "product_changed": "Product changed",
+      "sale_attributed": "Sale credited to a farmer",
+      "stock_changed": "Stock changed"
+    }
   },
   "passport": {
     "title": "Passport · {code}",
@@ -265,7 +299,13 @@
     "movementType": "Movement type",
     "typeAll": "All",
     "typeDecrease": "Decreases",
-    "typeCount": "Counts"
+    "typeCount": "Counts",
+    "movementTypes": {
+      "increase": "Added",
+      "decrease": "Taken out",
+      "set_level": "Count set",
+      "set_requirements": "Minimum set"
+    }
   },
   "invoices": {
     "title": "Invoices",
@@ -294,7 +334,16 @@
     "customer": "Customer",
     "count": "{total, plural, one {# invoice} other {# invoices}}",
     "detailTitle": "Invoice {number}",
-    "details": "Details"
+    "details": "Details",
+    "statuses": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "open": "Open",
+      "partially_paid": "Partly paid",
+      "paid": "Paid",
+      "cancelled": "Cancelled",
+      "credited": "Credited"
+    }
   },
   "orders": {
     "title": "Orders",
@@ -713,5 +762,16 @@
     "quantityHint": "Positive adds, negative takes out",
     "correction": "This is a correction",
     "empty": "No stock in this batch yet"
+  },
+  "payMethods": {
+    "cash": "Cash",
+    "card": "Card",
+    "pin": "PIN",
+    "manual": "Manual",
+    "provider": "Online",
+    "bank": "Bank transfer",
+    "bank_transfer": "Bank transfer",
+    "mollie": "Online",
+    "online": "Online"
   }
 }

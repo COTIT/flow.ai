@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useTillSalesList } from "@genesy/api-client/endpoints/till"
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
+import { formatDateTime } from "@genesy/ui/lib/format"
 import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { useTillMoney } from "@/lib/till-money"
 import { Empty, LoadError } from "@/components/states"
@@ -28,6 +29,7 @@ export default function TillSalesPage({
   searchParams: Promise<{ mismatch?: string; register_id?: string; page?: string }>
 }) {
   const t = useTranslations()
+  const locale = useLocale()
   const router = useRouter()
   const { mismatch, register_id, page } = React.use(searchParams)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
@@ -136,9 +138,9 @@ export default function TillSalesPage({
                   {register(s.register_id)?.name}
                 </TableCell>
                 <TableCell data-m="sub" className="tabular-nums">
-                  {new Date(s.sold_at).toLocaleString()}
+                  {formatDateTime(s.sold_at, locale)}
                 </TableCell>
-                <TableCell data-m="hide">{s.method}</TableCell>
+                <TableCell data-m="hide">{t(`payMethods.${s.method}`)}</TableCell>
                 <TableCell
                   data-m="right"
                   className="text-right font-semibold tabular-nums"

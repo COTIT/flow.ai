@@ -86,13 +86,13 @@ test("app key: secret shown once, gone after closing", async ({
   await page.goto("/settings/app-keys")
   await page.getByRole("button", { name: "New app key" }).click()
   const dialog = page.getByRole("dialog")
-  await dialog.getByLabel("Name").fill("Till")
-  await dialog.getByLabel("Kind").fill("till")
-  await dialog.getByLabel("Scopes").fill("catalog:read")
+  await dialog.getByLabel("Name").fill("Counter")
+  await dialog.getByLabel("Kind").selectOption({ label: "Till" })
+  await dialog.getByRole("checkbox", { name: "Read catalogue" }).check()
   await dialog.getByRole("button", { name: "Save" }).click()
   await expect(dialog.getByLabel("Secret")).toHaveText("gk_live_cd34_SECRET")
   expect(api.callsTo("POST", "/workspace/:ws/app-keys")[0]?.body).toEqual({
-    name: "Till",
+    name: "Counter",
     kind: "till",
     scopes: ["catalog:read"],
   })
@@ -100,7 +100,7 @@ test("app key: secret shown once, gone after closing", async ({
   await dialog.getByRole("button", { name: "I saved it" }).click()
   await expect(dialog).toBeHidden()
   await expect(
-    page.getByRole("cell", { name: "Till", exact: true })
+    page.getByRole("cell", { name: "Counter", exact: true })
   ).toBeVisible()
   await expect(page.getByText("gk_live_cd34_SECRET")).toHaveCount(0)
   await page.getByRole("button", { name: "New app key" }).click()
@@ -113,14 +113,14 @@ test.describe(() => {
     allow: { responses: [{ url: "/v1/workspace/w1/app-keys", status: 422 }] },
   })
 
-  test("app key: unknown scope shows the API's 422", async ({ page, api }) => {
+  test("app key: the API's 422 is shown", async ({ page, api }) => {
     keysApi(api)
     await page.goto("/settings/app-keys")
     await page.getByRole("button", { name: "New app key" }).click()
     const dialog = page.getByRole("dialog")
     await dialog.getByLabel("Name").fill("Bad")
-    await dialog.getByLabel("Kind").fill("shop")
-    await dialog.getByLabel("Scopes").fill("x")
+    await dialog.getByLabel("Kind").selectOption({ label: "Web shop" })
+    await dialog.getByRole("checkbox", { name: "Take web orders" }).check()
     await dialog.getByRole("button", { name: "Save" }).click()
     await expect(dialog.getByText("Unknown scope x.")).toBeVisible()
   })
@@ -160,14 +160,15 @@ test("webhook: create shows secret once; edit pauses it", async ({
   await page.getByRole("button", { name: "New endpoint" }).click()
   const dialog = page.getByRole("dialog")
   await dialog.getByLabel("URL").fill("https://crm.example.com/in")
-  await dialog.getByLabel("Events").fill("order.paid, passport.published")
+  await dialog.getByRole("checkbox", { name: "Order placed" }).check()
+  await dialog.getByRole("checkbox", { name: "Passport published" }).check()
   await dialog.getByRole("button", { name: "Save" }).click()
   await expect(dialog.getByLabel("Secret")).toHaveText("whsec_SECRET")
   expect(
     api.callsTo("POST", "/workspace/:ws/webhook-endpoints")[0]?.body
   ).toEqual({
     url: "https://crm.example.com/in",
-    events: ["order.paid", "passport.published"],
+    events: ["order.created", "passport.published"],
     description: null,
   })
   await page.keyboard.press("Escape")

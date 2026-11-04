@@ -43,6 +43,7 @@ import {
 } from "@genesy/ui/components/table"
 import { formatMoney } from "@genesy/ui/lib/money"
 import { cn } from "@genesy/ui/lib/utils"
+import { formatDate } from "@genesy/ui/lib/format"
 import { Chip, GhostLink, Metric, Tile, type Tone } from "@/components/bento"
 import { CardState, ListSkeleton, PageHead } from "@/components/list"
 import { LoadError } from "@/components/states"
@@ -396,7 +397,7 @@ export default function OverviewPage() {
                         data-m="hide"
                         className="text-muted-foreground"
                       >
-                        {o.created_at.slice(0, 10)}
+                        {formatDate(o.created_at, locale)}
                       </TableCell>
                       {/* Server amounts in minor units; formatted, never summed. */}
                       <TableCell
