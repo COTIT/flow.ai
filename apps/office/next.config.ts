@@ -8,6 +8,8 @@ const apiUrl = process.env.API_URL ?? "http://localhost:8080/v1"
 
 const nextConfig: NextConfig = {
   output: process.env.NEXT_OUTPUT === "standalone" ? "standalone" : undefined,
+  // The full-stack e2e harness builds to its own folder (packages/e2e/STACK.md).
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   transpilePackages: [
     "@genesy/ui",
     "@genesy/api-client",

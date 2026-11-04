@@ -13,6 +13,7 @@
         "STOREFRONT_APP_KEY",
         "FILES_ORIGIN",
         "NEXT_OUTPUT",
+        "NEXT_DIST_DIR",
         "NOINDEX",
         "NODE_ENV"
       ],

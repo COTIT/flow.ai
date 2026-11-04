@@ -218,6 +218,79 @@ jobs:
           path: /pnpm-store
           key: ${{ steps.store.outputs.cache-primary-key }}
 
+  stack-e2e:
+    # Headless browser tests against the whole stack (packages/e2e/STACK.md): the real API (debug
+    # build: fake payments), a seeded throwaway Postgres in Docker, all five apps built for it.
+    # Catches what the mock-API specs in `web` can't (permissions, cross-app flows, the seed).
+    # Not an images gate (yet). Estimate: ~12 min warm, ~25 cold (STACK.md "Timings").
+    needs: changes
+    if: needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      # Outside the checkout, so the cache below holds exactly this.
+      CARGO_TARGET_DIR: /home/runner/stack-target
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Dependencies only (the crate is cleaned out before saving), like the api job's, but its own
+      # entry: a host build (not the rust container), so the paths differ.
+      - id: deps
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            /home/runner/stack-target
+          key: stack-deps-${{ hashFiles('apps/api/Cargo.lock', 'apps/api/Cargo.toml') }}-rust1.99
+          restore-keys: stack-deps-
+      - run: rustup toolchain install 1.99 --profile minimal && rustup default 1.99
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - id: store
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /home/runner/pnpm-store
+          key: stack-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: stack-pnpm-
+      - run: npm install -g "pnpm@$(node -p 'require("./package.json").packageManager.split("@")[1]')"
+      - run: pnpm install --frozen-lockfile --store-dir /home/runner/pnpm-store
+      - run: pnpm --filter @genesy/e2e exec playwright install --with-deps chromium
+      # Up, specs, down; any failed step, console error or failed request fails the job.
+      - run: pnpm --filter @genesy/e2e stack:test
+      - name: Upload report, traces and stack logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stack-e2e-report
+          path: |
+            packages/e2e/playwright-report/
+            packages/e2e/test-results/
+            packages/e2e/.stack/*/logs/
+          retention-days: 7
+      - name: Keep only dependencies in the cache
+        if: github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
+        working-directory: apps/api
+        run: cargo clean -p genesy-360-api
+      - if: github.ref == 'refs/heads/main' && steps.deps.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            /home/runner/stack-target
+          key: ${{ steps.deps.outputs.cache-primary-key }}
+      - if: github.ref == 'refs/heads/main' && steps.store.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /home/runner/pnpm-store
+          key: ${{ steps.store.outputs.cache-primary-key }}
+
   images:
     # Release images for the VPS, one tag set per green main commit, pulled by the deploy
     # (deploy/*/README.md "Deploy"). Never for PRs: the only jobs that can push packages.

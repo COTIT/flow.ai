@@ -6,7 +6,12 @@
   "scripts": {
     "e2e": "playwright test",
     "lint": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test stack/*.test.mjs",
+    "stack:up": "node stack/up.mjs",
+    "stack:down": "node stack/down.mjs",
+    "stack:reset": "node stack/reset.mjs",
+    "stack:test": "node stack/test.mjs"
   },
   "devDependencies": {
     "@genesy/eslint-config": "workspace:*",
