@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
+import { useUsersMe } from "@genesy/api-client/endpoints/users"
 import { useLotsList } from "@genesy/api-client/endpoints/lots"
 import {
   useOrdersList,
@@ -48,6 +49,7 @@ import { Chip, GhostLink, Metric, Tile, type Tone } from "@/components/bento"
 import { CardState, ListSkeleton, PageHead } from "@/components/list"
 import { LoadError } from "@/components/states"
 import { StatusBadge } from "@/components/status-badge"
+import { useCan } from "@/lib/can"
 import { useTillMoney } from "@/lib/till-money"
 
 import { customerName } from "./orders/shared"
@@ -135,31 +137,56 @@ export default function OverviewPage() {
   const t = useTranslations()
   const locale = useLocale()
   const ws = useSession((s) => s.workspaceId) ?? ""
+  // Each list only for a member who may read it (the API answers 403 otherwise), so those
+  // queries wait for /me. A tile the member may not see goes once /me has answered.
+  const meRead = useUsersMe().isSuccess
+  const may = {
+    orders: useCan("order.list"),
+    stock: useCan("stock.list"),
+    till: useCan("cashregister.list"),
+    links: useCan("workspace_admin"),
+  }
+  const show = (allowed: boolean) => !meRead || allowed
   const on = { query: { enabled: Boolean(ws) } }
-  const openOrders = useOrdersList(ws, { status: "open", page_size: 1 }, on)
-  const recent = useOrdersList(ws, { page_size: 5 }, on)
+  const gate = (allowed: boolean) => ({
+    query: { enabled: Boolean(ws) && allowed },
+  })
+  const openOrders = useOrdersList(
+    ws,
+    { status: "open", page_size: 1 },
+    gate(may.orders)
+  )
+  const recent = useOrdersList(ws, { page_size: 5 }, gate(may.orders))
   const quarantine = useLotsList(ws, { status: "quarantine", page_size: 3 }, on)
   const released = useLotsList(ws, { status: "released", page_size: 1 }, on)
   const recalled = useLotsList(ws, { status: "recalled", page_size: 1 }, on)
-  const negative = useStockNegative(ws, { page_size: 1 }, on)
-  const mismatch = useTillSalesList(ws, { mismatch: true, page_size: 1 }, on)
+  const negative = useStockNegative(ws, { page_size: 1 }, gate(may.stock))
+  const mismatch = useTillSalesList(
+    ws,
+    { mismatch: true, page_size: 1 },
+    gate(may.till)
+  )
   // "Today" and "this week" are the browser's local day and week (Monday 00:00), sent as instants.
   const [day] = React.useState(bounds)
   const sales = useTillSalesList(
     ws,
     { from: day.today, to: day.tomorrow, page_size: 1 },
-    on
+    gate(may.till)
   )
-  const shifts = useTillShiftsList(ws, { open: true, page_size: 1 }, on)
+  const shifts = useTillShiftsList(
+    ws,
+    { open: true, page_size: 1 },
+    gate(may.till)
+  )
   const staleShifts = useTillShiftsList(
     ws,
     { open: true, to: day.today, page_size: 3 },
-    on
+    gate(may.till)
   )
   const links = useSupplyLinksList(
     ws,
     { status: "pending", direction: "incoming", page_size: 3 },
-    on
+    gate(may.links)
   )
   const arriving = useSupplyChainList(
     ws,
@@ -169,9 +196,9 @@ export default function OverviewPage() {
   const week = useOrdersSalesSummary(
     ws,
     { from: day.monday, to: day.nextMonday },
-    on
+    gate(may.orders)
   )
-  const { register } = useTillMoney()
+  const { register } = useTillMoney(may.till)
   const all = [
     openOrders,
     recent,
@@ -260,14 +287,19 @@ export default function OverviewPage() {
       }),
     })),
   ]
-  const attentionPending = [
-    quarantine,
-    negative,
-    mismatch,
-    links,
-    arriving,
-    staleShifts,
-  ].some((q) => q.isPending)
+  // A query that is off stays pending; only the ones this member reads count.
+  const attentionPending =
+    !meRead ||
+    (
+      [
+        [quarantine, true],
+        [negative, may.stock],
+        [mismatch, may.till],
+        [links, may.links],
+        [arriving, true],
+        [staleShifts, may.till],
+      ] as const
+    ).some(([q, allowed]) => allowed && q.isPending)
 
   return (
     <>
@@ -300,13 +332,15 @@ export default function OverviewPage() {
         />
       ) : null}
       <section className="grid grid-cols-12 gap-4 max-md:gap-3">
-        <Kpi
-          href="/orders?status=open"
-          icon={ShoppingBag}
-          tone="teal"
-          label={t("overview.ordersToPick")}
-          query={openOrders}
-        />
+        {show(may.orders) ? (
+          <Kpi
+            href="/orders?status=open"
+            icon={ShoppingBag}
+            tone="teal"
+            label={t("overview.ordersToPick")}
+            query={openOrders}
+          />
+        ) : null}
         <Kpi
           href="/lots?status=quarantine"
           icon={Layers}
@@ -314,21 +348,26 @@ export default function OverviewPage() {
           label={t("overview.lotsInQuarantine")}
           query={quarantine}
         />
-        <Kpi
-          href="/stock/negative"
-          icon={Archive}
-          tone="red"
-          label={t("overview.belowZero")}
-          query={negative}
-        />
-        <Kpi
-          href="/till/sales?mismatch=true"
-          icon={Calculator}
-          tone="slate"
-          label={t("overview.mismatches")}
-          query={mismatch}
-        />
+        {show(may.stock) ? (
+          <Kpi
+            href="/stock/negative"
+            icon={Archive}
+            tone="red"
+            label={t("overview.belowZero")}
+            query={negative}
+          />
+        ) : null}
+        {show(may.till) ? (
+          <Kpi
+            href="/till/sales?mismatch=true"
+            icon={Calculator}
+            tone="slate"
+            label={t("overview.mismatches")}
+            query={mismatch}
+          />
+        ) : null}
 
+        {show(may.orders) ? (
         <Tile
           id="overview-recent"
           title={t("overview.recentOrders")}
@@ -413,6 +452,7 @@ export default function OverviewPage() {
             )}
           </div>
         </Tile>
+        ) : null}
 
         <Tile
           id="overview-attention"
@@ -464,6 +504,7 @@ export default function OverviewPage() {
           </div>
         </Tile>
 
+        {show(may.till) ? (
         <Tile
           id="overview-till"
           title={t("overview.tillToday")}
@@ -486,6 +527,7 @@ export default function OverviewPage() {
             {t("overview.tillNote")}
           </p>
         </Tile>
+        ) : null}
 
         <Tile
           id="overview-lots"
@@ -519,6 +561,7 @@ export default function OverviewPage() {
         </Tile>
 
         {/* The mockup's s-4 placeholder slot: the API's totals per currency, never summed. */}
+        {show(may.orders) ? (
         <Tile
           id="overview-week"
           title={t("overview.salesWeek")}
@@ -561,6 +604,7 @@ export default function OverviewPage() {
             ))
           )}
         </Tile>
+        ) : null}
       </section>
     </>
   )

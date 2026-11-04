@@ -4,7 +4,7 @@ import {
   expectNoMotion,
   expectTapTargets,
 } from "../../src/test"
-import { expect, expectFits, openMenu, paged, test, type FakeApi } from "./fake-api"
+import { expect, expectFits, me, openMenu, paged, test, WS, type FakeApi } from "./fake-api"
 
 // The overview (OfficeOverview): every number is a list's `meta.total`, read with page_size=1,
 // so the browser adds nothing up.
@@ -348,3 +348,46 @@ test("the numbers count up once, then sit still; the page does not shift", async
   await expectNoHorizontalScroll(page)
   if ((page.viewportSize()?.width ?? 0) < 768) await expectTapTargets(page)
 })
+
+// What the API checks per list (Can<…> in apps/api): the overview asks only for what it may read.
+const guarded: [string, string][] = [
+  ["/workspace/:ws/orders", "order.list"],
+  ["/workspace/:ws/sales-summary", "order.list"],
+  ["/workspace/:ws/products/stocks/negative", "stock.list"],
+  ["/workspace/:ws/till/sales", "cashregister.list"],
+  ["/workspace/:ws/till/shifts", "cashregister.list"],
+  ["/workspace/:ws/till/registers", "cashregister.list"],
+  ["/workspace/:ws/supply-links", "workspace_admin"],
+]
+// The tiles each right shows; the batch tiles and transfers are for every member.
+const tiles: [string, string][] = [
+  ["Orders to pick", "order.list"],
+  ["Recent orders", "order.list"],
+  ["Sales this week", "order.list"],
+  ["Products below zero", "stock.list"],
+  ["Till sales at other prices", "cashregister.list"],
+  ["Till today", "cashregister.list"],
+]
+
+for (const grants of [[], ["order.list"], ["stock.list", "cashregister.list"]])
+  test(`a member with ${grants.length ? grants.join(" + ") : "no grants"} loads only what they may read: no 403`, async ({
+    page,
+    api,
+  }) => {
+    overviewApi(api)
+    api.on("GET", "/me", () => ({
+      data: { user: { ...me, permissions: [{ workspace: WS, permissions: grants }] } },
+    }))
+    // Like the API: a list the member may not read answers 403 (the guard fails the test on any).
+    for (const [path, right] of guarded)
+      if (!grants.includes(right))
+        api.on("GET", path, () => ({ status: 403, body: { message: "This action is unauthorized." } }))
+    await page.goto("/")
+    await expect(page.getByText("Batches by status")).toBeVisible()
+    await expect(page.getByText("Batches in quarantine")).toBeVisible()
+    for (const [title, right] of tiles)
+      await expect(page.getByText(title, { exact: true }), title).toHaveCount(grants.includes(right) ? 1 : 0)
+    await expect(page.getByText("Batch CF-2026-03 in quarantine")).toBeVisible()
+    for (const [path, right] of guarded)
+      if (!grants.includes(right)) expect(api.callsTo("GET", path), path).toHaveLength(0)
+  })
