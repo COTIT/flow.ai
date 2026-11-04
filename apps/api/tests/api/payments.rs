@@ -951,3 +951,18 @@ async fn the_pay_page_is_404_without_the_fake_provider(pool: PgPool) {
 async fn order_of(w: &W, id: &str) -> Value {
     order(w, id).await
 }
+
+/// The fake keeps its state in memory: a restarted API (a new Fake) must not hand out an id
+/// a stored payment already has, or the payment insert collides (staging after a deploy).
+#[sqlx::test]
+async fn a_restarted_fake_still_creates_payments(pool: PgPool) {
+    let mut w = world(pool.clone()).await;
+    let (_, first) = awaiting(&w, 1).await;
+    // "Restart": a fresh in-memory fake on the same database.
+    w.fake = Fake::default();
+    let mut state = common::state(pool, Mailer::capture().0);
+    state.payments = Some(Provider::Fake(w.fake.clone()));
+    w.api.app = build_app(state);
+    let (_, second) = awaiting(&w, 1).await;
+    assert_ne!(first, second, "a new id after the restart");
+}
