@@ -83,8 +83,12 @@ export default function PassportPage({
   const files = useFilesList(workspaceId, { page_size: 100 }, enabled)
   // Lives here, not in Editor: Editor remounts after each save, which would wipe the notice.
   const done = useDone()
+  // The editor starts from a settled read, never a cached copy still being read again, and
+  // remounts only after its own writes: a background read must not wipe what is being typed.
+  const [settled, setSettled] = React.useState(false)
+  const [version, setVersion] = React.useState(0)
+  if (!settled && passport.isSuccess && !passport.isFetching) setSettled(true)
 
-  if (lot.isPending || passport.isPending) return <DetailSkeleton />
   if (lot.isError || passport.isError)
     return (
       <LoadError
@@ -96,11 +100,13 @@ export default function PassportPage({
         }}
       />
     )
+  if (lot.isPending || passport.isPending || !settled) return <DetailSkeleton />
   return (
     <Editor
       done={done}
+      key={version}
       // A fresh copy of the server's draft after every save, publish or unpublish.
-      key={passport.dataUpdatedAt}
+      onWritten={() => setVersion((v) => v + 1)}
       lot={lot.data.data}
       resource={passport.data.data}
       files={files.data?.data ?? []}
@@ -115,12 +121,14 @@ function Editor({
   files,
   filesMeta,
   done,
+  onWritten,
 }: {
   lot: LotResource
   resource: PassportResource
   files: FileResource[]
   filesMeta?: { total: number; per_page: number }
   done: ReturnType<typeof useDone>
+  onWritten: () => void
 }) {
   const t = useTranslations()
   const tp = useTranslations("passport")
@@ -149,9 +157,10 @@ function Editor({
   const vars = { workspace: workspaceId, lot: lot.id }
   const ok = (message: string) => ({
     onMutate: done.clear,
-    onSuccess: () => {
+    onSuccess: async () => {
       done.show(message)
-      return refresh()
+      await refresh()
+      onWritten()
     },
   })
   const save = useLotsPassportSave({ mutation: ok(tp("done.saved")) })

@@ -38,7 +38,8 @@
     "sku": "SKU",
     "standardSize": "Standard",
     "defaultSize": "Default",
-    "noSizes": "No sizes yet."
+    "noSizes": "No sizes yet.",
+    "sizesShopNote": "Once a product has sizes, the shop sells only the sizes; the product on its own no longer shows there."
   },
   "nav": {
     "label": "Main menu",
