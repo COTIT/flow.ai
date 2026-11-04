@@ -1,4 +1,5 @@
 import { cred, expect, loginOffice, notes, test, urls } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 import {
   buy,
   lastPayment,
@@ -55,6 +56,7 @@ test("buy on the shop, pay on the provider page, the office completes it and onl
       .filter({ hasText: "Thank you! Your payment is in" })
   ).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole("link", { name: "Cart, empty" })).toBeVisible()
+  await expectNoRawValues(page)
   expect((await read<Order>(`/orders/${orderId}`)).status).toBe("open")
   // Paid is not shipped: nothing has left the warehouse yet.
   expect(
@@ -80,6 +82,7 @@ test("buy on the shop, pay on the provider page, the office completes it and onl
     .getByRole("button", { name: "Complete", exact: true })
     .click()
   await expect(page.getByText("Order completed; stock taken.")).toBeVisible()
+  await expectNoRawValues(page)
   expect(await movedFor(owner, id, orderId), "stock taken by complete").toBe(-2)
 
   // The buyer's page still reads as paid.
@@ -107,6 +110,7 @@ test("cancel on the provider page: back unpaid, the stock still held, and Pay wo
     "awaiting_payment"
   )
   await expect(page.getByRole("link", { name: "Cart, 1 item" })).toBeVisible()
+  await expectNoRawValues(page)
 
   // Paying again before the API has recorded the cancel reopens the cancelled payment (a dead
   // end, reported); wait for the cancel to land, as a buyer reading the page would.
@@ -152,6 +156,7 @@ test("a product with no stock is sold out on the shop and can't be added", async
   await page.goto(`${urls.shop}/products/${id}`)
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name)
   await expect(page.getByText("Sold out for now")).toBeVisible()
+  await expectNoRawValues(page)
   await expect(page.getByRole("button", { name: "Add to cart" })).toBeDisabled()
 })
 

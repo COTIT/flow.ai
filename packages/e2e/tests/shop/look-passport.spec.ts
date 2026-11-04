@@ -73,6 +73,9 @@ test("a released passport is the bento from the mockup", async ({
   ).toHaveCount(0)
 
   // Pairs side by side on a desktop (7 + 5 columns), one under the other on a phone.
+  // Laid out first: a tile still fading in below the fold has no box yet.
+  await expect(where).toBeVisible()
+  await expect(inside).toBeVisible()
   const whereBox = (await where.boundingBox())!
   const insideBox = (await inside.boundingBox())!
   if (isMobile)

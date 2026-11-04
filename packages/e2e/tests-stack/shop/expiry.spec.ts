@@ -1,4 +1,5 @@
 import { expect, test, urls } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 import { backdateHold, buy, movedFor, ownProduct, storefront } from "./shop"
 
 test("an order not paid in time expires: Pay is refused, then the page says so and the stock is back", async ({
@@ -35,6 +36,7 @@ test("an order not paid in time expires: Pay is refused, then the page says so a
     page.getByText("This order expired before it was paid")
   ).toBeVisible()
   await expect(page.getByRole("button", { name: /^Pay \$\d/ })).toHaveCount(0)
+  await expectNoRawValues(page)
   const after = await read<{ available_stock: string }>(`/products/${id}`)
   expect(Number(after.available_stock), "hold given back").toBe(
     Number(before.available_stock)

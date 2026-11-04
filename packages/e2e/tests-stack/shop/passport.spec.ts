@@ -1,5 +1,5 @@
 import { expect, notes, test, urls } from "../../src/stack"
-import { expectNoHorizontalScroll } from "../../src/test"
+import { expectNoHorizontalScroll, expectNoRawValues } from "../../src/test"
 
 // The seed's published passports (read only).
 const released = notes["passport (QR target)"]!
@@ -16,6 +16,7 @@ test("a released batch opens its passport, with no warning", async ({
   await expect(page.getByText(/has been recalled/)).toHaveCount(0)
   await expect(page.locator('[data-variant="warning"]')).toHaveCount(0)
   await expectNoHorizontalScroll(page)
+  await expectNoRawValues(page)
 })
 
 test("a recalled batch says so first, before the title", async ({ page }) => {
@@ -42,6 +43,20 @@ test("a batch on hold shows a warning, not a recall", async ({ page }) => {
   await expect(page.locator('[data-variant="warning"]')).toBeVisible()
   await expect(page.getByText(/has been recalled/)).toHaveCount(0)
 })
+
+for (const [kind, path] of [
+  ["recalled", recalled],
+  ["on-hold", quarantine],
+] as const)
+  test(`the ${kind} passport shows no raw values`, async ({ page }) => {
+    test.fail(
+      true,
+      "the demo seed's story fact 'Extracted' is an ISO date shown as is (apps/api/src/demo/catalog.rs:350, e2e-shop)"
+    )
+    await page.goto(`${urls.shop}${path}`)
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
+    await expectNoRawValues(page)
+  })
 
 test.describe("a code nobody published", () => {
   const url = `${urls.shop}/b/ZZZZZZZZZZ`
