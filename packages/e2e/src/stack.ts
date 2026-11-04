@@ -5,15 +5,31 @@ import type { APIRequestContext, Page } from "@playwright/test"
 
 import { expect, test as guarded, type Allow } from "./test"
 
-type Credential = { app: string; role: string; login: string; secret: string; path: string }
-type State = { urls: Record<"api" | "shop" | "office" | "field" | "till" | "landing", string> }
+type Credential = {
+  app: string
+  role: string
+  login: string
+  secret: string
+  path: string
+}
+type State = {
+  urls: Record<"api" | "shop" | "office" | "field" | "till" | "landing", string>
+  container: string
+}
 
-const dir = join(import.meta.dirname, "..", ".stack", process.env.E2E_STACK_OFFSET ?? "0")
+const dir = join(
+  import.meta.dirname,
+  "..",
+  ".stack",
+  process.env.E2E_STACK_OFFSET ?? "0"
+)
 function load<T>(file: string): T {
   try {
     return JSON.parse(readFileSync(join(dir, file), "utf8")) as T
   } catch {
-    throw new Error(`no full stack at ${dir}: run \`pnpm --filter @genesy/e2e stack:up\` first`)
+    throw new Error(
+      `no full stack at ${dir}: run \`pnpm --filter @genesy/e2e stack:up\` first`
+    )
   }
 }
 const state = load<State>("state.json")
@@ -25,6 +41,9 @@ const seed = load<{
 
 /** Where each app of the running stack answers, e.g. `stack.urls.office`. */
 export const urls = state.urls
+
+/** This stack's Postgres container (`docker exec` it only for the test's own rows). */
+export const container = state.container
 
 /**
  * A seeded login (from what `seed-demo` printed), e.g. `cred("office (AFM)", "owner")`,
@@ -46,7 +65,8 @@ export const workspaces = seed.workspaces
 export const notes = seed.notes
 
 /** A spec-unique suffix for names of things a test creates (data rule 1 in STACK.md). */
-export const unique = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+export const unique = () =>
+  `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 
 /** The API as one member: `get/post/put` on `/v1/...` paths, JSON in and out, throws on >= 400. */
 export type Api = Awaited<ReturnType<typeof apiAs>>
@@ -57,12 +77,27 @@ export async function apiAs(request: APIRequestContext, who: Credential) {
     data: { email: who.login, password: who.secret },
   })
   expect(r.status(), `login ${who.login}`).toBe(200)
-  const { data } = (await r.json()) as { data: { access_token: string; workspace_ids: string[] } }
+  const { data } = (await r.json()) as {
+    data: { access_token: string; workspace_ids: string[] }
+  }
   const headers = { Authorization: `Bearer ${data.access_token}` }
-  const call = async <T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown) => {
-    const res = await request.fetch(`${urls.api}/v1${path}`, { method, headers, data: body })
-    if (res.status() >= 400) throw new Error(`${method} ${path}: ${res.status()} ${await res.text()}`)
-    return (res.status() === 204 ? undefined : ((await res.json()) as { data: T }).data) as T
+  const call = async <T>(
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
+    path: string,
+    body?: unknown
+  ) => {
+    const res = await request.fetch(`${urls.api}/v1${path}`, {
+      method,
+      headers,
+      data: body,
+    })
+    if (res.status() >= 400)
+      throw new Error(`${method} ${path}: ${res.status()} ${await res.text()}`)
+    return (
+      res.status() === 204
+        ? undefined
+        : ((await res.json()) as { data: T }).data
+    ) as T
   }
   return {
     token: data.access_token,
@@ -94,7 +129,12 @@ export async function loginField(page: Page, who: Credential) {
   await expect(page).not.toHaveURL(/\/login$/)
 }
 
-type Register = { id: string; name: string; warehouse_id: string; currency_id: string }
+type Register = {
+  id: string
+  name: string
+  warehouse_id: string
+  currency_id: string
+}
 
 /**
  * A till of its own: the AFM owner creates a register (a copy of the seeded counter's warehouse and
@@ -105,7 +145,9 @@ export async function pairTill(page: Page, request: APIRequestContext) {
   const owner = await apiAs(request, cred("office (AFM)", "owner"))
   // The seeded counter (first device key printed): the AFM store, where the shop's stock is.
   const counter = cred("till (AFM)", "device key").login
-  const seeded = (await owner.get<Register[]>(owner.ws("/till/registers"))).find((r) => r.name === counter)
+  const seeded = (
+    await owner.get<Register[]>(owner.ws("/till/registers"))
+  ).find((r) => r.name === counter)
   const register = await owner.post<Register>(owner.ws("/till/registers"), {
     name: `e2e till ${unique()}`,
     warehouse_id: seeded!.warehouse_id,
@@ -122,7 +164,8 @@ export async function pairTill(page: Page, request: APIRequestContext) {
 
   const cashier = cred("till (AFM)", "cashier PIN")
   await page.getByRole("button", { name: cashier.login }).click()
-  for (const digit of cashier.secret) await page.getByRole("button", { name: digit, exact: true }).click()
+  for (const digit of cashier.secret)
+    await page.getByRole("button", { name: digit, exact: true }).click()
   await page.getByRole("button", { name: "Log in" }).click()
   await expect(page).not.toHaveURL(`${urls.till}/login`)
   return { owner, register }
@@ -133,7 +176,9 @@ export async function openShift(page: Page) {
   await page.goto(`${urls.till}/drawer`)
   await page.getByRole("button", { name: "Open shift" }).click()
   await expect(
-    page.getByRole("status").filter({ hasText: "Shift opened. You can start selling." })
+    page
+      .getByRole("status")
+      .filter({ hasText: "Shift opened. You can start selling." })
   ).toBeVisible()
 }
 

@@ -122,6 +122,15 @@ build (password hashing included). CI's estimate: ~12 min warm, ~25 min cold (2 
 - `price.spec.ts`: an office price edit doesn't reach the shop or the till (default variant keeps
   a stale price copy). Fails at the shop's "after" check.
 - `field-ops.spec.ts`: ops gets 403 on `supply-links` and `warehouses` at Field Dispatch.
+- `shop/checkout.spec.ts`: a refunded and cancelled web order reads "expired before it was paid".
+- `shop/prices.spec.ts`: a sized product shows an extra, nameless size (its option-less default variant).
+
+Worked around (not `test.fail`, since they depend on timing or on how long the API has run):
+
+- `shop/shop.ts` `skipSeededFakeIds`: the fake provider's payment ids (`fk_N`) restart at 1 with the
+  API and collide with stored ones (500 on payment start) until the counter passes them.
+- `shop/checkout.spec.ts`: Pay again right after Cancel on the fake page reopens the cancelled
+  payment until the API has recorded the cancel; the spec waits for it.
 
 ## Follow-ups
 
