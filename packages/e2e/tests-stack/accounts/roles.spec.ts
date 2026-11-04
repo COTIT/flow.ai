@@ -10,7 +10,6 @@ import {
   urls,
   workspaces,
 } from "../../src/stack"
-import { test as refusing } from "./refusals"
 
 /** The API's status for `path` as one member, without the throw `apiAs` does on >= 400. */
 async function statusAs(
@@ -114,28 +113,16 @@ test("a field officer is turned back from ops and refused ops-only work", async 
   ).toBe(403)
 })
 
-// The member's overview and settings fire many calls the API refuses (S5); all 403, none other.
-refusing.describe("a non-admin member in the office", () => {
-  refusing.use({
-    refused: {
-      prefix: `${urls.office}/v1/workspace/${workspaces.RUAHA}/`,
-      statuses: [403],
-    },
+// A member without the right sees the office's no-access page; nothing is asked of the API, so no 403.
+test("a non-admin member opening app keys gets the no-access page, with no keys and no code", async ({
+  page,
+}) => {
+  const officer = cred("field (RUAHA)", "field_officer")
+  await loginOffice(page, officer)
+  await page.goto(`${urls.office}/settings/app-keys`)
+  await expect(page.getByText("You don't have access to this")).toBeVisible({
+    timeout: 20_000,
   })
-
-  refusing(
-    "sees app keys refused in words, with no keys and no code",
-    async ({ page }) => {
-      const officer = cred("field (RUAHA)", "field_officer")
-      await loginOffice(page, officer)
-      await page.goto(`${urls.office}/settings/app-keys`)
-      await expect(
-        page
-          .getByRole("alert")
-          .filter({ hasText: "This action is unauthorized." })
-      ).toBeVisible({ timeout: 20_000 })
-      await expect(page.getByText(/gsk_/)).toHaveCount(0)
-      await expect(page.getByText(/\b403\b/)).toHaveCount(0)
-    }
-  )
+  await expect(page.getByText(/gsk_/)).toHaveCount(0)
+  await expect(page.getByText(/\b403\b/)).toHaveCount(0)
 })
