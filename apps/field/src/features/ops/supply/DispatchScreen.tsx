@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { CONTROL } from '@/components/controlStyles'
 import { Card, Loading } from '@/components/controls'
 import { Button } from '@/components/ui/button'
+import { BuyHarvestCard } from '@/features/ops/supply/BuyHarvestCard'
 import {
   type DispatchInput,
   useDispatch,
@@ -23,7 +24,7 @@ import {
 import { formatTimestamp } from '@/lib/format'
 import { newUuid } from '@/lib/ids'
 
-/** `/ops/dispatch`: send lot stock to a shop over a live link, and the transfers sent so far. */
+/** `/ops/dispatch`: buy harvest into a raw lot, send lot stock to a shop over a live link, and the transfers sent so far. */
 export function DispatchScreen() {
   const { t } = useTranslation()
   const links = useSupplyLinks()
@@ -92,6 +93,7 @@ export function DispatchScreen() {
   return (
     <section data-testid="dispatch-screen" className="flex flex-col gap-4">
       <PageHeader title={t('supply.dispatchTitle')} description={t('supply.dispatchIntro')} />
+      <BuyHarvestCard />
 
       {loadError ? (
         <ErrorState error={loadError} />

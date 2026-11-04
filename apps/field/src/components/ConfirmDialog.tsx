@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 
 /** Small, accessible confirmation surface for irreversible record actions. */
 export function ConfirmDialog({
@@ -9,6 +9,7 @@ export function ConfirmDialog({
   confirming = false,
   onConfirm,
   onCancel,
+  children,
 }: {
   title: string
   detail: string
@@ -17,6 +18,8 @@ export function ConfirmDialog({
   confirming?: boolean
   onConfirm: () => void
   onCancel: () => void
+  /** Fields to review before confirming (a pre-filled name); shown under the detail. */
+  children?: ReactNode
 }) {
   const titleId = useId()
   const detailId = useId()
@@ -61,6 +64,7 @@ export function ConfirmDialog({
         <p id={detailId} style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--ink-2)' }}>
           {detail}
         </p>
+        {children}
         <div className="flex flex-wrap justify-end gap-2.5">
           <button
             type="button"

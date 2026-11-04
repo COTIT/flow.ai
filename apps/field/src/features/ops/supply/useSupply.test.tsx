@@ -9,6 +9,9 @@ const supplyLinksRevoke = vi.fn()
 const supplyChainList = vi.fn()
 const supplyChainDispatch = vi.fn()
 const farmSupplyList = vi.fn()
+const farmSupplyOptions = vi.fn()
+const farmSupplyRawProduct = vi.fn()
+const farmSupplyCreate = vi.fn()
 const warehousesList = vi.fn()
 const lotsStock = vi.fn()
 
@@ -23,6 +26,9 @@ vi.mock('@genesy/api-client/endpoints/supply-chain', () => ({
 }))
 vi.mock('@genesy/api-client/endpoints/farm-supply', () => ({
   farmSupplyList: (...a: unknown[]) => farmSupplyList(...a),
+  farmSupplyOptions: (...a: unknown[]) => farmSupplyOptions(...a),
+  farmSupplyRawProduct: (...a: unknown[]) => farmSupplyRawProduct(...a),
+  farmSupplyCreate: (...a: unknown[]) => farmSupplyCreate(...a),
 }))
 vi.mock('@genesy/api-client/endpoints/warehouses', () => ({
   warehousesList: (...a: unknown[]) => warehousesList(...a),
@@ -123,5 +129,50 @@ describe('dispatch', () => {
     rerender({ lot: 'lot1' })
     await waitFor(() => expect(result.current.data).toEqual(rows))
     expect(lotsStock).toHaveBeenCalledWith('w1', 'lot1')
+  })
+})
+
+describe('buying harvest into a batch', () => {
+  const options = { harvests: [], raw_products: [], can_create_product: true }
+
+  test('reads the options only once a village and a crop are chosen', async () => {
+    farmSupplyOptions.mockResolvedValue({ data: options })
+    const none = renderHook(() => hooks.useBatchOptions('v1', ''), { wrapper: wrapper() })
+    await waitFor(() => expect(none.result.current.fetchStatus).toBe('idle'))
+    expect(farmSupplyOptions).not.toHaveBeenCalled()
+
+    const both = renderHook(() => hooks.useBatchOptions('v1', 'crop1'), { wrapper: wrapper() })
+    await waitFor(() => expect(both.result.current.data).toEqual(options))
+    expect(farmSupplyOptions).toHaveBeenCalledWith('w1', { village_id: 'v1', crop_id: 'crop1' })
+  })
+
+  test('a raw product goes to the farm route with only its name', async () => {
+    farmSupplyRawProduct.mockResolvedValue({ data: { id: 'p9', name: 'Raw maize', unit: 'kg' } })
+    const { result } = renderHook(() => hooks.useCreateRawProduct(), { wrapper: wrapper() })
+    let made: unknown
+    await act(async () => {
+      made = await result.current.mutateAsync('Raw maize')
+    })
+    expect(farmSupplyRawProduct).toHaveBeenCalledWith('w1', { name: 'Raw maize' })
+    expect(made).toEqual({ id: 'p9', name: 'Raw maize', unit: 'kg' })
+  })
+
+  test('a batch is posted as built, its client_ref the retry key', async () => {
+    farmSupplyCreate.mockResolvedValue({ data: { id: 'b9' } })
+    const body = {
+      client_ref: 'c1',
+      village_id: 'v1',
+      crop_id: 'crop1',
+      code: 'ILU-M-01',
+      raw_product_id: 'p1',
+      price_per_kg: 800000,
+      currency_id: 'tzs',
+      lines: [{ harvest_report_id: 'h1', kg: '200.00' }],
+    }
+    const { result } = renderHook(() => hooks.useCreateBatch(), { wrapper: wrapper() })
+    await act(async () => {
+      await result.current.mutateAsync(body)
+    })
+    expect(farmSupplyCreate).toHaveBeenCalledWith('w1', body)
   })
 })

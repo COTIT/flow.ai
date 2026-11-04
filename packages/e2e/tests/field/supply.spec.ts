@@ -4,7 +4,24 @@ import { mockApi } from "../../src/api-mock"
 import { seedSession } from "../../src/session"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { me, role, villages } from "./api"
-import { batches, dispatched, granted, links, lotStock, notLive, transfers, unavailable, warehouses } from "./supply.api"
+import {
+  batchMade,
+  batchOptions,
+  batches,
+  crops,
+  currencies,
+  dispatched,
+  granted,
+  honeyJar,
+  links,
+  lotStock,
+  notLive,
+  rawCoffee,
+  rawProductMade,
+  transfers,
+  unavailable,
+  warehouses,
+} from "./supply.api"
 
 const KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
@@ -26,6 +43,8 @@ async function open(page: Page, path: string, dispatchReplies: Reply[] = [{ stat
     "GET /workspace/w1/farm/supply-batches": batches,
     "GET /workspace/w1/warehouses": warehouses,
     "GET /workspace/w1/lots/lot1/stock": lotStock,
+    "GET /workspace/w1/farm/crops": crops,
+    "GET /workspace/w1/currencies": currencies,
   })
   // Registered after mockApi, so it answers first: counts sends, and answers slowly so a second tap lands in flight.
   const sends = { count: 0, keys: [] as (string | undefined)[] }
@@ -137,6 +156,75 @@ test.describe("a refused dispatch", () => {
     await expect(page.getByTestId("dispatch-error")).toContainText("The supply link is not live.")
     await expect(page.getByTestId("confirm-dialog")).toHaveCount(0)
     expect(sends.count).toBe(1)
+    await expectNoHorizontalScroll(page)
+  })
+})
+
+test.describe("buying harvest when the crop has no raw product yet", () => {
+  test("ops create one in the dialog, it is selected, and the batch is bought", async ({ page }) => {
+    await open(page, "/ops/dispatch")
+    // The options read answers without a coffee product until one is made.
+    let made = false
+    await page.route("**/v1/workspace/w1/farm/supply-batches/options**", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(batchOptions({ products: made ? [rawCoffee, honeyJar] : [honeyJar], canCreate: true }).body),
+      }),
+    )
+    await page.route("**/v1/workspace/w1/farm/supply-batches/raw-product", async (route) => {
+      made = true
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(rawProductMade.body) })
+    })
+    await page.route("**/v1/workspace/w1/farm/supply-batches", (route) =>
+      route.request().method() === "POST"
+        ? route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify(batchMade.body) })
+        : route.fallback(),
+    )
+
+    await page.getByTestId("batch-village").selectOption({ label: "Ilundo" })
+    await page.getByTestId("batch-crop").selectOption({ label: "Coffee" })
+    await expect(page.getByTestId("batch-no-raw-product")).toContainText("No raw product for Coffee yet")
+    await expectNoHorizontalScroll(page)
+
+    await page.getByTestId("batch-create-raw").click()
+    await expect(page.getByTestId("raw-product-name")).toHaveValue("Raw Coffee")
+    const rawSent = page.waitForRequest((r) => r.method() === "POST" && r.url().endsWith("/farm/supply-batches/raw-product"))
+    await page.getByTestId("confirm-dialog-confirm").click()
+    expect((await rawSent).postDataJSON()).toEqual({ name: "Raw Coffee" })
+    await expect(page.getByTestId("confirm-dialog")).toHaveCount(0)
+    await expect(page.getByTestId("batch-product")).toHaveValue("p9")
+    await expect(page.getByTestId("batch-no-raw-product")).toHaveCount(0)
+
+    await expect(page.getByTestId("batch-kg-h1")).toHaveValue("200.00")
+    await page.getByTestId("batch-code").fill("ILU-C-01")
+    await page.getByTestId("batch-price").fill("8000")
+    await page.getByTestId("batch-submit").click()
+    const batchSent = page.waitForRequest((r) => r.method() === "POST" && r.url().endsWith("/farm/supply-batches"))
+    await page.getByTestId("confirm-dialog-confirm").click()
+    const body = (await batchSent).postDataJSON()
+    expect(body).toMatchObject({
+      village_id: "v1",
+      crop_id: "crop1",
+      code: "ILU-C-01",
+      raw_product_id: "p9",
+      price_per_kg: 800000,
+      currency_id: "tzs",
+      lines: [{ harvest_report_id: "h1", kg: "200.00" }],
+    })
+    expect(body.client_ref).toMatch(KEY)
+    await expect(page.getByTestId("batch-made")).toContainText("ILU-C-01")
+    await expectNoHorizontalScroll(page)
+  })
+
+  test("without the right, the notice says who can add one and offers no button", async ({ page }) => {
+    await open(page, "/ops/dispatch")
+    await page.route("**/v1/workspace/w1/farm/supply-batches/options**", (route) =>
+      route.fulfill({ contentType: "application/json", body: JSON.stringify(batchOptions({ products: [], canCreate: false }).body) }),
+    )
+    await page.getByTestId("batch-village").selectOption({ label: "Ilundo" })
+    await page.getByTestId("batch-crop").selectOption({ label: "Coffee" })
+    await expect(page.getByTestId("batch-no-raw-product")).toContainText("Office → Products")
+    await expect(page.getByTestId("batch-create-raw")).toHaveCount(0)
     await expectNoHorizontalScroll(page)
   })
 })

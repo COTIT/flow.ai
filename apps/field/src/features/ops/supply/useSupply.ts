@@ -1,10 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { farmSupplyList } from '@genesy/api-client/endpoints/farm-supply'
+import {
+  farmSupplyCreate,
+  farmSupplyList,
+  farmSupplyOptions,
+  farmSupplyRawProduct,
+} from '@genesy/api-client/endpoints/farm-supply'
 import { lotsStock } from '@genesy/api-client/endpoints/lots'
 import { supplyChainDispatch, supplyChainList } from '@genesy/api-client/endpoints/supply-chain'
 import { supplyLinksGrant, supplyLinksList, supplyLinksRevoke } from '@genesy/api-client/endpoints/supply-links'
 import { warehousesList } from '@genesy/api-client/endpoints/warehouses'
-import type { LinkResource, SupplyTransferResource } from '@genesy/api-client/model'
+import type { CreateBatchRequest, LinkResource, SupplyTransferResource } from '@genesy/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
 
@@ -28,6 +33,7 @@ const KEYS = {
   transfers: ['supplyTransfers'],
   dispatchOptions: ['supplyDispatchOptions'],
   lotStock: (lotId: string) => ['supplyLotStock', lotId],
+  batchOptions: (villageId: string, cropId: string) => ['supplyBatchOptions', villageId, cropId],
 } as const
 
 /** One key per form attempt, made by the screen; sent as the `Idempotency-Key` header. */
@@ -129,6 +135,41 @@ export function useDispatch() {
       Promise.all([
         client.invalidateQueries({ queryKey: KEYS.transfers }),
         client.invalidateQueries({ queryKey: KEYS.lotStock(lotId) }),
+      ]),
+  })
+}
+
+/**
+ * What a new batch of one village and crop can be made of: the harvests the API would accept as
+ * lines, the stock-tracked products (with its `suggested_for_crop` hint) and whether the caller
+ * may add a raw product. Read once both are chosen.
+ */
+export function useBatchOptions(villageId: string, cropId: string) {
+  return useQuery({
+    queryKey: KEYS.batchOptions(villageId, cropId),
+    enabled: villageId !== '' && cropId !== '',
+    queryFn: async () => (await farmSupplyOptions(workspaceId(), { village_id: villageId, crop_id: cropId })).data,
+  })
+}
+
+/** A raw product by name; the API fixes the rest (kg, stock-tracked, net 0, off the shop). */
+export function useCreateRawProduct() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: async (name: string) => (await farmSupplyRawProduct(workspaceId(), { name })).data,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['supplyBatchOptions'] }),
+  })
+}
+
+/** Buy harvests into a raw lot. The body's `client_ref` is the retry key: a resend replays. */
+export function useCreateBatch() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: CreateBatchRequest) => (await farmSupplyCreate(workspaceId(), body)).data,
+    onSuccess: () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: ['supplyBatchOptions'] }),
+        client.invalidateQueries({ queryKey: KEYS.dispatchOptions }),
       ]),
   })
 }
