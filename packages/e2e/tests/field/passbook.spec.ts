@@ -103,11 +103,11 @@ test.describe("refusals", () => {
     expect(sent[1]!.client_ref).toBe(sent[0]!.client_ref)
   })
 
-  test("four eyes: the API's reason is shown as sent", async ({ page }) => {
+  test("four eyes: the API's reason is shown in the user's words", async ({ page }) => {
     await asStaff(page, [fourEyes])
     await fillPayout(page, "2000")
     await page.getByTestId("confirm-dialog-confirm").click()
-    await expect(page.getByTestId("payout-error")).toContainText("you registered this household")
+    await expect(page.getByTestId("payout-error")).toContainText("You registered this household, so another staff member must pay this farmer.")
     await expect(page.getByTestId("confirm-dialog")).toBeVisible()
   })
 })
