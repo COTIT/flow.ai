@@ -20,6 +20,7 @@ import { OfficerEditDialog, type EditField } from '@/features/officer/OfficerEdi
 import { useCrops } from '@/features/officer/useCrops'
 import { useOfficerEdit } from '@/features/officer/useOfficerEdit'
 import { selectedEditMeasure, type CropMeasure, type EditContext, type EditableTable, type EditValues } from '@/features/officer/officerEdit'
+import { PersonPassbookSection } from '@/features/passbook/screens'
 import { formatArea, formatKg, formatPlainDate, formatTimestamp } from '@/lib/format'
 
 const route = getRouteApi('/_officer/officer/people/$personId')
@@ -289,6 +290,14 @@ export function PersonDetailScreen() {
             </Card>
           ))
         )}
+      </Section>
+      <Section title={t('passbook.title')}>
+        <Card testId="person-passbook">
+          <PersonPassbookSection
+            personId={personId}
+            personName={`${detail.person.given_name} ${detail.person.family_name}`}
+          />
+        </Card>
       </Section>
       {/* The route is officer-only (field officer, ops, admin), so every
           viewer here is staff; app_farmer_login_issue re-checks the village. */}

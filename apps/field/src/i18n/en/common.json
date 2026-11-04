@@ -1573,5 +1573,42 @@
     "buyConfirmTitle": "Buy this harvest?",
     "buyConfirmDetail": "{{count}} harvest lines into lot {{code}} at {{price}} {{currency}} per kg. A batch can't be changed later.",
     "bought": "Bought into lot {{code}}."
+  },
+  "passbook": {
+    "title": "Passbook",
+    "mine": "My passbook",
+    "open": "Open my passbook",
+    "balance": "Balance",
+    "after": "Balance after: {{balance}}",
+    "emptyTitle": "No money lines yet",
+    "emptyDetail": "Credits appear here when honey from your harvest is sold, and payouts when you are paid.",
+    "payouts": "Payouts",
+    "noPayouts": "No payouts yet.",
+    "voided": "Voided: {{reason}}",
+    "notRegisteredTitle": "No passbook",
+    "notRegisteredDetail": "This account is not a registered farmer of this project, so it has no passbook.",
+    "kind": {
+      "sale_credit": "Sale credit",
+      "sale_reversal": "Sale returned",
+      "payout": "Payout",
+      "payout_void": "Payout voided"
+    },
+    "idType": {
+      "nida": "NIDA",
+      "voter": "Voter card",
+      "driving_licence": "Driving licence",
+      "village_letter": "Village letter"
+    },
+    "payOut": "Pay out",
+    "payTitle": "Pay {{name}} in cash?",
+    "payDetail": "Balance {{balance}}. Pay only after checking the ID; the payout is recorded in the passbook at once.",
+    "amount": "Amount ({{currency}})",
+    "idTypeLabel": "ID checked",
+    "nameConfirmed": "The name on the ID matches this farmer",
+    "pay": "Pay",
+    "paying": "Paying…",
+    "paid": "Paid {{amount}}.",
+    "cancel": "Cancel",
+    "choose": "Choose…"
   }
 }

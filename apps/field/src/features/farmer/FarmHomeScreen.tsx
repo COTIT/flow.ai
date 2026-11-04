@@ -9,6 +9,7 @@ import { useFarmerOpportunities } from '@/features/farmer/useFarmerOpportunities
 import { useMyFarm } from '@/features/farmer/useMyFarm'
 import { useMyRequests } from '@/features/farmer/useRequests'
 import { useSurveyBadgeCount } from '@/features/farmer/useSurveyEligibility'
+import { MyPassbookCard } from '@/features/passbook/screens'
 import { resourcesEnabled } from '@/lib/features'
 
 type LinkTo = Parameters<typeof Link>[0]['to']
@@ -91,6 +92,8 @@ export function FarmHomeScreen() {
         </Link>
       </section>
       </Card>
+
+      <MyPassbookCard />
 
       <Card className="flex flex-col gap-2.5 p-4">
       <section data-testid="farm-home-surveys" className="flex flex-col gap-2.5">

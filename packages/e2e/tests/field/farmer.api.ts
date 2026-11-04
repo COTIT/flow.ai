@@ -127,4 +127,6 @@ export const farmerHome: Record<string, MockReply> = {
   "GET /workspace/w1/farm/surveys/eligibility": eligibilityBefore,
   // The home's opportunities card.
   "GET /workspace/w1/farm/opportunities": page([]),
+  // The home's passbook card: no money lines yet.
+  "GET /workspace/w1/farm/passbook/mine": { body: { ...(page([]).body as object), balances: [] } },
 }

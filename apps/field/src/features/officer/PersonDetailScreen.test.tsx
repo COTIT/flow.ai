@@ -26,6 +26,8 @@ vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useParams: () => ({ personId: 'p1' }) }),
 }))
 const sessionState: { data: { userId: string } | undefined } = { data: { userId: 'officer-1' } }
+// The passbook section has its own tests.
+vi.mock('@/features/passbook/screens', () => ({ PersonPassbookSection: () => null }))
 vi.mock('@/app/session', () => ({ useSession: () => sessionState }))
 type HistoryRow = { issued_at: string; kind: string; issued_by_name: string; must_change_password: boolean }
 const historyState: { data: HistoryRow[] | undefined; error: Error | null; refetch: ReturnType<typeof vi.fn> } = {

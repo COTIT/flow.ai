@@ -7,6 +7,8 @@ const useFarmerOpportunities = vi.fn()
 const useSurveyBadgeCount = vi.fn()
 const flags = vi.hoisted(() => ({ resources: true }))
 
+// The passbook card has its own tests.
+vi.mock('@/features/passbook/screens', () => ({ MyPassbookCard: () => null }))
 vi.mock('@/features/farmer/useMyFarm', () => ({ useMyFarm: () => useMyFarm() }))
 vi.mock('@/features/farmer/useRequests', () => ({ useMyRequests: () => useMyRequests() }))
 vi.mock('@/features/farmer/useFarmerOpportunities', () => ({
