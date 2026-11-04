@@ -26,7 +26,19 @@
     "serverChecked": "Bei na hali hukaguliwa na seva unapohifadhi.",
     "priceInclHint": "Huonyeshwa kama {price} pamoja na VAT dukani.",
     "labels": "Lebo",
-    "labelsHint": "Huonyeshwa kama vibandiko dukani, hadi 8. Zitenganishe kwa koma."
+    "labelsHint": "Huonyeshwa kama vibandiko dukani, hadi 8. Zitenganishe kwa koma.",
+    "new": "Bidhaa mpya",
+    "vatGroup": "Kundi la VAT",
+    "vatDefault": "Chaguo-msingi la eneo la kazi",
+    "vatNone": "Bado hakuna makundi ya VAT, kwa hiyo chaguo-msingi la eneo la kazi linatumika.",
+    "vatFailed": "Makundi ya VAT hayakuweza kupakiwa, kwa hiyo chaguo-msingi la eneo la kazi linatumika.",
+    "sizes": "Saizi",
+    "addSize": "Ongeza saizi",
+    "size": "Saizi",
+    "sku": "SKU",
+    "standardSize": "Kawaida",
+    "defaultSize": "Chaguo-msingi",
+    "noSizes": "Bado hakuna saizi."
   },
   "nav": {
     "label": "Menyu kuu",
@@ -544,7 +556,9 @@
     "activated": "{name} anaweza kuingia kwenye kaunta tena.",
     "vaultAdded": "Sefu imeongezwa.",
     "pdfReady": "PDF iko tayari.",
-    "imagesSaved": "Picha zimehifadhiwa."
+    "imagesSaved": "Picha zimehifadhiwa.",
+    "productCreated": "Bidhaa imeundwa.",
+    "sizeAdded": "Saizi imeongezwa."
   },
   "images": {
     "title": "Picha",

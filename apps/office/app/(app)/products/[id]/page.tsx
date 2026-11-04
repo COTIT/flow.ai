@@ -55,6 +55,7 @@ import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
 import { StatusBadge } from "@/components/status-badge"
 
 import { ProductImages } from "./images"
+import { ProductSizes } from "./sizes"
 
 type Named = { name?: string; bin_code?: string; bin_name?: string } | null
 
@@ -63,8 +64,11 @@ const statuses = ["active", "disabled", "nla"]
 
 export default function ProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  /** `?done=created`: "New product" just made it. */
+  searchParams: Promise<{ done?: string }>
 }) {
   const t = useTranslations()
   const { id } = React.use(params)
@@ -86,7 +90,9 @@ export default function ProductPage({
     { page, type: type || undefined },
     enabled
   )
-  const done = useDone()
+  const done = useDone(
+    React.use(searchParams).done === "created" ? t("done.productCreated") : null
+  )
   const update = useProductsUpdate({
     mutation: {
       onMutate: done.clear,
@@ -292,10 +298,7 @@ export default function ProductPage({
               label={t("products.description")}
               errors={errors.description}
             >
-              <Textarea
-                name="description"
-                defaultValue={p.description ?? ""}
-              />
+              <Textarea name="description" defaultValue={p.description ?? ""} />
             </Field>
             <div className="flex min-w-0 flex-col gap-1.5">
               <Field
@@ -389,6 +392,7 @@ export default function ProductPage({
               </div>
             )}
           </Tile>
+          <ProductSizes productId={id} done={done} />
           <ProductImages productId={id} done={done} />
         </div>
 
@@ -461,7 +465,10 @@ export default function ProductPage({
                     >
                       {m.quantity_change}
                     </TableCell>
-                    <TableCell data-m="hide" className="text-right tabular-nums">
+                    <TableCell
+                      data-m="hide"
+                      className="text-right tabular-nums"
+                    >
                       {m.quantity_after}
                     </TableCell>
                   </TableRow>

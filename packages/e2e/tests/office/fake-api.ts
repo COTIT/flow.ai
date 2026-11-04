@@ -77,7 +77,13 @@ export const WS = "w1"
 export const WS2 = "w2"
 
 /** The signed-in user the shell shows. */
-export const me = { id: "u1", name: "Romeo Tester", initials: "RT" }
+export const me = {
+  id: "u1",
+  name: "Romeo Tester",
+  initials: "RT",
+  // The workspace's creator: every permission there.
+  permissions: [{ workspace: WS, permissions: ["workspace_owner"] }],
+}
 
 /** Installs a FakeApi on the page with the calls every signed-in screen makes. */
 export async function fakeApi(page: Page) {
@@ -95,6 +101,8 @@ export async function fakeApi(page: Page) {
     .on("GET", "/workspace/:ws/supply-links", () => paged([]))
     // Every order page reads its trail; older orders have none.
     .on("GET", "/workspace/:ws/orders/:order/events", () => paged([]))
+    // Every product page lists its sizes; specs that care override this.
+    .on("GET", "/workspace/:ws/products/:id/variants", () => ({ data: [] }))
     // Every batch page reads its farmer credits; specs that care override this.
     .on("GET", "/workspace/:ws/lots/:lot/farmer-credits", () => ({
       ...paged([]),
@@ -147,7 +155,9 @@ export async function expectFits(page: Page) {
   // Measure the settled page, not a dialog half way through closing.
   // A cancelled animation rejects `finished` with AbortError; it has settled all the same.
   await page.evaluate(() =>
-    Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined)))
+    Promise.all(
+      document.getAnimations().map((a) => a.finished.catch(() => undefined))
+    )
   )
   await expectNoHorizontalScroll(page)
   if ((page.viewportSize()?.width ?? 0) < 768) await expectTapTargets(page)

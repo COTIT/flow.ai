@@ -21,7 +21,14 @@ export const officeApi = (
     },
   ]
 ): Record<string, MockReply> => ({
-  "GET /me": { body: { data: { user: { id: "u1", name: "Romeo Tester", initials: "RT" } } } },
+  // A member with no team grants: read-only screens, no create buttons.
+  "GET /me": {
+    body: {
+      data: {
+        user: { id: "u1", name: "Romeo Tester", initials: "RT", permissions: [] },
+      },
+    },
+  },
   // The overview's lists (login lands there) and the menu's counts (open orders, pending links); empty.
   ...Object.fromEntries(
     [

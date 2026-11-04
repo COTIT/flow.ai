@@ -28,6 +28,9 @@ import {
 } from "@/components/list"
 import { Empty, LoadError } from "@/components/states"
 import { StatusBadge } from "@/components/status-badge"
+import { useCan } from "@/lib/can"
+
+import { CreateProduct } from "./create-product"
 
 // The API's product statuses; with none asked it lists `active`.
 const statuses = ["active", "disabled", "nla"] as const
@@ -35,11 +38,18 @@ const statuses = ["active", "disabled", "nla"] as const
 export default function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; page?: string; status?: string }>
+  searchParams: Promise<{
+    q?: string
+    page?: string
+    status?: string
+    /** `?new=1` opens the create dialog. */
+    new?: string
+  }>
 }) {
   const t = useTranslations()
   const router = useRouter()
-  const { q, page, status } = React.use(searchParams)
+  const { q, page, status, new: startNew } = React.use(searchParams)
+  const canCreate = useCan("product.create")
   const workspaceId = useSession((s) => s.workspaceId)
   const products = useProductsList(
     workspaceId ?? "",
@@ -73,12 +83,20 @@ export default function ProductsPage({
         eyebrow={t("shell.sell")}
         title={t("products.title")}
         actions={
-          <Link
-            href="/stock"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            {t("nav.stock")}
-          </Link>
+          <>
+            <Link
+              href="/stock"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {t("nav.stock")}
+            </Link>
+            {canCreate ? (
+              <CreateProduct
+                startOpen={startNew === "1"}
+                onCreated={(id) => router.push(`/products/${id}?done=created`)}
+              />
+            ) : null}
+          </>
         }
       />
       <ListCard
@@ -195,7 +213,10 @@ export default function ProductsPage({
                       </Link>
                     </span>
                   </TableCell>
-                  <TableCell data-m="sub" className="font-mono tracking-[0.04em]">
+                  <TableCell
+                    data-m="sub"
+                    className="font-mono tracking-[0.04em]"
+                  >
                     {p.product_nr}
                   </TableCell>
                   <TableCell data-m="hide" className="text-muted-foreground">

@@ -26,7 +26,19 @@
     "serverChecked": "Prijzen en status worden bij opslaan door de server gecontroleerd.",
     "priceInclHint": "In de winkel getoond als {price} met btw.",
     "labels": "Labels",
-    "labelsHint": "Getoond als chips in de shop, maximaal 8. Scheid ze met komma's."
+    "labelsHint": "Getoond als chips in de shop, maximaal 8. Scheid ze met komma's.",
+    "new": "Nieuw product",
+    "vatGroup": "Btw-groep",
+    "vatDefault": "Standaard van de werkruimte",
+    "vatNone": "Nog geen btw-groepen, dus de standaard van de werkruimte geldt.",
+    "vatFailed": "Btw-groepen konden niet worden geladen, dus de standaard van de werkruimte geldt.",
+    "sizes": "Maten",
+    "addSize": "Maat toevoegen",
+    "size": "Maat",
+    "sku": "SKU",
+    "standardSize": "Standaard",
+    "defaultSize": "Standaard",
+    "noSizes": "Nog geen maten."
   },
   "nav": {
     "label": "Hoofdmenu",
@@ -544,7 +556,9 @@
     "activated": "{name} kan weer inloggen op de kassa.",
     "vaultAdded": "Kluis toegevoegd.",
     "pdfReady": "De PDF is klaar.",
-    "imagesSaved": "Afbeeldingen opgeslagen."
+    "imagesSaved": "Afbeeldingen opgeslagen.",
+    "productCreated": "Product aangemaakt.",
+    "sizeAdded": "Maat toegevoegd."
   },
   "images": {
     "title": "Afbeeldingen",

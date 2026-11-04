@@ -26,7 +26,19 @@
     "serverChecked": "Prices and status are checked by the server when you save.",
     "priceInclHint": "Shown as {price} with VAT in the shop.",
     "labels": "Labels",
-    "labelsHint": "Shown as chips in the shop, up to 8. Separate them with commas."
+    "labelsHint": "Shown as chips in the shop, up to 8. Separate them with commas.",
+    "new": "New product",
+    "vatGroup": "VAT group",
+    "vatDefault": "Workspace default",
+    "vatNone": "No VAT groups yet, so the workspace default applies.",
+    "vatFailed": "VAT groups could not be loaded, so the workspace default applies.",
+    "sizes": "Sizes",
+    "addSize": "Add size",
+    "size": "Size",
+    "sku": "SKU",
+    "standardSize": "Standard",
+    "defaultSize": "Default",
+    "noSizes": "No sizes yet."
   },
   "nav": {
     "label": "Main menu",
@@ -544,7 +556,9 @@
     "activated": "{name} can log in at the till again.",
     "vaultAdded": "Vault added.",
     "pdfReady": "The PDF is ready.",
-    "imagesSaved": "Images saved."
+    "imagesSaved": "Images saved.",
+    "productCreated": "Product created.",
+    "sizeAdded": "Size added."
   },
   "images": {
     "title": "Images",
