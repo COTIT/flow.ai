@@ -781,3 +781,95 @@ async fn the_transfer_list_filters_by_direction_and_status(pool: PgPool) {
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
     }
 }
+
+/// Farm ops dispatch from Field without office rights: one farm-guarded read gives the live
+/// outgoing links, the batch lots and the warehouses holding their free stock; the dispatch
+/// itself is open to ops.
+#[sqlx::test]
+async fn farm_ops_read_dispatch_options_and_dispatch(pool: PgPool) {
+    let c = chain(pool).await;
+    let s = shop(&c, json!(["village"])).await;
+    // A pending link to a third shop is no dispatch target.
+    let (_, third_ws) = signup(&c.f.app, "owner@third.test", "third").await;
+    let (status, _) =
+        c.f.ws_call(
+            Method::POST,
+            "/supply-links",
+            Some(json!({ "to_workspace_id": third_ws, "fields": [] })),
+            &c.f.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED);
+    let empty = c.f.warehouse("Empty shed").await;
+
+    let (status, res) =
+        c.f.call(Method::GET, "/dispatch/options", None, &c.f.ops)
+            .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let d = &res["data"];
+    assert_eq!(
+        d["links"],
+        json!([{ "id": s.link, "partner": { "id": s.a_ws, "name": "afm" } }]),
+        "live outgoing links only"
+    );
+    assert_eq!(d["lots"][0]["id"], c.raw.as_str());
+    assert_eq!(d["lots"][0]["code"], "ILU-RAW-1");
+    let warehouses: Vec<&str> = d["warehouses"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|w| w["id"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        warehouses,
+        [c.warehouse.as_str()],
+        "only where batch lots have free stock"
+    );
+    assert!(!warehouses.contains(&empty.as_str()));
+
+    // The office reads stay closed to farm ops; the farm read is enough.
+    let (status, _) =
+        c.f.ws_call(Method::GET, "/supply-links", None, &c.f.ops)
+            .await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+
+    let (status, res) =
+        c.f.ws_call(
+            Method::POST,
+            &format!("/lots/{}/transfers", c.raw),
+            Some(json!({ "link_id": s.link, "warehouse_id": c.warehouse, "quantity": "1" })),
+            &c.f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "ops dispatch: {res}");
+
+    for (token, why) in [
+        (&c.f.officer_ilu, "field officer"),
+        (&c.f.officer_mga, "officer"),
+    ] {
+        let (status, _) =
+            c.f.call(Method::GET, "/dispatch/options", None, token)
+                .await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{why}");
+    }
+    let farmer = c.f.farmer("kim@ruaha.test", &c.f.ilundo).await;
+    let (status, _) =
+        c.f.call(Method::GET, "/dispatch/options", None, &farmer)
+            .await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "farmer");
+    let (status, res) = a_call(
+        &c.f,
+        &s.a_ws,
+        Method::GET,
+        "/farm/dispatch/options",
+        None,
+        &s.a,
+    )
+    .await;
+    assert_ne!(status, StatusCode::OK, "the shop has no farm: {res}");
+    let (outsider, _) = signup(&c.f.app, "out@else.test", "outside").await;
+    let (status, _) =
+        c.f.call(Method::GET, "/dispatch/options", None, &outsider)
+            .await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "not a member");
+}

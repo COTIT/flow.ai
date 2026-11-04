@@ -17,8 +17,8 @@ use crate::{
     },
     modules::farm_supply::{
         dto::{
-            BatchResource, CreateBatchRequest, ListQuery, OptionsQuery, OptionsResource,
-            RawProductCreated, RawProductRequest,
+            BatchResource, CreateBatchRequest, DispatchOptions, ListQuery, OptionsQuery,
+            OptionsResource, RawProductCreated, RawProductRequest,
         },
         service,
     },
@@ -148,4 +148,24 @@ pub async fn raw_product(
 ) -> Result<(StatusCode, Data<RawProductCreated>), AppError> {
     let p = service::create_raw_product(&state, &access, fields).await?;
     Ok((StatusCode::CREATED, Data(p)))
+}
+
+/// GET /farm/dispatch/options -> what a dispatch may send, without office rights.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/dispatch/options", tag = "farm_supply",
+    operation_id = "farm_supply_dispatch_options", summary = "What a dispatch may send",
+    description = "ops or admin. The live supply links this workspace granted (with the shop's name), the raw lots of its supply batches, and the warehouses holding their free stock. The Field dispatch form reads this instead of the office's link and warehouse lists.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    responses(
+        (status = 200, body = Envelope<DispatchOptions>, description = "Links, lots, warehouses"),
+        (status = 403, body = MessageBody, description = "Not ops or admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role and is not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn dispatch_options(
+    State(state): State<AppState>,
+    access: FarmAccess,
+) -> Result<Data<DispatchOptions>, AppError> {
+    Ok(Data(service::dispatch_options(&state, &access).await?))
 }

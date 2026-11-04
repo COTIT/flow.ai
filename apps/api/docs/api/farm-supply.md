@@ -46,6 +46,23 @@ ops or admin only (`403` otherwise). What a new batch of one village and crop ca
 
 `200 {"data": {"harvests": [...], "raw_products": [...], "can_create_product": false}}`.
 
+## `GET …/farm/dispatch/options`
+
+ops or admin (others `403`; a non-member `404`). What the Field dispatch form may send, without the office's link and warehouse rights:
+
+```json
+{ "data": {
+  "links": [{ "id": "…", "partner": { "id": "…", "name": "AFM" } }],
+  "lots": [{ "id": "…", "code": "ILU-RAW-1" }],
+  "warehouses": [{ "id": "…", "name": "Iringa store" }]
+} }
+```
+
+- `links`: live supply links this workspace granted (accepted, not revoked), by partner name.
+- `lots`: the raw lots of its supply batches, newest first.
+- `warehouses`: live warehouses holding free stock (level − reserved > 0) of those lots, by name.
+- The dispatch itself (`POST /lots/{lot}/transfers`) is already open to farm ops and admin.
+
 ## `POST …/farm/supply-batches/raw-product`
 
 ops or admin only (`403` otherwise). No `product.create` needed: this makes only raw materials. Owners and admins still manage every product in Office.

@@ -626,3 +626,71 @@ pub async fn raw_products(
     .fetch_all(db)
     .await
 }
+
+/// A live link this workspace granted, with the receiving workspace's name.
+pub struct DispatchLink {
+    pub id: Uuid,
+    pub partner_id: Uuid,
+    pub partner_name: String,
+}
+
+/// Live supply links `workspace_id` granted, by partner name.
+pub async fn dispatch_links(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Vec<DispatchLink>, sqlx::Error> {
+    sqlx::query_as!(
+        DispatchLink,
+        "SELECT l.id, w.id AS partner_id, w.name AS partner_name
+         FROM supply_links l JOIN workspaces w ON w.id = l.to_workspace_id
+         WHERE l.from_workspace_id = $1 AND l.accepted_at IS NOT NULL AND l.revoked_at IS NULL
+         ORDER BY w.name, l.id",
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// An id and its display name (lot code or warehouse name).
+pub struct Named {
+    pub id: Uuid,
+    pub name: String,
+}
+
+/// The raw lots of the workspace's supply batches, newest first.
+pub async fn batch_lots(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Vec<Named>, sqlx::Error> {
+    sqlx::query_as!(
+        Named,
+        "SELECT l.id, l.code AS name FROM farm_supply_batches b
+         JOIN lots l ON l.workspace_id = b.workspace_id AND l.id = b.lot_id
+         WHERE b.workspace_id = $1
+         ORDER BY b.created_at DESC, b.id DESC",
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Live warehouses holding free stock (level − reserved > 0) of a supply batch lot, by name.
+pub async fn dispatch_warehouses(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+) -> Result<Vec<Named>, sqlx::Error> {
+    sqlx::query_as!(
+        Named,
+        "SELECT w.id, w.name FROM warehouses w
+         WHERE w.workspace_id = $1 AND w.deleted_at IS NULL
+           AND EXISTS (SELECT 1 FROM stocks s
+                       JOIN farm_supply_batches b ON b.workspace_id = s.workspace_id
+                                                 AND b.lot_id = s.lot_id
+                       WHERE s.workspace_id = $1 AND s.warehouse_id = w.id
+                         AND s.deleted_at IS NULL AND s.stock_lvl - s.reserved > 0)
+         ORDER BY w.name, w.id",
+        workspace_id,
+    )
+    .fetch_all(db)
+    .await
+}

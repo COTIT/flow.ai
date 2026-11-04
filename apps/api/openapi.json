@@ -4554,6 +4554,72 @@
         ],
         "type": "object"
       },
+      "DispatchLinkResource": {
+        "description": "A live link and the shop it goes to.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "partner": {
+            "$ref": "#/components/schemas/Partner"
+          }
+        },
+        "required": [
+          "id",
+          "partner"
+        ],
+        "type": "object"
+      },
+      "DispatchLot": {
+        "description": "A lot that can be sent.",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code"
+        ],
+        "type": "object"
+      },
+      "DispatchOptions": {
+        "description": "What the Field dispatch form may send: farm-guarded, so ops need no office rights.",
+        "properties": {
+          "links": {
+            "description": "Live supply links this workspace granted.",
+            "items": {
+              "$ref": "#/components/schemas/DispatchLinkResource"
+            },
+            "type": "array"
+          },
+          "lots": {
+            "description": "Raw lots of supply batches, newest first (`POST /lots/{lot}/transfers` sends these).",
+            "items": {
+              "$ref": "#/components/schemas/DispatchLot"
+            },
+            "type": "array"
+          },
+          "warehouses": {
+            "description": "Warehouses holding free stock of those lots, by name.",
+            "items": {
+              "$ref": "#/components/schemas/DispatchWarehouse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "links",
+          "lots",
+          "warehouses"
+        ],
+        "type": "object"
+      },
       "DispatchRequest": {
         "description": "Send lot stock over a live supply link this workspace granted.",
         "properties": {
@@ -4575,6 +4641,23 @@
           "link_id",
           "warehouse_id",
           "quantity"
+        ],
+        "type": "object"
+      },
+      "DispatchWarehouse": {
+        "description": "A warehouse to send from.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
         ],
         "type": "object"
       },
@@ -5376,6 +5459,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/DiscountResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_DispatchOptions": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DispatchOptions"
           }
         },
         "required": [
@@ -44702,6 +44797,121 @@
         "summary": "Change a crop",
         "tags": [
           "farm_crops"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/dispatch/options": {
+      "get": {
+        "description": "ops or admin. The live supply links this workspace granted (with the shop's name), the raw lots of its supply batches, and the warehouses holding their free stock. The Field dispatch form reads this instead of the office's link and warehouse lists.",
+        "operationId": "farm_supply_dispatch_options",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_DispatchOptions"
+                }
+              }
+            },
+            "description": "Links, lots, warehouses"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a dispatch may send",
+        "tags": [
+          "farm_supply"
         ]
       }
     },
