@@ -150,7 +150,13 @@ test("the create buttons wait for /me without moving the page", async ({
   // Zero: on a phone the head's buttons wrap, so one that pops in moves the list down.
   await expectNoLayoutShift(page, 0)
 
+  // Stock answers after the product: its tile sits above Sizes and Images.
+  await page.route("**/products/p1/stock-with-bins", async (route) => {
+    await new Promise((r) => setTimeout(r, 600))
+    await api.handle(route)
+  })
   await page.goto("/products/p1")
+  await expect(page.getByText("No stock rows yet.")).toBeVisible()
   await expect(
     page.getByRole("region", { name: "Sizes" }).getByText("Standard")
   ).toBeVisible()
