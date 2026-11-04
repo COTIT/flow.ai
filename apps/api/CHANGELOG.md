@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix (I1, `docs/api/invites.md`): an invite whose mail failed to send (500) left a pending invite, or a rotated code, that nobody received. The row and the mail now share one transaction, so a failed send saves nothing and a re-invite keeps the code mailed before. The failed attempt still counts toward `INVITES_PER_HOUR`.
 - Till quote (T4, `docs/api/till.md`, no migration): `POST /till/sales/quote` no longer answers 422 "The tendered cash is less than the amount due." while the cashier types; it answers 200 with the new `short_by` (`due − tendered` in minor units, 0 when enough, null for card or without `tendered`) and `change` null while short. `POST /till/sales` still refuses short cash (422 on `payment.tendered`).
 - Seed raw values and partner names (R8, SD1, R7; no migration): the demo's raw products (coffee cherries, maize, beans) are in `kg`; the honey passports' "Extracted" fact reads "2 July 2026", not an ISO date; every `partner` (supply links, supply transfers, `GET /farm/dispatch/options`) gains `display_name`, the workspace's profile `company_name` or its slug when it has none, so Field's dispatch list no longer shows "afm-demo". The seed names the shop "AFM Shop". `name` stays the slug.
 - Demo seed (FB1): RUAHA's default currency is TZS, no longer the euro every new workspace starts with, so Field's Buy harvest prices and credits farmers in shillings. New workspaces still default to EUR.
