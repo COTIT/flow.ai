@@ -7,7 +7,8 @@ export const role = (
 ) => ({
   id: `m-${role}`,
   workspace_id: "w1",
-  workspace_name: "Ruaha demo",
+  workspace_name: "ruaha-demo",
+  display_name: "Ruaha demo",
   role,
   village_id: village?.id ?? null,
   village_name: village?.name ?? null,

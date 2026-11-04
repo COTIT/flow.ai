@@ -128,7 +128,7 @@ build (password hashing included). CI's estimate: ~12 min warm, ~25 min cold (2 
 
 ## Known bugs these specs carry (`test.fail`)
 
-- `accounts/isolation.spec.ts` S6: the workspace switcher shows the slug (`ruaha-demo`), not a name.
+None at the moment.
 
 Worked around (not `test.fail`, since they depend on timing or on how long the API has run):
 - `shop/checkout.spec.ts`: Pay again right after Cancel on the fake page reopens the cancelled

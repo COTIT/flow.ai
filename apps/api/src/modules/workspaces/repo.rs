@@ -126,6 +126,8 @@ pub async fn is_member_by_email(
 pub struct MemberWorkspace {
     pub id: Uuid,
     pub name: String,
+    /// The profile's company name, else the slug.
+    pub display_name: String,
     pub workspace_type: String,
     pub created_by_user_id: Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -141,12 +143,13 @@ pub async fn active_for_user(
 ) -> Result<Vec<MemberWorkspace>, sqlx::Error> {
     sqlx::query_as!(
         MemberWorkspace,
-        "SELECT w.id, w.name, w.workspace_type, w.created_by_user_id, w.created_at, w.updated_at,
-                w.profile
+        r#"SELECT w.id, w.name,
+                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "display_name!",
+                  w.workspace_type, w.created_by_user_id, w.created_at, w.updated_at, w.profile
          FROM workspace_members m
          JOIN workspaces w ON w.id = m.workspace_id
          WHERE m.user_id = $1 AND m.active AND w.deleted_at IS NULL
-         ORDER BY m.created_at, m.workspace_id",
+         ORDER BY m.created_at, m.workspace_id"#,
         user_id,
     )
     .fetch_all(db)
@@ -157,6 +160,8 @@ pub async fn active_for_user(
 pub struct Record {
     pub id: Uuid,
     pub name: String,
+    /// The profile's company name, else the slug.
+    pub display_name: String,
     pub workspace_type: String,
     pub profile: Option<serde_json::Value>,
     pub meta: Option<serde_json::Value>,
@@ -175,7 +180,9 @@ pub async fn record(
 ) -> Result<Option<Record>, sqlx::Error> {
     sqlx::query_as!(
         Record,
-        r#"SELECT w.id, w.name, w.workspace_type, w.profile, w.meta, w.created_at, w.updated_at,
+        r#"SELECT w.id, w.name,
+                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "display_name!",
+                  w.workspace_type, w.profile, w.meta, w.created_at, w.updated_at,
                   (SELECT count(*) FROM invites i
                    WHERE i.workspace_id = w.id AND i.status = 'pending')
                     AS "pending_invites!",

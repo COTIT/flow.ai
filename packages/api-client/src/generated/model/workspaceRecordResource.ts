@@ -14,6 +14,8 @@ import type { WorkspaceRecordResourceRelationshipsItem } from './workspaceRecord
  */
 export interface WorkspaceRecordResource {
   created_at: string;
+  /** The profile's `company_name`, or the slug when it has none. Show this. */
+  display_name: string;
   id: string;
   last_updated_at: string;
   /** @nullable */
@@ -25,6 +27,7 @@ export interface WorkspaceRecordResource {
      */
   relationships: WorkspaceRecordResourceRelationshipsItem[];
   users_count: number;
+  /** The slug. */
   workspace_name: string;
   workspace_profile: WorkspaceProfile;
   workspace_type: string;

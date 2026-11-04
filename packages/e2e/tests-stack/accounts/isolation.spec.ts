@@ -162,7 +162,7 @@ test("the account switcher offers only one's own accounts", async ({
 }) => {
   const ruaha = await apiAs(request, cred("office (RUAHA)", "admin"))
   const mine =
-    await ruaha.get<{ id: string; workspace_name: string }[]>("/me/workspaces")
+    await ruaha.get<{ id: string; display_name: string }[]>("/me/workspaces")
   expect(mine.map((w) => w.id)).not.toContain(workspaces.AFM)
   await loginOffice(page, cred("office (RUAHA)", "admin"))
   const menu = page.getByRole("button", { name: "Open menu" })
@@ -171,17 +171,14 @@ test("the account switcher offers only one's own accounts", async ({
   // The list renders after the click: wait for it before reading it.
   await expect(page.getByRole("option")).toHaveCount(mine.length)
   const offered = await page.getByRole("option").allTextContents()
-  expect(offered.sort()).toEqual(mine.map((w) => w.workspace_name).sort())
+  expect(offered.sort()).toEqual(mine.map((w) => w.display_name).sort())
+  expect(offered).toContain("Ruaha Coffee Co-op")
   await expectNoRawValues(page, { within: '[role="listbox"]' })
 })
 
 test("the account switcher names accounts in words, not by their slug", async ({
   page,
 }) => {
-  test.fail(
-    true,
-    "the switcher shows the workspace slug (ruaha-demo): workspaces have no display name, the name is the slug (e2e-accounts S6)"
-  )
   await loginOffice(page, cred("office (RUAHA)", "admin"))
   const menu = page.getByRole("button", { name: "Open menu" })
   if (await menu.isVisible()) await menu.click()

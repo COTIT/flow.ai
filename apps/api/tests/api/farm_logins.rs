@@ -510,6 +510,7 @@ async fn farm_me_shows_the_account_and_its_farm_roles(pool: PgPool) {
     assert_eq!(
         keys(m),
         [
+            "display_name",
             "id",
             "person_id",
             "role",
@@ -524,6 +525,7 @@ async fn farm_me_shows_the_account_and_its_farm_roles(pool: PgPool) {
         (Some(f.ws.as_str()), Some("farmer"))
     );
     assert_eq!(m["workspace_name"], "ruaha");
+    assert_eq!(m["display_name"], "ruaha", "no company name: the slug");
     assert_eq!(m["village_id"], f.ilundo.as_str());
     assert_eq!(m["village_name"], "Ilundo");
     assert_eq!(m["person_id"], c.neema.person.as_str());
@@ -538,6 +540,23 @@ async fn farm_me_shows_the_account_and_its_farm_roles(pool: PgPool) {
     .await;
     assert_eq!(status, StatusCode::OK);
     assert_eq!(staff["data"]["user"]["email"], "salima@ruaha.test");
+    sqlx::query("UPDATE workspaces SET profile = '{\"company_name\": \"Ruaha Coffee\"}' WHERE id = $1::uuid")
+        .bind(&f.ws)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    let (_, again) = send(
+        &f.app,
+        Method::GET,
+        "/v1/farm/me",
+        None,
+        Some(&f.officer_ilu),
+    )
+    .await;
+    assert_eq!(
+        again["data"]["memberships"][0]["display_name"],
+        "Ruaha Coffee"
+    );
     assert_eq!(staff["data"]["locale"], "en");
     assert_eq!(staff["data"]["must_change_password"], false);
     let roles: Vec<&str> = staff["data"]["memberships"]

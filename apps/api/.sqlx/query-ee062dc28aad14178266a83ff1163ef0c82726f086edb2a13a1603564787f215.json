@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT w.id, w.name, w.workspace_type, w.created_by_user_id, w.created_at, w.updated_at,\n                w.profile\n         FROM workspace_members m\n         JOIN workspaces w ON w.id = m.workspace_id\n         WHERE m.user_id = $1 AND m.active AND w.deleted_at IS NULL\n         ORDER BY m.created_at, m.workspace_id",
+  "query": "SELECT w.id, w.name,\n                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS \"display_name!\",\n                  w.workspace_type, w.created_by_user_id, w.created_at, w.updated_at, w.profile\n         FROM workspace_members m\n         JOIN workspaces w ON w.id = m.workspace_id\n         WHERE m.user_id = $1 AND m.active AND w.deleted_at IS NULL\n         ORDER BY m.created_at, m.workspace_id",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,12 @@
       },
       {
         "ordinal": 2,
+        "name": "display_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
         "name": "workspace_type",
         "type_info": "Text",
         "origin": {
@@ -37,7 +43,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "created_by_user_id",
         "type_info": "Uuid",
         "origin": {
@@ -48,7 +54,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -59,7 +65,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -70,7 +76,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "profile",
         "type_info": "Jsonb",
         "origin": {
@@ -89,6 +95,7 @@
     "nullable": [
       false,
       false,
+      null,
       false,
       false,
       false,
@@ -96,5 +103,5 @@
       true
     ]
   },
-  "hash": "9249da237c39314a03e5a1074133f38d322719e1cc16a31cfa190159c4a263ab"
+  "hash": "ee062dc28aad14178266a83ff1163ef0c82726f086edb2a13a1603564787f215"
 }

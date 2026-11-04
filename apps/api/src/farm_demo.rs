@@ -440,6 +440,16 @@ pub async fn run(mut state: AppState) -> Result<Report, AppError> {
             .await?;
     }
 
+    // Switchers and partner lists show the company name, not the slug.
+    sqlx::query!(
+        r#"UPDATE workspaces
+           SET profile = coalesce(profile, '{}') || '{"company_name": "Ruaha Coffee Co-op"}'
+           WHERE id = $1"#,
+        ws_id
+    )
+    .execute(&db)
+    .await?;
+
     // RUAHA pays farmers in shillings: TZS is the default, not the euro a new workspace gets.
     sqlx::query!(
         "UPDATE currencies SET default_currency = false WHERE workspace_id = $1",

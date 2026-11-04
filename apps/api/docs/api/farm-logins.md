@@ -73,7 +73,7 @@ For phone (farmer) and email (staff) tokens alike. No token: `401`.
   "user": { "id": "uuid", "name": "Neema Mwakalinga", "email": null, "phone": "+255712000001" },
   "locale": "sw",
   "must_change_password": false,
-  "memberships": [ { "id": "uuid", "workspace_id": "uuid", "workspace_name": "ruaha",
+  "memberships": [ { "id": "uuid", "workspace_id": "uuid", "workspace_name": "ruaha", "display_name": "Ruaha Coffee Co-op",
                      "role": "farmer", "village_id": "uuid", "village_name": "Ilundo", "person_id": "uuid" } ]
 } }
 ```

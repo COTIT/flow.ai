@@ -214,6 +214,11 @@ async fn profile_shows_in_me_workspaces_once_set(pool: PgPool) {
         before.get("workspace_profile").is_none(),
         "omitted while unset (Laravel)"
     );
+    assert_eq!(before["display_name"], before["workspace_name"], "the slug");
+    assert_eq!(
+        w.get(&w.owner).await.1["data"]["display_name"],
+        before["workspace_name"]
+    );
 
     w.update(json!({ "company_name": "Acme BV" }), &w.owner)
         .await;
@@ -230,6 +235,12 @@ async fn profile_shows_in_me_workspaces_once_set(pool: PgPool) {
         .1,
     );
     assert_eq!(after["workspace_profile"]["company_name"], "Acme BV");
+    assert_eq!(after["display_name"], "Acme BV");
+    assert_eq!(
+        after["workspace_name"], before["workspace_name"],
+        "the slug stays"
+    );
+    assert_eq!(w.get(&w.owner).await.1["data"]["display_name"], "Acme BV");
 }
 
 #[sqlx::test]

@@ -50,7 +50,7 @@ export const officeApi = (
     body: { data: { from: "", to: "", source: null, currencies: [] } },
   },
   "GET /me/workspaces": {
-    body: { data: [{ id: "w1", workspace_name: "Ilundo Honey Co." }] },
+    body: { data: [{ id: "w1", workspace_name: "ilundo-honey", display_name: "Ilundo Honey Co." }] },
   },
   "GET /workspace/w1/products": {
     body: {

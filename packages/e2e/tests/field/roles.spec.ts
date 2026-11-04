@@ -63,6 +63,9 @@ test("two roles pick one on the role picker and land on its home", async ({ page
   await expect(page).toHaveURL(/\/select-role$/)
   await expect(page.getByTestId("select-role-field_officer")).toContainText("Field officer")
   await expect(page.getByTestId("select-role-ops")).toContainText("Whole project")
+  // The project is named as people know it, not by its slug.
+  await expect(page.getByTestId("select-role-ops")).toContainText("Ruaha demo")
+  await expect(page.getByTestId("select-role-ops")).not.toContainText("ruaha-demo")
   await expectNoHorizontalScroll(page)
 
   await page.getByTestId("select-role-ops").click()
