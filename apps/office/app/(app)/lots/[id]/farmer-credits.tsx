@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { ShoppingBag, Undo2 } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
@@ -13,13 +13,20 @@ import { Chip, Tile } from "@/components/bento"
 import { ListPager } from "@/components/list"
 import { Empty, LoadError } from "@/components/states"
 
+/** A village group's farmer count; the API hides it (null) below 3 farmers. */
+export function FarmerCount({ farmers }: { farmers: number | null }) {
+  const t = useTranslations("credits")
+  return farmers == null ? t("fewFarmers") : t("farmers", { count: farmers })
+}
+
 /**
- * Sales and returns of this batch that credited (or debited) its farmers. Groups only:
- * the API never sends farmer names, kg, prices or amounts here (G10), so the rows are
- * the sales themselves, not the mockup's per-farmer bars.
+ * The batch's farmer groups as the public page shows them (OfficeLot rows: village, count,
+ * harvest window; no names, bars or shares), then the sales and returns that credited them.
+ * The API never sends farmer names, kg, prices or amounts here (G10).
  */
 export function FarmerCredits({ lotId }: { lotId: string }) {
   const t = useTranslations("credits")
+  const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const [page, setPage] = React.useState(1)
   const credits = useLotsFarmerCredits(
@@ -28,6 +35,11 @@ export function FarmerCredits({ lotId }: { lotId: string }) {
     { page },
     { query: { enabled: Boolean(workspaceId) } }
   )
+  // Harvest dates are calendar days: shown as given, not shifted by the browser's zone.
+  const day = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  })
 
   return (
     <Tile
@@ -49,13 +61,34 @@ export function FarmerCredits({ lotId }: { lotId: string }) {
         />
       ) : (
         <>
-          <Notice
-            title={
-              credits.data.farmer_groups == null
-                ? t("noGroups")
-                : t("groups", { count: credits.data.farmer_groups })
-            }
-          />
+          {credits.data.farmers.length ? (
+            <ul className="flex flex-col gap-2">
+              {credits.data.farmers.map((g) => (
+                <li key={g.village} className="flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-semibold text-primary-foreground"
+                  >
+                    {g.village.slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 grow">
+                    <p className="text-sm font-semibold">{g.village}</p>
+                    <p className="text-xs text-muted-foreground">
+                      <FarmerCount farmers={g.farmers} />
+                      {g.harvest_start || g.harvest_end
+                        ? ` · ${[g.harvest_start, g.harvest_end]
+                            .filter((d) => d != null)
+                            .map((d) => day.format(new Date(d)))
+                            .join(" – ")}`
+                        : null}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Notice title={t("noGroups")} />
+          )}
           {credits.data.data.length === 0 ? (
             <Empty title={t("empty")} />
           ) : (

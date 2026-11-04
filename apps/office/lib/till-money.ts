@@ -34,6 +34,7 @@ export function useTillMoney() {
   }
   return {
     currencies: currencies.data?.data ?? [],
+    registers: registers.data?.data ?? [],
     register,
     money,
     /** An amount of a register's own currency (shifts, sales). */

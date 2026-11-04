@@ -20,27 +20,32 @@ import { CardState, ListCard, ListPager, ListSkeleton } from "@/components/list"
 import { useTillMoney } from "@/lib/till-money"
 import { Empty, LoadError } from "@/components/states"
 
+import { RegisterSelect } from "../register-select"
+
 export default function TillSalesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mismatch?: string; page?: string }>
+  searchParams: Promise<{ mismatch?: string; register_id?: string; page?: string }>
 }) {
   const t = useTranslations()
   const router = useRouter()
-  const { mismatch, page } = React.use(searchParams)
+  const { mismatch, register_id, page } = React.use(searchParams)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const { register, registerMoney } = useTillMoney()
   const sales = useTillSalesList(
     workspaceId,
     {
       mismatch: mismatch === "true" || undefined,
+      register_id: register_id || undefined,
       page: Number(page) || undefined,
     },
     { query: { enabled: Boolean(workspaceId) } }
   )
-  const go = (next: { mismatch?: boolean; page?: number }) => {
+  const go = (next: { mismatch?: boolean; register?: string; page?: number }) => {
     const params = new URLSearchParams()
     if (next.mismatch ?? mismatch === "true") params.set("mismatch", "true")
+    const reg = next.register ?? register_id
+    if (reg) params.set("register_id", reg)
     if (next.page && next.page > 1) params.set("page", String(next.page))
     router.push(`?${params}`)
   }
@@ -58,15 +63,21 @@ export default function TillSalesPage({
   return (
     <ListCard
       filters={
-        <label className="flex min-h-11 items-center gap-3 text-sm">
-          <Switch
-            // Uncontrolled so it flips at once; the key resyncs it when the URL changes.
-            key={mismatch ?? ""}
-            defaultChecked={mismatch === "true"}
-            onCheckedChange={(checked) => go({ mismatch: checked })}
+        <>
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <Switch
+              // Uncontrolled so it flips at once; the key resyncs it when the URL changes.
+              key={mismatch ?? ""}
+              defaultChecked={mismatch === "true"}
+              onCheckedChange={(checked) => go({ mismatch: checked, page: 1 })}
+            />
+            {t("till.onlyMismatch")}
+          </label>
+          <RegisterSelect
+            value={register_id ?? ""}
+            onChange={(id) => go({ register: id, page: 1 })}
           />
-          {t("till.onlyMismatch")}
-        </label>
+        </>
       }
       count={
         sales.data
@@ -89,7 +100,11 @@ export default function TillSalesPage({
         <CardState>
           <Empty
             title={t("till.noSales")}
-            onClear={mismatch === "true" ? () => router.push("?") : undefined}
+            onClear={
+              mismatch === "true" || register_id
+                ? () => router.push("?")
+                : undefined
+            }
           />
         </CardState>
       ) : (

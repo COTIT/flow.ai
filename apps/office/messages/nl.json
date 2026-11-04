@@ -24,7 +24,9 @@
     "count": "{total, plural, one {# product} other {# producten}}",
     "details": "Gegevens",
     "serverChecked": "Prijzen en status worden bij opslaan door de server gecontroleerd.",
-    "priceInclHint": "In de winkel getoond als {price} met btw."
+    "priceInclHint": "In de winkel getoond als {price} met btw.",
+    "labels": "Labels",
+    "labelsHint": "Getoond als chips in de shop, maximaal 8. Scheid ze met komma's."
   },
   "nav": {
     "label": "Hoofdmenu",
@@ -97,7 +99,9 @@
     "linkCopied": "Link gekopieerd",
     "editPassport": "Paspoort bewerken",
     "lineage": "Herkomst",
-    "details": "Batchgegevens"
+    "details": "Batchgegevens",
+    "eventWho": "Wie",
+    "system": "Systeem"
   },
   "secret": {
     "once": "Kopieer dit geheim nu. Het wordt maar één keer getoond.",
@@ -244,7 +248,11 @@
     "changeHint": "Wijziging (bv. 10 of -3)",
     "quantityChange": "Wijziging",
     "count": "{total, plural, one {# voorraadregel} other {# voorraadregels}}",
-    "onHand": "Op voorraad"
+    "onHand": "Op voorraad",
+    "movementType": "Soort mutatie",
+    "typeAll": "Alle",
+    "typeDecrease": "Afnames",
+    "typeCount": "Tellingen"
   },
   "invoices": {
     "title": "Facturen",
@@ -329,7 +337,6 @@
       "office": "Kantoor",
       "storefront": "Webwinkel"
     },
-    "items": "{count, plural, one {# artikel} other {# artikelen}}",
     "serverAmounts": "Bedragen zoals berekend door de server.",
     "nextStep": "Volgende stap",
     "next": {
@@ -340,11 +347,32 @@
       "return": "Neem goederen terug die de klant heeft teruggestuurd."
     },
     "payment": "Betaling",
-    "paidOn": "Betaald · {date}",
     "notPaid": "Niet betaald",
     "noCustomer": "Geen klantgegevens bij deze order.",
     "timeline": "Tijdlijn",
-    "placedEvent": "Geplaatst"
+    "placedEvent": "Geplaatst",
+    "itemsUnits": "{count, plural, one {# artikel} other {# artikelen}} · {units, plural, one {# stuk} other {# stuks}}",
+    "lot": "Partij {code}",
+    "paid": "Betaald",
+    "paidVia": "Betaald · {method}",
+    "methods": {
+      "cash": "contant",
+      "card": "pin",
+      "online": "online"
+    },
+    "eventKinds": {
+      "created": "Geplaatst",
+      "confirmed": "Bevestigd",
+      "paid": "Betaald",
+      "picked": "Gepickt",
+      "completed": "Afgerond",
+      "cancelled": "Geannuleerd",
+      "expired": "Verlopen",
+      "returned": "Retour",
+      "refunded": "Terugbetaald",
+      "invoiced": "Gefactureerd"
+    },
+    "trailNote": "Wie wat deed wordt vanaf nu bijgehouden; oudere stappen tonen alleen hun tijd."
   },
   "till": {
     "title": "Kassa",
@@ -404,7 +432,9 @@
     "revoked": "De kassa op {name} is ontkoppeld.",
     "registersCount": "{total, plural, one {# kassa} other {# kassa's}}",
     "shiftsCount": "{total, plural, one {# dienst} other {# diensten}}",
-    "salesCount": "{total, plural, one {# verkoop} other {# verkopen}}"
+    "salesCount": "{total, plural, one {# verkoop} other {# verkopen}}",
+    "onlyOpen": "Alleen open",
+    "allRegisters": "Alle kassa's"
   },
   "supply": {
     "title": "Aanvoer",
@@ -530,7 +560,6 @@
   },
   "credits": {
     "title": "Vergoedingen aan boeren",
-    "groups": "{count, plural, one {Verkopen vergoeden # boerengroep, getoond op de publieke pagina.} other {Verkopen vergoeden # boerengroepen, getoond op de publieke pagina.}}",
     "noGroups": "De publieke pagina toont geen boerengroepen voor deze batch.",
     "empty": "Nog geen verkopen of retouren van deze batch.",
     "at": "Wanneer",
@@ -543,20 +572,22 @@
       "return": "Retour"
     },
     "sub": "Uit verkochte potten",
-    "jarCount": "{jars} potten"
+    "jarCount": "{jars} potten",
+    "farmers": "{count, plural, one {# boer} other {# boeren}}",
+    "fewFarmers": "Minder dan 3 boeren"
   },
   "lineage": {
     "packedFrom": "Verpakt uit batch",
     "pack": "{units} stuks uit {kg} kg",
     "receivedFrom": "Ontvangen uit batch {code} van de partner ({publicCode}).",
     "transfers": "Bekijk overdrachten",
-    "none": "Hier gemaakt: geen eerdere batch."
+    "none": "Hier gemaakt: geen eerdere batch.",
+    "harvestFrom": "Oogst uit {village}"
   },
   "shell": {
     "openMenu": "Menu openen",
     "search": "Snel zoeken",
-    "searchPlaceholder": "Zoek producten…",
-    "searchProducts": "Producten zoeken",
+    "searchPlaceholder": "Zoek producten, orders, batches…",
     "sell": "Verkoop",
     "trace": "Herkomst",
     "store": "Winkel",
@@ -584,10 +615,28 @@
     "belowZeroHint": "Tel ze en corrigeer de voorraad",
     "mismatchCount": "{total, plural, one {# kassaverkoop tegen andere prijzen} other {# kassaverkopen tegen andere prijzen}}",
     "mismatchHint": "Vergelijk ze met de catalogus",
-    "till": "Kassa",
-    "shifts": "Diensten",
     "salesBooked": "Geboekte verkopen",
-    "tillNote": "Totalen van alle diensten en verkopen; bedragen staan op de dienstpagina's.",
-    "lotsByStatus": "Partijen per status"
+    "tillNote": "Aantallen komen uit de kassalijsten; bedragen staan op de dienstpagina's.",
+    "lotsByStatus": "Partijen per status",
+    "tillToday": "Kassa vandaag",
+    "openShifts": "Open diensten",
+    "salesWeek": "Verkoop deze week",
+    "gross": "Bruto",
+    "refunded": "Terugbetaald",
+    "weekOrders": "{count, plural, one {# order} other {# orders}}",
+    "noSalesWeek": "Geen verkopen deze week",
+    "linkFrom": "Aanvoerkoppeling van {partner}",
+    "linkHint": "Wacht tot jij accepteert",
+    "transferArriving": "Overdracht van {quantity} kg onderweg",
+    "transferHint": "Van {partner} · ontvang hem",
+    "shiftOpenSince": "Dienst open sinds {date}",
+    "shiftHint": "{register} · tel en sluit af"
+  },
+  "search": {
+    "title": "Zoeken",
+    "for": "Resultaten voor “{q}”",
+    "tooShort": "Typ minstens 3 tekens om te zoeken.",
+    "nothing": "Niets gevonden voor “{q}”",
+    "ean": "EAN-13"
   }
 }

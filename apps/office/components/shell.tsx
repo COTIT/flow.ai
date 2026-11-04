@@ -25,6 +25,7 @@ import {
 
 import { useLogout, useSession } from "@genesy/api-client/auth"
 import { useOrdersList } from "@genesy/api-client/endpoints/orders"
+import { useSupplyLinksList } from "@genesy/api-client/endpoints/supply-links"
 import {
   useUsersMe,
   useUsersWorkspaces,
@@ -60,17 +61,18 @@ type Item = {
   icon: LucideIcon
   /** Group heading shown above the item (OfficeOverview sidebar). */
   group?: string
-  count?: boolean
+  /** A gold pill with a list's total: open orders, supply links waiting for us. */
+  count?: "orders" | "supply"
 }
 
 const items: Item[] = [
   { href: "/", match: "/", label: "nav.overview", icon: LayoutGrid },
   { href: "/products", match: "/products", label: "nav.products", icon: Package, group: "shell.sell" },
   { href: "/stock", match: "/stock", label: "nav.stock", icon: Archive },
-  { href: "/orders", match: "/orders", label: "nav.orders", icon: ShoppingBag, count: true },
+  { href: "/orders", match: "/orders", label: "nav.orders", icon: ShoppingBag, count: "orders" },
   { href: "/invoices", match: "/invoices", label: "nav.invoices", icon: FileText },
   { href: "/lots", match: "/lots", label: "nav.lots", icon: Layers, group: "shell.trace" },
-  { href: "/supply/links", match: "/supply", label: "nav.supply", icon: Truck },
+  { href: "/supply/links", match: "/supply", label: "nav.supply", icon: Truck, count: "supply" },
   { href: "/till/registers", match: "/till", label: "nav.till", icon: Calculator, group: "shell.store" },
   { href: "/settings/app-keys", match: "/settings/app-keys", label: "nav.appKeys", icon: KeyRound, group: "shell.settings" },
   { href: "/settings/webhooks", match: "/settings/webhooks", label: "nav.webhooks", icon: Zap },
@@ -99,13 +101,22 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const t = useTranslations()
   const pathname = usePathname()
   const workspaceId = useSession((s) => s.workspaceId)
-  // The menu count: open orders, read from the list's total (no sums in the browser).
+  // The menu counts, read from the lists' totals (no sums in the browser).
+  const on = { query: { enabled: Boolean(workspaceId) } }
   const open = useOrdersList(
     workspaceId ?? "",
     { status: "open", page_size: 1 },
-    { query: { enabled: Boolean(workspaceId) } }
+    on
   )
-  const openOrders = open.data?.meta.total ?? 0
+  const pending = useSupplyLinksList(
+    workspaceId ?? "",
+    { status: "pending", direction: "incoming", page_size: 1 },
+    on
+  )
+  const counts = {
+    orders: open.data?.meta.total ?? 0,
+    supply: pending.data?.meta.total ?? 0,
+  }
   const active = current(pathname)
   return (
     <nav aria-label={t("nav.label")} className="flex flex-col gap-0.5">
@@ -128,9 +139,9 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
               className="size-[18px] shrink-0 text-muted-foreground group-aria-[current=page]:text-gold dark:group-aria-[current=page]:text-[#0a183a]"
             />
             {t(item.label)}
-            {item.count && openOrders > 0 ? (
+            {item.count && counts[item.count] > 0 ? (
               <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[image:var(--gold-gradient)] px-1.5 text-[11px] font-bold text-[#0a183a] tabular-nums">
-                {openOrders}
+                {counts[item.count]}
               </span>
             ) : null}
           </Link>
@@ -278,7 +289,7 @@ function TopBar() {
         onSubmit={(e) => {
           e.preventDefault()
           const q = String(new FormData(e.currentTarget).get("q") ?? "")
-          router.push(`/products?${new URLSearchParams(q ? { q } : {})}`)
+          router.push(`/search?${new URLSearchParams(q ? { q } : {})}`)
         }}
       >
         <Search
@@ -317,8 +328,8 @@ function MobileBar({ onMenu }: { onMenu: () => void }) {
       <Logo className="h-auto w-[112px]" />
       <span className="flex-1" />
       <Link
-        href="/products"
-        aria-label={t("shell.searchProducts")}
+        href="/search"
+        aria-label={t("shell.search")}
         className={buttonVariants({ variant: "ghost", size: "icon" })}
       >
         <Search aria-hidden="true" />

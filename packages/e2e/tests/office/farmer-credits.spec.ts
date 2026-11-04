@@ -1,4 +1,4 @@
-import { expect, paged, test } from "./fake-api"
+import { expect, expectFits, paged, test } from "./fake-api"
 
 const lot = {
   id: "lot-jar",
@@ -16,6 +16,12 @@ const lot = {
   created_at: "2026-11-01T08:00:00Z",
   updated_at: "2026-11-01T08:00:00Z",
 }
+
+const farmers = [
+  { village: "Ilundo", farmers: 12, harvest_start: "2026-06-01", harvest_end: "2026-08-30" },
+  // Under 3 farmers the API hides the count; no harvest dates recorded.
+  { village: "Mbeya", farmers: null, harvest_start: null, harvest_end: null },
+]
 
 test.beforeEach(({ api }) => {
   api
@@ -53,11 +59,17 @@ test("sales and returns that credited farmers, by group only", async ({
       },
     ]),
     farmer_groups: 2,
+    farmers,
   }))
   await page.goto("/lots/lot-jar")
-  await expect(
-    page.getByRole("status").filter({ hasText: "Sales credit 2 farmer groups" })
-  ).toBeVisible()
+  // The public page's village groups (OfficeLot rows, no bars or shares): never names.
+  const credits = page.getByRole("region", { name: "Farmer credits" })
+  const ilundo = credits.getByRole("listitem").filter({ hasText: "Ilundo" })
+  await expect(ilundo).toContainText("IL")
+  await expect(ilundo).toContainText("12 farmers · Jun 1, 2026 – Aug 30, 2026")
+  const mbeya = credits.getByRole("listitem").filter({ hasText: "Mbeya" })
+  await expect(mbeya).toContainText("Fewer than 3 farmers")
+  await expect(credits.getByRole("status")).toHaveCount(0)
   await expect(
     page.getByRole("listitem").filter({ hasText: "POS-0007" }).getByText("Sale")
   ).toBeVisible()
@@ -133,6 +145,22 @@ test("lineage: received from a partner's batch over a transfer", async ({
   await expect(
     page.getByRole("link", { name: "See transfers" })
   ).toHaveAttribute("href", "/supply/transfers")
+})
+
+test("lineage: the harvest's villages and their farmer counts", async ({ page, api }) => {
+  api.on("GET", "/workspace/:ws/lots/:lot/farmer-credits", () => ({
+    ...paged([]),
+    farmer_groups: 2,
+    farmers,
+  }))
+  await page.goto("/lots/lot-jar")
+  const lineage = page.getByRole("region", { name: "Lineage" })
+  await expect(lineage.getByText("Harvest from Ilundo")).toBeVisible()
+  await expect(lineage.getByText("12 farmers")).toBeVisible()
+  await expect(lineage.getByText("Harvest from Mbeya")).toBeVisible()
+  await expect(lineage.getByText("Fewer than 3 farmers")).toBeVisible()
+  await expect(lineage).not.toContainText("Made here")
+  await expectFits(page)
 })
 
 test("lineage: a batch made here shows no lineage line", async ({ page }) => {

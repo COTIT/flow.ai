@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
-import { Check, Copy, Package, QrCode, Truck } from "lucide-react"
+import { Check, Copy, Package, QrCode, Sprout, Truck } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import {
@@ -12,6 +12,7 @@ import {
   getLotsGetQueryKey,
   getLotsListQueryKey,
   useLotsEvents,
+  useLotsFarmerCredits,
   useLotsGet,
   useLotsPassportGet,
   useLotsUpdate,
@@ -38,7 +39,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { Done, Empty, LoadError, useDone } from "@/components/states"
 
 import { LotFields } from "../lot-fields"
-import { FarmerCredits } from "./farmer-credits"
+import { FarmerCount, FarmerCredits } from "./farmer-credits"
 import { PackDialog } from "./pack-dialog"
 
 const linkClass =
@@ -75,6 +76,9 @@ export default function LotPage({
     known
   )
   const passport = useLotsPassportGet(workspaceId, id, known)
+  // The same first page the Farmer credits card reads (one request): its village groups.
+  const credits = useLotsFarmerCredits(workspaceId, id, { page: 1 }, known)
+  const groups = credits.data?.farmers ?? []
   const [eventsPage, setEventsPage] = React.useState(1)
   const events = useLotsEvents(
     workspaceId,
@@ -243,8 +247,24 @@ export default function LotPage({
         </Tile>
 
         <Tile id="lot-lineage" title={t("lots.lineage")} span="col-span-4">
-          {current.parent_lot || current.received_from ? (
+          {current.parent_lot || current.received_from || groups.length ? (
             <div className="flex flex-col gap-2">
+              {groups.map((g) => (
+                <SubTile
+                  key={g.village}
+                  className="flex items-center gap-3 px-3 py-2.5"
+                >
+                  <Chip icon={Sprout} tone="teal" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold">
+                      {t("lineage.harvestFrom", { village: g.village })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      <FarmerCount farmers={g.farmers} />
+                    </p>
+                  </div>
+                </SubTile>
+              ))}
               {current.parent_lot ? (
                 <SubTile className="flex items-center gap-3 px-3 py-2.5">
                   <Chip icon={Package} tone="gold" />
@@ -340,6 +360,7 @@ export default function LotPage({
               columns={[
                 { label: t("lots.eventAt") },
                 { label: t("lots.eventKind") },
+                { label: t("lots.eventWho") },
                 { label: t("lots.eventChange") },
               ]}
             />
@@ -361,6 +382,7 @@ export default function LotPage({
                   <TableRow>
                     <TableHead>{t("lots.eventAt")}</TableHead>
                     <TableHead>{t("lots.eventKind")}</TableHead>
+                    <TableHead>{t("lots.eventWho")}</TableHead>
                     <TableHead>{t("lots.eventChange")}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -371,6 +393,10 @@ export default function LotPage({
                         {new Date(ev.created_at).toLocaleString()}
                       </TableCell>
                       <TableCell data-m="sub">{ev.kind}</TableCell>
+                      {/* No user: the system did it. A user without a name has left. */}
+                      <TableCell data-m="hide">
+                        {ev.user ? (ev.user.name ?? "—") : t("lots.system")}
+                      </TableCell>
                       <TableCell data-m="badge">
                         {ev.from_status || ev.to_status ? (
                           <>

@@ -1,4 +1,4 @@
-import { expect, paged, test, type FakeApi } from "./fake-api"
+import { choose, expect, expectFits, paged, test, type FakeApi } from "./fake-api"
 
 const usd = { id: "cur-usd", asset_type: "USD", decimals: 2, name: "US dollar" }
 
@@ -348,4 +348,62 @@ test("till sales: the mismatch filter goes to the API", async ({
     "href",
     "/orders/ord-7"
   )
+})
+
+/** Two registers, so the register filter has a choice. */
+function twoRegisters(api: FakeApi) {
+  api.on("GET", "/workspace/:ws/till/registers", () =>
+    paged(
+      ["Shop till 1", "Market stall"].map((name, i) => ({
+        id: `reg-${i + 1}`,
+        name,
+        warehouse_id: "wh-shop",
+        currency_id: usd.id,
+        key_prefix: null,
+        paired_at: null,
+        created_at: "2026-10-01T08:00:00Z",
+      }))
+    )
+  )
+}
+
+test("till shifts: only open and per register, kept in the address", async ({
+  page,
+  api,
+}) => {
+  tillApi(api)
+  twoRegisters(api)
+  const asked: string[] = []
+  api.on("GET", "/workspace/:ws/till/shifts", ({ query }) => {
+    asked.push(query.toString())
+    return paged([])
+  })
+  await page.goto("/till/shifts")
+  const only = page.getByRole("switch", { name: "Only open" })
+  await expect(only).not.toBeChecked()
+  await only.click()
+  await expect(page).toHaveURL(/open=true/)
+  await expect(only).toBeChecked()
+  await expect.poll(() => asked.at(-1)).toBe("open=true")
+
+  await choose(page, "Register", "Market stall")
+  await expect(page).toHaveURL(/register_id=reg-2/)
+  await expect.poll(() => asked.at(-1)).toBe("open=true&register_id=reg-2")
+
+  // The overview's "Shifts" link lands on the open ones.
+  await page.goto("/till/shifts?open=true")
+  await expect(page.getByRole("switch", { name: "Only open" })).toBeChecked()
+  await expectFits(page)
+})
+
+test("till sales: per register, next to the mismatch switch", async ({ page, api }) => {
+  const { salesQueries } = tillApi(api)
+  twoRegisters(api)
+  await page.goto("/till/sales?mismatch=true")
+  await choose(page, "Register", "Market stall")
+  await expect(page).toHaveURL(/mismatch=true&register_id=reg-2/)
+  await expect.poll(() => salesQueries.at(-1)).toBe("mismatch=true&register_id=reg-2")
+  await choose(page, "Register", "All registers")
+  await expect(page).toHaveURL(/\/till\/sales\?mismatch=true$/)
+  await expectFits(page)
 })

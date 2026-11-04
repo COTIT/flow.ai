@@ -64,6 +64,8 @@ function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
         picked: "0",
         deducted: "0",
         returned: "0",
+        lots: [] as { id: string; code: string; quantity: string }[],
+        image: null as { url: string; expires_at: string } | null,
       },
       {
         id: "line-2",
@@ -80,8 +82,14 @@ function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
         picked: "0",
         deducted: "0",
         returned: "0",
+        lots: [] as { id: string; code: string; quantity: string }[],
+        image: null as { url: string; expires_at: string } | null,
       },
     ],
+    units: "10.00",
+    payment_method: null,
+    confirmed_at: null,
+    picked_at: null,
     created_at: "2026-10-30T09:00:00Z",
     updated_at: "2026-10-30T09:00:00Z",
     ...start,
@@ -431,4 +439,113 @@ test.describe(() => {
         .filter({ hasText: "Nothing paid on this order is left to refund." })
     ).toBeVisible()
   })
+})
+
+// A data URL keeps the picture inside the office CSP in tests (no storage host here).
+const pixel = "data:image/gif;base64,R0lGODlhAQABAAAAACw="
+
+type Line = {
+  lots: { id: string; code: string; quantity: string }[]
+  image: { url: string; expires_at: string } | null
+}
+
+test("lines: picture, lot codes, and the API's item and unit counts", async ({
+  page,
+  api,
+}) => {
+  const order = ordersApi(api, { status: "open", units: "10.00" })
+  const [honey, wax] = order.lines as Line[]
+  honey!.image = { url: pixel, expires_at: "2099-01-01T00:00:00Z" }
+  honey!.lots = [
+    { id: "lot-a", code: "AFM-HN-2026-07", quantity: "5.00" },
+    { id: "lot-b", code: "AFM-HN-2026-08", quantity: "3.00" },
+  ]
+  wax!.lots = []
+  await page.goto("/orders/ord-1")
+  const lines = page.getByRole("region", { name: "Lines" })
+  await expect(lines).toContainText("2 items · 10 units")
+  const honeyRow = lines.getByRole("row").filter({ hasText: "AFM Honey 500g" })
+  await expect(honeyRow.getByText("Lot AFM-HN-2026-07 · Lot AFM-HN-2026-08")).toBeVisible()
+  await expect(honeyRow.locator(`img[src="${pixel}"]`)).toHaveCount(1)
+  const waxRow = lines.getByRole("row").filter({ hasText: "Beeswax Block" })
+  await expect(waxRow.locator("img")).toHaveCount(0)
+  await expect(waxRow.getByText(/^Lot /)).toHaveCount(0)
+  await expectFits(page)
+})
+
+test("payment: paid with its method, paid without one, or not paid", async ({ page, api }) => {
+  const order = ordersApi(api, {
+    status: "completed",
+    paid_at: "2026-10-30T10:00:00Z",
+    payment_method: "card",
+  })
+  await page.goto("/orders/ord-1")
+  const customer = page.getByRole("region", { name: "Customer" })
+  await expect(customer.getByText("Paid · card")).toBeVisible()
+
+  order.payment_method = null
+  await page.reload()
+  await expect(customer.getByText("Paid", { exact: true })).toBeVisible()
+
+  order.paid_at = null
+  await page.reload()
+  await expect(customer.getByText("Not paid")).toBeVisible()
+})
+
+test("timeline: the order's trail, oldest first, with who did it", async ({ page, api }) => {
+  ordersApi(api, { status: "open", paid_at: "2026-10-30T09:01:00Z" })
+  const event = (id: string, kind: string, at: string, actor: object | null) => ({
+    id,
+    kind,
+    at,
+    actor,
+    meta: null,
+  })
+  // The API answers newest first.
+  api.on("GET", "/workspace/:ws/orders/:id/events", () =>
+    paged([
+      event("e4", "picked", "2026-10-30T09:30:00Z", { type: "user", id: "u1", name: "Romeo T." }),
+      event("e3", "confirmed", "2026-10-30T08:55:00Z", { type: "user", id: "u1", name: "Romeo T." }),
+      event("e2", "paid", "2026-10-30T08:41:00Z", null),
+      event("e1", "created", "2026-10-30T08:40:00Z", { type: "user", id: "u2", name: null }),
+    ])
+  )
+  await page.goto("/orders/ord-1")
+  const timeline = page.getByRole("region", { name: "Timeline" })
+  const steps = timeline.getByRole("listitem")
+  await expect(steps).toHaveCount(4)
+  await expect(steps.nth(0)).toContainText("Placed")
+  // A step with no actor (the payment provider) or one who left shows its time only.
+  await expect(steps.nth(0)).not.toContainText("·")
+  await expect(steps.nth(1)).toContainText("Paid")
+  await expect(steps.nth(1)).not.toContainText("·")
+  await expect(steps.nth(2)).toContainText("Confirmed")
+  await expect(steps.nth(2)).toContainText("· Romeo T.")
+  await expect(steps.nth(3)).toContainText("Picked")
+  await expect(steps.nth(3)).toContainText("· Romeo T.")
+  await expect(timeline.getByText(/recorded from now on/)).toHaveCount(0)
+  await expectFits(page)
+})
+
+test("timeline: an older order without a trail shows its own times and says why", async ({
+  page,
+  api,
+}) => {
+  ordersApi(api, {
+    status: "open",
+    paid_at: "2026-10-30T09:05:00Z",
+    confirmed_at: "2026-10-30T09:10:00Z",
+    picked_at: "2026-10-30T10:00:00Z",
+  })
+  await page.goto("/orders/ord-1")
+  const timeline = page.getByRole("region", { name: "Timeline" })
+  const steps = timeline.getByRole("listitem")
+  await expect(steps).toHaveCount(4)
+  await expect(steps.nth(0)).toContainText("Placed")
+  await expect(steps.nth(1)).toContainText("Paid")
+  await expect(steps.nth(2)).toContainText("Confirmed")
+  await expect(steps.nth(3)).toContainText("Picked")
+  await expect(
+    timeline.getByText("Who did what is recorded from now on; older steps show their times only.")
+  ).toBeVisible()
 })

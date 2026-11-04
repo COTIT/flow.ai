@@ -89,13 +89,17 @@ export async function fakeApi(page: Page) {
       ],
     }))
     .on("POST", "/logout", () => ({ status: 204 }))
-    // The shell: the signed-in user's tile and the open-orders count in the menu.
+    // The shell: the signed-in user's tile, the open-orders and pending-links counts in the menu.
     .on("GET", "/me", () => ({ data: { user: me } }))
     .on("GET", "/workspace/:ws/orders", () => paged([]))
+    .on("GET", "/workspace/:ws/supply-links", () => paged([]))
+    // Every order page reads its trail; older orders have none.
+    .on("GET", "/workspace/:ws/orders/:order/events", () => paged([]))
     // Every batch page reads its farmer credits; specs that care override this.
     .on("GET", "/workspace/:ws/lots/:lot/farmer-credits", () => ({
       ...paged([]),
       farmer_groups: null,
+      farmers: [],
     }))
   await page.route("**/v1/**", (route) => api.handle(route))
   return api

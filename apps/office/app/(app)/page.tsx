@@ -8,15 +8,22 @@ import {
   Calculator,
   ChevronRight,
   Layers,
+  Link as LinkIcon,
   Plus,
   ShoppingBag,
+  Truck,
   type LucideIcon,
 } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useLotsList } from "@genesy/api-client/endpoints/lots"
-import { useOrdersList } from "@genesy/api-client/endpoints/orders"
+import {
+  useOrdersList,
+  useOrdersSalesSummary,
+} from "@genesy/api-client/endpoints/orders"
 import { useStockNegative } from "@genesy/api-client/endpoints/stock"
+import { useSupplyChainList } from "@genesy/api-client/endpoints/supply-chain"
+import { useSupplyLinksList } from "@genesy/api-client/endpoints/supply-links"
 import {
   useTillSalesList,
   useTillShiftsList,
@@ -36,14 +43,32 @@ import {
 } from "@genesy/ui/components/table"
 import { formatMoney } from "@genesy/ui/lib/money"
 import { cn } from "@genesy/ui/lib/utils"
-import { Chip, GhostLink, Tile, type Tone } from "@/components/bento"
+import { Chip, GhostLink, Metric, Tile, type Tone } from "@/components/bento"
 import { CardState, ListSkeleton, PageHead } from "@/components/list"
 import { LoadError } from "@/components/states"
 import { StatusBadge } from "@/components/status-badge"
+import { useTillMoney } from "@/lib/till-money"
 
 import { customerName } from "./orders/shared"
 
 const CountUp = island(() => import("@/components/rb/CountUp"))
+
+/** The browser's local midnights: today, tomorrow, this Monday and the next. */
+function bounds() {
+  const at = (days: number) => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    d.setDate(d.getDate() + days)
+    return d.toISOString()
+  }
+  const sinceMonday = (new Date().getDay() + 6) % 7
+  return {
+    today: at(0),
+    tomorrow: at(1),
+    monday: at(-sinceMonday),
+    nextMonday: at(7 - sinceMonday),
+  }
+}
 
 /** A list's total: the API counted it; the browser only shows it. */
 type Count = {
@@ -117,8 +142,35 @@ export default function OverviewPage() {
   const recalled = useLotsList(ws, { status: "recalled", page_size: 1 }, on)
   const negative = useStockNegative(ws, { page_size: 1 }, on)
   const mismatch = useTillSalesList(ws, { mismatch: true, page_size: 1 }, on)
-  const sales = useTillSalesList(ws, { page_size: 1 }, on)
-  const shifts = useTillShiftsList(ws, { page_size: 1 }, on)
+  // "Today" and "this week" are the browser's local day and week (Monday 00:00), sent as instants.
+  const [day] = React.useState(bounds)
+  const sales = useTillSalesList(
+    ws,
+    { from: day.today, to: day.tomorrow, page_size: 1 },
+    on
+  )
+  const shifts = useTillShiftsList(ws, { open: true, page_size: 1 }, on)
+  const staleShifts = useTillShiftsList(
+    ws,
+    { open: true, to: day.today, page_size: 3 },
+    on
+  )
+  const links = useSupplyLinksList(
+    ws,
+    { status: "pending", direction: "incoming", page_size: 3 },
+    on
+  )
+  const arriving = useSupplyChainList(
+    ws,
+    { direction: "incoming", status: "dispatched", page_size: 3 },
+    on
+  )
+  const week = useOrdersSalesSummary(
+    ws,
+    { from: day.monday, to: day.nextMonday },
+    on
+  )
+  const { register } = useTillMoney()
   const all = [
     openOrders,
     recent,
@@ -129,6 +181,10 @@ export default function OverviewPage() {
     mismatch,
     sales,
     shifts,
+    staleShifts,
+    links,
+    arriving,
+    week,
   ]
   const failed = all.find((q) => q.isError)
 
@@ -171,9 +227,46 @@ export default function OverviewPage() {
           },
         ]
       : []),
+    ...(links.data?.data ?? []).map((l) => ({
+      key: l.id,
+      href: "/supply/links",
+      icon: LinkIcon,
+      tone: "teal" as const,
+      title: t("overview.linkFrom", { partner: l.partner.name }),
+      sub: t("overview.linkHint"),
+    })),
+    ...(arriving.data?.data ?? []).map((tr) => ({
+      key: tr.id,
+      href: "/supply/transfers",
+      icon: Truck,
+      tone: "slate" as const,
+      title: t("overview.transferArriving", { quantity: tr.quantity }),
+      sub: t("overview.transferHint", { partner: tr.partner.name }),
+    })),
+    ...(staleShifts.data?.data ?? []).map((s) => ({
+      key: s.id,
+      href: "/till/shifts?open=true",
+      icon: Calculator,
+      tone: "red" as const,
+      title: t("overview.shiftOpenSince", {
+        date: new Intl.DateTimeFormat(locale, {
+          day: "numeric",
+          month: "short",
+        }).format(new Date(s.opened_at)),
+      }),
+      sub: t("overview.shiftHint", {
+        register: register(s.register_id)?.name ?? "—",
+      }),
+    })),
   ]
-  const attentionPending =
-    quarantine.isPending || negative.isPending || mismatch.isPending
+  const attentionPending = [
+    quarantine,
+    negative,
+    mismatch,
+    links,
+    arriving,
+    staleShifts,
+  ].some((q) => q.isPending)
 
   return (
     <>
@@ -332,61 +425,61 @@ export default function OverviewPage() {
           }
           span="col-span-4"
         >
-          {attentionPending ? (
-            <div className="flex flex-col gap-2.5">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-[62px] rounded-2xl" />
-              ))}
+          {/* From md up the rows scroll inside the card, so the row's height stays Recent orders'
+              whatever arrives and the tiles below never move. */}
+          <div className="relative min-h-[206px] flex-1">
+            <div className="md:absolute md:-inset-[3px] md:overflow-y-auto md:p-[3px]">
+              {attentionPending ? (
+                <div className="flex flex-col gap-2.5">
+                  {[0, 1, 2].map((i) => (
+                    <Skeleton key={i} className="h-[62px] rounded-2xl" />
+                  ))}
+                </div>
+              ) : attention.length === 0 ? (
+                <EmptyState title={t("overview.allClear")} />
+              ) : (
+                <ul className="flex flex-col gap-2.5">
+                  {attention.map((a) => (
+                    <li key={a.key}>
+                      <Link
+                        href={a.href}
+                        className="flex items-center gap-3 rounded-2xl border border-(--hair) bg-(--glass-subtle) p-3 outline-none hover:border-(--hair-2) focus-visible:ring-3 focus-visible:ring-ring"
+                      >
+                        <Chip icon={a.icon} tone={a.tone} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13px] font-semibold">
+                            {a.title}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {a.sub}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          ) : attention.length === 0 ? (
-            <EmptyState title={t("overview.allClear")} />
-          ) : (
-            <ul className="flex flex-col gap-2.5">
-              {attention.map((a) => (
-                <li key={a.key}>
-                  <Link
-                    href={a.href}
-                    className="flex items-center gap-3 rounded-2xl border border-(--hair) bg-(--glass-subtle) p-3 outline-none hover:border-(--hair-2) focus-visible:ring-3 focus-visible:ring-ring"
-                  >
-                    <Chip icon={a.icon} tone={a.tone} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-semibold">
-                        {a.title}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {a.sub}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          </div>
         </Tile>
 
         <Tile
           id="overview-till"
-          title={t("overview.till")}
+          title={t("overview.tillToday")}
           action={
-            <GhostLink href="/till/shifts">{t("till.tabs.shifts")}</GhostLink>
+            <GhostLink href="/till/shifts?open=true">
+              {t("till.tabs.shifts")}
+            </GhostLink>
           }
           span="col-span-4"
         >
           <div className="grid grid-cols-2 gap-2.5">
-            {[
-              { label: t("overview.shifts"), query: shifts },
-              { label: t("overview.salesBooked"), query: sales },
-            ].map(({ label, query }) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-(--hair) bg-(--glass-subtle) p-4"
-              >
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="text-[22px] leading-[1.3] font-medium">
-                  <Total query={query} />
-                </p>
-              </div>
-            ))}
+            <Metric label={t("overview.openShifts")}>
+              <Total query={shifts} />
+            </Metric>
+            <Metric label={t("overview.salesBooked")}>
+              <Total query={sales} />
+            </Metric>
           </div>
           <p className="text-xs text-muted-foreground">
             {t("overview.tillNote")}
@@ -422,6 +515,50 @@ export default function OverviewPage() {
               </div>
             ))}
           </div>
+        </Tile>
+
+        {/* The mockup's s-4 placeholder slot: the API's totals per currency, never summed. */}
+        <Tile
+          id="overview-week"
+          title={t("overview.salesWeek")}
+          action={<GhostLink href="/orders">{t("nav.orders")}</GhostLink>}
+          span="col-span-4"
+        >
+          {week.isPending ? (
+            <>
+              <div className="grid grid-cols-2 gap-2.5">
+                {[t("overview.gross"), t("overview.refunded")].map((label) => (
+                  <Metric key={label} label={label}>
+                    <Skeleton className="inline-block h-[1lh] w-[4em] align-top" />
+                  </Metric>
+                ))}
+              </div>
+              <Skeleton className="h-4 w-20" />
+            </>
+          ) : !week.data?.data.currencies.length ? (
+            <EmptyState title={t("overview.noSalesWeek")} />
+          ) : (
+            week.data.data.currencies.map((c) => (
+              <React.Fragment key={c.currency}>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Metric label={t("overview.gross")}>
+                    {formatMoney(c.gross_total, c.decimals, c.currency, locale)}
+                  </Metric>
+                  <Metric label={t("overview.refunded")}>
+                    {formatMoney(
+                      c.refunded_total,
+                      c.decimals,
+                      c.currency,
+                      locale
+                    )}
+                  </Metric>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("overview.weekOrders", { count: c.orders })}
+                </p>
+              </React.Fragment>
+            ))
+          )}
         </Tile>
       </section>
     </>

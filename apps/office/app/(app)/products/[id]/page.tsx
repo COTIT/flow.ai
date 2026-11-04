@@ -44,7 +44,13 @@ import {
 import { Textarea } from "@genesy/ui/components/textarea"
 import { Bento, DetailSkeleton, Metric, Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
-import { CardState, ListPager, ListSkeleton, PageHead } from "@/components/list"
+import {
+  CardState,
+  ListPager,
+  ListSkeleton,
+  PageHead,
+  Segmented,
+} from "@/components/list"
 import { Capped, Done, Empty, LoadError, useDone } from "@/components/states"
 import { StatusBadge } from "@/components/status-badge"
 
@@ -72,7 +78,14 @@ export default function ProductPage({
   })
   const stock = useStockWithBins(workspaceId, id, enabled)
   const [page, setPage] = React.useState(1)
-  const movements = useStockMovements(workspaceId, id, { page }, enabled)
+  // The API's movement types; "decrease" also covers hand corrections, so it reads "Decreases".
+  const [type, setType] = React.useState<"" | "decrease" | "set_level">("")
+  const movements = useStockMovements(
+    workspaceId,
+    id,
+    { page, type: type || undefined },
+    enabled
+  )
   const done = useDone()
   const update = useProductsUpdate({
     mutation: {
@@ -201,6 +214,11 @@ export default function ProductPage({
                   short_description: text("short_description"),
                   description: text("description"),
                   store_only: f.get("store_only") === "on",
+                  // An empty field clears them; the API checks the count and length.
+                  labels: String(f.get("labels") ?? "")
+                    .split(",")
+                    .map((l) => l.trim())
+                    .filter(Boolean),
                 },
               })
             }}
@@ -279,6 +297,21 @@ export default function ProductPage({
                 defaultValue={p.description ?? ""}
               />
             </Field>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <Field
+                id="p-labels"
+                label={t("products.labels")}
+                // The API names the list (`labels`) or one item (`labels.3`).
+                errors={Object.entries(errors).flatMap(([k, v]) =>
+                  k.split(".")[0] === "labels" ? v : []
+                )}
+              >
+                <Input name="labels" defaultValue={p.labels.join(", ")} />
+              </Field>
+              <p className="text-xs text-muted-foreground">
+                {t("products.labelsHint")}
+              </p>
+            </div>
             <label className="flex items-center gap-2 text-sm max-md:min-h-11">
               {/* The shared checkbox: its form value is "on", and its hit area is 44 px on a phone. */}
               <Checkbox name="store_only" defaultChecked={p.store_only} />
@@ -364,6 +397,21 @@ export default function ProductPage({
           title={t("stock.movements")}
           span="col-span-12"
           flush
+          action={
+            <Segmented
+              label={t("stock.movementType")}
+              value={type}
+              options={[
+                { value: "", label: t("stock.typeAll") },
+                { value: "decrease", label: t("stock.typeDecrease") },
+                { value: "set_level", label: t("stock.typeCount") },
+              ]}
+              onChange={(v) => {
+                setType(v)
+                setPage(1)
+              }}
+            />
+          }
         >
           {movements.isPending ? (
             <ListSkeleton columns={columns} />

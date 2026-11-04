@@ -61,6 +61,8 @@ test("an order with nothing left to do says so", async ({ page, api }) => {
       invoice_id: null,
       allowed_actions: [],
       lines: [],
+      units: "0.00",
+      payment_method: null,
       created_at: "2026-10-30T09:00:00Z",
     },
   }))

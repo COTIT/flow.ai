@@ -22,6 +22,7 @@ function imagesApi(
         id: "p1",
         name: "AFM Honey 500g",
         store_only: false,
+        labels: [],
         last_updated_at: "x",
       },
     }))

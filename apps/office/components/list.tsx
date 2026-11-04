@@ -78,6 +78,14 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
   )
 }
 
+// `.seg`: the pill group, and one pill; `pillOn` marks the chosen one.
+const pills =
+  "inline-flex max-w-full flex-wrap gap-1 self-start rounded-[14px] border border-(--hair) bg-(--glass-subtle) p-1"
+const pill =
+  "inline-flex h-[34px] items-center rounded-[10px] border border-transparent px-3.5 text-[13px] font-medium text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring max-md:h-11"
+const pillOn =
+  "border-(--glass-border) bg-(--glass-strong) text-foreground shadow-[var(--glass-highlight),0_2px_8px_-4px_rgb(10_24_58/25%)]"
+
 /**
  * Pill links (`.seg` / `.tabs`): one of a few views, each its own address. On a phone each
  * pill is a 44 px target.
@@ -90,21 +98,47 @@ export function PillLinks({
   links: { href: string; label: string; active: boolean }[]
 }) {
   return (
-    <nav
-      aria-label={label}
-      className="inline-flex max-w-full flex-wrap gap-1 self-start rounded-[14px] border border-(--hair) bg-(--glass-subtle) p-1"
-    >
+    <nav aria-label={label} className={pills}>
       {links.map((l) => (
         <Link
           key={l.href}
           href={l.href}
           aria-current={l.active ? "page" : undefined}
-          className="inline-flex h-[34px] items-center rounded-[10px] border border-transparent px-3.5 text-[13px] font-medium text-muted-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:border-(--glass-border) aria-[current=page]:bg-(--glass-strong) aria-[current=page]:text-foreground aria-[current=page]:shadow-[var(--glass-highlight),0_2px_8px_-4px_rgb(10_24_58/25%)] max-md:h-11"
+          className={cn(pill, l.active && pillOn)}
         >
           {l.label}
         </Link>
       ))}
     </nav>
+  )
+}
+
+/** The same pills as buttons, for a filter inside a card (OfficeProduct "Stock movements"). */
+export function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: T
+  options: { value: T; label: string }[]
+  onChange: (value: T) => void
+}) {
+  return (
+    <div role="group" aria-label={label} className={pills}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          aria-pressed={o.value === value}
+          className={cn(pill, o.value === value && pillOn)}
+          onClick={() => onChange(o.value)}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   )
 }
 

@@ -54,12 +54,24 @@ test("search sends q and resets to page 1", async ({ page, api }) => {
   expect(api.calls.at(-1)?.path).toBe(`/workspace/${WS}/products`)
 })
 
-test("the top bar search looks up products", async ({ page }) => {
-  test.skip(isPhone(page.viewportSize()?.width), "the phone bar links to the list instead")
+test("the top bar search opens the search page with the query", async ({ page, api }) => {
+  test.skip(isPhone(page.viewportSize()?.width), "the phone bar links to the search page instead")
+  api.on("GET", "/workspace/:ws/quick-search", () => ({
+    data: { products: [], orders: [], invoices: [], lots: [], relations: [] },
+  }))
   await page.goto("/orders")
   await page.getByRole("searchbox", { name: "Quick search" }).fill("jar 9")
   await page.keyboard.press("Enter")
-  await expect(page).toHaveURL(/\/products\?q=jar\+9$/)
+  await expect(page).toHaveURL(/\/search\?q=jar\+9$/)
+  await expect(page.getByRole("heading", { level: 1, name: "Search" })).toBeVisible()
+})
+
+test("the phone bar's search button goes to the search page", async ({ page }) => {
+  test.skip(!isPhone(page.viewportSize()?.width), "a desktop has the search field in the top bar")
+  await page.goto("/orders")
+  await page.getByRole("link", { name: "Quick search" }).click()
+  await expect(page).toHaveURL(/\/search$/)
+  await expect(page.getByRole("searchbox", { name: "Quick search" })).toBeVisible()
 })
 
 test("switching workspace refetches for that workspace only", async ({
@@ -74,17 +86,24 @@ test("switching workspace refetches for that workspace only", async ({
   expect(api.callsTo("GET", `/workspace/${WS2}/products`)).toHaveLength(1)
 })
 
-test("the menu shows who is signed in and the open orders", async ({
+test("the menu shows who is signed in, the open orders and the links to accept", async ({
   page,
   api,
 }) => {
+  const total = (n: number) => ({ ...paged([{ id: "o" }]), meta: { ...paged([]).meta, total: n } })
   api.on("GET", "/workspace/:ws/orders", ({ query }) =>
-    query.get("status") === "open" ? { ...paged([{ id: "o" }]), meta: { ...paged([]).meta, total: 12 } } : paged([])
+    query.get("status") === "open" ? total(12) : paged([])
+  )
+  api.on("GET", "/workspace/:ws/supply-links", ({ query }) =>
+    query.get("status") === "pending" && query.get("direction") === "incoming" ? total(2) : paged([])
   )
   await page.goto("/products")
   await openMenu(page)
   const nav = page.getByRole("navigation", { name: "Main menu" })
   await expect(nav.getByRole("link", { name: "Orders 12" })).toBeVisible()
+  await expect(nav.getByRole("link", { name: "Supply 2" })).toBeVisible()
+  const links = api.callsTo("GET", `/workspace/${WS}/supply-links`)
+  expect(links.length).toBeGreaterThan(0)
   await expect(page.getByText("Romeo Tester").locator("visible=true")).toBeVisible()
   const count = api.callsTo("GET", `/workspace/${WS}/orders`)[0]
   expect(count).toBeDefined()
