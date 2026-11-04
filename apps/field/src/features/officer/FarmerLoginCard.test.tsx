@@ -96,7 +96,7 @@ describe('FarmerLoginCard, created by hand', () => {
     const failure = await screen.findByTestId('farmer-login-error')
     expect(failure).toHaveTextContent('The farmer is registered, but the app login could not be created.')
     expect(failure).toHaveTextContent('Add a phone number before issuing a login.')
-    expect(screen.getByRole('alert')).toBeInTheDocument()
+    expect(failure).toHaveTextContent('Not accepted')
 
     await userEvent.click(screen.getByTestId('farmer-login-retry'))
     expect(await screen.findByTestId('farmer-login-password')).toHaveTextContent('K7QXM2PA')

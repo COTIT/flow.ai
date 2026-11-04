@@ -230,7 +230,9 @@ test.describe("each role stays on its own surface", () => {
     })
 
   test("ops may open the officer surface", async ({ page }) => {
-    await tourSeen(page)
+    // Ops keep the ops nav (and so the ops tour) on officer screens: mark that tour seen, or it
+    // starts and takes them to /ops before the check below.
+    await page.addInitScript(() => localStorage.setItem("ruaha360:tours-seen", JSON.stringify(["ops:u1"])))
     await seedSession(page)
     await mockApi(page, {
       ...officer,

@@ -62,6 +62,7 @@
   "equipment.required": "Drafter: 'Ni lazima.' short form; the English 'This is required.' has no clear subject.",
   "equipment.submit": "Drafter: Submit vs send: 'Wasilisha ombi' here (matches status 'Imewasilishwa') but 'Tuma ombi hili' for requests.action.submit and 'haijatumwa' in draftNote, following glossary Tuma=send. Reviewer to unify.",
   "equipment.successDetail": "Drafter: 'Ops' rendered 'Timu ya uendeshaji' (glossary 'Uendeshaji' role UNVERIFIED).",
+  "error.refusedTitle": "Drafter: 'Not accepted' -> 'Haikukubaliwa' (from kukubali, accept); composed, not in the glossary.",
   "error.contributionPositive": "Drafter: 'Contribution' (quantity attached from a harvest figure to an opportunity) rendered 'kiasi kinachochangiwa' (composed).",
   "error.network": "Drafter: Claude, field states step 1; unreviewed.",
   "error.oneCurrentHarvest": "Drafter: 'Supersede' rendered 'chukua nafasi ya kilichopo kwa kiasi kipya' (replace the existing with a new figure); no glossary term.",

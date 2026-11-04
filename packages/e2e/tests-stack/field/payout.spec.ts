@@ -1,6 +1,7 @@
 import type { APIRequestContext, Page } from "@playwright/test"
 
 import { expect, stackAllow, test, urls, workspaces } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 import { farmApi, signIn, who, type Passbook } from "./field"
 
 // Ilundo's two officers: Salima registered the seeded households with credit, Juma did not.
@@ -47,6 +48,7 @@ test("an officer pays a farmer out of their credit: one payout, its debit in the
   const { data } = (await (await paid).json()) as { data: { id: string; amount: { minor: number } } }
   await expect(page.getByTestId("payout-done")).toContainText("0.01")
   expect(data.amount.minor).toBe(1)
+  await expectNoRawValues(page)
 
   // The API's side: this payout's own debit (other runs pay this farmer too: assert by id, not totals).
   const book = (await officer.get<Passbook["data"]>(`/farm/persons/${person}/passbook?page_size=100`)) as unknown as Passbook
@@ -63,7 +65,9 @@ test.describe("refused payouts", () => {
     const sent = page.waitForRequest((r) => r.url() === PAYOUTS && r.method() === "POST")
     await payOut(page, "100000.01")
     const { client_ref } = (await sent).postDataJSON() as { client_ref: string }
-    await expect(page.getByTestId("payout-error")).toContainText("above the officer limit: ops or admin must pay it")
+    await expect(page.getByTestId("payout-error")).toContainText("Not accepted")
+    await expect(page.getByTestId("payout-error")).toContainText(/above the officer limit/i)
+    await expectNoRawValues(page)
     await expect(page.getByTestId("payout-done")).toHaveCount(0)
     const payouts = await officer.get<{ client_ref: string }[]>(`/farm/payouts?person_id=${person}&page_size=100`)
     expect(payouts.data.map((p) => p.client_ref)).not.toContain(client_ref)
@@ -74,7 +78,10 @@ test.describe("refused payouts", () => {
     await signIn(page, request, salima)
     await page.goto(`${urls.field}/officer/people/${person}`)
     await payOut(page, "0.01")
-    await expect(page.getByTestId("payout-error")).toContainText("you registered this household")
+    // A refusal, not a failure: titled as one, with the API's reason.
+    await expect(page.getByTestId("payout-error")).toContainText("Not accepted")
+    await expect(page.getByTestId("payout-error")).toContainText("You registered this household")
+    await expectNoRawValues(page)
     await expect(page.getByTestId("payout-done")).toHaveCount(0)
   })
 })

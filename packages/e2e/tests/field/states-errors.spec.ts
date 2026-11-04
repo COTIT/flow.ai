@@ -55,7 +55,7 @@ test.describe("officer: a refused verify", () => {
 
     await confirmVerify(page, `verify-farm-${FARM}`)
     const error = page.getByTestId("verify-error")
-    await expect(error.getByRole("alert")).toContainText(REFUSAL)
+    await expect(error.getByRole("status")).toContainText(REFUSAL)
     await expectNoHorizontalScroll(page)
 
     await error.getByTestId("error-retry").click()
@@ -80,7 +80,7 @@ test.describe("officer: a refused verify", () => {
 
     await confirmVerify(page, `verify-crop_cycle-${CYCLE}`)
     const error = page.getByTestId("verify-error")
-    await expect(error.getByRole("alert")).toContainText(REFUSAL)
+    await expect(error.getByRole("status")).toContainText(REFUSAL)
     await expectNoHorizontalScroll(page)
 
     await error.getByTestId("error-retry").click()

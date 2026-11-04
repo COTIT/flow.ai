@@ -40,6 +40,28 @@ describe('ErrorState', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
   })
 
+  // A 4xx is the API answering no, with its reason: a refusal to read and act on, not a failure.
+  test('a refusal is a warning titled as one, with the reason as sent', () => {
+    const refused = Object.assign(new Error('Request failed with status code 403'), {
+      isAxiosError: true,
+      response: { status: 403, data: { message: 'this payout is above the officer limit: ops or admin must pay it' } },
+    })
+    render(<ErrorState error={refused} />)
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Not accepted')
+    expect(screen.getByTestId('error-state')).not.toHaveTextContent('Something went wrong')
+  })
+
+  test('a server failure is still an error', () => {
+    const failed = Object.assign(new Error('Request failed with status code 503'), {
+      isAxiosError: true,
+      response: { status: 503, data: { message: 'service unavailable' } },
+    })
+    render(<ErrorState error={failed} />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong')
+  })
+
   test('offers retry only when a handler is given', () => {
     const { unmount } = render(<ErrorState error={new Error('boom')} />)
     expect(screen.queryByTestId('error-retry')).not.toBeInTheDocument()
