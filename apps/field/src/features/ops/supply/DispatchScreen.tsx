@@ -18,7 +18,6 @@ import {
   useDispatch,
   useDispatchOptions,
   useLotStock,
-  useSupplyLinks,
   useSupplyTransfers,
 } from '@/features/ops/supply/useSupply'
 import { formatTimestamp } from '@/lib/format'
@@ -27,7 +26,6 @@ import { newUuid } from '@/lib/ids'
 /** `/ops/dispatch`: buy harvest into a raw lot, send lot stock to a shop over a live link, and the transfers sent so far. */
 export function DispatchScreen() {
   const { t } = useTranslation()
-  const links = useSupplyLinks()
   const options = useDispatchOptions()
   const transfers = useSupplyTransfers()
   const dispatch = useDispatch()
@@ -43,7 +41,8 @@ export function DispatchScreen() {
   const idempotencyKey = useRef(newUuid())
   const stock = useLotStock(input.lotId)
 
-  const live = (links.data ?? []).filter((l) => l.status === 'live')
+  // The API lists live links only.
+  const live = options.data?.links ?? []
   const warehouseName = (id: string) => options.data?.warehouses.find((w) => w.id === id)?.name ?? id
   // The API's refusal of a field is shown under it; an edit clears it, and a shown success.
   const refused = fieldErrorsOf(dispatch.error, (key) => DISPATCH_INPUT[key])
@@ -69,7 +68,7 @@ export function DispatchScreen() {
     })
   }
 
-  const loadError = links.error ?? options.error
+  const loadError = options.error
   const select = (key: keyof DispatchInput, id: string, label: string, rows: { id: string; label: string }[]) => (
     <FormField label={label} id={id} error={fieldError(id)} errorTestId={`${id}-error`}>
       <select
@@ -97,7 +96,7 @@ export function DispatchScreen() {
 
       {loadError ? (
         <ErrorState error={loadError} />
-      ) : links.isLoading || options.isLoading ? (
+      ) : options.isLoading ? (
         <Loading testId="dispatch-loading" />
       ) : (
         <Card>

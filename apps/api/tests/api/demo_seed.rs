@@ -742,4 +742,54 @@ async fn the_seed_fills_every_module(pool: PgPool) {
             );
         }
     }
+
+    // Buy harvest has something to buy on staging: some current, verified, actual harvests
+    // stay unbought, verified by neither ops user (four eyes), so both see them.
+    let village = |code: &'static str| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT v.id::text FROM farm_villages v JOIN workspaces w ON w.id = v.workspace_id
+                 WHERE w.name = 'ruaha-demo' AND v.code = $1",
+            )
+            .bind(code)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    let crop = |code: &'static str| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_scalar::<_, String>(
+                "SELECT c.id::text FROM farm_crops c JOIN workspaces w ON w.id = c.workspace_id
+                 WHERE w.name = 'ruaha-demo' AND c.code = $1",
+            )
+            .bind(code)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+    for email in ["hamisi.ops@ruaha-demo.test", "asha.ops@ruaha-demo.test"] {
+        let c = seeded
+            .credentials
+            .iter()
+            .find(|c| c.login == email)
+            .unwrap_or_else(|| panic!("{email} in the logins"));
+        let body = json!({ "email": c.login, "password": c.secret });
+        let (_, res) = send(&app, Method::POST, "/v1/login", Some(body), None).await;
+        let token = res["data"]["access_token"].as_str().unwrap().to_owned();
+        for (v, k) in [("ILUNDO", "COFFEE"), ("MGAMA", "MAIZE")] {
+            let uri = format!(
+                "/v1/workspace/{r}/farm/supply-batches/options?village_id={}&crop_id={}",
+                village(v).await,
+                crop(k).await
+            );
+            let (status, res) = send(&app, Method::GET, &uri, None, Some(&token)).await;
+            assert_eq!(status, StatusCode::OK, "{email} {v} {k}: {res}");
+            let n = res["data"]["harvests"].as_array().map_or(0, Vec::len);
+            assert!(n >= 3, "{email} can buy {n} {k} harvests in {v}: {res}");
+        }
+    }
 }

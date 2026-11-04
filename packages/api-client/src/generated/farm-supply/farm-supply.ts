@@ -27,6 +27,7 @@ import type {
 import type {
   CreateBatchRequest,
   EnvelopeBatchResource,
+  EnvelopeDispatchOptions,
   EnvelopeOptionsResource,
   EnvelopeRawProductCreated,
   FarmSupplyListParams,
@@ -59,6 +60,99 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+/**
+ * ops or admin. The live supply links this workspace granted (with the shop's name), the raw lots of its supply batches, and the warehouses holding their free stock. The Field dispatch form reads this instead of the office's link and warehouse lists.
+ * @summary What a dispatch may send
+ */
+export const farmSupplyDispatchOptions = (
+    workspace: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeDispatchOptions>(
+      {url: `/workspace/${workspace}/farm/dispatch/options`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyDispatchOptionsQueryKey = (workspace: string,) => {
+    return [
+    `/workspace/${workspace}/farm/dispatch/options`
+    ] as const;
+    }
+
+
+export const getFarmSupplyDispatchOptionsQueryOptions = <TData = Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError = ErrorType<MessageBody>>(workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmSupplyDispatchOptionsQueryKey(workspace);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSupplyDispatchOptions>>> = ({ signal }) => farmSupplyDispatchOptions(workspace, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmSupplyDispatchOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof farmSupplyDispatchOptions>>>
+export type FarmSupplyDispatchOptionsQueryError = ErrorType<MessageBody>
+
+
+export function useFarmSupplyDispatchOptions<TData = Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyDispatchOptions>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyDispatchOptions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyDispatchOptions<TData = Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyDispatchOptions>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyDispatchOptions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyDispatchOptions<TData = Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary What a dispatch may send
+ */
+
+export function useFarmSupplyDispatchOptions<TData = Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError = ErrorType<MessageBody>>(
+ workspace: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyDispatchOptions>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmSupplyDispatchOptionsQueryOptions(workspace,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
 
 /**
  * Staff: batches of their villages (ops and admin: all), newest first.

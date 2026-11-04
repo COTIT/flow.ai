@@ -9,6 +9,7 @@ const supplyLinksRevoke = vi.fn()
 const supplyChainList = vi.fn()
 const supplyChainDispatch = vi.fn()
 const farmSupplyList = vi.fn()
+const farmSupplyDispatchOptions = vi.fn()
 const farmSupplyOptions = vi.fn()
 const farmSupplyRawProduct = vi.fn()
 const farmSupplyCreate = vi.fn()
@@ -26,6 +27,7 @@ vi.mock('@genesy/api-client/endpoints/supply-chain', () => ({
 }))
 vi.mock('@genesy/api-client/endpoints/farm-supply', () => ({
   farmSupplyList: (...a: unknown[]) => farmSupplyList(...a),
+  farmSupplyDispatchOptions: (...a: unknown[]) => farmSupplyDispatchOptions(...a),
   farmSupplyOptions: (...a: unknown[]) => farmSupplyOptions(...a),
   farmSupplyRawProduct: (...a: unknown[]) => farmSupplyRawProduct(...a),
   farmSupplyCreate: (...a: unknown[]) => farmSupplyCreate(...a),
@@ -90,16 +92,20 @@ describe('dispatch', () => {
     await waitFor(() => expect(result.current.data?.map((t) => t.id)).toEqual(['t1']))
   })
 
-  test('offers the raw lots of supply batches and the warehouses to send from', async () => {
-    farmSupplyList.mockResolvedValue(page([{ id: 'b1', lot: { id: 'lot1', code: 'ILU-H-2026-01', public_code: 'X' } }]))
-    warehousesList.mockResolvedValue(page([{ id: 'wh1', name: 'Iringa store' }]))
+  test('reads links, lots and warehouses from the farm dispatch options, never the office lists', async () => {
+    const options = {
+      links: [{ id: 'l1', partner: { id: 'w2', name: 'AFM shop' } }],
+      lots: [{ id: 'lot1', code: 'ILU-H-2026-01' }],
+      warehouses: [{ id: 'wh1', name: 'Iringa store' }],
+    }
+    farmSupplyDispatchOptions.mockResolvedValue({ data: options })
     const { result } = renderHook(() => hooks.useDispatchOptions(), { wrapper: wrapper() })
 
     await waitFor(() => expect(result.current.data).toBeDefined())
-    expect(result.current.data).toEqual({
-      lots: [{ id: 'lot1', code: 'ILU-H-2026-01' }],
-      warehouses: [{ id: 'wh1', name: 'Iringa store' }],
-    })
+    expect(result.current.data).toEqual(options)
+    expect(farmSupplyDispatchOptions).toHaveBeenCalledWith('w1')
+    expect(supplyLinksList).not.toHaveBeenCalled()
+    expect(warehousesList).not.toHaveBeenCalled()
   })
 
   test('sends the quantity as the text typed, never a number', async () => {

@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id, l.code AS name FROM farm_supply_batches b\n         JOIN lots l ON l.workspace_id = b.workspace_id AND l.id = b.lot_id\n         WHERE b.workspace_id = $1\n         ORDER BY b.created_at DESC, b.id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "code"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "7d68431a777daba0276f1727a99f393a961292c967b5c3f41df518edf5a588d7"
+}

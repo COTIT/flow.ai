@@ -1,14 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   farmSupplyCreate,
-  farmSupplyList,
+  farmSupplyDispatchOptions,
   farmSupplyOptions,
   farmSupplyRawProduct,
 } from '@genesy/api-client/endpoints/farm-supply'
 import { lotsStock } from '@genesy/api-client/endpoints/lots'
 import { supplyChainDispatch, supplyChainList } from '@genesy/api-client/endpoints/supply-chain'
 import { supplyLinksGrant, supplyLinksList, supplyLinksRevoke } from '@genesy/api-client/endpoints/supply-links'
-import { warehousesList } from '@genesy/api-client/endpoints/warehouses'
 import type { CreateBatchRequest, LinkResource, SupplyTransferResource } from '@genesy/api-client/model'
 
 import { workspaceId } from '@/app/workspace'
@@ -84,21 +83,15 @@ export function useSupplyTransfers() {
   })
 }
 
-/** Lots that can be sent are the raw lots of supply batches (the API refuses any other). */
+/**
+ * What a dispatch may send, from one farm-guarded read (ops and admin hold no office rights):
+ * the live links this workspace granted, the raw lots of supply batches (the API refuses any
+ * other) and the warehouses holding their free stock.
+ */
 export function useDispatchOptions() {
   return useQuery({
     queryKey: KEYS.dispatchOptions,
-    queryFn: async () => {
-      const workspace = workspaceId()
-      const [batches, warehouses] = await Promise.all([
-        readAll((p) => farmSupplyList(workspace, p)),
-        readAll((p) => warehousesList(workspace, p)),
-      ])
-      return {
-        lots: batches.map((b) => ({ id: b.lot.id, code: b.lot.code })),
-        warehouses: warehouses.map((w) => ({ id: w.id, name: w.name })),
-      }
-    },
+    queryFn: async () => (await farmSupplyDispatchOptions(workspaceId())).data,
   })
 }
 

@@ -1,14 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 
-const useSupplyLinks = vi.fn()
 const useSupplyTransfers = vi.fn()
 const useDispatchOptions = vi.fn()
 const useLotStock = vi.fn()
 const dispatch = { mutate: vi.fn(), isPending: false, error: null as unknown, isSuccess: false, reset: vi.fn() }
 
 vi.mock('@/features/ops/supply/useSupply', () => ({
-  useSupplyLinks: () => useSupplyLinks(),
   useSupplyTransfers: () => useSupplyTransfers(),
   useDispatchOptions: () => useDispatchOptions(),
   useLotStock: (lotId: string) => useLotStock(lotId),
@@ -20,29 +18,20 @@ vi.mock('@/features/ops/supply/BuyHarvestCard', () => ({ BuyHarvestCard: () => n
 
 const { DispatchScreen } = await import('@/features/ops/supply/DispatchScreen')
 
-const link = (id: string, status: string, name: string) => ({
-  id,
-  direction: 'outgoing',
-  partner: { id: `w-${id}`, name },
-  fields: [],
-  status,
-  granted_at: '2026-10-30T08:00:00Z',
-  accepted_at: null,
-  revoked_at: null,
-})
+const link = (id: string, name: string) => ({ id, partner: { id: `w-${id}`, name } })
 
 beforeEach(() => {
   vi.clearAllMocks()
   dispatch.error = null
-  useSupplyLinks.mockReturnValue({
-    isLoading: false,
-    error: null,
-    data: [link('l1', 'live', 'AFM shop'), link('l2', 'pending', 'Other shop')],
-  })
+  // The API lists live links only.
   useDispatchOptions.mockReturnValue({
     isLoading: false,
     error: null,
-    data: { lots: [{ id: 'lot1', code: 'ILU-H-2026-01' }], warehouses: [{ id: 'wh1', name: 'Iringa store' }] },
+    data: {
+      links: [link('l1', 'AFM shop')],
+      lots: [{ id: 'lot1', code: 'ILU-H-2026-01' }],
+      warehouses: [{ id: 'wh1', name: 'Iringa store' }],
+    },
   })
   useLotStock.mockImplementation((lotId: string) =>
     lotId
