@@ -60,7 +60,7 @@ A PATCH that changes nothing writes nothing. Each row has `user_id` (null once t
 
 Stock rows carry an optional `lot_id`. Null is the product's no-lot stock, which keeps the old one row per product, warehouse and bin. Each lot gets its own warehouse-level row next to it. Every ledger line (`stock_movements`) carries the row's `lot_id`, and so does `stock.changed`.
 
-`POST /lots/{lot}/stock-mutations` (`product.update`) with body `{warehouse_id, quantity, reason?, is_correction?}`:
+`POST /lots/{lot}/stock-mutations` (`product.update`) with body `{warehouse_id, quantity, reason?, is_correction?}`. An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, per workspace): a retry with the same key and request replays the first answer and moves stock only once; another request under the key is a 422. Without the header nothing changes. It does this:
 
 - `quantity`: non-zero, rounded to 2 decimals. Positive puts stock in, negative takes it out.
 - Out may not take more than the row has free (level − reserved). Otherwise `422` on `quantity`: "Insufficient stock in this lot. Available: …, Reserved: …, Requested: …".

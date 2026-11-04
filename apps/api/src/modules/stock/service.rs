@@ -12,6 +12,7 @@ use crate::{
     AppState,
     error::AppError,
     http::json::human,
+    idempotency::{self, Actor, Answer, Key},
     modules::{
         products::{
             dto::PHYSICAL, repo as products, repo::ProductRow, service as products_service,
@@ -44,12 +45,22 @@ pub async fn mutate(
     product_id: &str,
     m: Mutate,
     user_id: Uuid,
-) -> Result<(), AppError> {
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
     let product = product(state, workspace_id, product_id).await?;
     let slot = slot(state, workspace_id, product.id, m.warehouse_id, m.bin_id).await?;
+    let mut tx = state.db.begin().await?;
+    if let Some(a) =
+        idempotency::replay(&mut tx, workspace_id, Actor::User(user_id), key.as_ref()).await?
+    {
+        return Ok(a);
+    }
+    let ok = Answer::ok();
     // The column keeps 2 places: a change that rounds to 0 is a no-op, not an empty movement.
     if !tracks_stock(&product) || round(m.mutation_value, 2).is_zero() {
-        return Ok(());
+        idempotency::finish(&mut tx, workspace_id, key.as_ref(), &ok).await?;
+        tx.commit().await?;
+        return Ok(ok);
     }
     let cause = Cause {
         reason: m.reason.as_deref(),
@@ -58,7 +69,6 @@ pub async fn mutate(
         related: None,
         meta: m.meta.as_ref(),
     };
-    let mut tx = state.db.begin().await?;
     match repo::mutate(
         &mut tx,
         workspace_id,
@@ -71,7 +81,11 @@ pub async fn mutate(
     {
         Mutated::Short { .. } => Err(AppError::field("mutation_value", NOT_AVAILABLE)),
         Mutated::OutOfRange => Err(AppError::field("mutation_value", OUT_OF_RANGE)),
-        Mutated::Done { .. } => Ok(tx.commit().await?),
+        Mutated::Done { .. } => {
+            idempotency::finish(&mut tx, workspace_id, key.as_ref(), &ok).await?;
+            tx.commit().await?;
+            Ok(ok)
+        }
     }
 }
 

@@ -873,3 +873,51 @@ async fn farm_ops_read_dispatch_options_and_dispatch(pool: PgPool) {
             .await;
     assert_eq!(status, StatusCode::NOT_FOUND, "not a member");
 }
+
+/// A packing retried with its Idempotency-Key makes one child lot from the kg once and answers
+/// the first 201 again.
+#[sqlx::test]
+async fn a_retried_packing_makes_one_batch_of_jars(pool: PgPool) {
+    let c = chain(pool).await;
+    let uri = format!("/v1/workspace/{}/lots/{}/packings", c.f.ws, c.raw);
+    let body = packing(&c, "ILU-J-K", "4", "3");
+    let keyed = |body: Value, key: &'static str| {
+        let (app, uri, token) = (c.f.app.clone(), uri.clone(), c.f.owner.clone());
+        async move {
+            let headers = [("idempotency-key", key)];
+            let (s, b) =
+                common::send_raw(&app, Method::POST, &uri, Some(body), Some(&token), &headers)
+                    .await;
+            (
+                s,
+                serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null),
+            )
+        }
+    };
+    let (s1, first) = keyed(body.clone(), "k-pack-1").await;
+    let (s2, again) = keyed(body.clone(), "k-pack-1").await;
+    assert_eq!(
+        (s1, s2),
+        (StatusCode::CREATED, StatusCode::CREATED),
+        "{first} {again}"
+    );
+    assert_eq!(first, again, "the first child lot, replayed");
+    assert_eq!(
+        level(&c.f.pool, &c.raw).await,
+        "4.50",
+        "3 kg left the raw lot once"
+    );
+    let children: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM lots WHERE parent_lot_id = $1::uuid")
+            .bind(&c.raw)
+            .fetch_one(&c.f.pool)
+            .await
+            .unwrap();
+    assert_eq!(children, 1);
+    let (s, _) = keyed(packing(&c, "ILU-J-K2", "4", "3"), "k-pack-1").await;
+    assert_eq!(
+        s,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "another body under the key"
+    );
+}

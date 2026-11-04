@@ -951,3 +951,61 @@ async fn the_pay_page_is_404_without_the_fake_provider(pool: PgPool) {
 async fn order_of(w: &W, id: &str) -> Value {
     order(w, id).await
 }
+
+/// The fake keeps its state in memory: a restarted API (a new Fake) must not hand out an id
+/// a stored payment already has, or the payment insert collides (staging after a deploy).
+#[sqlx::test]
+async fn a_restarted_fake_still_creates_payments(pool: PgPool) {
+    let mut w = world(pool.clone()).await;
+    let (_, first) = awaiting(&w, 1).await;
+    // "Restart": a fresh in-memory fake on the same database.
+    w.fake = Fake::default();
+    let mut state = common::state(pool, Mailer::capture().0);
+    state.payments = Some(Provider::Fake(w.fake.clone()));
+    w.api.app = build_app(state);
+    let (_, second) = awaiting(&w, 1).await;
+    assert_ne!(first, second, "a new id after the restart");
+}
+
+/// Cancel on the fake page, then Pay again straight away (no inbox drain between): the shop
+/// gets a fresh, open payment, not the one just cancelled. The page links back to the shop.
+#[sqlx::test]
+async fn pay_right_after_cancel_gets_a_fresh_payment(pool: PgPool) {
+    let w = world(pool).await;
+    let (order, url) = checkout_url(&w, 1).await;
+    let path = url[url.find("/v1/payments/fake/").unwrap()..].to_owned();
+    let (_, _, html) = pay_page(&w, Method::GET, &path, None).await;
+    assert!(
+        html.contains(r#"href="https://shop.example.com/t""#),
+        "a way back to the shop: {html}"
+    );
+    let (s, _, _) = pay_page(&w, Method::POST, &path, Some("outcome=canceled")).await;
+    assert_eq!(s, StatusCode::SEE_OTHER);
+
+    let (s, p) = shop(
+        &w,
+        Method::POST,
+        &format!("/orders/{order}/payment"),
+        Some(json!({ "redirect_url": "https://shop.example.com/t" })),
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK, "{p}");
+    let again = p["data"]["checkout_url"].as_str().unwrap().to_owned();
+    assert_ne!(again, url, "not the cancelled payment");
+    let path = again[again.find("/v1/payments/fake/").unwrap()..].to_owned();
+    let (_, _, html) = pay_page(&w, Method::GET, &path, None).await;
+    assert!(
+        html.contains(r#"value="paid""#),
+        "the new one is open: {html}"
+    );
+    let (s, location, _) = pay_page(&w, Method::POST, &path, Some("outcome=paid")).await;
+    assert_eq!(
+        (s, location.as_str()),
+        (StatusCode::SEE_OTHER, "https://shop.example.com/t")
+    );
+    assert_eq!(
+        order_of(&w, &order).await["status"],
+        "open",
+        "paid without waiting for a drain"
+    );
+}

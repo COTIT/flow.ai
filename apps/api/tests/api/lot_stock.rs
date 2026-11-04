@@ -367,3 +367,54 @@ async fn a_lots_free_stock_is_read_per_warehouse(pool: PgPool) {
     let (status, _) = stock(eve, w.api.ws.clone()).await;
     assert_eq!(status, StatusCode::NOT_FOUND, "not a member");
 }
+
+/// A lot stock change retried with its Idempotency-Key moves stock once and answers the same.
+#[sqlx::test]
+async fn a_retried_lot_stock_change_moves_stock_once(pool: PgPool) {
+    let w = world(pool).await;
+    let id = lot(&w, "ILU-K").await;
+    let uri = format!("/v1/workspace/{}/lots/{id}/stock-mutations", w.api.ws);
+    let body = json!({ "warehouse_id": w.warehouse, "quantity": "5", "reason": "harvest" });
+    let keyed = |body: Value, key: &'static str| {
+        let (app, uri, token) = (w.api.app.clone(), uri.clone(), w.api.owner.clone());
+        async move {
+            let headers = [("idempotency-key", key)];
+            let (s, b) =
+                common::send_raw(&app, Method::POST, &uri, Some(body), Some(&token), &headers)
+                    .await;
+            (
+                s,
+                serde_json::from_slice::<Value>(&b).unwrap_or(Value::Null),
+            )
+        }
+    };
+    let (s1, first) = keyed(body.clone(), "k-lot-1").await;
+    let (s2, again) = keyed(body.clone(), "k-lot-1").await;
+    assert_eq!(
+        (s1, s2),
+        (StatusCode::OK, StatusCode::OK),
+        "{first} {again}"
+    );
+    assert_eq!(first, again, "the first answer, replayed");
+    assert_eq!(first["data"]["stock_lvl"], "5.00");
+    assert_eq!(
+        levels(&w).await,
+        [("ILU-K".to_owned(), "5.00".to_owned())],
+        "moved once"
+    );
+    let other = json!({ "warehouse_id": w.warehouse, "quantity": "6", "reason": "harvest" });
+    let (s, _) = keyed(other, "k-lot-1").await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let (s, _) = common::send_raw(
+        &w.api.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/lots/{id}/stock-mutations", eve.ws),
+        Some(body),
+        Some(&eve.owner),
+        &[("idempotency-key", "k-lot-1")],
+    )
+    .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}

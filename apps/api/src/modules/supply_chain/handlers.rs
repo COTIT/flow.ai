@@ -41,13 +41,14 @@ permissions! {
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("lot" = Uuid, Path, description = "Parent lot id"),
+        ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer (the same child lot) and moves nothing again; another request under the key is a 422. Kept for a day."),
     ),
     request_body = PackingRequest,
     responses(
         (status = 201, body = Envelope<PackedLotResource>, description = "Packed"),
         (status = 403, body = MessageBody, description = "No `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown lot, or another workspace's"),
-        (status = 422, body = UnprocessableBody, description = "Invalid input, not enough kg free, or a lot that can't be packed"),
+        (status = 422, body = UnprocessableBody, description = "Invalid input, not enough kg free, a lot that can't be packed, or Idempotency-Key reused for another request"),
     ),
     security(("bearer" = []))
 )]
@@ -55,10 +56,9 @@ pub async fn pack(
     State(state): State<AppState>,
     access: Can<ProductUpdate>,
     Path((_, id)): Path<(String, String)>,
-    ValidatedJson(p): ValidatedJson<PackingRequest>,
-) -> Result<(StatusCode, Data<PackedLotResource>), AppError> {
-    let lot = service::pack(&state, &access, &id, p).await?;
-    Ok((StatusCode::CREATED, Data(lot)))
+    Keyed { input: p, key }: Keyed<PackingRequest>,
+) -> Result<Answer, AppError> {
+    service::pack(&state, &access, &id, p, key).await
 }
 
 /// POST /lots/{lot}/transfers -> 201 dispatched transfer.

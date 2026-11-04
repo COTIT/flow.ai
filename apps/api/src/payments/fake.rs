@@ -24,7 +24,6 @@ struct State {
     /// Create calls per idempotency key (retries included).
     creates: HashMap<String, u32>,
     fail_next: Option<Error>,
-    next: u64,
     /// The pay page's view per payment id: where to send the customer back, and decimals.
     pages: HashMap<String, (String, u32)>,
 }
@@ -68,8 +67,8 @@ impl Fake {
         if let Some(id) = s.by_key.get(p.idempotency_key).cloned() {
             return Ok(s.intents[&id].1.clone());
         }
-        s.next += 1;
-        let id = format!("fk_{}", s.next);
+        // Unique across restarts: the counter-free id never meets one a stored payment has.
+        let id = format!("fk_{}", Uuid::now_v7().simple());
         let intent = Intent {
             id: id.clone(),
             status: Status::Open,
@@ -108,8 +107,7 @@ impl Fake {
             }
             _ => return Err(Error::NotFound),
         }
-        s.next += 1;
-        let id = format!("fr_{}", s.next);
+        let id = format!("fr_{}", Uuid::now_v7().simple());
         let intent = Intent {
             id: id.clone(),
             status: Status::Open,

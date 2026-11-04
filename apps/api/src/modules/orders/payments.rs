@@ -251,6 +251,21 @@ async fn payment_row(
     .await
 }
 
+/// Re-fetch the payment `external_id` from the configured provider and apply it now, as the
+/// inbox drain would; false when it couldn't (unknown, mismatch, provider down).
+pub async fn settle_now(
+    state: &AppState,
+    workspace_id: Uuid,
+    external_id: &str,
+) -> Result<bool, AppError> {
+    let Some(p) = state.payments.as_ref() else {
+        return Ok(false);
+    };
+    Ok(settle(&state.db, p, workspace_id, external_id)
+        .await?
+        .is_ok())
+}
+
 /// Re-fetch one payment or refund and apply what the provider says.
 async fn settle(
     db: &PgPool,

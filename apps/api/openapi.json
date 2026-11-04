@@ -28831,7 +28831,7 @@
     },
     "/payments/fake/{id}": {
       "get": {
-        "description": "Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons.",
+        "description": "Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons and a link back to the shop.",
         "operationId": "payments_fake_page",
         "parameters": [
           {
@@ -28911,7 +28911,7 @@
         ]
       },
       "post": {
-        "description": "Dev and staging only. Sets the fake payment's status, queues the same re-fetch as its webhook, and redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.",
+        "description": "Dev and staging only. Sets the fake payment's status and applies it at once through the same re-fetch as its webhook (queued when that fails), then redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.",
         "operationId": "payments_fake_decide",
         "parameters": [
           {
@@ -62551,6 +62551,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer (the same child lot) and moves nothing again; another request under the key is a 422. Kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -62632,7 +62644,7 @@
                 }
               }
             },
-            "description": "Invalid input, not enough kg free, or a lot that can't be packed"
+            "description": "Invalid input, not enough kg free, a lot that can't be packed, or Idempotency-Key reused for another request"
           },
           "429": {
             "content": {
@@ -63382,6 +63394,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer and moves nothing again; another request under the key is a 422. Kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -63463,7 +63487,7 @@
                 }
               }
             },
-            "description": "Invalid input, unknown warehouse, or more out than the lot has free"
+            "description": "Invalid input, unknown warehouse, more out than the lot has free, or Idempotency-Key reused for another request"
           },
           "429": {
             "content": {
@@ -71731,6 +71755,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "1 to 255 visible characters. A retry with the same key and request replays the first answer and moves nothing again; another request under the key is a 422. Kept for a day.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         ],
         "requestBody": {
@@ -71812,7 +71848,7 @@
                 }
               }
             },
-            "description": "Invalid input"
+            "description": "Invalid input, or Idempotency-Key reused for another request"
           },
           "429": {
             "content": {

@@ -717,3 +717,63 @@ async fn the_shop_price_is_the_price_checkout_charges_never_0(pool: PgPool) {
         assert_eq!(o["data"]["total"], shown);
     }
 }
+
+/// A product sold in sizes lists its sizes, not the option-less default variant made with the
+/// product (the shop showed it as an extra, unnamed size). A product without sizes keeps its
+/// default.
+#[sqlx::test]
+async fn sized_products_list_their_sizes_without_the_bare_default(pool: PgPool) {
+    let (api, key) = world(pool).await;
+    let honey = product(&api, "Wildflower honey").await;
+    let (s, res) = api
+        .call(
+            Method::POST,
+            &format!("/{honey}/variants/generate"),
+            Some(json!({
+                "option_types": [{ "name": "Size", "values": [{ "value": "8 oz" }, { "value": "16 oz" }] }],
+                "combinations": [
+                    { "option_value_ids": ["8 oz"], "price": "8.99", "sku": "W-8" },
+                    { "option_value_ids": ["16 oz"], "price": "16.18", "sku": "W-16" },
+                ],
+            })),
+            &api.owner,
+        )
+        .await;
+    assert!(s.is_success(), "{res}");
+    let (_, res) = get(&api, &format!("/products/{honey}"), &key).await;
+    let sizes: Vec<Value> = res["data"]["variants"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v["sku"].clone())
+        .collect();
+    assert_eq!(sizes.len(), 2, "{res}");
+    assert!(
+        sizes.contains(&json!("W-8")) && sizes.contains(&json!("W-16")),
+        "{sizes:?}"
+    );
+    for v in res["data"]["variants"].as_array().unwrap() {
+        assert!(
+            !v["options"].as_array().unwrap().is_empty(),
+            "a bare variant listed: {v}"
+        );
+    }
+    let (_, list) = get(&api, "/products", &key).await;
+    let row = list["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["id"] == honey.as_str())
+        .unwrap()
+        .clone();
+    assert_eq!(row["variants"].as_array().unwrap().len(), 2, "list = get");
+
+    let plain = product(&api, "Beeswax block").await;
+    let (_, res) = get(&api, &format!("/products/{plain}"), &key).await;
+    assert_eq!(
+        res["data"]["variants"].as_array().unwrap().len(),
+        1,
+        "no sizes: the default stays"
+    );
+    assert_eq!(res["data"]["variants"][0]["is_default"], true);
+}

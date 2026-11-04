@@ -1,8 +1,9 @@
 //! The fake provider's hosted pay page, `/v1/payments/fake/{id}`: what a provider's checkout
 //! page is to a real payment, for dev and staging. It exists only while the fake is the
 //! configured provider, which a release build refuses at boot, so production never serves it.
-//! Pay and Cancel set the fake's status and queue the same re-fetch a webhook does; the
-//! customer then goes back to the shop's `redirect_url`.
+//! Pay and Cancel set the fake's status and apply it at once through the same re-fetch a
+//! webhook triggers (queued instead when that fails); the customer then goes back to the
+//! shop's `redirect_url`, which the page also links.
 
 use axum::{
     Form,
@@ -36,7 +37,7 @@ fn fake_page(
 #[utoipa::path(
     get, path = "/payments/fake/{id}", tag = "payments",
     operation_id = "payments_fake_page", summary = "The test provider's pay page",
-    description = "Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons.",
+    description = "Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons and a link back to the shop.",
     params(("id" = String, Path, description = "The fake's payment id")),
     responses(
         (status = 200, content_type = "text/html", body = String, description = "The page"),
@@ -57,6 +58,10 @@ pub async fn page(
     );
     let amount = amount.trim_end_matches('.');
     let open = p.status == Status::Open;
+    let back = format!(
+        r#"<p><a href="{}">Back to the shop</a></p>"#,
+        attr(&p.redirect_url)
+    );
     let buttons = if open {
         r#"<form method="post"><button name="outcome" value="paid">Pay</button>
 <button name="outcome" value="canceled">Cancel</button></form>"#
@@ -67,7 +72,7 @@ pub async fn page(
     Ok(Html(format!(
         "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width\">\
          <title>Test payment</title><h1>Test payment</h1>\
-         <p>{amount} {currency}</p><p>No money moves: this is the test provider.</p>{buttons}",
+         <p>{amount} {currency}</p><p>No money moves: this is the test provider.</p>{buttons}{back}",
         currency = p.currency,
     )))
 }
@@ -84,7 +89,7 @@ pub struct PayChoice {
 #[utoipa::path(
     post, path = "/payments/fake/{id}", tag = "payments",
     operation_id = "payments_fake_decide", summary = "Pay or cancel on the test provider's page",
-    description = "Dev and staging only. Sets the fake payment's status, queues the same re-fetch as its webhook, and redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.",
+    description = "Dev and staging only. Sets the fake payment's status and applies it at once through the same re-fetch as its webhook (queued when that fails), then redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.",
     params(("id" = String, Path, description = "The fake's payment id")),
     request_body(content = PayChoice, content_type = "application/x-www-form-urlencoded"),
     responses(
@@ -112,8 +117,20 @@ pub async fn decide(
     };
     if p.status == Status::Open {
         fake.set_status(&id, status);
-        let ws = p.workspace_id.to_string();
-        payments::receive(&state, "fake", &ws, &headers, format!("id={id}").as_bytes()).await?;
+        // Applied now, so Pay right after Cancel finds no live payment to hand back; the
+        // queued re-fetch is the fallback when that can't happen.
+        if !payments::settle_now(&state, p.workspace_id, &id).await? {
+            let ws = p.workspace_id.to_string();
+            payments::receive(&state, "fake", &ws, &headers, format!("id={id}").as_bytes()).await?;
+        }
     }
     Ok(Redirect::to(&p.redirect_url))
+}
+
+/// `v` safe inside a double-quoted HTML attribute.
+fn attr(v: &str) -> String {
+    v.replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }

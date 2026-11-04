@@ -17,6 +17,7 @@ use crate::{
         response::{Data, Envelope, MessageBody},
         workspace::{Can, WorkspaceAccess},
     },
+    idempotency::{Answer, Keyed},
     modules::{
         app_keys::secret::CATALOG_READ,
         lots::{
@@ -394,13 +395,14 @@ pub async fn storefront_get(
     params(
         ("workspace" = Uuid, Path, description = "Workspace id"),
         ("lot" = Uuid, Path, description = "Lot id"),
+        ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer and moves nothing again; another request under the key is a 422. Kept for a day."),
     ),
     request_body = StockMutationRequest,
     responses(
         (status = 200, body = Envelope<LotStockLevel>, description = "Stock moved; the lot's level at the warehouse"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown warehouse, or more out than the lot has free"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown warehouse, more out than the lot has free, or Idempotency-Key reused for another request"),
     ),
     security(("bearer" = []))
 )]
@@ -408,9 +410,7 @@ pub async fn stock_mutate(
     State(state): State<AppState>,
     access: Can<ProductUpdate>,
     Path((_, id)): LotPath,
-    ValidatedJson(m): ValidatedJson<StockMutationRequest>,
-) -> Result<Data<LotStockLevel>, AppError> {
-    Ok(Data(
-        service::stock_mutation(&state, &access, &id, m).await?,
-    ))
+    Keyed { input: m, key }: Keyed<StockMutationRequest>,
+) -> Result<Answer, AppError> {
+    service::stock_mutation(&state, &access, &id, m, key).await
 }

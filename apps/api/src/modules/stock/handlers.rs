@@ -16,6 +16,7 @@ use crate::{
         response::{Envelope, Message, MessageBody},
         workspace::{Can, permissions},
     },
+    idempotency::{Answer, Keyed},
     modules::stock::{
         dto::{
             DeleteQuery, ListQuery, MoveBody, MoveDoc, MovementQuery, MutateBody, MutateDoc,
@@ -41,13 +42,13 @@ type ProductPath = Path<(String, String)>;
 #[utoipa::path(
     post, path = "/workspace/{workspace}/products/{product}/stocks", tag = "stock",
     operation_id = "stock_mutate", summary = "Add to or take from stock",
-    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id")),
+    params(("workspace" = Uuid, Path, description = "Workspace id"), ("product" = Uuid, Path, description = "Product id"), ("Idempotency-Key" = Option<String>, Header, description = "1 to 255 visible characters. A retry with the same key and request replays the first answer and moves nothing again; another request under the key is a 422. Kept for a day."),),
     request_body = MutateDoc,
     responses(
         (status = 200, body = MessageBody, description = "Done (`ok`)"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `stock.mutate`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or product, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid input, or Idempotency-Key reused for another request"),
     ),
     security(("bearer" = []))
 )]
@@ -55,10 +56,9 @@ pub async fn mutate(
     State(state): State<AppState>,
     access: Can<StockMutate>,
     Path((_, p)): ProductPath,
-    ValidatedJson(m): ValidatedJson<MutateBody>,
-) -> Result<Message, AppError> {
-    service::mutate(&state, access.workspace_id, &p, m, access.user_id).await?;
-    Ok(Message("ok"))
+    Keyed { input: m, key }: Keyed<MutateBody>,
+) -> Result<Answer, AppError> {
+    service::mutate(&state, access.workspace_id, &p, m, access.user_id, key).await
 }
 
 /// POST /products/{product}/set-stock-levels -> `{"message":"ok"}`.

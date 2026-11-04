@@ -1390,3 +1390,56 @@ async fn stock_movements_filter_by_type(pool: PgPool) {
         assert!(res["errors"]["type"].is_array(), "{res}");
     }
 }
+
+/// A stock change retried with its Idempotency-Key (lost reply) moves stock once; another
+/// body under the key is refused; without a key nothing changes.
+#[sqlx::test]
+async fn a_retried_stock_change_moves_stock_once(pool: PgPool) {
+    let w = world(pool).await;
+    let uri = format!("/v1/workspace/{}/products/{}/stocks", w.api.ws, w.product);
+    let keyed = |body: Value, key: &'static str| {
+        let (app, uri, token) = (w.api.app.clone(), uri.clone(), w.api.owner.clone());
+        async move {
+            let headers = [("idempotency-key", key)];
+            common::send_raw(&app, Method::POST, &uri, Some(body), Some(&token), &headers).await
+        }
+    };
+    let body = json!({ "warehouse_id": w.main, "mutation_value": 3 });
+    for _ in 0..2 {
+        let (status, res) = keyed(body.clone(), "k-stock-1").await;
+        assert_eq!(status, StatusCode::OK, "{res:?}");
+    }
+    assert_eq!(w.movements().await.len(), 1, "moved once");
+    let (status, _) = keyed(
+        json!({ "warehouse_id": w.main, "mutation_value": 4 }),
+        "k-stock-1",
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "another body under the key"
+    );
+    assert_eq!(w.movements().await.len(), 1);
+    // No key: every call moves, as before.
+    w.mutate(body.clone()).await;
+    w.mutate(body).await;
+    assert_eq!(w.movements().await.len(), 3);
+
+    let eve = w.api.as_new_owner("eve@example.com", "evil").await;
+    let headers = [("idempotency-key", "k-stock-1")];
+    let (status, _) = common::send_raw(
+        &w.api.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/products/{}/stocks", eve.ws, w.product),
+        Some(json!({ "warehouse_id": w.main, "mutation_value": 3 })),
+        Some(&eve.owner),
+        &headers,
+    )
+    .await;
+    assert_eq!(
+        status,
+        StatusCode::NOT_FOUND,
+        "acme's product under evil, never a replay"
+    );
+}
