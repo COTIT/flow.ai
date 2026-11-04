@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO currencies (workspace_id, name, asset_type, decimals, active)\n         VALUES ($1, 'Tanzanian shilling', 'TZS', 2, true) RETURNING id",
+  "query": "INSERT INTO currencies (workspace_id, name, asset_type, decimals, active,\n                                 default_currency)\n         VALUES ($1, 'Tanzanian shilling', 'TZS', 2, true, true) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -24,5 +24,5 @@
       false
     ]
   },
-  "hash": "83b95bce66cd233291255fad7ade0b5425aa154da768f90df096e28a1f8abb48"
+  "hash": "45e9ce0c932afd83302f196a15d8ff568c93ad9612ed26551701037baf0f3f94"
 }

@@ -243,9 +243,9 @@ The drawer's expected cash uses `due`, the amount actually taken, so it balances
 
 ### `POST /till/sales/quote`
 
-`{lines, payment}` as `POST /till/sales`, without `client_ref` or `sold_at`; cash `tendered` is optional. Priced by the same code as the sale (`till_sales::service::price_sale`: the till's prices, the catalog's, cash rounding, the tendered check) inside a transaction that is rolled back. Writes nothing: no order, stock, drawer or replay row, and no open shift is needed.
+`{lines, payment}` as `POST /till/sales`, without `client_ref` or `sold_at`; cash `tendered` is optional. Priced by the same code as the sale (`till_sales::service::price_sale`: the till's prices, the catalog's, cash rounding) inside a transaction that is rolled back. Writes nothing: no order, stock, drawer or replay row, and no open shift is needed.
 
-200 `{data: {lines: [{product_id, product_variant_id, quantity, unit_price, line_excl, line_vat, line_total}], subtotal, vat, total, server_total, price_mismatch, mismatched_lines, due, rounding, change}}` in minor units; `change` is null for card or without `tendered`. The same 422s as the sale (lines, payment, tendered below due); 401 without a till session, 404 on another workspace's path.
+200 `{data: {lines: [{product_id, product_variant_id, quantity, unit_price, line_excl, line_vat, line_total}], subtotal, vat, total, server_total, price_mismatch, mismatched_lines, due, rounding, change, short_by}}` in minor units; `change` is null for card, without `tendered`, or when it is short; `short_by` is `due − tendered` when short, else 0, and null for card or without `tendered`. Short cash is not an error here, so the till can show the shortfall on every keystroke. The same 422s as the sale (lines, payment) except tendered below due, which only the sale refuses; 401 without a till session, 404 on another workspace's path.
 
 ### `GET /till/sales/{client_ref}`
 

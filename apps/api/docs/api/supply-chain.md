@@ -42,7 +42,7 @@ Transfers this workspace sent (`direction: "outgoing"`) or is sent (`"incoming"`
 - `status`: only `dispatched` (on the way, not received yet) or `received`. `direction`: only `outgoing` or `incoming`. Blank = no filter; any other value is a 422 on that field.
 - `?direction=incoming&status=dispatched` lists what is arriving; `meta.total` counts it.
 
-Transfer: `{id, link_id, direction, partner: {id, name}, from_lot: {code, public_code}, quantity, status, dispatched_at, to_lot, received_quantity, received_at}`.
+Transfer: `{id, link_id, direction, partner: {id, name, display_name}, from_lot: {code, public_code}, quantity, status, dispatched_at, to_lot, received_quantity, received_at}`.
 - `status` is `dispatched` or `received`.
 - No farmers, kg shares or prices ever appear.
 - A workspace that is not a side of a transfer never sees it.

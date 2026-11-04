@@ -27,4 +27,10 @@ export interface CreateBatchRequest {
   /** Stock-tracked product of the raw lot. */
   raw_product_id: string;
   village_id: string;
+  /**
+     * Where the bought kg go in (buying is the receipt). Default: the workspace's default
+     * warehouse; with neither, the raw lot is made empty.
+     * @nullable
+     */
+  warehouse_id?: string | null;
 }

@@ -632,6 +632,7 @@ pub struct DispatchLink {
     pub id: Uuid,
     pub partner_id: Uuid,
     pub partner_name: String,
+    pub partner_display_name: String,
 }
 
 /// Live supply links `workspace_id` granted, by partner name.
@@ -641,10 +642,11 @@ pub async fn dispatch_links(
 ) -> Result<Vec<DispatchLink>, sqlx::Error> {
     sqlx::query_as!(
         DispatchLink,
-        "SELECT l.id, w.id AS partner_id, w.name AS partner_name
+        r#"SELECT l.id, w.id AS partner_id, w.name AS partner_name,
+                coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "partner_display_name!"
          FROM supply_links l JOIN workspaces w ON w.id = l.to_workspace_id
          WHERE l.from_workspace_id = $1 AND l.accepted_at IS NOT NULL AND l.revoked_at IS NULL
-         ORDER BY w.name, l.id",
+         ORDER BY w.name, l.id"#,
         workspace_id,
     )
     .fetch_all(db)

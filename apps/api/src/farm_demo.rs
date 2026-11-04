@@ -440,9 +440,17 @@ pub async fn run(mut state: AppState) -> Result<Report, AppError> {
             .await?;
     }
 
+    // RUAHA pays farmers in shillings: TZS is the default, not the euro a new workspace gets.
+    sqlx::query!(
+        "UPDATE currencies SET default_currency = false WHERE workspace_id = $1",
+        ws_id
+    )
+    .execute(&db)
+    .await?;
     let tzs: Uuid = sqlx::query_scalar!(
-        "INSERT INTO currencies (workspace_id, name, asset_type, decimals, active)
-         VALUES ($1, 'Tanzanian shilling', 'TZS', 2, true) RETURNING id",
+        "INSERT INTO currencies (workspace_id, name, asset_type, decimals, active,
+                                 default_currency)
+         VALUES ($1, 'Tanzanian shilling', 'TZS', 2, true, true) RETURNING id",
         ws_id
     )
     .fetch_one(&db)

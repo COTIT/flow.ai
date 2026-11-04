@@ -340,3 +340,28 @@ async fn the_list_filters_by_status_and_direction(pool: PgPool) {
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{q}: {res}");
     }
 }
+
+#[sqlx::test]
+async fn the_partner_carries_its_display_name_beside_the_slug(pool: PgPool) {
+    let t = two(pool).await;
+    let (status, res) = grant(&t, json!(["village"])).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(res["data"]["partner"]["name"], "afm");
+    assert_eq!(
+        res["data"]["partner"]["display_name"], "afm",
+        "no company name: the slug"
+    );
+
+    let (status, res) = send(
+        &t.r.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/update", t.a_ws),
+        Some(json!({ "company_name": "AFM Shop" })),
+        Some(&t.a),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let (_, list) = call(&t, Method::GET, &t.r.ws, "", None, &t.r.owner).await;
+    assert_eq!(list["data"][0]["partner"]["name"], "afm");
+    assert_eq!(list["data"][0]["partner"]["display_name"], "AFM Shop");
+}

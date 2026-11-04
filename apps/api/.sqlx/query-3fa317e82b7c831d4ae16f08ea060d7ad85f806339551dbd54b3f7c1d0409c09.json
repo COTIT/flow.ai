@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workspaces SET meta = coalesce(meta, '{}'::jsonb) || '{\"demo\": true}'::jsonb,\n                profile = coalesce(profile, '{}'::jsonb) || '{\"company_name\": \"AFM Shop\"}'::jsonb\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3fa317e82b7c831d4ae16f08ea060d7ad85f806339551dbd54b3f7c1d0409c09"
+}

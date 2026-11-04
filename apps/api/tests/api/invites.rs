@@ -269,6 +269,47 @@ async fn smtp_failure_is_500_without_internals(pool: PgPool) {
     assert_eq!(res, json!({ "message": "Server error." }));
 }
 
+#[sqlx::test]
+async fn smtp_failure_leaves_no_invite_and_keeps_the_last_code(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    let broken = Mailer::smtp("smtp://127.0.0.1:1", "Genesy <no-reply@genesy.test>").unwrap();
+    let app = build_app(common::state(pool, broken));
+    let uri = format!("/v1/workspace/{}/invites", w.ws);
+    let invite = |email: &'static str| {
+        send(
+            &app,
+            Method::POST,
+            &uri,
+            Some(json!({ "email": email })),
+            Some(&w.owner_token),
+        )
+    };
+    let count = || async {
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM invites")
+            .fetch_one(&w.pool)
+            .await
+            .unwrap()
+    };
+
+    // A first invite whose mail fails leaves nothing behind.
+    let (status, _) = invite("new@example.com").await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(count().await, 0, "no pending invite with a code nobody got");
+
+    // A re-invite whose mail fails keeps the code that was mailed.
+    let (status, _) = w.invite("old@example.com").await;
+    assert_eq!(status, StatusCode::CREATED);
+    let code = w.last_code();
+    let (status, _) = invite("old@example.com").await;
+    assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(
+        w.status(&code).await.0,
+        StatusCode::OK,
+        "the mailed code still works"
+    );
+    assert_eq!(count().await, 1);
+}
+
 // ================= status
 
 #[sqlx::test]

@@ -214,3 +214,19 @@ async fn a_real_workspace_of_that_name_is_never_seeded(pool: PgPool) {
         .unwrap();
     assert_eq!(persons, 0);
 }
+
+/// RUAHA pays farmers in shillings: its default currency is TZS, so Buy harvest prices and
+/// credits farmers in TZS, not the euro every new workspace starts with.
+#[sqlx::test]
+async fn the_farm_workspace_defaults_to_shillings(pool: PgPool) {
+    let report = seeded(&pool).await;
+    let defaults: Vec<String> = sqlx::query_scalar(
+        "SELECT upper(asset_type) FROM currencies
+         WHERE workspace_id = $1 AND default_currency AND deleted_at IS NULL",
+    )
+    .bind(report.workspace_id)
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(defaults, ["TZS"]);
+}

@@ -235,9 +235,13 @@ pub struct QuoteResource {
     pub due: i64,
     /// due − total.
     pub rounding: i64,
-    /// tendered − due; null for card or without `tendered`.
+    /// tendered − due; null for card, without `tendered`, or when it is short.
     #[schema(required = true)]
     pub change: Option<i64>,
+    /// due − tendered when the cash is short, else 0; null for card or without `tendered`.
+    /// The quote answers it as the cashier types; the sale refuses short cash (422).
+    #[schema(required = true)]
+    pub short_by: Option<i64>,
 }
 
 /// A till sale as booked.

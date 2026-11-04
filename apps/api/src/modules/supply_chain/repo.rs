@@ -12,6 +12,7 @@ pub struct TransferRow {
     pub from_workspace_id: Uuid,
     pub to_workspace_id: Uuid,
     pub partner_name: String,
+    pub partner_display_name: String,
     pub from_lot_code: String,
     pub from_lot_public_code: String,
     pub quantity: Decimal,
@@ -155,6 +156,7 @@ pub async fn rows(
     sqlx::query_as!(
         TransferRow,
         r#"SELECT t.id, t.link_id, t.from_workspace_id, t.to_workspace_id, w.name AS partner_name,
+                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "partner_display_name!",
                   f.code AS from_lot_code, f.public_code AS from_lot_public_code,
                   t.quantity, t.dispatched_at, t.to_lot_id,
                   r.code AS "to_lot_code?", t.received_quantity, t.received_at

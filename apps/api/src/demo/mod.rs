@@ -116,6 +116,13 @@ pub(crate) fn days_ago(days: i64) -> String {
         .to_string()
 }
 
+/// `days_ago` for people to read, e.g. "2 July 2026".
+pub(crate) fn days_ago_read(days: i64) -> String {
+    (chrono::Utc::now() - chrono::Duration::days(days))
+        .format("%-d %B %Y")
+        .to_string()
+}
+
 /// An EAN-13 in the in-store range (prefix 2), so it can't collide with a real product.
 pub(crate) fn ean13(n: u64) -> String {
     let body = format!("2{:011}", n % 100_000_000_000);
@@ -275,7 +282,9 @@ pub async fn run(state: AppState, allowed: bool) -> Result<Seeded, AppError> {
         .parse()
         .map_err(|_| AppError::Internal("demo seed: shop workspace id".into()))?;
     sqlx::query!(
-        "UPDATE workspaces SET meta = coalesce(meta, '{}'::jsonb) || '{\"demo\": true}'::jsonb WHERE id = $1",
+        "UPDATE workspaces SET meta = coalesce(meta, '{}'::jsonb) || '{\"demo\": true}'::jsonb,
+                profile = coalesce(profile, '{}'::jsonb) || '{\"company_name\": \"AFM Shop\"}'::jsonb
+         WHERE id = $1",
         a_id
     )
     .execute(&state.db)

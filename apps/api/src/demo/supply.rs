@@ -67,7 +67,7 @@ pub async fn seed(
     let raw = api
         .post(
             &ws_r("/products"),
-            json!({ "name": "Coffee cherries (raw)", "price": "1" }),
+            json!({ "name": "Coffee cherries (raw)", "price": "1", "unit": "kg" }),
             &r.owner,
         )
         .await?;
@@ -81,7 +81,7 @@ pub async fn seed(
     for (name, price) in [("Maize grain, bulk", "0.40"), ("Beans, bulk", "1.10")] {
         api.post(
             &ws_r("/products"),
-            json!({ "name": name, "price": price }),
+            json!({ "name": name, "price": price, "unit": "kg" }),
             &r.owner,
         )
         .await?;
@@ -120,7 +120,6 @@ pub async fn seed(
             _ => 0,
         };
         let harvests = &harvests[..harvests.len() - keep];
-        let kg: i64 = harvests.iter().map(|(_, kg)| kg).sum();
         let lines: Vec<_> = harvests
             .iter()
             .map(|(h, kg)| json!({ "harvest_report_id": h, "kg": kg.to_string() }))
@@ -138,12 +137,7 @@ pub async fn seed(
             .as_str()
             .ok_or_else(|| AppError::Internal("demo seed: no raw lot".into()))?
             .to_owned();
-        api.post(
-            &ws_r(&format!("/lots/{raw_lot}/stock-mutations")),
-            json!({ "warehouse_id": r_store, "quantity": kg.to_string(), "reason": "received" }),
-            &r.owner,
-        )
-        .await?;
+        // Buying stocked the raw lot at the default store (`r_store`) already.
         let packed = api
             .post(
                 &ws_r(&format!("/lots/{raw_lot}/packings")),

@@ -23,7 +23,7 @@ Links this workspace granted (`direction: "outgoing"`) or received (`"incoming"`
 - `status`: only `pending`, `live` or `revoked` links. `direction`: only `outgoing` or `incoming`. Blank = no filter; any other value is a 422 on that field.
 - `meta.total` counts the filtered list, so `?status=pending&direction=incoming` gives the "links waiting for you" count.
 
-Link: `{id, direction, partner: {id, name}, fields, status, granted_at, accepted_at, revoked_at}`. `status` is `pending`, `live` or `revoked`.
+Link: `{id, direction, partner: {id, name, display_name}, fields, status, granted_at, accepted_at, revoked_at}`. `partner.name` is the workspace slug; `display_name` is its profile `company_name`, or the slug when it has none. `status` is `pending`, `live` or `revoked`.
 
 ## `POST …/supply-links/{link}/accept`
 
