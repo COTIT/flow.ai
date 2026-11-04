@@ -38,13 +38,7 @@ const settings = [
 
 for (const { path, api: list } of settings)
   test.describe(`a member opens ${path}`, () => {
-    test.use({
-      allow: {
-        responses: [{ url: `/v1/workspace/${WS}/${list}?page=1`, status: 403 }],
-      },
-    })
-
-    test("sees the API's refusal and a retry, no rows", async ({
+    test("is told they have no access; the list is never asked for, no rows", async ({
       page,
       api,
     }) => {
@@ -53,16 +47,9 @@ for (const { path, api: list } of settings)
         .on("GET", "/workspace/:ws/users/teams", () => paged([]))
         .on("GET", `/workspace/:ws/${list}`, () => refused)
       await page.goto(path)
-      // The list query retries a refusal with backoff (about 7 s) before it shows.
-      await expect(
-        page
-          .getByRole("alert")
-          .filter({ hasText: "This action is unauthorized." })
-      ).toBeVisible({ timeout: 15_000 })
-      await expect(
-        page.getByRole("button", { name: "Try again" })
-      ).toBeVisible()
+      await expect(page.getByText("You don't have access to this")).toBeVisible()
       await expect(page.getByRole("row")).toHaveCount(0)
+      expect(api.callsTo("GET", `/workspace/:ws/${list}`)).toHaveLength(0)
     })
   })
 
@@ -335,11 +322,22 @@ guarded("the chosen account survives a reload", async ({ page }) => {
   await expect(page.getByText("Honey of the first account")).toHaveCount(0)
 })
 
-test("rights follow the account: owner of the first, nothing in the second", async ({
+test("rights follow the account: owner of the first, read-only in the second", async ({
   page,
   api,
 }) => {
   perWorkspace(api)
+  api.on("GET", "/me", () => ({
+    data: {
+      user: {
+        ...me,
+        permissions: [
+          { workspace: WS, permissions: ["workspace_owner"] },
+          { workspace: WS2, permissions: ["product.list"] },
+        ],
+      },
+    },
+  }))
   await page.goto("/products")
   await expect(page.getByRole("button", { name: "New product" })).toBeEnabled()
   await openMenu(page)

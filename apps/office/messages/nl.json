@@ -577,6 +577,8 @@
     "capped": "De eerste {shown} van {total} worden getoond. Zoeken kan hier nog niet.",
     "pageNotFound": "Deze pagina bestaat niet",
     "goHome": "Naar het overzicht",
+    "noAccess": "Je hebt hier geen toegang toe",
+    "noAccessText": "Vraag een beheerder van dit account om toegang.",
     "crashed": "Er ging iets mis op deze pagina.",
     "crashedText": "Probeer het opnieuw. Blijft het gebeuren, vertel ons wat je deed."
   },

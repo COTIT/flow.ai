@@ -577,6 +577,8 @@
     "capped": "Showing the first {shown} of {total}. Search is not available here yet.",
     "pageNotFound": "This page does not exist",
     "goHome": "Go to the overview",
+    "noAccess": "You don't have access to this",
+    "noAccessText": "Ask an admin of this account to give you access.",
     "crashed": "Something went wrong on this page.",
     "crashedText": "Try again. If it keeps happening, tell us what you were doing."
   },

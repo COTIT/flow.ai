@@ -287,6 +287,8 @@ test.describe(() => {
     stockApi(api)
     await page.goto("/products/prod-honey")
     await page.getByRole("button", { name: "Change stock" }).click()
+    // The form sends to a warehouse: wait until they are read.
+    await expect(page.getByRole("dialog").getByLabel("Warehouse")).toHaveValue("wh-1")
     await page
       .getByRole("dialog")
       .getByLabel("Change (e.g. 10 or -3)")
@@ -394,6 +396,7 @@ const productWrites = [
       const dialog = page.getByRole("dialog")
       if (!(await dialog.isVisible()))
         await page.getByRole("button", { name: "Change stock" }).click()
+      await expect(dialog.getByLabel("Warehouse")).toHaveValue("wh-1")
       await dialog.getByLabel("Change (e.g. 10 or -3)").fill("10")
       await dialog.getByRole("button", { name: "Save" }).click()
     },

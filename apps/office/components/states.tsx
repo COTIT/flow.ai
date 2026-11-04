@@ -56,6 +56,25 @@ export function LoadError({
   )
 }
 
+/** A page the member's rights do not cover, opened by its address: said plainly, with a way home. */
+export function NoAccess() {
+  const t = useTranslations("states")
+  return (
+    <EmptyState
+      title={t("noAccess")}
+      description={t("noAccessText")}
+      action={
+        <Link
+          className="text-sm font-medium underline-offset-4 hover:underline"
+          href="/"
+        >
+          {t("goHome")}
+        </Link>
+      }
+    />
+  )
+}
+
 /** A picker that only holds the first page of a long list says so. */
 export function Capped({
   meta,

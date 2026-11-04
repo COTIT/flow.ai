@@ -577,6 +577,8 @@
     "capped": "Zinaonyeshwa {shown} za kwanza kati ya {total}. Kutafuta bado hakupo hapa.",
     "pageNotFound": "Ukurasa huu haupo",
     "goHome": "Nenda kwenye muhtasari",
+    "noAccess": "Huna ruhusa ya kuona hili",
+    "noAccessText": "Muombe msimamizi wa akaunti hii akupe ruhusa.",
     "crashed": "Kuna tatizo kwenye ukurasa huu.",
     "crashedText": "Jaribu tena. Likiendelea, tuambie ulichokuwa ukifanya."
   },
