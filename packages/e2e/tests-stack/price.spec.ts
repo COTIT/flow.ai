@@ -14,10 +14,7 @@ async function tillTile(page: Page, name: string) {
 }
 
 test("an office price edit reaches the shop's product page and the till's tile", async ({ page, request }) => {
-  test.fail(
-    true,
-    "default variant keeps a stale price copy; product price edit not inherited (price-inherit fix in progress, session api-gaps)"
-  )
+  test.setTimeout(150_000)
   // A product of the test's own (data rule 1), on sale in the till's store and the web warehouse.
   const { owner, register } = await pairTill(page, request)
   const name = `e2e price ${unique()}`
@@ -46,8 +43,10 @@ test("an office price edit reaches the shop's product page and the till's tile",
   await page.getByRole("button", { name: "Save changes" }).click()
   await expect(page.getByText("Product saved.")).toBeVisible()
 
-  // After: 5.35 in the shop and on the till.
-  await page.goto(`${urls.shop}/products/${id}`)
-  await expect(page.getByRole("main")).toContainText("5.35")
+  // After: 5.35 in the shop (it keeps catalogue replies up to 60 s, so within about a minute) and on the till.
+  await expect(async () => {
+    await page.goto(`${urls.shop}/products/${id}`)
+    await expect(page.getByRole("main")).toContainText("5.35", { timeout: 1_000 })
+  }).toPass({ intervals: [5_000], timeout: 90_000 })
   await expect(await tillTile(page, name)).toContainText("5.35")
 })

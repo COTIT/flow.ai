@@ -5,10 +5,6 @@ test("an office price edit reaches an open sale screen on its next minute's sync
   page,
   request,
 }) => {
-  test.fail(
-    true,
-    "default variant keeps a stale price copy; product price edit not inherited (price-inherit fix, session api-gaps)"
-  )
   const { owner, register } = await pairTill(page, request)
   const product = await ownProduct(owner, register, "refresh")
   // The minute's refresh runs on the page's clock; no reload, as a till stays open all day.
