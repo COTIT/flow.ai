@@ -135,3 +135,22 @@ export const batchMade: MockReply = {
   status: 201,
   body: { data: { ...(batches.body as { data: Record<string, unknown>[] }).data[0], id: "b2", lot: { id: "lot2", code: "ILU-C-01", public_code: "QWERTYUP23" } } },
 }
+
+/** GET .../farm/supply-batches/options with nothing left to buy (all bought, or none verified). */
+export const nothingToBuy: MockReply = {
+  body: { data: { harvests: [], raw_products: [rawProduct("p9", "Raw Coffee", true)], can_create_product: true } },
+}
+
+/** POST .../farm/supply-batches refusals, worded as the API words them (farm_supply/service.rs). */
+export const batchInvalid: MockReply = {
+  status: 422,
+  body: {
+    message: "The given data was invalid.",
+    errors: {
+      code: ["The code has already been taken."],
+      price_per_kg: ["The price per kg must be at least 1."],
+      "lines.0.harvest_report_id": ["The harvest report must be the current, verified actual figure of this village and crop."],
+    },
+  },
+}
+export const ownVerification: MockReply = { status: 403, body: { message: "A harvest you verified must be bought by someone else." } }

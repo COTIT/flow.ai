@@ -107,6 +107,9 @@ export const myVouchers = page([myVoucher])
 /** The same voucher after ops voided it: vouchers/mine carries their reason. */
 export const voidedVouchers = page([{ ...myVoucher, status: "void", void_reason: "Duplicate household" }])
 
+/** The same voucher past its expiry, never collected: still `issued`, with the API's `expired` flag. */
+export const expiredVouchers = page([{ ...myVoucher, expired: true, expires_at: "2026-10-21T08:00:00Z" }])
+
 /** POST .../responses: 201 the first time, 200 with replayed:true for the same client_ref. */
 export const submitted = (replayed: boolean) => ({
   data: { response_id: "r1", voucher_id: VOUCHER, code: CODE, amount: REWARD, expires_at: "2026-11-29T08:00:00Z", replayed },

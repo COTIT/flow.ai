@@ -39,3 +39,5 @@ export const fourEyes: MockReply = {
   status: 403,
   body: { message: "you registered this household, so another staff member must pay this farmer" },
 }
+export const overLimit: MockReply = { status: 403, body: { message: "this payout is above the officer limit: ops or admin must pay it" } }
+export const unavailable: MockReply = { status: 503, body: { message: "service unavailable" } }
