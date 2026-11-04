@@ -8,6 +8,7 @@ import {
   unique,
   urls,
 } from "../src/stack"
+import { test as refused } from "./accounts/refusals"
 import { tillApi } from "./till"
 
 type Register = { id: string; warehouse_id: string; currency_id: string }
@@ -112,44 +113,39 @@ test.describe("wrong PINs", () => {
 })
 
 test.describe("device key replaced in the office", () => {
-  test.use({
-    allow: {
-      ...stackAllow,
-      responses: [
-        ...stackAllow.responses,
-        { url: tillApi("/logout"), status: 401 },
-        { url: tillApi("/login/users"), status: 401 },
-      ],
-    },
-  })
+  // Once the key is replaced, every till call answers 401 (catalog pages mid-sync, the shift,
+  // /me, the user list), in an order that depends on timing: allow 401 on the whole till API.
+  refused.use({ refused: { prefix: tillApi(""), statuses: [401] } })
 
-  test("the till says it was disconnected and pairs again with a new code", async ({
-    page,
-    request,
-  }) => {
-    const { owner, register } = await pairTill(page, request)
-    await owner.post(owner.ws(`/till/registers/${register.id}/key`))
-    await page.getByRole("button", { name: "Lock", exact: true }).click()
-    await expect(
-      page.getByRole("alert").filter({
-        hasText:
-          "This till was disconnected or paired elsewhere. Pair it again with a new code from the office.",
-      })
-    ).toBeVisible()
-    await page.getByRole("button", { name: "Pair again" }).click()
-    await expect(page).toHaveURL(`${urls.till}/setup`)
+  refused(
+    "the till says it was disconnected and pairs again with a new code",
+    async ({ page, request }) => {
+      const { owner, register } = await pairTill(page, request)
+      await owner.post(owner.ws(`/till/registers/${register.id}/key`))
+      // The next call with the old key ends the session; a reload makes that call now.
+      await page.reload()
+      await expect(page).toHaveURL(`${urls.till}/login`)
+      await expect(
+        page.getByRole("alert").filter({
+          hasText:
+            "This till was disconnected or paired elsewhere. Pair it again with a new code from the office.",
+        })
+      ).toBeVisible()
+      await page.getByRole("button", { name: "Pair again" }).click()
+      await expect(page).toHaveURL(`${urls.till}/setup`)
 
-    const pairing = await owner.post<{ code: string; workspace: string }>(
-      owner.ws(`/till/registers/${register.id}/pairing`)
-    )
-    await page.getByLabel("Account").fill(pairing.workspace)
-    await page.getByLabel("Pairing code").fill(pairing.code)
-    await page.getByRole("button", { name: "Pair this till" }).click()
-    await expect(page).toHaveURL(`${urls.till}/login`)
-    await expect(
-      page.getByRole("button", {
-        name: cred("till (AFM)", "cashier PIN").login,
-      })
-    ).toBeVisible()
-  })
+      const pairing = await owner.post<{ code: string; workspace: string }>(
+        owner.ws(`/till/registers/${register.id}/pairing`)
+      )
+      await page.getByLabel("Account").fill(pairing.workspace)
+      await page.getByLabel("Pairing code").fill(pairing.code)
+      await page.getByRole("button", { name: "Pair this till" }).click()
+      await expect(page).toHaveURL(`${urls.till}/login`)
+      await expect(
+        page.getByRole("button", {
+          name: cred("till (AFM)", "cashier PIN").login,
+        })
+      ).toBeVisible()
+    }
+  )
 })

@@ -227,3 +227,36 @@ function serveDown(api: FakeApi) {
     body: { message: "The server is busy, please try again." },
   }))
 }
+
+test.describe("session ends during a sync", () => {
+  test.use({
+    allow: {
+      responses: [
+        {
+          url: "/v1/workspace/w1/till/catalog?page=2&page_size=100",
+          status: 401,
+        },
+      ],
+    },
+  })
+
+  test("a 401 on a later catalog page returns to the PIN screen and says why", async ({
+    page,
+    api,
+  }) => {
+    // Page 1 answers, then the device key or session dies before page 2.
+    api.on("GET", "/workspace/:ws/till/catalog", ({ query }) =>
+      query.get("page") === "2"
+        ? { status: 401, body: { message: "Unauthenticated." } }
+        : catalogPage([honey, wax], 1, 1)
+    )
+    await seedTill(page)
+    await page.goto("/sale")
+    await expect(page).toHaveURL("/login")
+    await expect(
+      page
+        .getByRole("status")
+        .filter({ hasText: "Your session ended. Log in again to continue." })
+    ).toBeVisible()
+  })
+})
