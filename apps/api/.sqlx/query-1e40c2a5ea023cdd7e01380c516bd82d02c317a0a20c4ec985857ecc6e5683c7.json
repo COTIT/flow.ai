@@ -1,0 +1,69 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id AS \"id!\", farmer_name AS \"farmer_name!\", plot_label AS \"plot_label!\",\n                  quantity_kg AS \"quantity_kg!\", committed_kg AS \"committed_kg!\"\n           FROM (SELECT h.id, concat_ws(' ', mp.given_name, mp.family_name) AS farmer_name,\n                        pl.label AS plot_label, h.quantity_kg,\n                        farm_harvest_committed_kg(h.id) AS committed_kg\n                 FROM farm_harvest_reports h\n                 JOIN farm_crop_cycles c ON c.workspace_id = h.workspace_id AND c.id = h.crop_cycle_id\n                 JOIN farm_plots pl ON pl.workspace_id = c.workspace_id AND pl.id = c.plot_id\n                 JOIN farm_managers m ON m.farm_id = pl.farm_id AND m.is_primary\n                 JOIN farm_persons mp ON mp.id = m.person_id\n                 WHERE h.workspace_id = $1 AND h.village_id = $2 AND c.crop_id = $3\n                   AND h.kind = 'actual' AND h.is_current AND h.deleted_at IS NULL\n                   AND h.verification = 'verified' AND h.verified_by IS DISTINCT FROM $4) b\n           WHERE committed_kg < quantity_kg\n           ORDER BY farmer_name, id\n           LIMIT 500",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "farmer_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "plot_label!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_plots",
+            "name": "label"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "quantity_kg!",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "farm_harvest_reports",
+            "name": "quantity_kg"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "committed_kg!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "1e40c2a5ea023cdd7e01380c516bd82d02c317a0a20c4ec985857ecc6e5683c7"
+}

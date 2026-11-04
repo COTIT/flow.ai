@@ -35,6 +35,27 @@ Each line's harvest report must be the **current, verified, actual** figure of a
 
 `201 {"data": Batch}`.
 
+## `GET …/farm/supply-batches/options?village_id&crop_id`
+
+ops or admin only (`403` otherwise). What a new batch of one village and crop can be made of, so a form offers only what create accepts.
+
+- `village_id`, `crop_id`: required uuids of this workspace. Missing, malformed or unknown is `422` on the field (`The selected village id is invalid.`).
+- `harvests`: the current, verified, actual harvests of that village and crop that have a primary manager, have kg left (`farm_harvest_committed_kg` below `quantity_kg`), and were not verified by the caller (four eyes). Each `{harvest_report_id, farmer_name, plot_label, quantity_kg, committed_kg, available_kg}`, by farmer name. At most 500.
+- `raw_products`: the workspace's live stock-tracked products (`physical` or `physical_second_chance` with `has_stock`), `{id, name, unit, suggested_for_crop}`. Suggestions first, then by name. At most 500. `suggested_for_crop` is a hint: an earlier batch of this crop used the product, or its name contains the crop's English or Swahili name (any case). Create accepts any stock-tracked product.
+- `can_create_product`: the caller may add a raw product with the route below (ops and admin, so `true` for everyone this route answers).
+
+`200 {"data": {"harvests": [...], "raw_products": [...], "can_create_product": false}}`.
+
+## `POST …/farm/supply-batches/raw-product`
+
+ops or admin only (`403` otherwise). No `product.create` needed: this makes only raw materials. Owners and admins still manage every product in Office.
+
+`{"name": "Raw coffee"}`. `name` is required, trimmed, at most 255 characters (`422` on `name`).
+
+It goes through the products service like `POST /products` (numbering, default variant, price history) with fixed fields: `type` physical, `has_stock` true, `unit` kg, net `price` 0, `status` disabled, and the workspace's default VAT group and currency. `disabled` keeps it out of every sale channel: the storefront, the till catalogue and web checkout sell only `active` products. Batches, lots, stock and transfers don't look at status, so it works as a raw lot's product. To sell it after all, an owner sets it active in Office.
+
+`201 {"data": {"id", "name", "unit": "kg"}}`. The id is a valid `raw_product_id` at once.
+
 ## `GET …/farm/supply-batches?page&page_size`, `GET …/farm/supply-batches/{batch}`
 
 Staff only (farmers `403`). Field officers see their villages' batches; ops and admin see all. Lists are newest first. Another village's or workspace's batch is `404`.

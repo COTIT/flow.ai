@@ -345,3 +345,94 @@ mod tests {
         );
     }
 }
+
+/// GET options query: the village and crop a new batch is for.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct OptionsQuery {
+    /// Required.
+    #[param(value_type = Option<Uuid>)]
+    pub village_id: Option<String>,
+    /// Required.
+    #[param(value_type = Option<Uuid>)]
+    pub crop_id: Option<String>,
+}
+
+impl OptionsQuery {
+    /// (village, crop); 422 when either is missing or not a uuid.
+    pub fn ids(&self) -> Result<(Uuid, Uuid), crate::error::AppError> {
+        let mut r = Rules::default();
+        let village = uuid(&mut r, "village_id", self.village_id.clone());
+        let crop = uuid(&mut r, "crop_id", self.crop_id.clone());
+        r.into_result()?;
+        Ok((village, crop))
+    }
+}
+
+/// What a new batch of one village and crop can be made of.
+#[derive(Serialize, ToSchema)]
+#[schema(description = "Harvests a new batch may buy and the products its raw lot may be.")]
+pub struct OptionsResource {
+    /// Current, verified, actual harvests of the village and crop with kg left, the caller verified none of.
+    pub harvests: Vec<BuyableHarvest>,
+    /// Stock-tracked products, suggestions for the crop first, then by name.
+    pub raw_products: Vec<RawProduct>,
+    /// The caller may add a raw product here (`POST …/supply-batches/raw-product`): ops and admin.
+    pub can_create_product: bool,
+}
+
+/// One harvest a batch line may buy.
+#[derive(Serialize, ToSchema)]
+pub struct BuyableHarvest {
+    pub harvest_report_id: Uuid,
+    /// Primary manager of the harvest's farm (the farmer a batch credits).
+    pub farmer_name: String,
+    pub plot_label: String,
+    #[schema(example = "300.00")]
+    pub quantity_kg: String,
+    /// Kg already in batches and opportunities.
+    #[schema(example = "100.00")]
+    pub committed_kg: String,
+    #[schema(example = "200.00")]
+    pub available_kg: String,
+}
+
+/// A product a raw lot may be of.
+#[derive(Serialize, ToSchema)]
+pub struct RawProduct {
+    pub id: Uuid,
+    pub name: String,
+    #[schema(example = "kg")]
+    pub unit: Option<String>,
+    /// Hint only: an earlier batch of this crop used it, or its name holds the crop's name.
+    /// Batch create accepts any stock-tracked product.
+    pub suggested_for_crop: bool,
+}
+
+/// POST /farm/supply-batches/raw-product.
+#[derive(Deserialize, ToSchema)]
+#[schema(
+    description = "A raw material for supply batches: stock-tracked, kg, net price 0, off the shop."
+)]
+pub struct RawProductRequest {
+    /// Required, at most 255 characters.
+    #[schema(value_type = String, example = "Raw coffee")]
+    name: Option<Value>,
+}
+
+impl Validate for RawProductRequest {
+    type Valid = crate::modules::products::dto::Fields;
+
+    fn validate(self, r: &mut Rules) -> Option<Self::Valid> {
+        crate::modules::products::dto::CreateProductRequest::raw_material(self.name).validate(r)
+    }
+}
+
+/// The raw product just made; its `id` is a valid `raw_product_id`.
+#[derive(Serialize, ToSchema)]
+pub struct RawProductCreated {
+    pub id: Uuid,
+    pub name: String,
+    #[schema(example = "kg")]
+    pub unit: Option<String>,
+}

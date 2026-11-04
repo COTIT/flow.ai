@@ -544,3 +544,85 @@ pub async fn returned_so_far(
         lines.into_iter().map(|l| (l.person_id, l.amount)).collect(),
     ))
 }
+
+/// A harvest a new batch may buy.
+pub struct BuyableRow {
+    pub id: Uuid,
+    pub farmer_name: String,
+    pub plot_label: String,
+    pub quantity_kg: Decimal,
+    pub committed_kg: Decimal,
+}
+
+/// Current, verified, actual harvests of `village` and `crop` with a primary manager and kg
+/// left, none verified by `buyer`: the lines batch create accepts. At most `LINES_MAX` rows.
+pub async fn buyable(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    village_id: Uuid,
+    crop_id: Uuid,
+    buyer: Uuid,
+) -> Result<Vec<BuyableRow>, sqlx::Error> {
+    sqlx::query_as!(
+        BuyableRow,
+        r#"SELECT id AS "id!", farmer_name AS "farmer_name!", plot_label AS "plot_label!",
+                  quantity_kg AS "quantity_kg!", committed_kg AS "committed_kg!"
+           FROM (SELECT h.id, concat_ws(' ', mp.given_name, mp.family_name) AS farmer_name,
+                        pl.label AS plot_label, h.quantity_kg,
+                        farm_harvest_committed_kg(h.id) AS committed_kg
+                 FROM farm_harvest_reports h
+                 JOIN farm_crop_cycles c ON c.workspace_id = h.workspace_id AND c.id = h.crop_cycle_id
+                 JOIN farm_plots pl ON pl.workspace_id = c.workspace_id AND pl.id = c.plot_id
+                 JOIN farm_managers m ON m.farm_id = pl.farm_id AND m.is_primary
+                 JOIN farm_persons mp ON mp.id = m.person_id
+                 WHERE h.workspace_id = $1 AND h.village_id = $2 AND c.crop_id = $3
+                   AND h.kind = 'actual' AND h.is_current AND h.deleted_at IS NULL
+                   AND h.verification = 'verified' AND h.verified_by IS DISTINCT FROM $4) b
+           WHERE committed_kg < quantity_kg
+           ORDER BY farmer_name, id
+           LIMIT 500"#,
+        workspace_id,
+        village_id,
+        crop_id,
+        buyer,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// A stock-tracked product, flagged when it suits the crop.
+pub struct RawProductRow {
+    pub id: Uuid,
+    pub name: String,
+    pub unit: Option<String>,
+    pub suggested: bool,
+}
+
+/// The workspace's live stock-tracked products (what `tracks_stock` accepts), suggestions for
+/// `crop_id` first: used by an earlier batch of the crop, or named after it (en or sw, any case).
+pub async fn raw_products(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    crop_id: Uuid,
+) -> Result<Vec<RawProductRow>, sqlx::Error> {
+    // shortcut: capped at 500 rows, no search; add `q` when a workspace stocks more.
+    sqlx::query_as!(
+        RawProductRow,
+        r#"SELECT p.id, p.name, p.unit,
+                  (EXISTS (SELECT 1 FROM farm_supply_batches b
+                           JOIN lots l ON l.workspace_id = b.workspace_id AND l.id = b.lot_id
+                           WHERE b.workspace_id = $1 AND b.crop_id = $2 AND l.product_id = p.id)
+                   OR strpos(lower(p.name), lower(c.name_en)) > 0
+                   OR strpos(lower(p.name), lower(c.name_sw)) > 0) AS "suggested!"
+           FROM products p
+           LEFT JOIN farm_crops c ON c.workspace_id = p.workspace_id AND c.id = $2
+           WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.has_stock
+             AND p.type IN ('physical', 'physical_second_chance')
+           ORDER BY 4 DESC, lower(p.name), p.id
+           LIMIT 500"#,
+        workspace_id,
+        crop_id,
+    )
+    .fetch_all(db)
+    .await
+}

@@ -85,3 +85,39 @@ export const unavailable = { message: "service unavailable" }
 
 /** The API's refusal when the shop revoked the link after the screen loaded (supply-chain.md). */
 export const notLive = { message: "The supply link is not live." }
+
+const stamps = { created_at: "2026-10-01T00:00:00Z", updated_at: "2026-10-01T00:00:00Z" }
+
+/** GET .../farm/crops (the buy card's crop picker). */
+export const crops = list([{ id: "crop1", code: "COFFEE", name_en: "Coffee", name_sw: "Kahawa", measured_by: "area", is_active: true, ...stamps }])
+
+/** GET /workspace/w1/currencies: TZS is the default. */
+export const currencies = list([
+  { id: "tzs", name: "Tanzanian shilling", asset_type: "tzs", symbol_prefix: null, symbol_suffix: "TZS", decimals: 2, default_currency: true, active: true, meta: null, created_at: "2026-09-01T00:00:00Z", last_updated_at: "2026-09-01T00:00:00Z" },
+])
+
+const rawProduct = (id: string, name: string, suggested: boolean) => ({ id, name, unit: "kg", suggested_for_crop: suggested })
+
+/** GET .../farm/supply-batches/options: one harvest to buy; `raw` picks the products and the right. */
+export const batchOptions = (raw: { products: unknown[]; canCreate: boolean }): MockReply => ({
+  body: {
+    data: {
+      harvests: [
+        { harvest_report_id: "h1", farmer_name: "Neema Mwakalinga", plot_label: "Shamba A", quantity_kg: "300.00", committed_kg: "100.00", available_kg: "200.00" },
+      ],
+      raw_products: raw.products,
+      can_create_product: raw.canCreate,
+    },
+  },
+})
+export const honeyJar = rawProduct("p1", "Honey jar", false)
+export const rawCoffee = rawProduct("p9", "Raw Coffee", true)
+
+/** POST .../farm/supply-batches/raw-product reply. */
+export const rawProductMade: MockReply = { status: 201, body: { data: { id: "p9", name: "Raw Coffee", unit: "kg" } } }
+
+/** POST .../farm/supply-batches reply. */
+export const batchMade: MockReply = {
+  status: 201,
+  body: { data: { ...(batches.body as { data: Record<string, unknown>[] }).data[0], id: "b2", lot: { id: "lot2", code: "ILU-C-01", public_code: "QWERTYUP23" } } },
+}

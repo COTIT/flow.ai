@@ -15,6 +15,9 @@ vi.mock('@/features/ops/supply/useSupply', () => ({
   useDispatch: () => dispatch,
 }))
 
+// The buy card has its own tests.
+vi.mock('@/features/ops/supply/BuyHarvestCard', () => ({ BuyHarvestCard: () => null }))
+
 const { DispatchScreen } = await import('@/features/ops/supply/DispatchScreen')
 
 const link = (id: string, status: string, name: string) => ({

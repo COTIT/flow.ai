@@ -27,9 +27,13 @@ import type {
 import type {
   CreateBatchRequest,
   EnvelopeBatchResource,
+  EnvelopeOptionsResource,
+  EnvelopeRawProductCreated,
   FarmSupplyListParams,
+  FarmSupplyOptionsParams,
   MessageBody,
   PaginatedBatchResource,
+  RawProductRequest,
   ValidationErrorBody
 } from '../model';
 
@@ -225,6 +229,176 @@ export const useFarmSupplyCreate = <TError = ErrorType<MessageBody | ValidationE
         TContext
       > => {
       return useMutation(getFarmSupplyCreateMutationOptions(options), queryClient);
+    }
+    /**
+ * ops or admin. For one village and crop: the harvests a batch would accept as lines (current, verified, actual, kg left, a primary manager, not verified by the caller), the workspace's stock-tracked products with `suggested_for_crop` (a hint; create accepts any of them), and `can_create_product`.
+ * @summary What a new batch can buy
+ */
+export const farmSupplyOptions = (
+    workspace: string,
+    params?: FarmSupplyOptionsParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeOptionsResource>(
+      {url: `/workspace/${workspace}/farm/supply-batches/options`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyOptionsQueryKey = (workspace: string,
+    params?: FarmSupplyOptionsParams,) => {
+    return [
+    `/workspace/${workspace}/farm/supply-batches/options`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getFarmSupplyOptionsQueryOptions = <TData = Awaited<ReturnType<typeof farmSupplyOptions>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: FarmSupplyOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyOptions>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmSupplyOptionsQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmSupplyOptions>>> = ({ signal }) => farmSupplyOptions(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmSupplyOptions>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmSupplyOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof farmSupplyOptions>>>
+export type FarmSupplyOptionsQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useFarmSupplyOptions<TData = Awaited<ReturnType<typeof farmSupplyOptions>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  FarmSupplyOptionsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyOptions>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyOptions>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyOptions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyOptions<TData = Awaited<ReturnType<typeof farmSupplyOptions>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyOptions>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmSupplyOptions>>,
+          TError,
+          Awaited<ReturnType<typeof farmSupplyOptions>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmSupplyOptions<TData = Awaited<ReturnType<typeof farmSupplyOptions>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyOptions>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary What a new batch can buy
+ */
+
+export function useFarmSupplyOptions<TData = Awaited<ReturnType<typeof farmSupplyOptions>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmSupplyOptionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmSupplyOptions>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmSupplyOptionsQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * ops or admin, no `product.create` needed. Makes a physical, stock-tracked product in kg with net price 0, the workspace's default VAT group and status `disabled` (sold nowhere: the storefront and till catalogue list only active products), through the products service. Its id is a valid `raw_product_id`.
+ * @summary Add a raw product for batches
+ */
+export const farmSupplyRawProduct = (
+    workspace: string,
+    rawProductRequest: BodyType<RawProductRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeRawProductCreated>(
+      {url: `/workspace/${workspace}/farm/supply-batches/raw-product`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: rawProductRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmSupplyRawProductMutationKey = () => ['farmSupplyRawProduct'] as const;
+
+export const getFarmSupplyRawProductMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmSupplyRawProduct>>, TError,FarmSupplyRawProductMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof farmSupplyRawProduct>>, TError,FarmSupplyRawProductMutationVariables, TContext> => {
+
+const mutationKey = getFarmSupplyRawProductMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof farmSupplyRawProduct>>, FarmSupplyRawProductMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  farmSupplyRawProduct(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FarmSupplyRawProductMutationResult = NonNullable<Awaited<ReturnType<typeof farmSupplyRawProduct>>>
+    export type FarmSupplyRawProductMutationBody = BodyType<RawProductRequest>
+    export type FarmSupplyRawProductMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type FarmSupplyRawProductMutationVariables = {workspace: string;data: BodyType<RawProductRequest>}
+
+    /**
+ * @summary Add a raw product for batches
+ */
+export const useFarmSupplyRawProduct = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof farmSupplyRawProduct>>, TError,FarmSupplyRawProductMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof farmSupplyRawProduct>>,
+        TError,
+        FarmSupplyRawProductMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFarmSupplyRawProductMutationOptions(options), queryClient);
     }
     /**
  * @summary Get a supply batch
