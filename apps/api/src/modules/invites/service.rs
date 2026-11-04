@@ -41,7 +41,8 @@ pub struct StatusView {
 /// Re-invite rotates the code, so only the newest email works. Returns invite id.
 /// `inviter_is_admin`: owner or `workspace_admin`, needed to invite into a team holding
 /// `workspace_admin` (else a second account of the inviter would join it).
-// shortcut: mail sent inline, not queued; move to a job queue when send latency hurts.
+// shortcut: mail sent inline inside the row's transaction (held up to the SMTP timeout), not
+// queued; move to the job rail when send latency hurts.
 pub async fn send(
     state: &AppState,
     inviter: Uuid,
@@ -75,9 +76,14 @@ pub async fn send(
         return Err(AppError::TooManyRequests);
     }
 
+    // Logged before sending: a failed SMTP attempt still counts, so retry loops stay bounded.
+    repo::record_send(&state.db, inviter).await?;
     let (code, hash) = token::generate()?;
+    // Row and mail in one transaction: if SMTP fails, no invite (or rotated code) is left
+    // that nobody received; a re-invite keeps the code mailed before.
+    let mut tx = state.db.begin().await?;
     let invite_id = repo::upsert_pending(
-        &state.db,
+        &mut *tx,
         &NewInvite {
             workspace_id,
             invited_by_user_id: inviter,
@@ -88,9 +94,6 @@ pub async fn send(
         },
     )
     .await?;
-    // Logged before sending: a failed SMTP attempt still counts, so retry loops stay bounded.
-    repo::record_send(&state.db, inviter).await?;
-    // Row first, mail second: if SMTP fails the owner retries, and the retry rotates the code.
     state
         .mailer
         .send(invite_mail(
@@ -100,6 +103,7 @@ pub async fn send(
             code.expose(),
         ))
         .await?;
+    tx.commit().await?;
     Ok(invite_id)
 }
 

@@ -23,7 +23,7 @@ Requires a Bearer token and the `invite.create` permission (owner and `workspace
 | `404` | unknown, deleted or malformed workspace id, or the caller isn't a member (so outsiders can't tell the workspace exists) |
 | `422` | email invalid, or already a member: `errors.email = ["user already exists in the workspace"]`. `team_id` not a uuid, from another workspace, or deleted: `errors.team_id = ["The team id is an invalid id for the team domain."]` |
 | `429` | `{"message": "Too Many Attempts."}`: caller sent `INVITES_PER_HOUR` invite emails (default 20) in the last hour. Re-sends and failed SMTP attempts count. |
-| `500` | SMTP failed. The invite row exists, and sending again rotates the code. |
+| `500` | SMTP failed. Nothing is saved: a new invite is not made, and a re-invite keeps the code mailed before. Sending again is safe. |
 
 Inviting the same email again while the invite is pending reuses the row and the same `invite_id`, issues a new code, extends the expiry and takes the new `team_id`. The old link stops working, even for a request already in flight with it.
 

@@ -1044,7 +1044,7 @@ export const useTillSalesCreate = <TError = ErrorType<MessageBody | ValidationEr
       return useMutation(getTillSalesCreateMutationOptions(options), queryClient);
     }
     /**
- * Same lines and payment as `POST /till/sales`, priced and rounded by the same code. Writes nothing: no order, stock or drawer change, and no open shift needed.
+ * Same lines and payment as `POST /till/sales`, priced and rounded by the same code. Writes nothing: no order, stock or drawer change, and no open shift needed. Short cash is no error here: `short_by` says how much is missing (the sale refuses it).
  * @summary Price a till basket as a sale would (writes nothing)
  */
 export const tillSalesQuote = (

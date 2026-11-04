@@ -12,7 +12,7 @@ import type { QuoteLine } from './quoteLine';
  */
 export interface QuoteResource {
   /**
-     * tendered − due; null for card or without `tendered`.
+     * tendered − due; null for card, without `tendered`, or when it is short.
      * @nullable
      */
   change: number | null;
@@ -27,6 +27,12 @@ export interface QuoteResource {
   rounding: number;
   /** The same lines at today's catalog prices. */
   server_total: number;
+  /**
+     * due − tendered when the cash is short, else 0; null for card or without `tendered`.
+     * The quote answers it as the cashier types; the sale refuses short cash (422).
+     * @nullable
+     */
+  short_by: number | null;
   /** Excl VAT. */
   subtotal: number;
   /** Incl VAT: the order total. */

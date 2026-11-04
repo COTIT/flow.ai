@@ -249,6 +249,7 @@ impl SupplyTransferResource {
                     t.from_workspace_id
                 },
                 t.partner_name,
+                t.partner_display_name,
             ),
             from_lot: TransferLot {
                 code: t.from_lot_code,

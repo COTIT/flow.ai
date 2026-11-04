@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.id, l.from_workspace_id, l.to_workspace_id, w.id AS partner_id,\n                w.name AS partner_name, l.fields, l.granted_at, l.accepted_at, l.revoked_at\n         FROM supply_links l\n         JOIN workspaces w ON w.id = CASE WHEN l.from_workspace_id = $1\n                                          THEN l.to_workspace_id ELSE l.from_workspace_id END\n         WHERE (l.from_workspace_id = $1 OR l.to_workspace_id = $1)\n           AND ($2::uuid IS NULL OR l.id = $2)\n           AND ($5::text IS NULL OR $5 = CASE WHEN l.revoked_at IS NOT NULL THEN 'revoked'\n                                             WHEN l.accepted_at IS NOT NULL THEN 'live'\n                                             ELSE 'pending' END)\n           AND ($6::text IS NULL OR ($6 = 'outgoing') = (l.from_workspace_id = $1))\n         ORDER BY l.granted_at DESC, l.id DESC LIMIT $3 OFFSET $4",
+  "query": "SELECT l.id, l.from_workspace_id, l.to_workspace_id, w.id AS partner_id,\n                w.name AS partner_name,\n                coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name)\n                    AS \"partner_display_name!\",\n                l.fields, l.granted_at, l.accepted_at, l.revoked_at\n         FROM supply_links l\n         JOIN workspaces w ON w.id = CASE WHEN l.from_workspace_id = $1\n                                          THEN l.to_workspace_id ELSE l.from_workspace_id END\n         WHERE (l.from_workspace_id = $1 OR l.to_workspace_id = $1)\n           AND ($2::uuid IS NULL OR l.id = $2)\n           AND ($5::text IS NULL OR $5 = CASE WHEN l.revoked_at IS NOT NULL THEN 'revoked'\n                                             WHEN l.accepted_at IS NOT NULL THEN 'live'\n                                             ELSE 'pending' END)\n           AND ($6::text IS NULL OR ($6 = 'outgoing') = (l.from_workspace_id = $1))\n         ORDER BY l.granted_at DESC, l.id DESC LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -60,6 +60,12 @@
       },
       {
         "ordinal": 5,
+        "name": "partner_display_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
         "name": "fields",
         "type_info": "TextArray",
         "origin": {
@@ -70,7 +76,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "granted_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -81,7 +87,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "accepted_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -92,7 +98,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "revoked_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -119,11 +125,12 @@
       false,
       false,
       false,
+      null,
       false,
       false,
       true,
       true
     ]
   },
-  "hash": "cd426e85c9b0c87672d1b2fbb77c1be198c370f18a3c1fec6729383d34ac8e83"
+  "hash": "7c66339a1d161d51fba3ead258dd73652186b9b9be6440db16a93020c31cae69"
 }

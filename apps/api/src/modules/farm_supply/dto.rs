@@ -125,6 +125,10 @@ pub struct CreateBatchRequest {
     price_per_kg: Option<Value>,
     #[schema(value_type = Uuid)]
     currency_id: Option<String>,
+    /// Where the bought kg go in (buying is the receipt). Default: the workspace's default
+    /// warehouse; with neither, the raw lot is made empty.
+    #[schema(value_type = Option<Uuid>)]
+    warehouse_id: Option<String>,
     /// 1-500 lines, each harvest once.
     #[schema(value_type = Vec<LineInput>)]
     lines: Option<Value>,
@@ -151,6 +155,8 @@ pub struct NewBatch {
     pub raw_product_id: Uuid,
     pub price_per_kg: i64,
     pub currency_id: Uuid,
+    /// Where the bought kg go in, as sent.
+    pub warehouse_id: Option<Uuid>,
     /// (harvest report, kg), in the order sent (error keys name these indexes).
     pub lines: Vec<(Uuid, Decimal)>,
 }
@@ -164,7 +170,7 @@ impl NewBatch {
             .map(|(h, kg)| json!([h, format!("{kg:.2}")]))
             .collect();
         lines.sort_by(|a, b| a[0].as_str().cmp(&b[0].as_str()));
-        let canonical = json!([
+        let mut canonical = json!([
             self.village_id,
             self.crop_id,
             self.code,
@@ -173,6 +179,10 @@ impl NewBatch {
             self.currency_id,
             lines
         ]);
+        // Only when sent, so bodies without it hash as before.
+        if let (Some(w), Some(all)) = (self.warehouse_id, canonical.as_array_mut()) {
+            all.push(json!(w));
+        }
         Sha256::digest(canonical.to_string()).into()
     }
 }
@@ -268,6 +278,10 @@ impl Validate for CreateBatchRequest {
             raw_product_id: uuid(r, "raw_product_id", self.raw_product_id),
             price_per_kg,
             currency_id: uuid(r, "currency_id", self.currency_id),
+            warehouse_id: self
+                .warehouse_id
+                .filter(|v| !v.trim().is_empty())
+                .map(|v| uuid(r, "warehouse_id", Some(v))),
             lines,
         })
     }

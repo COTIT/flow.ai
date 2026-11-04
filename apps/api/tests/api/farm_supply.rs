@@ -1190,3 +1190,102 @@ async fn options_need_a_village_and_a_crop(pool: PgPool) {
         "The crop_id must be a valid UUID."
     );
 }
+
+/// The kg of stock tracked for `lot`, per warehouse, as `(warehouse id, level)`.
+async fn lot_levels(f: &Farm, lot: &str) -> Vec<(String, String)> {
+    sqlx::query_as(
+        "SELECT warehouse_id::text, stock_lvl::text FROM stocks
+         WHERE lot_id = $1::uuid AND deleted_at IS NULL ORDER BY 1",
+    )
+    .bind(lot)
+    .fetch_all(&f.pool)
+    .await
+    .unwrap()
+}
+
+/// Buying is the receipt: the bought kg land in the raw lot at the farm's store (the
+/// `warehouse_id` sent, else the default warehouse), so it can be dispatched with no extra
+/// step. With no warehouse at all the lot is made empty, as before.
+#[sqlx::test]
+async fn a_bought_batch_stocks_its_raw_lot_at_the_farm_store(pool: PgPool) {
+    let w = world(pool).await;
+    let f = &w.f;
+    let none = actual(f, &w.c.neema.cycles[0], "40").await;
+    let empty = f
+        .batch(
+            "ILU-M-40",
+            &w.c.maize,
+            &w.product,
+            &w.tzs,
+            1,
+            &[(&none, "1")],
+        )
+        .await;
+    let empty_lot = empty["lot"]["id"].as_str().unwrap().to_owned();
+    assert_eq!(
+        lot_levels(f, &empty_lot).await,
+        [],
+        "no warehouse yet: nothing to stock"
+    );
+
+    let (status, res) = f
+        .ws_call(
+            Method::POST,
+            "/warehouses",
+            Some(json!({ "name": "Ilundo store", "default_warehouse": true, "is_store": true })),
+            &f.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let store = res["data"]["warehouse_id"].as_str().unwrap().to_owned();
+    let other = f.warehouse("Mgama shed").await;
+
+    let h = actual(f, &w.baraka.cycles[0], "50").await;
+    let bought = f
+        .batch("ILU-M-41", &w.c.maize, &w.product, &w.tzs, 1, &[(&h, "1")])
+        .await;
+    let lot = bought["lot"]["id"].as_str().unwrap().to_owned();
+    assert_eq!(
+        lot_levels(f, &lot).await,
+        [(store.clone(), "1.00".to_owned())],
+        "1 kg at the store"
+    );
+
+    let (status, res) = f.call(Method::GET, "/dispatch/options", None, &f.ops).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert!(
+        res["data"]["warehouses"].to_string().contains(&store),
+        "dispatchable: {res}"
+    );
+
+    // An explicit warehouse wins over the default; another workspace's is refused.
+    let body = |code: &str, wh: &str, h: &str| {
+        json!({
+        "client_ref": client_ref(), "village_id": f.ilundo, "crop_id": w.c.maize, "code": code,
+        "raw_product_id": w.product, "price_per_kg": 1, "currency_id": w.tzs,
+        "warehouse_id": wh, "lines": [{ "harvest_report_id": h, "kg": "2" }] })
+    };
+    let (status, res) = f
+        .call(
+            Method::POST,
+            "/supply-batches",
+            Some(body("ILU-M-42", &other, &h)),
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let lot = res["data"]["lot"]["id"].as_str().unwrap().to_owned();
+    assert_eq!(lot_levels(f, &lot).await, [(other, "2.00".to_owned())]);
+    let elsewhere = Farm::new_named(f.pool.clone(), "else.test", "elsewhere").await;
+    let theirs = elsewhere.warehouse("Their shed").await;
+    let (status, res) = f
+        .call(
+            Method::POST,
+            "/supply-batches",
+            Some(body("ILU-M-43", &theirs, &h)),
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(res["errors"]["warehouse_id"].is_array(), "{res}");
+}
