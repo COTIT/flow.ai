@@ -50,6 +50,8 @@ export function AddToCart({
   const optionTypes = [
     ...new Set(product.variants.flatMap((v) => v.options.map((o) => o.type))),
   ]
+  // A lone named size still shows, so the buyer knows which one they get.
+  const choose = product.variants.length > 1 || optionTypes.length > 0
 
   return (
     <form
@@ -62,7 +64,7 @@ export function AddToCart({
           quantity,
           name: product.name,
           variantLabel:
-            variant && product.variants.length > 1
+            variant && choose
               ? variantLabel(variant)
               : null,
           priceGross: variant?.price_gross ?? product.price_gross,
@@ -86,7 +88,7 @@ export function AddToCart({
         />
       </div>
 
-      {product.variants.length > 1 ? (
+      {choose ? (
         <div
           role="group"
           aria-labelledby="variant-label"
