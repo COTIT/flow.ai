@@ -42,6 +42,20 @@ export const batches = list([
 
 export const warehouses = list([{ id: "wh1", name: "Iringa store" }])
 
+/** GET /farm/dispatch/options: the live links, batch lots and stocked warehouses ops may send. */
+export const dispatchOptions: MockReply = {
+  body: {
+    data: {
+      links: [{ id: "l1", partner: { id: "w-shop", name: "AFM shop" } }],
+      lots: [{ id: "lot1", code: "ILU-H-2026-01" }],
+      warehouses: [{ id: "wh1", name: "Iringa store" }],
+    },
+  },
+}
+
+/** Farm ops hold no office rights: the office warehouse list answers 403. */
+export const officeOnly: MockReply = { status: 403, body: { message: "This action is unauthorized." } }
+
 /** GET /lots/lot1/stock: per warehouse, 2-decimal text; `available = level - reserved` is the API's. */
 export const lotStock: MockReply = {
   body: { data: [{ warehouse_id: "wh1", level: "40.00", reserved: "5.00", available: "35.00" }] },
