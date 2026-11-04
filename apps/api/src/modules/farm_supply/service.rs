@@ -16,12 +16,15 @@ use crate::{
     modules::{
         currencies::repo as currencies,
         farm_supply::{
-            dto::{BatchResource, NewBatch},
+            dto::{
+                BatchResource, BuyableHarvest, NewBatch, OptionsResource, RawProduct,
+                RawProductCreated,
+            },
             repo::{self, HarvestRow, NewBatchRow},
         },
         farm_villages::repo as villages,
         lots::{repo::LotRow, service as lots},
-        products::repo as products,
+        products::{dto::Fields, repo as products, service as catalog},
         stock::service::tracks_stock,
     },
 };
@@ -345,4 +348,78 @@ pub async fn public_farmers(
         }
     }
     Ok(groups)
+}
+
+/// GET /supply-batches/options: harvests a new batch of `village` and `crop` may buy, the
+/// products its raw lot may be, and whether the caller may add a product. ops or admin.
+pub async fn options(
+    state: &AppState,
+    access: &FarmAccess,
+    village_id: Uuid,
+    crop_id: Uuid,
+) -> Result<OptionsResource, AppError> {
+    if !access.manages() {
+        return Err(AppError::Forbidden(NOT_ALLOWED));
+    }
+    let ws = access.workspace_id;
+    let mut errors = BTreeMap::new();
+    if villages::find(&state.db, ws, village_id).await?.is_none() {
+        errors.insert("village_id".into(), vec![invalid("village_id")]);
+    }
+    if !repo::crop_exists(&state.db, ws, crop_id).await? {
+        errors.insert("crop_id".into(), vec![invalid("crop_id")]);
+    }
+    if !errors.is_empty() {
+        return Err(AppError::Validation(errors));
+    }
+    let harvests = repo::buyable(&state.db, ws, village_id, crop_id, access.user_id).await?;
+    let raw = repo::raw_products(&state.db, ws, crop_id).await?;
+    Ok(OptionsResource {
+        harvests: harvests
+            .into_iter()
+            .map(|h| BuyableHarvest {
+                harvest_report_id: h.id,
+                farmer_name: h.farmer_name,
+                plot_label: h.plot_label,
+                quantity_kg: format!("{:.2}", h.quantity_kg),
+                committed_kg: format!("{:.2}", h.committed_kg),
+                available_kg: format!("{:.2}", h.quantity_kg - h.committed_kg),
+            })
+            .collect(),
+        raw_products: raw
+            .into_iter()
+            .map(|p| RawProduct {
+                id: p.id,
+                name: p.name,
+                unit: p.unit,
+                suggested_for_crop: p.suggested,
+            })
+            .collect(),
+        can_create_product: access.manages(),
+    })
+}
+
+/// POST /supply-batches/raw-product: ops or admin add a raw material through the products
+/// service (numbering, default variant, VAT default), no general `product.create` needed.
+pub async fn create_raw_product(
+    state: &AppState,
+    access: &FarmAccess,
+    fields: Fields,
+) -> Result<RawProductCreated, AppError> {
+    if !access.manages() {
+        return Err(AppError::Forbidden(NOT_ALLOWED));
+    }
+    let actor = catalog::Actor {
+        user_id: access.user_id,
+        flow: "manual",
+    };
+    let id = catalog::create(state, access.workspace_id, fields, actor).await?;
+    let p = products::find(&state.db, access.workspace_id, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(RawProductCreated {
+        id: p.id,
+        name: p.name,
+        unit: p.unit,
+    })
 }

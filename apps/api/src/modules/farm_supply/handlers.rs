@@ -16,7 +16,10 @@ use crate::{
         response::{Data, Envelope, MessageBody},
     },
     modules::farm_supply::{
-        dto::{BatchResource, CreateBatchRequest, ListQuery},
+        dto::{
+            BatchResource, CreateBatchRequest, ListQuery, OptionsQuery, OptionsResource,
+            RawProductCreated, RawProductRequest,
+        },
         service,
     },
 };
@@ -96,4 +99,53 @@ pub async fn get(
     Path((_, id)): Path<(String, String)>,
 ) -> Result<Data<BatchResource>, AppError> {
     Ok(Data(service::get(&state, &access, &id).await?))
+}
+
+/// GET /farm/supply-batches/options -> what a new batch can be made of.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/supply-batches/options", tag = "farm_supply",
+    operation_id = "farm_supply_options", summary = "What a new batch can buy",
+    description = "ops or admin. For one village and crop: the harvests a batch would accept as lines (current, verified, actual, kg left, a primary manager, not verified by the caller), the workspace's stock-tracked products with `suggested_for_crop` (a hint; create accepts any of them), and `can_create_product`.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), OptionsQuery),
+    responses(
+        (status = 200, body = Envelope<OptionsResource>, description = "Harvests, raw products, product-create right"),
+        (status = 403, body = MessageBody, description = "Not ops or admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role and is not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Missing or unknown village or crop"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn options(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Query(query): Query<OptionsQuery>,
+) -> Result<Data<OptionsResource>, AppError> {
+    let (village, crop) = query.ids()?;
+    Ok(Data(
+        service::options(&state, &access, village, crop).await?,
+    ))
+}
+
+/// POST /farm/supply-batches/raw-product -> 201 with the new product.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/farm/supply-batches/raw-product", tag = "farm_supply",
+    operation_id = "farm_supply_raw_product", summary = "Add a raw product for batches",
+    description = "ops or admin, no `product.create` needed. Makes a physical, stock-tracked product in kg with net price 0, the workspace's default VAT group, status active and `store_only` (not on the storefront), through the products service. Its id is a valid `raw_product_id`.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = RawProductRequest,
+    responses(
+        (status = 201, body = Envelope<RawProductCreated>, description = "Created"),
+        (status = 403, body = MessageBody, description = "Not ops or admin"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or caller has no farm role and is not a member"),
+        (status = 422, body = ValidationErrorBody, description = "Missing or too long name"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn raw_product(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    ValidatedJson(fields): ValidatedJson<RawProductRequest>,
+) -> Result<(StatusCode, Data<RawProductCreated>), AppError> {
+    let p = service::create_raw_product(&state, &access, fields).await?;
+    Ok((StatusCode::CREATED, Data(p)))
 }

@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.name, p.unit,\n                  (EXISTS (SELECT 1 FROM farm_supply_batches b\n                           JOIN lots l ON l.workspace_id = b.workspace_id AND l.id = b.lot_id\n                           WHERE b.workspace_id = $1 AND b.crop_id = $2 AND l.product_id = p.id)\n                   OR strpos(lower(p.name), lower(c.name_en)) > 0\n                   OR strpos(lower(p.name), lower(c.name_sw)) > 0) AS \"suggested!\"\n           FROM products p\n           LEFT JOIN farm_crops c ON c.workspace_id = p.workspace_id AND c.id = $2\n           WHERE p.workspace_id = $1 AND p.deleted_at IS NULL AND p.has_stock\n             AND p.type IN ('physical', 'physical_second_chance')\n           ORDER BY 4 DESC, lower(p.name), p.id\n           LIMIT 500",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "unit",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "products",
+            "name": "unit"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "suggested!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "33cebb85c0e188250a4d3a0c7f9346b5db8842a2f7c3a87f9d1ec4362cd2ccdd"
+}

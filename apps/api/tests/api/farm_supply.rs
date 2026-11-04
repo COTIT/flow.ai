@@ -755,3 +755,359 @@ async fn the_public_page_shows_village_count_and_harvest_window_never_names(pool
         "fewer than 3 farmers: no count"
     );
 }
+
+async fn options(w: &World, query: &str, token: &str) -> (StatusCode, Value) {
+    w.f.call(
+        Method::GET,
+        &format!("/supply-batches/options{query}"),
+        None,
+        token,
+    )
+    .await
+}
+
+fn maize_query(w: &World) -> String {
+    format!("?village_id={}&crop_id={}", w.f.ilundo, w.c.maize)
+}
+
+/// Rows of `list` as `(key value, …)` pairs, for order-checking assertions.
+fn column(list: &Value, key: &str) -> Vec<Value> {
+    list.as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r[key].clone())
+        .collect()
+}
+
+#[sqlx::test]
+async fn options_offer_only_lines_the_batch_accepts(pool: PgPool) {
+    let w = world(pool).await;
+    let f = &w.f;
+    let neema = actual(f, &w.c.neema.cycles[0], "300").await;
+    let baraka = actual(f, &w.baraka.cycles[0], "120.5").await;
+    // Joseph's harvest is in Mgama; a fully bought harvest has nothing left.
+    let (_, res) = f
+        .call(
+            Method::POST,
+            &format!("/crop-cycles/{}/harvest-reports", w.c.joseph.cycles[0]),
+            Some(json!({ "kind": "actual", "quantity_kg": "50", "source": "field_verified" })),
+            &f.officer_mga,
+        )
+        .await;
+    f.verify(
+        "harvest-reports",
+        res["data"]["id"].as_str().unwrap(),
+        &f.owner,
+    )
+    .await;
+    f.batch(
+        "ILU-M-20",
+        &w.c.maize,
+        &w.product,
+        &w.tzs,
+        800000,
+        &[(&neema, "100"), (&baraka, "120.50")],
+    )
+    .await;
+    // Unverified actual on Baraka's cycle stays out too.
+    f.call(
+        Method::POST,
+        &format!("/crop-cycles/{}/harvest-reports", w.baraka.cycles[0]),
+        Some(json!({ "kind": "actual", "quantity_kg": "500", "source": "field_verified" })),
+        &f.officer_ilu,
+    )
+    .await;
+
+    let (status, res) = options(&w, &maize_query(&w), &f.ops).await;
+
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let harvests = &res["data"]["harvests"];
+    assert_eq!(
+        column(harvests, "harvest_report_id"),
+        [json!(neema)],
+        "{res}"
+    );
+    let h = &harvests[0];
+    assert_eq!(h["farmer_name"], "Neema Mwakalinga");
+    assert_eq!(h["quantity_kg"], "300.00");
+    assert_eq!(h["committed_kg"], "100.00");
+    assert_eq!(h["available_kg"], "200.00");
+    assert!(h["plot_label"].is_string());
+
+    // Another crop of the same village: nothing to buy.
+    let banana = format!("?village_id={}&crop_id={}", f.ilundo, w.c.banana);
+    let (_, res) = options(&w, &banana, &f.ops).await;
+    assert_eq!(res["data"]["harvests"], json!([]));
+}
+
+#[sqlx::test]
+async fn options_hide_harvests_the_caller_verified(pool: PgPool) {
+    let w = world(pool).await;
+    actual(&w.f, &w.c.neema.cycles[0], "300").await;
+    // The owner verified it: four eyes, so the owner is offered nothing.
+    let (status, res) = options(&w, &maize_query(&w), &w.f.owner).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["harvests"], json!([]));
+    let (_, res) = options(&w, &maize_query(&w), &w.f.ops).await;
+    assert_eq!(res["data"]["harvests"].as_array().unwrap().len(), 1);
+}
+
+#[sqlx::test]
+async fn options_suggest_raw_products_for_the_crop(pool: PgPool) {
+    let w = world(pool).await;
+    let f = &w.f;
+    let ws = f.ws.clone();
+    // Stock-tracked by default; unit kg.
+    let (status, res) = send(
+        &f.app,
+        Method::POST,
+        &format!("/v1/workspace/{ws}/products"),
+        Some(json!({ "name": "Bulk lot A", "price": "0", "unit": "kg" })),
+        Some(&f.owner),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let bulk = res["data"]["product_id"].as_str().unwrap().to_owned();
+    let jar = product(f, &f.owner, &ws, "Honey jar").await;
+    // Not stock-tracked: never a raw product.
+    send(
+        &f.app,
+        Method::POST,
+        &format!("/v1/workspace/{ws}/products"),
+        Some(json!({ "name": "Maize advice", "price": "5", "type": "service" })),
+        Some(&f.owner),
+    )
+    .await;
+    let (status, _) = send(
+        &f.app,
+        Method::POST,
+        &format!("/v1/workspace/{ws}/products"),
+        Some(json!({ "name": "Maize sack untracked", "price": "5", "has_stock": false })),
+        Some(&f.owner),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+    // Bulk lot A becomes a maize raw product by use.
+    let h = actual(f, &w.c.neema.cycles[0], "300").await;
+    f.batch("ILU-M-21", &w.c.maize, &bulk, &w.tzs, 1, &[(&h, "1")])
+        .await;
+    // Another workspace's maize product never shows.
+    let other = Farm::new_named(f.pool.clone(), "else.test", "elsewhere").await;
+    product(&other, &other.owner, &other.ws, "Raw maize theirs").await;
+
+    let (status, res) = options(&w, &maize_query(&w), &f.ops).await;
+
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let raw = &res["data"]["raw_products"];
+    // Suggestions first (by name), then the rest.
+    assert_eq!(
+        column(raw, "name"),
+        [json!("Bulk lot A"), json!("Raw maize"), json!("Honey jar")],
+        "{res}"
+    );
+    assert_eq!(
+        column(raw, "suggested_for_crop"),
+        [json!(true), json!(true), json!(false)]
+    );
+    assert_eq!(column(raw, "id")[2], json!(jar));
+    assert_eq!(raw[0]["unit"], "kg");
+    assert_eq!(raw[1]["unit"], json!(null));
+
+    // Use for maize says nothing about banana.
+    let banana = format!("?village_id={}&crop_id={}", f.ilundo, w.c.banana);
+    let (_, res) = options(&w, &banana, &f.ops).await;
+    assert_eq!(
+        column(&res["data"]["raw_products"], "suggested_for_crop"),
+        [json!(false), json!(false), json!(false)],
+        "{res}"
+    );
+
+    // The Swahili name counts too, in any case.
+    let (status, res) = f
+        .call(
+            Method::POST,
+            "/crops",
+            Some(json!({ "code": "COFFEE", "name_en": "Coffee", "name_sw": "Kahawa", "measured_by": "area" })),
+            &f.ops,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let coffee = res["data"]["id"].as_str().unwrap().to_owned();
+    product(f, &f.owner, &ws, "KAHAWA mbichi").await;
+    let (_, res) = options(
+        &w,
+        &format!("?village_id={}&crop_id={coffee}", f.ilundo),
+        &f.ops,
+    )
+    .await;
+    let raw = &res["data"]["raw_products"];
+    assert_eq!(column(raw, "name")[0], json!("KAHAWA mbichi"), "{res}");
+    assert_eq!(
+        column(raw, "suggested_for_crop"),
+        [json!(true), json!(false), json!(false), json!(false)]
+    );
+}
+
+#[sqlx::test]
+async fn options_say_ops_and_admin_may_add_a_raw_product(pool: PgPool) {
+    let w = world(pool).await;
+    let (_, res) = options(&w, &maize_query(&w), &w.f.ops).await;
+    assert_eq!(
+        res["data"]["can_create_product"], true,
+        "ops, no product.create"
+    );
+    let (_, res) = options(&w, &maize_query(&w), &w.f.owner).await;
+    assert_eq!(res["data"]["can_create_product"], true, "farm admin");
+}
+
+async fn raw_product(f: &Farm, body: Value, token: &str) -> (StatusCode, Value) {
+    f.call(
+        Method::POST,
+        "/supply-batches/raw-product",
+        Some(body),
+        token,
+    )
+    .await
+}
+
+#[sqlx::test]
+async fn ops_add_a_raw_product_a_batch_can_use(pool: PgPool) {
+    let w = world(pool).await;
+    let f = &w.f;
+    let (status, vat) = send(
+        &f.app,
+        Method::POST,
+        &format!("/v1/workspace/{}/settings/vat-groups", f.ws),
+        Some(json!({ "name": "Standard", "vat_amount": "18", "country": "TZ", "default_group": true })),
+        Some(&f.owner),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{vat}");
+    let vat = vat["data"]["vat_group_id"].clone();
+
+    let (status, res) = raw_product(f, json!({ "name": "  Raw beans " }), &f.ops).await;
+
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let id = res["data"]["id"].as_str().unwrap().to_owned();
+    assert_eq!(res["data"]["name"], "Raw beans");
+    assert_eq!(res["data"]["unit"], "kg");
+    // A plain product, made by the products service: off the shop, net 0, stock-tracked.
+    let (status, p) = send(
+        &f.app,
+        Method::GET,
+        &format!("/v1/workspace/{}/products/{id}", f.ws),
+        None,
+        Some(&f.owner),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{p}");
+    let p = &p["data"];
+    assert_eq!(p["store_only"], true, "{p}");
+    assert_eq!(p["status"], "active");
+    assert_eq!(p["type"], "physical");
+    assert_eq!(p["has_stock"], 1);
+    assert_eq!(p["vat_group_id"], vat, "workspace default VAT: {p}");
+    assert!(p["product_nr"].is_string(), "numbered: {p}");
+    // The storefront never lists it.
+    let shown: bool = sqlx::query_scalar(
+        "SELECT status = 'active' AND NOT archived AND NOT store_only FROM products WHERE id = $1::uuid",
+    )
+    .bind(&id)
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert!(!shown);
+
+    // Straight into a batch.
+    let h = actual(f, &w.c.neema.cycles[0], "100").await;
+    f.batch("ILU-M-30", &w.c.maize, &id, &w.tzs, 1, &[(&h, "10")])
+        .await;
+    // And offered for the crop after.
+    let (_, res) = options(&w, &maize_query(&w), &f.ops).await;
+    assert_eq!(res["data"]["raw_products"][0]["id"], json!(id), "{res}");
+    assert_eq!(res["data"]["raw_products"][0]["suggested_for_crop"], true);
+}
+
+#[sqlx::test]
+async fn raw_products_are_for_ops_and_admin_with_a_name(pool: PgPool) {
+    let w = world(pool).await;
+    let f = &w.f;
+    let body = json!({ "name": "Raw maize 2" });
+    let (status, _) = raw_product(f, body.clone(), &f.officer_ilu).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "field officer");
+    let farmer = f
+        .farmer_for("neema@ruaha.test", &f.ilundo, &w.c.neema.person)
+        .await;
+    let (status, _) = raw_product(f, body.clone(), &farmer).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "farmer");
+    let other = Farm::new_named(f.pool.clone(), "else.test", "elsewhere").await;
+    let (status, _) = raw_product(f, body.clone(), &other.ops).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another workspace's ops");
+    let (status, _) = raw_product(f, body, &f.owner).await;
+    assert_eq!(status, StatusCode::CREATED, "farm admin");
+
+    for (bad, why) in [
+        (json!({}), "missing"),
+        (json!({ "name": "   " }), "blank"),
+        (json!({ "name": "x".repeat(256) }), "too long"),
+    ] {
+        let (status, res) = raw_product(f, bad, &f.ops).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{why}: {res}");
+        assert_eq!(errors(&res), ["name"], "{why}");
+    }
+    let n: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM products WHERE workspace_id = $1::uuid AND name LIKE 'Raw maize 2%'",
+    )
+    .bind(&f.ws)
+    .fetch_one(&f.pool)
+    .await
+    .unwrap();
+    assert_eq!(n, 1, "refused calls write nothing");
+}
+
+#[sqlx::test]
+async fn options_are_for_ops_and_admin_of_this_workspace(pool: PgPool) {
+    let w = world(pool).await;
+    let f = &w.f;
+    let q = maize_query(&w);
+    let (status, _) = options(&w, &q, &f.officer_ilu).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "field officer");
+    let farmer = f
+        .farmer_for("neema@ruaha.test", &f.ilundo, &w.c.neema.person)
+        .await;
+    let (status, _) = options(&w, &q, &farmer).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "farmer");
+
+    // Another workspace's ops on our workspace: 404, like every farm route.
+    let other = Farm::new_named(f.pool.clone(), "else.test", "elsewhere").await;
+    let (status, _) = options(&w, &q, &other.ops).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let (outsider, _) = signup(&f.app, "out@else.test", "outside").await;
+    let (status, _) = options(&w, &q, &outsider).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    // Their village and crop in our workspace: refused like a batch would.
+    let their_crop = other.crop("MAIZE", "area").await;
+    let theirs = format!("?village_id={}&crop_id={their_crop}", other.ilundo);
+    let (status, res) = options(&w, &theirs, &f.ops).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(errors(&res), ["crop_id", "village_id"]);
+}
+
+#[sqlx::test]
+async fn options_need_a_village_and_a_crop(pool: PgPool) {
+    let w = world(pool).await;
+    let (status, res) = options(&w, "", &w.f.ops).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(errors(&res), ["crop_id", "village_id"]);
+    assert_eq!(
+        res["errors"]["village_id"][0],
+        "The village id field is required."
+    );
+    let (status, res) = options(&w, "?village_id=nope&crop_id=1", &w.f.ops).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["crop_id"][0],
+        "The crop_id must be a valid UUID."
+    );
+}

@@ -8,5 +8,7 @@ use crate::{AppState, modules::farm_supply::handlers};
 pub fn private() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(handlers::list, handlers::create))
+        .routes(routes!(handlers::options))
+        .routes(routes!(handlers::raw_product))
         .routes(routes!(handlers::get))
 }

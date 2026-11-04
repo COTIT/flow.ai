@@ -1104,6 +1104,44 @@
         ],
         "type": "object"
       },
+      "BuyableHarvest": {
+        "description": "One harvest a batch line may buy.",
+        "properties": {
+          "available_kg": {
+            "example": "200.00",
+            "type": "string"
+          },
+          "committed_kg": {
+            "description": "Kg already in batches and opportunities.",
+            "example": "100.00",
+            "type": "string"
+          },
+          "farmer_name": {
+            "description": "Primary manager of the harvest's farm (the farmer a batch credits).",
+            "type": "string"
+          },
+          "harvest_report_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "plot_label": {
+            "type": "string"
+          },
+          "quantity_kg": {
+            "example": "300.00",
+            "type": "string"
+          }
+        },
+        "required": [
+          "harvest_report_id",
+          "farmer_name",
+          "plot_label",
+          "quantity_kg",
+          "committed_kg",
+          "available_kg"
+        ],
+        "type": "object"
+      },
       "BuyerDemandRequest": {
         "description": "New demand (ops or admin). Born open and unverified, captured by the caller; status, verification and capture are never read from the body. A client `id` makes retries safe.",
         "properties": {
@@ -5828,6 +5866,18 @@
         ],
         "type": "object"
       },
+      "Envelope_OptionsResource": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/OptionsResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_OrderCreated": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -6203,6 +6253,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/QuoteResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_RawProductCreated": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RawProductCreated"
           }
         },
         "required": [
@@ -12093,6 +12155,35 @@
         },
         "required": [
           "status"
+        ],
+        "type": "object"
+      },
+      "OptionsResource": {
+        "description": "Harvests a new batch may buy and the products its raw lot may be.",
+        "properties": {
+          "can_create_product": {
+            "description": "The caller may add a raw product here (`POST …/supply-batches/raw-product`): ops and admin.",
+            "type": "boolean"
+          },
+          "harvests": {
+            "description": "Current, verified, actual harvests of the village and crop with kg left, the caller verified none of.",
+            "items": {
+              "$ref": "#/components/schemas/BuyableHarvest"
+            },
+            "type": "array"
+          },
+          "raw_products": {
+            "description": "Stock-tracked products, suggestions for the crop first, then by name.",
+            "items": {
+              "$ref": "#/components/schemas/RawProduct"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "harvests",
+          "raw_products",
+          "can_create_product"
         ],
         "type": "object"
       },
@@ -18643,6 +18734,73 @@
           "due",
           "rounding",
           "change"
+        ],
+        "type": "object"
+      },
+      "RawProduct": {
+        "description": "A product a raw lot may be of.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "suggested_for_crop": {
+            "description": "Hint only: an earlier batch of this crop used it, or its name holds the crop's name.\nBatch create accepts any stock-tracked product.",
+            "type": "boolean"
+          },
+          "unit": {
+            "example": "kg",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "suggested_for_crop"
+        ],
+        "type": "object"
+      },
+      "RawProductCreated": {
+        "description": "The raw product just made; its `id` is a valid `raw_product_id`.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unit": {
+            "example": "kg",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "RawProductRequest": {
+        "description": "A raw material for supply batches: stock-tracked, kg, net price 0, off the shop.",
+        "properties": {
+          "name": {
+            "description": "Required, at most 255 characters.",
+            "example": "Raw coffee",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -52418,6 +52576,306 @@
           }
         ],
         "summary": "Buy harvests into a raw lot",
+        "tags": [
+          "farm_supply"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-batches/options": {
+      "get": {
+        "description": "ops or admin. For one village and crop: the harvests a batch would accept as lines (current, verified, actual, kg left, a primary manager, not verified by the caller), the workspace's stock-tracked products with `suggested_for_crop` (a hint; create accepts any of them), and `can_create_product`.",
+        "operationId": "farm_supply_options",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required.",
+            "in": "query",
+            "name": "village_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Required.",
+            "in": "query",
+            "name": "crop_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_OptionsResource"
+                }
+              }
+            },
+            "description": "Harvests, raw products, product-create right"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Missing or unknown village or crop"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a new batch can buy",
+        "tags": [
+          "farm_supply"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/supply-batches/raw-product": {
+      "post": {
+        "description": "ops or admin, no `product.create` needed. Makes a physical, stock-tracked product in kg with net price 0, the workspace's default VAT group, status active and `store_only` (not on the storefront), through the products service. Its id is a valid `raw_product_id`.",
+        "operationId": "farm_supply_raw_product",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RawProductRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_RawProductCreated"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Not ops or admin"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or caller has no farm role and is not a member"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Missing or too long name"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a raw product for batches",
         "tags": [
           "farm_supply"
         ]

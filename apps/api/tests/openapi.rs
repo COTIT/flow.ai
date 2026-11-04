@@ -1514,6 +1514,18 @@ fn every_farm_supply_operation_is_documented() {
         ("/farm/supply-batches", "get", "farm_supply_list", "200"),
         ("/farm/supply-batches", "post", "farm_supply_create", "201"),
         (
+            "/farm/supply-batches/options",
+            "get",
+            "farm_supply_options",
+            "200",
+        ),
+        (
+            "/farm/supply-batches/raw-product",
+            "post",
+            "farm_supply_raw_product",
+            "201",
+        ),
+        (
             "/farm/supply-batches/{batch}",
             "get",
             "farm_supply_get",
