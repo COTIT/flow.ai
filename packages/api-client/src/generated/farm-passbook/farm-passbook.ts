@@ -29,7 +29,7 @@ import type {
   FarmPassbookMineParams,
   FarmPassbookPersonParams,
   MessageBody,
-  PaginatedEntryResource
+  PassbookPage
 } from '../model';
 
 import { apiRequest } from '../../mutator';
@@ -66,7 +66,7 @@ export const farmPassbookMine = (
 ) => {
 
 
-      return apiRequest<PaginatedEntryResource>(
+      return apiRequest<PassbookPage>(
       {url: `/workspace/${workspace}/farm/passbook/mine`, method: 'GET',
         params, signal
     },
@@ -168,7 +168,7 @@ export const farmPassbookPerson = (
 ) => {
 
 
-      return apiRequest<PaginatedEntryResource>(
+      return apiRequest<PassbookPage>(
       {url: `/workspace/${workspace}/farm/persons/${person}/passbook`, method: 'GET',
         params, signal
     },

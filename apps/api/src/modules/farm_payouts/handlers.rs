@@ -1,6 +1,7 @@
 //! HTTP edge for /v1/workspace/{workspace}/farm/payouts and /farm/cash.
 
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
 };
@@ -10,13 +11,14 @@ use crate::{
     error::{AppError, ValidationErrorBody},
     http::{
         farm::FarmAccess,
-        json::ValidatedJson,
+        json::{Rules, ValidatedJson},
+        list::{self, Page, Paginated},
         response::{Data, Envelope, MessageBody},
     },
     modules::farm_payouts::{
         dto::{
             CashDayResource, CashMovementRequest, CashMovementResource, CreatePayoutRequest,
-            DayQuery, PayoutResource, VoidPayoutRequest,
+            DayQuery, PayoutQuery, PayoutResource, VoidPayoutRequest,
         },
         service,
     },
@@ -128,4 +130,56 @@ pub async fn reconciliation(
 ) -> Result<Data<Vec<CashDayResource>>, AppError> {
     let rows = service::reconciliation(&state, &access, q.day, q.village_id).await?;
     Ok(Data(rows.into_iter().map(Into::into).collect()))
+}
+
+/// GET /farm/payouts -> `{data:[...], meta}`.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/payouts", tag = "farm_payouts",
+    operation_id = "farm_payouts_list", summary = "List payouts",
+    description = "Newest first. ops and admin see every payout, a field officer those of their villages, a farmer their own. A farmer naming another person is 403.",
+    params(("workspace" = Uuid, Path, description = "Workspace id"), PayoutQuery),
+    responses(
+        (status = 200, body = Paginated<PayoutResource>, description = "One page"),
+        (status = 403, body = MessageBody, description = "A farmer asking for another person's payouts"),
+        (status = 404, body = MessageBody, description = "Unknown workspace, or no farm role"),
+        (status = 422, body = ValidationErrorBody, description = "Malformed `person_id`"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn list(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Query(query): Query<PayoutQuery>,
+) -> Result<Json<Paginated<PayoutResource>>, AppError> {
+    let page = Page::parse(query.page.as_deref(), query.page_size.as_deref());
+    let mut r = Rules::default();
+    let person = list::id(&mut r, "person_id", query.person_id.as_deref());
+    r.into_result()?;
+    let (rows, total) = service::list(&state, &access, person, page.size, page.offset()).await?;
+    let data = rows.into_iter().map(Into::into).collect();
+    Ok(Json(Paginated::new(data, total, page)))
+}
+
+/// GET /farm/payouts/{payout}.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/farm/payouts/{payout}", tag = "farm_payouts",
+    operation_id = "farm_payouts_get", summary = "Get a payout",
+    description = "Staff of the farmer's village, or the farmer paid.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("payout" = Uuid, Path, description = "Payout id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<PayoutResource>, description = "The payout"),
+        (status = 403, body = MessageBody, description = "Another farmer's payout"),
+        (status = 404, body = MessageBody, description = "Unknown payout, or outside the caller's villages or workspace"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn get(
+    State(state): State<AppState>,
+    access: FarmAccess,
+    Path((_, id)): Path<(String, String)>,
+) -> Result<Data<PayoutResource>, AppError> {
+    Ok(Data(service::get(&state, &access, &id).await?.into()))
 }

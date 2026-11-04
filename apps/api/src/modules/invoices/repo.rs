@@ -916,6 +916,12 @@ pub async fn stock_lines(
            WHERE i.workspace_id = $1 AND i.invoice_id = $2
              AND p.type IN ('physical', 'physical_second_chance') AND p.has_stock
              AND i.quantity <> i.mutated_from_stock
+             -- An order's invoice, or a credit note of one: the order moves the stock.
+             AND NOT EXISTS (
+                 SELECT 1 FROM invoices v
+                 JOIN orders o ON o.workspace_id = v.workspace_id
+                              AND o.invoice_id IN (v.id, v.previous_invoice_id)
+                 WHERE v.workspace_id = $1 AND v.id = $2)
            ORDER BY i.position, i.id"#,
         workspace_id,
         invoice_id,

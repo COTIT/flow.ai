@@ -5,7 +5,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::{
     AppState,
-    modules::orders::{handlers, storefront, webhook},
+    modules::orders::{fake_pay, handlers, storefront, webhook},
 };
 
 /// Office routes; each handler runs the workspace guard and its `order.*` permission.
@@ -38,5 +38,6 @@ pub fn public() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(webhook::receive))
         .routes(routes!(webhook::receive_any))
+        .routes(routes!(fake_pay::page, fake_pay::decide))
         .layer(DefaultBodyLimit::max(64 * 1024))
 }

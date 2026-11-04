@@ -405,3 +405,115 @@ async fn the_day_reconciles_float_payouts_returns_and_the_count(pool: PgPool) {
     let (_, theirs) = d.f.call(Method::GET, &tail, None, &d.f.officer_ilu).await;
     assert_eq!(theirs["data"], json!([]), "not another officer's");
 }
+
+/// `(meta.total, person ids)` of the payout list `token` sees under `query`.
+async fn listed(d: &Desk, token: &str, query: &str) -> (StatusCode, i64, Vec<String>) {
+    let (status, res) =
+        d.f.call(Method::GET, &format!("/payouts{query}"), None, token)
+            .await;
+    let people = res["data"]
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .map(|r| r["person_id"].as_str().unwrap().to_owned())
+                .collect()
+        })
+        .unwrap_or_default();
+    (status, res["meta"]["total"].as_i64().unwrap_or(-1), people)
+}
+
+#[sqlx::test]
+async fn payouts_are_listed_to_staff_of_the_village_and_to_the_farmer_paid(pool: PgPool) {
+    let d = desk(pool).await;
+    credit(&d.f, &d.c.asha.person, &d.tzs, 500_000).await;
+    let (s, neema_paid) = pay(&d, &payout(&d, 300_000), &d.juma).await;
+    assert_eq!(s, StatusCode::CREATED, "{neema_paid}");
+    let mut b = payout(&d, 100_000);
+    b["person_id"] = json!(d.c.asha.person);
+    let (s, asha_paid) = pay(&d, &b, &d.juma).await;
+    assert_eq!(s, StatusCode::CREATED, "{asha_paid}");
+    let (neema_id, asha_id) = (
+        neema_paid["data"]["id"].as_str().unwrap().to_owned(),
+        asha_paid["data"]["id"].as_str().unwrap().to_owned(),
+    );
+    let neema_person = d.c.neema.person.clone();
+
+    let (s, total, _) = listed(&d, &d.f.ops, "").await;
+    assert_eq!((s, total), (StatusCode::OK, 2), "ops: every payout");
+    assert_eq!(listed(&d, &d.juma, "").await.1, 2, "officer of Ilundo");
+    let (_, total, people) = listed(&d, &d.f.ops, &format!("?person_id={neema_person}")).await;
+    assert_eq!((total, people), (1, vec![neema_person.clone()]));
+    assert_eq!(
+        listed(&d, &d.f.officer_mga, "").await.1,
+        0,
+        "officer elsewhere"
+    );
+
+    let neema =
+        d.f.farmer_for("neema@ruaha.test", &d.f.ilundo, &d.c.neema.person)
+            .await;
+    let (s, total, people) = listed(&d, &neema, "").await;
+    assert_eq!(
+        (s, total, people),
+        (StatusCode::OK, 1, vec![neema_person.clone()]),
+        "her own only"
+    );
+    let (s, _, _) = listed(&d, &neema, &format!("?person_id={}", d.c.asha.person)).await;
+    assert_eq!(s, StatusCode::FORBIDDEN, "another farmer's payouts");
+
+    let get = |token: String, id: String| {
+        let f = &d.f;
+        async move {
+            f.call(Method::GET, &format!("/payouts/{id}"), None, &token)
+                .await
+        }
+    };
+    let (s, res) = get(neema.clone(), neema_id.clone()).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["amount"]["minor"], 300_000);
+    assert_eq!(res["data"]["void"], Value::Null);
+    assert_eq!(
+        get(neema.clone(), asha_id.clone()).await.0,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        get(d.f.officer_mga.clone(), neema_id.clone()).await.0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        get(d.f.ops.clone(), asha_id.clone()).await.0,
+        StatusCode::OK
+    );
+
+    let other = Farm::new_named(d.f.pool.clone(), "else.test", "elsewhere").await;
+    let (s, _) = other
+        .call(
+            Method::GET,
+            &format!("/payouts/{neema_id}"),
+            None,
+            &other.ops,
+        )
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "another workspace");
+    let (s, res) = other.call(Method::GET, "/payouts", None, &other.ops).await;
+    assert_eq!(
+        (s, res["meta"]["total"].clone()),
+        (StatusCode::OK, json!(0))
+    );
+    let (s, _) =
+        d.f.call(Method::GET, "/payouts?person_id=nope", None, &d.f.ops)
+            .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+
+    // The passbook carries the balance per currency next to its lines.
+    for (token, path) in [
+        (d.f.ops.clone(), format!("/persons/{neema_person}/passbook")),
+        (neema.clone(), "/passbook/mine".to_owned()),
+    ] {
+        let (s, res) = d.f.call(Method::GET, &path, None, &token).await;
+        assert_eq!(s, StatusCode::OK, "{path}: {res}");
+        assert_eq!(res["balances"][0]["minor"], 700_000, "{path}");
+        assert_eq!(res["balances"][0]["currency"], "TZS");
+        assert_eq!(res["balances"].as_array().unwrap().len(), 1);
+    }
+}

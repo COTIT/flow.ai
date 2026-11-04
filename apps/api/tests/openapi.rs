@@ -1563,6 +1563,8 @@ fn every_farm_passbook_operation_is_documented() {
 fn every_farm_payouts_operation_is_documented() {
     assert_documented(&[
         ("/farm/payouts", "post", "farm_payouts_create", "201"),
+        ("/farm/payouts", "get", "farm_payouts_list", "200"),
+        ("/farm/payouts/{payout}", "get", "farm_payouts_get", "200"),
         (
             "/farm/payouts/{payout}/void",
             "post",

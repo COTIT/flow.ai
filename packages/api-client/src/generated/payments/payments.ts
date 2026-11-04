@@ -6,17 +6,27 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
-  useMutation
+  useMutation,
+  useQuery
 } from '@tanstack/react-query';
 import type {
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
   MutationFunction,
   QueryClient,
+  QueryFunction,
+  QueryKey,
+  UndefinedInitialDataOptions,
   UseMutationOptions,
-  UseMutationResult
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
-  MessageBody
+  MessageBody,
+  PayChoice
 } from '../model';
 
 import { apiRequest } from '../../mutator';
@@ -27,7 +37,186 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
+const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
+  for (const key of Object.keys(query)) {
+    // The explicit queryKey always wins, matching the previous
+    // `{ ...query, queryKey }` spread where it was set last.
+    if (key === 'queryKey') continue;
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => (query as Record<string, unknown>)[key],
+    });
+  }
+  return result;
+};
+
 /**
+ * Dev and staging only: exists while `PAYMENTS_PROVIDER=fake`, which a release build refuses. Shows the amount with Pay and Cancel buttons.
+ * @summary The test provider's pay page
+ */
+export const paymentsFakePage = (
+    id: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<string>(
+      {url: `/payments/fake/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsFakePageQueryKey = (id: string,) => {
+    return [
+    `/payments/fake/${id}`
+    ] as const;
+    }
+
+
+export const getPaymentsFakePageQueryOptions = <TData = Awaited<ReturnType<typeof paymentsFakePage>>, TError = ErrorType<void | MessageBody>>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsFakePage>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getPaymentsFakePageQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof paymentsFakePage>>> = ({ signal }) => paymentsFakePage(id, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof paymentsFakePage>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type PaymentsFakePageQueryResult = NonNullable<Awaited<ReturnType<typeof paymentsFakePage>>>
+export type PaymentsFakePageQueryError = ErrorType<void | MessageBody>
+
+
+export function usePaymentsFakePage<TData = Awaited<ReturnType<typeof paymentsFakePage>>, TError = ErrorType<void | MessageBody>>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsFakePage>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsFakePage>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsFakePage>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsFakePage<TData = Awaited<ReturnType<typeof paymentsFakePage>>, TError = ErrorType<void | MessageBody>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsFakePage>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof paymentsFakePage>>,
+          TError,
+          Awaited<ReturnType<typeof paymentsFakePage>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function usePaymentsFakePage<TData = Awaited<ReturnType<typeof paymentsFakePage>>, TError = ErrorType<void | MessageBody>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsFakePage>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The test provider's pay page
+ */
+
+export function usePaymentsFakePage<TData = Awaited<ReturnType<typeof paymentsFakePage>>, TError = ErrorType<void | MessageBody>>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof paymentsFakePage>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getPaymentsFakePageQueryOptions(id,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Dev and staging only. Sets the fake payment's status, queues the same re-fetch as its webhook, and redirects (303) to the shop's `redirect_url`. A payment no longer open changes nothing.
+ * @summary Pay or cancel on the test provider's page
+ */
+export const paymentsFakeDecide = (
+    id: string,
+    payChoice: BodyType<PayChoice>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+      const formUrlEncoded = new URLSearchParams();
+formUrlEncoded.append(`outcome`, payChoice.outcome);
+
+      return apiRequest<unknown>(
+      {url: `/payments/fake/${id}`, method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded', },
+       data: formUrlEncoded, signal
+    },
+      options);
+    }
+
+
+
+
+export const getPaymentsFakeDecideMutationKey = () => ['paymentsFakeDecide'] as const;
+
+export const getPaymentsFakeDecideMutationOptions = <TError = ErrorType<void | MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsFakeDecide>>, TError,PaymentsFakeDecideMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof paymentsFakeDecide>>, TError,PaymentsFakeDecideMutationVariables, TContext> => {
+
+const mutationKey = getPaymentsFakeDecideMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof paymentsFakeDecide>>, PaymentsFakeDecideMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  paymentsFakeDecide(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PaymentsFakeDecideMutationResult = NonNullable<Awaited<ReturnType<typeof paymentsFakeDecide>>>
+    export type PaymentsFakeDecideMutationBody = BodyType<PayChoice>
+    export type PaymentsFakeDecideMutationError = ErrorType<void | MessageBody>
+    export type PaymentsFakeDecideMutationVariables = {id: string;data: BodyType<PayChoice>}
+
+    /**
+ * @summary Pay or cancel on the test provider's page
+ */
+export const usePaymentsFakeDecide = <TError = ErrorType<void | MessageBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof paymentsFakeDecide>>, TError,PaymentsFakeDecideMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof paymentsFakeDecide>>,
+        TError,
+        PaymentsFakeDecideMutationVariables,
+        TContext
+      > => {
+      return useMutation(getPaymentsFakeDecideMutationOptions(options), queryClient);
+    }
+    /**
  * For providers that hold one fixed endpoint (Stripe: `https://<api>/v1/payments/webhooks/stripe`). The `Stripe-Signature` header is checked on the raw body before anything is read; then only the Checkout Session or Refund id is taken. The workspace comes from our own payment row for that id, and the status is re-fetched from the provider. The answer is an empty 200 whatever the body holds (bad signature, unknown id, other events). At most 64 KiB.
  * @summary Payment provider event, one endpoint for every workspace
  */

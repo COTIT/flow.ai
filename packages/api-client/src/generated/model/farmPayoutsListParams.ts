@@ -5,13 +5,18 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
-import type { EntryResource } from './entryResource';
-import type { Meta } from './meta';
 
+export type FarmPayoutsListParams = {
 /**
- * One page of results plus paging details.
+ * Only this farmer's payouts.
  */
-export interface PaginatedEntryResource {
-  data: EntryResource[];
-  meta: Meta;
-}
+person_id?: string;
+/**
+ * 1-based; junk falls back to 1.
+ */
+page?: number;
+/**
+ * Default 50, max 100.
+ */
+page_size?: number;
+};

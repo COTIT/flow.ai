@@ -3,6 +3,7 @@
 
 pub mod checkout;
 pub mod dto;
+pub mod fake_pay;
 pub mod handlers;
 pub mod payments;
 pub mod repo;

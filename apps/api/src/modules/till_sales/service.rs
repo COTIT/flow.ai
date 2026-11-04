@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
@@ -40,6 +40,7 @@ const REUSED: &str = "This client_ref was used for another sale on this register
 const NO_SHIFT: &str = "No shift is open on this register: open the drawer first.";
 const TOO_LITTLE: &str = "The tendered cash is less than the amount due.";
 const TOO_BIG: &str = "The sale total is out of range.";
+const OFF_SALE: &str = "This product is not for sale.";
 /// Largest sale total (minor units): far above any till basket, far below i64 overflow.
 const TOTAL_MAX: i64 = 1_000_000_000_000;
 
@@ -73,19 +74,44 @@ struct SalePrice {
     /// At today's catalog prices.
     server: Priced,
     mismatched: usize,
+    /// Lines of products off sale now but not yet when the sale was rung up (booked, counted).
+    unsellable: usize,
     /// Cash rounded to the currency's step; card = total.
     due: i64,
 }
 
 /// Price `lines` for the session's register: the till's prices, the catalog's, and what is
 /// due for `payment` (cash below due is refused). The sale and the quote both call this.
+/// A product off sale (disabled or archived) is a 422 on its line, as the till catalog no
+/// longer offers it, unless the sale was rung up (`sold_at`, an offline replay) before the
+/// product last changed: then it is booked and counted in `unsellable`.
 async fn price_sale(
     conn: &mut sqlx::PgConnection,
     s: &SessionRow,
     lines: &[LineInput],
     payment: &Payment,
+    sold_at: Option<DateTime<Utc>>,
 ) -> Result<SalePrice, AppError> {
     let ws = s.workspace_id;
+    let ids: Vec<Uuid> = lines.iter().map(|l| l.product_id).collect();
+    let off: HashMap<Uuid, DateTime<Utc>> = repo::off_sale(&mut *conn, ws, &ids)
+        .await?
+        .into_iter()
+        .collect();
+    let mut unsellable = 0;
+    let mut refused = std::collections::BTreeMap::new();
+    for (n, l) in lines.iter().enumerate() {
+        match (off.get(&l.product_id), sold_at) {
+            (None, _) => {}
+            (Some(changed), Some(at)) if at < *changed => unsellable += 1,
+            (Some(_), _) => {
+                refused.insert(format!("lines.{n}.product_id"), vec![OFF_SALE.to_owned()]);
+            }
+        }
+    }
+    if !refused.is_empty() {
+        return Err(AppError::Validation(refused));
+    }
     let (currency_id, dp) = order_rules::currency(&mut *conn, ws, Some(s.currency_id)).await?;
     let charged = order_rules::price(&mut *conn, ws, currency_id, dp, lines, false).await?;
     let catalog: Vec<LineInput> = lines
@@ -124,6 +150,7 @@ async fn price_sale(
         charged,
         server,
         mismatched,
+        unsellable,
         due,
     })
 }
@@ -135,7 +162,7 @@ pub async fn quote(
     q: NewQuote,
 ) -> Result<QuoteResource, AppError> {
     let mut tx = state.db.begin().await?;
-    let p = price_sale(&mut tx, s, &q.lines, &q.payment).await?;
+    let p = price_sale(&mut tx, s, &q.lines, &q.payment, None).await?;
     tx.rollback().await?;
     let tendered = match q.payment {
         Payment::Cash { tendered } => tendered,
@@ -190,8 +217,9 @@ pub async fn sell(
         charged,
         server,
         mismatched,
+        unsellable,
         due,
-    } = price_sale(&mut tx, s, &sale.lines, &sale.payment).await?;
+    } = price_sale(&mut tx, s, &sale.lines, &sale.payment, sale.sold_at).await?;
     let (shift_id, tendered, card_reference) = match &sale.payment {
         Payment::Cash { tendered } => {
             cash::lock_register(&mut tx, ws, s.register_id).await?;
@@ -281,6 +309,7 @@ pub async fn sell(
             total: charged.total,
             server_total: server.total,
             mismatched_lines: i32::try_from(mismatched).unwrap_or(i32::MAX),
+            unsellable_lines: i32::try_from(unsellable).unwrap_or(i32::MAX),
             server_prices: &server_prices,
             due,
             tendered,

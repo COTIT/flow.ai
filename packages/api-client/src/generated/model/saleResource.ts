@@ -39,4 +39,9 @@ export interface SaleResource {
   till_user_id: string;
   /** What the till charged incl VAT: the order total. */
   total: number;
+  /**
+     * Lines of a product off sale now (disabled or archived) that an offline sale booked
+     * because it was rung up before the product last changed.
+     */
+  unsellable_lines: number;
 }

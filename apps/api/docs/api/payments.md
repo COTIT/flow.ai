@@ -6,6 +6,11 @@ Provider payments of web orders. Code: `src/payments/` (provider-neutral interfa
 
 `PAYMENTS_PROVIDER`: unset = none (payment intents answer 503 `no payment provider configured`); `fake` = the in-process test provider, debug builds only (a release build refuses to boot with it); `stripe` = Stripe Checkout. Unknown names fail at boot.
 
+**The fake's pay page (dev and staging).** With `fake`, a payment's `checkout_url` is `{API_PUBLIC_URL}/v1/payments/fake/{id}`, a page on this API showing the amount with **Pay** and **Cancel** buttons.
+- The buttons `POST` a form `outcome=paid|canceled`. That sets the fake payment's status, queues the same re-fetch a webhook queues (settled by the next inbox drain), and answers `303` to the shop's `redirect_url`.
+- A payment that is no longer open changes nothing and still redirects. Any other `outcome` gets `422`.
+- Without the fake provider (production refuses it at boot), or for an unknown id, both routes answer `404`.
+
 Stripe settings, read only when `PAYMENTS_PROVIDER=stripe` (each secret also as `<KEY>_FILE`, a Docker secret). Boot fails naming the var, never the value:
 
 | Var                     | Rule                                                                                                                                                                           |

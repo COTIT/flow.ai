@@ -19,6 +19,7 @@ pub struct SaleRow {
     pub server_total: i64,
     pub price_mismatch: i64,
     pub mismatched_lines: i32,
+    pub unsellable_lines: i32,
     pub due: i64,
     pub rounding: i64,
     pub tendered: Option<i64>,
@@ -39,6 +40,7 @@ pub struct NewSaleRow<'a> {
     pub total: i64,
     pub server_total: i64,
     pub mismatched_lines: i32,
+    pub unsellable_lines: i32,
     pub server_prices: &'a Value,
     pub due: i64,
     pub tendered: Option<i64>,
@@ -72,7 +74,7 @@ pub async fn find(
         SaleRow,
         "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,
                 s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,
-                s.mismatched_lines, s.due,
+                s.mismatched_lines, s.unsellable_lines, s.due,
                 s.rounding, s.tendered, s.change, s.card_reference, s.sold_at
          FROM till_sales s
          JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id
@@ -95,9 +97,9 @@ pub async fn insert(
         "INSERT INTO till_sales (order_id, workspace_id, register_id, till_user_id, shift_id,
                                  client_ref, request_hash, method, total, server_total,
                                  price_mismatch, mismatched_lines, server_prices, due, rounding,
-                                 tendered, change, card_reference, sold_at)
+                                 tendered, change, card_reference, sold_at, unsellable_lines)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $9::bigint - $10::bigint, $16, $11,
-                 $12, $12::bigint - $9::bigint, $13, $13::bigint - $12::bigint, $14, $15)",
+                 $12, $12::bigint - $9::bigint, $13, $13::bigint - $12::bigint, $14, $15, $17)",
         s.order_id,
         workspace_id,
         s.register_id,
@@ -114,6 +116,7 @@ pub async fn insert(
         s.card_reference,
         s.sold_at,
         s.mismatched_lines,
+        s.unsellable_lines,
     )
     .execute(db)
     .await
@@ -188,7 +191,7 @@ pub async fn list(
     let rows = sqlx::query!(
         r#"SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,
                   s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,
-                s.mismatched_lines, s.due,
+                s.mismatched_lines, s.unsellable_lines, s.due,
                   s.rounding, s.tendered, s.change, s.card_reference, s.sold_at,
                   count(*) OVER () AS "total_rows!"
            FROM till_sales s
@@ -224,6 +227,7 @@ pub async fn list(
             server_total: s.server_total,
             price_mismatch: s.price_mismatch,
             mismatched_lines: s.mismatched_lines,
+            unsellable_lines: s.unsellable_lines,
             due: s.due,
             rounding: s.rounding,
             tendered: s.tendered,
@@ -233,4 +237,23 @@ pub async fn list(
         })
         .collect();
     Ok((rows, total))
+}
+
+/// Products among `ids` that are off sale (disabled, no longer sold, or archived), with when
+/// each last changed. Deleted ones are left to the pricing's own 422.
+pub async fn off_sale(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<(Uuid, DateTime<Utc>)>, sqlx::Error> {
+    let rows = sqlx::query!(
+        "SELECT id, updated_at FROM products
+         WHERE workspace_id = $1 AND id = ANY($2) AND deleted_at IS NULL
+           AND (status <> 'active' OR archived)",
+        workspace_id,
+        ids,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.id, r.updated_at)).collect())
 }

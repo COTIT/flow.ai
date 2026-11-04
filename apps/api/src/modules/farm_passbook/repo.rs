@@ -4,6 +4,8 @@ use chrono::{DateTime, Utc};
 use sqlx::PgExecutor;
 use uuid::Uuid;
 
+use crate::modules::farm_surveys::dto::Money;
+
 /// One passbook line with its currency and the balance after it.
 pub struct EntryRow {
     pub id: Uuid,
@@ -104,5 +106,27 @@ pub async fn set_consent(
         by,
     )
     .fetch_one(db)
+    .await
+}
+
+/// A person's balance per currency, by currency code (currencies with lines only).
+pub async fn balances(
+    db: &sqlx::PgPool,
+    workspace_id: Uuid,
+    person_id: Uuid,
+) -> Result<Vec<Money>, sqlx::Error> {
+    sqlx::query_as!(
+        Money,
+        r#"SELECT sum(e.amount)::bigint AS "minor!", c.asset_type AS currency, c.decimals,
+                  e.currency_id
+           FROM farm_passbook_entries e
+           JOIN currencies c ON c.workspace_id = e.workspace_id AND c.id = e.currency_id
+           WHERE e.workspace_id = $1 AND e.person_id = $2
+           GROUP BY e.currency_id, c.asset_type, c.decimals
+           ORDER BY c.asset_type"#,
+        workspace_id,
+        person_id,
+    )
+    .fetch_all(db)
     .await
 }

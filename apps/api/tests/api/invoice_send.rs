@@ -672,3 +672,86 @@ async fn a_paid_orders_invoice_is_sent_paid(pool: PgPool) {
     assert_eq!(numbered(&f, &full).await.1, "paid");
     assert_eq!(numbered(&f, &part).await.1, "partially_paid");
 }
+
+/// `(order decreases, invoice movements)` of the fixture's product.
+async fn moves(f: &F) -> (i64, i64) {
+    sqlx::query_as(
+        "SELECT count(*) FILTER (WHERE related_domain = 'order'),
+                count(*) FILTER (WHERE related_domain = 'invoice')
+         FROM stock_movements WHERE product_id = $1::uuid",
+    )
+    .bind(&f.product)
+    .fetch_one(&f.api.pool)
+    .await
+    .unwrap()
+}
+
+/// The order owns the stock of its invoice: completing it took the chairs, so sending its
+/// invoice, or a credit note of that invoice, moves none.
+#[sqlx::test]
+async fn an_invoice_of_an_order_never_moves_stock_again(pool: PgPool) {
+    let f = setup(pool).await;
+    let orders = f.api.with_base("/orders");
+    let body = json!({ "relation_id": f.rel, "warehouse_id": f.main,
+                       "lines": [{ "product_id": f.product, "quantity": "2" }] });
+    let order = orders.create(body, "order_id").await;
+    let act = |path: String, body: Option<Value>| {
+        let orders = &orders;
+        async move {
+            let (s, res) = orders.call(Method::POST, &path, body, &orders.owner).await;
+            assert_eq!(s, StatusCode::OK, "{path}: {res}");
+            res
+        }
+    };
+    act(format!("/{order}/confirm"), None).await;
+    let (_, got) = orders
+        .call(Method::GET, &format!("/{order}"), None, &orders.owner)
+        .await;
+    let line = got["data"]["lines"][0]["id"].clone();
+    act(
+        format!("/{order}/pick"),
+        Some(json!({ "lines": [{ "line_id": line, "quantity": "2" }] })),
+    )
+    .await;
+    act(format!("/{order}/complete"), None).await;
+    assert_eq!(level(&f, &f.main).await, "8.00", "the order took 2");
+    let o = act(format!("/{order}/invoice"), None).await;
+    let invoice = o["data"]["invoice_id"].as_str().unwrap().to_owned();
+
+    let (s, res) = send(&f, &invoice, message(&f, "manual")).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(
+        level(&f, &f.main).await,
+        "8.00",
+        "sending its invoice takes nothing"
+    );
+    assert_eq!(moves(&f).await, (1, 0));
+
+    // A credit note of it puts nothing back either: returns go through the order.
+    sqlx::query("UPDATE invoices SET status = 'paid' WHERE id = $1::uuid")
+        .bind(&invoice)
+        .execute(&f.api.pool)
+        .await
+        .unwrap();
+    let (s, res) = f
+        .api
+        .call(
+            Method::POST,
+            &format!("/{invoice}/credit"),
+            Some(json!({ "credit_all": true })),
+            &f.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let note = res["data"]["invoice_id"].as_str().unwrap().to_owned();
+    let (s, res) = send(&f, &note, message(&f, "manual")).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(level(&f, &f.main).await, "8.00");
+    assert_eq!(moves(&f).await, (1, 0));
+
+    // A standalone invoice still moves its stock on send, as designed.
+    let alone = draft(&f, chairs(&f, 1, Some(&f.main)), false).await;
+    send(&f, &alone, message(&f, "manual")).await;
+    assert_eq!(level(&f, &f.main).await, "7.00");
+    assert_eq!(moves(&f).await, (1, 1));
+}

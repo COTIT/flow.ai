@@ -1,0 +1,209 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.village_id, p.person_id, p.currency_id, c.asset_type AS currency,\n                  c.decimals, p.amount, p.id_type, p.client_ref, p.request_hash, p.paid_by,\n                  p.paid_at, v.reason AS \"void_reason?\", v.voided_by AS \"voided_by?\",\n                  v.voided_at AS \"voided_at?\", count(*) OVER () AS \"total!\"\n           FROM farm_payouts p\n           JOIN currencies c ON c.workspace_id = p.workspace_id AND c.id = p.currency_id\n           LEFT JOIN farm_payout_voids v ON v.payout_id = p.id\n           WHERE p.workspace_id = $1\n             AND ($2 OR p.village_id = ANY($3) OR p.person_id = $4)\n             AND ($5::uuid IS NULL OR p.person_id = $5)\n           ORDER BY p.paid_at DESC, p.id DESC\n           LIMIT $6 OFFSET $7",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "village_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "village_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "person_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "person_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "currency_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "amount",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "amount"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "id_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "id_type"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "client_ref",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "client_ref"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "request_hash",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "request_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "paid_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "paid_by"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "paid_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_payouts",
+            "name": "paid_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "void_reason?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "farm_payout_voids",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "voided_by?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_payout_voids",
+            "name": "voided_by"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "voided_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "farm_payout_voids",
+            "name": "voided_at"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "UuidArray",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "1698b80249c9c1011805d023f34482117f8b79791c2104a4e507971778c99b4d"
+}

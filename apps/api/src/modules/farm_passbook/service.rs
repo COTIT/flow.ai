@@ -7,7 +7,10 @@ use crate::{
     AppState,
     error::AppError,
     http::{farm::FarmAccess, workspace::NOT_ALLOWED},
-    modules::farm_passbook::repo::{self, ConsentRow, EntryRow},
+    modules::{
+        farm_passbook::repo::{self, ConsentRow, EntryRow},
+        farm_surveys::dto::Money,
+    },
 };
 
 /// The person if the caller may act on them: themself, or staff of their village.
@@ -25,15 +28,30 @@ async fn person(state: &AppState, access: &FarmAccess, id: &str) -> Result<Uuid,
     }
 }
 
+/// A page of a passbook, its total and the balance per currency.
+pub type Passbook = (Vec<EntryRow>, i64, Vec<Money>);
+
+async fn passbook(
+    state: &AppState,
+    access: &FarmAccess,
+    id: Uuid,
+    limit: i64,
+    offset: i64,
+) -> Result<Passbook, AppError> {
+    let ws = access.workspace_id;
+    let (rows, total) = repo::entries(&state.db, ws, id, limit, offset).await?;
+    Ok((rows, total, repo::balances(&state.db, ws, id).await?))
+}
+
 /// One page of the caller's own passbook; 404 when the account is no registered person.
 pub async fn mine(
     state: &AppState,
     access: &FarmAccess,
     limit: i64,
     offset: i64,
-) -> Result<(Vec<EntryRow>, i64), AppError> {
+) -> Result<Passbook, AppError> {
     let id = access.person_id.ok_or(AppError::NotFound)?;
-    Ok(repo::entries(&state.db, access.workspace_id, id, limit, offset).await?)
+    passbook(state, access, id, limit, offset).await
 }
 
 /// One page of a person's passbook.
@@ -43,9 +61,9 @@ pub async fn of_person(
     id: &str,
     limit: i64,
     offset: i64,
-) -> Result<(Vec<EntryRow>, i64), AppError> {
+) -> Result<Passbook, AppError> {
     let id = person(state, access, id).await?;
-    Ok(repo::entries(&state.db, access.workspace_id, id, limit, offset).await?)
+    passbook(state, access, id, limit, offset).await
 }
 
 /// Record or withdraw a person's passport consent (audited by the farm trail).

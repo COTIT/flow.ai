@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO till_sales (order_id, workspace_id, register_id, till_user_id, shift_id,\n                                 client_ref, request_hash, method, total, server_total,\n                                 price_mismatch, mismatched_lines, server_prices, due, rounding,\n                                 tendered, change, card_reference, sold_at, unsellable_lines)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $9::bigint - $10::bigint, $16, $11,\n                 $12, $12::bigint - $9::bigint, $13, $13::bigint - $12::bigint, $14, $15, $17)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Bytea",
+        "Text",
+        "Int8",
+        "Int8",
+        "Jsonb",
+        "Int8",
+        "Int8",
+        "Text",
+        "Timestamptz",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "60f904230e5b5a5f39e05352f419a8b235770a10f55d0dc31bbe65ba01561489"
+}

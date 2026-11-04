@@ -235,6 +235,12 @@ What happens, in one transaction:
 
 The drawer's expected cash uses `due`, the amount actually taken, so it balances even when `price_mismatch` is not 0.
 
+**Products off sale.** A line for a product that is disabled, no longer sold or archived (what the till catalog stops offering) is a `422` on `lines.N.product_id`: `This product is not for sale.` A deleted product is the pricing's own `422`.
+- **Offline replay:** a queued sale whose `sold_at` is before the product last changed (`products.updated_at`) is booked, not refused. The product was still for sale when the sale was rung up. The sale counts those lines in `unsellable_lines`, as `mismatched_lines` counts price differences.
+- A replay rung up after the change is refused, like a live sale.
+- **Limit:** any later edit of the product moves `updated_at`, so the rule errs towards keeping a queued sale.
+- The quote has no `sold_at` and always refuses.
+
 ### `POST /till/sales/quote`
 
 `{lines, payment}` as `POST /till/sales`, without `client_ref` or `sold_at`; cash `tendered` is optional. Priced by the same code as the sale (`till_sales::service::price_sale`: the till's prices, the catalog's, cash rounding, the tendered check) inside a transaction that is rolled back. Writes nothing: no order, stock, drawer or replay row, and no open shift is needed.

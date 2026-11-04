@@ -14,21 +14,20 @@ use crate::{
         response::{Data, Envelope, MessageBody},
     },
     modules::farm_passbook::{
-        dto::{ConsentResource, EntryResource, ListQuery},
+        dto::{ConsentResource, ListQuery, PassbookPage},
         service,
     },
 };
 
-fn page(
-    rows: (Vec<crate::modules::farm_passbook::repo::EntryRow>, i64),
-    page: Page,
-) -> Json<Paginated<EntryResource>> {
-    let (rows, total) = rows;
-    Json(Paginated::new(
-        rows.into_iter().map(Into::into).collect(),
-        total,
-        page,
-    ))
+fn page(book: service::Passbook, page: Page) -> Json<PassbookPage> {
+    let (rows, total, balances) = book;
+    let (data, meta) =
+        Paginated::new(rows.into_iter().map(Into::into).collect(), total, page).into_parts();
+    Json(PassbookPage {
+        data,
+        meta,
+        balances,
+    })
 }
 
 /// GET /farm/passbook/mine.
@@ -38,7 +37,7 @@ fn page(
     description = "The caller's own passbook lines, newest first, each with the balance in its currency after it.",
     params(("workspace" = Uuid, Path, description = "Workspace id"), ListQuery),
     responses(
-        (status = 200, body = Paginated<EntryResource>, description = "One page"),
+        (status = 200, body = PassbookPage, description = "One page, with the balance per currency"),
         (status = 404, body = MessageBody, description = "Account is no registered person here, or no farm role"),
     ),
     security(("bearer" = []))
@@ -47,7 +46,7 @@ pub async fn mine(
     State(state): State<AppState>,
     access: FarmAccess,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Paginated<EntryResource>>, AppError> {
+) -> Result<Json<PassbookPage>, AppError> {
     let p = Page::parse(query.page.as_deref(), query.page_size.as_deref());
     Ok(page(
         service::mine(&state, &access, p.size, p.offset()).await?,
@@ -66,7 +65,7 @@ pub async fn mine(
         ListQuery,
     ),
     responses(
-        (status = 200, body = Paginated<EntryResource>, description = "One page"),
+        (status = 200, body = PassbookPage, description = "One page, with the balance per currency"),
         (status = 403, body = MessageBody, description = "Another farmer"),
         (status = 404, body = MessageBody, description = "Unknown person, or outside the caller's villages or workspace"),
     ),
@@ -77,7 +76,7 @@ pub async fn of_person(
     access: FarmAccess,
     Path((_, person)): Path<(String, String)>,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Paginated<EntryResource>>, AppError> {
+) -> Result<Json<PassbookPage>, AppError> {
     let p = Page::parse(query.page.as_deref(), query.page_size.as_deref());
     let rows = service::of_person(&state, &access, &person, p.size, p.offset()).await?;
     Ok(page(rows, p))

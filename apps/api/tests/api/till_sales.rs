@@ -640,3 +640,58 @@ async fn a_sale_carries_its_lines_for_the_receipt(pool: PgPool) {
     let (status, _) = w.api.call(Method::GET, "/sales/r-1", None, &w.t2).await;
     assert_eq!(status, StatusCode::NOT_FOUND, "another register");
 }
+
+/// A product taken off sale (disabled or archived) is refused at the till like a deleted one,
+/// unless an offline sale was rung up before the product last changed: then it is booked and
+/// counted in `unsellable_lines`, as a price mismatch is.
+#[sqlx::test]
+async fn a_product_off_sale_is_refused_unless_rung_up_before_it_changed(pool: PgPool) {
+    let w = world(pool).await;
+    let (status, ok) = post(&w, &w.t1, &sale("fine", basket(&w), cash(5000))).await;
+    assert_eq!(status, StatusCode::CREATED, "{ok}");
+    assert_eq!(ok["data"]["unsellable_lines"], 0);
+
+    sqlx::query("UPDATE products SET status = 'disabled', updated_at = now() WHERE id = $1::uuid")
+        .bind(&w.wax)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    let (status, res) = post(&w, &w.t1, &sale("live", basket(&w), cash(5000))).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(res["errors"]["lines.1.product_id"].is_array(), "{res}");
+    let quote = json!({ "lines": basket(&w), "payment": cash(5000) });
+    let (status, res) = w
+        .api
+        .call(Method::POST, "/sales/quote", Some(quote), &w.t1)
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(res["errors"]["lines.1.product_id"].is_array(), "{res}");
+
+    // Rung up offline an hour ago, while the wax was still for sale: booked and flagged.
+    let mut offline = sale("offline-1", basket(&w), cash(5000));
+    offline["sold_at"] = json!((chrono::Utc::now() - chrono::Duration::hours(1)).to_rfc3339());
+    let (status, res) = post(&w, &w.t1, &offline).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(res["data"]["unsellable_lines"], 1);
+    let (status, again) = post(&w, &w.t1, &offline).await;
+    assert_eq!(
+        (status, &again["data"]["unsellable_lines"]),
+        (StatusCode::OK, &json!(1))
+    );
+
+    // Rung up after it went off sale: refused, as live.
+    let mut late = sale("offline-2", basket(&w), cash(5000));
+    late["sold_at"] = json!(chrono::Utc::now().to_rfc3339());
+    let (status, res) = post(&w, &w.t1, &late).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+
+    sqlx::query("UPDATE products SET archived = true, updated_at = now() WHERE id = $1::uuid")
+        .bind(&w.honey)
+        .execute(&w.api.pool)
+        .await
+        .unwrap();
+    let only_honey = json!([line(&w.honey, "1", 1250)]);
+    let (status, res) = post(&w, &w.t1, &sale("archived", only_honey, cash(5000))).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(res["errors"]["lines.0.product_id"].is_array(), "{res}");
+}
