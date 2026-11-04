@@ -51,7 +51,8 @@
     "orders": "Orders",
     "till": "Kassa",
     "supply": "Aanvoer",
-    "overview": "Overzicht"
+    "overview": "Overzicht",
+    "invites": "Uitnodigingen"
   },
   "pager": {
     "summary": "{from}–{to} van {total}",
@@ -558,7 +559,10 @@
     "pdfReady": "De PDF is klaar.",
     "imagesSaved": "Afbeeldingen opgeslagen.",
     "productCreated": "Product aangemaakt.",
-    "sizeAdded": "Maat toegevoegd."
+    "sizeAdded": "Maat toegevoegd.",
+    "inviteSent": "Uitnodiging verstuurd naar {email}",
+    "inviteWithdrawn": "Uitnodiging ingetrokken.",
+    "lotStockChanged": "Voorraad gewijzigd."
   },
   "images": {
     "title": "Afbeeldingen",
@@ -652,5 +656,62 @@
     "tooShort": "Typ minstens 3 tekens om te zoeken.",
     "nothing": "Niets gevonden voor “{q}”",
     "ean": "EAN-13"
+  },
+  "invites": {
+    "title": "Uitnodigingen",
+    "intro": "Nodig mensen per e-mail uit om in dit account te werken.",
+    "new": "Iemand uitnodigen",
+    "newText": "Ze krijgen een e-mail met een link om lid te worden van dit account.",
+    "email": "E-mail",
+    "team": "Team (rol)",
+    "teamHint": "Het team bepaalt wat ze mogen doen.",
+    "noTeam": "Geen team",
+    "send": "Uitnodiging versturen",
+    "empty": "Nog geen uitnodigingen",
+    "status": "Status",
+    "sent": "Verstuurd",
+    "expires": "Verloopt",
+    "actions": "Acties",
+    "withdraw": "Intrekken",
+    "withdrawTitle": "Uitnodiging voor {email} intrekken?",
+    "withdrawText": "De link in hun e-mail werkt dan niet meer.",
+    "statuses": {
+      "pending": "Open",
+      "accepted": "Geaccepteerd",
+      "denied": "Afgewezen",
+      "expired": "Verlopen"
+    }
+  },
+  "invite": {
+    "title": "Je uitnodiging",
+    "incomplete": "Deze uitnodigingslink is onvolledig",
+    "invalid": "Deze uitnodigingslink is niet geldig",
+    "ended": {
+      "expired": "Deze uitnodiging is verlopen",
+      "accepted": "Deze uitnodiging is al geaccepteerd",
+      "denied": "Deze uitnodiging is afgewezen"
+    },
+    "goLogin": "Naar inloggen",
+    "join": "Word lid van {workspace}",
+    "signUp": "Maak je login aan om te beginnen.",
+    "firstName": "Voornaam",
+    "lastName": "Achternaam",
+    "passwordRule": "Minstens 8 tekens met hoofd- en kleine letters, een cijfer en een symbool.",
+    "create": "Account aanmaken",
+    "loginFirst": "Log in om te accepteren",
+    "accept": "Accepteren",
+    "decline": "Afwijzen",
+    "declined": "Uitnodiging afgewezen",
+    "joined": "Je bent lid van {workspace}",
+    "joinedHint": "Log opnieuw in om het te openen.",
+    "loginAgain": "Opnieuw inloggen"
+  },
+  "lotStock": {
+    "title": "Voorraad wijzigen in {code}",
+    "available": "Beschikbaar",
+    "quantity": "Hoeveelheid",
+    "quantityHint": "Positief voegt toe, negatief haalt eruit",
+    "correction": "Dit is een correctie",
+    "empty": "Nog geen voorraad in deze batch"
   }
 }

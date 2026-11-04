@@ -41,6 +41,7 @@ import { Done, Empty, LoadError, useDone } from "@/components/states"
 import { LotFields } from "../lot-fields"
 import { FarmerCount, FarmerCredits } from "./farmer-credits"
 import { PackDialog } from "./pack-dialog"
+import { StockDialog } from "./stock-dialog"
 
 const linkClass =
   "font-medium text-foreground underline-offset-4 hover:underline max-md:inline-flex max-md:min-h-11 max-md:items-center"
@@ -133,6 +134,11 @@ export default function LotPage({
         actions={
           <>
             <PackDialog lotId={id} code={current.code} />
+            <StockDialog
+              lotId={id}
+              code={current.code}
+              onChanged={() => done.show(t("done.lotStockChanged"))}
+            />
             <Button type="submit" form="lot-form" disabled={update.isPending}>
               {t("actions.save")}
             </Button>
