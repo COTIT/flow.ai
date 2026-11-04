@@ -1,12 +1,15 @@
 import type { APIRequestContext, BrowserContext, Page } from "@playwright/test"
 
 import {
+  cred,
   expect,
+  loginOffice,
   openShift,
   pairTill,
   stackAllow,
   test,
   type Api,
+  urls,
 } from "../src/stack"
 import {
   fixedRef,
@@ -109,16 +112,28 @@ test.describe("replayed after it went off sale", () => {
     expect(sales[0]!.unsellable_lines).toBe(1)
   })
 
-  test("that replayed sale is flagged on the till for the office", async ({
+  test("that replayed sale is flagged on the till and in the office", async ({
     page,
     context,
     request,
   }) => {
-    test.fail(
-      true,
-      "till ignores SaleResource.unsellable_lines: no warning on the queue card (reported by e2e-till)"
+    const { card, sales } = await replayAfterOffSale(page, context, request)
+    await expect(
+      card.getByRole("status").filter({
+        hasText: "A product in this sale is no longer for sale.",
+      })
+    ).toBeVisible()
+
+    // And in the office's till sales, in words.
+    await loginOffice(page, cred("office (AFM)", "owner"))
+    await page.goto(
+      `${urls.office}/till/sales?register_id=${sales[0]!.register_id}`
     )
-    const { card } = await replayAfterOffSale(page, context, request)
-    await expect(card.getByRole("status")).toBeVisible({ timeout: 2_000 })
+    await expect(
+      page
+        .getByRole("row")
+        .filter({ hasText: sales[0]!.number })
+        .getByText("1 line no longer for sale")
+    ).toBeVisible()
   })
 })

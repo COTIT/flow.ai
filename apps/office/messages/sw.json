@@ -38,7 +38,8 @@
     "sku": "SKU",
     "standardSize": "Kawaida",
     "defaultSize": "Chaguo-msingi",
-    "noSizes": "Bado hakuna saizi."
+    "noSizes": "Bado hakuna saizi.",
+    "sizesShopNote": "Bidhaa ikishakuwa na saizi, duka huuza saizi hizo tu; bidhaa yenyewe haionekani tena humo."
   },
   "nav": {
     "label": "Menyu kuu",
@@ -479,6 +480,7 @@
     "catalog": "Kwa bei za katalogi",
     "mismatch": "Tofauti",
     "mismatchValue": "{amount} (mistari {lines})",
+    "unsellableValue": "{count, plural, one {mstari # hauuzwi tena} other {mistari # haiuzwi tena}}",
     "paired": "Imeunganishwa",
     "notPaired": "Haijaunganishwa",
     "pair": "Unganisha kasha",

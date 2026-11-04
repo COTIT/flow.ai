@@ -157,13 +157,13 @@ test("a product with no stock is sold out on the shop and can't be added", async
 test("a refunded and cancelled order tells the buyer it was cancelled, not that it expired unpaid", async ({
   page,
 }) => {
-  test.fail(
-    true,
-    "shop shows every cancelled order as 'expired before it was paid' (apps/shop/app/orders/[id]/page.tsx:70, e2e-shop)"
-  )
   // The seed's own paid, refunded and cancelled web order (read only).
   await page.goto(`${urls.shop}${notes["shop order (refunded, cancelled)"]}`)
   await expect(page.getByText("Cancelled", { exact: true })).toBeVisible()
+  const status = page.getByRole("status")
+  await expect(status).toContainText("This order was cancelled")
+  await expect(status).toContainText("Your payment has been refunded")
+  await expectNoRawValues(page)
   await expect(
     page.getByText("This order expired before it was paid")
   ).toHaveCount(0)

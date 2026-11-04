@@ -38,7 +38,8 @@
     "sku": "SKU",
     "standardSize": "Standaard",
     "defaultSize": "Standaard",
-    "noSizes": "Nog geen maten."
+    "noSizes": "Nog geen maten.",
+    "sizesShopNote": "Zodra een product maten heeft, verkoopt de winkel alleen die maten; het product zelf staat er dan niet meer."
   },
   "nav": {
     "label": "Hoofdmenu",
@@ -479,6 +480,7 @@
     "catalog": "Tegen catalogusprijzen",
     "mismatch": "Verschil",
     "mismatchValue": "{amount} ({lines} regels)",
+    "unsellableValue": "{count, plural, one {# regel niet meer te koop} other {# regels niet meer te koop}}",
     "paired": "Gekoppeld",
     "notPaired": "Niet gekoppeld",
     "pair": "Kassa koppelen",

@@ -141,6 +141,13 @@ export default function QueuePage() {
                       <p>{t("queue.showOffice")}</p>
                     </Notice>
                   ) : null}
+                  {i.sale?.unsellable_lines ? (
+                    <Notice
+                      variant="warning"
+                      className="px-3.5 py-2.5"
+                      title={t("queue.unsellable")}
+                    />
+                  ) : null}
                   {i.sale?.price_mismatch ? (
                     <Notice
                       variant="warning"

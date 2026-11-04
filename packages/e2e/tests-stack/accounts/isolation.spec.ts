@@ -12,6 +12,7 @@ import {
   urls,
   workspaces,
 } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 
 /** The API's status for `path` as one member, without the throw `apiAs` does on >= 400. */
 async function statusAs(
@@ -167,9 +168,23 @@ test("the account switcher offers only one's own accounts", async ({
   const menu = page.getByRole("button", { name: "Open menu" })
   if (await menu.isVisible()) await menu.click()
   await page.getByRole("combobox", { name: "Workspace" }).click()
+  // The list renders after the click: wait for it before reading it.
+  await expect(page.getByRole("option")).toHaveCount(mine.length)
   const offered = await page.getByRole("option").allTextContents()
   expect(offered.sort()).toEqual(mine.map((w) => w.display_name).sort())
   expect(offered).toContain("Ruaha Coffee Co-op")
+  await expectNoRawValues(page, { within: '[role="listbox"]' })
+})
+
+test("the account switcher names accounts in words, not by their slug", async ({
+  page,
+}) => {
+  await loginOffice(page, cred("office (RUAHA)", "admin"))
+  const menu = page.getByRole("button", { name: "Open menu" })
+  if (await menu.isVisible()) await menu.click()
+  await expect(
+    page.getByRole("combobox", { name: "Workspace" })
+  ).not.toHaveText(/^[a-z0-9]+(?:-[a-z0-9]+)+\W*$/)
 })
 
 test("an office owner of one account has no farm role in the other's Field", async ({

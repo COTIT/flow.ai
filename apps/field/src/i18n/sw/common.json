@@ -40,7 +40,10 @@
     "emailRequired": "Weka namba yako ya simu au anwani ya barua pepe.",
     "emailInvalid": "Weka namba ya simu ya mkononi ya Tanzania, kwa mfano 0712 345 678, au anwani ya barua pepe.",
     "passwordRequired": "Weka neno lako la siri.",
-    "unexpected": "Kuna tatizo wakati wa kuingia."
+    "unexpected": "Kuna tatizo wakati wa kuingia.",
+    "expired": "Muda wa kuingia umeisha. Ingia tena.",
+    "lockedOut": "Majaribio mengi mno ya kuingia. Subiri dakika chache, kisha ujaribu tena.",
+    "lockedOutFor": "Majaribio mengi mno ya kuingia. Jaribu tena baada ya dakika {{minutes}}."
   },
   "selectRole": {
     "title": "Chagua jukumu",

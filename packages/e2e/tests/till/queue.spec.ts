@@ -404,10 +404,6 @@ test.describe("replay of a product since taken off sale", () => {
     page,
     api,
   }) => {
-    // BUG: the API books the line and counts it in `unsellable_lines`, but the till never reads
-    // that field (apps/till/app/(till)/queue/page.tsx shows only price_mismatch), so the cashier
-    // and office get no warning. Remove test.fail once the queue card flags it.
-    test.fail(true, "till ignores SaleResource.unsellable_lines")
     serverApi(api)
     api.on("POST", "/workspace/:ws/till/sales", () => ({
       status: 201,
@@ -419,6 +415,10 @@ test.describe("replay of a product since taken off sale", () => {
     const card = page.getByRole("listitem").filter({ hasText: "1 item" })
     await expect(card.getByText("Booked", { exact: true })).toBeVisible()
     // A warning on the card itself, like the price-mismatch one.
-    await expect(card.getByRole("status")).toBeVisible({ timeout: 2_000 })
+    await expect(
+      card.getByRole("status").filter({
+        hasText: "A product in this sale is no longer for sale.",
+      })
+    ).toBeVisible()
   })
 })

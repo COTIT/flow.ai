@@ -131,6 +131,7 @@ function tillApi(api: FakeApi) {
         server_total: 2500,
         price_mismatch: -100,
         mismatched_lines: 1,
+        unsellable_lines: 0,
         due: 2400,
         rounding: 0,
         tendered: 3000,
@@ -149,6 +150,15 @@ function tillApi(api: FakeApi) {
                 number: "POS-0008",
                 price_mismatch: 0,
                 mismatched_lines: 0,
+                server_total: 2400,
+              },
+              {
+                ...sale,
+                order_id: "ord-9",
+                number: "POS-0009",
+                price_mismatch: 0,
+                mismatched_lines: 0,
+                unsellable_lines: 1,
                 server_total: 2400,
               },
             ]
@@ -567,4 +577,17 @@ test.describe(() => {
     await page.keyboard.press("Escape")
     await expect(page.getByText("Locked")).toBeVisible()
   })
+})
+
+test("till sales: a late offline sale with a product taken off sale says so in words", async ({
+  page,
+  api,
+}) => {
+  tillApi(api)
+  await page.goto("/till/sales")
+  const row = page.getByRole("row").filter({ hasText: "POS-0009" })
+  await expect(row.getByText("1 line no longer for sale")).toBeVisible()
+  await expect(
+    page.getByRole("row").filter({ hasText: "POS-0008" }).getByText(/no longer for sale/)
+  ).toHaveCount(0)
 })

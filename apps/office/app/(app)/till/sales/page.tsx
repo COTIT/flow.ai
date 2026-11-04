@@ -152,14 +152,22 @@ export default function TillSalesPage({
                 </TableCell>
                 <TableCell
                   data-m="badge"
-                  className={`text-right tabular-nums ${s.price_mismatch || s.mismatched_lines ? "text-destructive" : ""}`}
+                  className={`text-right tabular-nums ${s.price_mismatch || s.mismatched_lines || s.unsellable_lines ? "text-destructive" : ""}`}
                 >
-                  {s.price_mismatch || s.mismatched_lines
-                    ? t("till.mismatchValue", {
-                        amount: registerMoney(s.price_mismatch, s.register_id),
-                        lines: s.mismatched_lines,
-                      })
-                    : "—"}
+                  {[
+                    s.price_mismatch || s.mismatched_lines
+                      ? t("till.mismatchValue", {
+                          amount: registerMoney(s.price_mismatch, s.register_id),
+                          lines: s.mismatched_lines,
+                        })
+                      : null,
+                    // A late offline replay booked a product since taken off sale.
+                    s.unsellable_lines
+                      ? t("till.unsellableValue", { count: s.unsellable_lines })
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
                 </TableCell>
               </TableRow>
             ))}

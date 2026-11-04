@@ -13,6 +13,7 @@ import {
   urls,
   type Api,
 } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 import { test as refusing } from "./refusals"
 
 type Key = { id: string; name: string; kind: string; revoked_at: string | null }
@@ -188,14 +189,21 @@ test("a revoked shop key is refused by the storefront API; a live one is served"
 
 test("app keys list their scopes and kinds as words, not codes", async ({
   page,
+  request,
 }) => {
+  // A key of the test's own, newest so on the first page (other specs keep adding keys).
+  const owner = await apiAs(request, cred("office (AFM)", "owner"))
+  const name = `e2e labels ${unique()}`
+  await owner.post(owner.ws("/app-keys"), {
+    name,
+    kind: "shop",
+    scopes: ["catalog:read", "checkout:write"],
+  })
   await loginOffice(page, cred("office (AFM)", "owner"))
   await page.goto(`${urls.office}/settings/app-keys`)
-  // The seeded web shop key (catalog:read, checkout:write) is on the first page.
-  await expect(
-    page.getByText("Web shop", { exact: true }).first()
-  ).toBeVisible()
+  await expect(page.getByText(name, { exact: true }).first()).toBeVisible()
   await expect(
     page.getByText(/catalog:read|checkout:write|till:login/)
   ).toHaveCount(0)
+  await expectNoRawValues(page, { within: "main" })
 })

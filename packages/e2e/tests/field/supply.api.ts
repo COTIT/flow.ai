@@ -6,7 +6,7 @@ const list = (data: unknown[]): MockReply => ({ body: { data, meta: meta(data.le
 const link = (id: string, status: string, fields: string[]) => ({
   id,
   direction: "outgoing",
-  partner: { id: "w-shop", name: "AFM shop" },
+  partner: { id: "w-shop", name: "afm-shop", display_name: "AFM shop" },
   fields,
   status,
   granted_at: "2026-10-30T08:00:00Z",
@@ -22,7 +22,7 @@ export const links = list([
 ])
 
 /** POST /supply-links reply. */
-export const granted: MockReply = { status: 201, body: { data: { ...link("l2", "pending", ["village"]), partner: { id: "w-shop", name: "AFM shop" } } } }
+export const granted: MockReply = { status: 201, body: { data: { ...link("l2", "pending", ["village"]), partner: { id: "w-shop", name: "afm-shop", display_name: "AFM shop" } } } }
 
 export const batches = list([
   {
@@ -46,7 +46,7 @@ export const warehouses = list([{ id: "wh1", name: "Iringa store" }])
 export const dispatchOptions: MockReply = {
   body: {
     data: {
-      links: [{ id: "l1", partner: { id: "w-shop", name: "AFM shop" } }],
+      links: [{ id: "l1", partner: { id: "w-shop", name: "afm-shop", display_name: "AFM shop" } }],
       lots: [{ id: "lot1", code: "ILU-H-2026-01" }],
       warehouses: [{ id: "wh1", name: "Iringa store" }],
     },
@@ -66,7 +66,7 @@ export const transfers = list([
     id: "t1",
     link_id: "l1",
     direction: "outgoing",
-    partner: { id: "w-shop", name: "AFM shop" },
+    partner: { id: "w-shop", name: "afm-shop", display_name: "AFM shop" },
     from_lot: { code: "ILU-H-2026-01", public_code: "ABCDEFGH23" },
     quantity: "40.00",
     status: "received",
@@ -83,7 +83,7 @@ export const dispatched = {
     id: "t2",
     link_id: "l1",
     direction: "outgoing",
-    partner: { id: "w-shop", name: "AFM shop" },
+    partner: { id: "w-shop", name: "afm-shop", display_name: "AFM shop" },
     from_lot: { code: "ILU-H-2026-01", public_code: "ABCDEFGH23" },
     quantity: "12.50",
     status: "dispatched",

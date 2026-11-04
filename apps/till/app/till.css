@@ -145,6 +145,8 @@
   .notes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
   .teal-tile { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: var(--r-tile); background: var(--c-teal); }
   .teal-tile .grand { color: var(--t-teal); }
+  .teal-tile.short { background: var(--glass-subtle); border: 1px solid var(--hair); }
+  .teal-tile.short .grand { color: var(--fg); }
   /* Landscape: the mockup's cash and card sheets are taller than 768 px, so the pad moves right. */
   @media (orientation: landscape) and (min-width: 761px) {
     .sheet.pay { width: min(760px, calc(100% - 24px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 18px; row-gap: 14px; }
