@@ -22382,7 +22382,7 @@
             ]
           },
           "price_gross": {
-            "description": "Consumer price including VAT, in minor units.",
+            "description": "One unit incl the product's VAT, minor units: what checkout charges for quantity 1.",
             "example": 1250,
             "format": "int64",
             "type": "integer"
@@ -22477,12 +22477,12 @@
             "type": "array"
           },
           "price_gross": {
-            "description": "Minor units of the product's currency.",
+            "description": "One unit of this variant incl the product's VAT, minor units: what checkout charges.",
             "format": "int64",
             "type": "integer"
           },
           "price_net": {
-            "description": "Minor units of the product's currency.",
+            "description": "This variant's catalog price excl VAT, minor units.",
             "format": "int64",
             "type": "integer"
           },

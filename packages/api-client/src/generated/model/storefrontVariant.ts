@@ -21,9 +21,9 @@ export interface StorefrontVariant {
   images: Link[];
   is_default: boolean;
   options: VariantOption[];
-  /** Minor units of the product's currency. */
+  /** One unit of this variant incl the product's VAT, minor units: what checkout charges. */
   price_gross: number;
-  /** Minor units of the product's currency. */
+  /** This variant's catalog price excl VAT, minor units. */
   price_net: number;
   /** @nullable */
   sku: string | null;

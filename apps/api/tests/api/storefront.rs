@@ -56,15 +56,26 @@ fn keys(v: &Value) -> Vec<&str> {
 async fn product_shows_variants_prices_in_cents_and_stock(pool: PgPool) {
     let (api, key) = world(pool).await;
     let id = product(&api, "Honey 500 g").await;
-    sql(
-        &api,
-        "UPDATE products SET price = 10.3305785, gross_price = 12.50 WHERE id = $1::uuid",
-        &id,
+    let vat = api
+        .with_base("/settings/vat-groups")
+        .create(
+            json!({ "name": "High", "vat_amount": "21", "country": "NL" }),
+            "vat_group_id",
+        )
+        .await;
+    // `gross_price` is the office's list price excl VAT: never what the shop shows.
+    sqlx::query(
+        "UPDATE products SET price = 10.3305785, gross_price = 99, vat_group_id = $2::uuid
+         WHERE id = $1::uuid",
     )
-    .await;
+    .bind(&id)
+    .bind(&vat)
+    .execute(&api.pool)
+    .await
+    .unwrap();
     sql(
         &api,
-        "UPDATE product_variants SET price = 10.3305785, gross_price = 12.50, sku = 'H-500'
+        "UPDATE product_variants SET price = 10.3305785, gross_price = 99, sku = 'H-500'
                WHERE product_id = $1::uuid",
         &id,
     )
@@ -186,15 +197,18 @@ async fn prices_round_half_away_from_zero_to_minor_units(pool: PgPool) {
     let id = product(&api, "Honey").await;
     sql(
         &api,
-        "UPDATE products SET gross_price = 12.345, price = 0.004 WHERE id = $1::uuid",
+        "UPDATE products SET gross_price = 0.004, price = 12.345 WHERE id = $1::uuid",
         &id,
     )
     .await;
 
     let (_, res) = get(&api, &format!("/products/{id}"), &key).await;
 
-    assert_eq!(res["data"]["price_gross"], 1235);
-    assert_eq!(res["data"]["price_net"], 0);
+    assert_eq!(res["data"]["price_net"], 1235);
+    assert_eq!(
+        res["data"]["price_gross"], 1235,
+        "no VAT group: gross = net"
+    );
 }
 
 #[sqlx::test]
@@ -600,5 +614,106 @@ async fn labels_are_set_on_the_product_and_shown_to_the_shop(pool: PgPool) {
         let (s, res) = update(body.clone()).await;
         assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{body}: {res}");
         assert!(res["errors"][field].is_array(), "{body}: {res}");
+    }
+}
+
+/// A product priced in the office (net price + VAT group, `gross_price` never set, as the demo
+/// seed and the office create it) shows the price checkout charges, never 0: product, default
+/// variant and a sized variant.
+#[sqlx::test]
+async fn the_shop_price_is_the_price_checkout_charges_never_0(pool: PgPool) {
+    let (api, _) = world(pool).await;
+    let key = key_for(&api, &["catalog:read", "checkout:write"]).await;
+    let vat = api
+        .with_base("/settings/vat-groups")
+        .create(
+            json!({ "name": "Low", "vat_amount": "9", "country": "NL" }),
+            "vat_group_id",
+        )
+        .await;
+    let wh = api
+        .with_base("/warehouses")
+        .create(
+            json!({ "name": "Main", "default_warehouse": true }),
+            "warehouse_id",
+        )
+        .await;
+    let id = api
+        .create(
+            json!({ "name": "Creamed honey 12 oz", "price": "12.50", "vat_group_id": vat }),
+            "product_id",
+        )
+        .await;
+    let (s, res) = api
+        .call(
+            Method::POST,
+            &format!("/{id}/variants"),
+            Some(json!({ "sku": "LARGE", "price": "20" })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    let large = res["data"]["variant_id"].as_str().unwrap().to_owned();
+    let (s, res) = api
+        .call(
+            Method::POST,
+            &format!("/{id}/stocks"),
+            Some(json!({ "warehouse_id": wh, "mutation_value": 5 })),
+            &api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+
+    let (_, office) = api
+        .call(Method::GET, &format!("/{id}"), None, &api.owner)
+        .await;
+    assert_eq!(office["data"]["price_incl"], "13.63", "{office}");
+
+    let (s, res) = get(&api, &format!("/products/{id}"), &key).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let p = &res["data"];
+    // 12.50 net + 9 % = 13.625 → 1363; 20 + 9 % = 21.80.
+    assert_eq!(
+        (p["price_net"].clone(), p["price_gross"].clone()),
+        (json!(1250), json!(1363))
+    );
+    let by_sku = |sku: Option<&str>| {
+        p["variants"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|v| v["sku"].as_str() == sku || (sku.is_none() && v["is_default"] == true))
+            .unwrap()
+            .clone()
+    };
+    let default = by_sku(None);
+    assert_eq!(
+        (default["price_net"].clone(), default["price_gross"].clone()),
+        (json!(1250), json!(1363))
+    );
+    let sized = by_sku(Some("LARGE"));
+    assert_eq!(
+        (sized["price_net"].clone(), sized["price_gross"].clone()),
+        (json!(2000), json!(2180))
+    );
+    let (_, list) = get(&api, "/products", &key).await;
+    assert_eq!(list["data"][0]["price_gross"], 1363, "list = get");
+
+    // Checkout charges exactly what the shop shows.
+    for (variant, shown) in [(Value::Null, 1363), (json!(large), 2180)] {
+        let body = json!({
+            "lines": [{ "product_id": id, "product_variant_id": variant, "quantity": "1" }],
+            "customer": { "email": "kim@example.com", "name": "Kim" },
+        });
+        let (s, o) = send(
+            &api.app,
+            Method::POST,
+            "/v1/storefront/orders",
+            Some(body),
+            Some(&key),
+        )
+        .await;
+        assert_eq!(s, StatusCode::CREATED, "{o}");
+        assert_eq!(o["data"]["total"], shown);
     }
 }
