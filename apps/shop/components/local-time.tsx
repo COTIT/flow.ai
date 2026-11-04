@@ -8,13 +8,19 @@ const noop = () => () => {}
 /** A time in the visitor's own time zone; the server can't know it, so it renders after mount. */
 export function LocalTime({ iso }: { iso: string }) {
   const locale = useLocale()
-  const text = useSyncExternalStore(
+  const mounted = useSyncExternalStore(
     noop,
-    () =>
-      new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(
-        new Date(iso)
-      ),
-    () => ""
+    () => true,
+    () => false
   )
-  return <time dateTime={iso}>{text}</time>
+  // The server paints a hidden UTC time of the same length, so nothing moves when the real one lands.
+  const text = new Intl.DateTimeFormat(locale, {
+    timeStyle: "short",
+    timeZone: mounted ? undefined : "UTC",
+  }).format(new Date(iso))
+  return (
+    <time dateTime={iso} className={mounted ? undefined : "invisible"}>
+      {text}
+    </time>
+  )
 }

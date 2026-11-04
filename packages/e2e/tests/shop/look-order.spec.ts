@@ -74,12 +74,7 @@ test("awaiting payment: gold badge, info notice with the pay button inside, tota
 test("awaiting payment: nothing moves once the hold time appears", async ({
   page,
   request,
-  isMobile,
 }) => {
-  // BUG: LocalTime renders "" on the server and the time after mount; at 375 px the notice
-  // then wraps to a second line and pushes the totals down 20 px (CLS 0.11).
-  // apps/shop/components/local-time.tsx:17 and the `heldUntil` notice in orders/[id]/page.tsx.
-  test.fail(isMobile, "the hold time pushes the order down on a phone")
   await page.goto(`/orders/${await placeOrder(request)}`)
   await expect(page.getByText(/Your items are reserved until \d/)).toBeVisible()
   await expectNoLayoutShift(page)
