@@ -117,6 +117,8 @@ Templates: **List** = `OfficeProducts` (page head + one card holding filters, ta
 | `/till/sales` | Template List | "Only mismatches" = Switch in the card header. |
 | `/settings/app-keys` | Mock `OfficeSettings` | |
 | `/settings/webhooks` | Template List (as `OfficeSettings`) | New / edit endpoint → Dialog; secret shown once like app keys; delete → confirm dialog. |
+| `/settings/invites` | Template List (as `OfficeSettings`) | Invite → Dialog (email + optional team); Withdraw → confirm dialog. |
+| `/accept-invitation` | Template Auth (as `OfficeLogin`) | Public. States per invite status; new person signs up, existing user accepts or declines. |
 | `error.tsx` | Template States | Error Notice with "Try again" inside a single card, in the shell when signed in. |
 | `not-found.tsx` | Template States | EmptyState card with a link back to Overview. |
 
