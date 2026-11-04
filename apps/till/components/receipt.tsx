@@ -3,14 +3,14 @@
 import { Printer } from "lucide-react"
 import { useLocale, useTranslations } from "next-intl"
 
-import type { QuoteLine, SaleResource } from "@genesy/api-client/model"
+import type { SaleResource } from "@genesy/api-client/model"
 import { Button } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { estimate, type CartLine } from "@/lib/cart-store"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
 
-/** "2 × Wildflower honey 500 g" rows; `amount` is the API's line total when there is one. */
+/** "2 × Wildflower honey 500 g" rows of the basket, for a sale kept on the device. */
 function Lines({
   lines,
   amount,
@@ -31,17 +31,12 @@ function Lines({
   ))
 }
 
-/** The booked sale as the API answered it (TillReceipt), with the lines as rung up. */
+/** The booked sale as the API answered it (TillReceipt), its booked lines included. */
 export function Receipt({
   sale,
-  lines,
-  quoted,
   onDone,
 }: {
   sale: SaleResource
-  lines: CartLine[]
-  /** The quote's lines at charge time: the API's line totals. */
-  quoted?: QuoteLine[]
   onDone: () => void
 }) {
   const t = useTranslations("receipt")
@@ -83,17 +78,15 @@ export function Receipt({
         />
       ) : null}
       <div className="till-tile flex flex-col gap-2">
-        <Lines
-          lines={lines}
-          amount={(l) => {
-            const q = quoted?.find(
-              (x) =>
-                x.product_id === l.productId &&
-                (x.product_variant_id ?? null) === l.variantId
-            )
-            return q ? money(q.line_total) : ""
-          }}
-        />
+        {sale.lines.map((l, i) => (
+          <div key={i} className="flex justify-between gap-3 text-[13px]">
+            <span>
+              {/* The API's decimal string ("2.00") as the basket counts it ("2"). */}
+              {Number(l.quantity)} × {l.title}
+            </span>
+            <span className="tabular-nums">{money(l.line_total)}</span>
+          </div>
+        ))}
         <hr className="border-0 border-t border-[var(--hair)]" />
         <dl className="flex flex-col gap-2">
           <div className="flex justify-between gap-3 font-semibold">

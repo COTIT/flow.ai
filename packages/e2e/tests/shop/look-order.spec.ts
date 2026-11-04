@@ -45,6 +45,26 @@ test("awaiting payment: gold badge, info notice with the pay button inside, tota
   await expect(totals).toContainText("VAT")
   await expect(totals).toContainText("Total")
 
+  // The API's lines in the left tile: neutral 44 px tile, title, "qty × unit", line total.
+  const lines = card.getByRole("list", { name: "Items" })
+  const line = lines.getByRole("listitem")
+  await expect(line).toHaveCount(1)
+  await expect(line).toContainText("Ilundo Wild Forest Honey · 500 g")
+  await expect(line).toContainText("1 × $24.99")
+  await expect(line.getByText("$24.99", { exact: true })).toBeVisible()
+  const thumb = line.locator("[aria-hidden]").first()
+  expect(await css(thumb, "width")).toBe("44px")
+  expect(await css(thumb, "height")).toBe("44px")
+  // Side by side on a desktop (grid-2), stacked on a phone.
+  const linesBox = (await lines.boundingBox())!
+  const totalsBox = (await totals.boundingBox())!
+  if (isMobile)
+    expect(totalsBox.y).toBeGreaterThan(linesBox.y + linesBox.height)
+  else {
+    expect(totalsBox.x).toBeGreaterThan(linesBox.x + linesBox.width)
+    expect(Math.round(totalsBox.y)).toBe(Math.round(linesBox.y))
+  }
+
   await expectNoHorizontalScroll(page)
   if (isMobile) await expectTapTargets(page)
   await expectNoLayoutShift(page)

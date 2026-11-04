@@ -9,6 +9,7 @@ const product = {
   short_description: null,
   description: null,
   store_only: false,
+  labels: ["Raw", "Unheated"],
   total_available_stock: 120,
   total_reserved_stock: 0,
   last_updated_at: "2026-10-01T08:00:00Z",
@@ -47,9 +48,13 @@ function stockApi(api: FakeApi) {
     .on("GET", "/workspace/:ws/products/:id/stock-with-bins", () => ({
       data: rows,
     }))
-    .on("GET", "/workspace/:ws/products/:id/stock-movements", () =>
-      paged(movements)
-    )
+    .on("GET", "/workspace/:ws/products/:id/stock-movements", ({ query }) => {
+      // The API filters by `type`; the fake keeps rows of the asked types.
+      const types = query.get("type")?.split(",")
+      return paged(
+        types ? movements.filter((m) => types.includes(String(m.movement_type))) : movements
+      )
+    })
     .on("GET", "/workspace/:ws/warehouses", () => paged([warehouse]))
     .on("GET", "/workspace/:ws/products/:id/images", () => ({ data: [] }))
     .on("GET", "/workspace/:ws/files", () => paged([]))
@@ -90,7 +95,111 @@ test("edit product: only the form's keys are sent", async ({ page, api }) => {
     short_description: "Raw forest honey",
     description: null,
     store_only: false,
+    labels: ["Raw", "Unheated"],
   })
+})
+
+test("labels: comma-separated in the form, sent as a list; empty clears them", async ({
+  page,
+  api,
+}) => {
+  stockApi(api)
+  await page.goto("/products/prod-honey")
+  const labels = page.getByLabel("Labels")
+  await expect(labels).toHaveValue("Raw, Unheated")
+  await expect(
+    page.getByText("Shown as chips in the shop, up to 8. Separate them with commas.")
+  ).toBeVisible()
+  await labels.fill(" Raw ,Single origin,, Unheated ")
+  await page.getByRole("button", { name: "Save" }).click()
+  await expect(page.getByRole("status").filter({ hasText: "Product saved." })).toBeVisible()
+  expect(api.callsTo("POST", "/workspace/:ws/products/:id")[0]?.body).toMatchObject({
+    labels: ["Raw", "Single origin", "Unheated"],
+  })
+  await expect(labels).toHaveValue("Raw, Single origin, Unheated")
+
+  await labels.fill("")
+  await page.getByRole("button", { name: "Save" }).click()
+  await expect.poll(() => api.callsTo("POST", "/workspace/:ws/products/:id").length).toBe(2)
+  expect(api.callsTo("POST", "/workspace/:ws/products/:id")[1]?.body).toMatchObject({
+    labels: [],
+  })
+  await expectFits(page)
+})
+
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/products/prod-honey", status: 422 }],
+    },
+  })
+
+  test("labels: the API's 422 shows at the field", async ({ page, api }) => {
+    stockApi(api)
+    api.on("POST", "/workspace/:ws/products/:id", () => ({
+      status: 422,
+      body: {
+        message: "The given data was invalid.",
+        errors: { labels: ["At most 8 labels."] },
+      },
+    }))
+    await page.goto("/products/prod-honey")
+    await page.getByLabel("Labels").fill("a, b, c, d, e, f, g, h, i")
+    await page.getByRole("button", { name: "Save" }).click()
+    await expect(page.getByText("At most 8 labels.")).toBeVisible()
+    await expect(page.getByLabel("Labels")).toHaveAttribute("aria-invalid", "true")
+  })
+})
+
+test("stock movements: All / Decreases / Counts ask the API for that type", async ({
+  page,
+  api,
+}) => {
+  stockApi(api)
+  const base = {
+    quantity_before: "10.00",
+    quantity_after: "9.00",
+    reason: null,
+    relationships: { warehouse },
+  }
+  api.on("GET", "/workspace/:ws/products/:id/stock-movements", ({ query }) => {
+    const all = [
+      { ...base, id: "mv-d", movement_type: "decrease", quantity_change: "-1.00", created_at: "2026-11-02T09:00:00Z" },
+      { ...base, id: "mv-s", movement_type: "set_level", quantity_change: "-3.00", created_at: "2026-11-01T09:00:00Z" },
+      { ...base, id: "mv-i", movement_type: "increase", quantity_change: "120.00", created_at: "2026-10-30T09:00:00Z" },
+    ]
+    const type = query.get("type")
+    return paged(type ? all.filter((m) => m.movement_type === type) : all)
+  })
+  await page.goto("/products/prod-honey")
+  const card = page.getByRole("region", { name: "Stock movements" })
+  const kind = card.getByRole("group", { name: "Movement type" })
+  await expect(kind.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true")
+  await expect(card.getByRole("cell", { name: "120.00" })).toBeVisible()
+
+  await kind.getByRole("button", { name: "Decreases" }).click()
+  await expect(kind.getByRole("button", { name: "Decreases" })).toHaveAttribute("aria-pressed", "true")
+  await expect(card.getByRole("cell", { name: "120.00" })).toHaveCount(0)
+  await expect(card.getByRole("cell", { name: "-1.00" })).toBeVisible()
+
+  await kind.getByRole("button", { name: "Counts" }).click()
+  await expect(card.getByRole("cell", { name: "-3.00" })).toBeVisible()
+  await expect(card.getByRole("cell", { name: "-1.00" })).toHaveCount(0)
+  await expectFits(page)
+})
+
+test("stock movements: the type goes out as the API's word", async ({ page, api }) => {
+  stockApi(api)
+  const seen: (string | null)[] = []
+  await page.route("**/v1/workspace/w1/products/prod-honey/stock-movements**", (route) => {
+    seen.push(new URL(route.request().url()).searchParams.get("type"))
+    return route.fallback()
+  })
+  await page.goto("/products/prod-honey")
+  const kind = page.getByRole("group", { name: "Movement type" })
+  await kind.getByRole("button", { name: "Decreases" }).click()
+  await kind.getByRole("button", { name: "Counts" }).click()
+  await expect.poll(() => seen).toEqual([null, "decrease", "set_level"])
 })
 
 test("store only: ticking it sends store_only true", async ({ page, api }) => {

@@ -4,15 +4,17 @@ import * as React from "react"
 import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { useQueryClient } from "@tanstack/react-query"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Package } from "lucide-react"
 
 import { useSession } from "@genesy/api-client/auth"
 import {
+  getOrdersEventsQueryKey,
   getOrdersGetQueryKey,
   getOrdersListQueryKey,
   useOrdersCancel,
   useOrdersComplete,
   useOrdersConfirm,
+  useOrdersEvents,
   useOrdersGet,
   useOrdersInvoice,
   useOrdersPick,
@@ -37,6 +39,7 @@ import {
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
 import { Notice } from "@genesy/ui/components/notice"
+import { Skeleton } from "@genesy/ui/components/skeleton"
 import {
   Table,
   TableBody,
@@ -66,6 +69,17 @@ const actionOrder: OrderAction[] = [
   "cancel",
 ]
 
+// Timeline badge colours by event kind (OfficeOrder); kinds not listed take the status colour.
+const kindTone: Record<string, "teal" | "gold" | "red" | "slate"> = {
+  created: "slate",
+  confirmed: "slate",
+  picked: "slate",
+  invoiced: "slate",
+  expired: "red",
+  returned: "gold",
+  refunded: "gold",
+}
+
 /** The order detail (OfficeOrder): lines with the server's totals, next step, customer, timeline. */
 export default function OrderPage({
   params,
@@ -80,10 +94,15 @@ export default function OrderPage({
   const order = useOrdersGet(workspaceId, id, {
     query: { enabled: Boolean(workspaceId) },
   })
+  // shortcut: the newest page of the trail only; page it when orders get that many steps.
+  const trail = useOrdersEvents(workspaceId, id, undefined, {
+    query: { enabled: Boolean(workspaceId) },
+  })
   const onSuccess = () => {
     for (const queryKey of [
       getOrdersGetQueryKey(workspaceId, id),
       getOrdersListQueryKey(workspaceId),
+      getOrdersEventsQueryKey(workspaceId, id),
     ])
       void queryClient.invalidateQueries({ queryKey })
   }
@@ -250,30 +269,32 @@ export default function OrderPage({
   const address = Object.values(c.shipping_address ?? {}).filter(
     (v): v is string => typeof v === "string" && v.trim() !== ""
   )
-  const events = [
-    { at: o.created_at, label: t("orders.placedEvent"), status: "placed" },
-    ...(o.paid_at
-      ? [{ at: o.paid_at, label: t("invoices.paid"), status: "paid" }]
-      : []),
-    ...(o.completed_at
-      ? [
-          {
-            at: o.completed_at,
-            label: statusLabel("completed"),
-            status: "completed",
-          },
-        ]
-      : []),
-    ...(o.cancelled_at
-      ? [
-          {
-            at: o.cancelled_at,
-            label: statusLabel("cancelled"),
-            status: "cancelled",
-          },
-        ]
-      : []),
-  ]
+  const kind = (k: string) =>
+    t.has(`orders.eventKinds.${k}`) ? t(`orders.eventKinds.${k}`) : k
+  const recorded = trail.data?.data ?? []
+  // The trail (newest first) read oldest first. An older order has none: its own timestamps
+  // then stand in, without who did what.
+  const events: {
+    key: string
+    kind: string
+    at: string
+    who?: string | null
+  }[] = recorded.length
+    ? recorded
+        .map((e) => ({ key: e.id, kind: e.kind, at: e.at, who: e.actor?.name }))
+        .reverse()
+    : (
+        [
+          ["created", o.created_at],
+          ["paid", o.paid_at],
+          ["confirmed", o.confirmed_at],
+          ["picked", o.picked_at],
+          ["completed", o.completed_at],
+          ["cancelled", o.cancelled_at],
+        ] as const
+      )
+        .flatMap(([k, at]) => (at ? [{ key: k, kind: k, at }] : []))
+        .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
 
   return (
     <>
@@ -291,7 +312,11 @@ export default function OrderPage({
           title={t("invoices.lines")}
           action={
             <span className="text-[13px] text-muted-foreground">
-              {t("orders.items", { count: o.lines.length })}
+              {/* `units` is the API's own sum of the quantities; only formatted here. */}
+              {t("orders.itemsUnits", {
+                count: o.lines.length,
+                units: Number(o.units),
+              })}
             </span>
           }
           span="col-span-8 row-span-2 max-md:row-span-1"
@@ -319,12 +344,38 @@ export default function OrderPage({
               {o.lines.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
-                    <span className="font-semibold">{l.title}</span>
-                    {Number(l.returned) ? (
-                      <span className="block text-xs text-muted-foreground">
-                        {t("orders.returned")} {l.returned}
+                    <span className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="inline-flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-(--hair) bg-(--glass-subtle) text-muted-foreground max-md:hidden"
+                      >
+                        {l.image ? (
+                          <img
+                            src={l.image.url}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <Package className="size-[18px]" strokeWidth={1.75} />
+                        )}
                       </span>
-                    ) : null}
+                      <span className="min-w-0">
+                        <span className="block font-semibold">{l.title}</span>
+                        {l.lots.length ? (
+                          <span className="block font-mono text-xs text-muted-foreground">
+                            {l.lots
+                              .map((lot) => t("orders.lot", { code: lot.code }))
+                              .join(" · ")}
+                          </span>
+                        ) : null}
+                        {Number(l.returned) ? (
+                          <span className="block text-xs text-muted-foreground">
+                            {t("orders.returned")} {l.returned}
+                          </span>
+                        ) : null}
+                      </span>
+                    </span>
                   </TableCell>
                   <TableCell data-m="sub" className="text-right tabular-nums">
                     {l.quantity}
@@ -422,7 +473,13 @@ export default function OrderPage({
             <span className="text-muted-foreground">{t("orders.payment")}</span>
             {o.paid_at ? (
               <Badge variant="teal">
-                {t("orders.paidOn", { date: when(o.paid_at) })}
+                {o.payment_method
+                  ? t("orders.paidVia", {
+                      method: t.has(`orders.methods.${o.payment_method}`)
+                        ? t(`orders.methods.${o.payment_method}`)
+                        : o.payment_method,
+                    })
+                  : t("orders.paid")}
               </Badge>
             ) : (
               <Badge variant="slate">{t("orders.notPaid")}</Badge>
@@ -456,27 +513,46 @@ export default function OrderPage({
           title={t("orders.timeline")}
           span="col-span-12"
         >
-          <ol className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px]">
-            {events.map((e, i) => (
-              <li key={e.status} className="flex items-center gap-6">
-                {i > 0 ? (
-                  <ChevronRight
-                    aria-hidden="true"
-                    className="size-4 text-muted-foreground"
-                    strokeWidth={1.75}
-                  />
-                ) : null}
-                <span className="flex items-center gap-2">
-                  <StatusBadge
-                    status={e.status}
-                    label={e.label}
-                    tone={e.status === "placed" ? "slate" : undefined}
-                  />
-                  <span className="text-muted-foreground">{when(e.at)}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
+          {trail.isPending ? (
+            <Skeleton className="h-[22px] w-2/3" />
+          ) : trail.isError ? (
+            <LoadError
+              error={trail.error}
+              onRetry={() => void trail.refetch()}
+            />
+          ) : (
+            <>
+              <ol className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px]">
+                {events.map((e, i) => (
+                  <li key={e.key} className="flex items-center gap-6">
+                    {i > 0 ? (
+                      <ChevronRight
+                        aria-hidden="true"
+                        className="size-4 text-muted-foreground"
+                        strokeWidth={1.75}
+                      />
+                    ) : null}
+                    <span className="flex items-center gap-2">
+                      <StatusBadge
+                        status={e.kind}
+                        label={kind(e.kind)}
+                        tone={kindTone[e.kind]}
+                      />
+                      <span className="text-muted-foreground">
+                        {when(e.at)}
+                        {e.who ? ` · ${e.who}` : ""}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              {recorded.length ? null : (
+                <p className="text-xs text-muted-foreground">
+                  {t("orders.trailNote")}
+                </p>
+              )}
+            </>
+          )}
         </Tile>
       </Bento>
 

@@ -18,6 +18,27 @@ import { FadeIn } from "./motion"
 
 type T = (key: string, values?: Record<string, string | number>) => string
 
+/** The batch's status badge; `tp` reads the shop's `passport` messages. */
+export const lotStatus = (status: string, tp: T) =>
+  status === "recalled"
+    ? { variant: "red" as const, label: tp("status.recalled") }
+    : status === "quarantine"
+      ? { variant: "gold" as const, label: tp("status.quarantine") }
+      : { variant: "teal" as const, label: tp("status.released") }
+
+/** "Place, region, country" from the passport's origin, else the batch's own origin line. */
+export function lotPlace(
+  lot: Pick<PublicLot, "origin" | "passport">,
+  locale: string
+) {
+  const origin = lot.passport.origin
+  if (!origin) return lot.origin
+  const country = new Intl.DisplayNames(locale, { type: "region" }).of(
+    origin.country
+  )
+  return [origin.place, origin.region, country].filter(Boolean).join(", ")
+}
+
 /**
  * Mock `ShopPassport` (+ `ShopPassportRecalled`): a batch passport as tiles. Display only;
  * every tile hides when its data is empty, and a tile whose partner is hidden takes the full
@@ -42,16 +63,7 @@ export function Passport({
     lot.best_before && `${t("bestBefore")} ${day(lot.best_before)}`,
     lot.expires_on && `${t("expires")} ${day(lot.expires_on)}`,
   ].filter(Boolean)
-  const country = passport.origin
-    ? new Intl.DisplayNames(locale, { type: "region" }).of(
-        passport.origin.country
-      )
-    : null
-  const place = passport.origin
-    ? [passport.origin.place, passport.origin.region, country]
-        .filter(Boolean)
-        .join(", ")
-    : lot.origin
+  const place = lotPlace(lot, locale)
   const facts = passport.story.flatMap((b) =>
     b.kind === "facts" ? b.items : []
   )
@@ -59,12 +71,7 @@ export function Passport({
   const story = passport.story.filter(
     (b) => b.kind === "text" || (b.kind === "image" && b.image)
   )
-  const status =
-    lot.status === "recalled"
-      ? { variant: "red" as const, label: tp("status.recalled") }
-      : lot.status === "quarantine"
-        ? { variant: "gold" as const, label: tp("status.quarantine") }
-        : { variant: "teal" as const, label: tp("status.released") }
+  const status = lotStatus(lot.status, tp)
 
   const hasWhere = Boolean(place || passport.map)
   const hasInside = passport.materials.length > 0 || facts.length > 0
@@ -394,9 +401,20 @@ function StoryBlock({ block }: { block: PublicBlock }) {
  * Mock `.map`: where the batch comes from as a soft area on a grid, not a pin. The API rounds
  * the point to ~1 km and no map tiles load (no third party sees the visitor).
  */
-function MapArea({ label }: { label?: string | null }) {
+export function MapArea({
+  label,
+  className,
+}: {
+  label?: string | null
+  className?: string
+}) {
   return (
-    <div className="relative min-h-[260px] overflow-hidden rounded-[16px] bg-(--glass-subtle) bg-[radial-gradient(circle_at_58%_46%,rgb(1_144_155/30%)_0_60px,rgb(1_144_155/12%)_61px_96px,transparent_97px),repeating-linear-gradient(0deg,var(--hair)_0_1px,transparent_1px_28px),repeating-linear-gradient(90deg,var(--hair)_0_1px,transparent_1px_28px)]">
+    <div
+      className={cn(
+        "relative min-h-[260px] overflow-hidden rounded-[16px] bg-(--glass-subtle) bg-[radial-gradient(circle_at_58%_46%,rgb(1_144_155/30%)_0_60px,rgb(1_144_155/12%)_61px_96px,transparent_97px),repeating-linear-gradient(0deg,var(--hair)_0_1px,transparent_1px_28px),repeating-linear-gradient(90deg,var(--hair)_0_1px,transparent_1px_28px)]",
+        className
+      )}
+    >
       {label ? (
         <span className="absolute top-[46%] left-[58%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-(--glass-border) bg-(--glass-strong) px-3 py-1.5 text-xs font-semibold whitespace-nowrap">
           {label}

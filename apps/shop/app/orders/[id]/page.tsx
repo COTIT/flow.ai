@@ -26,8 +26,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The server's view of a web order: its totals and status are the only ones shown. The
- * mockup's line items are left out: the order reply carries totals only.
+ * The server's view of a web order: its lines, totals and status are the only ones shown.
+ * Lines carry no picture, so each gets a neutral tile.
  */
 export default async function OrderPage({ params }: Props) {
   const { id } = await params
@@ -106,23 +106,63 @@ export default async function OrderPage({ params }: Props) {
       </div>
       {paid ? <ClearCart /> : null}
 
-      <dl
+      <div
         className={cn(
-          tile,
-          "grid grid-cols-[1fr_auto] items-baseline gap-y-2 text-[13px] tabular-nums [&_dd]:pl-6"
+          "grid grid-cols-1 gap-4",
+          order.lines.length && "md:grid-cols-2"
         )}
       >
-        <dt className="text-muted-foreground">{t("subtotal")}</dt>
-        <dd className="text-right">{money(order.subtotal)}</dd>
-        <dt className="text-muted-foreground">{t("vat")}</dt>
-        <dd className="text-right">{money(order.vat)}</dd>
-        <dt className="border-t border-(--hair) pt-2 text-sm font-semibold">
-          {t("total")}
-        </dt>
-        <dd className="border-t border-(--hair) pt-2 text-right text-lg font-semibold max-md:text-base">
-          {money(order.total)}
-        </dd>
-      </dl>
+        {order.lines.length ? (
+          <ul
+            aria-label={t("items")}
+            className={cn(tile, "flex flex-col gap-2")}
+          >
+            {order.lines.map((line, i) => (
+              <li key={i} className="flex items-center gap-3">
+                <span
+                  aria-hidden
+                  className="size-11 shrink-0 rounded-[12px] bg-(--hair)"
+                />
+                <div className="min-w-0 flex-auto">
+                  <p className="text-[13px] font-semibold">{line.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[
+                      // String in, so Intl shows the API's decimal exactly ("2.00" -> "2").
+                      new Intl.NumberFormat(locale, {
+                        maximumFractionDigits: 3,
+                      }).format(line.quantity as unknown as number),
+                      line.unit_price_gross !== null &&
+                        money(line.unit_price_gross),
+                    ]
+                      .filter(Boolean)
+                      .join(" × ")}
+                  </p>
+                </div>
+                <span className="text-[13px] font-semibold tabular-nums">
+                  {money(line.total_gross)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <dl
+          className={cn(
+            tile,
+            "grid grid-cols-[1fr_auto] items-baseline gap-y-2 text-[13px] tabular-nums [&_dd]:pl-6"
+          )}
+        >
+          <dt className="text-muted-foreground">{t("subtotal")}</dt>
+          <dd className="text-right">{money(order.subtotal)}</dd>
+          <dt className="text-muted-foreground">{t("vat")}</dt>
+          <dd className="text-right">{money(order.vat)}</dd>
+          <dt className="border-t border-(--hair) pt-2 text-sm font-semibold">
+            {t("total")}
+          </dt>
+          <dd className="border-t border-(--hair) pt-2 text-right text-lg font-semibold max-md:text-base">
+            {money(order.total)}
+          </dd>
+        </dl>
+      </div>
     </OrderCard>
   )
 }

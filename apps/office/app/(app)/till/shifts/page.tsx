@@ -1,10 +1,12 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useTillShiftsList } from "@genesy/api-client/endpoints/till"
+import { Switch } from "@genesy/ui/components/switch"
 import {
   Table,
   TableBody,
@@ -18,16 +20,35 @@ import { StatusBadge } from "@/components/status-badge"
 import { useTillMoney } from "@/lib/till-money"
 import { Empty, LoadError } from "@/components/states"
 
-export default function ShiftsPage() {
+import { RegisterSelect } from "../register-select"
+
+export default function ShiftsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ open?: string; register_id?: string; page?: string }>
+}) {
   const t = useTranslations()
+  const router = useRouter()
+  const { open, register_id, page } = React.use(searchParams)
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
-  const [page, setPage] = React.useState(1)
   const { register, registerMoney } = useTillMoney()
   const shifts = useTillShiftsList(
     workspaceId,
-    { page },
+    {
+      open: open === "true" || undefined,
+      register_id: register_id || undefined,
+      page: Number(page) || undefined,
+    },
     { query: { enabled: Boolean(workspaceId) } }
   )
+  const go = (next: { open?: boolean; register?: string; page?: number }) => {
+    const params = new URLSearchParams()
+    if (next.open ?? open === "true") params.set("open", "true")
+    const reg = next.register ?? register_id
+    if (reg) params.set("register_id", reg)
+    if (next.page && next.page > 1) params.set("page", String(next.page))
+    router.push(`?${params}`)
+  }
   const when = (s: string | null) => (s ? new Date(s).toLocaleString() : "—")
   const columns = [
     { label: t("till.register") },
@@ -41,6 +62,23 @@ export default function ShiftsPage() {
 
   return (
     <ListCard
+      filters={
+        <>
+          <label className="flex min-h-11 items-center gap-3 text-sm">
+            <Switch
+              // Uncontrolled so it flips at once; the key resyncs it when the URL changes.
+              key={open ?? ""}
+              defaultChecked={open === "true"}
+              onCheckedChange={(checked) => go({ open: checked, page: 1 })}
+            />
+            {t("till.onlyOpen")}
+          </label>
+          <RegisterSelect
+            value={register_id ?? ""}
+            onChange={(id) => go({ register: id, page: 1 })}
+          />
+        </>
+      }
       count={
         shifts.data
           ? t("till.shiftsCount", { total: shifts.data.meta.total })
@@ -48,7 +86,10 @@ export default function ShiftsPage() {
       }
       pager={
         shifts.data?.data.length ? (
-          <ListPager meta={shifts.data.meta} onPage={setPage} />
+          <ListPager
+            meta={shifts.data.meta}
+            onPage={(p) => go({ page: p })}
+          />
         ) : null
       }
     >
@@ -63,7 +104,12 @@ export default function ShiftsPage() {
         </CardState>
       ) : shifts.data.data.length === 0 ? (
         <CardState>
-          <Empty title={t("till.noShifts")} />
+          <Empty
+            title={t("till.noShifts")}
+            onClear={
+              open === "true" || register_id ? () => router.push("?") : undefined
+            }
+          />
         </CardState>
       ) : (
         <Table>

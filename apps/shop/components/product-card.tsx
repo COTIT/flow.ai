@@ -5,6 +5,7 @@ import { formatMoney } from "@genesy/ui/lib/money"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { card, tag } from "@/lib/look"
+import { shownPrice } from "@/lib/price"
 
 import { Glare } from "./motion"
 import { ProductImage } from "./product-image"
@@ -18,7 +19,7 @@ export function ProductCard({
 }: {
   product: StorefrontProduct
   locale: string
-  labels: { inStock: string; soldOut: string; imageSoon: string }
+  labels: { inStock: string; low: string; soldOut: string; imageSoon: string }
 }) {
   return (
     <Link
@@ -54,13 +55,13 @@ export function ProductCard({
         <span className="mt-1.5 flex flex-wrap items-center justify-between gap-3">
           <span className="text-base font-semibold tabular-nums md:text-lg">
             {formatMoney(
-              product.price_gross,
+              shownPrice(product),
               product.currency_decimals,
               product.currency,
               locale
             )}
           </span>
-          <StockBadge stock={product.available_stock} labels={labels} />
+          <StockBadge product={product} labels={labels} />
         </span>
       </span>
     </Link>

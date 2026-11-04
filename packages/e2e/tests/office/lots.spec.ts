@@ -259,3 +259,37 @@ test("recall from the status field, confirmed: saved and history shows the chang
     status: "recalled",
   })
 })
+
+test("history says who did it: a name, the system, or a user who left", async ({
+  page,
+  api,
+}) => {
+  lotsApi(api)
+  const event = (id: string, user: { id: string; name: string | null } | null) => ({
+    id,
+    kind: "updated",
+    from_status: null,
+    to_status: null,
+    user_id: user?.id ?? null,
+    user,
+    meta: null,
+    created_at: "2026-09-02T08:00:00Z",
+  })
+  api.on("GET", "/workspace/:ws/lots/:lot/events", () =>
+    paged([
+      event("ev-a", { id: "u1", name: "Romeo T." }),
+      event("ev-b", null),
+      event("ev-c", { id: "u9", name: null }),
+    ])
+  )
+  await page.goto("/lots/lot-1")
+  const history = page.getByRole("region", { name: "History" })
+  // On a phone the column is hidden (OfficeLot's `m-hide`), so read the cells, not the a11y tree.
+  const who = (row: number) => history.locator("tbody tr").nth(row).locator("td").nth(2)
+  await expect(who(0)).toHaveText("Romeo T.")
+  await expect(who(1)).toHaveText("System")
+  await expect(who(2)).toHaveText("—")
+  if ((page.viewportSize()?.width ?? 0) >= 768)
+    await expect(history.getByRole("columnheader", { name: "Who" })).toBeVisible()
+  await expectFits(page)
+})

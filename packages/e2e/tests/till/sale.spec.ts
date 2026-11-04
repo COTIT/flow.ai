@@ -45,7 +45,10 @@ const candle: TillRow = {
 
 const salesUrl = `/v1/workspace/${WS}/till/sales`
 
-/** The API's answer: a total of €33.02 rounds to €33.00 in cash. */
+/**
+ * The API's answer: a total of €33.02 rounds to €33.00 in cash. Its booked lines carry the
+ * server's titles and totals, which the receipt shows rather than the basket's.
+ */
 function booked(body: {
   client_ref: string
   payment: Record<string, unknown>
@@ -71,6 +74,28 @@ function booked(body: {
         change: cash ? (body.payment.tendered as number) - 3300 : null,
         card_reference: cash ? null : body.payment.reference,
         sold_at: "2026-11-01T09:12:00Z",
+        lines: [
+          {
+            title: "Wildflower honey 500 g (lot 7)",
+            product_id: "p-honey",
+            product_variant_id: null,
+            quantity: "2.00",
+            unit_price: 1147,
+            line_excl: 2294,
+            line_vat: 206,
+            line_total: 2500,
+          },
+          {
+            title: "Beeswax candle · Large",
+            product_id: "p-candle",
+            product_variant_id: "v-large",
+            quantity: "1.00",
+            unit_price: 661,
+            line_excl: 661,
+            line_vat: 141,
+            line_total: 802,
+          },
+        ],
       },
     },
   }
@@ -179,6 +204,14 @@ test("a cash sale sends the catalog prices and shows the API's rounding and chan
   await expect(
     receipt.getByRole("status").filter({ hasText: "Sale 1042 booked" })
   ).toBeVisible()
+  // The booked lines as the API answered them, not the basket's names or the quote's totals.
+  await expect(
+    receipt.getByText("2 × Wildflower honey 500 g (lot 7)")
+  ).toBeVisible()
+  await expect(receipt.getByText("€25.00")).toBeVisible()
+  await expect(receipt.getByText("1 × Beeswax candle · Large")).toBeVisible()
+  await expect(receipt.getByText("€8.02")).toBeVisible()
+  await expect(receipt.getByText("Ilundo honey 500 g")).toHaveCount(0)
   await expect(receipt.getByText("€33.02")).toBeVisible()
   await expect(receipt.getByText("-€0.02")).toBeVisible()
   await expect(receipt.getByText("€33.00")).toBeVisible()

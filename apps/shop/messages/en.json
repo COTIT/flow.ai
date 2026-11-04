@@ -39,7 +39,12 @@
     "soldOutBody": "This product is out of stock. Check back soon.",
     "photo": "Photo {n} of {total}",
     "shipping": "Shipping and VAT are worked out at checkout.",
-    "about": "About this product"
+    "about": "About this product",
+    "low": "Few left",
+    "passport": "This jar's passport",
+    "lot": "Lot {code}",
+    "villages": "{count, plural, one {# village} other {# villages}}",
+    "openPassport": "Open the passport"
   },
   "errors": {
     "unavailableTitle": "The shop is taking a break",
@@ -149,6 +154,7 @@
       "body": "Your order is safe. Please try again in a moment."
     },
     "label": "Order",
+    "items": "Items",
     "payAmount": "Pay {amount}",
     "badge": {
       "awaiting": "Awaiting payment",

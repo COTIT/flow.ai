@@ -24,7 +24,9 @@
     "count": "{total, plural, one {# product} other {# products}}",
     "details": "Details",
     "serverChecked": "Prices and status are checked by the server when you save.",
-    "priceInclHint": "Shown as {price} with VAT in the shop."
+    "priceInclHint": "Shown as {price} with VAT in the shop.",
+    "labels": "Labels",
+    "labelsHint": "Shown as chips in the shop, up to 8. Separate them with commas."
   },
   "nav": {
     "label": "Main menu",
@@ -97,7 +99,9 @@
     "linkCopied": "Link copied",
     "editPassport": "Edit passport",
     "lineage": "Lineage",
-    "details": "Batch details"
+    "details": "Batch details",
+    "eventWho": "Who",
+    "system": "System"
   },
   "secret": {
     "once": "Copy this secret now. It is shown only once.",
@@ -244,7 +248,11 @@
     "changeHint": "Change (e.g. 10 or -3)",
     "quantityChange": "Change",
     "count": "{total, plural, one {# stock row} other {# stock rows}}",
-    "onHand": "On hand"
+    "onHand": "On hand",
+    "movementType": "Movement type",
+    "typeAll": "All",
+    "typeDecrease": "Decreases",
+    "typeCount": "Counts"
   },
   "invoices": {
     "title": "Invoices",
@@ -329,7 +337,6 @@
       "office": "Office",
       "storefront": "Web shop"
     },
-    "items": "{count, plural, one {# item} other {# items}}",
     "serverAmounts": "Amounts as calculated by the server.",
     "nextStep": "Next step",
     "next": {
@@ -340,11 +347,32 @@
       "return": "Take back goods the customer sent back."
     },
     "payment": "Payment",
-    "paidOn": "Paid · {date}",
     "notPaid": "Not paid",
     "noCustomer": "No customer details on this order.",
     "timeline": "Timeline",
-    "placedEvent": "Placed"
+    "placedEvent": "Placed",
+    "itemsUnits": "{count, plural, one {# item} other {# items}} · {units, plural, one {# unit} other {# units}}",
+    "lot": "Lot {code}",
+    "paid": "Paid",
+    "paidVia": "Paid · {method}",
+    "methods": {
+      "cash": "cash",
+      "card": "card",
+      "online": "online"
+    },
+    "eventKinds": {
+      "created": "Placed",
+      "confirmed": "Confirmed",
+      "paid": "Paid",
+      "picked": "Picked",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "expired": "Expired",
+      "returned": "Returned",
+      "refunded": "Refunded",
+      "invoiced": "Invoiced"
+    },
+    "trailNote": "Who did what is recorded from now on; older steps show their times only."
   },
   "till": {
     "title": "Till",
@@ -404,7 +432,9 @@
     "revoked": "The till on {name} is disconnected.",
     "registersCount": "{total, plural, one {# register} other {# registers}}",
     "shiftsCount": "{total, plural, one {# shift} other {# shifts}}",
-    "salesCount": "{total, plural, one {# sale} other {# sales}}"
+    "salesCount": "{total, plural, one {# sale} other {# sales}}",
+    "onlyOpen": "Only open",
+    "allRegisters": "All registers"
   },
   "supply": {
     "title": "Supply",
@@ -530,7 +560,6 @@
   },
   "credits": {
     "title": "Farmer credits",
-    "groups": "{count, plural, one {Sales credit # farmer group, shown on the public page.} other {Sales credit # farmer groups, shown on the public page.}}",
     "noGroups": "The public page shows no farmer groups for this batch.",
     "empty": "No sales or returns of this batch yet.",
     "at": "When",
@@ -543,20 +572,22 @@
       "return": "Return"
     },
     "sub": "From jars sold",
-    "jarCount": "{jars} jars"
+    "jarCount": "{jars} jars",
+    "farmers": "{count, plural, one {# farmer} other {# farmers}}",
+    "fewFarmers": "Fewer than 3 farmers"
   },
   "lineage": {
     "packedFrom": "Packed from batch",
     "pack": "{units} units from {kg} kg",
     "receivedFrom": "Received from the partner's batch {code} ({publicCode}).",
     "transfers": "See transfers",
-    "none": "Made here: no earlier batch."
+    "none": "Made here: no earlier batch.",
+    "harvestFrom": "Harvest from {village}"
   },
   "shell": {
     "openMenu": "Open menu",
     "search": "Quick search",
-    "searchPlaceholder": "Search products…",
-    "searchProducts": "Search products",
+    "searchPlaceholder": "Search products, orders, batches…",
     "sell": "Sell",
     "trace": "Trace",
     "store": "Store",
@@ -584,10 +615,28 @@
     "belowZeroHint": "Count them and correct the stock",
     "mismatchCount": "{total, plural, one {# till sale at other prices} other {# till sales at other prices}}",
     "mismatchHint": "Compare them with the catalog",
-    "till": "Till",
-    "shifts": "Shifts",
     "salesBooked": "Sales booked",
-    "tillNote": "Totals of all shifts and sales; money stays on the shift pages.",
-    "lotsByStatus": "Batches by status"
+    "tillNote": "Counts come from the till lists; money totals stay on the shift pages.",
+    "lotsByStatus": "Batches by status",
+    "tillToday": "Till today",
+    "openShifts": "Open shifts",
+    "salesWeek": "Sales this week",
+    "gross": "Gross",
+    "refunded": "Refunded",
+    "weekOrders": "{count, plural, one {# order} other {# orders}}",
+    "noSalesWeek": "No sales this week",
+    "linkFrom": "Supply link from {partner}",
+    "linkHint": "Waiting for you to accept",
+    "transferArriving": "Transfer of {quantity} kg arriving",
+    "transferHint": "From {partner} · receive it",
+    "shiftOpenSince": "Shift open since {date}",
+    "shiftHint": "{register} · count and close"
+  },
+  "search": {
+    "title": "Search",
+    "for": "Results for “{q}”",
+    "tooShort": "Type at least 3 characters to search.",
+    "nothing": "Nothing found for “{q}”",
+    "ean": "EAN-13"
   }
 }

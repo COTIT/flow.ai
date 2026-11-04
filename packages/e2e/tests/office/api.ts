@@ -22,17 +22,26 @@ export const officeApi = (
   ]
 ): Record<string, MockReply> => ({
   "GET /me": { body: { data: { user: { id: "u1", name: "Romeo Tester", initials: "RT" } } } },
-  // The menu's open-orders count.
-  "GET /workspace/w1/orders": {
-    body: { data: [], meta: { current_page: 1, from: null, to: null, last_page: 1, per_page: 1, total: 0 } },
-  },
-  // The overview's lists (login lands there); empty.
+  // The overview's lists (login lands there) and the menu's counts (open orders, pending links); empty.
   ...Object.fromEntries(
-    ["lots", "products/stocks/negative", "till/sales", "till/shifts"].map((path) => [
+    [
+      "orders",
+      "supply-links",
+      "supply-transfers",
+      "lots",
+      "products/stocks/negative",
+      "till/sales",
+      "till/shifts",
+      "till/registers",
+      "currencies",
+    ].map((path) => [
       `GET /workspace/w1/${path}`,
       { body: { data: [], meta: { current_page: 1, from: null, to: null, last_page: 1, per_page: 1, total: 0 } } },
     ])
   ),
+  "GET /workspace/w1/sales-summary": {
+    body: { data: { from: "", to: "", source: null, currencies: [] } },
+  },
   "GET /me/workspaces": {
     body: { data: [{ id: "w1", workspace_name: "Ilundo Honey Co." }] },
   },

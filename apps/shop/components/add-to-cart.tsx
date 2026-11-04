@@ -10,6 +10,7 @@ import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { Notice } from "@genesy/ui/components/notice"
 import { formatMoney } from "@genesy/ui/lib/money"
 
+import { defaultVariant } from "@/lib/price"
 import { useCart } from "@/lib/use-cart"
 
 import { Stepper } from "./stepper"
@@ -39,7 +40,7 @@ export function AddToCart({
   // click would submit the form natively (page reload) and a choice would be reset.
   const { add, ready } = useCart()
   const [variantId, setVariantId] = React.useState(
-    product.variants[0]?.id ?? null
+    defaultVariant(product)?.id ?? null
   )
   const [quantity, setQuantity] = React.useState(1)
   const [added, setAdded] = React.useState(false)
@@ -76,9 +77,10 @@ export function AddToCart({
           {money(variant?.price_gross ?? product.price_gross)}
         </span>
         <StockBadge
-          stock={product.available_stock}
+          product={product}
           labels={{
             inStock: t("product.inStock"),
+            low: t("product.low"),
             soldOut: t("product.soldOut"),
           }}
         />

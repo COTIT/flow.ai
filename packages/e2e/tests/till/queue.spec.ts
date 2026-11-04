@@ -25,6 +25,18 @@ const sale = {
   change: 500,
   card_reference: null,
   sold_at: "2026-11-01T09:12:00Z",
+  lines: [
+    {
+      title: honey.name,
+      product_id: honey.id,
+      product_variant_id: null,
+      quantity: "2.00",
+      unit_price: 1147,
+      line_excl: 2294,
+      line_vat: 208,
+      line_total: 2502,
+    },
+  ],
 }
 
 /** Every sale this page rings up gets REF as its client_ref. */

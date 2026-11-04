@@ -37,14 +37,19 @@ test("the catalogue is the glass page from the mockup", async ({
   await expect(
     page.getByRole("heading", { level: 2, name: "All products" })
   ).toBeVisible()
-  await expect(page.getByText("2 of 2", { exact: true })).toBeVisible()
+  await expect(page.getByText("3 of 3", { exact: true })).toBeVisible()
   const grid = page.getByRole("list", { name: "All products" })
   const columns = (await css(grid, "grid-template-columns")).split(" ")
   expect(columns).toHaveLength(isMobile ? 2 : 3)
 
   const honey = page.getByRole("link", { name: /Ilundo Wild Forest Honey/ })
   await expect(honey).toContainText("$14.99")
-  await expect(honey).toContainText("In stock")
+  // stock_status "low": gold "Few left"; "sold_out": slate "Sold out".
+  await expect(honey.locator('[data-slot="badge"]')).toHaveText("Few left")
+  await expect(honey.locator('[data-slot="badge"]')).toHaveAttribute(
+    "data-variant",
+    "gold"
+  )
   // The link names the product; its photo is decorative there.
   await expect(honey.locator('img[alt=""]')).toBeVisible()
   await expect(page.getByRole("link", { name: /Beeswax Block/ })).toContainText(

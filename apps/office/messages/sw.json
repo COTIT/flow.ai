@@ -24,7 +24,9 @@
     "count": "{total, plural, one {bidhaa #} other {bidhaa #}}",
     "details": "Maelezo",
     "serverChecked": "Bei na hali hukaguliwa na seva unapohifadhi.",
-    "priceInclHint": "Huonyeshwa kama {price} pamoja na VAT dukani."
+    "priceInclHint": "Huonyeshwa kama {price} pamoja na VAT dukani.",
+    "labels": "Lebo",
+    "labelsHint": "Huonyeshwa kama vibandiko dukani, hadi 8. Zitenganishe kwa koma."
   },
   "nav": {
     "label": "Menyu kuu",
@@ -97,7 +99,9 @@
     "linkCopied": "Kiungo kimenakiliwa",
     "editPassport": "Hariri pasipoti",
     "lineage": "Asili",
-    "details": "Maelezo ya fungu"
+    "details": "Maelezo ya fungu",
+    "eventWho": "Nani",
+    "system": "Mfumo"
   },
   "secret": {
     "once": "Nakili siri hii sasa. Inaonyeshwa mara moja tu.",
@@ -244,7 +248,11 @@
     "changeHint": "Mabadiliko (k.m. 10 au -3)",
     "quantityChange": "Mabadiliko",
     "count": "{total, plural, one {safu # ya hisa} other {safu # za hisa}}",
-    "onHand": "Zilizopo"
+    "onHand": "Zilizopo",
+    "movementType": "Aina ya mabadiliko",
+    "typeAll": "Zote",
+    "typeDecrease": "Mapunguzo",
+    "typeCount": "Hesabu"
   },
   "invoices": {
     "title": "Ankara",
@@ -329,7 +337,6 @@
       "office": "Ofisi",
       "storefront": "Duka la mtandaoni"
     },
-    "items": "{count, plural, one {bidhaa #} other {bidhaa #}}",
     "serverAmounts": "Kiasi kama kilivyohesabiwa na seva.",
     "nextStep": "Hatua inayofuata",
     "next": {
@@ -340,11 +347,32 @@
       "return": "Pokea bidhaa ambazo mteja amerudisha."
     },
     "payment": "Malipo",
-    "paidOn": "Imelipwa · {date}",
     "notPaid": "Haijalipwa",
     "noCustomer": "Hakuna taarifa za mteja kwenye oda hii.",
     "timeline": "Mfuatano wa matukio",
-    "placedEvent": "Imewekwa"
+    "placedEvent": "Imewekwa",
+    "itemsUnits": "{count, plural, one {bidhaa #} other {bidhaa #}} · {units, plural, one {kipande #} other {vipande #}}",
+    "lot": "Fungu {code}",
+    "paid": "Imelipwa",
+    "paidVia": "Imelipwa · {method}",
+    "methods": {
+      "cash": "taslimu",
+      "card": "kadi",
+      "online": "mtandaoni"
+    },
+    "eventKinds": {
+      "created": "Imewekwa",
+      "confirmed": "Imethibitishwa",
+      "paid": "Imelipwa",
+      "picked": "Imeandaliwa",
+      "completed": "Imekamilika",
+      "cancelled": "Imeghairiwa",
+      "expired": "Muda umeisha",
+      "returned": "Imerudishwa",
+      "refunded": "Pesa imerejeshwa",
+      "invoiced": "Ankara imetolewa"
+    },
+    "trailNote": "Nani alifanya nini kinarekodiwa kuanzia sasa; hatua za zamani zinaonyesha muda tu."
   },
   "till": {
     "title": "Kaunta",
@@ -404,7 +432,9 @@
     "revoked": "Kasha kwenye {name} limetenganishwa.",
     "registersCount": "{total, plural, one {kaunta #} other {kaunta #}}",
     "shiftsCount": "{total, plural, one {zamu #} other {zamu #}}",
-    "salesCount": "{total, plural, one {mauzo #} other {mauzo #}}"
+    "salesCount": "{total, plural, one {mauzo #} other {mauzo #}}",
+    "onlyOpen": "Zilizo wazi tu",
+    "allRegisters": "Kaunta zote"
   },
   "supply": {
     "title": "Ugavi",
@@ -530,7 +560,6 @@
   },
   "credits": {
     "title": "Malipo kwa wakulima",
-    "groups": "{count, plural, one {Mauzo yanamlipa kikundi # cha wakulima, kinachoonyeshwa kwenye ukurasa wa umma.} other {Mauzo yanalipa vikundi # vya wakulima, vinavyoonyeshwa kwenye ukurasa wa umma.}}",
     "noGroups": "Ukurasa wa umma hauonyeshi vikundi vya wakulima kwa fungu hili.",
     "empty": "Bado hakuna mauzo au marejesho ya fungu hili.",
     "at": "Lini",
@@ -543,20 +572,22 @@
       "return": "Marejesho"
     },
     "sub": "Kutoka chupa zilizouzwa",
-    "jarCount": "Chupa {jars}"
+    "jarCount": "Chupa {jars}",
+    "farmers": "{count, plural, one {mkulima #} other {wakulima #}}",
+    "fewFarmers": "Wakulima chini ya 3"
   },
   "lineage": {
     "packedFrom": "Imefungashwa kutoka fungu",
     "pack": "vipande {units} kutoka kilo {kg}",
     "receivedFrom": "Imepokelewa kutoka fungu {code} la mshirika ({publicCode}).",
     "transfers": "Angalia uhamisho",
-    "none": "Limetengenezwa hapa: hakuna fungu la awali."
+    "none": "Limetengenezwa hapa: hakuna fungu la awali.",
+    "harvestFrom": "Mavuno kutoka {village}"
   },
   "shell": {
     "openMenu": "Fungua menyu",
     "search": "Tafuta haraka",
-    "searchPlaceholder": "Tafuta bidhaa…",
-    "searchProducts": "Tafuta bidhaa",
+    "searchPlaceholder": "Tafuta bidhaa, oda, mafungu…",
     "sell": "Uza",
     "trace": "Fuatilia",
     "store": "Duka",
@@ -584,10 +615,28 @@
     "belowZeroHint": "Zihesabu na urekebishe akiba",
     "mismatchCount": "{total, plural, one {mauzo # ya kaunta kwa bei nyingine} other {mauzo # ya kaunta kwa bei nyingine}}",
     "mismatchHint": "Linganisha na katalogi",
-    "till": "Kaunta",
-    "shifts": "Zamu",
     "salesBooked": "Mauzo yaliyorekodiwa",
-    "tillNote": "Jumla ya zamu na mauzo yote; pesa zinabaki kwenye kurasa za zamu.",
-    "lotsByStatus": "Makundi kwa hali"
+    "tillNote": "Idadi zinatoka kwenye orodha za kaunta; jumla za pesa zinabaki kwenye kurasa za zamu.",
+    "lotsByStatus": "Makundi kwa hali",
+    "tillToday": "Kaunta leo",
+    "openShifts": "Zamu zilizo wazi",
+    "salesWeek": "Mauzo wiki hii",
+    "gross": "Jumla ghafi",
+    "refunded": "Zilizorejeshwa",
+    "weekOrders": "{count, plural, one {oda #} other {oda #}}",
+    "noSalesWeek": "Hakuna mauzo wiki hii",
+    "linkFrom": "Kiungo cha ugavi kutoka {partner}",
+    "linkHint": "Kinasubiri ukubali",
+    "transferArriving": "Uhamisho wa kilo {quantity} unakuja",
+    "transferHint": "Kutoka {partner} · upokee",
+    "shiftOpenSince": "Zamu iko wazi tangu {date}",
+    "shiftHint": "{register} · hesabu na ufunge"
+  },
+  "search": {
+    "title": "Tafuta",
+    "for": "Matokeo ya “{q}”",
+    "tooShort": "Andika angalau herufi 3 ili kutafuta.",
+    "nothing": "Hakuna kilichopatikana kwa “{q}”",
+    "ean": "EAN-13"
   }
 }

@@ -174,9 +174,18 @@ export default function ProductsPage({
                     <span className="flex items-center gap-3">
                       <span
                         aria-hidden="true"
-                        className="inline-flex size-10 shrink-0 items-center justify-center rounded-[10px] border border-(--hair) bg-(--glass-subtle) text-muted-foreground max-md:hidden"
+                        className="inline-flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-(--hair) bg-(--glass-subtle) text-muted-foreground max-md:hidden"
                       >
-                        <Package className="size-[18px]" strokeWidth={1.75} />
+                        {p.thumbnail ? (
+                          <img
+                            src={p.thumbnail.url}
+                            alt=""
+                            referrerPolicy="no-referrer"
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <Package className="size-[18px]" strokeWidth={1.75} />
+                        )}
                       </span>
                       <Link
                         className="font-semibold underline-offset-4 hover:underline"
