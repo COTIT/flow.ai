@@ -6,7 +6,6 @@ import {
   movedFor,
   ownProduct,
   payOnFakePage,
-  skipSeededFakeIds,
   storefront,
 } from "./shop"
 
@@ -24,11 +23,6 @@ const money = (o: Pick<Order, "currency" | "decimals">, minor: number) =>
     style: "currency",
     currency: o.currency,
   }).format(minor / 10 ** o.decimals)
-
-test.beforeAll(async ({ request }) => {
-  test.setTimeout(120_000)
-  await skipSeededFakeIds(request)
-})
 
 test("buy on the shop, pay on the provider page, the office completes it and only then is stock taken", async ({
   page,

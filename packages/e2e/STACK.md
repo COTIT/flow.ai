@@ -132,11 +132,8 @@ build (password hashing included). CI's estimate: ~12 min warm, ~25 min cold (2 
 - `till-offsale.spec.ts` "flagged on the till": the API counts an off-sale line of a late
   offline replay in `unsellable_lines`, but the till shows no warning for it.
 - `shop/checkout.spec.ts`: a refunded and cancelled web order reads "expired before it was paid".
-- `shop/prices.spec.ts`: a sized product shows an extra, nameless size (its option-less default variant).
 
 Worked around (not `test.fail`, since they depend on timing or on how long the API has run):
-- `shop/shop.ts` `skipSeededFakeIds`: the fake provider's payment ids (`fk_N`) restart at 1 with the
-  API and collide with stored ones (500 on payment start) until the counter passes them.
 - `shop/checkout.spec.ts`: Pay again right after Cancel on the fake page reopens the cancelled
   payment until the API has recorded the cancel; the spec waits for it.
 

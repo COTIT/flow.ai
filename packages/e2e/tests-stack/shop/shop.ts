@@ -1,5 +1,4 @@
 import { execFileSync } from "node:child_process"
-import { randomUUID } from "node:crypto"
 
 import type { APIRequestContext, Page } from "@playwright/test"
 
@@ -142,54 +141,3 @@ export const lastPayment = (orderId: string) =>
   sql(
     `SELECT status FROM order_payments WHERE order_id = '${uuid(orderId)}' AND kind = 'payment' ORDER BY created_at DESC LIMIT 1`
   )
-
-/**
- * Workaround (bug, reported by e2e-shop): the API's fake provider numbers payments `fk_1, fk_2…`
- * from an in-memory counter that restarts with the API, so after the seed's own fake payments every
- * new one hits `order_payments_provider_key` (500, "Payment couldn't start") until the counter
- * passes them. Starts throwaway payments until one is numbered past every stored one. Drop once
- * fake ids are unique across restarts.
- */
-export async function skipSeededFakeIds(request: APIRequestContext) {
-  const top = Number(
-    sql(
-      "SELECT coalesce(max(substring(provider_id FROM 4)::int), 0) FROM order_payments WHERE provider = 'fake'"
-    )
-  )
-  const { id } = await ownProduct(request, { stock: 200 })
-  const headers = {
-    Authorization: `Bearer ${notes["storefront app key (shop container)"]}`,
-  }
-  for (let i = 0; i <= top + 5; i++) {
-    const placed = await request.post(`${urls.api}/v1/storefront/orders`, {
-      headers: { ...headers, "Idempotency-Key": randomUUID() },
-      data: {
-        lines: [{ product_id: id, quantity: "1" }],
-        customer: {
-          email: "skip@e2e.test",
-          name: "Skip",
-          shipping_address: {
-            line1: "1",
-            postal_code: "1",
-            city: "c",
-            country: "US",
-          },
-        },
-      },
-    })
-    const order = ((await placed.json()) as { data: { id: string } }).data.id
-    const r = await request.post(
-      `${urls.api}/v1/storefront/orders/${order}/payment`,
-      {
-        headers,
-        data: { redirect_url: `${urls.shop}/orders/${order}` },
-      }
-    )
-    const url = r.ok()
-      ? ((await r.json()) as { data: { checkout_url: string } }).data
-          .checkout_url
-      : ""
-    if (Number(/\/fk_(\d+)$/.exec(url)?.[1] ?? 0) > top) return
-  }
-  throw new Error("fake payment ids never passed the stored ones")
-}

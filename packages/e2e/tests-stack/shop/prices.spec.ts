@@ -92,10 +92,6 @@ test("a product sold by size shows no nameless size", async ({
   page,
   request,
 }) => {
-  test.fail(
-    true,
-    "seeded sized products keep a default variant with no options and no SKU; the shop draws it as a size button with only a price, pre-selected (apps/shop/components/add-to-cart.tsx:24, e2e-shop)"
-  )
   const products = await storefront(request)<Product[]>(
     "/products?page=1&page_size=24"
   )
