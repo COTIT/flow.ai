@@ -302,7 +302,11 @@ async fn smtp_failure_leaves_no_invite_and_keeps_the_last_code(pool: PgPool) {
     let code = w.last_code();
     let (status, _) = invite("old@example.com").await;
     assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
-    assert_eq!(w.status(&code).await.0, StatusCode::OK, "the mailed code still works");
+    assert_eq!(
+        w.status(&code).await.0,
+        StatusCode::OK,
+        "the mailed code still works"
+    );
     assert_eq!(count().await, 1);
 }
 

@@ -347,7 +347,10 @@ async fn the_partner_carries_its_display_name_beside_the_slug(pool: PgPool) {
     let (status, res) = grant(&t, json!(["village"])).await;
     assert_eq!(status, StatusCode::CREATED, "{res}");
     assert_eq!(res["data"]["partner"]["name"], "afm");
-    assert_eq!(res["data"]["partner"]["display_name"], "afm", "no company name: the slug");
+    assert_eq!(
+        res["data"]["partner"]["display_name"], "afm",
+        "no company name: the slug"
+    );
 
     let (status, res) = send(
         &t.r.app,

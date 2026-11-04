@@ -10,6 +10,9 @@
  * The other workspace.
  */
 export interface Partner {
+  /** The workspace's company name, or its slug when it has none. */
+  display_name: string;
   id: string;
+  /** The workspace slug. */
   name: string;
 }

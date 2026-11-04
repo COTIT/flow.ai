@@ -275,7 +275,11 @@ async fn a_short_cash_quote_answers_the_shortfall(pool: PgPool) {
     }
     let body = json!({ "lines": basket(&w), "payment": { "method": "cash" } });
     let (_, q) = quote(&w, &w.t1, body).await;
-    assert_eq!(q["data"]["short_by"], Value::Null, "no tendered, no shortfall");
+    assert_eq!(
+        q["data"]["short_by"],
+        Value::Null,
+        "no tendered, no shortfall"
+    );
 
     // The sale itself still refuses short cash.
     let sale = json!({ "client_ref": "short", "lines": basket(&w),

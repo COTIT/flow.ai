@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.id, w.id AS partner_id, w.name AS partner_name\n         FROM supply_links l JOIN workspaces w ON w.id = l.to_workspace_id\n         WHERE l.from_workspace_id = $1 AND l.accepted_at IS NOT NULL AND l.revoked_at IS NULL\n         ORDER BY w.name, l.id",
+  "query": "SELECT l.id, w.id AS partner_id, w.name AS partner_name,\n                coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS \"partner_display_name!\"\n         FROM supply_links l JOIN workspaces w ON w.id = l.to_workspace_id\n         WHERE l.from_workspace_id = $1 AND l.accepted_at IS NOT NULL AND l.revoked_at IS NULL\n         ORDER BY w.name, l.id",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,12 @@
             "name": "name"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "partner_display_name!",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -45,8 +51,9 @@
     "nullable": [
       false,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "bb7784b854d1556d94946a4aa79c26b068bba950d4e90aab41f64b41269649d4"
+  "hash": "274763b1bfa53b893d6a7309c6a8b12ee0fff7ab552af0abb89cdb9acaefaad0"
 }

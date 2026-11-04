@@ -14321,17 +14321,23 @@
       "Partner": {
         "description": "The other workspace.",
         "properties": {
+          "display_name": {
+            "description": "The workspace's company name, or its slug when it has none.",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
           },
           "name": {
+            "description": "The workspace slug.",
             "type": "string"
           }
         },
         "required": [
           "id",
-          "name"
+          "name",
+          "display_name"
         ],
         "type": "object"
       },
@@ -18814,7 +18820,7 @@
         "description": "What `POST /till/sales` would book for this basket now. Minor units.",
         "properties": {
           "change": {
-            "description": "tendered − due; null for card or without `tendered`.",
+            "description": "tendered − due; null for card, without `tendered`, or when it is short.",
             "format": "int64",
             "type": [
               "integer",
@@ -18852,6 +18858,14 @@
             "format": "int64",
             "type": "integer"
           },
+          "short_by": {
+            "description": "due − tendered when the cash is short, else 0; null for card or without `tendered`.\nThe quote answers it as the cashier types; the sale refuses short cash (422).",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "subtotal": {
             "description": "Excl VAT.",
             "format": "int64",
@@ -18877,7 +18891,8 @@
           "mismatched_lines",
           "due",
           "rounding",
-          "change"
+          "change",
+          "short_by"
         ],
         "type": "object"
       },
@@ -81304,7 +81319,7 @@
     },
     "/workspace/{workspace}/till/sales/quote": {
       "post": {
-        "description": "Same lines and payment as `POST /till/sales`, priced and rounded by the same code. Writes nothing: no order, stock or drawer change, and no open shift needed.",
+        "description": "Same lines and payment as `POST /till/sales`, priced and rounded by the same code. Writes nothing: no order, stock or drawer change, and no open shift needed. Short cash is no error here: `short_by` says how much is missing (the sale refuses it).",
         "operationId": "till_sales_quote",
         "parameters": [
           {
@@ -81387,7 +81402,7 @@
                 }
               }
             },
-            "description": "Invalid input, unknown product, or too little cash tendered"
+            "description": "Invalid input or unknown product"
           },
           "429": {
             "content": {

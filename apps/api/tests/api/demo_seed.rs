@@ -817,7 +817,10 @@ async fn the_seed_fills_every_module(pool: PgPool) {
     assert!(!extracted.is_empty());
     for v in &extracted {
         let (day, rest) = v.split_once(' ').unwrap_or_else(|| panic!("{v}"));
-        assert!(day.parse::<u8>().is_ok() && rest.len() > 5, "readable date: {v}");
+        assert!(
+            day.parse::<u8>().is_ok() && rest.len() > 5,
+            "readable date: {v}"
+        );
     }
     let (_, res) = send(
         &app,
@@ -827,6 +830,12 @@ async fn the_seed_fills_every_module(pool: PgPool) {
         Some(&tokens[1]),
     )
     .await;
-    assert_eq!(res["data"]["links"][0]["partner"]["name"], "afm-demo", "{res}");
-    assert_eq!(res["data"]["links"][0]["partner"]["display_name"], "AFM Shop", "{res}");
+    assert_eq!(
+        res["data"]["links"][0]["partner"]["name"], "afm-demo",
+        "{res}"
+    );
+    assert_eq!(
+        res["data"]["links"][0]["partner"]["display_name"], "AFM Shop",
+        "{res}"
+    );
 }
