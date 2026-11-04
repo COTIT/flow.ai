@@ -86,6 +86,8 @@ Postgres, API and five apps per worker). So:
    impossible, and claim it in the table below first. One spec file per record; both projects
    run it, so it must stand being run twice at once.
 4. **Never** reset or reseed from a spec. `stack:reset` is for people between runs.
+5. **Remove what a workspace caps.** AFM allows at most 10 webhook endpoints: a spec that adds
+   one deletes it again (see `tests-stack/office/settings.spec.ts`).
 
 | Seeded record | Claimed by | What it changes |
 | --- | --- | --- |
@@ -122,6 +124,8 @@ build (password hashing included). CI's estimate: ~12 min warm, ~25 min cold (2 
 - `price.spec.ts`: an office price edit doesn't reach the shop or the till (default variant keeps
   a stale price copy). Fails at the shop's "after" check.
 - `field-ops.spec.ts`: ops gets 403 on `supply-links` and `warehouses` at Field Dispatch.
+- `office/lot.spec.ts`: a recall doesn't reach the shop's public batch page at once: the shop keeps
+  storefront replies 60 s (`apps/shop/lib/storefront.ts:48`), so the QR page still shows the batch as safe.
 
 ## Follow-ups
 
