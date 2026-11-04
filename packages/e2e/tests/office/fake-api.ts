@@ -81,8 +81,11 @@ export const me = {
   id: "u1",
   name: "Romeo Tester",
   initials: "RT",
-  // The workspace's creator: every permission there.
-  permissions: [{ workspace: WS, permissions: ["workspace_owner"] }],
+  // The creator of both workspaces: every permission in each.
+  permissions: [
+    { workspace: WS, permissions: ["workspace_owner"] },
+    { workspace: WS2, permissions: ["workspace_owner"] },
+  ],
 }
 
 /** Installs a FakeApi on the page with the calls every signed-in screen makes. */

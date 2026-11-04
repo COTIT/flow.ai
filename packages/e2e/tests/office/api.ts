@@ -21,11 +21,16 @@ export const officeApi = (
     },
   ]
 ): Record<string, MockReply> => ({
-  // A member with no team grants: read-only screens, no create buttons.
+  // A member who may read products but create nothing: read-only screens, no create buttons.
   "GET /me": {
     body: {
       data: {
-        user: { id: "u1", name: "Romeo Tester", initials: "RT", permissions: [] },
+        user: {
+          id: "u1",
+          name: "Romeo Tester",
+          initials: "RT",
+          permissions: [{ workspace: "w1", permissions: ["product.list"] }],
+        },
       },
     },
   },

@@ -1,12 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 import { useSession } from "@genesy/api-client/auth"
 import { useUsersWorkspaces } from "@genesy/api-client/endpoints/users"
 import { AppShell } from "@/components/shell"
-import { LoadError } from "@/components/states"
+import { LoadError, NoAccess } from "@/components/states"
+import { rightFor, useRights } from "@/lib/can"
 
 /** Signed-in frame for every back-office screen: guard, then the glass shell. */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const hydrated = useSession((s) => s.hydrated)
   const token = useSession((s) => s.token)
   const workspaces = useUsersWorkspaces({ query: { enabled: Boolean(token) } })
+  // A page whose list the member may not read: say so instead of letting it hit the API's 403.
+  const right = rightFor(usePathname())
+  const rights = useRights()
 
   React.useEffect(() => {
     if (hydrated && !token) router.replace("/login")
@@ -29,7 +33,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           onRetry={() => void workspaces.refetch()}
         />
       ) : null}
-      {children}
+      {!right || rights.may(right) ? (
+        children
+      ) : rights.read ? (
+        <NoAccess />
+      ) : null}
     </AppShell>
   )
 }

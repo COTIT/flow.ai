@@ -54,7 +54,7 @@ import { Sheet, SheetContent, SheetTitle } from "@genesy/ui/components/sheet"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
 
-import { useCan } from "@/lib/can"
+import { rightFor, useCan, useRights } from "@/lib/can"
 
 type Item = {
   href: string
@@ -81,6 +81,12 @@ const items: Item[] = [
   { href: "/settings/webhooks", match: "/settings/webhooks", label: "nav.webhooks", icon: Zap },
   { href: "/settings/invites", match: "/settings/invites", label: "nav.invites", icon: UserPlus },
 ]
+
+// Each entry with the heading of the section it sits in (the last group named at or above it).
+const sectioned = items.map((item, i) => ({
+  ...item,
+  group: items.slice(0, i + 1).reverse().find((x) => x.group)?.group,
+}))
 
 const current = (pathname: string) =>
   items.find(
@@ -125,11 +131,18 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
     supply: pending.data?.meta.total ?? 0,
   }
   const active = current(pathname)
+  // Only the entries the member may use (all of them until /me answers, so nothing jumps for
+  // most). A group's heading goes with its first entry left.
+  const { read, may } = useRights()
+  const shown = sectioned.filter((item) => {
+    const right = rightFor(item.href)
+    return !read || !right || may(right)
+  })
   return (
     <nav aria-label={t("nav.label")} className="flex flex-col gap-0.5">
-      {items.map((item) => (
+      {shown.map((item, i) => (
         <React.Fragment key={item.href}>
-          {item.group ? (
+          {item.group && item.group !== shown[i - 1]?.group ? (
             <p className="px-2.5 pt-3 pb-1.5 text-[11px] font-bold tracking-[0.08em] text-[#6b7f9c] uppercase dark:text-[#8fa6c8]">
               {t(item.group)}
             </p>
@@ -137,7 +150,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
           <Link
             href={item.href}
             onClick={onNavigate}
-            aria-current={item === active ? "page" : undefined}
+            aria-current={item.href === active?.href ? "page" : undefined}
             className="group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium text-foreground outline-none hover:bg-(--glass-subtle) focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground aria-[current=page]:shadow-[0_8px_18px_-10px_rgb(10_24_58/60%)] max-md:h-11"
           >
             <item.icon
