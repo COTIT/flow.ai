@@ -89,7 +89,8 @@ export default function QueuePage() {
               const said = refusal(
                 i.message,
                 (k) => t(`refusals.${k}`),
-                t(`queue.${i.status}`)
+                // Not the status word: the card's badge already says it.
+                t("sale.refused")
               )
               return (
                 <li
