@@ -32,7 +32,12 @@ test("a cash sale is an office order, takes stock, is listed in the office and c
   await page.getByRole("button", { name: /^Charge/ }).click()
   const sheet = page.getByRole("dialog", { name: "Take payment" })
   await sheet.getByRole("button", { name: "Cash" }).click()
+  // One unit typed: the API's quote says what is still due, and nothing is refused (the
+  // guard fails the test on any 422).
+  await sheet.getByRole("button", { name: "1", exact: true }).click()
+  await expect(sheet.getByLabel("Still due")).toBeVisible()
   await sheet.getByRole("button", { name: "Exact" }).click()
+  await expect(sheet.getByLabel("Change")).toHaveText(money(0))
   await sheet.getByRole("button", { name: /^Book sale/ }).click()
   const receipt = page.getByRole("dialog", { name: "Done" })
   await expect(
