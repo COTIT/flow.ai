@@ -189,10 +189,6 @@ test("a revoked shop key is refused by the storefront API; a live one is served"
 test("app keys list their scopes and kinds as words, not codes", async ({
   page,
 }) => {
-  test.fail(
-    true,
-    "app keys show raw scope codes (catalog:read, till:login) and kinds (till, shop) (e2e-accounts B6)"
-  )
   await loginOffice(page, cred("office (AFM)", "owner"))
   await page.goto(`${urls.office}/settings/app-keys`)
   // The seeded web shop key (catalog:read, checkout:write) is on the first page.

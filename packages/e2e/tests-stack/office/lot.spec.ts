@@ -73,10 +73,6 @@ async function recall(page: import("@playwright/test").Page, lotId: string) {
 }
 
 test("office batch: a recall shows on the public page at once", async ({ page, request }) => {
-  test.fail(
-    true,
-    "BUG: the shop keeps storefront replies 60 s (apps/shop/lib/storefront.ts:48 revalidate: 60; getLot :95 uses it), so a recalled batch's QR page keeps showing it as safe after the recall (e2e-office)"
-  )
   const owner = await apiAs(request, cred("office (AFM)", "owner"))
   const tag = unique()
   const product = await trackedProduct(owner, tag)
