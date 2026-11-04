@@ -11,7 +11,7 @@ import { down } from "./down.mjs"
 import { parseSeed } from "./seed.mjs"
 import {
   API_DIR, CONTAINER, DATABASE_URL, DB, DIR, LOGS, PORTS, ROOT, SEED, SEED_DB, URLS,
-  alive, apiBin, apiEnv, exec, psql, readState, run, start, startApi, stop, waitFor, workspaceIds, writeState,
+  alive, apiBin, apiEnv, exec, psql, readState, run, start, startApi, startMail, stop, waitFor, workspaceIds, writeState,
 } from "./stack.mjs"
 
 const t0 = Date.now()
@@ -94,6 +94,8 @@ export async function up() {
   })
   lap("api built (debug)")
 
+  state.pids.mail = startMail()
+  writeState(state)
   run(apiBin(), ["migrate"], { env: { ...process.env, DATABASE_URL }, cwd: DIR })
   const seeded = spawnSync(apiBin(), ["seed-demo"], {
     // Tracing writes to stdout too: keep it off the printed table.

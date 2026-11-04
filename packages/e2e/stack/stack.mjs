@@ -15,10 +15,11 @@ export const PORTS = {
   field: 4302 + OFFSET,
   till: 4303 + OFFSET,
   landing: 4304 + OFFSET,
+  mail: 2525 + OFFSET,
 }
 export const URLS = Object.fromEntries(
   Object.entries(PORTS)
-    .filter(([name]) => name !== "postgres")
+    .filter(([name]) => name !== "postgres" && name !== "mail")
     .map(([name, port]) => [name, `http://127.0.0.1:${port}`])
 )
 
@@ -30,6 +31,8 @@ export const DIR = join(E2E, ".stack", String(OFFSET))
 export const STATE = join(DIR, "state.json")
 export const SEED = join(DIR, "seed.json")
 export const LOGS = join(DIR, "logs")
+/** Every mail the API sent, one .eml each (stack/mail-sink.mjs). */
+export const MAIL = join(DIR, "mail")
 
 /** Only ever this container: the stack never touches the dev Postgres or any other. */
 export const CONTAINER = `genesy-e2e-stack-${OFFSET}`
@@ -116,8 +119,8 @@ export function apiEnv(state) {
     RUST_LOG: process.env.RUST_LOG ?? "genesy_360_api=info,tower_http=warn",
     FRONTEND_URL: URLS.office,
     API_PUBLIC_URL: URLS.api,
-    // Nothing listens there: mail jobs fail quietly in the outbox, no mail leaves the machine.
-    SMTP_URL: "smtp://127.0.0.1:9",
+    // The stack's own mail sink: mail lands in MAIL as files, none leaves the machine.
+    SMTP_URL: `smtp://127.0.0.1:${PORTS.mail}`,
     SMTP_ALLOW_INSECURE: "true",
     MAIL_FROM: "Genesy e2e <no-reply@e2e.test>",
     PAYMENTS_PROVIDER: "fake",
@@ -136,6 +139,12 @@ export function apiEnv(state) {
 
 export const apiBin = () =>
   join(process.env.CARGO_TARGET_DIR ?? join(API_DIR, "target"), "debug", "genesy-360-api")
+
+/** The mail sink the API sends to (before the seed: signups mail a verification link). */
+export const startMail = () =>
+  start("mail", process.execPath, [join(E2E, "stack", "mail-sink.mjs")], {
+    env: { ...process.env, MAIL_DIR: MAIL, MAIL_PORT: String(PORTS.mail) },
+  })
 
 export const startApi = (state) => start("api", apiBin(), [], { env: apiEnv(state), cwd: DIR })
 
