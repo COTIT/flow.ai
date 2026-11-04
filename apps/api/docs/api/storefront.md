@@ -32,7 +32,7 @@ Only sellable web products show: `status = active`, not archived, not deleted, n
 }
 ```
 
-- **Prices** are integers in minor units of `currency` (`round(price × 10^currency_decimals)`, half away from zero). `price_gross` includes VAT. Base prices only: special offers and price corrections are not applied yet.
+- **Prices** are integers in minor units of `currency`. `price_net` is the catalog price excl VAT (`round(price × 10^currency_decimals)`, half away from zero; a variant's own price for a variant). `price_gross` is one unit of that price incl the product's VAT group (0 % without one), priced like a one-line checkout, so it equals what `POST /storefront/orders` charges for quantity 1. The office's `gross_price` column (a list price excl VAT) plays no part. Base prices only: special offers and price corrections are not applied yet.
 - **`available_stock`** is on hand minus reserved over every live stock row, as a decimal string, or `null` when the product isn't stock-tracked. Stock is per product (variants have none).
 - **`stock_status`:** `sold_out` (available ≤ 0), `low` (at most the workspace setting `product.low_stock_threshold` units, default 5, set through `POST /settings`) or `in_stock`; `null` when not stock-tracked. The rule lives here, so the shop shows a "few left" badge without its own threshold.
 - **`labels`:** the product's short public labels in order (`products.md`), `[]` without.

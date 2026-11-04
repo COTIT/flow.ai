@@ -37,7 +37,7 @@ export interface StorefrontProduct {
   labels: string[];
   name: string;
   passport: PassportRef | null;
-  /** Consumer price including VAT, in minor units. */
+  /** One unit incl the product's VAT, minor units: what checkout charges for quantity 1. */
   price_gross: number;
   /** Price excluding VAT, in minor units. */
   price_net: number;

@@ -3,12 +3,14 @@
 
 use std::collections::HashMap;
 
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::modules::{
     lots::public::Link,
+    orders::service::unit_gross,
     storefront::repo::{OptionRow, ProductRow, VariantRow},
 };
 
@@ -33,7 +35,7 @@ pub struct StorefrontProduct {
     ean13: Option<String>,
     #[schema(required = true)]
     barcode: Option<String>,
-    /// Consumer price including VAT, in minor units.
+    /// One unit incl the product's VAT, minor units: what checkout charges for quantity 1.
     #[schema(example = 1250)]
     price_gross: i64,
     /// Price excluding VAT, in minor units.
@@ -99,9 +101,9 @@ pub struct StorefrontVariant {
     #[schema(required = true)]
     ean13: Option<String>,
     is_default: bool,
-    /// Minor units of the product's currency.
+    /// One unit of this variant incl the product's VAT, minor units: what checkout charges.
     price_gross: i64,
-    /// Minor units of the product's currency.
+    /// This variant's catalog price excl VAT, minor units.
     price_net: i64,
     options: Vec<VariantOption>,
     /// This variant's own images in order, as signed links.
@@ -129,8 +131,15 @@ impl From<OptionRow> for VariantOption {
 /// Signed image links per (product, variant); variant None = the product's own.
 pub type Images = HashMap<(Uuid, Option<Uuid>), Vec<Link>>;
 
+/// One unit at `net` minor units incl `vat` %, priced like a one-line checkout. Past the
+/// engine's range (net above i64/2) it saturates; such a price can't be charged anyway.
+fn gross(net: i64, vat: Decimal, decimals: i16) -> i64 {
+    let dp = u32::try_from(decimals).unwrap_or(2);
+    unit_gross(net, vat, dp).unwrap_or(i64::MAX)
+}
+
 impl StorefrontVariant {
-    fn new(v: VariantRow, product_id: Uuid, images: &Images) -> Self {
+    fn new(v: VariantRow, product_id: Uuid, images: &Images, vat: Decimal, dp: i16) -> Self {
         Self {
             images: images
                 .get(&(product_id, Some(v.id)))
@@ -141,7 +150,7 @@ impl StorefrontVariant {
             barcode: v.barcode,
             ean13: v.ean13,
             is_default: v.is_default,
-            price_gross: v.price_gross,
+            price_gross: gross(v.price_net, vat, dp),
             price_net: v.price_net,
             options: v.options.into_iter().map(Into::into).collect(),
         }
@@ -151,7 +160,7 @@ impl StorefrontVariant {
 impl StorefrontProduct {
     /// `p` with its images from `images`; `low_stock` is the workspace's threshold.
     pub fn new(p: ProductRow, images: &Images, low_stock: i64) -> Self {
-        let id = p.id;
+        let (id, vat, dp) = (p.id, p.vat, p.currency_decimals);
         Self {
             stock_status: stock_status(p.available_stock.as_deref(), low_stock),
             labels: p.labels,
@@ -167,7 +176,7 @@ impl StorefrontProduct {
             description: p.description,
             ean13: p.ean13,
             barcode: p.barcode,
-            price_gross: p.price_gross,
+            price_gross: gross(p.price_net, p.vat, p.currency_decimals),
             price_net: p.price_net,
             currency: p.currency,
             currency_decimals: p.currency_decimals,
@@ -176,7 +185,7 @@ impl StorefrontProduct {
                 .variants
                 .0
                 .into_iter()
-                .map(|v| StorefrontVariant::new(v, id, images))
+                .map(|v| StorefrontVariant::new(v, id, images, vat, dp))
                 .collect(),
         }
     }

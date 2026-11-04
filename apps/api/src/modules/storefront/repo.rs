@@ -1,6 +1,7 @@
 //! Storefront SQL: one statement per page or product; store-only products never show. Prices become integer minor units of the
 //! product's currency; available stock sums every live stock row.
 
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use sqlx::{PgExecutor, types::Json};
 use uuid::Uuid;
@@ -15,8 +16,10 @@ pub struct ProductRow {
     pub description: Option<String>,
     pub ean13: Option<String>,
     pub barcode: Option<String>,
-    pub price_gross: i64,
+    /// Catalog price excl VAT, minor units (what checkout charges per unit before VAT).
     pub price_net: i64,
+    /// The product's VAT rate in % (0 without a VAT group), as checkout applies it.
+    pub vat: Decimal,
     pub currency: String,
     pub currency_decimals: i16,
     pub available_stock: Option<String>,
@@ -35,7 +38,6 @@ pub struct VariantRow {
     pub barcode: Option<String>,
     pub ean13: Option<String>,
     pub is_default: bool,
-    pub price_gross: i64,
     pub price_net: i64,
     pub options: Vec<OptionRow>,
 }
@@ -60,7 +62,7 @@ pub async fn products(
         ProductRow,
         r#"WITH page AS (
                SELECT p.id, p.name, p.brand, p.type, p.short_description, p.description,
-                      p.ean13, p.barcode, p.price, p.gross_price, p.has_stock, p.currency_id,
+                      p.ean13, p.barcode, p.price, p.vat_group_id, p.has_stock, p.currency_id,
                       p.labels,
                       count(*) OVER () AS total
                FROM products p
@@ -72,8 +74,10 @@ pub async fn products(
            )
            SELECT pg.id, pg.name, pg.brand, pg.type, pg.short_description, pg.description,
                   pg.ean13, pg.barcode,
-                  round(pg.gross_price * 10::numeric ^ c.decimals)::bigint AS "price_gross!",
                   round(pg.price * 10::numeric ^ c.decimals)::bigint AS "price_net!",
+                  coalesce((SELECT vg.vat_amount FROM vat_groups vg
+                            WHERE vg.workspace_id = $1 AND vg.id = pg.vat_group_id
+                              AND vg.deleted_at IS NULL), 0) AS "vat!",
                   upper(c.asset_type) AS "currency!", c.decimals AS currency_decimals,
                   CASE WHEN pg.has_stock THEN (
                       SELECT coalesce(sum(s.stock_lvl - s.reserved), 0.00::numeric(19, 2))::text
@@ -96,7 +100,6 @@ pub async fn products(
                   (SELECT coalesce(json_agg(json_build_object(
                               'id', v.id, 'sku', v.sku, 'barcode', v.barcode, 'ean13', v.ean13,
                               'is_default', v.is_default,
-                              'price_gross', round(v.gross_price * 10::numeric ^ c.decimals)::bigint,
                               'price_net', round(v.price * 10::numeric ^ c.decimals)::bigint,
                               'options', (
                                   SELECT coalesce(json_agg(json_build_object(
