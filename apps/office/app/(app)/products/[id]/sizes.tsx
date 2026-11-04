@@ -110,6 +110,7 @@ export function ProductSizes({
           ))}
         </div>
       )}
+      <p className="mt-3 text-xs text-muted-foreground">{t("products.sizesShopNote")}</p>
     </Tile>
   )
 }

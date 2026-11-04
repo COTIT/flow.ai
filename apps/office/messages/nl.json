@@ -38,7 +38,8 @@
     "sku": "SKU",
     "standardSize": "Standaard",
     "defaultSize": "Standaard",
-    "noSizes": "Nog geen maten."
+    "noSizes": "Nog geen maten.",
+    "sizesShopNote": "Zodra een product maten heeft, verkoopt de winkel alleen die maten; het product zelf staat er dan niet meer."
   },
   "nav": {
     "label": "Hoofdmenu",

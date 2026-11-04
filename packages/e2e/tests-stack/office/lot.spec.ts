@@ -5,26 +5,6 @@ import { type Api, apiAs, cred, expect, loginOffice, stackAllow, test, unique, u
 
 type Lot = { id: string; code: string; public_code: string; status: string }
 
-/**
- * Opens a batch's passport form and waits for its saved draft: the form is editable before the
- * draft arrives and the draft then overwrites what was typed (O8), so read first, type after.
- */
-async function openPassport(page: Page, open: () => Promise<unknown>) {
-  const read = page.waitForResponse(
-    (r) => r.request().method() === "GET" && /\/lots\/[^/]+\/passport$/.test(new URL(r.url()).pathname)
-  )
-  await open()
-  await read
-}
-
-/** Types into the passport form until it sticks (the draft can still land just after its read). */
-async function typeDraft(page: Page, label: string, value: string) {
-  await expect(async () => {
-    await page.getByLabel(label).fill(value)
-    await expect(page.getByRole("button", { name: "Save draft" })).toBeEnabled({ timeout: 1_000 })
-  }).toPass()
-}
-
 /** A stock-tracked product of the test's own: lots can only be made for those. */
 async function trackedProduct(owner: Api, tag: string) {
   const name = `e2e lot honey ${tag}`
@@ -57,8 +37,8 @@ test("office batch: create, publish its passport, recall it; the public page fol
   expect(lot).toMatchObject({ code, status: "released" })
   await expectNoRawValues(page, { allow: [code] })
 
-  await openPassport(page, () => page.getByRole("link", { name: "Edit passport" }).click())
-  await typeDraft(page, "Title", title)
+  await page.getByRole("link", { name: "Edit passport" }).click()
+  await page.getByLabel("Title").fill(title)
   await page.getByRole("button", { name: "Save draft" }).click()
   await expect(page.getByRole("button", { name: "Publish v1" })).toBeEnabled()
   await page.getByRole("button", { name: "Publish v1" }).click()
@@ -136,8 +116,8 @@ test.describe(() => {
     await expect(page.getByRole("heading", { name: "We can't find this batch" })).toBeVisible()
 
     await loginOffice(page, cred("office (AFM)", "owner"))
-    await openPassport(page, () => page.goto(`${urls.office}/lots/${lot.id}/passport`))
-    await typeDraft(page, "Introduction", "No title yet.")
+    await page.goto(`${urls.office}/lots/${lot.id}/passport`)
+    await page.getByLabel("Introduction").fill("No title yet.")
     await page.getByRole("button", { name: "Save draft" }).click()
     await expect(page.getByRole("button", { name: "Publish v1" })).toBeEnabled()
     await page.getByRole("button", { name: "Publish v1" }).click()

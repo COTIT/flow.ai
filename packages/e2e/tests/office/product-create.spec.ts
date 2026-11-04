@@ -396,6 +396,10 @@ test("/products/[id] sizes: a product without sizes says so", async ({ page, api
   await page.goto("/products/p1")
   const sizes = page.getByRole("region", { name: "Sizes" })
   await expect(sizes.getByText("No sizes yet.")).toBeVisible()
+  // Said before the first size is added: from then on the shop sells only the sizes.
+  await expect(sizes).toContainText(
+    "Once a product has sizes, the shop sells only the sizes; the product on its own no longer shows there."
+  )
   await expect(sizes.getByRole("button", { name: "Add size" })).toBeEnabled()
 })
 

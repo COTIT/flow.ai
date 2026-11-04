@@ -313,3 +313,42 @@ test("/lots/[id]/passport save: a network failure says so and keeps the draft; s
   expect(api.callsTo("PUT", "/workspace/:ws/lots/:lot/passport")).toHaveLength(1)
   expect(state.draft).toMatchObject({ title: "Wild forest honey" })
 })
+
+test("a draft read that lands late never takes or wipes what was typed", async ({ page, api }) => {
+  const state = passportApi(api, { title: "Old title" })
+  api.on("GET", "/workspace/:ws/lots/:lot/events", () => paged([]))
+  // The batch page reads the passport first; the passport page's own read is held until released.
+  let reads = 0
+  let release = () => {}
+  const held = new Promise<void>((r) => (release = r))
+  await page.route("**/v1/workspace/w1/lots/lot-1/passport", async (route) => {
+    if (route.request().method() === "GET" && ++reads === 2) await held
+    return route.fallback()
+  })
+  await page.goto("/lots/lot-1")
+  await page.getByRole("link", { name: "Edit passport" }).click()
+  await expect(page).toHaveURL(/\/lots\/lot-1\/passport$/)
+  await expect.poll(() => reads).toBe(2)
+  // Not editable from a cached copy while its fresh read is still out.
+  await expect(page.getByLabel("Title")).toHaveCount(0)
+  state.draft = { title: "Server title" }
+  release()
+  await expect(page.getByLabel("Title")).toHaveValue("Server title")
+
+  await page.getByLabel("Title").fill("Typed title")
+  // A background read (the window regains focus) must not wipe the typing.
+  const before = api.callsTo("GET", "/workspace/:ws/lots/:lot/passport").length
+  await page.evaluate(() => window.dispatchEvent(new Event("visibilitychange")))
+  await expect
+    .poll(() => api.callsTo("GET", "/workspace/:ws/lots/:lot/passport").length)
+    .toBeGreaterThan(before)
+  await expect(page.getByRole("button", { name: "Save draft" })).toBeEnabled()
+  await expect(page.getByLabel("Title")).toHaveValue("Typed title")
+
+  await page.getByRole("button", { name: "Save draft" }).click()
+  await expect(page.getByRole("status").filter({ hasText: /saved/i })).toBeVisible()
+  expect(api.callsTo("PUT", "/workspace/:ws/lots/:lot/passport").at(-1)?.body).toMatchObject({
+    title: "Typed title",
+  })
+  await expect(page.getByLabel("Title")).toHaveValue("Typed title")
+})
