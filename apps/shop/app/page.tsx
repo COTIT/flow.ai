@@ -29,6 +29,7 @@ export default async function CatalogPage({
   const { current_page, last_page, total } = products.meta
   const labels = {
     inStock: t("product.inStock"),
+    low: t("product.low"),
     soldOut: t("product.soldOut"),
     imageSoon: t("product.imageSoon"),
   }

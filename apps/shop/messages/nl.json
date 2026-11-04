@@ -39,7 +39,12 @@
     "soldOutBody": "Dit product is niet op voorraad. Kom snel terug.",
     "photo": "Foto {n} van {total}",
     "shipping": "Verzendkosten en btw worden bij het afrekenen berekend.",
-    "about": "Over dit product"
+    "about": "Over dit product",
+    "low": "Bijna op",
+    "passport": "Paspoort van deze pot",
+    "lot": "Partij {code}",
+    "villages": "{count, plural, one {# dorp} other {# dorpen}}",
+    "openPassport": "Open het paspoort"
   },
   "errors": {
     "unavailableTitle": "De winkel neemt even pauze",
@@ -149,6 +154,7 @@
       "body": "Je bestelling is veilig. Probeer het zo opnieuw."
     },
     "label": "Bestelling",
+    "items": "Artikelen",
     "payAmount": "Betaal {amount}",
     "badge": {
       "awaiting": "Wacht op betaling",

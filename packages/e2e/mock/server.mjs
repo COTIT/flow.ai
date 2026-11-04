@@ -55,7 +55,10 @@ const products = [
     price_net: 1499,
     currency: "USD",
     currency_decimals: 2,
-    available_stock: "42.000",
+    available_stock: "4.000",
+    stock_status: "low",
+    labels: ["Raw", "Unheated", "500 g glass jar"],
+    passport: { public_code: LOT.farmed },
     images: [link("honey-1"), link("honey-2")],
     variants: [
       variant(VARIANT.honey250, "ILU-250", 1499, "250 g", true),
@@ -76,8 +79,37 @@ const products = [
     currency: "USD",
     currency_decimals: 2,
     available_stock: "0.000",
+    stock_status: "sold_out",
+    labels: [],
+    // Points at an unpublished code: the API's 404, so the product page shows no passport card.
+    passport: { public_code: LOT.unknown },
     images: [],
     variants: [variant(VARIANT.wax, "WAX-1", 900, "200 g", true)],
+  },
+  {
+    // Sold by size, as on staging: the product row has no price of its own (0), the
+    // variants carry them, default first.
+    id: PRODUCT.coffee,
+    name: "Ruaha Coffee",
+    brand: "Ruaha",
+    type: "physical",
+    short_description: "Arabica from Ilundo, sun-dried on raised beds.",
+    description: null,
+    ean13: null,
+    barcode: null,
+    price_gross: 0,
+    price_net: 0,
+    currency: "USD",
+    currency_decimals: 2,
+    available_stock: null,
+    stock_status: null,
+    labels: [],
+    passport: null,
+    images: [],
+    variants: [
+      variant(VARIANT.coffee250, "RUA-250", 1200, "250 g", true),
+      variant(VARIANT.coffee1k, "RUA-1K", 4000, "1 kg", false),
+    ],
   },
 ]
 
@@ -136,6 +168,15 @@ const lot = (code, status, farmers) => ({
 const lots = {
   [LOT.released]: () => lot(LOT.released, "released", []),
   [LOT.quarantine]: () => lot(LOT.quarantine, "quarantine", []),
+  [LOT.farmed]: () =>
+    lot(LOT.farmed, "released", [
+      {
+        village: "Ilundo",
+        farmers: 12,
+        harvest_start: "2026-07-01",
+        harvest_end: "2026-07-20",
+      },
+    ]),
   [LOT.recalled]: () =>
     // Farmer groups per village; the API sends null instead of a count below 3.
     lot(LOT.recalled, "recalled", [
@@ -167,6 +208,7 @@ const view = ({
   total,
   expires_at,
   paid_at,
+  lines,
 }) => ({
   id,
   number,
@@ -178,6 +220,7 @@ const view = ({
   total,
   expires_at,
   paid_at,
+  lines,
 })
 
 const readJson = (req) =>
@@ -201,6 +244,7 @@ function placeOrder(body, key) {
   if (!email.includes("@"))
     errors["customer.email"] = ["The email must be a valid email address."]
   let total = 0
+  const lines = []
   for (const [i, line] of (body.lines ?? []).entries()) {
     const product = products.find((p) => p.id === line.product_id)
     const variant = product?.variants.find(
@@ -211,7 +255,20 @@ function placeOrder(body, key) {
       errors[`lines.${i}.quantity`] = [
         `Not enough stock: ${STOCK_LIMIT} available.`,
       ]
-    else total += (variant ?? product).price_gross * Number(line.quantity)
+    else {
+      const unit = (variant ?? product).price_gross
+      total += unit * Number(line.quantity)
+      lines.push({
+        title: [product.name, variant?.options[0]?.value]
+          .filter(Boolean)
+          .join(" · "),
+        product_id: product.id,
+        product_variant_id: variant?.id ?? null,
+        quantity: Number(line.quantity).toFixed(2),
+        unit_price_gross: unit,
+        total_gross: unit * Number(line.quantity),
+      })
+    }
   }
   if (Object.keys(errors).length)
     return [422, { message: "The given data was invalid.", errors }]
@@ -222,6 +279,7 @@ function placeOrder(body, key) {
     subtotal: total,
     vat: 0,
     total,
+    lines,
     paid_at: null,
     expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
     noProvider: email === NO_PROVIDER_EMAIL,

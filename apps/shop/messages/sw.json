@@ -39,7 +39,12 @@
     "soldOutBody": "Bidhaa hii haipo stoo. Rudi hivi karibuni.",
     "photo": "Picha {n} kati ya {total}",
     "shipping": "Gharama za usafirishaji na VAT zinahesabiwa wakati wa kulipa.",
-    "about": "Kuhusu bidhaa hii"
+    "about": "Kuhusu bidhaa hii",
+    "low": "Zimebaki chache",
+    "passport": "Pasipoti ya chupa hii",
+    "lot": "Kundi {code}",
+    "villages": "{count, plural, one {Kijiji #} other {Vijiji #}}",
+    "openPassport": "Fungua pasipoti"
   },
   "errors": {
     "unavailableTitle": "Duka limepumzika kidogo",
@@ -149,6 +154,7 @@
       "body": "Oda yako iko salama. Tafadhali jaribu tena baada ya muda mfupi."
     },
     "label": "Oda",
+    "items": "Bidhaa",
     "payAmount": "Lipa {amount}",
     "badge": {
       "awaiting": "Inasubiri malipo",

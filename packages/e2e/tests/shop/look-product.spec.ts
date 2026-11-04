@@ -1,6 +1,6 @@
 import type { Locator } from "@playwright/test"
 
-import { PRODUCT } from "../../mock/fixtures.mjs"
+import { LOT, PRODUCT } from "../../mock/fixtures.mjs"
 import {
   expect,
   expectNoHorizontalScroll,
@@ -59,7 +59,10 @@ test("the product page is the bento from the mockup", async ({
   await large.click()
   await expect(large).toHaveAttribute("aria-pressed", "true")
   await expect(page.getByText("$24.99", { exact: true }).first()).toBeVisible()
-  await expect(page.getByText("In stock")).toBeVisible()
+  // The API's stock_status "low": the gold "Few left" badge.
+  await expect(
+    page.locator('main [data-slot="badge"][data-variant="gold"]')
+  ).toHaveText("Few left")
 
   await page.getByRole("button", { name: `One more ${NAME}` }).click()
   await expect(page.getByLabel("Quantity")).toHaveText("2")
@@ -84,9 +87,54 @@ test("the product page is the bento from the mockup", async ({
     )
   ).toBeVisible()
 
+  // The product's labels as slate chips without a dot, in the About card.
+  const about = page
+    .locator("main section > div")
+    .filter({ has: page.getByRole("heading", { name: "About this product" }) })
+  const chips = about.locator('[data-slot="badge"][data-variant="slate"]')
+  await expect(chips).toHaveText(["Raw", "Unheated", "500 g glass jar"])
+  await expect(chips.first()).toHaveAttribute("data-dot", "false")
+
   await expectNoHorizontalScroll(page)
   if (isMobile) await expectTapTargets(page)
   await expectNoLayoutShift(page)
+})
+
+test("the product's batch passport card, as drawn", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto(`/products/${PRODUCT.honey}`)
+  const passport = page.getByRole("region", { name: "This jar's passport" })
+  await expect(passport).toBeVisible()
+  await expect(passport.getByText("Released", { exact: true })).toHaveAttribute(
+    "data-variant",
+    "teal"
+  )
+  await expect(passport.getByText("Ilundo, Iringa, Tanzania")).toBeVisible()
+  const code = passport.getByText("Lot L-2026-014")
+  expect(await css(code, "font-size")).toBe("12px")
+  await expect(passport.getByText("IL", { exact: true })).toBeVisible()
+  await expect(passport.getByText("12 farmers")).toBeVisible()
+  const open = passport.getByRole("link", { name: "Open the passport" })
+  await expect(open).toHaveAttribute("href", `/b/${LOT.farmed}`)
+  if (!isMobile) expect(await css(open, "height")).toBe("40px")
+
+  // Desktop: the photo spans two rows, the passport sits under the buy tile beside it.
+  const photo = page.getByRole("img", { name: NAME }).first()
+  const photoBox = (await photo.boundingBox())!
+  const cardBox = (await passport.boundingBox())!
+  const h1Box = (await page.getByRole("heading", { level: 1 }).boundingBox())!
+  expect(cardBox.y).toBeGreaterThan(h1Box.y + h1Box.height)
+  if (isMobile) expect(cardBox.y).toBeGreaterThan(photoBox.y + photoBox.height)
+  else expect(cardBox.x).toBeGreaterThan(photoBox.x + photoBox.width)
+
+  await open.click()
+  await expect(page).toHaveURL(new RegExp(`/b/${LOT.farmed}$`))
+  await expect(
+    page.getByRole("heading", { level: 2, name: "Meet the farmers" })
+  ).toBeVisible()
+  await expectNoHorizontalScroll(page)
 })
 
 test("a product without photos shows the honey placeholder", async ({
@@ -97,7 +145,15 @@ test("a product without photos shows the honey placeholder", async ({
     page.getByRole("img", { name: "Photo coming soon" })
   ).toBeVisible()
   await expect(page.getByRole("button", { name: /Photo \d of/ })).toHaveCount(0)
+  // stock_status "sold_out"; no labels; its passport code isn't published (404): no card.
+  await expect(
+    page.locator('main [data-slot="badge"][data-variant="slate"]')
+  ).toHaveText(["Sold out"])
+  await expect(
+    page.getByRole("heading", { name: "This jar's passport" })
+  ).toHaveCount(0)
   await expectNoHorizontalScroll(page)
+  await expectNoLayoutShift(page)
 })
 
 test("with motion, the photo glares only under a mouse", async ({

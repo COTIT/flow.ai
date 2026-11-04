@@ -14,6 +14,8 @@ export const SECRET_BODY = "secret upstream detail"
 export const PRODUCT = {
   honey: "11111111-1111-4111-8111-111111111111",
   wax: "22222222-2222-4222-8222-222222222222",
+  /** Sold by size: product-level price_gross is 0, only the variants carry prices. */
+  coffee: "33333333-3333-4333-8333-333333333333",
   /** The mock answers 503 for this one. */
   failing: "55555555-5555-4555-8555-555555555555",
 }
@@ -22,6 +24,8 @@ export const LOT = {
   released: "7K3M9QX2WD",
   recalled: "RECA11ED01",
   quarantine: "HQ1DHQ1D00",
+  /** Released, one village of farmers: the honey's passport on its product page. */
+  farmed: "FARMERS001",
   /** Valid shape, never published: the API's 404. */
   unknown: "ZZZZZZZZZZ",
   /** The mock answers 503 for this one. */
@@ -33,6 +37,8 @@ export const VARIANT = {
   honey250: "a1111111-1111-4111-8111-111111111111",
   honey500: "a2222222-2222-4222-8222-222222222222",
   wax: "a3333333-3333-4333-8333-333333333333",
+  coffee250: "a4444444-4444-4444-8444-444444444444",
+  coffee1k: "a5555555-5555-4555-8555-555555555555",
 }
 
 /** More than this many of one line and the mock answers the API's stock 422. */
