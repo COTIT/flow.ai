@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
+import { Notice } from '@genesy/ui/components/notice'
 
 import { BrandLockup } from '@/app/BrandLockup'
 import { CONTROL_FIELD } from '@/components/controlStyles'
@@ -45,6 +46,8 @@ export function LoginScreen() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState<string | null>(null)
+  // Set when a 401 ended the last session (not the user's own sign-out); the next sign-in clears it.
+  const [expired] = useState(() => sessionStore.getState().expired)
 
   const {
     register,
@@ -101,6 +104,7 @@ export function LoginScreen() {
       // unreachable server, and anything else — surfaced as the API wrote it.
       const status = apiStatus(cause)
       if (status === 401) setFormError(t('login.invalid'))
+      else if (status === 429) setFormError(lockout(cause, t))
       else if (status === undefined) setFormError(t('login.network'))
       else setFormError(apiErrorMessage(cause) ? errorText(cause, t) : t('login.unexpected'))
     }
@@ -121,6 +125,12 @@ export function LoginScreen() {
           <BrandLockup height={34} />
           <h1 className="type-screen-title">{t('login.title')}</h1>
         </div>
+
+        {expired && (
+          <div data-testid="login-expired">
+            <Notice variant="info" title={t('login.expired')} />
+          </div>
+        )}
 
         <form className="flex flex-col gap-3" onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="flex flex-col gap-1.5">
@@ -219,3 +229,11 @@ const LABEL = { fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' } as const
 const INVALID_FIELD = { ...CONTROL_FIELD, border: '1.5px solid var(--flag-ink)' }
 
 const FIELD_ERROR = { fontSize: 13, color: 'var(--flag-ink)', textWrap: 'pretty' } as const
+
+type Translate = ReturnType<typeof useTranslation>['t']
+
+/** A 429: how long to wait when the API sends `Retry-After` (seconds), else "a few minutes". */
+function lockout(cause: unknown, t: Translate): string {
+  const seconds = Number((cause as { response?: { headers?: Record<string, string> } }).response?.headers?.['retry-after'])
+  return seconds > 0 ? t('login.lockedOutFor', { minutes: Math.ceil(seconds / 60) }) : t('login.lockedOut')
+}

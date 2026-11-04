@@ -65,8 +65,8 @@ test.describe("sign-in refusals", () => {
   test.describe("too many attempts", () => {
     test.use({ allow: { responses: [{ url: "/v1/farm/login", status: 429 }] } })
 
-    // B4: a 429 shows the API's raw "Too Many Attempts." (English only, no advice).
-    test.fail(
+    // B4 (fixed): a lockout reads as one, in the app's words, not the API's "Too Many Attempts.".
+    test(
       "tells the person to wait, in the app's own words",
       async ({ page }) => {
         await mockApi(page, {
@@ -273,9 +273,8 @@ test.describe("a token the API stops accepting", () => {
     },
   })
 
-  // B5: a mid-session 401 leaves the officer on a dead screen; the app never
-  // returns to sign-in or says the session ended.
-  test.fail("sends the person back to sign in", async ({ page }) => {
+  // B5 (fixed): a mid-session 401 returns to sign-in, which says the session ended.
+  test("sends the person back to sign in", async ({ page }) => {
     await tourSeen(page)
     await seedSession(page)
     await mockApi(page, {
@@ -287,5 +286,6 @@ test.describe("a token the API stops accepting", () => {
     })
     await page.goto("/officer")
     await expect(page).toHaveURL(/\/login/)
+    await expect(page.getByTestId("login-expired")).toContainText("Your session ended. Sign in again.")
   })
 })

@@ -16,7 +16,7 @@ const { SupplyLinksScreen } = await import('@/features/ops/supply/SupplyLinksScr
 const link = (id: string, status: string, fields: string[] = ['village']) => ({
   id,
   direction: 'outgoing',
-  partner: { id: 'w-shop', name: 'AFM shop' },
+  partner: { id: 'w-shop', name: 'afm-shop', display_name: 'AFM shop' },
   fields,
   status,
   granted_at: '2026-10-30T08:00:00Z',

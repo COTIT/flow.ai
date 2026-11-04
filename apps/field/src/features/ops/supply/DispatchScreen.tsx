@@ -108,7 +108,7 @@ export function DispatchScreen() {
               if (ready) setConfirming(true)
             }}
           >
-            {select('linkId', 'dispatch-link', t('supply.link'), live.map((l) => ({ id: l.id, label: l.partner.name })))}
+            {select('linkId', 'dispatch-link', t('supply.link'), live.map((l) => ({ id: l.id, label: l.partner.display_name })))}
             {select('lotId', 'dispatch-lot', t('supply.lot'), (options.data?.lots ?? []).map((l) => ({ id: l.id, label: l.code })))}
             {select(
               'warehouseId',
@@ -188,7 +188,7 @@ export function DispatchScreen() {
             <li key={tr.id} data-testid="supply-transfer-row">
               <Card className="flex flex-col gap-1">
                 <p className="font-semibold">
-                  {tr.from_lot.code} → {tr.partner.name}
+                  {tr.from_lot.code} → {tr.partner.display_name}
                 </p>
                 <p className="type-note tabular" style={{ color: 'var(--ink-2)' }}>
                   {formatKg(Number(tr.quantity))} · {t(`supply.status.${tr.status}`)} · {formatTimestamp(tr.dispatched_at)}
@@ -206,7 +206,7 @@ export function DispatchScreen() {
           detail={t('supply.sendDetail', {
             quantity: input.quantity,
             lot: options.data?.lots.find((l) => l.id === input.lotId)?.code ?? '',
-            partner: live.find((l) => l.id === input.linkId)?.partner.name ?? '',
+            partner: live.find((l) => l.id === input.linkId)?.partner.display_name ?? '',
           })}
           confirmLabel={t('supply.send')}
           cancelLabel={t('supply.cancel')}
