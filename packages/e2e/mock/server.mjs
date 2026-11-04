@@ -410,6 +410,10 @@ createServer(async (req, res) => {
   }
   const product = path.match(/^\/v1\/storefront\/products\/([^/]+)$/)?.[1]
   if (product === PRODUCT.failing) return send(res, 503, failing)
+  if (product === PRODUCT.accountsKeyRevoked)
+    return send(res, 401, { message: "Unauthenticated." })
+  if (product === PRODUCT.accountsKeyNoScope)
+    return send(res, 403, { message: "This action is unauthorized." })
   if (product) {
     const found = allProducts.find((p) => p.id === product)
     return found

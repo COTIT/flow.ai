@@ -20,6 +20,9 @@ export const PRODUCT = {
   failing: "55555555-5555-4555-8555-555555555555",
   /** Alone on catalogue page 2, with a name far longer than a card is wide. */
   long: "77777777-7777-4777-8777-777777777777",
+  /** Accounts specs: the API refuses the shop's key as revoked (401) or short of a scope (403). */
+  accountsKeyRevoked: "acc00401-0000-4000-8000-000000000401",
+  accountsKeyNoScope: "acc00403-0000-4000-8000-000000000403",
 }
 
 /** The long product's name, as the API sends it. */
