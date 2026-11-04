@@ -6,9 +6,12 @@ import {
   honey,
   NEXT_SINCE,
   seedTill,
+  serveQuote,
   test,
+  type FakeApi,
   type TillRow,
 } from "./fake-till"
+import { skipRetries } from "./look"
 
 const wax: TillRow = {
   ...honey,
@@ -128,3 +131,99 @@ test("a code the API doesn't know is reported, even if an old copy had it", asyn
       .filter({ hasText: "No product with code 8712345000035." })
   ).toBeVisible()
 })
+
+test("every minute the till asks for changes, so an office price edit reaches the tiles", async ({
+  page,
+  api,
+}) => {
+  const asked: (string | null)[] = []
+  let price = { unit_price: 1147, unit_price_gross: 1250 }
+  api.on("GET", "/workspace/:ws/till/catalog", ({ query }) => {
+    if (query.get("code")) return catalogPage([])
+    asked.push(query.get("updated_since"))
+    return catalogPage([{ ...honey, ...price }])
+  })
+  await page.clock.install()
+  await seedTill(page)
+  await page.goto("/sale")
+  const tile = page
+    .getByRole("list", { name: "Products" })
+    .getByRole("button", { name: /Ilundo honey 500 g/ })
+  await expect(tile).toContainText("€12.50")
+  expect(asked).toEqual([null])
+
+  // The office changes the price; the till's copy is a minute old at most.
+  price = { unit_price: 1239, unit_price_gross: 1350 }
+  await page.clock.fastForward(30_000)
+  await expect(tile).toContainText("€12.50")
+  await page.clock.fastForward(30_000)
+  await expect(tile).toContainText("€13.50")
+  expect(asked).toEqual([null, NEXT_SINCE])
+})
+
+test.describe("catalog unavailable", () => {
+  const url = "/v1/workspace/w1/till/catalog?page=1&page_size=100"
+  test.use({
+    allow: {
+      responses: [
+        { url, status: 503 },
+        { url: `${url}&updated_since=${SINCE}`, status: 503 },
+      ],
+    },
+  })
+
+  test("with no copy on the device, the sale screen says the list couldn't load", async ({
+    page,
+    api,
+  }) => {
+    serveDown(api)
+    await page.clock.install()
+    await seedTill(page)
+    await page.goto("/sale")
+    await skipRetries(
+      page,
+      page.getByRole("alert").filter({
+        hasText: "Couldn't load the product list. Check the connection.",
+      })
+    )
+    await expect(
+      page.getByRole("button", { name: /Ilundo honey/ })
+    ).toHaveCount(0)
+  })
+
+  test("with a copy, the till keeps selling from it and says it is not fresh", async ({
+    page,
+    api,
+  }) => {
+    serveDown(api)
+    serveQuote(api, [honey, wax])
+    await page.clock.install()
+    await seedCatalog(page)
+    await seedTill(page)
+    await page.goto("/sale")
+    await skipRetries(
+      page,
+      page.getByRole("status").filter({
+        hasText:
+          "Couldn't refresh the product list. Showing the copy on this device.",
+      })
+    )
+    await page
+      .getByRole("list", { name: "Products" })
+      .getByRole("button", { name: /Beeswax block/ })
+      .click()
+    await expect(
+      page
+        .getByRole("complementary", { name: "Basket" })
+        .getByText("Beeswax block")
+    ).toBeVisible()
+  })
+})
+
+/** The catalog answers 503 busy, every time. */
+function serveDown(api: FakeApi) {
+  api.on("GET", "/workspace/:ws/till/catalog", () => ({
+    status: 503,
+    body: { message: "The server is busy, please try again." },
+  }))
+}
