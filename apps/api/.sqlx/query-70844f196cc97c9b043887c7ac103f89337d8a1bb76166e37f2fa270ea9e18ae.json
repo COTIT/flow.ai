@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT i.id, i.quantity, i.mutated_from_stock, p.id AS product_id,\n                  p.name AS product_name, p.reference_vendor,\n                  w.id AS \"warehouse_id?\", w.name AS \"warehouse_name?\", w.is_store AS \"is_store?\"\n           FROM items i\n           JOIN products p ON p.workspace_id = i.workspace_id AND p.id = i.product_id\n           LEFT JOIN LATERAL (\n               SELECT w.id, w.name, COALESCE(w.is_store, false) AS is_store\n               FROM warehouses w\n               WHERE w.workspace_id = i.workspace_id AND w.deleted_at IS NULL\n                 AND (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id)\n                      OR w.default_warehouse)\n               ORDER BY (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id))\n                        IS TRUE DESC\n               LIMIT 1\n           ) w ON true\n           WHERE i.workspace_id = $1 AND i.invoice_id = $2\n             AND p.type IN ('physical', 'physical_second_chance') AND p.has_stock\n             AND i.quantity <> i.mutated_from_stock\n           ORDER BY i.position, i.id",
+  "query": "SELECT i.id, i.quantity, i.mutated_from_stock, p.id AS product_id,\n                  p.name AS product_name, p.reference_vendor,\n                  w.id AS \"warehouse_id?\", w.name AS \"warehouse_name?\", w.is_store AS \"is_store?\"\n           FROM items i\n           JOIN products p ON p.workspace_id = i.workspace_id AND p.id = i.product_id\n           LEFT JOIN LATERAL (\n               SELECT w.id, w.name, COALESCE(w.is_store, false) AS is_store\n               FROM warehouses w\n               WHERE w.workspace_id = i.workspace_id AND w.deleted_at IS NULL\n                 AND (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id)\n                      OR w.default_warehouse)\n               ORDER BY (w.id = COALESCE(i.mutate_from_warehouse_id, p.default_warehouse_id))\n                        IS TRUE DESC\n               LIMIT 1\n           ) w ON true\n           WHERE i.workspace_id = $1 AND i.invoice_id = $2\n             AND p.type IN ('physical', 'physical_second_chance') AND p.has_stock\n             AND i.quantity <> i.mutated_from_stock\n             -- An order's invoice, or a credit note of one: the order moves the stock.\n             AND NOT EXISTS (\n                 SELECT 1 FROM invoices v\n                 JOIN orders o ON o.workspace_id = v.workspace_id\n                              AND o.invoice_id IN (v.id, v.previous_invoice_id)\n                 WHERE v.workspace_id = $1 AND v.id = $2)\n           ORDER BY i.position, i.id",
   "describe": {
     "columns": [
       {
@@ -111,10 +111,10 @@
       false,
       false,
       true,
-      true,
-      true,
-      true
+      false,
+      false,
+      null
     ]
   },
-  "hash": "ef9281faf245c45067b1835bee5f6d6ca0838ffd43f79216e9dc61806576058f"
+  "hash": "70844f196cc97c9b043887c7ac103f89337d8a1bb76166e37f2fa270ea9e18ae"
 }
