@@ -144,6 +144,8 @@
       }
     },
     "cancelledBody": "Bidhaa zimerudishwa stoo. Unaweza kuziagiza tena.",
+    "refunded": "Oda hii imeghairiwa",
+    "refundedBody": "Malipo yako yamerudishwa. Unaweza kuagiza bidhaa tena.",
     "retry": "Jaribu tena",
     "waitingLong": {
       "title": "Bado tunasubiri malipo",

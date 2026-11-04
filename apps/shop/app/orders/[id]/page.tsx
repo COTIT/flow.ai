@@ -64,10 +64,11 @@ export default async function OrderPage({ params }: Props) {
         {paid ? (
           <Notice live={false} variant="success" title={t("paid")} />
         ) : order.status === "cancelled" ? (
+          // Paid then cancelled: the API cancels a paid order only once it is fully refunded.
           <Notice
             live={false}
-            variant="warning"
-            title={t("cancelled")}
+            variant={order.paid_at ? "info" : "warning"}
+            title={t(order.paid_at ? "refunded" : "cancelled")}
             action={
               <Link
                 href="/"
@@ -78,7 +79,7 @@ export default async function OrderPage({ params }: Props) {
               </Link>
             }
           >
-            {t("cancelledBody")}
+            {t(order.paid_at ? "refundedBody" : "cancelledBody")}
           </Notice>
         ) : order.status === "awaiting_payment" ? (
           <PaymentWatcher>
