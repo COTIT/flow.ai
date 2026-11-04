@@ -109,7 +109,8 @@ pub async fn pack(
     access: &WorkspaceAccess,
     id: &str,
     p: NewPacking,
-) -> Result<PackedLotResource, AppError> {
+    key: Option<Key>,
+) -> Result<Answer, AppError> {
     let ws = access.workspace_id;
     let parent = lots::find(&state.db, ws, parse(id)?)
         .await?
@@ -122,6 +123,11 @@ pub async fn pack(
     }
     check_product_warehouse(state, ws, p.product_id, p.warehouse_id).await?;
     let mut tx = state.db.begin().await?;
+    if let Some(a) =
+        idempotency::replay(&mut tx, ws, Actor::User(access.user_id), key.as_ref()).await?
+    {
+        return Ok(a);
+    }
     let mut child = new_lot(p.product_id, p.code, parent.origin.clone());
     child.best_before = p.best_before;
     child.expires_on = p.expires_on;
@@ -166,8 +172,7 @@ pub async fn pack(
         ),
     };
     lots::add_event(&mut tx, ws, &event).await?;
-    tx.commit().await?;
-    Ok(PackedLotResource {
+    let packed = PackedLotResource {
         id: child.id,
         code: child.code,
         public_code: child.public_code,
@@ -177,7 +182,11 @@ pub async fn pack(
         pack_units: format!("{:.2}", p.units),
         best_before: child.best_before,
         expires_on: child.expires_on,
-    })
+    };
+    let answer = Answer::created(&json!({ "data": packed }));
+    idempotency::finish(&mut tx, ws, key.as_ref(), &answer).await?;
+    tx.commit().await?;
+    Ok(answer)
 }
 
 async fn one(state: &AppState, ws: Uuid, id: Uuid) -> Result<TransferRow, AppError> {

@@ -42,6 +42,8 @@ Every write answers `{"message":"ok"}`.
 
 ### `POST /products/{id}/stocks` (mutate)
 
+An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, per workspace): a retry with the same key and request replays the first answer and moves stock only once; another request under the key is a 422. Without the header nothing changes.
+
 - **Body:**
   - `warehouse_id` (required; a live warehouse of the workspace, else "This warehouse id does not exist")
   - `mutation_value` (required number, may be negative, at most ±1 000 000 000 000; a change that rounds to 0.00 is a no-op)

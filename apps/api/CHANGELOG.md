@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Idempotency-Key on three stock writes that had none, so a retry after a lost reply no longer moves stock twice: `POST /products/{product}/stocks`, `POST /lots/{lot}/stock-mutations` and `POST /lots/{lot}/packings` (which made a second jar batch from the same kg). Same mechanism as orders and payments: the same key and request replay the first answer, another request under the key is a 422. The header stays optional.
 - Storefront: a product sold in sizes no longer lists the option-less default variant made with the product (the shop showed it as an extra, unnamed size next to 8/16/32 oz). Products without sizes keep their default.
 - Fake pay page: Pay or Cancel now applies to the payment row at once (`orders::payments::settle_now`, the inbox's own re-fetch), so Pay right after Cancel gets a fresh payment instead of "This payment is no longer open"; the page links back to the shop.
 - Fix: the fake payment provider numbered its ids `fk_1`, `fk_2`… from an in-memory counter that restarts on boot, so after a staging restart a new payment collided with a stored one (`order_payments_provider_key`, 500). Fake payment and refund ids are now `fk_`/`fr_` plus a uuid.

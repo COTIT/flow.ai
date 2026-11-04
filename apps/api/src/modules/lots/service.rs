@@ -13,6 +13,7 @@ use crate::{
     AppState,
     error::AppError,
     http::workspace::{NOT_ALLOWED, WorkspaceAccess},
+    idempotency,
     modules::{
         farm_supply,
         files::{repo as files, service as files_service},
@@ -518,7 +519,8 @@ pub async fn stock_mutation(
     access: &WorkspaceAccess,
     id: &str,
     m: StockMutation,
-) -> Result<LotStockLevel, AppError> {
+    key: Option<idempotency::Key>,
+) -> Result<idempotency::Answer, AppError> {
     let lot = get(state, access.workspace_id, id).await?;
     if !warehouses::exists(&state.db, access.workspace_id, m.warehouse_id).await? {
         return Err(AppError::field(
@@ -539,6 +541,11 @@ pub async fn stock_mutation(
         ..Cause::default()
     };
     let mut tx = state.db.begin().await?;
+    let ws = access.workspace_id;
+    let actor = idempotency::Actor::User(access.user_id);
+    if let Some(a) = idempotency::replay(&mut tx, ws, actor, key.as_ref()).await? {
+        return Ok(a);
+    }
     match stock::mutate(
         &mut tx,
         access.workspace_id,
@@ -563,11 +570,17 @@ pub async fn stock_mutation(
             "The stock level would be out of range.",
         )),
         Mutated::Done { after, .. } => {
-            tx.commit().await?;
-            Ok(LotStockLevel {
+            let level = LotStockLevel {
                 warehouse_id: m.warehouse_id,
                 stock_lvl: format!("{after:.2}"),
-            })
+            };
+            let answer = idempotency::Answer {
+                status: 200,
+                body: json!({ "data": level }).to_string().into_bytes(),
+            };
+            idempotency::finish(&mut tx, ws, key.as_ref(), &answer).await?;
+            tx.commit().await?;
+            Ok(answer)
         }
     }
 }

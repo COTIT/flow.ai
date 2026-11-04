@@ -6,6 +6,8 @@ The raw lot's kg are put into stock with the lot stock route (`POST /lots/{lot}/
 
 ## `POST /v1/workspace/{workspace}/lots/{lot}/packings` (`product.update`)
 
+An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, per workspace): a retry with the same key and request replays the first answer and makes the child lot and moves stock only once; another request under the key is a 422. Without the header nothing changes.
+
 ```json
 { "product_id": "…", "code": "ILU-J-2026-01", "units": "10", "raw_kg": "7.50",
   "warehouse_id": "…", "best_before": "2027-09-30", "expires_on": null }
