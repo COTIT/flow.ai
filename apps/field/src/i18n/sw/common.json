@@ -69,6 +69,7 @@
   },
   "error": {
     "title": "Kuna tatizo",
+    "refusedTitle": "Haikukubaliwa",
     "retry": "Jaribu tena",
     "network": "Hakuna mtandao. Angalia muunganisho wako kisha ujaribu tena.",
     "unexpected": "Kumetokea hitilafu isiyotarajiwa. Jaribu tena, na uiambie timu ya mradi ikiendelea kutokea.",

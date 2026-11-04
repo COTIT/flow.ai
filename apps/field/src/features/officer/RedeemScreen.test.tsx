@@ -457,7 +457,7 @@ describe('RedeemScreen hand-over', () => {
 
     await user.click(screen.getByTestId('redeem-confirm'))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Record which ID document you checked.')
+    expect(await screen.findByTestId('error-state')).toHaveTextContent('Record which ID document you checked.')
     expect(calls('redeem')).toEqual([
       ['w1', { code: CODE, id_type: '', name_confirmed: false }],
     ])
@@ -474,7 +474,7 @@ describe('RedeemScreen hand-over', () => {
     await user.click(screen.getByTestId('redeem-name-confirm'))
     await user.click(screen.getByTestId('redeem-confirm'))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByTestId('error-state')).toHaveTextContent(
       'You verified this household, so another staff member must redeem this voucher.',
     )
   })
@@ -501,7 +501,7 @@ describe('RedeemScreen hand-over', () => {
     const user = await lookUp()
     await screen.findByTestId('redeem-preview')
     await user.click(screen.getByTestId('redeem-confirm'))
-    await screen.findByRole('alert')
+    await screen.findByTestId('error-state')
 
     await user.click(screen.getByTestId('redeem-confirm'))
     await screen.findByTestId('redeem-done')

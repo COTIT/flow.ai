@@ -1,4 +1,5 @@
 import { apiAs, cred, expect, loginOffice, openShift, pairTill, test, unique, urls } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 import { farmApi, signIn, who, type Passbook } from "./field"
 
 // Gift Ngwale (seeded farmer login, Mwangeza) has verified coffee nobody has bought yet.
@@ -46,6 +47,7 @@ test("a farmer's harvest bought in Field, shipped to AFM and sold at its till co
     await page.getByTestId("batch-submit").click()
     await page.getByTestId("confirm-dialog-confirm").click()
     await expect(page.getByTestId("batch-made")).toContainText(`Bought into lot ${code}.`)
+    await expectNoRawValues(page)
     const after = (await ops.get<Options>(optionsPath)).data.harvests.find((h) => h.harvest_report_id === harvest.harvest_report_id)
     expect(Number(harvest.available_kg) - Number(after?.available_kg ?? 0), "kg left on the harvest").toBeCloseTo(1, 2)
   })
@@ -72,6 +74,7 @@ test("a farmer's harvest bought in Field, shipped to AFM and sold at its till co
     await page.getByTestId("confirm-dialog-confirm").click()
     await expect(page.getByTestId("dispatch-sent")).toBeVisible()
     await expect(page.getByTestId("supply-transfer-row").filter({ hasText: code })).toBeVisible()
+    await expectNoRawValues(page)
   })
 
   const owner = await apiAs(request, cred("office (AFM)", "owner"))
@@ -119,6 +122,7 @@ test("a farmer's harvest bought in Field, shipped to AFM and sold at its till co
     // Gift reads Swahili (the account's language): "Mapato ya mauzo" is "Sale credit".
     await expect(page.getByTestId("passbook-line").first()).toContainText("Mapato ya mauzo")
     await expect(page.getByTestId("passbook-line").first()).toContainText("TSh 8,000.00")
+    await expectNoRawValues(page)
   })
 
   await test.step("ops pay the farmer out of it in Field", async () => {
@@ -132,5 +136,6 @@ test("a farmer's harvest bought in Field, shipped to AFM and sold at its till co
     await page.getByTestId("payout-name-confirmed").check()
     await page.getByTestId("confirm-dialog-confirm").click()
     await expect(page.getByTestId("payout-done")).toContainText("1,000.00")
+    await expectNoRawValues(page)
   })
 })

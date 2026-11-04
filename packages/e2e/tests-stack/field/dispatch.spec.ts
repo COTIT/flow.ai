@@ -1,4 +1,5 @@
 import { cred, expect, test, urls } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 import { signIn } from "./field"
 
 // The real API's permissions: ops once got 403 on Dispatch (it read supply-links and warehouses,
@@ -11,6 +12,7 @@ test("ops open Dispatch: the seeded transfers, the dispatch form and the Buy har
   await expect(page.getByTestId("dispatch-link").locator("option")).not.toHaveCount(1)
   await expect(page.getByTestId("dispatch-warehouse").locator("option", { hasText: "Ilundo store" })).toHaveCount(1)
   await expect(page.getByTestId("batch-form")).toBeVisible()
+  await expectNoRawValues(page)
 })
 
 // Bug: RUAHA's default currency is Euro, so Buy harvest prices a Tanzanian harvest in euros and

@@ -1,4 +1,5 @@
 import { cred, expect, test, urls } from "../../src/stack"
+import { expectNoRawValues } from "../../src/test"
 import { farmApi, signIn, who } from "./field"
 
 const home = { farmer: /\/farm$/, field_officer: /\/officer$/, ops: /\/ops$/ }
@@ -19,6 +20,7 @@ for (const [role, paths] of outside) {
   test(`a ${role} lands on their home and is turned back from other roles' screens`, async ({ page, request }) => {
     await signIn(page, request, roles[role])
     await expect(page).toHaveURL(home[role])
+    await expectNoRawValues(page)
     for (const path of paths) {
       await page.goto(`${urls.field}${path}`)
       await expect(page, path).toHaveURL(home[role])

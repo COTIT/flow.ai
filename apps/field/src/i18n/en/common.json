@@ -69,6 +69,7 @@
   },
   "error": {
     "title": "Something went wrong",
+    "refusedTitle": "Not accepted",
     "retry": "Try again",
     "network": "No network. Check your connection and try again.",
     "unexpected": "Something went wrong that should not have. Try again, and tell the programme team if it keeps happening.",

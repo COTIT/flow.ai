@@ -1,11 +1,12 @@
 import { Notice } from '@genesy/ui/components/notice'
 import { useTranslation } from 'react-i18next'
 
+import { apiStatus } from '@/lib/apiError'
 import { errorText } from '@/lib/errors'
 
 /**
- * Something actually failed — as opposed to returning nothing. The shared
- * error Notice (role="alert"), with the retry as its action.
+ * Something actually failed or was refused — as opposed to returning nothing. The shared
+ * Notice: an error (role="alert") or, for a refusal, a warning; the retry is its action.
  *
  * Error contract §9: the Postgres messages in this schema are written to be
  * read by humans, and they are surfaced VERBATIM —
@@ -21,12 +22,16 @@ import { errorText } from '@/lib/errors'
  */
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useTranslation()
+  // A 4xx is the API answering no with its reason (four eyes, a limit, a rule): a refusal to act
+  // on, said politely as a warning. Only no answer or a server failure is "Something went wrong".
+  const status = apiStatus(error)
+  const refused = status !== undefined && status >= 400 && status < 500
 
   return (
     <div data-testid="error-state">
       <Notice
-        variant="error"
-        title={t('error.title')}
+        variant={refused ? 'warning' : 'error'}
+        title={t(refused ? 'error.refusedTitle' : 'error.title')}
         action={
           onRetry && (
             <button
