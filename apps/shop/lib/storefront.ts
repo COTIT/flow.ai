@@ -14,7 +14,7 @@ import {
 import type { CheckoutRequest, StorefrontOrder } from "@genesy/api-client/model"
 
 import "./api"
-import { earliestLinkExpiry, isUuid, isPublicCode } from "./passport"
+import { isUuid, isPublicCode } from "./passport"
 
 /** Axios request options, as the generated calls take them. */
 type RequestOptions = NonNullable<Parameters<typeof storefrontProductsGet>[1]>
@@ -88,27 +88,20 @@ export const getProduct = cache(async (id: string) => {
   ).data
 })
 
-/** A cached reply whose first signed link expires sooner than this is fetched again. */
-const LINK_MARGIN_MS = 2 * 60_000
-
-/** Published batch passport for a QR code (`/b/{public_code}`). */
-export const getLot = cache(async (code: string) => {
-  if (!isPublicCode(code)) notFound()
-  const path = `/storefront/lots/${code}`
-  const lot = (await call(path, (o) => storefrontLotsGet(code, o))).data
-  const expiry = earliestLinkExpiry(lot)
-  if (!expiry || expiry.getTime() - Date.now() > LINK_MARGIN_MS) return lot
-  return (
-    await call(path, (o) =>
-      storefrontLotsGet(code, { ...o, fetchOptions: { cache: "no-store" } })
-    )
-  ).data
-})
-
-/** Orders change by the second: never served from the data cache. */
+/** Orders and batch recalls change by the second: never served from the data cache. */
 const fresh = (o: RequestOptions): RequestOptions => ({
   ...o,
   fetchOptions: { cache: "no-store" },
+})
+
+/** Published batch passport for a QR code (`/b/{public_code}`); never cached, so a recall shows at once. */
+export const getLot = cache(async (code: string) => {
+  if (!isPublicCode(code)) notFound()
+  return (
+    await call(`/storefront/lots/${code}`, (o) =>
+      storefrontLotsGet(code, fresh(o))
+    )
+  ).data
 })
 
 const failure = (error: unknown) => {
