@@ -161,7 +161,8 @@ pub async fn login(state: &AppState, input: FarmLogin) -> Result<FarmSession, Ap
         .unwrap_or_else(|| input.phone.trim().to_owned());
     tokens::record_login_attempt(&state.db, &key).await?;
     if tokens::recent_login_attempts(&state.db, &key).await? > MAX_LOGIN_FAILURES {
-        return Err(AppError::TooManyRequests);
+        let secs = tokens::lock_seconds_left(&state.db, &key, MAX_LOGIN_FAILURES).await?;
+        return Err(AppError::Locked(secs));
     }
     let found = match &phone {
         // Staff sign in by email; a phone here is a farmer account.

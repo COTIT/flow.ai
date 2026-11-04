@@ -89,7 +89,10 @@ struct PendingInviteResource {
     id: Uuid,
     #[schema(value_type = String, example = "pending")]
     status: &'static str,
+    /// The workspace slug.
     workspace_name: String,
+    /// The workspace's profile `company_name`, or the slug when it has none. Show this.
+    display_name: String,
     // Invite id: POST /v1/invites accepts it from a verified user with the invited email.
     /// Code to send to `POST /invites` to accept or decline.
     invite_code: String,
@@ -160,6 +163,7 @@ impl From<Me> for MeResponse {
                 id: i.id,
                 status: "pending",
                 workspace_name: i.workspace_name,
+                display_name: i.display_name,
                 invite_code: i.id.to_string(),
                 invited_on: i.created_at,
                 invited_by: Inviter {

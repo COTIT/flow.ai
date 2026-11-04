@@ -84,12 +84,14 @@ pub async fn history(
     post, path = "/farm/login", tag = "farm_logins",
     operation_id = "farm_logins_login", summary = "Farmer sign-in by phone",
     description = "Unknown phone and wrong password get the same 401. Ten failures in 15 minutes \
-        lock the phone (429) until an officer issues a new password.",
+        lock the phone (429, `Retry-After` in seconds) until they leave the window, or until an \
+        officer issues a new password.",
     request_body = FarmLoginRequest,
     responses(
         (status = 200, body = Envelope<FarmSession>, description = "Signed in"),
         (status = 401, body = MessageBody, description = "Wrong phone or password"),
         (status = 422, body = ValidationErrorBody, description = "Phone or password missing"),
+        (status = 429, body = MessageBody, description = "Locked: 10 failures on this phone in 15 minutes, or the IP limit", headers(("Retry-After" = u64, description = "Seconds until the lock lifts"))),
     )
 )]
 pub async fn login(

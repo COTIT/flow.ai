@@ -113,7 +113,8 @@ pub async fn login(state: &AppState, input: LoginInput) -> Result<Session, AppEr
     // instead of a hard lock if that DoS shows up.
     tokens::record_login_attempt(&state.db, &input.email).await?;
     if tokens::recent_login_attempts(&state.db, &input.email).await? > MAX_LOGIN_FAILURES {
-        return Err(AppError::TooManyRequests);
+        let secs = tokens::lock_seconds_left(&state.db, &input.email, MAX_LOGIN_FAILURES).await?;
+        return Err(AppError::Locked(secs));
     }
     let found = users::find_credentials_by_email(&state.db, &input.email).await?;
     let matches = match &found {

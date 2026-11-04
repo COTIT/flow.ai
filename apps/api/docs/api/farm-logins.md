@@ -42,7 +42,7 @@ Public, behind the IP rate limit.
 - Any spelling of the phone works; it is normalised first.
 - `200 {"data": {access_token, token_type: "Bearer", must_change_password, memberships: [{workspace_id, role, village_id}]}}`. The token is an ordinary bearer token.
 - An unknown phone, junk in the phone field, or a wrong password all get the same `401` body, with the same argon2 work.
-- **Lockout:** 10 attempts on one phone in 15 minutes, then `429` even with the right password. Unknown phones lock the same way. An officer's reset clears the lock.
+- **Lockout:** 10 attempts on one phone in 15 minutes, then `429` even with the right password, with `Retry-After` in seconds (when the lock lifts by itself; same rule as `/v1/login`). Unknown phones lock the same way. An officer's reset clears the lock.
 - Email accounts don't sign in here.
 
 ## Choose a password: `POST /v1/farm/password`

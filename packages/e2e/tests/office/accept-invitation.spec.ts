@@ -21,7 +21,9 @@ const status = (over: Record<string, unknown> = {}) => ({
     invited_on: "2026-11-01T08:00:00Z",
     new_user: true,
     status: "pending",
-    workspace_name: "Ilundo Honey Co.",
+    // The slug and the company name: the page shows display_name.
+    workspace_name: "ilundo-honey",
+    display_name: "Ilundo Honey Co.",
     ...over,
   },
 })

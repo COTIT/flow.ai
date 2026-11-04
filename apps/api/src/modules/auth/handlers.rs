@@ -65,6 +65,7 @@ pub async fn create_workspace(
         (status = 401, body = MessageBody, description = "Wrong email or password"),
         (status = 403, body = MessageBody, description = "Account has no active workspace; no token issued"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input"),
+        (status = 429, body = MessageBody, description = "Locked: 10 failed logins for this email in 15 minutes, or the IP limit", headers(("Retry-After" = u64, description = "Seconds until the lock lifts"))),
     )
 )]
 pub async fn login(

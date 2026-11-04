@@ -125,7 +125,8 @@ export const batchOptions = (raw: { products: unknown[]; canCreate: boolean }): 
   },
 })
 export const honeyJar = rawProduct("p1", "Honey jar", false)
-export const rawCoffee = rawProduct("p9", "Raw Coffee", true)
+// Named as the seed names it: brackets in the name must not double up with the unit.
+export const rawCoffee = rawProduct("p9", "Coffee cherries (raw)", true)
 
 /** POST .../farm/supply-batches/raw-product reply. */
 export const rawProductMade: MockReply = { status: 201, body: { data: { id: "p9", name: "Raw Coffee", unit: "kg" } } }
@@ -138,7 +139,7 @@ export const batchMade: MockReply = {
 
 /** GET .../farm/supply-batches/options with nothing left to buy (all bought, or none verified). */
 export const nothingToBuy: MockReply = {
-  body: { data: { harvests: [], raw_products: [rawProduct("p9", "Raw Coffee", true)], can_create_product: true } },
+  body: { data: { harvests: [], raw_products: [rawCoffee], can_create_product: true } },
 }
 
 /** POST .../farm/supply-batches refusals, worded as the API words them (farm_supply/service.rs). */

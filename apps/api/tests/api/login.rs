@@ -360,6 +360,35 @@ async fn ten_failures_lock_the_email_even_for_right_password(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn the_lock_says_how_long_it_lasts(pool: PgPool) {
+    let app = app(pool.clone());
+    signup(&app, "ada@example.com", "acme").await;
+    fail_logins(&app, "ada@example.com", 10).await;
+    let (status, secs) = common::retry_after(&app, LOGIN, creds("ada@example.com", PASSWORD)).await;
+    assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
+    let secs = secs.expect("Retry-After on the lock");
+    assert!((890..=900).contains(&secs), "the whole 15 minutes: {secs}");
+
+    // Ten minutes on, the lock lifts in five: when the attempt that holds it leaves the window.
+    sqlx::query("UPDATE login_failures SET failed_at = failed_at - interval '10 minutes'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (_, secs) = common::retry_after(&app, LOGIN, creds("ada@example.com", PASSWORD)).await;
+    let secs = secs.expect("still locked");
+    assert!((290..=300).contains(&secs), "five minutes left: {secs}");
+
+    // Once that time has passed, the right password signs in.
+    sqlx::query("UPDATE login_failures SET failed_at = failed_at - make_interval(secs => $1)")
+        .bind(secs as f64)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (status, secs) = common::retry_after(&app, LOGIN, creds("ada@example.com", PASSWORD)).await;
+    assert_eq!((status, secs), (StatusCode::OK, None));
+}
+
+#[sqlx::test]
 async fn unknown_email_is_throttled_the_same_way(pool: PgPool) {
     // Same lock for unknown emails, so the 429 says nothing about which emails exist.
     let app = app(pool);

@@ -8953,6 +8953,10 @@
       "InviteStatusResponse": {
         "description": "What an invite link points to, for the accept or sign-up screen.",
         "properties": {
+          "display_name": {
+            "description": "The workspace's profile `company_name`, or the slug when it has none. Show this.",
+            "type": "string"
+          },
           "email": {
             "type": "string"
           },
@@ -8974,6 +8978,7 @@
             "type": "string"
           },
           "workspace_name": {
+            "description": "The workspace slug.",
             "type": "string"
           }
         },
@@ -8982,6 +8987,7 @@
           "status",
           "new_user",
           "workspace_name",
+          "display_name",
           "email",
           "invited_on"
         ],
@@ -14950,6 +14956,10 @@
       "PendingInviteResource": {
         "description": "An invite waiting for the user to accept or decline.",
         "properties": {
+          "display_name": {
+            "description": "The workspace's profile `company_name`, or the slug when it has none. Show this.",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -14970,6 +14980,7 @@
             "type": "string"
           },
           "workspace_name": {
+            "description": "The workspace slug.",
             "type": "string"
           }
         },
@@ -14977,6 +14988,7 @@
           "id",
           "status",
           "workspace_name",
+          "display_name",
           "invite_code",
           "invited_on",
           "invited_by"
@@ -27721,7 +27733,7 @@
     },
     "/farm/login": {
       "post": {
-        "description": "Unknown phone and wrong password get the same 401. Ten failures in 15 minutes lock the phone (429) until an officer issues a new password.",
+        "description": "Unknown phone and wrong password get the same 401. Ten failures in 15 minutes lock the phone (429, `Retry-After` in seconds) until they leave the window, or until an officer issues a new password.",
         "operationId": "farm_logins_login",
         "requestBody": {
           "content": {
@@ -27792,11 +27804,13 @@
                 }
               }
             },
-            "description": "Too many requests",
+            "description": "Locked: 10 failures on this phone in 15 minutes, or the IP limit",
             "headers": {
               "Retry-After": {
-                "description": "Seconds to wait before retrying",
+                "description": "Seconds until the lock lifts",
                 "schema": {
+                  "format": "int64",
+                  "minimum": 0,
                   "type": "integer"
                 }
               }
@@ -28559,11 +28573,13 @@
                 }
               }
             },
-            "description": "Too many requests",
+            "description": "Locked: 10 failed logins for this email in 15 minutes, or the IP limit",
             "headers": {
               "Retry-After": {
-                "description": "Seconds to wait before retrying",
+                "description": "Seconds until the lock lifts",
                 "schema": {
+                  "format": "int64",
+                  "minimum": 0,
                   "type": "integer"
                 }
               }

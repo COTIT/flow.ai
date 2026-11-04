@@ -126,7 +126,7 @@ function Invite() {
   return (
     <>
       <Head
-        title={t("invite.join", { workspace: invite.workspace_name })}
+        title={t("invite.join", { workspace: invite.display_name })}
         subtitle={invite.email}
       />
       <Notice title={t("invite.loginFirst")} />
@@ -208,7 +208,7 @@ function Register({
       }}
     >
       <Head
-        title={t("invite.join", { workspace: invite.workspace_name })}
+        title={t("invite.join", { workspace: invite.display_name })}
         subtitle={t("invite.signUp")}
       />
       <Field id="inv-email" label={t("auth.email")} errors={errors.email}>
@@ -292,7 +292,7 @@ function Answer({
   return (
     <>
       <Head
-        title={t("invite.join", { workspace: invite.workspace_name })}
+        title={t("invite.join", { workspace: invite.display_name })}
         subtitle={invite.email}
       />
       {declined ? (
@@ -301,7 +301,7 @@ function Answer({
         <>
           <Notice
             variant="success"
-            title={t("invite.joined", { workspace: invite.workspace_name })}
+            title={t("invite.joined", { workspace: invite.display_name })}
           >
             {t("invite.joinedHint")}
           </Notice>

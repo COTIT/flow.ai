@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS \"display_name!\"\n           FROM workspaces w WHERE w.id = $1 AND w.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "display_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "22a9c45e49e7dc59dd989c52099a2f226e2917043999cc7ebdc79eaf397ce0ee"
+}

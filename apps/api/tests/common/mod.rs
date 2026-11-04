@@ -111,6 +111,19 @@ pub async fn send_raw(
     bearer: Option<&str>,
     headers: &[(&str, &str)],
 ) -> (StatusCode, axum::body::Bytes) {
+    let (status, _, bytes) = send_full(app, method, uri, body, bearer, headers).await;
+    (status, bytes)
+}
+
+/// `send_raw` plus the response headers.
+pub async fn send_full(
+    app: &Router,
+    method: Method,
+    uri: &str,
+    body: Option<Value>,
+    bearer: Option<&str>,
+    headers: &[(&str, &str)],
+) -> (StatusCode, axum::http::HeaderMap, axum::body::Bytes) {
     let mut req = Request::builder().method(method).uri(uri);
     if let Some(token) = bearer {
         req = req.header("authorization", format!("Bearer {token}"));
@@ -131,7 +144,21 @@ pub async fn send_raw(
 
     let res = app.clone().oneshot(req).await.unwrap();
     let status = res.status();
-    (status, res.into_body().collect().await.unwrap().to_bytes())
+    let headers = res.headers().clone();
+    (
+        status,
+        headers,
+        res.into_body().collect().await.unwrap().to_bytes(),
+    )
+}
+
+/// Seconds in the `Retry-After` header of `POST uri` with `body`, if any.
+pub async fn retry_after(app: &Router, uri: &str, body: Value) -> (StatusCode, Option<u64>) {
+    let (status, headers, _) = send_full(app, Method::POST, uri, Some(body), None, &[]).await;
+    let secs = headers
+        .get("retry-after")
+        .map(|v| v.to_str().unwrap().parse().unwrap());
+    (status, secs)
 }
 
 pub async fn post(app: &Router, uri: &str, body: Value) -> (StatusCode, Value) {

@@ -73,7 +73,7 @@ describe('the guided raw product step', () => {
     choose()
     expect(screen.queryByTestId('batch-no-raw-product')).toBeNull()
     const labels = [...(screen.getByTestId('batch-product') as HTMLSelectElement).options].map((o) => o.text)
-    expect(labels.slice(1)).toEqual(['Raw maize (kg)', 'Honey jar (kg)'])
+    expect(labels.slice(1)).toEqual(['Raw maize · kg', 'Honey jar · kg'])
   })
 
   test('without the right: the notice says who can add one, no button', () => {

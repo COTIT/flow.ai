@@ -22,6 +22,8 @@ pub struct InviteRow {
     pub id: Uuid,
     pub workspace_id: Uuid,
     pub workspace_name: String,
+    /// The profile's company name, else the slug.
+    pub display_name: String,
     pub email: String,
     /// `pending` | `accepted` | `denied`. Expiry is read from `expires_at`.
     pub status: String,
@@ -68,11 +70,12 @@ pub async fn find_by_token_hash(
 ) -> Result<Option<InviteRow>, sqlx::Error> {
     sqlx::query_as!(
         InviteRow,
-        "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,
-                i.expires_at, i.created_at, i.token_hash, i.team_id
-         FROM invites i
-         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
-         WHERE i.token_hash = $1",
+        r#"SELECT i.id, i.workspace_id, w.name AS workspace_name,
+                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "display_name!",
+                  i.email, i.status, i.expires_at, i.created_at, i.token_hash, i.team_id
+           FROM invites i
+           JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
+           WHERE i.token_hash = $1"#,
         &token_hash[..],
     )
     .fetch_optional(db)
@@ -86,11 +89,12 @@ pub async fn find_by_id(
 ) -> Result<Option<InviteRow>, sqlx::Error> {
     sqlx::query_as!(
         InviteRow,
-        "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,
-                i.expires_at, i.created_at, i.token_hash, i.team_id
-         FROM invites i
-         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
-         WHERE i.id = $1",
+        r#"SELECT i.id, i.workspace_id, w.name AS workspace_name,
+                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "display_name!",
+                  i.email, i.status, i.expires_at, i.created_at, i.token_hash, i.team_id
+           FROM invites i
+           JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
+           WHERE i.id = $1"#,
         invite_id,
     )
     .fetch_optional(db)
@@ -150,6 +154,8 @@ pub async fn record_send(db: impl PgExecutor<'_>, inviter: Uuid) -> Result<(), s
 pub struct PendingInvite {
     pub id: Uuid,
     pub workspace_name: String,
+    /// The profile's company name, else the slug.
+    pub display_name: String,
     pub created_at: DateTime<Utc>,
     pub inviter_email: Option<String>,
     pub inviter_first_name: String,
@@ -164,14 +170,15 @@ pub async fn pending_for_email(
 ) -> Result<Vec<PendingInvite>, sqlx::Error> {
     sqlx::query_as!(
         PendingInvite,
-        "SELECT i.id, w.name AS workspace_name, i.created_at,
-                u.email AS inviter_email, u.first_name AS inviter_first_name,
-                u.middle_name AS inviter_middle_name, u.last_name AS inviter_last_name
-         FROM invites i
-         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
-         JOIN users u ON u.id = i.invited_by_user_id
-         WHERE lower(i.email) = lower($1) AND i.status = 'pending' AND i.expires_at > now()
-         ORDER BY i.created_at DESC",
+        r#"SELECT i.id, w.name AS workspace_name,
+                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "display_name!",
+                  i.created_at, u.email AS inviter_email, u.first_name AS inviter_first_name,
+                  u.middle_name AS inviter_middle_name, u.last_name AS inviter_last_name
+           FROM invites i
+           JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL
+           JOIN users u ON u.id = i.invited_by_user_id
+           WHERE lower(i.email) = lower($1) AND i.status = 'pending' AND i.expires_at > now()
+           ORDER BY i.created_at DESC"#,
         email,
     )
     .fetch_all(db)
