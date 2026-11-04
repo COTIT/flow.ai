@@ -255,3 +255,40 @@ pub async fn reconciliation(
     let staff = (!access.manages()).then_some(access.user_id);
     Ok(repo::day(&state.db, access.workspace_id, day, village, staff).await?)
 }
+
+/// GET /payouts: a page of the payouts the caller may see, newest first. Staff see their
+/// villages' (ops and admin all), a farmer their own; a farmer naming another person is 403.
+pub async fn list(
+    state: &AppState,
+    access: &FarmAccess,
+    person: Option<Uuid>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<PayoutRow>, i64), AppError> {
+    if person.is_some_and(|p| !access.is_staff() && access.person_id != Some(p)) {
+        return Err(AppError::Forbidden(NOT_ALLOWED));
+    }
+    let scope = access.staff_scope();
+    let ws = access.workspace_id;
+    let (own, villages) = (access.person_id, &scope.villages);
+    Ok(repo::list(
+        &state.db, ws, scope.all, villages, own, person, limit, offset,
+    )
+    .await?)
+}
+
+/// GET /payouts/{payout}: staff of its village or the farmer paid; other staff 404, another
+/// farmer 403.
+pub async fn get(state: &AppState, access: &FarmAccess, id: &str) -> Result<PayoutRow, AppError> {
+    let id = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
+    let p = repo::find(&state.db, access.workspace_id, Some(id), None)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if access.person_id == Some(p.person_id) || access.staff_in(p.village_id) {
+        Ok(p)
+    } else if access.is_staff() {
+        Err(AppError::NotFound)
+    } else {
+        Err(AppError::Forbidden(NOT_ALLOWED))
+    }
+}

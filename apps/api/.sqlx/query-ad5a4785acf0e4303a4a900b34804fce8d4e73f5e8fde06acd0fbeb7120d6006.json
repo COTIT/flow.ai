@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sum(e.amount)::bigint AS \"minor!\", c.asset_type AS currency, c.decimals,\n                  e.currency_id\n           FROM farm_passbook_entries e\n           JOIN currencies c ON c.workspace_id = e.workspace_id AND c.id = e.currency_id\n           WHERE e.workspace_id = $1 AND e.person_id = $2\n           GROUP BY e.currency_id, c.asset_type, c.decimals\n           ORDER BY c.asset_type",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "currency",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "asset_type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "decimals",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "currencies",
+            "name": "decimals"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "currency_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "farm_passbook_entries",
+            "name": "currency_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ad5a4785acf0e4303a4a900b34804fce8d4e73f5e8fde06acd0fbeb7120d6006"
+}

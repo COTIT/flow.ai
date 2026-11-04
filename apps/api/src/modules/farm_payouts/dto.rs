@@ -297,3 +297,18 @@ impl From<DayRow> for CashDayResource {
         }
     }
 }
+
+/// GET /payouts query.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct PayoutQuery {
+    /// Only this farmer's payouts.
+    #[param(value_type = Option<Uuid>)]
+    pub person_id: Option<String>,
+    /// 1-based; junk falls back to 1.
+    #[param(value_type = Option<i64>)]
+    pub page: Option<String>,
+    /// Default 50, max 100.
+    #[param(value_type = Option<i64>)]
+    pub page_size: Option<String>,
+}

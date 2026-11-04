@@ -13,6 +13,8 @@ The caller's own lines, newest first. `404` when the account is not a registered
 The person themself, or staff of the person's village (ops and admin: any village). Staff of another village or workspace get `404`; another farmer gets `403`.
 
 Line: `{id, kind, amount, balance_after, attribution_id, payout_id, created_at}`.
+
+Both passbook reads answer `{data: [lines], meta, balances}`. `balances` is the current balance per currency over every line, not just the page: `[{minor, currency, decimals, currency_id}]`, by currency code (`[]` with no lines).
 - `kind`: `sale_credit`, `sale_reversal`, `payout` or `payout_void`.
 - `amount`: signed, credits positive, debits negative; never 0.
 - `balance_after`: the balance in that currency right after this line, summed over all lines before the page is cut. The first line of page 1 is the current balance.

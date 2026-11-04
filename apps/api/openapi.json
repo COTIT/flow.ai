@@ -13015,25 +13015,6 @@
         ],
         "type": "object"
       },
-      "Paginated_EntryResource": {
-        "description": "One page of results plus paging details.",
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/EntryResource"
-            },
-            "type": "array"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/Meta"
-          }
-        },
-        "required": [
-          "data",
-          "meta"
-        ],
-        "type": "object"
-      },
       "Paginated_EquipmentCategoryResource": {
         "description": "One page of results plus paging details.",
         "properties": {
@@ -13401,6 +13382,25 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/OrderResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "type": "object"
+      },
+      "Paginated_PayoutResource": {
+        "description": "One page of results plus paging details.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PayoutResource"
             },
             "type": "array"
           },
@@ -14138,6 +14138,33 @@
         "required": [
           "id",
           "name"
+        ],
+        "type": "object"
+      },
+      "PassbookPage": {
+        "description": "A page of passbook lines with the balance per currency.",
+        "properties": {
+          "balances": {
+            "description": "Balance per currency over every line (not just this page), by currency code.",
+            "items": {
+              "$ref": "#/components/schemas/Money"
+            },
+            "type": "array"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EntryResource"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "balances"
         ],
         "type": "object"
       },
@@ -48058,11 +48085,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Paginated_EntryResource"
+                  "$ref": "#/components/schemas/PassbookPage"
                 }
               }
             },
-            "description": "One page"
+            "description": "One page, with the balance per currency"
           },
           "401": {
             "content": {
@@ -48143,6 +48170,159 @@
       }
     },
     "/workspace/{workspace}/farm/payouts": {
+      "get": {
+        "description": "Newest first. ops and admin see every payout, a field officer those of their villages, a farmer their own. A farmer naming another person is 403.",
+        "operationId": "farm_payouts_list",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only this farmer's payouts.",
+            "in": "query",
+            "name": "person_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1-based; junk falls back to 1.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Default 50, max 100.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Paginated_PayoutResource"
+                }
+              }
+            },
+            "description": "One page"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "A farmer asking for another person's payouts"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace, or no farm role"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Malformed `person_id`"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List payouts",
+        "tags": [
+          "farm_payouts"
+        ]
+      },
       "post": {
         "description": "Staff of the farmer's village. Whoever registered or verified the farmer's household, or belongs to it, may not pay. Above the workspace's `farm.payout_officer_limit` only ops or admin pay. Never more than the passbook balance in that currency. Writes the payout, a passbook debit and a cash ledger row in one transaction. The same `client_ref` and body replay (200).",
         "operationId": "farm_payouts_create",
@@ -48312,6 +48492,131 @@
           }
         ],
         "summary": "Pay a farmer",
+        "tags": [
+          "farm_payouts"
+        ]
+      }
+    },
+    "/workspace/{workspace}/farm/payouts/{payout}": {
+      "get": {
+        "description": "Staff of the farmer's village, or the farmer paid.",
+        "operationId": "farm_payouts_get",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Payout id",
+            "in": "path",
+            "name": "payout",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_PayoutResource"
+                }
+              }
+            },
+            "description": "The payout"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Another farmer's payout"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown payout, or outside the caller's villages or workspace"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a payout",
         "tags": [
           "farm_payouts"
         ]
@@ -49380,11 +49685,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Paginated_EntryResource"
+                  "$ref": "#/components/schemas/PassbookPage"
                 }
               }
             },
-            "description": "One page"
+            "description": "One page, with the balance per currency"
           },
           "401": {
             "content": {

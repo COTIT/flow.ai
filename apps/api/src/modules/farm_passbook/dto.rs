@@ -75,6 +75,15 @@ impl From<ConsentRow> for ConsentResource {
     }
 }
 
+/// A page of passbook lines with the balance per currency.
+#[derive(Serialize, ToSchema)]
+pub struct PassbookPage {
+    pub data: Vec<EntryResource>,
+    pub meta: crate::http::list::Meta,
+    /// Balance per currency over every line (not just this page), by currency code.
+    pub balances: Vec<Money>,
+}
+
 /// GET list query.
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]

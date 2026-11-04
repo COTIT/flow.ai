@@ -30,8 +30,10 @@ import type {
   EnvelopeCashMovementResource,
   EnvelopePayoutResource,
   EnvelopeVecCashDayResource,
+  FarmPayoutsListParams,
   FarmPayoutsReconciliationParams,
   MessageBody,
+  PaginatedPayoutResource,
   ValidationErrorBody,
   VoidPayoutRequest
 } from '../model';
@@ -230,6 +232,107 @@ export function useFarmPayoutsReconciliation<TData = Awaited<ReturnType<typeof f
 
 
 /**
+ * Newest first. ops and admin see every payout, a field officer those of their villages, a farmer their own. A farmer naming another person is 403.
+ * @summary List payouts
+ */
+export const farmPayoutsList = (
+    workspace: string,
+    params?: FarmPayoutsListParams,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<PaginatedPayoutResource>(
+      {url: `/workspace/${workspace}/farm/payouts`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmPayoutsListQueryKey = (workspace: string,
+    params?: FarmPayoutsListParams,) => {
+    return [
+    `/workspace/${workspace}/farm/payouts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getFarmPayoutsListQueryOptions = <TData = Awaited<ReturnType<typeof farmPayoutsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(workspace: string,
+    params?: FarmPayoutsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmPayoutsListQueryKey(workspace,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmPayoutsList>>> = ({ signal }) => farmPayoutsList(workspace,params, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsList>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmPayoutsListQueryResult = NonNullable<Awaited<ReturnType<typeof farmPayoutsList>>>
+export type FarmPayoutsListQueryError = ErrorType<MessageBody | ValidationErrorBody>
+
+
+export function useFarmPayoutsList<TData = Awaited<ReturnType<typeof farmPayoutsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params: undefined |  FarmPayoutsListParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsList>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmPayoutsList>>,
+          TError,
+          Awaited<ReturnType<typeof farmPayoutsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmPayoutsList<TData = Awaited<ReturnType<typeof farmPayoutsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmPayoutsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsList>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmPayoutsList>>,
+          TError,
+          Awaited<ReturnType<typeof farmPayoutsList>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmPayoutsList<TData = Awaited<ReturnType<typeof farmPayoutsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmPayoutsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List payouts
+ */
+
+export function useFarmPayoutsList<TData = Awaited<ReturnType<typeof farmPayoutsList>>, TError = ErrorType<MessageBody | ValidationErrorBody>>(
+ workspace: string,
+    params?: FarmPayoutsListParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsList>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmPayoutsListQueryOptions(workspace,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * Staff of the farmer's village. Whoever registered or verified the farmer's household, or belongs to it, may not pay. Above the workspace's `farm.payout_officer_limit` only ops or admin pay. Never more than the passbook balance in that currency. Writes the payout, a passbook debit and a cash ledger row in one transaction. The same `client_ref` and body replay (200).
  * @summary Pay a farmer
  */
@@ -299,6 +402,106 @@ export const useFarmPayoutsCreate = <TError = ErrorType<MessageBody | Validation
       return useMutation(getFarmPayoutsCreateMutationOptions(options), queryClient);
     }
     /**
+ * Staff of the farmer's village, or the farmer paid.
+ * @summary Get a payout
+ */
+export const farmPayoutsGet = (
+    workspace: string,
+    payout: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopePayoutResource>(
+      {url: `/workspace/${workspace}/farm/payouts/${payout}`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getFarmPayoutsGetQueryKey = (workspace: string,
+    payout: string,) => {
+    return [
+    `/workspace/${workspace}/farm/payouts/${payout}`
+    ] as const;
+    }
+
+
+export const getFarmPayoutsGetQueryOptions = <TData = Awaited<ReturnType<typeof farmPayoutsGet>>, TError = ErrorType<MessageBody>>(workspace: string,
+    payout: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getFarmPayoutsGetQueryKey(workspace,payout);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof farmPayoutsGet>>> = ({ signal }) => farmPayoutsGet(workspace,payout, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && payout !== null && payout !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsGet>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type FarmPayoutsGetQueryResult = NonNullable<Awaited<ReturnType<typeof farmPayoutsGet>>>
+export type FarmPayoutsGetQueryError = ErrorType<MessageBody>
+
+
+export function useFarmPayoutsGet<TData = Awaited<ReturnType<typeof farmPayoutsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payout: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsGet>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmPayoutsGet>>,
+          TError,
+          Awaited<ReturnType<typeof farmPayoutsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmPayoutsGet<TData = Awaited<ReturnType<typeof farmPayoutsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payout: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsGet>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof farmPayoutsGet>>,
+          TError,
+          Awaited<ReturnType<typeof farmPayoutsGet>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useFarmPayoutsGet<TData = Awaited<ReturnType<typeof farmPayoutsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payout: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a payout
+ */
+
+export function useFarmPayoutsGet<TData = Awaited<ReturnType<typeof farmPayoutsGet>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    payout: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof farmPayoutsGet>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getFarmPayoutsGetQueryOptions(workspace,payout,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
  * ops or admin, with a reason. Adds a passbook credit and a cash row giving the amount back to the payer; nothing is edited.
  * @summary Void a payout
  */

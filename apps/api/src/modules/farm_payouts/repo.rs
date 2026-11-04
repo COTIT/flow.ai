@@ -95,6 +95,66 @@ pub async fn find(
     .await
 }
 
+/// A page of the workspace's payouts, newest first, and the total: those in `villages` (all
+/// with `all_villages`) or of `own` person, narrowed to `person` when given.
+#[allow(clippy::too_many_arguments)]
+pub async fn list(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    all_villages: bool,
+    villages: &[Uuid],
+    own: Option<Uuid>,
+    person: Option<Uuid>,
+    limit: i64,
+    offset: i64,
+) -> Result<(Vec<PayoutRow>, i64), sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT p.id, p.village_id, p.person_id, p.currency_id, c.asset_type AS currency,
+                  c.decimals, p.amount, p.id_type, p.client_ref, p.request_hash, p.paid_by,
+                  p.paid_at, v.reason AS "void_reason?", v.voided_by AS "voided_by?",
+                  v.voided_at AS "voided_at?", count(*) OVER () AS "total!"
+           FROM farm_payouts p
+           JOIN currencies c ON c.workspace_id = p.workspace_id AND c.id = p.currency_id
+           LEFT JOIN farm_payout_voids v ON v.payout_id = p.id
+           WHERE p.workspace_id = $1
+             AND ($2 OR p.village_id = ANY($3) OR p.person_id = $4)
+             AND ($5::uuid IS NULL OR p.person_id = $5)
+           ORDER BY p.paid_at DESC, p.id DESC
+           LIMIT $6 OFFSET $7"#,
+        workspace_id,
+        all_villages,
+        villages,
+        own,
+        person,
+        limit,
+        offset,
+    )
+    .fetch_all(db)
+    .await?;
+    let total = rows.first().map_or(0, |r| r.total);
+    let rows = rows
+        .into_iter()
+        .map(|r| PayoutRow {
+            id: r.id,
+            village_id: r.village_id,
+            person_id: r.person_id,
+            currency_id: r.currency_id,
+            currency: r.currency,
+            decimals: r.decimals,
+            amount: r.amount,
+            id_type: r.id_type,
+            client_ref: r.client_ref,
+            request_hash: r.request_hash,
+            paid_by: r.paid_by,
+            paid_at: r.paid_at,
+            void_reason: r.void_reason,
+            voided_by: r.voided_by,
+            voided_at: r.voided_at,
+        })
+        .collect();
+    Ok((rows, total))
+}
+
 /// Lock a live person of the workspace (serialises payouts per farmer); their village.
 pub async fn lock_person(
     conn: &mut PgConnection,

@@ -33,6 +33,13 @@ The farmer's row is locked before the balance is read, so parallel payouts never
 
 `201 {"data": {id, client_ref, person_id, village_id, amount, id_type, paid_by, paid_at, void}}` (`void` is `null` until voided).
 
+## `GET …/farm/payouts?person_id&page&page_size` and `GET …/farm/payouts/{payout}`
+
+Read payouts, newest first, in the shape above.
+- **Who sees what:** ops and admin see every payout; a field officer sees the payouts of their villages; a farmer sees their own.
+- **Errors:** a farmer naming another `person_id` gets `403`, and a malformed `person_id` gets `422`.
+- **One payout:** staff of the farmer's village or the farmer paid. Other staff get `404`, another farmer `403`. Another workspace's payout is `404`.
+
 ## `POST …/farm/payouts/{payout}/void`
 
 ops or admin; body `{reason}` (1–500 chars). Adds the void row, a passbook line `payout_void` of `+amount` and a cash row `payout_void` giving the amount back to whoever paid it. Returns the payout with `void: {reason, voided_by, voided_at}`. Voiding again is `409`.
