@@ -186,6 +186,7 @@ async fn a_quote_is_what_the_sale_then_books(pool: PgPool) {
         assert_eq!(q["due"], if cash { 3090 } else { 3088 }, "5-cent rounding");
         assert_eq!(q["rounding"], if cash { 2 } else { 0 });
         assert_eq!(q["change"], if cash { json!(1910) } else { Value::Null });
+        assert_eq!(q["short_by"], if cash { json!(0) } else { Value::Null });
 
         let mut sale = body;
         sale["client_ref"] = json!(format!("q{n}"));
@@ -257,6 +258,34 @@ async fn a_quote_needs_no_shift_and_flags_other_prices(pool: PgPool) {
 }
 
 #[sqlx::test]
+async fn a_short_cash_quote_answers_the_shortfall(pool: PgPool) {
+    let w = world(pool).await;
+    for (tendered, short_by, change) in [
+        (json!(100), json!(2990), Value::Null),
+        (json!(3089), json!(1), Value::Null),
+        (json!(3090), json!(0), json!(0)),
+    ] {
+        let body = json!({ "lines": basket(&w),
+                           "payment": { "method": "cash", "tendered": tendered } });
+        let (status, q) = quote(&w, &w.t1, body).await;
+        assert_eq!(status, StatusCode::OK, "{tendered}: {q}");
+        assert_eq!(q["data"]["due"], 3090);
+        assert_eq!(q["data"]["short_by"], short_by, "{tendered}");
+        assert_eq!(q["data"]["change"], change, "{tendered}");
+    }
+    let body = json!({ "lines": basket(&w), "payment": { "method": "cash" } });
+    let (_, q) = quote(&w, &w.t1, body).await;
+    assert_eq!(q["data"]["short_by"], Value::Null, "no tendered, no shortfall");
+
+    // The sale itself still refuses short cash.
+    let sale = json!({ "client_ref": "short", "lines": basket(&w),
+                       "payment": { "method": "cash", "tendered": 3089 } });
+    let (status, res) = w.api.call(Method::POST, "/sales", Some(sale), &w.t1).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert!(res["errors"]["payment.tendered"].is_array(), "{res}");
+}
+
+#[sqlx::test]
 async fn a_quote_refuses_what_the_sale_refuses(pool: PgPool) {
     let w = world(pool).await;
     for (body, field) in [
@@ -272,10 +301,6 @@ async fn a_quote_refuses_what_the_sale_refuses(pool: PgPool) {
         (
             json!({ "lines": basket(&w), "payment": { "method": "cheque" } }),
             "payment.method",
-        ),
-        (
-            json!({ "lines": basket(&w), "payment": { "method": "cash", "tendered": 100 } }),
-            "payment.tendered",
         ),
     ] {
         let (status, res) = quote(&w, &w.t1, body.clone()).await;

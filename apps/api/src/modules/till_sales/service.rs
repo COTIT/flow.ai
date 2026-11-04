@@ -132,16 +132,12 @@ async fn price_sale(
         .filter(|(c, s)| c.unit_price != s.unit_price)
         .count();
     let due = match payment {
-        Payment::Cash { tendered } => {
+        Payment::Cash { .. } => {
             let code = currencies::repo::find(&mut *conn, ws, currency_id)
                 .await?
                 .map(|c| c.asset_type)
                 .unwrap_or_default();
-            let due = round_cash(charged.total, cash_step(&mut *conn, ws, &code).await?);
-            if tendered.is_some_and(|t| t < due) {
-                return Err(AppError::field("payment.tendered", TOO_LITTLE));
-            }
-            due
+            round_cash(charged.total, cash_step(&mut *conn, ws, &code).await?)
         }
         Payment::Card { .. } => charged.total,
     };
@@ -191,7 +187,8 @@ pub async fn quote(
         mismatched_lines: i32::try_from(p.mismatched).unwrap_or(i32::MAX),
         due: p.due,
         rounding: p.due - p.charged.total,
-        change: tendered.map(|t| t - p.due),
+        change: tendered.filter(|t| *t >= p.due).map(|t| t - p.due),
+        short_by: tendered.map(|t| (p.due - t).max(0)),
     })
 }
 
@@ -220,6 +217,12 @@ pub async fn sell(
         unsellable,
         due,
     } = price_sale(&mut tx, s, &sale.lines, &sale.payment, sale.sold_at).await?;
+    // The quote answers a shortfall; the sale refuses it.
+    if let Payment::Cash { tendered: Some(t) } = sale.payment
+        && t < due
+    {
+        return Err(AppError::field("payment.tendered", TOO_LITTLE));
+    }
     let (shift_id, tendered, card_reference) = match &sale.payment {
         Payment::Cash { tendered } => {
             cash::lock_register(&mut tx, ws, s.register_id).await?;

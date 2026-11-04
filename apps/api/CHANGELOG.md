@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Till quote (T4, `docs/api/till.md`, no migration): `POST /till/sales/quote` no longer answers 422 "The tendered cash is less than the amount due." while the cashier types; it answers 200 with the new `short_by` (`due − tendered` in minor units, 0 when enough, null for card or without `tendered`) and `change` null while short. `POST /till/sales` still refuses short cash (422 on `payment.tendered`).
 - Seed raw values and partner names (R8, SD1, R7; no migration): the demo's raw products (coffee cherries, maize, beans) are in `kg`; the honey passports' "Extracted" fact reads "2 July 2026", not an ISO date; every `partner` (supply links, supply transfers, `GET /farm/dispatch/options`) gains `display_name`, the workspace's profile `company_name` or its slug when it has none, so Field's dispatch list no longer shows "afm-demo". The seed names the shop "AFM Shop". `name` stays the slug.
 - Demo seed (FB1): RUAHA's default currency is TZS, no longer the euro every new workspace starts with, so Field's Buy harvest prices and credits farmers in shillings. New workspaces still default to EUR.
 - Buying harvests stocks the raw lot (FG1, `docs/api/farm-supply.md`): `POST /farm/supply-batches` puts the bought kg into the raw lot at `warehouse_id` (new, optional), else the workspace's default warehouse, in the batch's transaction (`increase`, reason `bought`, related `supply_batch`). The lot is dispatchable without a manual stock-in. With neither warehouse the lot is made empty as before. The demo seed no longer adds that stock by hand.
