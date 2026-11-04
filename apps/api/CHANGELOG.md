@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Storefront: a product sold in sizes no longer lists the option-less default variant made with the product (the shop showed it as an extra, unnamed size next to 8/16/32 oz). Products without sizes keep their default.
 - Fake pay page: Pay or Cancel now applies to the payment row at once (`orders::payments::settle_now`, the inbox's own re-fetch), so Pay right after Cancel gets a fresh payment instead of "This payment is no longer open"; the page links back to the shop.
 - Fix: the fake payment provider numbered its ids `fk_1`, `fk_2`… from an in-memory counter that restarts on boot, so after a staging restart a new payment collided with a stored one (`order_payments_provider_key`, 500). Fake payment and refund ids are now `fk_`/`fr_` plus a uuid.
 - Fix: the default size kept the price copied when the product was made, so editing the product price changed nothing in the shop or the till (staging: "Ruaha coffee 250 g" at 15.52 after 14.5 → 15.5). Default variants now follow the product price (`product_variants.inherits_price`, migrations `variant_inherits_price` and `variant_inherits_price_backfill`): a product price edit updates them in the same transaction; giving a variant its own price stops it. The backfill made existing defaults follow when they are the product's only variant or still at its price, taking the current product price. Explicitly priced sizes are untouched.

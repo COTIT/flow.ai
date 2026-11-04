@@ -39,6 +39,8 @@ Only sellable web products show: `status = active`, not archived, not deleted, n
 - **`passport`:** `{public_code}` of the lot the shop sells next: the product's published, released, unexpired lot with free stock (level − reserved > 0) and the earliest of expiry and best-before (undated last), over every warehouse. Read the page with `GET /storefront/lots/{public_code}`. `null` when no lot qualifies (no lots, none published, recalled, expired or empty).
 - **Never shown:** purchase, wholesale or cost prices, supplier data, internal references or notes, stock locations. A test pins the exact key set.
 
+- **`variants`:** default first. A product sold in sizes (any live variant carries an option) lists only those sizes: the option-less variant made with the product is left out, as it is no size the shop can offer. A product without sizes lists its default.
+
 One SQL statement per call (variants, options, stock and currency joined in), so no N+1.
 
 Errors: `401` missing/unknown/revoked key, `403` key lacks `catalog:read`, `404` as above.

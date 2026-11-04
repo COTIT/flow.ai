@@ -114,6 +114,15 @@ pub async fn products(
                           ORDER BY v.is_default DESC, v.id), '[]')
                    FROM product_variants v
                    WHERE v.workspace_id = $1 AND v.product_id = pg.id AND v.deleted_at IS NULL
+                     -- Sold in sizes: the option-less variant made with the product is no size.
+                     AND (EXISTS (SELECT 1 FROM variant_option_values vov
+                                  WHERE vov.workspace_id = $1 AND vov.product_variant_id = v.id)
+                          OR NOT EXISTS (
+                              SELECT 1 FROM product_variants o
+                              JOIN variant_option_values ov ON ov.workspace_id = o.workspace_id
+                                                           AND ov.product_variant_id = o.id
+                              WHERE o.workspace_id = $1 AND o.product_id = pg.id
+                                AND o.deleted_at IS NULL))
                   ) AS "variants!: Json<Vec<VariantRow>>",
                   pg.total AS "total!"
            FROM page pg
