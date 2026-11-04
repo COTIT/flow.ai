@@ -19,7 +19,7 @@ Extra arguments to `stack:test` go to Playwright, e.g. `stack:test tests-stack/t
 
 - **Needs:** Docker (for Postgres only), Rust 1.99, the repo's `pnpm install`, Playwright's Chromium.
 - **Ports** (all + `E2E_STACK_OFFSET`, default 0): Postgres 55400, API 8400, shop 4300, office
-  4301, field 4302, till 4303, landing 4304. Pick another offset per checkout running at once,
+  4301, field 4302, till 4303, landing 4304, mail sink 2525. Pick another offset per checkout running at once,
   e.g. `E2E_STACK_OFFSET=20`. The fake-API suite uses 3200-3204/8199 + `E2E_PORT_OFFSET`.
 - **Container:** `genesy-e2e-stack-<offset>`, Postgres in RAM (tmpfs). The harness never touches
   any other container (not the dev Postgres on 54320). `stack:down` and any failed `stack:up` remove it.
@@ -30,7 +30,10 @@ Extra arguments to `stack:test` go to Playwright, e.g. `stack:test tests-stack/t
   own copies into `.next-stack/` (`NEXT_DIST_DIR`, see each `next.config.ts`) and field into
   `dist-stack/`. They never clash with the fake-API builds in `.next/` and `dist/`.
 - **Logs and state:** `packages/e2e/.stack/<offset>/` (gitignored): `state.json` (ports, pids),
-  `seed.json` (the logins `seed-demo` printed: **never commit**), `logs/<process>.log`.
+  `seed.json` (the logins `seed-demo` printed: **never commit**), `logs/<process>.log`,
+  `mail/*.eml` (every mail the API sent).
+- **Mail:** the API's `SMTP_URL` is the stack's own sink (`stack/mail-sink.mjs`, plain SMTP on
+  127.0.0.1, no dependency). It writes each message to `mail/`; nothing leaves the machine.
 - **Time:** see "Timings" below.
 
 ## Write a spec
@@ -70,6 +73,10 @@ test("…", async ({ page, request }) => {
   other test's session on it, so never do that.
 - `openShift(page)`: opens the paired till's shift (a new register has none; sales need one).
 - `unique()`: a suffix for names of things the test creates.
+- `mailTo(address)`: the newest mail the API sent there (waits up to 10 s), to follow an invite
+  or verification link. Signup is on in the stack, so a spec that needs a verified owner makes
+  its own workspace (`POST /v1/create-workspace`) and opens the verification link from its mail
+  (see `tests-stack/accounts/invite.spec.ts`), never a seeded user's.
 - A known bug: `test.fail(true, "<what is wrong> (<session or issue>)")` at the top of the test,
   so the suite stays green and flips red (unexpected pass) the day it's fixed: then drop the line.
 
@@ -122,6 +129,8 @@ build (password hashing included). CI's estimate: ~12 min warm, ~25 min cold (2 
 - `price.spec.ts`: an office price edit doesn't reach the shop or the till (default variant keeps
   a stale price copy). Fails at the shop's "after" check.
 - `field-ops.spec.ts`: ops gets 403 on `supply-links` and `warehouses` at Field Dispatch.
+- `accounts/keys.spec.ts`: the office app keys page prints raw scope codes (`catalog:read`,
+  `till:login`) and kinds (`till`, `shop`) instead of words.
 
 ## Follow-ups
 
