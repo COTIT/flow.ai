@@ -11,9 +11,13 @@ import {
   MOCK_ORIGIN,
   MOCK_PORT,
   BUSY_EMAIL,
+  CANCEL_PAYMENT_EMAIL,
+  CHECKOUT_DOWN_EMAIL,
   EXPIRED_EMAIL,
+  FAILING_PAGE,
   FAILING_ORDER,
   LATE_PAYMENT_EMAIL,
+  LONG_NAME,
   NO_PROVIDER_EMAIL,
   PROVIDER_DOWN_EMAIL,
   PRODUCT,
@@ -112,6 +116,25 @@ const products = [
     ],
   },
 ]
+
+// Catalogue page 2: one in-stock product with a very long name (24 per page in the API;
+// page 1 here is short so the shop's pager can be tried with few fixtures).
+const pageTwo = [
+  {
+    ...products[1],
+    id: PRODUCT.long,
+    name: LONG_NAME,
+    short_description: null,
+    available_stock: "25.000",
+    stock_status: "in_stock",
+    passport: null,
+    variants: [variant(VARIANT.long, "LONG-1", 3200, "1 kg", true)],
+    price_gross: 3200,
+    price_net: 3200,
+  },
+]
+const catalogue = [products, pageTwo]
+const allProducts = catalogue.flat()
 
 const lot = (code, status, farmers) => ({
   code: "L-2026-014",
@@ -240,13 +263,14 @@ function placeOrder(body, key) {
   if (byKey.has(key)) return [201, { data: view(orders.get(byKey.get(key))) }]
   const email = body.customer?.email ?? ""
   if (email === BUSY_EMAIL) return [429, { message: "Too many requests." }]
+  if (email === CHECKOUT_DOWN_EMAIL) return [503, { message: SECRET_BODY }]
   const errors = {}
   if (!email.includes("@"))
     errors["customer.email"] = ["The email must be a valid email address."]
   let total = 0
   const lines = []
   for (const [i, line] of (body.lines ?? []).entries()) {
-    const product = products.find((p) => p.id === line.product_id)
+    const product = allProducts.find((p) => p.id === line.product_id)
     const variant = product?.variants.find(
       (v) => v.id === line.product_variant_id
     )
@@ -285,6 +309,7 @@ function placeOrder(body, key) {
     noProvider: email === NO_PROVIDER_EMAIL,
     providerDown: email === PROVIDER_DOWN_EMAIL,
     latePayment: email === LATE_PAYMENT_EMAIL,
+    cancelPayment: email === CANCEL_PAYMENT_EMAIL,
     reads: 0,
   }
   orders.set(order.id, order)
@@ -303,10 +328,15 @@ const image = (label) =>
 createServer(async (req, res) => {
   const path = new URL(req.url, MOCK_ORIGIN).pathname
   if (path === "/health") return send(res, 200, { ok: true })
-  // Stand-in for the provider's hosted page: pays at once and sends the customer back.
+  // Stand-in for the provider's hosted page: pays at once (or, for a cancelling buyer,
+  // doesn't) and sends the customer back.
   const paying = orders.get(path.match(/^\/pay\/([^/]+)$/)?.[1])
   if (paying) {
-    Object.assign(paying, { status: "open", paid_at: new Date().toISOString() })
+    if (!paying.cancelPayment)
+      Object.assign(paying, {
+        status: "open",
+        paid_at: new Date().toISOString(),
+      })
     res.writeHead(302, { location: paying.redirect })
     return res.end()
   }
@@ -359,27 +389,29 @@ createServer(async (req, res) => {
     })
   }
   if (path === "/v1/storefront/products") {
-    // One page of products; a later page is empty, as the API answers past the end.
+    // Two pages of products; a later page is empty, as the API answers past the end.
     const page = Number(
       new URL(req.url, MOCK_ORIGIN).searchParams.get("page") ?? 1
     )
-    const data = page === 1 ? products : []
+    if (page === FAILING_PAGE) return send(res, 503, failing)
+    const data = catalogue[page - 1] ?? []
+    const before = catalogue.slice(0, page - 1).flat().length
     return send(res, 200, {
       data,
       meta: {
         current_page: page,
-        from: data.length ? 1 : null,
-        to: data.length ? products.length : null,
-        last_page: 1,
+        from: data.length ? before + 1 : null,
+        to: data.length ? before + data.length : null,
+        last_page: catalogue.length,
         per_page: 24,
-        total: products.length,
+        total: allProducts.length,
       },
     })
   }
   const product = path.match(/^\/v1\/storefront\/products\/([^/]+)$/)?.[1]
   if (product === PRODUCT.failing) return send(res, 503, failing)
   if (product) {
-    const found = products.find((p) => p.id === product)
+    const found = allProducts.find((p) => p.id === product)
     return found
       ? send(res, 200, { data: found })
       : send(res, 404, { message: "Not found." })

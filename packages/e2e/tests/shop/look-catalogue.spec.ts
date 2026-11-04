@@ -37,7 +37,7 @@ test("the catalogue is the glass page from the mockup", async ({
   await expect(
     page.getByRole("heading", { level: 2, name: "All products" })
   ).toBeVisible()
-  await expect(page.getByText("3 of 3", { exact: true })).toBeVisible()
+  await expect(page.getByText("3 of 4", { exact: true })).toBeVisible()
   const grid = page.getByRole("list", { name: "All products" })
   const columns = (await css(grid, "grid-template-columns")).split(" ")
   expect(columns).toHaveLength(isMobile ? 2 : 3)
