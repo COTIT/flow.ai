@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
 import type { APIRequestContext, Page } from "@playwright/test"
@@ -44,6 +44,26 @@ export const workspaces = seed.workspaces
 
 /** The seed's notes (storefront app key, passport path, sample paths), by their printed label. */
 export const notes = seed.notes
+
+/**
+ * The newest mail the API sent to `address` (stack/mail-sink.mjs keeps every one), as text with
+ * quoted-printable undone, e.g. to follow an invite or verification link. Waits up to 10 s.
+ */
+export async function mailTo(address: string): Promise<string> {
+  const box = join(dir, "mail")
+  let found = ""
+  await expect
+    .poll(() => {
+      const files = existsSync(box) ? readdirSync(box).sort().reverse() : []
+      found =
+        files
+          .map((f) => readFileSync(join(box, f), "utf8"))
+          .find((m) => new RegExp(`^To: .*${address.replace(/[.+]/g, "\\$&")}`, "mi").test(m)) ?? ""
+      return found
+    }, { message: `a mail to ${address}`, timeout: 10_000 })
+    .not.toBe("")
+  return found.replace(/=\r?\n/g, "").replace(/=([0-9A-F]{2})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16)))
+}
 
 /** A spec-unique suffix for names of things a test creates (data rule 1 in STACK.md). */
 export const unique = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
