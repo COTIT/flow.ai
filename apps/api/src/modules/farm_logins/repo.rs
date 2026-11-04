@@ -253,12 +253,13 @@ pub async fn set_password(
 }
 
 /// The account's live farm roles in live workspaces, as
-/// `[{id, workspace_id, workspace_name, role, village_id, village_name, person_id}]`. Staff roles
+/// `[{id, workspace_id, workspace_name, display_name, role, village_id, village_name, person_id}]`. Staff roles
 /// count only while the account is an active member of that workspace, as in the farm guard.
 pub async fn memberships(db: impl PgExecutor<'_>, user_id: Uuid) -> Result<Value, sqlx::Error> {
     sqlx::query_scalar!(
         r#"SELECT coalesce(jsonb_agg(jsonb_build_object(
-                      'id', m.id, 'workspace_id', m.workspace_id, 'workspace_name', w.name, 'role', m.role,
+                      'id', m.id, 'workspace_id', m.workspace_id, 'workspace_name', w.name,
+                      'display_name', coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name), 'role', m.role,
                       'village_id', m.village_id, 'village_name', v.name, 'person_id', p.id)
                   ORDER BY m.created_at, m.id), '[]') AS "m!"
            FROM farm_memberships m

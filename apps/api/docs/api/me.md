@@ -41,11 +41,13 @@ Base path `/v1`. Both routes need `Authorization: Bearer <token>`, and return `4
 ## GET /v1/me/workspaces
 
 ```json
-{ "data": [ { "id": "<uuid>", "workspace_name": "acme", "workspace_type": "retail",
+{ "data": [ { "id": "<uuid>", "workspace_name": "acme", "display_name": "Acme BV", "workspace_type": "retail",
               "created_at": "…", "last_updated_at": "…", "relationships": [] } ] }
 ```
 
 Active memberships in live workspaces, oldest membership first, which is the same order as login's `workspace_ids`.
+
+`workspace_name` is the slug (URLs, unique). `display_name` is the profile's `company_name`, or the slug when it has none: show that one. The same rule names `GET /workspace/{workspace}`, farm `memberships` and supply-link partners.
 
 ## Laravel differences
 

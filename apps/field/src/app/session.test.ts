@@ -27,7 +27,8 @@ function farmMe(overrides: Partial<FarmMe> = {}): FarmMe {
       {
         id: 'm1',
         workspace_id: WORKSPACE,
-        workspace_name: 'Ruaha',
+        workspace_name: 'ruaha',
+        display_name: 'Ruaha',
         role: 'field_officer',
         village_id: 'v1',
         village_name: 'Idodi',

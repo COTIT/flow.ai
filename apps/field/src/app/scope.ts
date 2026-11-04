@@ -18,7 +18,7 @@ export interface ScopeNames {
 export async function fetchScopeNames(): Promise<ScopeNames> {
   const session = await fetchSession()
   const projects: Record<string, string> = {}
-  for (const m of session?.me.memberships ?? []) projects[m.workspace_id] = m.workspace_name
+  for (const m of session?.me.memberships ?? []) projects[m.workspace_id] = m.display_name
 
   // A failed read throws: labelling a membership "no village" because a query
   // broke would misdescribe someone's access.

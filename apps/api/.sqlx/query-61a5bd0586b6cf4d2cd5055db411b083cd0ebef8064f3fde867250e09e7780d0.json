@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workspaces\n           SET profile = coalesce(profile, '{}') || '{\"company_name\": \"Ruaha Coffee Co-op\"}'\n           WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "61a5bd0586b6cf4d2cd5055db411b083cd0ebef8064f3fde867250e09e7780d0"
+}

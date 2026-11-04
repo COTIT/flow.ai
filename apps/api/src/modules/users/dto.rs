@@ -109,7 +109,10 @@ struct Inviter {
 #[schema(description = "A workspace the user belongs to.")]
 pub struct WorkspaceResource {
     id: Uuid,
+    /// The slug.
     workspace_name: String,
+    /// The profile's `company_name`, or the slug when it has none. Show this.
+    display_name: String,
     workspace_type: String,
     created_at: DateTime<Utc>,
     last_updated_at: DateTime<Utc>,
@@ -128,6 +131,7 @@ impl From<MemberWorkspace> for WorkspaceResource {
         Self {
             id: ws.id,
             workspace_name: ws.name,
+            display_name: ws.display_name,
             workspace_type: ws.workspace_type,
             created_at: ws.created_at,
             last_updated_at: ws.updated_at,

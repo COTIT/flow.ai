@@ -90,8 +90,9 @@ export async function fakeApi(page: Page) {
   const api = new FakeApi()
     .on("GET", "/me/workspaces", () => ({
       data: [
-        { id: WS, workspace_name: "Ilundo Honey Co." },
-        { id: WS2, workspace_name: "Other Co" },
+        // The slug and the company name: the app shows display_name.
+        { id: WS, workspace_name: "ilundo-honey", display_name: "Ilundo Honey Co." },
+        { id: WS2, workspace_name: "other-co", display_name: "Other Co" },
       ],
     }))
     .on("POST", "/logout", () => ({ status: 204 }))

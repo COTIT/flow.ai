@@ -80,7 +80,7 @@ test.describe(() => {
               status: 503,
               body: { message: "Workspaces are unavailable right now." },
             }
-          : { data: [{ id: "w1", workspace_name: "Ilundo Honey Co." }] }
+          : { data: [{ id: "w1", workspace_name: "ilundo-honey", display_name: "Ilundo Honey Co." }] }
       )
       .on("GET", "/workspace/:ws/products", () => paged([product]))
     await page.goto("/products")

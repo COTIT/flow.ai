@@ -133,7 +133,10 @@ impl Profile {
 #[derive(Serialize, ToSchema)]
 pub struct WorkspaceRecordResource {
     id: Uuid,
+    /// The slug.
     workspace_name: String,
+    /// The profile's `company_name`, or the slug when it has none. Show this.
+    display_name: String,
     workspace_type: String,
     pending_invites_count: i64,
     users_count: i64,
@@ -152,6 +155,7 @@ impl From<Record> for WorkspaceRecordResource {
         Self {
             id: r.id,
             workspace_name: r.name,
+            display_name: r.display_name,
             workspace_type: r.workspace_type,
             pending_invites_count: r.pending_invites,
             users_count: r.users,

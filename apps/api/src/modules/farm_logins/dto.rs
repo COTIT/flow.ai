@@ -51,7 +51,10 @@ pub struct FarmMembershipRef {
     /// The membership id.
     id: Uuid,
     workspace_id: Uuid,
+    /// The workspace slug.
     workspace_name: String,
+    /// The workspace's profile `company_name`, or the slug when it has none. Show this.
+    display_name: String,
     /// `farmer`, `field_officer`, `ops` or `admin`.
     role: String,
     #[schema(required = true)]

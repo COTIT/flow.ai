@@ -838,4 +838,9 @@ async fn the_seed_fills_every_module(pool: PgPool) {
         res["data"]["links"][0]["partner"]["display_name"], "AFM Shop",
         "{res}"
     );
+    // Both workspaces have a company name, so switchers show it instead of the slug.
+    for (token, name) in [(&tokens[0], "AFM Shop"), (&tokens[1], "Ruaha Coffee Co-op")] {
+        let (_, res) = send(&app, Method::GET, "/v1/me/workspaces", None, Some(token)).await;
+        assert_eq!(res["data"][0]["display_name"], name, "{res}");
+    }
 }

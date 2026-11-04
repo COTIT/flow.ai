@@ -172,7 +172,7 @@ function UserTile() {
         {/* min-h: the lines keep their height while the name loads. */}
         <p className="min-h-[1lh] truncate text-[13px] font-semibold">{user?.name}</p>
         <p className="min-h-[1lh] truncate text-xs text-muted-foreground">
-          {workspace?.workspace_name}
+          {workspace?.display_name}
         </p>
       </div>
       <Button
@@ -192,7 +192,7 @@ function WorkspacePicker({ className }: { className?: string }) {
   const t = useTranslations()
   const workspaceId = useSession((s) => s.workspaceId)
   const list = useWorkspaces().data?.data ?? []
-  const options = list.map((w) => ({ value: w.id, label: w.workspace_name }))
+  const options = list.map((w) => ({ value: w.id, label: w.display_name }))
   return (
     <Select
       items={options}
@@ -276,7 +276,7 @@ function TopBar() {
       <p className="flex min-w-0 flex-1 items-center gap-1.5 text-[13px] text-muted-foreground max-xl:hidden">
         {workspace ? (
           <>
-            <span className="min-w-0 truncate">{workspace.workspace_name}</span>
+            <span className="min-w-0 truncate">{workspace.display_name}</span>
             <ChevronRight aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.75} />
             <b className="font-semibold whitespace-nowrap text-foreground">
               {active ? t(active.label) : null}

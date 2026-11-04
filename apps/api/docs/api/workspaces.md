@@ -8,7 +8,7 @@ Needs `workspace.get`. Laravel checked `workspace.view`, which no catalog entry 
 
 ```json
 { "data": {
-  "id": "<uuid>", "workspace_name": "acme", "workspace_type": "retail",
+  "id": "<uuid>", "workspace_name": "acme", "display_name": "Acme BV", "workspace_type": "retail",
   "pending_invites_count": 0, "users_count": 1,
   "workspace_profile": {
     "company_name": null, "vat_number": null, "coc_number": null,

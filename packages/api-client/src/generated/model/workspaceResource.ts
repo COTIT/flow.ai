@@ -13,6 +13,8 @@ import type { WorkspaceResourceRelationshipsItem } from './workspaceResourceRela
  */
 export interface WorkspaceResource {
   created_at: string;
+  /** The profile's `company_name`, or the slug when it has none. Show this. */
+  display_name: string;
   id: string;
   last_updated_at: string;
   /**
@@ -20,6 +22,7 @@ export interface WorkspaceResource {
      * @maxItems 0
      */
   relationships: WorkspaceResourceRelationshipsItem[];
+  /** The slug. */
   workspace_name: string;
   workspace_profile?: WorkspaceProfile | null;
   workspace_type: string;

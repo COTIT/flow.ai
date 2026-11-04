@@ -161,14 +161,15 @@ test("the account switcher offers only one's own accounts", async ({
 }) => {
   const ruaha = await apiAs(request, cred("office (RUAHA)", "admin"))
   const mine =
-    await ruaha.get<{ id: string; workspace_name: string }[]>("/me/workspaces")
+    await ruaha.get<{ id: string; display_name: string }[]>("/me/workspaces")
   expect(mine.map((w) => w.id)).not.toContain(workspaces.AFM)
   await loginOffice(page, cred("office (RUAHA)", "admin"))
   const menu = page.getByRole("button", { name: "Open menu" })
   if (await menu.isVisible()) await menu.click()
   await page.getByRole("combobox", { name: "Workspace" }).click()
   const offered = await page.getByRole("option").allTextContents()
-  expect(offered.sort()).toEqual(mine.map((w) => w.workspace_name).sort())
+  expect(offered.sort()).toEqual(mine.map((w) => w.display_name).sort())
+  expect(offered).toContain("Ruaha Coffee Co-op")
 })
 
 test("an office owner of one account has no farm role in the other's Field", async ({

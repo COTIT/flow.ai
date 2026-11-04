@@ -10,6 +10,8 @@
  * One farm role of the signed-in account.
  */
 export interface FarmMembershipRef {
+  /** The workspace's profile `company_name`, or the slug when it has none. Show this. */
+  display_name: string;
   /** The membership id. */
   id: string;
   /**
@@ -24,5 +26,6 @@ export interface FarmMembershipRef {
   /** @nullable */
   village_name: string | null;
   workspace_id: string;
+  /** The workspace slug. */
   workspace_name: string;
 }
