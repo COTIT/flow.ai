@@ -49,10 +49,6 @@ for (const [kind, path] of [
   ["on-hold", quarantine],
 ] as const)
   test(`the ${kind} passport shows no raw values`, async ({ page }) => {
-    test.fail(
-      true,
-      "the demo seed's story fact 'Extracted' is an ISO date shown as is (apps/api/src/demo/catalog.rs:350, e2e-shop)"
-    )
     await page.goto(`${urls.shop}${path}`)
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
     await expectNoRawValues(page)

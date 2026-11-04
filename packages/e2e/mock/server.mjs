@@ -21,6 +21,7 @@ import {
   NO_PROVIDER_EMAIL,
   PROVIDER_DOWN_EMAIL,
   PRODUCT,
+  REFUNDED_EMAIL,
   SECRET_BODY,
   STOCK_LIMIT,
   VARIANT,
@@ -302,12 +303,14 @@ function placeOrder(body, key) {
     // `status-<code>@e2e.test` places an order already in that status (label checks).
     status:
       /^status-([a-z_]+)@e2e\.test$/.exec(email)?.[1] ??
-      (email === EXPIRED_EMAIL ? "cancelled" : "awaiting_payment"),
+      (email === EXPIRED_EMAIL || email === REFUNDED_EMAIL
+        ? "cancelled"
+        : "awaiting_payment"),
     subtotal: total,
     vat: 0,
     total,
     lines,
-    paid_at: null,
+    paid_at: email === REFUNDED_EMAIL ? new Date().toISOString() : null,
     expires_at: new Date(Date.now() + 30 * 60_000).toISOString(),
     noProvider: email === NO_PROVIDER_EMAIL,
     providerDown: email === PROVIDER_DOWN_EMAIL,

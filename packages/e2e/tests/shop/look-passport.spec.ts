@@ -73,17 +73,18 @@ test("a released passport is the bento from the mockup", async ({
   ).toHaveCount(0)
 
   // Pairs side by side on a desktop (7 + 5 columns), one under the other on a phone.
-  // Laid out first: a tile still fading in below the fold has no box yet.
-  await expect(where).toBeVisible()
-  await expect(inside).toBeVisible()
-  const whereBox = (await where.boundingBox())!
-  const insideBox = (await inside.boundingBox())!
-  if (isMobile)
-    expect(insideBox.y).toBeGreaterThan(whereBox.y + whereBox.height)
-  else {
-    expect(insideBox.x).toBeGreaterThan(whereBox.x + whereBox.width)
-    expect(whereBox.width).toBeGreaterThan(insideBox.width)
-  }
+  // Retried: the motion island swaps a tile for its client copy, which has no box for a moment.
+  await expect(async () => {
+    const whereBox = await where.boundingBox()
+    const insideBox = await inside.boundingBox()
+    expect(whereBox && insideBox, "both tiles laid out").toBeTruthy()
+    if (isMobile)
+      expect(insideBox!.y).toBeGreaterThan(whereBox!.y + whereBox!.height)
+    else {
+      expect(insideBox!.x).toBeGreaterThan(whereBox!.x + whereBox!.width)
+      expect(whereBox!.width).toBeGreaterThan(insideBox!.width)
+    }
+  }).toPass()
 
   await expectNoHorizontalScroll(page)
   if (isMobile) await expectTapTargets(page)
