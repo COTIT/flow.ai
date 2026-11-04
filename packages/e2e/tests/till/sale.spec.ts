@@ -577,3 +577,52 @@ test.describe("quote unavailable", () => {
     )
   })
 })
+
+test.describe("cash still short", () => {
+  test.use({ allow: { responses: [{ url: salesUrl, status: 422 }] } })
+
+  test("typing the cash shows what is still due without an error; booking short is refused", async ({
+    page,
+    api,
+  }) => {
+    saleApi(api)
+    api.on("POST", "/workspace/:ws/till/sales/quote", ({ body }) =>
+      quoteReply(body as Parameters<typeof quoteReply>[0], 3302, 3300)
+    )
+    api.on("POST", "/workspace/:ws/till/sales", () => ({
+      status: 422,
+      body: {
+        message: "The tendered cash is less than the amount due.",
+        errors: {
+          "payment.tendered": [
+            "The tendered cash is less than the amount due.",
+          ],
+        },
+      },
+    }))
+    await seedTill(page)
+    await page.goto("/sale")
+    await ringUp(page)
+    const sheet = await charge(page)
+
+    // €20.00 of €33.00: the API says €13.00 is still due; nothing is red yet.
+    await tapKeys(page, "2000")
+    await expect(sheet.getByLabel("Still due")).toHaveText("€13.00")
+    await expect(sheet.getByLabel("Change")).toHaveCount(0)
+    // Within the screen: Next keeps an empty route announcer (role alert) at the root.
+    await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0)
+    await expectTillLook(page, { shift: false })
+
+    await sheet.getByRole("button", { name: /^Book sale/ }).click()
+    await expect(
+      sheet
+        .getByRole("alert")
+        .filter({ hasText: "The tendered cash is less than the amount due." })
+    ).toBeVisible()
+
+    // Enough now: the shortfall gives way to the change.
+    await tapKeys(page, "0")
+    await expect(sheet.getByLabel("Change")).toHaveText("€167.00")
+    await expect(sheet.getByLabel("Still due")).toHaveCount(0)
+  })
+})

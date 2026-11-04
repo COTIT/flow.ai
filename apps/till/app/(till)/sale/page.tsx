@@ -540,7 +540,17 @@ export default function SalePage() {
                   onEnter={book}
                 />
                 <div className="sheet-foot">
-                  {method === "cash" ? (
+                  {method === "cash" && quote?.short_by ? (
+                    // Typed so far is less than due: say how much is left, calmly (not an error).
+                    <div className="teal-tile short">
+                      <span id="short-label" className="font-semibold">
+                        {t("stillDue")}
+                      </span>
+                      <output aria-labelledby="short-label" className="grand">
+                        {money(quote.short_by)}
+                      </output>
+                    </div>
+                  ) : method === "cash" ? (
                     <div className="teal-tile">
                       <span id="change-label" className="font-semibold">
                         {t("change")}

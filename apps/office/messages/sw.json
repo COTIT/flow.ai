@@ -480,6 +480,7 @@
     "catalog": "Kwa bei za katalogi",
     "mismatch": "Tofauti",
     "mismatchValue": "{amount} (mistari {lines})",
+    "unsellableValue": "{count, plural, one {mstari # hauuzwi tena} other {mistari # haiuzwi tena}}",
     "paired": "Imeunganishwa",
     "notPaired": "Haijaunganishwa",
     "pair": "Unganisha kasha",

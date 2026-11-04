@@ -480,6 +480,7 @@
     "catalog": "At catalog prices",
     "mismatch": "Mismatch",
     "mismatchValue": "{amount} ({lines} lines)",
+    "unsellableValue": "{count, plural, one {# line no longer for sale} other {# lines no longer for sale}}",
     "paired": "Paired",
     "notPaired": "Not paired",
     "pair": "Pair a till",

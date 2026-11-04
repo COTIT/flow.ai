@@ -15,6 +15,7 @@ test("an office price edit reaches an open sale screen on its next minute's sync
   await expect(found).toContainText("4.28")
 
   await owner.post(owner.ws(`/products/${product.id}`), { price: "5.00" })
+  await expect(found).toContainText("4.28")
   await page.clock.fastForward(60_000)
   await expect(found).toContainText("5.35")
 })
