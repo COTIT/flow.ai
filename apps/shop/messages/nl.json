@@ -144,6 +144,8 @@
       }
     },
     "cancelledBody": "De artikelen zijn terug op de plank. Je kunt ze opnieuw bestellen.",
+    "refunded": "Deze bestelling is geannuleerd",
+    "refundedBody": "Je betaling is terugbetaald. Je kunt de artikelen opnieuw bestellen.",
     "retry": "Opnieuw proberen",
     "waitingLong": {
       "title": "We wachten nog op de betaling",

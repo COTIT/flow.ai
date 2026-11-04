@@ -18,7 +18,7 @@ vi.mock('@/features/ops/supply/BuyHarvestCard', () => ({ BuyHarvestCard: () => n
 
 const { DispatchScreen } = await import('@/features/ops/supply/DispatchScreen')
 
-const link = (id: string, name: string) => ({ id, partner: { id: `w-${id}`, name } })
+const link = (id: string, name: string) => ({ id, partner: { id: `w-${id}`, name: `slug-${id}`, display_name: name } })
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -46,7 +46,7 @@ beforeEach(() => {
         id: 't1',
         link_id: 'l1',
         direction: 'outgoing',
-        partner: { id: 'w-l1', name: 'AFM shop' },
+        partner: { id: 'w-l1', name: 'afm-shop', display_name: 'AFM shop' },
         from_lot: { code: 'ILU-H-2026-01', public_code: 'ABCDEFGH23' },
         quantity: '40.00',
         status: 'dispatched',

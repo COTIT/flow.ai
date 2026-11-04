@@ -144,6 +144,8 @@
       }
     },
     "cancelledBody": "The items went back on the shelf. You can order them again.",
+    "refunded": "This order was cancelled",
+    "refundedBody": "Your payment has been refunded. You can order the items again.",
     "retry": "Try again",
     "waitingLong": {
       "title": "Still waiting for the payment",

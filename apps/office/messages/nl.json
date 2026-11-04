@@ -480,6 +480,7 @@
     "catalog": "Tegen catalogusprijzen",
     "mismatch": "Verschil",
     "mismatchValue": "{amount} ({lines} regels)",
+    "unsellableValue": "{count, plural, one {# regel niet meer te koop} other {# regels niet meer te koop}}",
     "paired": "Gekoppeld",
     "notPaired": "Niet gekoppeld",
     "pair": "Kassa koppelen",

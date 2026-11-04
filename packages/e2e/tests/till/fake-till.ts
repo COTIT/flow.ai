@@ -131,7 +131,9 @@ export function quoteReply(body: QuoteBody, total: number, due: number) {
       mismatched_lines: 0,
       rounding: due - total,
       due,
-      change: tendered == null ? null : tendered - due,
+      // As the API: change only when enough is tendered, short_by while it isn't.
+      change: tendered == null || tendered < due ? null : tendered - due,
+      short_by: tendered == null ? null : Math.max(due - tendered, 0),
     },
   }
 }

@@ -14,6 +14,7 @@ async function signOutOfField(page: import("@playwright/test").Page) {
 
 type Options = { harvests: { harvest_report_id: string; farmer_name: string; available_kg: string }[] }
 type Batch = { lot: { id: string; code: string } }
+type Warehouse = { id: string; name: string }
 
 // One farmer's harvest, sold once: from Field's Buy harvest to the AFM till and back to the
 // farmer's passbook. Both projects would credit the same farmer at once, so one runs it; the
@@ -38,12 +39,10 @@ test("a farmer's harvest bought in Field, shipped to AFM and sold at its till co
     await page.goto(`${urls.field}/ops/dispatch`)
     await page.getByTestId("batch-village").selectOption({ label: "Mwangeza" })
     await page.getByTestId("batch-crop").selectOption({ label: "Coffee" })
-    await page.getByTestId("batch-product").selectOption({ label: "Coffee cherries (raw)" })
+    await page.getByTestId("batch-product").selectOption({ label: "Coffee cherries (raw) (kg)" })
     for (const h of before) await page.getByTestId(`batch-kg-${h.harvest_report_id}`).fill(h === harvest ? "1.00" : "")
     await page.getByTestId("batch-code").fill(code)
     await page.getByTestId("batch-price").fill("8000")
-    // Chosen, not the default: the workspace defaults to Euro (dispatch.spec pins that bug).
-    await page.getByTestId("batch-currency").selectOption({ label: "Tanzanian shilling" })
     await page.getByTestId("batch-submit").click()
     await page.getByTestId("confirm-dialog-confirm").click()
     await expect(page.getByTestId("batch-made")).toContainText(`Bought into lot ${code}.`)
@@ -54,19 +53,17 @@ test("a farmer's harvest bought in Field, shipped to AFM and sold at its till co
 
   const lot = (await ops.get<Batch[]>("/farm/supply-batches?page_size=100")).data.find((b) => b.lot.code === code)!.lot
   const ruaha = await apiAs(request, cred("office (RUAHA)", "admin"))
-  type Warehouse = { id: string; name: string }
-  const store = (await ruaha.get<Warehouse[]>(ruaha.ws("/warehouses?page_size=100"))).find((w) => w.name === "Ilundo store")!
 
-  await test.step("the farm records the raw lot's 1 kg in its store, so it can ship", async () => {
-    // Setup through the API: the stock dialog is the office's own screen and spec.
-    await ruaha.post(ruaha.ws(`/lots/${lot.id}/stock-mutations`), { warehouse_id: store.id, quantity: "1.00", reason: "received" })
-    const stock = await ruaha.get<{ warehouse_id: string; level: string }[]>(ruaha.ws(`/lots/${lot.id}/stock`))
-    expect(stock.map((s) => [s.warehouse_id, s.level])).toEqual([[store.id, "1.00"]])
+  await test.step("the bought kg are in the farm's store at once, so the lot can ship", async () => {
+    const stock = await ruaha.get<{ level: string }[]>(ruaha.ws(`/lots/${lot.id}/stock`))
+    expect(stock.map((s) => s.level)).toEqual(["1.00"])
+    const dispatchable = await ops.get<{ lots: { code: string }[] }>("/farm/dispatch/options")
+    expect(dispatchable.data.lots.map((l) => l.code)).toContain(code)
   })
 
   await test.step("ops dispatch it to the AFM shop in Field", async () => {
     await page.goto(`${urls.field}/ops/dispatch`)
-    await page.getByTestId("dispatch-link").selectOption({ label: "afm-demo" })
+    await page.getByTestId("dispatch-link").selectOption({ label: "AFM Shop" })
     await page.getByTestId("dispatch-lot").selectOption({ label: code })
     await page.getByTestId("dispatch-warehouse").selectOption({ label: "Ilundo store" })
     await page.getByTestId("dispatch-quantity").fill("1.00")

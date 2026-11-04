@@ -71,3 +71,5 @@ export const FAILING_ORDER = "66666666-6666-4666-8666-666666666666"
 export const CHECKOUT_DOWN_EMAIL = "checkout-down@e2e.test"
 /** Orders placed with this email are cancelled on the provider's page: back unpaid. */
 export const CANCEL_PAYMENT_EMAIL = "cancel-payment@e2e.test"
+/** Orders placed with this email come back paid, then refunded and cancelled by the office. */
+export const REFUNDED_EMAIL = "refunded@e2e.test"

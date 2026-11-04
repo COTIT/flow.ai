@@ -2,6 +2,7 @@ import {
   EXPIRED_EMAIL,
   FAILING_ORDER,
   PROVIDER_DOWN_EMAIL,
+  REFUNDED_EMAIL,
 } from "../../mock/fixtures.mjs"
 import { expect, expectNoHorizontalScroll, test } from "../../src/test"
 import { placeOrder } from "./orders"
@@ -57,6 +58,24 @@ test("an expired order is a warning with a way back to the shop", async ({
   await expect(warning).toContainText("The items went back on the shelf.")
   await expect(page.getByRole("button", { name: /^Pay \$\d/ })).toHaveCount(0)
   await warning.getByRole("link", { name: "Shop again" }).click()
+  await expect(page).toHaveURL("/")
+})
+
+test("a paid order the shop refunded and cancelled says so, not that it expired", async ({
+  page,
+  request,
+}) => {
+  await page.goto(`/orders/${await placeOrder(request, REFUNDED_EMAIL)}`)
+  const notice = page
+    .getByRole("status")
+    .locator('[data-variant="info"]')
+    .filter({ hasText: "This order was cancelled" })
+  await expect(notice).toContainText("Your payment has been refunded")
+  await expect(page.getByText(/expired before it was paid/)).toHaveCount(0)
+  await expect(page.getByText("Cancelled", { exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: /^Pay \$\d/ })).toHaveCount(0)
+  await expectNoHorizontalScroll(page)
+  await notice.getByRole("link", { name: "Shop again" }).click()
   await expect(page).toHaveURL("/")
 })
 
