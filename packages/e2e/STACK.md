@@ -122,6 +122,9 @@ build (password hashing included). CI's estimate: ~12 min warm, ~25 min cold (2 
 - `price.spec.ts`: an office price edit doesn't reach the shop or the till (default variant keeps
   a stale price copy). Fails at the shop's "after" check.
 - `field-ops.spec.ts`: ops gets 403 on `supply-links` and `warehouses` at Field Dispatch.
+- `till-catalog.spec.ts`: the same stale price on an open till after its minute's sync.
+- `till-offsale.spec.ts` "flagged on the till": the API counts an off-sale line of a late
+  offline replay in `unsellable_lines`, but the till shows no warning for it.
 
 ## Follow-ups
 
