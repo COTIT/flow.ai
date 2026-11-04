@@ -38,10 +38,11 @@ done
 [[ -z "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- shop FILES_ORIGIN)" ]] || fail "FILES_ORIGIN set by default"
 [[ "$(value "$t/prod.env" "$p/docker-compose.production.yml" -- api SKIP_BOOT_MIGRATIONS)" == true ]] || fail "boot migrations not skipped"
 
-# With it, but the bucket not set: refuses with the variable's name.
+# With it, but the bucket and key id not set: refuses, naming a missing variable (which one
+# Compose reports first differs between versions).
 if docker compose -f "$p/docker-compose.production.yml" -f "$p/docker-compose.uploads.yml" \
   --env-file "$t/prod.env" config -q 2> "$t/err"; then fail "uploads without a bucket parsed"; fi
-grep -q "set B2_UPLOADS_BUCKET in .env.production" "$t/err" || fail "unclear error: $(cat "$t/err")"
+grep -qE "set B2_UPLOADS_(BUCKET|KEY_ID) in .env.production" "$t/err" || fail "unclear error: $(cat "$t/err")"
 
 # With it and the bucket set: key from the secret file, CSP origin = endpoint, stripe still stacks.
 printf 'B2_UPLOADS_BUCKET=genesy-prod\nB2_UPLOADS_KEY_ID=005abc\n' >> "$t/prod.env"
