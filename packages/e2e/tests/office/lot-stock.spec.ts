@@ -152,6 +152,8 @@ test.describe(() => {
 
 async function changeStock(page: import("@playwright/test").Page) {
   const dialog = page.getByRole("dialog")
+  // The form sends to a warehouse: wait until they are read.
+  await expect(dialog.getByRole("group", { name: "Dar es Salaam" })).toBeVisible()
   await dialog.getByLabel("Quantity").fill("1.50")
   await dialog.getByRole("button", { name: "Save" }).click()
 }

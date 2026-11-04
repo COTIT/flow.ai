@@ -54,6 +54,8 @@ import { Sheet, SheetContent, SheetTitle } from "@genesy/ui/components/sheet"
 import { ThemeToggle } from "@genesy/ui/components/theme-toggle"
 import { cn } from "@genesy/ui/lib/utils"
 
+import { useCan } from "@/lib/can"
+
 type Item = {
   href: string
   /** Every path under this prefix marks the item current. */
@@ -103,17 +105,20 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const t = useTranslations()
   const pathname = usePathname()
   const workspaceId = useSession((s) => s.workspaceId)
-  // The menu counts, read from the lists' totals (no sums in the browser).
-  const on = { query: { enabled: Boolean(workspaceId) } }
+  // The menu counts, read from the lists' totals (no sums in the browser), and only those the
+  // member may read: the API answers 403 to the rest.
+  const on = (allowed: boolean) => ({
+    query: { enabled: Boolean(workspaceId) && allowed },
+  })
   const open = useOrdersList(
     workspaceId ?? "",
     { status: "open", page_size: 1 },
-    on
+    on(useCan("order.list"))
   )
   const pending = useSupplyLinksList(
     workspaceId ?? "",
     { status: "pending", direction: "incoming", page_size: 1 },
-    on
+    on(useCan("workspace_admin"))
   )
   const counts = {
     orders: open.data?.meta.total ?? 0,

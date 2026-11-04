@@ -11,10 +11,10 @@ import { formatMoney } from "@genesy/ui/lib/money"
  * Till amounts come in minor units with only a currency or register id: this looks up the
  * currency's ISO code and decimals to format them. "—" until the lookups are in.
  */
-export function useTillMoney() {
+export function useTillMoney(allowed = true) {
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
   const locale = useLocale()
-  const enabled = { query: { enabled: Boolean(workspaceId) } }
+  const enabled = { query: { enabled: Boolean(workspaceId) && allowed } }
   // shortcut: first 100 currencies and registers; page these when a workspace has more.
   const currencies = useCurrenciesList(workspaceId, { page_size: 100 }, enabled)
   const registers = useTillRegistersList(
