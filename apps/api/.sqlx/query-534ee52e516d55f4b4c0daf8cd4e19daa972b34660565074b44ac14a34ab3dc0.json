@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT i.id, i.workspace_id, w.name AS workspace_name, i.email, i.status,\n                i.expires_at, i.created_at, i.token_hash, i.team_id\n         FROM invites i\n         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n         WHERE i.id = $1",
+  "query": "SELECT i.id, i.workspace_id, w.name AS workspace_name,\n                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS \"display_name!\",\n                  i.email, i.status, i.expires_at, i.created_at, i.token_hash, i.team_id\n           FROM invites i\n           JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n           WHERE i.id = $1",
   "describe": {
     "columns": [
       {
@@ -38,6 +38,12 @@
       },
       {
         "ordinal": 3,
+        "name": "display_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
         "name": "email",
         "type_info": "Text",
         "origin": {
@@ -48,7 +54,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "status",
         "type_info": "Text",
         "origin": {
@@ -59,7 +65,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "expires_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -70,7 +76,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -81,7 +87,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "token_hash",
         "type_info": "Bytea",
         "origin": {
@@ -92,7 +98,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "team_id",
         "type_info": "Uuid",
         "origin": {
@@ -112,6 +118,7 @@
       false,
       false,
       false,
+      null,
       false,
       false,
       false,
@@ -120,5 +127,5 @@
       true
     ]
   },
-  "hash": "48ed4af5d208789a69401664529bc92e93cb7a059fba8ab35036b81fc9fb5be8"
+  "hash": "534ee52e516d55f4b4c0daf8cd4e19daa972b34660565074b44ac14a34ab3dc0"
 }

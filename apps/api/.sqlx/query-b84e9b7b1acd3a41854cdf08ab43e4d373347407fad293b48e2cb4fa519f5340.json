@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT i.id, w.name AS workspace_name, i.created_at,\n                u.email AS inviter_email, u.first_name AS inviter_first_name,\n                u.middle_name AS inviter_middle_name, u.last_name AS inviter_last_name\n         FROM invites i\n         JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n         JOIN users u ON u.id = i.invited_by_user_id\n         WHERE lower(i.email) = lower($1) AND i.status = 'pending' AND i.expires_at > now()\n         ORDER BY i.created_at DESC",
+  "query": "SELECT i.id, w.name AS workspace_name,\n                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS \"display_name!\",\n                  i.created_at, u.email AS inviter_email, u.first_name AS inviter_first_name,\n                  u.middle_name AS inviter_middle_name, u.last_name AS inviter_last_name\n           FROM invites i\n           JOIN workspaces w ON w.id = i.workspace_id AND w.deleted_at IS NULL\n           JOIN users u ON u.id = i.invited_by_user_id\n           WHERE lower(i.email) = lower($1) AND i.status = 'pending' AND i.expires_at > now()\n           ORDER BY i.created_at DESC",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,12 @@
       },
       {
         "ordinal": 2,
+        "name": "display_name!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -37,7 +43,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "inviter_email",
         "type_info": "Text",
         "origin": {
@@ -48,7 +54,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "inviter_first_name",
         "type_info": "Text",
         "origin": {
@@ -59,7 +65,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "inviter_middle_name",
         "type_info": "Text",
         "origin": {
@@ -70,7 +76,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "inviter_last_name",
         "type_info": "Text",
         "origin": {
@@ -89,6 +95,7 @@
     "nullable": [
       false,
       false,
+      null,
       false,
       true,
       false,
@@ -96,5 +103,5 @@
       false
     ]
   },
-  "hash": "a9858097a3bc830d7bd6f3de5bd037e75ca452f941afa4f4c9ba5543fbcdb6b6"
+  "hash": "b84e9b7b1acd3a41854cdf08ab43e4d373347407fad293b48e2cb4fa519f5340"
 }
