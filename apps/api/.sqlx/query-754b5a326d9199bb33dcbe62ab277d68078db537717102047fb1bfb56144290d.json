@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,\n                s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,\n                s.mismatched_lines, s.due,\n                s.rounding, s.tendered, s.change, s.card_reference, s.sold_at\n         FROM till_sales s\n         JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id\n         WHERE s.workspace_id = $1 AND s.register_id = $2 AND s.client_ref = $3",
+  "query": "SELECT s.order_id, o.number, s.client_ref, s.register_id, s.till_user_id,\n                s.request_hash, s.method, s.total, s.server_total, s.price_mismatch,\n                s.mismatched_lines, s.unsellable_lines, s.due,\n                s.rounding, s.tendered, s.change, s.card_reference, s.sold_at\n         FROM till_sales s\n         JOIN orders o ON o.workspace_id = s.workspace_id AND o.id = s.order_id\n         WHERE s.workspace_id = $1 AND s.register_id = $2 AND s.client_ref = $3",
   "describe": {
     "columns": [
       {
@@ -126,6 +126,17 @@
       },
       {
         "ordinal": 11,
+        "name": "unsellable_lines",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "till_sales",
+            "name": "unsellable_lines"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
         "name": "due",
         "type_info": "Int8",
         "origin": {
@@ -136,7 +147,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "rounding",
         "type_info": "Int8",
         "origin": {
@@ -147,7 +158,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "tendered",
         "type_info": "Int8",
         "origin": {
@@ -158,7 +169,7 @@
         }
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "change",
         "type_info": "Int8",
         "origin": {
@@ -169,7 +180,7 @@
         }
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "card_reference",
         "type_info": "Text",
         "origin": {
@@ -180,7 +191,7 @@
         }
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "sold_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -212,11 +223,12 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       true,
       false
     ]
   },
-  "hash": "6aa663d31b8548f9ae20cee003e64d79943004171cb687bfe7c58953812b5af8"
+  "hash": "754b5a326d9199bb33dcbe62ab277d68078db537717102047fb1bfb56144290d"
 }

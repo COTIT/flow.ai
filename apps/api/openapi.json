@@ -20383,6 +20383,11 @@
             "description": "What the till charged incl VAT: the order total.",
             "format": "int64",
             "type": "integer"
+          },
+          "unsellable_lines": {
+            "description": "Lines of a product off sale now (disabled or archived) that an offline sale booked\nbecause it was rung up before the product last changed.",
+            "format": "int32",
+            "type": "integer"
           }
         },
         "required": [
@@ -20396,6 +20401,7 @@
           "server_total",
           "price_mismatch",
           "mismatched_lines",
+          "unsellable_lines",
           "due",
           "rounding",
           "tendered",

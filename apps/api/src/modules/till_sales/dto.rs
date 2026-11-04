@@ -259,6 +259,9 @@ pub struct SaleResource {
     price_mismatch: i64,
     /// Lines charged at another unit price than the catalog's; counts even when they offset.
     mismatched_lines: i32,
+    /// Lines of a product off sale now (disabled or archived) that an offline sale booked
+    /// because it was rung up before the product last changed.
+    unsellable_lines: i32,
     /// Paid: cash rounded to the currency's step, card = total.
     due: i64,
     /// due − total.
@@ -320,6 +323,7 @@ impl SaleResource {
             server_total: s.server_total,
             price_mismatch: s.price_mismatch,
             mismatched_lines: s.mismatched_lines,
+            unsellable_lines: s.unsellable_lines,
             due: s.due,
             rounding: s.rounding,
             tendered: s.tendered,
