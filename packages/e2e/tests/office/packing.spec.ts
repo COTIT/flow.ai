@@ -165,6 +165,8 @@ test.describe(() => {
 
 async function fillPack(page: import("@playwright/test").Page) {
   const dialog = page.getByRole("dialog")
+  // The form packs into a warehouse: wait until they are read.
+  await expect(dialog.getByLabel("Warehouse")).toHaveValue("wh-1")
   await dialog.getByLabel("New batch code").fill("ILU-J-2026-03")
   await dialog.getByLabel("Jars made").fill("10")
   await dialog.getByLabel("Kg used").fill("7.50")

@@ -56,3 +56,34 @@ test("office menu and pages for a member without office rights: only what they m
     await expect(page.getByRole("link", { name: "Go to the overview" })).toBeVisible()
   }
 })
+
+test("office batches and transfers for a member without product rights: rows only, no refused read, no search", async ({
+  page,
+  request,
+}) => {
+  const officer = cred("field (RUAHA)", "field_officer")
+  const api = await apiAs(request, officer)
+  const me = await api.get<{ user: { permissions: { workspace: string; permissions: string[] }[] } }>("/me")
+  const grants = me.user.permissions.find((p) => p.workspace === api.workspace)?.permissions ?? []
+  // The seeded officer has no product or search rights, so the gates below are what is tested.
+  expect(grants.some((g) => ["product.list", "product.update", "workspace.global-search", "workspace_admin", "workspace_owner"].includes(g))).toBe(false)
+  const [first] = await api.get<{ id: string; code: string }[]>(api.ws("/lots?page_size=1"))
+
+  await loginOffice(page, officer)
+  await expect(page.getByRole("searchbox", { name: "Quick search" })).toHaveCount(0)
+  await expect(page.getByRole("link", { name: "Quick search" })).toHaveCount(0)
+
+  await page.goto(`${urls.office}/lots`)
+  await expect(page.getByRole("link", { name: first!.code })).toBeVisible()
+  await expect(page.getByRole("button", { name: "New batch" })).toHaveCount(0)
+  await expect(page.getByRole("combobox", { name: "Product" })).toHaveCount(0)
+
+  await page.getByRole("link", { name: first!.code }).click()
+  await expect(page.getByRole("heading", { name: first!.code })).toBeVisible()
+  await page.goto(`${urls.office}/lots/${first!.id}/passport`)
+  await expect(page.getByLabel("Title")).toBeVisible()
+
+  await page.goto(`${urls.office}/supply/transfers`)
+  await expect(page.getByRole("button", { name: /^Receive batch / })).toHaveCount(0)
+  await expectNoRawValues(page)
+})
