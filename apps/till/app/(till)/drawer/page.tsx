@@ -21,6 +21,7 @@ import { useLock } from "@/components/till-top"
 import { pendingCount, useQueue } from "@/lib/sale-queue"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
+import { refusal } from "@/lib/refusal"
 
 /** The register's drawer (TillDrawer): open a shift with a counted float, close it with a count. */
 export default function DrawerPage() {
@@ -61,10 +62,15 @@ export default function DrawerPage() {
   })
 
   const shift = current.data?.data
-  /** The API's own words for a refused call, else a plain fallback. */
-  const said = (e: unknown) =>
-    (e as { response?: { data?: { message?: string } } } | null)?.response?.data
-      ?.message ?? tc("error")
+  const tr = useTranslations("refusals")
+  const refused = (e: unknown) => {
+    const r = refusal(e, tr, t("refused"))
+    return (
+      <Notice variant="error" title={r.title}>
+        {r.detail}
+      </Notice>
+    )
+  }
   const difference = closed?.difference ?? 0
   const time = (iso: string) =>
     new Intl.DateTimeFormat(locale, { timeStyle: "short" }).format(
@@ -194,7 +200,7 @@ export default function DrawerPage() {
             />
           ) : null}
           {close.error ? (
-            <Notice variant="error" title={said(close.error)} />
+            refused(close.error)
           ) : null}
         </>
       }
@@ -212,7 +218,7 @@ export default function DrawerPage() {
         <>
           <Notice variant="info" title={t("none")} />
           {open.error ? (
-            <Notice variant="error" title={said(open.error)} />
+            refused(open.error)
           ) : null}
         </>
       }

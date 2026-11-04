@@ -81,7 +81,9 @@
     "change": "Chenji",
     "referenceHint": "Lipisha kadi kwenye mashine kwanza, kisha andika namba ya risiti.",
     "book": "Rekodi mauzo",
-    "bookCard": "Rekodi mauzo ya kadi"
+    "bookCard": "Rekodi mauzo ya kadi",
+    "refused": "Mauzo haya hayajarekodiwa.",
+    "quoteRefused": "Bei ya kikapu haikuweza kupatikana."
   },
   "nav": {
     "label": "Menyu ya kituo",
@@ -111,7 +113,8 @@
     "floatHint": "Hesabu kinachowekwa kwenye droo kuanza zamu.",
     "closedBody": "Ofisi inaona hili kwenye ripoti ya zamu. Hakuna kingine cha kufanya hapa.",
     "lock": "Funga kaunta",
-    "openNew": "Fungua zamu mpya"
+    "openNew": "Fungua zamu mpya",
+    "refused": "Droo haikuweza kubadilishwa."
   },
   "count": {
     "denomination": "Thamani ya mstari {n}",
@@ -158,8 +161,8 @@
     "mismatch": "Yametozwa kwa bei zinazotofautiana na katalogi ya sasa. Ofisi itaona hili.",
     "online": "Mtandaoni",
     "offline": "{count, plural, =0 {Nje ya mtandao} other {Nje ya mtandao · # za kutuma}}",
-    "waiting": "{count} yanasubiri",
-    "needsOffice": "{count} yanahitaji ofisi",
+    "waiting": "{count, plural, one {# linasubiri} other {# yanasubiri}}",
+    "needsOffice": "{count, plural, one {# linahitaji ofisi} other {# yanahitaji ofisi}}",
     "items": "{count, plural, one {bidhaa #} other {bidhaa #}}",
     "estimate": "{method} · ≈ {amount} makadirio"
   },
@@ -178,5 +181,10 @@
   "keypad": {
     "clear": "Futa yote",
     "delete": "Futa"
+  },
+  "refusals": {
+    "refReused": "Namba ya mauzo haya imeshatumika kwa mauzo mengine. Ionyeshe ofisi.",
+    "noShift": "Hakuna zamu iliyo wazi kwenye kaunta hii. Fungua droo kwanza.",
+    "alreadyOpen": "Tayari kuna zamu iliyo wazi kwenye kaunta hii."
   }
 }

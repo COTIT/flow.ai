@@ -81,7 +81,9 @@
     "change": "Wisselgeld",
     "referenceHint": "Laat eerst op de pinautomaat betalen en typ dan het bonnummer.",
     "book": "Verkoop boeken",
-    "bookCard": "Pinverkoop boeken"
+    "bookCard": "Pinverkoop boeken",
+    "refused": "Deze verkoop is niet geboekt.",
+    "quoteRefused": "De mand kon niet geprijsd worden."
   },
   "nav": {
     "label": "Kassamenu",
@@ -111,7 +113,8 @@
     "floatHint": "Tel wat er in de lade gaat om de dienst te beginnen.",
     "closedBody": "Het kantoor ziet dit in het dienstrapport. Je hoeft verder niets te doen.",
     "lock": "Kassa vergrendelen",
-    "openNew": "Nieuwe dienst openen"
+    "openNew": "Nieuwe dienst openen",
+    "refused": "De lade kon niet worden aangepast."
   },
   "count": {
     "denomination": "Waarde van rij {n}",
@@ -158,8 +161,8 @@
     "mismatch": "Afgerekend tegen prijzen die afwijken van de huidige catalogus. Het kantoor ziet dit.",
     "online": "Online",
     "offline": "{count, plural, =0 {Offline} other {Offline · # te versturen}}",
-    "waiting": "{count} wachtend",
-    "needsOffice": "{count} voor het kantoor",
+    "waiting": "{count, plural, one {# wacht} other {# wachten}}",
+    "needsOffice": "{count, plural, one {# moet naar het kantoor} other {# moeten naar het kantoor}}",
     "items": "{count, plural, one {# artikel} other {# artikelen}}",
     "estimate": "{method} · ≈ {amount} schatting"
   },
@@ -178,5 +181,10 @@
   "keypad": {
     "clear": "Wissen",
     "delete": "Verwijderen"
+  },
+  "refusals": {
+    "refReused": "Het nummer van deze verkoop is al voor een andere verkoop gebruikt. Laat het aan het kantoor zien.",
+    "noShift": "Er is geen dienst open op deze kassa. Open eerst de lade.",
+    "alreadyOpen": "Er is al een dienst open op deze kassa."
   }
 }

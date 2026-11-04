@@ -81,8 +81,11 @@ export function Receipt({
         {sale.lines.map((l, i) => (
           <div key={i} className="flex justify-between gap-3 text-[13px]">
             <span>
-              {/* The API's decimal string ("2.00") as the basket counts it ("2"). */}
-              {Number(l.quantity)} × {l.title}
+              {/* The API's decimal string ("2.00") as the basket counts it ("2"), "0,5" in nl. */}
+              {new Intl.NumberFormat(locale, {
+                maximumFractionDigits: 3,
+              }).format(l.quantity as unknown as number)}{" "}
+              × {l.title}
             </span>
             <span className="tabular-nums">{money(l.line_total)}</span>
           </div>

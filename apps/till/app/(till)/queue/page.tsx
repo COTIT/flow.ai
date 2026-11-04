@@ -10,6 +10,7 @@ import { estimate } from "@/lib/cart-store"
 import { queueStore, replay, useQueue } from "@/lib/sale-queue"
 import { useOnline } from "@/lib/use-online"
 import { useTillMoney } from "@/lib/use-money"
+import { refusal } from "@/lib/refusal"
 
 const tone = {
   pending: "gold",
@@ -85,6 +86,11 @@ export default function QueuePage() {
             {items.map((i) => {
               const pieces = i.lines.reduce((n, l) => n + l.quantity, 0)
               const refused = i.status === "conflict" || i.status === "review"
+              const said = refusal(
+                i.message,
+                (k) => t(`refusals.${k}`),
+                t(`queue.${i.status}`)
+              )
               return (
                 <li
                   key={i.body.client_ref}
@@ -128,9 +134,10 @@ export default function QueuePage() {
                     <Notice
                       variant="error"
                       className="px-3.5 py-2.5"
-                      title={i.message ?? t(`queue.${i.status}`)}
+                      title={said.title}
                     >
-                      {t("queue.showOffice")}
+                      {said.detail ? <p>{said.detail}</p> : null}
+                      <p>{t("queue.showOffice")}</p>
                     </Notice>
                   ) : null}
                   {i.sale?.price_mismatch ? (
