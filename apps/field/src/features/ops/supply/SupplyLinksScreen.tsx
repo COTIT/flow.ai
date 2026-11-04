@@ -64,7 +64,7 @@ export function SupplyLinksScreen() {
             <li key={link.id} data-testid="supply-link-row">
               <Card className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 flex-col gap-1">
-                  <p className="font-semibold">{link.partner.name}</p>
+                  <p className="font-semibold">{link.partner.display_name}</p>
                   <p className="type-note" style={{ color: 'var(--ink-2)' }}>
                     {t(`supply.status.${link.status}`)} · {t('supply.grantedOn', { date: formatTimestamp(link.granted_at) })}
                   </p>
@@ -87,7 +87,7 @@ export function SupplyLinksScreen() {
       {revoking && (
         <ConfirmDialog
           title={t('supply.revokeTitle')}
-          detail={t('supply.revokeDetail', { partner: revoking.partner.name })}
+          detail={t('supply.revokeDetail', { partner: revoking.partner.display_name })}
           confirmLabel={t('supply.revoke')}
           cancelLabel={t('supply.cancel')}
           confirming={revoke.isPending}

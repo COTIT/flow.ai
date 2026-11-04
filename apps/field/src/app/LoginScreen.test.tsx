@@ -280,6 +280,36 @@ describe('field validation', () => {
 
 // ── the error branches of a real attempt ───────────────────
 describe('sign-in failure states', () => {
+  // B4: a lockout is a lockout, with how long to wait when the API says, never "Too Many Attempts."
+  test('a lockout says to wait, for as long as the API says', async () => {
+    farmLoginsLogin.mockRejectedValue({ response: { status: 429, data: { message: 'Too Many Attempts.' }, headers: { 'retry-after': '90' } } })
+
+    renderLogin()
+    await signInAs('0712 345 678', 'wrong')
+
+    expect(await screen.findByTestId('login-error')).toHaveTextContent('Too many sign-in attempts. Try again in 2 min.')
+    expect(screen.getByTestId('login-error')).not.toHaveTextContent('Too Many Attempts.')
+  })
+
+  test('a lockout with no wait from the API says a few minutes', async () => {
+    authLogin.mockRejectedValue(failed(429, { message: 'Too Many Attempts.' }))
+
+    renderLogin()
+    await signInAs('neema@demo.ruaha360.test', 'wrong')
+
+    expect(await screen.findByTestId('login-error')).toHaveTextContent('Too many sign-in attempts. Wait a few minutes, then try again.')
+  })
+
+  // B5: a session the API ended (a 401 mid-session) says so on the sign-in page.
+  test('after the API ended the session, sign-in says why', () => {
+    sessionStore.setState({ token: 'old', expired: false })
+    sessionStore.getState().signOut('expired')
+
+    renderLogin()
+
+    expect(screen.getByTestId('login-expired')).toHaveTextContent('Your session ended. Sign in again.')
+  })
+
   test('bad credentials get the credentials message, not a raw status', async () => {
     farmLoginsLogin.mockRejectedValue(failed(401, { message: 'Unauthenticated.' }))
 
@@ -315,14 +345,14 @@ describe('sign-in failure states', () => {
 
   test('any other failure is surfaced as the API wrote it', async () => {
     farmLoginsLogin.mockRejectedValue(
-      failed(429, { message: 'Too many attempts. Ask your officer for a new password.' }),
+      failed(409, { message: 'This login was replaced. Ask your officer for a new password.' }),
     )
 
     renderLogin()
     await signInAs('0712 345 678', 'demo1234')
 
     expect(await screen.findByTestId('login-error')).toHaveTextContent(
-      'Too many attempts. Ask your officer for a new password.',
+      'This login was replaced. Ask your officer for a new password.',
     )
   })
 
