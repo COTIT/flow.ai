@@ -101,8 +101,9 @@ pub struct ProductBody(Map<String, Value>);
 pub struct CreateProductRequest(ProductBody);
 
 impl CreateProductRequest {
-    /// Farm supply raw material named `name`: physical, stock-tracked, kg, net price 0, kept off
-    /// the shop (`store_only`). Validated like any create; VAT group and currency default.
+    /// Farm supply raw material named `name`: physical, stock-tracked, kg, net price 0, status
+    /// `disabled` (storefront and till catalogue sell only `active`; stock and lots ignore status).
+    /// Validated like any create; VAT group and currency default.
     pub fn raw_material(name: Option<Value>) -> Self {
         let mut m = Map::new();
         if let Some(name) = name {
@@ -110,11 +111,10 @@ impl CreateProductRequest {
         }
         for (k, v) in [
             ("type", Value::from("physical")),
-            ("status", Value::from("active")),
+            ("status", Value::from("disabled")),
             ("has_stock", Value::from(true)),
             ("unit", Value::from("kg")),
             ("price", Value::from(0)),
-            ("store_only", Value::from(true)),
         ] {
             m.insert(k.into(), v);
         }

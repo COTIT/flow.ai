@@ -130,7 +130,7 @@ pub async fn options(
 #[utoipa::path(
     post, path = "/workspace/{workspace}/farm/supply-batches/raw-product", tag = "farm_supply",
     operation_id = "farm_supply_raw_product", summary = "Add a raw product for batches",
-    description = "ops or admin, no `product.create` needed. Makes a physical, stock-tracked product in kg with net price 0, the workspace's default VAT group, status active and `store_only` (not on the storefront), through the products service. Its id is a valid `raw_product_id`.",
+    description = "ops or admin, no `product.create` needed. Makes a physical, stock-tracked product in kg with net price 0, the workspace's default VAT group and status `disabled` (sold nowhere: the storefront and till catalogue list only active products), through the products service. Its id is a valid `raw_product_id`.",
     params(("workspace" = Uuid, Path, description = "Workspace id")),
     request_body = RawProductRequest,
     responses(

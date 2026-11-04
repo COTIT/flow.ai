@@ -52,7 +52,7 @@ ops or admin only (`403` otherwise). No `product.create` needed: this makes only
 
 `{"name": "Raw coffee"}`. `name` is required, trimmed, at most 255 characters (`422` on `name`).
 
-It goes through the products service like `POST /products` (numbering, default variant, price history) with fixed fields: `type` physical, `has_stock` true, `unit` kg, net `price` 0, `status` active, `store_only` true (never on the storefront), and the workspace's default VAT group and currency.
+It goes through the products service like `POST /products` (numbering, default variant, price history) with fixed fields: `type` physical, `has_stock` true, `unit` kg, net `price` 0, `status` disabled, and the workspace's default VAT group and currency. `disabled` keeps it out of every sale channel: the storefront, the till catalogue and web checkout sell only `active` products. Batches, lots, stock and transfers don't look at status, so it works as a raw lot's product. To sell it after all, an owner sets it active in Office.
 
 `201 {"data": {"id", "name", "unit": "kg"}}`. The id is a valid `raw_product_id` at once.
 

@@ -332,7 +332,7 @@ export function useFarmSupplyOptions<TData = Awaited<ReturnType<typeof farmSuppl
 
 
 /**
- * ops or admin, no `product.create` needed. Makes a physical, stock-tracked product in kg with net price 0, the workspace's default VAT group, status active and `store_only` (not on the storefront), through the products service. Its id is a valid `raw_product_id`.
+ * ops or admin, no `product.create` needed. Makes a physical, stock-tracked product in kg with net price 0, the workspace's default VAT group and status `disabled` (sold nowhere: the storefront and till catalogue list only active products), through the products service. Its id is a valid `raw_product_id`.
  * @summary Add a raw product for batches
  */
 export const farmSupplyRawProduct = (

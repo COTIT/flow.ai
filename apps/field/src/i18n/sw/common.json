@@ -1564,7 +1564,7 @@
     "noRawAsk": "Muombe mmiliki au msimamizi wa nafasi ya kazi aiongeze katika Office → Products.",
     "createRaw": "Unda bidhaa ghafi",
     "rawTitle": "Unda bidhaa ghafi ya {{crop}}?",
-    "rawDetail": "Huhifadhiwa kwa kilo na kufuatiliwa kwenye hisa, bei halisi 0, VAT ya kawaida ya nafasi ya kazi, haiuzwi dukani. Kagua jina, kisha thibitisha.",
+    "rawDetail": "Huhifadhiwa kwa kilo na kufuatiliwa kwenye hisa, bei halisi 0, VAT ya kawaida ya nafasi ya kazi. Haiuzwi popote: si dukani wala kwenye till. Kagua jina, kisha thibitisha.",
     "rawName": "Jina",
     "rawDefault": "{{crop}} ghafi",
     "rawCreate": "Unda",

@@ -960,6 +960,82 @@ async fn options_say_ops_and_admin_may_add_a_raw_product(pool: PgPool) {
     assert_eq!(res["data"]["can_create_product"], true, "farm admin");
 }
 
+/// Product ids the storefront (shop app key) and the till catalogue (a till session on a store
+/// warehouse) list for this workspace.
+async fn sale_channels(f: &Farm) -> (Vec<String>, Vec<String>) {
+    let ws = &f.ws;
+    let call = |method: Method, tail: &str, body: Option<Value>, token: &str| {
+        let (app, uri, token) = (
+            f.app.clone(),
+            format!("/v1/workspace/{ws}{tail}"),
+            token.to_owned(),
+        );
+        async move { send(&app, method, &uri, body, Some(&token)).await }
+    };
+    let ids = |res: &Value| -> Vec<String> {
+        let mut v: Vec<String> = res["data"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["id"].as_str().unwrap().to_owned())
+            .collect();
+        v.sort();
+        v
+    };
+    let (_, key) = call(
+        Method::POST,
+        "/app-keys",
+        Some(json!({ "name": "Web shop", "kind": "shop", "scopes": ["catalog:read"] })),
+        &f.owner,
+    )
+    .await;
+    let key = key["data"]["key"].as_str().unwrap().to_owned();
+    let (status, shop) = send(
+        &f.app,
+        Method::GET,
+        "/v1/storefront/products",
+        None,
+        Some(&key),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{shop}");
+
+    let (_, wh) = call(
+        Method::POST,
+        "/warehouses",
+        Some(json!({ "name": "Shop", "default_warehouse": true, "is_store": true })),
+        &f.owner,
+    )
+    .await;
+    let (_, reg) = call(
+        Method::POST,
+        "/till/registers",
+        Some(json!({ "name": "Till 1", "warehouse_id": wh["data"]["warehouse_id"] })),
+        &f.owner,
+    )
+    .await;
+    let (_, user) = call(
+        Method::POST,
+        "/till/users",
+        Some(json!({ "name": "Ann", "pin": "4821" })),
+        &f.owner,
+    )
+    .await;
+    let reg_key = reg["data"]["key"].as_str().unwrap().to_owned();
+    let (status, login) = call(
+        Method::POST,
+        "/till/login",
+        Some(json!({ "till_user_id": user["data"]["id"], "pin": "4821" })),
+        &reg_key,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{login}");
+    let t = login["data"]["token"].as_str().unwrap().to_owned();
+    let (status, till) = call(Method::GET, "/till/catalog", None, &t).await;
+    assert_eq!(status, StatusCode::OK, "{till}");
+    (ids(&shop), ids(&till))
+}
+
 async fn raw_product(f: &Farm, body: Value, token: &str) -> (StatusCode, Value) {
     f.call(
         Method::POST,
@@ -1002,21 +1078,24 @@ async fn ops_add_a_raw_product_a_batch_can_use(pool: PgPool) {
     .await;
     assert_eq!(status, StatusCode::OK, "{p}");
     let p = &p["data"];
-    assert_eq!(p["store_only"], true, "{p}");
-    assert_eq!(p["status"], "active");
+    // Sold nowhere: `disabled` keeps it out of the storefront and the till catalogue.
+    assert_eq!(p["status"], "disabled", "{p}");
+    assert_eq!(p["store_only"], false);
     assert_eq!(p["type"], "physical");
     assert_eq!(p["has_stock"], 1);
     assert_eq!(p["vat_group_id"], vat, "workspace default VAT: {p}");
     assert!(p["product_nr"].is_string(), "numbered: {p}");
-    // The storefront never lists it.
-    let shown: bool = sqlx::query_scalar(
-        "SELECT status = 'active' AND NOT archived AND NOT store_only FROM products WHERE id = $1::uuid",
-    )
-    .bind(&id)
-    .fetch_one(&f.pool)
-    .await
-    .unwrap();
-    assert!(!shown);
+    let (shop, till) = sale_channels(f).await;
+    assert_eq!(
+        shop,
+        std::slice::from_ref(&w.product),
+        "storefront: the plain product only"
+    );
+    assert_eq!(
+        till,
+        std::slice::from_ref(&w.product),
+        "till catalogue: the plain product only"
+    );
 
     // Straight into a batch.
     let h = actual(f, &w.c.neema.cycles[0], "100").await;

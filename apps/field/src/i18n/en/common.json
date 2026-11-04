@@ -1564,7 +1564,7 @@
     "noRawAsk": "Ask a workspace owner or admin to add it in Office → Products.",
     "createRaw": "Create raw product",
     "rawTitle": "Create raw product for {{crop}}?",
-    "rawDetail": "Kept in kg and tracked in stock, net price 0, the workspace's default VAT, not sold in the shop. Check the name, then confirm.",
+    "rawDetail": "Kept in kg and tracked in stock, net price 0, the workspace's default VAT. Sold nowhere: not in the shop and not at the till. Check the name, then confirm.",
     "rawName": "Name",
     "rawDefault": "Raw {{crop}}",
     "rawCreate": "Create",
