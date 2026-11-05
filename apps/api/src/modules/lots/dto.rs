@@ -100,6 +100,9 @@ pub struct ReceivedFrom {
     transfer_id: Uuid,
     from_lot_code: String,
     from_lot_public_code: String,
+    /// The sender's lot status now: `recalled` or `quarantine` means the supplier took it off
+    /// sale. Your own lot's status is never changed for you.
+    from_lot_status: String,
 }
 
 impl LotResource {
@@ -122,6 +125,7 @@ impl LotResource {
                 transfer_id: g.transfer_id?,
                 from_lot_code: g.from_lot_code.clone()?,
                 from_lot_public_code: g.from_lot_public_code.clone()?,
+                from_lot_status: g.from_lot_status.clone()?,
             })
         });
         Self {
@@ -140,6 +144,30 @@ impl LotResource {
             origin: l.origin,
             created_at: l.created_at,
             updated_at: l.updated_at,
+        }
+    }
+}
+
+/// An order still holding stock of this lot (the lot was taken off sale and no other lot at
+/// that warehouse could take the whole hold over).
+#[derive(Serialize, ToSchema)]
+pub struct LotHold {
+    order_id: Uuid,
+    #[schema(example = "ORD-0042")]
+    number: String,
+    warehouse_id: Uuid,
+    /// 2 decimals.
+    #[schema(example = "3.00")]
+    quantity: String,
+}
+
+impl From<crate::modules::lots::repo::HoldRow> for LotHold {
+    fn from(h: crate::modules::lots::repo::HoldRow) -> Self {
+        Self {
+            order_id: h.order_id,
+            number: h.number,
+            warehouse_id: h.warehouse_id,
+            quantity: h.quantity,
         }
     }
 }

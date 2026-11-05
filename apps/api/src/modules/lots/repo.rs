@@ -147,6 +147,100 @@ pub async fn update(
     .await
 }
 
+/// Lots packed from `parent` (one level), under a row lock, in id order.
+pub async fn children_locked(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    parent: Uuid,
+) -> Result<Vec<LotRow>, sqlx::Error> {
+    sqlx::query_as!(
+        LotRow,
+        "SELECT id, product_id, code, public_code, status, produced_on, best_before, expires_on,
+                origin, created_at, updated_at
+         FROM lots WHERE workspace_id = $1 AND parent_lot_id = $2
+         ORDER BY id
+         FOR NO KEY UPDATE",
+        workspace_id,
+        parent,
+    )
+    .fetch_all(conn)
+    .await
+}
+
+/// A locked lot's new status.
+pub async fn set_status(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+    status: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "UPDATE lots SET status = $3, updated_at = now() WHERE id = $1 AND workspace_id = $2",
+        id,
+        workspace_id,
+        status,
+    )
+    .execute(conn)
+    .await
+    .map(|_| ())
+}
+
+/// A transfer of a lot out of this workspace: who received (or will receive) it.
+pub struct SentRow {
+    pub id: Uuid,
+    pub to_workspace_id: Uuid,
+    pub to_lot_id: Option<Uuid>,
+}
+
+/// Transfers of `lot` to other workspaces, oldest first.
+pub async fn sent(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    lot: Uuid,
+) -> Result<Vec<SentRow>, sqlx::Error> {
+    sqlx::query_as!(
+        SentRow,
+        "SELECT id, to_workspace_id, to_lot_id FROM supply_transfers
+         WHERE from_workspace_id = $1 AND from_lot_id = $2
+         ORDER BY dispatched_at, id",
+        workspace_id,
+        lot,
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// An order still holding stock of a lot.
+pub struct HoldRow {
+    pub order_id: Uuid,
+    pub number: String,
+    pub warehouse_id: Uuid,
+    pub quantity: String,
+}
+
+/// Orders holding stock on `lot`, per warehouse, oldest hold first.
+pub async fn holds(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    lot: Uuid,
+) -> Result<Vec<HoldRow>, sqlx::Error> {
+    sqlx::query_as!(
+        HoldRow,
+        r#"SELECT o.id AS order_id, o.number, s.warehouse_id,
+                  sum(r.quantity)::numeric(19,2)::text AS "quantity!"
+           FROM stock_reservations r
+           JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id
+           JOIN orders o ON o.workspace_id = r.workspace_id AND o.id = r.related_id
+           WHERE r.workspace_id = $1 AND s.lot_id = $2 AND r.related_domain = 'order'
+           GROUP BY o.id, o.number, s.warehouse_id
+           ORDER BY min(r.created_at), o.id"#,
+        workspace_id,
+        lot,
+    )
+    .fetch_all(db)
+    .await
+}
+
 /// One page, newest first, with the total.
 pub async fn list(
     db: impl PgExecutor<'_>,
@@ -500,6 +594,8 @@ pub struct LineageRow {
     pub transfer_id: Option<Uuid>,
     pub from_lot_code: Option<String>,
     pub from_lot_public_code: Option<String>,
+    /// The sender's lot status now (read through the transfer, never written).
+    pub from_lot_status: Option<String>,
 }
 
 /// [`LineageRow`] of each lot among `ids` of the workspace, in one statement.
@@ -513,7 +609,7 @@ pub async fn lineage(
         r#"SELECT l.id AS lot_id, p.id AS "parent_id?", p.code AS "parent_code?",
                   l.pack_raw_kg::text AS pack_raw_kg, l.pack_units::text AS pack_units,
                   t.id AS "transfer_id?", f.code AS "from_lot_code?",
-                  f.public_code AS "from_lot_public_code?"
+                  f.public_code AS "from_lot_public_code?", f.status AS "from_lot_status?"
            FROM lots l
            LEFT JOIN lots p ON p.workspace_id = l.workspace_id AND p.id = l.parent_lot_id
            LEFT JOIN supply_transfers t ON t.to_workspace_id = l.workspace_id

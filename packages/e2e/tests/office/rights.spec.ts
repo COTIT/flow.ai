@@ -97,7 +97,7 @@ const transfer = {
   link_id: "link-1",
   direction: "incoming",
   partner: { id: "ws-ruaha", name: "RUAHA Project" },
-  from_lot: { code: "ILU-H-2026-01", public_code: "7K3M9Q2XRT" },
+  from_lot: { code: "ILU-H-2026-01", public_code: "7K3M9Q2XRT", status: "released" },
   quantity: "250.00",
   status: "dispatched",
   dispatched_at: "2026-10-31T08:00:00Z",

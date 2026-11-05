@@ -882,5 +882,17 @@
     "orderRecalled": "A batch this order holds was recalled, and no other batch could take over. Cancel the order to free it.",
     "orderQuarantined": "A batch this order holds is on hold. Release the batch or cancel the order.",
     "orderExpired": "A batch this order holds has expired. Cancel the order to free it."
+  },
+  "supplyWarn": {
+    "recalled": "The source batch was recalled by the supplier.",
+    "quarantine": "The source batch is on hold at the supplier.",
+    "receiveHint": "You can still receive it. Decide what to do with the stock: put your batch on hold or recall it.",
+    "badgeRecalled": "Recalled by supplier",
+    "badgeQuarantine": "On hold at supplier"
+  },
+  "lotHolds": {
+    "title": "Orders waiting on this batch",
+    "hint": "No other batch at that warehouse could take these orders over. Cancel the order, or release this batch.",
+    "held": "{quantity} held"
   }
 }

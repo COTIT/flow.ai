@@ -882,5 +882,17 @@
     "orderRecalled": "Een batch die deze bestelling vasthoudt is teruggeroepen en geen andere batch kon het overnemen. Annuleer de bestelling om hem vrij te geven.",
     "orderQuarantined": "Een batch die deze bestelling vasthoudt staat in quarantaine. Geef de batch vrij of annuleer de bestelling.",
     "orderExpired": "Een batch die deze bestelling vasthoudt is verlopen. Annuleer de bestelling om hem vrij te geven."
+  },
+  "supplyWarn": {
+    "recalled": "De bronbatch is door de leverancier teruggeroepen.",
+    "quarantine": "De bronbatch staat bij de leverancier in quarantaine.",
+    "receiveHint": "Je kunt hem nog ontvangen. Beslis wat je met de voorraad doet: zet je batch in quarantaine of roep hem terug.",
+    "badgeRecalled": "Teruggeroepen door leverancier",
+    "badgeQuarantine": "In quarantaine bij leverancier"
+  },
+  "lotHolds": {
+    "title": "Bestellingen die op deze batch wachten",
+    "hint": "Geen andere batch in dat magazijn kon deze bestellingen overnemen. Annuleer de bestelling of geef deze batch vrij.",
+    "held": "{quantity} gereserveerd"
   }
 }

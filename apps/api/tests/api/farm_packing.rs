@@ -968,3 +968,165 @@ async fn held_or_recalled_lots_are_neither_packed_nor_sent(pool: PgPool) {
     .await;
     assert_eq!(st, StatusCode::NOT_FOUND);
 }
+
+/// Status and the `status_changed` rows (`from → to`, `because_of`) of a lot, oldest first.
+async fn status_trail(pool: &PgPool, lot: &str) -> (String, Vec<(String, String, Option<String>)>) {
+    let status = sqlx::query_scalar("SELECT status FROM lots WHERE id = $1::uuid")
+        .bind(lot)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    let rows = sqlx::query_as(
+        "SELECT from_status, to_status, meta->>'because_of' FROM lot_events
+         WHERE lot_id = $1::uuid AND kind = 'status_changed' ORDER BY created_at, id",
+    )
+    .bind(lot)
+    .fetch_all(pool)
+    .await
+    .unwrap();
+    (status, rows)
+}
+
+fn moved(from: &str, to: &str, because: Option<&str>) -> (String, String, Option<String>) {
+    (from.to_owned(), to.to_owned(), because.map(str::to_owned))
+}
+
+#[sqlx::test]
+async fn a_recall_follows_every_lot_packed_from_it(pool: PgPool) {
+    let c = chain(pool).await;
+    let (_, res) = pack(&c, &c.raw, packing(&c, "ILU-J-1", "10", "7.50")).await;
+    let jar = res["data"]["id"].as_str().unwrap().to_owned();
+    // A grandchild (a lot packed from the jar lot), so the cascade must go deeper than one.
+    let grand: String = sqlx::query_scalar(
+        "INSERT INTO lots (workspace_id, product_id, code, public_code, status, parent_lot_id,
+                           pack_raw_kg, pack_units, created_by)
+         SELECT workspace_id, product_id, 'ILU-G-1', 'GRAND00001', 'quarantine', id, 1, 1,
+                (SELECT user_id FROM lot_events WHERE lot_id = $1::uuid LIMIT 1)
+         FROM lots WHERE id = $1::uuid RETURNING id::text",
+    )
+    .bind(&jar)
+    .fetch_one(&c.f.pool)
+    .await
+    .unwrap();
+
+    let (st, res) =
+        c.f.ws_call(
+            Method::PATCH,
+            &format!("/lots/{}", c.raw),
+            Some(json!({ "status": "recalled" })),
+            &c.f.owner,
+        )
+        .await;
+    assert_eq!(st, StatusCode::OK, "{res}");
+
+    assert_eq!(
+        status_trail(&c.f.pool, &c.raw).await,
+        ("recalled".to_owned(), vec![moved("released", "recalled", None)])
+    );
+    assert_eq!(
+        status_trail(&c.f.pool, &jar).await,
+        ("recalled".to_owned(), vec![moved("released", "recalled", Some(&c.raw))])
+    );
+    assert_eq!(
+        status_trail(&c.f.pool, &grand).await,
+        ("recalled".to_owned(), vec![moved("quarantine", "recalled", Some(&jar))])
+    );
+}
+
+#[sqlx::test]
+async fn quarantine_follows_children_but_release_does_not(pool: PgPool) {
+    let c = chain(pool).await;
+    let (_, res) = pack(&c, &c.raw, packing(&c, "ILU-J-1", "10", "7.50")).await;
+    let jar = res["data"]["id"].as_str().unwrap().to_owned();
+    for status in ["quarantine", "released"] {
+        let (st, res) =
+            c.f.ws_call(
+                Method::PATCH,
+                &format!("/lots/{}", c.raw),
+                Some(json!({ "status": status })),
+                &c.f.owner,
+            )
+            .await;
+        assert_eq!(st, StatusCode::OK, "{res}");
+    }
+    assert_eq!(
+        status_trail(&c.f.pool, &jar).await,
+        ("quarantine".to_owned(), vec![moved("released", "quarantine", Some(&c.raw))]),
+        "the jars stay on hold until someone releases them"
+    );
+}
+
+#[sqlx::test]
+async fn the_partner_hears_of_a_recall_and_sees_it_but_keeps_its_own_lot(pool: PgPool) {
+    let c = chain(pool).await;
+    let s = shop(&c, json!([])).await;
+    let (status, res) = a_call(
+        &c.f,
+        &s.a_ws,
+        Method::POST,
+        "/webhook-endpoints",
+        Some(json!({ "url": "https://afm.example.com/hooks",
+                     "events": ["supply.source_status_changed"] })),
+        &s.a,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let (_, res) = dispatch(&c, &c.raw, &s.link, "4").await;
+    let transfer = res["data"]["id"].as_str().unwrap().to_owned();
+    let a_product = a_create(&c.f, &s, "/products", json!({ "name": "Flour", "price": 10 }), "product_id").await;
+    let a_wh = a_create(&c.f, &s, "/warehouses", json!({ "name": "Hub" }), "warehouse_id").await;
+    let (status, res) = a_call(
+        &c.f,
+        &s.a_ws,
+        Method::POST,
+        &format!("/supply-transfers/{transfer}/receive"),
+        Some(json!({ "product_id": a_product, "code": "AFM-1", "warehouse_id": a_wh, "quantity": "4" })),
+        &s.a,
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    let a_lot = res["data"]["to_lot"]["id"].as_str().unwrap().to_owned();
+
+    let (st, res) =
+        c.f.ws_call(
+            Method::PATCH,
+            &format!("/lots/{}", c.raw),
+            Some(json!({ "status": "recalled" })),
+            &c.f.owner,
+        )
+        .await;
+    assert_eq!(st, StatusCode::OK, "{res}");
+
+    let (_, lot) = a_call(&c.f, &s.a_ws, Method::GET, &format!("/lots/{a_lot}"), None, &s.a).await;
+    assert_eq!(lot["data"]["status"], "released", "the partner's lot is theirs");
+    assert_eq!(lot["data"]["received_from"]["from_lot_status"], "recalled");
+    let (_, list) = a_call(&c.f, &s.a_ws, Method::GET, "/supply-transfers", None, &s.a).await;
+    assert_eq!(list["data"][0]["from_lot"]["status"], "recalled");
+    let hooks: Vec<(String, Value)> = sqlx::query_as(
+        "SELECT type, payload FROM webhook_events WHERE workspace_id = $1::uuid",
+    )
+    .bind(&s.a_ws)
+    .fetch_all(&c.f.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        hooks,
+        [(
+            "supply.source_status_changed".to_owned(),
+            json!({ "transfer_id": transfer, "to_lot_id": a_lot,
+                    "from_lot_code": "ILU-RAW-1", "status": "recalled" })
+        )]
+    );
+
+    // The partner still reaches nothing of the sender's.
+    let (st, _) = a_call(
+        &c.f,
+        &s.a_ws,
+        Method::PATCH,
+        &format!("/lots/{}", c.raw),
+        Some(json!({ "status": "released" })),
+        &s.a,
+    )
+    .await;
+    assert_eq!(st, StatusCode::NOT_FOUND);
+}

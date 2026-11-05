@@ -7051,6 +7051,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_LotHold": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/LotHold"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_ProductImageResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -11190,6 +11205,35 @@
           "level",
           "reserved",
           "available"
+        ],
+        "type": "object"
+      },
+      "LotHold": {
+        "description": "An order still holding stock of this lot (the lot was taken off sale and no other lot at\nthat warehouse could take the whole hold over).",
+        "properties": {
+          "number": {
+            "example": "ORD-0042",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "2 decimals.",
+            "example": "3.00",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "number",
+          "warehouse_id",
+          "quantity"
         ],
         "type": "object"
       },
@@ -19240,6 +19284,10 @@
           "from_lot_public_code": {
             "type": "string"
           },
+          "from_lot_status": {
+            "description": "The sender's lot status now: `recalled` or `quarantine` means the supplier took it off\nsale. Your own lot's status is never changed for you.",
+            "type": "string"
+          },
           "transfer_id": {
             "format": "uuid",
             "type": "string"
@@ -19248,7 +19296,8 @@
         "required": [
           "transfer_id",
           "from_lot_code",
-          "from_lot_public_code"
+          "from_lot_public_code",
+          "from_lot_status"
         ],
         "type": "object"
       },
@@ -24270,11 +24319,16 @@
           },
           "public_code": {
             "type": "string"
+          },
+          "status": {
+            "description": "The sent lot's status at the sender now; `recalled` or `quarantine` means the supplier\ntook it off sale (receiving stays allowed).",
+            "type": "string"
           }
         },
         "required": [
           "code",
-          "public_code"
+          "public_code",
+          "status"
         ],
         "type": "object"
       },
@@ -62814,6 +62868,131 @@
           }
         ],
         "summary": "Sales and returns of a lot that credited its farmers",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
+    "/workspace/{workspace}/lots/{lot}/holds": {
+      "get": {
+        "description": "Orders whose hold could not move off this lot when it went into quarantine or was recalled (no other sellable lot of the product at that warehouse had room for the whole hold). Oldest first. Cancel such an order, or release the lot, to clear it.",
+        "operationId": "lots_holds",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_LotHold"
+                }
+              }
+            },
+            "description": "Orders holding the lot; empty when none"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Orders still holding a lot",
         "tags": [
           "lots"
         ]

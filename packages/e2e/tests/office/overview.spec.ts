@@ -90,7 +90,7 @@ const transfer = {
   partner: { id: "ws-ilundo", name: "Ilundo store" },
   link_id: "link-0",
   dispatched_at: "2026-11-03T08:00:00Z",
-  from_lot: { id: "lot-x", code: "ILU-H-01", public_code: "7K3M9Q2XRT" },
+  from_lot: { id: "lot-x", code: "ILU-H-01", public_code: "7K3M9Q2XRT", status: "released" },
   received_at: null,
   received_quantity: null,
   to_lot: null,

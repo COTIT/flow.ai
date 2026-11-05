@@ -366,3 +366,138 @@ async fn a_hold_on_a_lot_quarantined_since_is_not_shipped(pool: PgPool) {
     );
     assert_eq!(rows(&w, &w.honey).await, [r("Q", "5.00", "2.00")]);
 }
+
+/// `(order number, quantity)` the lot page lists as still held on `lot`.
+async fn holds(w: &W, lot: &str) -> (StatusCode, Value) {
+    w.api
+        .with_base("/lots")
+        .call(Method::GET, &format!("/{lot}/holds"), None, &w.api.owner)
+        .await
+}
+
+#[sqlx::test]
+async fn a_recall_moves_each_hold_to_the_next_sellable_lot_and_the_order_ships(pool: PgPool) {
+    let w = world(pool).await;
+    let bad = lot(&w, &w.honey, "BAD", Some("2098-01-01"), 5).await;
+    let good = lot(&w, &w.honey, "GOOD", Some("2099-01-01"), 5).await;
+    let a = draft(&w, json!([line(&w.honey, "3")])).await;
+    act(&w, &a, "confirm").await;
+    pick_all(&w, &a).await;
+    assert_eq!(
+        rows(&w, &w.honey).await,
+        [r("BAD", "5.00", "3.00"), r("GOOD", "5.00", "0.00")]
+    );
+
+    set_lot(&w, &bad, json!({ "status": "recalled" })).await;
+    assert_eq!(
+        rows(&w, &w.honey).await,
+        [r("BAD", "5.00", "0.00"), r("GOOD", "5.00", "3.00")],
+        "the hold left the recalled lot whole"
+    );
+    let (s, res) = holds(&w, &bad).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(res["data"], json!([]));
+
+    let (s, res) = act(&w, &a, "complete").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let taken: Vec<(String, String)> = sqlx::query_as(
+        "SELECT lot_id::text, quantity_change::text FROM stock_movements
+         WHERE related_domain = 'order' AND related_id = $1::uuid",
+    )
+    .bind(&a)
+    .fetch_all(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(taken, [(good, "-3.00".to_owned())]);
+}
+
+#[sqlx::test]
+async fn a_hold_nothing_else_covers_stays_whole_and_the_lot_lists_its_order(pool: PgPool) {
+    let w = world(pool).await;
+    let bad = lot(&w, &w.honey, "BAD", Some("2098-01-01"), 5).await;
+    lot(&w, &w.honey, "SMALL", Some("2099-01-01"), 2).await;
+    // Plenty in another warehouse never counts: a hold stays where the order reserved.
+    let other = w
+        .api
+        .with_base("/warehouses")
+        .create(json!({ "name": "Other" }), "warehouse_id")
+        .await;
+    let far = w
+        .api
+        .with_base("/lots")
+        .create(json!({ "product_id": w.honey, "code": "FAR" }), "id")
+        .await;
+    let (s, res) = w
+        .api
+        .with_base("/lots")
+        .call(
+            Method::POST,
+            &format!("/{far}/stock-mutations"),
+            Some(json!({ "warehouse_id": other, "quantity": 50 })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let a = draft(&w, json!([line(&w.honey, "3")])).await;
+    act(&w, &a, "confirm").await;
+    pick_all(&w, &a).await;
+
+    set_lot(&w, &bad, json!({ "status": "recalled" })).await;
+    assert_eq!(
+        rows(&w, &w.honey).await,
+        [r("BAD", "5.00", "3.00"), r("SMALL", "2.00", "0.00")],
+        "never split: 2 of 3 elsewhere leaves the order short"
+    );
+    let (s, res) = holds(&w, &bad).await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    let (_, order) = call(&w, Method::GET, &format!("/{a}"), None).await;
+    assert_eq!(
+        res["data"],
+        json!([{ "order_id": a, "number": order["data"]["number"],
+                 "warehouse_id": w.main, "quantity": "3.00" }])
+    );
+    let (s, res) = act(&w, &a, "complete").await;
+    assert_eq!((s, &res["message"]), (StatusCode::CONFLICT, &json!("lot_recalled")));
+    let (s, res) = act(&w, &a, "cancel").await;
+    assert_eq!(s, StatusCode::OK, "{res}");
+    assert_eq!(holds(&w, &bad).await.1["data"], json!([]));
+}
+
+#[sqlx::test]
+async fn the_oldest_order_moves_first_and_release_moves_nothing_back(pool: PgPool) {
+    let w = world(pool).await;
+    let bad = lot(&w, &w.honey, "BAD", Some("2098-01-01"), 5).await;
+    lot(&w, &w.honey, "GOOD", Some("2099-01-01"), 3).await;
+    let first = draft(&w, json!([line(&w.honey, "3")])).await;
+    act(&w, &first, "confirm").await;
+    let second = draft(&w, json!([line(&w.honey, "2")])).await;
+    act(&w, &second, "confirm").await;
+
+    set_lot(&w, &bad, json!({ "status": "quarantine" })).await;
+    assert_eq!(
+        rows(&w, &w.honey).await,
+        [r("BAD", "5.00", "2.00"), r("GOOD", "3.00", "3.00")]
+    );
+    let left = holds(&w, &bad).await.1;
+    assert_eq!(left["data"].as_array().unwrap().len(), 1);
+    assert_eq!(left["data"][0]["order_id"], second.as_str());
+
+    set_lot(&w, &bad, json!({ "status": "released" })).await;
+    assert_eq!(
+        rows(&w, &w.honey).await,
+        [r("BAD", "5.00", "2.00"), r("GOOD", "3.00", "3.00")],
+        "a release leaves holds where they are"
+    );
+}
+
+#[sqlx::test]
+async fn another_workspace_cannot_read_a_lots_holds(pool: PgPool) {
+    let w = world(pool).await;
+    let bad = lot(&w, &w.honey, "BAD", None, 5).await;
+    let eve = w.api.as_new_owner("eve@evil.test", "evil").await;
+    let (s, _) = eve
+        .with_base("/lots")
+        .call(Method::GET, &format!("/{bad}/holds"), None, &eve.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+}

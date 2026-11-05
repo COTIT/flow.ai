@@ -29,10 +29,13 @@ use crate::{
         products::repo as products,
         stock::{
             repo::{self as stock, Cause, Floor, Mutated, Slot},
+            reserve,
             service::tracks_stock,
         },
         warehouses::repo as warehouses,
-        webhooks::events::{self, LOT_CREATED, LOT_STATUS_CHANGED, PASSPORT_PUBLISHED},
+        webhooks::events::{
+            self, LOT_CREATED, LOT_STATUS_CHANGED, PASSPORT_PUBLISHED, SUPPLY_SOURCE_STATUS_CHANGED,
+        },
     },
 };
 
@@ -282,27 +285,86 @@ pub async fn update(
         repo::add_event(&mut tx, access.workspace_id, &event).await?;
     }
     if status_changed {
-        let event = NewEvent {
-            lot_id: id,
-            kind: "status_changed",
-            from_status: Some(&before.status),
-            to_status: Some(&after.status),
-            user_id: access.user_id,
-            meta: None,
-        };
-        repo::add_event(&mut tx, access.workspace_id, &event).await?;
-        let payload = json!({
-            "lot_id": id,
-            "product_id": saved.product_id,
-            "code": saved.code,
-            "public_code": saved.public_code,
-            "from": before.status,
-            "to": after.status,
-        });
-        events::emit(&mut tx, access.workspace_id, LOT_STATUS_CHANGED, payload).await?;
+        status_moved(&mut tx, access.workspace_id, access.user_id, &saved, &before.status).await?;
     }
     tx.commit().await?;
     Ok(saved)
+}
+
+/// How far off sale a status is: released < quarantine < recalled.
+fn rank(status: &str) -> u8 {
+    match status {
+        "released" => 0,
+        "quarantine" => 1,
+        _ => 2,
+    }
+}
+
+/// After `lot` (locked, saved) moved from `from`: its trail row and `lot.status_changed`, and
+/// each partner that got stock from it hears `supply.source_status_changed` (their data stays
+/// theirs). Off sale (tighter): holds move to sellable lots, and every lot packed from it, down
+/// the whole line, follows to the same status with its own row and event. Loosening never
+/// cascades.
+async fn status_moved(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    lot: &LotRow,
+    from: &str,
+) -> Result<(), AppError> {
+    let mut work = vec![(lot.clone(), from.to_owned(), None::<Uuid>)];
+    while let Some((lot, from, because_of)) = work.pop() {
+        let event = NewEvent {
+            lot_id: lot.id,
+            kind: "status_changed",
+            from_status: Some(&from),
+            to_status: Some(&lot.status),
+            user_id,
+            meta: because_of.map(|p| json!({ "because_of": p })),
+        };
+        repo::add_event(conn, workspace_id, &event).await?;
+        let payload = json!({
+            "lot_id": lot.id,
+            "product_id": lot.product_id,
+            "code": lot.code,
+            "public_code": lot.public_code,
+            "from": from,
+            "to": lot.status,
+        });
+        events::emit(conn, workspace_id, LOT_STATUS_CHANGED, payload).await?;
+        for t in repo::sent(&mut *conn, workspace_id, lot.id).await? {
+            let payload = json!({
+                "transfer_id": t.id,
+                "to_lot_id": t.to_lot_id,
+                "from_lot_code": lot.code,
+                "status": lot.status,
+            });
+            events::emit(conn, t.to_workspace_id, SUPPLY_SOURCE_STATUS_CHANGED, payload).await?;
+        }
+        if rank(&lot.status) <= rank(&from) {
+            continue;
+        }
+        reserve::move_off_lot(conn, workspace_id, lot.id, lot.product_id).await?;
+        for mut child in repo::children_locked(conn, workspace_id, lot.id).await? {
+            if rank(&child.status) >= rank(&lot.status) {
+                continue;
+            }
+            let was = std::mem::replace(&mut child.status, lot.status.clone());
+            repo::set_status(conn, workspace_id, child.id, &child.status).await?;
+            work.push((child, was, Some(lot.id)));
+        }
+    }
+    Ok(())
+}
+
+/// GET /lots/{lot}/holds: orders still holding this lot's stock, after the same 404 as `get`.
+pub async fn holds(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+) -> Result<Vec<repo::HoldRow>, AppError> {
+    let lot = get(state, workspace_id, id).await?;
+    Ok(repo::holds(&state.db, workspace_id, lot.id).await?)
 }
 
 /// `rows` as resources, with where each came from (one statement for all).

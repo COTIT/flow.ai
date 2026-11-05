@@ -281,6 +281,39 @@ test("the status picker offers only the API's next statuses", async ({ page, api
   ).toHaveText(["Quarantine", "Released", "Recalled"])
 })
 
+test("a recalled batch lists the orders no other batch could take over", async ({
+  page,
+  api,
+}) => {
+  const lots = lotsApi(api)
+  lots[0]!.status = "recalled"
+  lots[0]!.next_statuses = []
+  api.on("GET", "/workspace/:ws/lots/:lot/holds", () => ({
+    data: [{ order_id: "ord-7", number: "ORD-0007", warehouse_id: "wh-1", quantity: "3.00" }],
+  }))
+  await page.goto("/lots/lot-1")
+  const holds = page.getByRole("region", { name: "Orders waiting on this batch" })
+  await expect(holds.getByText("3.00 held")).toBeVisible()
+  await expect(holds.getByRole("link", { name: "ORD-0007" })).toHaveAttribute(
+    "href",
+    "/orders/ord-7"
+  )
+})
+
+test("a received batch whose source was recalled says so", async ({ page, api }) => {
+  const lots = lotsApi(api)
+  Object.assign(lots[0]!, {
+    received_from: {
+      transfer_id: "tr-1",
+      from_lot_code: "ILU-H-01",
+      from_lot_public_code: "7K3M9Q2XRT",
+      from_lot_status: "recalled",
+    },
+  })
+  await page.goto("/lots/lot-1")
+  await expect(page.getByText("The source batch was recalled by the supplier.")).toBeVisible()
+})
+
 test("history says who did it: a name, the system, or a user who left", async ({
   page,
   api,

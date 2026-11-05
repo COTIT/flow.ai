@@ -113,6 +113,8 @@ export async function fakeApi(page: Page) {
       farmer_groups: null,
       farmers: [],
     }))
+    // Every batch page reads the orders still holding it; specs that care override this.
+    .on("GET", "/workspace/:ws/lots/:lot/holds", () => ({ data: [] }))
   await page.route("**/v1/**", (route) => api.handle(route))
   return api
 }

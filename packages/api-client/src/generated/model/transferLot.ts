@@ -12,4 +12,9 @@
 export interface TransferLot {
   code: string;
   public_code: string;
+  /**
+     * The sent lot's status at the sender now; `recalled` or `quarantine` means the supplier
+     * took it off sale (receiving stays allowed).
+     */
+  status: string;
 }

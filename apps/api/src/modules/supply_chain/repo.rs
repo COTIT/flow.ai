@@ -15,6 +15,7 @@ pub struct TransferRow {
     pub partner_display_name: String,
     pub from_lot_code: String,
     pub from_lot_public_code: String,
+    pub from_lot_status: String,
     pub quantity: Decimal,
     pub dispatched_at: DateTime<Utc>,
     pub to_lot_id: Option<Uuid>,
@@ -158,7 +159,7 @@ pub async fn rows(
         r#"SELECT t.id, t.link_id, t.from_workspace_id, t.to_workspace_id, w.name AS partner_name,
                   coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS "partner_display_name!",
                   f.code AS from_lot_code, f.public_code AS from_lot_public_code,
-                  t.quantity, t.dispatched_at, t.to_lot_id,
+                  f.status AS from_lot_status, t.quantity, t.dispatched_at, t.to_lot_id,
                   r.code AS "to_lot_code?", t.received_quantity, t.received_at
            FROM supply_transfers t
            JOIN lots f ON f.workspace_id = t.from_workspace_id AND f.id = t.from_lot_id

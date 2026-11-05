@@ -384,6 +384,92 @@ pub async fn take(
     Ok(Taken::Done)
 }
 
+/// Move every hold off `lot_id` (just put out of sale, so [`pick`] skips it) onto the
+/// sellable rows of the same product at the same warehouse, first-expired-first. Record by
+/// record, oldest hold first, all or nothing: a record the other rows can't cover keeps its
+/// hold whole (callers release the full line, so a short hold would break them).
+pub async fn move_off_lot(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    lot_id: Uuid,
+    product_id: Uuid,
+) -> Result<(), Error> {
+    let warehouses = sqlx::query_scalar!(
+        "SELECT DISTINCT s.warehouse_id FROM stock_reservations r
+         JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id
+         WHERE r.workspace_id = $1 AND s.lot_id = $2
+         ORDER BY 1",
+        workspace_id,
+        lot_id,
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    for warehouse_id in warehouses {
+        // Locks every row of the product here in key order, the lot's own included.
+        let mut rows = pick(conn, workspace_id, warehouse_id, product_id).await?;
+        let held = sqlx::query!(
+            "SELECT r.stock_id, r.related_domain, r.related_id, sum(r.quantity) AS \"quantity!\",
+                    min(r.created_at) AS first
+             FROM stock_reservations r
+             JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id
+             WHERE r.workspace_id = $1 AND s.lot_id = $2 AND s.warehouse_id = $3
+             GROUP BY r.stock_id, r.related_domain, r.related_id
+             ORDER BY first, r.related_id",
+            workspace_id,
+            lot_id,
+            warehouse_id,
+        )
+        .fetch_all(&mut *conn)
+        .await?;
+        for h in held {
+            let free: Decimal = rows.iter().map(|r| r.stock_lvl - r.reserved).sum();
+            if free < h.quantity {
+                continue;
+            }
+            sqlx::query!(
+                "DELETE FROM stock_reservations
+                 WHERE workspace_id = $1 AND stock_id = $2 AND related_domain = $3
+                   AND related_id = $4",
+                workspace_id,
+                h.stock_id,
+                h.related_domain,
+                h.related_id,
+            )
+            .execute(&mut *conn)
+            .await?;
+            let from = lock_row(conn, workspace_id, h.stock_id).await?;
+            shift(conn, workspace_id, &from, -h.quantity, "released").await?;
+            let mut left = h.quantity;
+            for row in &mut rows {
+                let take = left.min(row.stock_lvl - row.reserved);
+                if take <= Decimal::ZERO {
+                    continue;
+                }
+                sqlx::query!(
+                    "INSERT INTO stock_reservations (workspace_id, stock_id, product_id,
+                                                     related_domain, related_id, quantity)
+                     VALUES ($1, $2, $3, $4, $5, $6)",
+                    workspace_id,
+                    row.id,
+                    product_id,
+                    h.related_domain,
+                    h.related_id,
+                    take,
+                )
+                .execute(&mut *conn)
+                .await?;
+                shift(conn, workspace_id, row, take, "reserved").await?;
+                row.reserved += take;
+                left -= take;
+                if left.is_zero() {
+                    break;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Returned units of a product to put back on one row: its lot, or the no-lot row (None).
 #[derive(Clone, Copy, Debug)]
 pub struct Back {

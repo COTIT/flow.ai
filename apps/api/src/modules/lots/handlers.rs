@@ -22,7 +22,7 @@ use crate::{
         app_keys::secret::CATALOG_READ,
         lots::{
             dto::{
-                CreateLotRequest, FarmerCreditsPage, ListQuery, LotEventResource, LotFreeStock,
+                CreateLotRequest, FarmerCreditsPage, ListQuery, LotEventResource, LotFreeStock, LotHold,
                 LotResource, LotStockLevel, PageQuery, PassportResource, StockMutationRequest,
                 UpdateLotRequest,
             },
@@ -144,6 +144,31 @@ pub async fn stock(
     Path((_, id)): LotPath,
 ) -> Result<Data<Vec<LotFreeStock>>, AppError> {
     let rows = service::free_stock(&state, access.workspace_id, &id).await?;
+    Ok(Data(rows.into_iter().map(Into::into).collect()))
+}
+
+/// GET /lots/{lot}/holds -> orders still holding this lot.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/lots/{lot}/holds", tag = "lots",
+    operation_id = "lots_holds", summary = "Orders still holding a lot",
+    description = "Orders whose hold could not move off this lot when it went into quarantine or was recalled (no other sellable lot of the product at that warehouse had room for the whole hold). Oldest first. Cancel such an order, or release the lot, to clear it.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<Vec<LotHold>>, description = "Orders holding the lot; empty when none"),
+        (status = 403, body = MessageBody, description = "Inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn holds(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, id)): LotPath,
+) -> Result<Data<Vec<LotHold>>, AppError> {
+    let rows = service::holds(&state, access.workspace_id, &id).await?;
     Ok(Data(rows.into_iter().map(Into::into).collect()))
 }
 

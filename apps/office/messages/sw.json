@@ -882,5 +882,17 @@
     "orderRecalled": "Bechi ambayo agizo hili linashikilia imerudishwa, na hakuna bechi nyingine iliyoweza kuchukua nafasi. Ghairi agizo ili kuiachilia.",
     "orderQuarantined": "Bechi ambayo agizo hili linashikilia imesimamishwa. Iruhusu bechi au ghairi agizo.",
     "orderExpired": "Bechi ambayo agizo hili linashikilia imeisha muda. Ghairi agizo ili kuiachilia."
+  },
+  "supplyWarn": {
+    "recalled": "Bechi ya chanzo imerudishwa na msambazaji.",
+    "quarantine": "Bechi ya chanzo imesimamishwa kwa msambazaji.",
+    "receiveHint": "Bado unaweza kuipokea. Amua cha kufanya na bidhaa: simamisha bechi yako au uirudishe.",
+    "badgeRecalled": "Imerudishwa na msambazaji",
+    "badgeQuarantine": "Imesimamishwa kwa msambazaji"
+  },
+  "lotHolds": {
+    "title": "Maagizo yanayosubiri bechi hii",
+    "hint": "Hakuna bechi nyingine katika ghala hilo iliyoweza kuchukua maagizo haya. Ghairi agizo, au iruhusu bechi hii.",
+    "held": "{quantity} imehifadhiwa"
   }
 }
