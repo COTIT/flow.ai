@@ -873,5 +873,14 @@
     "mollie": "Online",
     "online": "Online",
     "settled": "Verrekend met creditnota"
+  },
+  "lotErrors": {
+    "stockInRecalled": "Deze batch is teruggeroepen, dus er kan geen voorraad bij. Afboeken kan nog wel.",
+    "packRecalled": "Deze batch is teruggeroepen en kan niet worden verpakt.",
+    "packQuarantined": "Deze batch staat in quarantaine en kan niet worden verpakt. Geef hem eerst vrij.",
+    "statusFinal": "Een teruggeroepen batch kan niet van status veranderen.",
+    "orderRecalled": "Een batch die deze bestelling vasthoudt is teruggeroepen en geen andere batch kon het overnemen. Annuleer de bestelling om hem vrij te geven.",
+    "orderQuarantined": "Een batch die deze bestelling vasthoudt staat in quarantaine. Geef de batch vrij of annuleer de bestelling.",
+    "orderExpired": "Een batch die deze bestelling vasthoudt is verlopen. Annuleer de bestelling om hem vrij te geven."
   }
 }

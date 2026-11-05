@@ -873,5 +873,14 @@
     "mollie": "Online",
     "online": "Online",
     "settled": "Settled with credit note"
+  },
+  "lotErrors": {
+    "stockInRecalled": "This batch is recalled, so no stock can be added. You can still write stock off.",
+    "packRecalled": "This batch is recalled, so it can't be packed.",
+    "packQuarantined": "This batch is on hold, so it can't be packed. Release it first.",
+    "statusFinal": "A recalled batch can't change status.",
+    "orderRecalled": "A batch this order holds was recalled, and no other batch could take over. Cancel the order to free it.",
+    "orderQuarantined": "A batch this order holds is on hold. Release the batch or cancel the order.",
+    "orderExpired": "A batch this order holds has expired. Cancel the order to free it."
   }
 }

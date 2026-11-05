@@ -352,7 +352,11 @@ export default function LotPage({
           >
             <LotFields lot={current} errors={fieldErrors(update.error)} />
             <div className="empty:hidden md:col-span-2">
-              <ApiError error={update.error} fallback={t("common.error")} />
+              <ApiError
+                error={update.error}
+                fallback={t("common.error")}
+                codes={{ lot_status_final: t("lotErrors.statusFinal") }}
+              />
             </div>
           </form>
         </Tile>

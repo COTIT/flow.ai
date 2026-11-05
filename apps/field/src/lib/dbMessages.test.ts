@@ -100,6 +100,8 @@ describe('translateDbMessage', () => {
       translateDbMessage('The harvest report must be the current, verified actual figure of this village and crop.')?.key,
     ).toBe('dbError.buyBadHarvest')
     expect(translateDbMessage("The harvest's farm has no primary manager.")?.key).toBe('dbError.buyNoManager')
+    expect(translateDbMessage('lot_recalled')?.key).toBe('dbError.lotRecalled')
+    expect(translateDbMessage('lot_quarantined')?.key).toBe('dbError.lotQuarantined')
   })
 
   // farm_vouchers writes this into a refused scan's audit detail.

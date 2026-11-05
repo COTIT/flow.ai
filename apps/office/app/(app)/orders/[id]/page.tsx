@@ -436,7 +436,15 @@ export default function OrderPage({
               {rest.map((a) => actionButton(a, false))}
             </div>
           ) : null}
-          <ApiError error={actionError} fallback={t("common.error")} />
+          <ApiError
+            error={actionError}
+            fallback={t("common.error")}
+            codes={{
+              lot_recalled: t("lotErrors.orderRecalled"),
+              lot_quarantined: t("lotErrors.orderQuarantined"),
+              lot_expired: t("lotErrors.orderExpired"),
+            }}
+          />
         </SideCard>
 
         <SideCard id="order-customer" title={t("orders.customer")}>

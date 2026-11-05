@@ -873,5 +873,14 @@
     "mollie": "Mtandaoni",
     "online": "Mtandaoni",
     "settled": "Imelipwa kwa hati ya mkopo"
+  },
+  "lotErrors": {
+    "stockInRecalled": "Bechi hii imerudishwa, kwa hiyo hakuna bidhaa inayoweza kuongezwa. Bado unaweza kuondoa bidhaa.",
+    "packRecalled": "Bechi hii imerudishwa, kwa hiyo haiwezi kufungashwa.",
+    "packQuarantined": "Bechi hii imesimamishwa, kwa hiyo haiwezi kufungashwa. Iruhusu kwanza.",
+    "statusFinal": "Bechi iliyorudishwa haiwezi kubadilisha hali.",
+    "orderRecalled": "Bechi ambayo agizo hili linashikilia imerudishwa, na hakuna bechi nyingine iliyoweza kuchukua nafasi. Ghairi agizo ili kuiachilia.",
+    "orderQuarantined": "Bechi ambayo agizo hili linashikilia imesimamishwa. Iruhusu bechi au ghairi agizo.",
+    "orderExpired": "Bechi ambayo agizo hili linashikilia imeisha muda. Ghairi agizo ili kuiachilia."
   }
 }

@@ -153,6 +153,15 @@ pub async fn insert_lot(
     Ok(lot)
 }
 
+/// 409 when stock may not leave `lot` to be packed or sent: recalled or in quarantine.
+pub fn check_sendable(lot: &LotRow) -> Result<(), AppError> {
+    match lot.status.as_str() {
+        "recalled" => Err(AppError::Conflict("lot_recalled")),
+        "quarantine" => Err(AppError::Conflict("lot_quarantined")),
+        _ => Ok(()),
+    }
+}
+
 /// One lot of the workspace, else 404.
 pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<LotRow, AppError> {
     repo::find(&state.db, workspace_id, parse(id)?)
@@ -560,6 +569,14 @@ pub async fn stock_mutation(
     let actor = idempotency::Actor::User(access.user_id);
     if let Some(a) = idempotency::replay(&mut tx, ws, actor, key.as_ref()).await? {
         return Ok(a);
+    }
+    // Under the lot lock, so a recall can't slip in between. Quarantine takes goods in for
+    // inspection; a recalled lot only gives stock out (write-off).
+    let lot = repo::locked(&mut tx, ws, lot.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if lot.status == "recalled" && m.quantity > rust_decimal::Decimal::ZERO {
+        return Err(AppError::Conflict("lot_recalled"));
     }
     match stock::mutate(
         &mut tx,

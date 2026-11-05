@@ -149,7 +149,9 @@
     "payoutOverBalance": "The amount must not be greater than the balance of {{balance}}.",
     "buyOwnVerification": "A harvest you verified must be bought by someone else.",
     "buyBadHarvest": "The harvest figure must be the current, verified actual figure for this village and crop.",
-    "buyNoManager": "The harvest's farm has no primary manager."
+    "buyNoManager": "The harvest's farm has no primary manager.",
+    "lotRecalled": "This batch is recalled, so it can't be sent.",
+    "lotQuarantined": "This batch is on hold, so it can't be sent. Release it first."
   },
   "empty": {
     "noAccessToThis": "Nothing to show",

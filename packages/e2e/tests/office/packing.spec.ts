@@ -164,6 +164,32 @@ test.describe(() => {
   })
 })
 
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/lots/lot-raw/packings", status: 409 }],
+    },
+  })
+
+  for (const [code, text] of [
+    ["lot_recalled", "This batch is recalled, so it can't be packed."],
+    ["lot_quarantined", "This batch is on hold, so it can't be packed. Release it first."],
+  ] as const)
+    test(`pack: a ${code} refusal reads as a sentence, not a code`, async ({ page, api }) => {
+      packingApi(api)
+      api.on("POST", "/workspace/:ws/lots/:id/packings", () => ({
+        status: 409,
+        body: { message: code },
+      }))
+      await page.goto("/lots/lot-raw")
+      await page.getByRole("button", { name: "Pack into jars" }).click()
+      await fillPack(page)
+      const dialog = page.getByRole("dialog")
+      await expect(dialog.getByRole("alert").filter({ hasText: text })).toBeVisible()
+      await expect(dialog).not.toContainText(code)
+    })
+})
+
 async function fillPack(page: import("@playwright/test").Page) {
   const dialog = page.getByRole("dialog")
   // The form packs into a warehouse: wait until they are read.

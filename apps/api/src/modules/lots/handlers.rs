@@ -403,6 +403,7 @@ pub async fn storefront_get(
         (status = 200, body = Envelope<LotStockLevel>, description = "Stock moved; the lot's level at the warehouse"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+        (status = 409, body = MessageBody, description = "`lot_recalled`: stock can't go into a recalled lot (out stays allowed)"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown warehouse, more out than the lot has free, or Idempotency-Key reused for another request"),
     ),
     security(("bearer" = []))

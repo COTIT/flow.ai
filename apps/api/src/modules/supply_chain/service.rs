@@ -16,7 +16,7 @@ use crate::{
         farm_supply::service::lineage,
         lots::{
             repo::{self as lots, LotRow, NewEvent},
-            service::insert_lot,
+            service::{check_sendable, insert_lot},
         },
         products::repo as products,
         stock::{
@@ -128,6 +128,10 @@ pub async fn pack(
     {
         return Ok(a);
     }
+    let parent = lots::locked(&mut tx, ws, parent.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    check_sendable(&parent)?;
     let mut child = new_lot(p.product_id, p.code, parent.origin.clone());
     child.best_before = p.best_before;
     child.expires_on = p.expires_on;
@@ -233,6 +237,10 @@ pub async fn dispatch(
             "The selected warehouse id is invalid.",
         ));
     }
+    let lot = lots::locked(&mut tx, ws, lot.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    check_sendable(&lot)?;
     let tid = repo::insert_transfer(
         &mut tx,
         d.link_id,

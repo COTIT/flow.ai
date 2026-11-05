@@ -62918,6 +62918,16 @@
             },
             "description": "Request body arrived too slowly"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_recalled` or `lot_quarantined`: the lot may not be packed"
+          },
           "413": {
             "content": {
               "application/json": {
@@ -63761,6 +63771,16 @@
             },
             "description": "Request body arrived too slowly"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_recalled`: stock can't go into a recalled lot (out stays allowed)"
+          },
           "413": {
             "content": {
               "application/json": {
@@ -63937,6 +63957,16 @@
               }
             },
             "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_recalled` or `lot_quarantined`: the lot may not be sent"
           },
           "413": {
             "content": {

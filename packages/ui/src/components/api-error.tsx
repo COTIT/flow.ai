@@ -12,10 +12,27 @@ function fieldErrors(error: unknown): Record<string, string[]> {
   return body(error)?.errors ?? {}
 }
 
-/** An error Notice with the API's own words for a failed call; `fallback` when it sent none. */
-function ApiError({ error, fallback }: { error: unknown; fallback: string }) {
+/**
+ * An error Notice with the API's own words for a failed call; `fallback` when it sent none.
+ * `codes` turns a 409's code (`lot_recalled`) into the caller's sentence, so no code is shown.
+ */
+function ApiError({
+  error,
+  fallback,
+  codes,
+}: {
+  error: unknown
+  fallback: string
+  codes?: Record<string, string>
+}) {
   if (!error) return null
-  return <Notice variant="error" title={body(error)?.message ?? fallback} />
+  const message = body(error)?.message
+  return (
+    <Notice
+      variant="error"
+      title={(message && codes?.[message]) ?? message ?? fallback}
+    />
+  )
 }
 
 export { ApiError, fieldErrors }

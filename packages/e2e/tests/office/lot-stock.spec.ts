@@ -151,6 +151,35 @@ test.describe(() => {
   })
 })
 
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/lots/lot-1/stock-mutations", status: 409 }],
+    },
+  })
+
+  test("adding stock to a recalled batch reads as a sentence, not a code", async ({
+    page,
+    api,
+  }) => {
+    lotApi(api)
+    api.on("POST", "/workspace/:ws/lots/:id/stock-mutations", () => ({
+      status: 409,
+      body: { message: "lot_recalled" },
+    }))
+    await page.goto("/lots/lot-1")
+    await page.getByRole("button", { name: "Change stock" }).click()
+    await changeStock(page)
+    const dialog = page.getByRole("dialog")
+    await expect(
+      dialog.getByRole("alert").filter({
+        hasText: "This batch is recalled, so no stock can be added.",
+      })
+    ).toBeVisible()
+    await expect(dialog).not.toContainText("lot_recalled")
+  })
+})
+
 async function changeStock(page: import("@playwright/test").Page) {
   const dialog = page.getByRole("dialog")
   // The form sends to a warehouse: wait until they are read.

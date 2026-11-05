@@ -921,3 +921,50 @@ async fn a_retried_packing_makes_one_batch_of_jars(pool: PgPool) {
         "another body under the key"
     );
 }
+
+#[sqlx::test]
+async fn held_or_recalled_lots_are_neither_packed_nor_sent(pool: PgPool) {
+    let c = chain(pool).await;
+    let s = shop(&c, json!([])).await;
+    for (status, code) in [("quarantine", "lot_quarantined"), ("recalled", "lot_recalled")] {
+        let (st, res) =
+            c.f.ws_call(
+                Method::PATCH,
+                &format!("/lots/{}", c.raw),
+                Some(json!({ "status": status })),
+                &c.f.owner,
+            )
+            .await;
+        assert_eq!(st, StatusCode::OK, "{res}");
+        let (st, res) = pack(&c, &c.raw, packing(&c, &format!("J-{status}"), "2", "1")).await;
+        assert_eq!(
+            (st, &res["message"]),
+            (StatusCode::CONFLICT, &json!(code)),
+            "pack {status}: {res}"
+        );
+        let (st, res) = dispatch(&c, &c.raw, &s.link, "1").await;
+        assert_eq!(
+            (st, &res["message"]),
+            (StatusCode::CONFLICT, &json!(code)),
+            "send {status}: {res}"
+        );
+    }
+    assert_eq!(level(&c.f.pool, &c.raw).await, "7.50", "nothing moved");
+    let made: i64 = sqlx::query_scalar("SELECT count(*) FROM lots WHERE parent_lot_id IS NOT NULL")
+        .fetch_one(&c.f.pool)
+        .await
+        .unwrap();
+    assert_eq!(made, 0);
+
+    // The partner can't reach the sender's lot at all.
+    let (st, _) = a_call(
+        &c.f,
+        &s.a_ws,
+        Method::POST,
+        &format!("/lots/{}/packings", c.raw),
+        Some(packing(&c, "X", "1", "1")),
+        &s.a,
+    )
+    .await;
+    assert_eq!(st, StatusCode::NOT_FOUND);
+}
