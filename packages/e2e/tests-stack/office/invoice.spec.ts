@@ -2,7 +2,12 @@ import { expectNoRawValues } from "../../src/test"
 import { type Api, apiAs, cred, expect, loginOffice, stackAllow, test, unique, urls, workspaces } from "../../src/stack"
 
 type Order = { id: string; number: string; warehouse_id: string; invoice_id: string | null }
-type Invoice = { status: string; invoice_nr: string | null; relationships: { payments: { id: string }[] } }
+type Invoice = {
+  status: string
+  invoice_nr: string | null
+  money: { open: number; decimals: number }
+  relationships: { payments: { id: string }[] }
+}
 
 /** A customer of the test's own, with a contact person and a billing address (a send needs both). */
 async function customer(owner: Api, tag: string) {
@@ -71,7 +76,7 @@ test("order → invoice → sent → partly paid → paid → credit note → cr
   expect(sent.invoice_nr).toBeTruthy()
   await expect(page.getByText("Sent", { exact: true }).first()).toBeVisible()
 
-  // Part, then the rest (prefilled with what is open).
+  // Part, then the rest (typed from the API's open cents; the page only shows them).
   await next.getByRole("button", { name: "Record payment" }).click()
   let dialog = page.getByRole("dialog", { name: "Record a payment" })
   await dialog.getByLabel(/^Amount/).fill("5.00")
@@ -80,6 +85,8 @@ test("order → invoice → sent → partly paid → paid → credit note → cr
   await expect(page.getByText("Partly paid", { exact: true }).first()).toBeVisible()
   await next.getByRole("button", { name: "Record payment" }).click()
   dialog = page.getByRole("dialog", { name: "Record a payment" })
+  const { open, decimals } = (await owner.get<Invoice>(owner.ws(`/invoices/${invoiceId}`))).money
+  await dialog.getByLabel(/^Amount/).fill(`${Math.trunc(open / 10 ** decimals)}.${String(open % 10 ** decimals).padStart(decimals, "0")}`)
   await dialog.getByLabel("Paid with").selectOption({ label: "Bank transfer or other" })
   await dialog.getByRole("button", { name: "Record payment" }).click()
   await expect(dialog).toBeHidden()
@@ -90,7 +97,12 @@ test("order → invoice → sent → partly paid → paid → credit note → cr
 
   // The order shows its invoice's status, in words.
   await page.getByRole("link", { name: `Open order ${order.number}` }).click()
-  await expect(page.getByRole("region", { name: "Customer" }).getByText("Paid", { exact: true })).toBeVisible()
+  const customerCard = page.getByRole("region", { name: "Customer" })
+  await expect(customerCard.getByText("Paid", { exact: true })).toBeVisible()
+  // The order reads as paid through its invoice; its own status doesn't move.
+  await expect(customerCard.getByText("Paid · invoice")).toBeVisible()
+  await expect(customerCard.getByText("Not paid")).toHaveCount(0)
+  await expectNoRawValues(page, { allow: [order.number, sent.invoice_nr!] })
   await page.getByRole("link", { name: "Open invoice" }).click()
 
   // Credit everything: a draft credit note, sent, then marked credited.

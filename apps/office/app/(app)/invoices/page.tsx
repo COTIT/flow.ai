@@ -133,8 +133,8 @@ export default function InvoicesPage({
             <TableBody>
               {invoices.data.data.map((inv) => {
                 const nr = invoiceNumber(inv.invoice_nr)
-                const money = (amount: string | number) =>
-                  invoiceMoney(amount, inv.relationships.currency, locale)
+                const money = (minor: number) =>
+                  invoiceMoney(minor, inv.money, locale)
                 return (
                   <TableRow key={inv.id}>
                     <TableCell>
@@ -171,13 +171,13 @@ export default function InvoicesPage({
                       data-m="right"
                       className="text-right font-semibold tabular-nums"
                     >
-                      {money(inv.total_amount)}
+                      {money(inv.money.total)}
                     </TableCell>
                     <TableCell
                       data-m="hide"
                       className="text-right tabular-nums"
                     >
-                      {money(inv.balance.open)}
+                      {money(inv.money.open)}
                     </TableCell>
                   </TableRow>
                 )

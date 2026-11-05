@@ -392,7 +392,6 @@
     "payAmount": "Amount ({currency})",
     "payMethod": "Paid with",
     "payNote": "Note",
-    "badAmount": "Enter an amount like 12.50.",
     "payBy": {
       "cash": "Cash",
       "pin": "Card",
@@ -423,7 +422,8 @@
     "openOrder": "Open order {number}",
     "noContact": "This customer has no contact person yet.",
     "noAddress": "This customer has no address yet.",
-    "sendContact": "Contact person"
+    "sendContact": "Contact person",
+    "openHint": "Open: {amount}"
   },
   "orders": {
     "title": "Orders",
@@ -514,7 +514,11 @@
       "refunded": "Refunded",
       "invoiced": "Invoiced"
     },
-    "trailNote": "Who did what is recorded from now on; older steps show their times only."
+    "trailNote": "Who did what is recorded from now on; older steps show their times only.",
+    "byInvoice": {
+      "paid": "Paid · invoice",
+      "partially_paid": "Partly paid · invoice"
+    }
   },
   "till": {
     "title": "Till",

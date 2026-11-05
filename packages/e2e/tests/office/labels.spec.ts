@@ -87,6 +87,7 @@ const invoice = (status: string, i: number) => ({
   total_amount: "121.00",
   allowed_actions: [],
   balance: { open: 21, paid: "100.00", total: 121 },
+  money: { currency: "EUR", decimals: 2, subtotal: 10000, vat: 2100, total: 12100, paid: 10000, open: 2100 },
   items: [],
   relationships: {
     payments: methods.map((m, j) => ({
@@ -94,6 +95,7 @@ const invoice = (status: string, i: number) => ({
       date: "2026-10-31",
       payment_method: m,
       amount: "20.00",
+      amount_minor: 2000,
     })),
   },
 })

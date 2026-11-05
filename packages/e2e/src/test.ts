@@ -158,6 +158,8 @@ const RAW_PATTERNS: [string, RegExp][] = [
   // A missing translation prints its key: `invoices.statuses.pending`, `orders.makeInvoice`.
   ["i18n key", /\b[a-z][a-zA-Z]+(?:\.[a-zA-Z][a-zA-Z0-9_]+)+\b/],
   ["snake_case", /\b[a-z0-9]+(?:_[a-z0-9]+)+\b/],
+  // API decimal text that skipped formatting: `118.82000000`, `30.4733`.
+  ["raw decimal", /\b\d+[.,]\d{4,}\b/],
   ["UUID", /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i],
   ["boolean", /^(?:true|false)$/],
   ["ISO date", /\b\d{4}-\d{2}-\d{2}(?!\d)/],
@@ -173,7 +175,7 @@ const NOT_RAW = [
 
 /**
  * No visible text is a raw internal value: a scope key (`catalog:read`), an event name
- * (`stock.changed`), a translation key (`orders.makeInvoice`), a snake_case code, a UUID, a bare `true`/`false`, or an ISO or US machine
+ * (`stock.changed`), a translation key (`orders.makeInvoice`), an unformatted decimal (`118.82000000`), a snake_case code, a UUID, a bare `true`/`false`, or an ISO or US machine
  * date. Inputs, `code`/`pre`/`kbd` and anything marked `data-raw` are skipped; `allow` lets legit
  * codes through (exact strings or patterns), `within` limits the check to part of the page.
  */

@@ -33,10 +33,11 @@ function invoice(over: Partial<Invoice> = {}): Invoice {
     due_date: null,
     total_amount: "121.00",
     balance: { open: 121, paid: 0, total: 121 },
+    money: { currency: "EUR", decimals: 2, subtotal: 10000, vat: 2100, total: 12100, paid: 0, open: 12100 },
     billing_address: { address: "Mill Lane", house_number: "4", zipcode: "1234AB", city: "Utrecht", country: "NL" },
     addressed_contact: null,
     items: [
-      { id: "it-1", title: "AFM Honey 500g", quantity: "10.00", price_incl: "12.10", total_incl: "121.00", amount_left_to_credit: "10.00" },
+      { id: "it-1", title: "AFM Honey 500g", quantity: "10.00", price_incl: "12.10", total_incl: "121.00", unit_price_minor: 1210, total_minor: 12100, amount_left_to_credit: "10.00" },
     ],
     allowed_actions: ["edit", "send", "cancel", "duplicate"],
     relationships: { currency: eur, relation, payments: [], order: null },
@@ -119,24 +120,24 @@ test("pay: part, then a credit note settles the rest", async ({ page, api }) => 
   const seen: string[] = []
   const state = invoiceApi(
     api,
-    invoice({ status: "pending", invoice_nr: "2026-0007", allowed_actions: ["resend", "duplicate", "pay"], balance: { open: 121, paid: 0, total: 121 } })
+    invoice({ status: "pending", invoice_nr: "2026-0007", allowed_actions: ["resend", "duplicate", "pay"] })
   )
   api
     .on("POST", "/workspace/:ws/invoices/:id/payments", () => {
-      state.inv = { ...state.inv, status: "partially_paid", balance: { open: 21, paid: "100.00000000", total: 121 } }
+      state.inv = { ...state.inv, status: "partially_paid", money: { currency: "EUR", decimals: 2, subtotal: 10000, vat: 2100, total: 12100, paid: 10000, open: 2100 } }
       return { status: 201, body: { data: { invoice_payment_id: "pay-1" } } }
     })
     .on("GET", "/workspace/:ws/invoices", ({ query }) => {
       seen.push(query.toString())
-      return paged([{ id: "cn-1", invoice_nr: "2026-0009", is_credit: true, status: "pending", total_amount: "-21.00", balance: { open: -21, paid: 0 }, relationships: { currency: eur } }])
+      return paged([{ id: "cn-1", invoice_nr: "2026-0009", is_credit: true, status: "pending", money: { currency: "EUR", decimals: 2, subtotal: -1736, vat: -364, total: -2100, paid: 0, open: -2100 }, relationships: { currency: eur } }])
     })
   await page.goto("/invoices/inv-1")
   await page.getByRole("button", { name: "Record payment" }).click()
   const dialog = page.getByRole("dialog", { name: "Record a payment" })
   const amount = dialog.getByLabel("Amount (EUR)")
-  await expect(amount).toHaveValue("121.00")
-  await amount.fill("12.505")
-  await expect(dialog.getByText("Enter an amount like 12.50.")).toBeVisible()
+  // No guess and no sums: the field starts empty, the API's open amount is the hint.
+  await expect(amount).toHaveValue("")
+  await expect(dialog.getByText("Open: €121.00")).toBeVisible()
   await expect(dialog.getByRole("button", { name: "Record payment" })).toBeDisabled()
   await amount.fill("100")
   await dialog.getByLabel("Paid with").selectOption({ label: "Cash" })
@@ -144,11 +145,13 @@ test("pay: part, then a credit note settles the rest", async ({ page, api }) => 
   await dialog.getByRole("button", { name: "Record payment" }).click()
   await expect(page.getByText("Payment recorded.")).toBeVisible()
   await expect(page.getByRole("banner").or(page.locator("main")).getByText("Partly paid").first()).toBeVisible()
-  expect(api.callsTo("POST", "/workspace/:ws/invoices/:id/payments")[0]!.body).toMatchObject({ amount: "100.00", payment_method: "cash" })
+  expect(api.callsTo("POST", "/workspace/:ws/invoices/:id/payments")[0]!.body).toMatchObject({ amount: "100", payment_method: "cash" })
   expect(api.callsTo("POST", "/workspace/:ws/invoices/:id/payments")[0]!.headers["idempotency-key"]).toBeTruthy()
 
   await page.getByRole("button", { name: "Record payment" }).click()
   const again = page.getByRole("dialog", { name: "Record a payment" })
+  await expect(again.getByText("Open: €21.00")).toBeVisible()
+  await again.getByLabel("Amount (EUR)").fill("21.00")
   await again.getByLabel("Paid with").selectOption({ label: "A credit note of this customer" })
   await again.getByLabel("Credit note").selectOption({ label: "2026-0009 · -€21.00 open" })
   await page.getByRole("dialog").getByRole("button", { name: "Record payment" }).click()
@@ -171,13 +174,16 @@ test.describe(() => {
     }))
     await page.goto("/invoices/inv-1")
     await page.getByRole("button", { name: "Record payment" }).click()
+    // The amount goes as typed; the API judges it.
+    await page.getByRole("dialog").getByLabel("Amount (EUR)").fill("12.505")
     await page.getByRole("dialog").getByRole("button", { name: "Record payment" }).click()
     await expect(page.getByRole("dialog").getByText("The amount must have at most 2 decimal places.").first()).toBeVisible()
+    expect(api.callsTo("POST", "/workspace/:ws/invoices/:id/payments")[0]!.body).toMatchObject({ amount: "12.505" })
   })
 })
 
 test("void a payment after asking", async ({ page, api }) => {
-  const payments = [{ id: "pay-1", date: "2026-11-01T00:00:00Z", payment_method: "cash", amount: "100.00000000" }]
+  const payments = [{ id: "pay-1", date: "2026-11-01T00:00:00Z", payment_method: "cash", amount: "100.00000000", amount_minor: 10000 }]
   const state = invoiceApi(
     api,
     invoice({ status: "partially_paid", invoice_nr: "2026-0007", allowed_actions: ["pay"], relationships: { currency: eur, relation, payments, order: null } })

@@ -34,7 +34,6 @@ import {
 import { Input } from "@genesy/ui/components/input"
 import { Notice } from "@genesy/ui/components/notice"
 import { Textarea } from "@genesy/ui/components/textarea"
-import { decimalToMinor, toMinor } from "@genesy/ui/lib/money"
 import { Tile } from "@/components/bento"
 import { Field, selectClass } from "@/components/field"
 import { Done, useDone } from "@/components/states"
@@ -100,14 +99,6 @@ const unavailable = (e: unknown) =>
   (e as { response?: { status?: number } } | null)?.response?.status === 503
 
 const today = () => new Date().toISOString().slice(0, 10)
-
-/** Minor units as the plain amount the form shows and sends: 2100, 2 → "21.00". */
-function plain(minor: bigint, dp: number) {
-  const neg = minor < 0n
-  const digits = (neg ? -minor : minor).toString().padStart(dp + 1, "0")
-  const whole = digits.slice(0, digits.length - dp)
-  return `${neg ? "-" : ""}${whole}${dp ? `.${digits.slice(-dp)}` : ""}`
-}
 
 /** OfficeOrder's Next step card for an invoice: only the API's `allowed_actions` show. */
 export function NextStep({
@@ -476,12 +467,8 @@ function PayDialog({
   const t = useTranslations()
   const locale = useLocale()
   const workspaceId = useSession((s) => s.workspaceId) ?? ""
-  const currency = inv.relationships.currency
-  const dp = currency?.decimals ?? 2
-  const open = decimalToMinor(String(inv.balance.open), dp)
-  const [amount, setAmount] = React.useState(
-    open !== null && open > 0n ? plain(open, dp) : ""
-  )
+  // The amount goes to the API as typed; it checks the number and its decimals.
+  const [amount, setAmount] = React.useState("")
   const [method, setMethod] = React.useState("cash")
   const [note, setNote] = React.useState("")
   const key = useIdempotencyKey()
@@ -495,7 +482,6 @@ function PayDialog({
     { relation_id: relation.id, is_credit: true, status: "pending" },
     { query: { enabled: method === "settle" && Boolean(relation.id) } }
   )
-  const minor = toMinor(amount, dp)
   const errors = fieldErrors(pay.error)
 
   return (
@@ -504,14 +490,13 @@ function PayDialog({
         className="flex flex-col gap-3"
         onSubmit={(e) => {
           e.preventDefault()
-          if (minor === null) return
           const form = new FormData(e.currentTarget)
           pay.mutate({
             workspace: workspaceId,
             invoice: inv.id,
             data: {
               date: String(form.get("date")),
-              amount: plain(BigInt(minor), dp),
+              amount: amount.trim(),
               ...(method === "settle"
                 ? { settle_invoice_id: String(form.get("note_id")) }
                 : { payment_method: method }),
@@ -523,11 +508,9 @@ function PayDialog({
         <Field
           id="pay-amount"
           label={t("invoices.payAmount", {
-            currency: currency?.asset_type ?? "",
+            currency: inv.money.currency ?? "",
           })}
-          errors={
-            amount && minor === null ? [t("invoices.badAmount")] : errors.amount
-          }
+          errors={errors.amount}
         >
           <Input
             inputMode="decimal"
@@ -536,6 +519,11 @@ function PayDialog({
             required
           />
         </Field>
+        <p className="-mt-1 text-xs text-muted-foreground">
+          {t("invoices.openHint", {
+            amount: invoiceMoney(inv.money.open, inv.money, locale),
+          })}
+        </p>
         <Field id="pay-date" label={t("invoices.payDate")} errors={errors.date}>
           <Input name="date" type="date" defaultValue={today()} required />
         </Field>
@@ -570,11 +558,7 @@ function PayDialog({
                   <option key={n.id} value={n.id}>
                     {t("invoices.creditNoteOption", {
                       number: invoiceNumber(n.invoice_nr) ?? "—",
-                      open: invoiceMoney(
-                        n.balance.open,
-                        n.relationships.currency,
-                        locale
-                      ),
+                      open: invoiceMoney(n.money.open, n.money, locale),
                     })}
                   </option>
                 ))}
@@ -598,7 +582,7 @@ function PayDialog({
           submit={t("invoices.act.pay")}
           disabled={
             pay.isPending ||
-            minor === null ||
+            !amount.trim() ||
             (method === "settle" && !notes.data?.data.length)
           }
         />

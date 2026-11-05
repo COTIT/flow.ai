@@ -392,7 +392,6 @@
     "payAmount": "Kiasi ({currency})",
     "payMethod": "Imelipwa kwa",
     "payNote": "Maelezo",
-    "badAmount": "Weka kiasi kama 12.50.",
     "payBy": {
       "cash": "Taslimu",
       "pin": "Kadi",
@@ -423,7 +422,8 @@
     "openOrder": "Fungua oda {number}",
     "noContact": "Mteja huyu bado hana mtu wa mawasiliano.",
     "noAddress": "Mteja huyu bado hana anwani.",
-    "sendContact": "Mtu wa mawasiliano"
+    "sendContact": "Mtu wa mawasiliano",
+    "openHint": "Kinachodaiwa: {amount}"
   },
   "orders": {
     "title": "Oda",
@@ -514,7 +514,11 @@
       "refunded": "Pesa imerejeshwa",
       "invoiced": "Ankara imetolewa"
     },
-    "trailNote": "Nani alifanya nini kinarekodiwa kuanzia sasa; hatua za zamani zinaonyesha muda tu."
+    "trailNote": "Nani alifanya nini kinarekodiwa kuanzia sasa; hatua za zamani zinaonyesha muda tu.",
+    "byInvoice": {
+      "paid": "Imelipwa · ankara",
+      "partially_paid": "Imelipwa kiasi · ankara"
+    }
   },
   "till": {
     "title": "Kaunta",

@@ -70,6 +70,7 @@ const lists: {
       due_date: at,
       total_amount: "121.00",
       balance: { open: 21, paid: "100.00", total: 121 },
+      money: { currency: "EUR", decimals: 2, subtotal: 10000, vat: 2100, total: 12100, paid: 10000, open: 2100 },
       relationships: { currency: { asset_type: "EUR", decimals: 2 } },
     }),
     name: (i) => `2026-${String(i).padStart(4, "0")}`,

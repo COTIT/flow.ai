@@ -1,5 +1,7 @@
 import type { Page } from "@playwright/test"
 
+import { expectNoRawValues } from "../../src/test"
+
 import { choose, expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 type Order = {
@@ -8,6 +10,7 @@ type Order = {
   status: string
   paid_at: string | null
   invoice_id: string | null
+  invoice_status?: string | null
   allowed_actions?: string[]
   [k: string]: unknown
 }
@@ -105,10 +108,6 @@ function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
   api
     .on("GET", "/workspace/:ws/orders", () => paged([order]))
     .on("GET", "/workspace/:ws/orders/:id", () => ({ data: order }))
-    // The order page reads its invoice's status; a fresh one is a draft.
-    .on("GET", "/workspace/:ws/invoices/:id", () => ({
-      data: { id: order.invoice_id, status: "draft", invoice_nr: null },
-    }))
     .on("POST", "/workspace/:ws/orders/:id/confirm", to("open"))
     .on("POST", "/workspace/:ws/orders/:id/complete", to("completed"))
     .on("POST", "/workspace/:ws/orders/:id/cancel", () =>
@@ -135,6 +134,7 @@ function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
     .on("POST", "/workspace/:ws/orders/:id/returns", to("partially_returned"))
     .on("POST", "/workspace/:ws/orders/:id/invoice", () => {
       order.invoice_id = "inv-9"
+      order.invoice_status = "draft"
       order.allowed_actions = allowedFor(order)
       return { data: order }
     })
@@ -325,9 +325,6 @@ test("returns send only the lines filled in; invoice links once made", async ({
   api,
 }) => {
   ordersApi(api, { status: "completed" })
-  api.on("GET", "/workspace/:ws/invoices/:id", () => ({
-    data: { id: "inv-9", status: "partially_paid", invoice_nr: "2026-0007" },
-  }))
   await page.goto("/orders/ord-1")
   await page.getByRole("button", { name: "Take back returns" }).click()
   await page.getByRole("dialog").getByLabel("AFM Honey 500g (8)").fill("1")
@@ -347,29 +344,24 @@ test("returns send only the lines filled in; invoice links once made", async ({
   await expect(
     page.getByRole("link", { name: "Open invoice" })
   ).toHaveAttribute("href", "/invoices/inv-9")
-  // The invoice's own status, in words, next to the link.
+  // The invoice's own status (read with the order), in words, next to the link.
   await expect(
-    page.getByRole("region", { name: "Customer" }).getByText("Partly paid")
+    page.getByRole("region", { name: "Customer" }).getByText("Draft", { exact: true })
   ).toBeVisible()
 })
 
-test.describe(() => {
-  test.use({ allow: { responses: [{ url: "/v1/workspace/w1/invoices/inv-9", status: 403 }] } })
-
-  test("a member who may not read invoices still gets the link, without a status", async ({
-    page,
-    api,
-  }) => {
-    ordersApi(api, { status: "completed", invoice_id: "inv-9" })
-    api.on("GET", "/workspace/:ws/invoices/:id", () => ({
-      status: 403,
-      body: { message: "This action is unauthorized." },
-    }))
+for (const [invoice_status, badge] of [
+  ["paid", "Paid · invoice"],
+  ["partially_paid", "Partly paid · invoice"],
+] as const)
+  test(`an office order paid through its invoice says so (${invoice_status})`, async ({ page, api }) => {
+    ordersApi(api, { status: "completed", invoice_id: "inv-9", invoice_status })
     await page.goto("/orders/ord-1")
-    await expect(page.getByRole("link", { name: "Open invoice" })).toBeVisible()
-    await expect(page.getByText("This action is unauthorized.")).toHaveCount(0)
+    const customer = page.getByRole("region", { name: "Customer" })
+    await expect(customer.getByText(badge)).toBeVisible()
+    await expect(customer.getByText("Not paid")).toHaveCount(0)
+    await expectNoRawValues(page, { allow: ["SO-1001"] })
   })
-})
 
 test("refund retried after a network failure reuses its key; the API sees one refund", async ({
   page,
@@ -743,9 +735,6 @@ test("orders/[id] returns dialog: every control is a 44 px target on a phone", a
     "BUG: the Restock box is a bare 13x13 <input type=checkbox> (apps/office/app/(app)/orders/[id]/page.tsx:789), not the 44 px Checkbox"
   )
   ordersApi(api, { status: "completed" })
-  api.on("GET", "/workspace/:ws/invoices/:id", () => ({
-    data: { id: "inv-9", status: "partially_paid", invoice_nr: "2026-0007" },
-  }))
   await page.goto("/orders/ord-1")
   await page.getByRole("button", { name: "Take back returns" }).click()
   await expect(page.getByRole("dialog").getByLabel("Put returned goods back on stock")).toBeChecked()

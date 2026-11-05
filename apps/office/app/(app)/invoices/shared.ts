@@ -1,25 +1,18 @@
-import { decimalToMinor, formatMoney } from "@genesy/ui/lib/money"
-
-type Currency = { asset_type: string; decimals: number } | null | undefined
+import type { InvoiceMoney } from "@genesy/api-client/model"
+import { formatMoney } from "@genesy/ui/lib/money"
 
 /**
- * An amount as the API sends it (decimal text, or a JSON number for `balance.open`/`total`) in
- * the invoice's currency, exact. A unit price with more places than the currency keeps them.
- * Without a currency the API's text shows as sent.
+ * Minor units from the API's `money` (computed in SQL) in that currency. Display only: the
+ * office never adds, rounds or parses money. A dash when the currency is gone.
  */
 export function invoiceMoney(
-  amount: string | number,
-  currency: Currency,
+  minor: number,
+  money: Pick<InvoiceMoney, "currency" | "decimals">,
   locale: string
 ) {
-  const text = String(amount)
-  if (!currency) return text
-  for (const dp of [currency.decimals, text.split(".")[1]?.length ?? 0]) {
-    const minor = decimalToMinor(text, dp)
-    if (minor !== null)
-      return formatMoney(minor, dp, currency.asset_type, locale)
-  }
-  return text
+  return money.currency
+    ? formatMoney(minor, money.decimals, money.currency, locale)
+    : "—"
 }
 
 /** The invoice's number; null for a draft and for a cancelled draft (the API prints "N/A"). */

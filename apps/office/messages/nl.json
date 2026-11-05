@@ -392,7 +392,6 @@
     "payAmount": "Bedrag ({currency})",
     "payMethod": "Betaald met",
     "payNote": "Notitie",
-    "badAmount": "Vul een bedrag in zoals 12,50.",
     "payBy": {
       "cash": "Contant",
       "pin": "Pin",
@@ -423,7 +422,8 @@
     "openOrder": "Bestelling {number} openen",
     "noContact": "Deze klant heeft nog geen contactpersoon.",
     "noAddress": "Deze klant heeft nog geen adres.",
-    "sendContact": "Contactpersoon"
+    "sendContact": "Contactpersoon",
+    "openHint": "Openstaand: {amount}"
   },
   "orders": {
     "title": "Orders",
@@ -514,7 +514,11 @@
       "refunded": "Terugbetaald",
       "invoiced": "Gefactureerd"
     },
-    "trailNote": "Wie wat deed wordt vanaf nu bijgehouden; oudere stappen tonen alleen hun tijd."
+    "trailNote": "Wie wat deed wordt vanaf nu bijgehouden; oudere stappen tonen alleen hun tijd.",
+    "byInvoice": {
+      "paid": "Betaald · factuur",
+      "partially_paid": "Deels betaald · factuur"
+    }
   },
   "till": {
     "title": "Kassa",

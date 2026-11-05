@@ -92,8 +92,7 @@ export default function InvoicePage({
       />
     )
   const inv = invoice.data.data
-  const money = (amount: string | number) =>
-    invoiceMoney(amount, inv.relationships.currency, locale)
+  const money = (minor: number) => invoiceMoney(minor, inv.money, locale)
   const nr = invoiceNumber(inv.invoice_nr)
   const title = nr
     ? t(inv.is_credit ? "invoices.creditTitle" : "invoices.detailTitle", {
@@ -174,13 +173,13 @@ export default function InvoicePage({
                     {item.quantity}
                   </TableCell>
                   <TableCell data-m="hide" className="text-right tabular-nums">
-                    {money(item.price_incl)}
+                    {money(item.unit_price_minor)}
                   </TableCell>
                   <TableCell
                     data-m="right"
                     className="text-right font-semibold tabular-nums"
                   >
-                    {money(item.total_incl)}
+                    {money(item.total_minor)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -192,18 +191,18 @@ export default function InvoicePage({
               <span className="text-muted-foreground">
                 {t("invoices.total")}
               </span>
-              <span className="tabular-nums">{money(inv.balance.total)}</span>
+              <span className="tabular-nums">{money(inv.money.total)}</span>
             </p>
             <p className="flex justify-between text-[13px]">
               <span className="text-muted-foreground">
                 {t("invoices.paid")}
               </span>
-              <span className="tabular-nums">{money(inv.balance.paid)}</span>
+              <span className="tabular-nums">{money(inv.money.paid)}</span>
             </p>
             <p className="flex items-center justify-between">
               <span className="font-semibold">{t("invoices.open")}</span>
               <span className="text-lg font-semibold tabular-nums max-md:text-base">
-                {money(inv.balance.open)}
+                {money(inv.money.open)}
               </span>
             </p>
             <p className="text-xs text-muted-foreground">
@@ -363,7 +362,7 @@ export default function InvoicePage({
                       data-m="right"
                       className="text-right font-semibold tabular-nums"
                     >
-                      {money(pay.amount)}
+                      {money(pay.amount_minor)}
                     </TableCell>
                     {mayVoid ? (
                       <TableCell className="text-right">

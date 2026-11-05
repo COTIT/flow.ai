@@ -87,6 +87,8 @@ for (const [name, html] of [
   ["US date", "<td>11/4/2026, 6:12:49 PM</td>"],
   ["i18n key", "<span>invoices.statuses.pending</span>"],
   ["camelCase i18n key", "<button>orders.makeInvoice</button>"],
+  ["raw decimal", "<td>118.82000000</td>"],
+  ["four-place price", "<td>30.4733</td>"],
 ] as const)
   test(`raw values: catches a ${name}`, async ({ page }) => {
     await page.setContent(`<p>Fine text</p>${html}`)
