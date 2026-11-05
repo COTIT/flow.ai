@@ -147,24 +147,55 @@ pub async fn update(
     .await
 }
 
-/// Lots packed from `parent` (one level), under a row lock, in id order.
-pub async fn children_locked(
+/// A lot packed (at any depth) from a given lot, with the lot it was packed from.
+pub struct Descendant {
+    pub parent: Uuid,
+    pub lot: LotRow,
+}
+
+/// Every lot packed from `root`, down the whole line, under row locks taken in id order.
+pub async fn descendants_locked(
     conn: &mut PgConnection,
     workspace_id: Uuid,
-    parent: Uuid,
-) -> Result<Vec<LotRow>, sqlx::Error> {
-    sqlx::query_as!(
-        LotRow,
-        "SELECT id, product_id, code, public_code, status, produced_on, best_before, expires_on,
-                origin, created_at, updated_at
-         FROM lots WHERE workspace_id = $1 AND parent_lot_id = $2
-         ORDER BY id
-         FOR NO KEY UPDATE",
+    root: Uuid,
+) -> Result<Vec<Descendant>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"WITH RECURSIVE d AS (
+               SELECT id FROM lots WHERE workspace_id = $1 AND parent_lot_id = $2
+               UNION
+               SELECT l.id FROM lots l JOIN d ON l.parent_lot_id = d.id
+               WHERE l.workspace_id = $1
+           )
+           SELECT id, product_id, code, public_code, status, produced_on, best_before,
+                  expires_on, origin, created_at, updated_at, parent_lot_id AS "parent!"
+           FROM lots
+           WHERE workspace_id = $1 AND id IN (SELECT id FROM d)
+           ORDER BY id
+           FOR NO KEY UPDATE"#,
         workspace_id,
-        parent,
+        root,
     )
     .fetch_all(conn)
-    .await
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|r| Descendant {
+            parent: r.parent,
+            lot: LotRow {
+                id: r.id,
+                product_id: r.product_id,
+                code: r.code,
+                public_code: r.public_code,
+                status: r.status,
+                produced_on: r.produced_on,
+                best_before: r.best_before,
+                expires_on: r.expires_on,
+                origin: r.origin,
+                created_at: r.created_at,
+                updated_at: r.updated_at,
+            },
+        })
+        .collect())
 }
 
 /// A locked lot's new status.

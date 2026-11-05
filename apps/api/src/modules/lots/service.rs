@@ -309,9 +309,13 @@ fn rank(status: &str) -> u8 {
 
 /// After `lot` (locked, saved) moved from `from`: its trail row and `lot.status_changed`, and
 /// each partner that got stock from it hears `supply.source_status_changed` (their data stays
-/// theirs). Off sale (tighter): holds move to sellable lots, and every lot packed from it, down
-/// the whole line, follows to the same status with its own row and event. Loosening never
-/// cascades.
+/// theirs). Off sale (tighter): every lot packed from it, down the whole line, that is looser
+/// follows to the same status with its own row and event, and holds move off each changed lot
+/// to sellable lots. Loosening never cascades.
+///
+/// Lock order is lot → stock, as in stock mutations, packing and dispatch: `lot` is locked by
+/// the caller, then the whole descendant line (id order), and only then stock rows (holds
+/// move last). Locking a child after a stock row could deadlock against a dispatch.
 async fn status_moved(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -319,12 +323,34 @@ async fn status_moved(
     lot: &LotRow,
     from: &str,
 ) -> Result<(), AppError> {
-    let mut work = vec![(lot.clone(), from.to_owned(), None::<Uuid>)];
-    while let Some((lot, from, because_of)) = work.pop() {
+    let tighter = rank(&lot.status) > rank(from);
+    let line = if tighter {
+        repo::descendants_locked(conn, workspace_id, lot.id).await?
+    } else {
+        Vec::new()
+    };
+    // Each lot that changes, with its old status and the lot it followed, parents first.
+    let mut changed = vec![(lot.clone(), from.to_owned(), None::<Uuid>)];
+    let mut next = 0;
+    while next < changed.len() {
+        let (parent, status) = (changed[next].0.id, changed[next].0.status.clone());
+        for d in line.iter().filter(|d| d.parent == parent) {
+            if rank(&d.lot.status) < rank(&status) {
+                let mut child = d.lot.clone();
+                let was = std::mem::replace(&mut child.status, status.clone());
+                changed.push((child, was, Some(parent)));
+            }
+        }
+        next += 1;
+    }
+    for (lot, from, because_of) in &changed {
+        if because_of.is_some() {
+            repo::set_status(conn, workspace_id, lot.id, &lot.status).await?;
+        }
         let event = NewEvent {
             lot_id: lot.id,
             kind: "status_changed",
-            from_status: Some(&from),
+            from_status: Some(from),
             to_status: Some(&lot.status),
             user_id,
             meta: because_of.map(|p| json!({ "because_of": p })),
@@ -354,17 +380,11 @@ async fn status_moved(
             )
             .await?;
         }
-        if rank(&lot.status) <= rank(&from) {
-            continue;
-        }
-        reserve::move_off_lot(conn, workspace_id, lot.id, lot.product_id).await?;
-        for mut child in repo::children_locked(conn, workspace_id, lot.id).await? {
-            if rank(&child.status) >= rank(&lot.status) {
-                continue;
-            }
-            let was = std::mem::replace(&mut child.status, lot.status.clone());
-            repo::set_status(conn, workspace_id, child.id, &child.status).await?;
-            work.push((child, was, Some(lot.id)));
+    }
+    if tighter {
+        // Every lot is locked and saved: now the stock rows.
+        for (lot, _, _) in &changed {
+            reserve::move_off_lot(conn, workspace_id, lot.id, lot.product_id).await?;
         }
     }
     Ok(())
