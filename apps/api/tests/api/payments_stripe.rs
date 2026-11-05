@@ -715,7 +715,7 @@ async fn a_refund_goes_to_the_payment_intent_and_settles_on_its_event(pool: PgPo
         .call(
             Method::POST,
             &format!("/{id}/refunds"),
-            Some(json!({ "amount": 500 })),
+            Some(json!({ "amount": "5.00" })),
             &w.api.owner,
         )
         .await;

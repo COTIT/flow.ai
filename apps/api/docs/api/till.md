@@ -154,7 +154,9 @@ What the session's register sells, by id, paged (`page_size` default 50, max 100
 
 ## Cash
 
-All amounts are integer minor units of the register's currency (EUR: cents). A **count** is a list of at most 50 lines `{denomination, count}`: `denomination` 1–1 000 000 000 minor units per note or coin, `count` 0–1 000 000 pieces, each denomination once. Errors are keyed `count.N.denomination` / `count.N.count`.
+All amounts are integer minor units of the register's currency (EUR: cents). A **count** is a list of at most 50 lines `{denomination, count}` or `{value, count}`: `denomination` 1–1 000 000 000 minor units per note or coin (the register's `accepted_cash`), or `value` a typed note or coin as decimal text in the register's currency (`"0.50"`), which the API converts with the currency's decimals; `count` 0–1 000 000 pieces; each denomination once (a `value` that comes out equal to another line's counts twice). Errors are keyed `count.N.denomination` / `count.N.value` / `count.N.count`.
+
+- `POST /till/shift/count-quote` `{count}` → 200 `{data: {total, lines, expected, difference}}` in minor units: the count's total, each line's denomination × pieces (in the order sent), and, with a shift open, its expected cash and total − expected (null without a shift). Books nothing; the till shows these while the cashier counts.
 
 Every movement is a row in `cash_ledger`, which refuses updates, deletes and truncates. A shift's expected cash is its opening count plus sales (step 4) plus or minus transfers. A vault's balance is the sum of its transfers.
 

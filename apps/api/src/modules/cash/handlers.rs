@@ -20,8 +20,8 @@ use crate::{
     modules::{
         cash::{
             dto::{
-                CountRequest, CreateVaultRequest, ShiftQuery, ShiftResource, TransferRequest,
-                TransferResource, VaultResource,
+                CountQuote, CountRequest, CreateVaultRequest, ShiftQuery, ShiftResource,
+                TransferRequest, TransferResource, VaultResource,
             },
             service,
         },
@@ -101,6 +101,29 @@ pub async fn close(
     Ok(Data(
         service::close(&state, &session.row, count).await?.into(),
     ))
+}
+
+/// POST /till/shift/count-quote -> `{data: {total, expected, difference}}`.
+#[utoipa::path(
+    post, path = "/workspace/{workspace}/till/shift/count-quote", tag = "till",
+    operation_id = "till_shift_count_quote", summary = "Total a count and compare it with the drawer",
+    description = "The till's live figures while the cashier counts: the count's total and, with a shift open, the expected cash and the difference, in minor units. Books nothing.",
+    params(("workspace" = Uuid, Path, description = "Workspace id")),
+    request_body = CountRequest,
+    responses(
+        (status = 200, body = Envelope<CountQuote>, description = "The count's figures"),
+        (status = 401, body = MessageBody, description = "No live till session"),
+        (status = 404, body = MessageBody, description = "Workspace is not the session's"),
+        (status = 422, body = ValidationErrorBody, description = "Invalid count"),
+    ),
+    security(("till_session" = []))
+)]
+pub async fn count_quote(
+    State(state): State<AppState>,
+    session: TillSession,
+    ValidatedJson(count): ValidatedJson<CountRequest>,
+) -> Result<Data<CountQuote>, AppError> {
+    Ok(Data(service::quote(&state, &session.row, count).await?))
 }
 
 /// POST /till/transfers -> 201 `{data: transfer}`.

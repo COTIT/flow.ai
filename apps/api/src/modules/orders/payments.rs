@@ -5,6 +5,7 @@
 //! run inside a transaction.
 
 use axum::http::HeaderMap;
+use rust_decimal::Decimal;
 use serde_json::json;
 use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
@@ -19,6 +20,7 @@ use crate::{
         runner::Step,
     },
     modules::orders::{checkout, dto::OrderAction, repo as orders, service, trail},
+    money,
     payments::{self, NewRefund, Provider, Status},
 };
 
@@ -639,7 +641,7 @@ pub async fn refund(
     workspace_id: Uuid,
     user_id: Uuid,
     id: &str,
-    amount: i64,
+    amount: Decimal,
     key: Option<Key>,
 ) -> Result<Answer, AppError> {
     let id = Uuid::parse_str(id).map_err(|_| AppError::NotFound)?;
@@ -670,8 +672,11 @@ pub async fn refund(
     .fetch_optional(&mut *tx)
     .await?
     .ok_or(AppError::Conflict(NOTHING_PAID))?;
+    let dp = u32::try_from(o.decimals).unwrap_or(2);
+    let amount = money::minor(amount, dp)?;
     let left = pay.amount - pay.out;
     if amount > left {
+        let left = Decimal::new(left, dp);
         return Err(AppError::field(
             "amount",
             format!("At most {left} can be refunded."),

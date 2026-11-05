@@ -17,9 +17,17 @@ export interface CountLine {
      */
   count: number;
   /**
-     * Minor units per note or coin (500 = €5.00).
+     * Minor units per note or coin (500 = €5.00), as the register's `accepted_cash` lists
+     * them. Send this or `value`.
      * @minimum 1
      * @maximum 1000000000
+     * @nullable
      */
-  denomination: number;
+  denomination?: number | null;
+  /**
+     * A typed note or coin as decimal text in the register's currency (`"0.50"`); the API
+     * converts it to minor units. Send this or `denomination`.
+     * @nullable
+     */
+  value?: string | null;
 }

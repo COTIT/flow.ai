@@ -10,6 +10,10 @@
  * Refund part of what was paid online.
  */
 export interface RefundRequest {
-  /** Minor units, at least 1 and at most paid − refunds not failed. */
-  amount: number;
+  /**
+     * Decimal text in the order's currency as typed (`"12.50"`), greater than 0, within the
+     * currency's decimals and at most paid − refunds not failed. The API converts it to minor
+     * units.
+     */
+  amount: string;
 }

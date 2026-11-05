@@ -1319,6 +1319,13 @@ fn every_till_operation_is_documented() {
             "till_session",
         ),
         (
+            "/till/shift/count-quote",
+            "post",
+            "till_shift_count_quote",
+            "200",
+            "till_session",
+        ),
+        (
             "/till/transfers",
             "post",
             "till_transfers_create",

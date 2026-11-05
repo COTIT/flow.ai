@@ -11,6 +11,7 @@ pub fn private() -> OpenApiRouter<AppState> {
         .routes(routes!(handlers::current))
         .routes(routes!(handlers::open))
         .routes(routes!(handlers::close))
+        .routes(routes!(handlers::count_quote))
         .routes(routes!(handlers::transfer))
         .routes(routes!(handlers::list_vaults, handlers::create_vault))
         .routes(routes!(handlers::list_shifts))
