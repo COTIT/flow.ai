@@ -1,10 +1,12 @@
+import { expectNoRawValues } from "../../src/test"
+
 import { expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 const invoice = {
   id: "inv-1",
   invoice_nr: "2026-0001",
   customer_name: "Acme Imports",
-  status: "sent",
+  status: "partially_paid",
   is_credit: false,
   created_at: "2026-10-30T09:00:00Z",
   due_date: "2026-11-13T00:00:00Z",
@@ -20,6 +22,7 @@ const invoice = {
     },
   ],
   relationships: {
+    currency: { asset_type: "EUR", decimals: 2 },
     payments: [
       {
         id: "pay-1",
@@ -53,13 +56,13 @@ function invoicesApi(api: FakeApi) {
     }))
 }
 
-test("invoice list to detail; amounts shown as the API gives them", async ({
+test("invoice list to detail; the API's amounts in the invoice's currency", async ({
   page,
   api,
 }) => {
   invoicesApi(api)
   await page.goto("/invoices")
-  await expect(page.getByRole("cell", { name: "121.00" }).first()).toBeVisible()
+  await expect(page.getByRole("cell", { name: "€121.00" }).first()).toBeVisible()
   await expect(
     page
       .getByRole("row", { name: /2026-0001/ })
@@ -75,7 +78,7 @@ test("invoice list to detail; amounts shown as the API gives them", async ({
   await page.getByRole("link", { name: "2026-0001" }).click()
   await expect(page.getByRole("heading", { name: "2026-0001" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "AFM Honey 500g" })).toBeVisible()
-  await expect(page.getByRole("cell", { name: "100.00000000" })).toBeVisible()
+  await expect(page.getByRole("cell", { name: "€100.00" })).toBeVisible()
   await expect(page.getByRole("region", { name: "Lines" })).toContainText(
     "Amounts as calculated by the server."
   )
@@ -148,4 +151,75 @@ test.describe(() => {
     await page.getByRole("button", { name: "Make PDF" }).click()
     await expect(page.getByRole("link", { name: "Open PDF" })).toBeVisible({ timeout: 5_000 })
   })
+})
+
+const eur = { asset_type: "EUR", decimals: 2 }
+
+test("list: every number, status and amount is readable", async ({ page, api }) => {
+  const row = (over: Record<string, unknown>) => ({
+    ...invoice,
+    relationships: { currency: eur },
+    ...over,
+  })
+  api.on("GET", "/workspace/:ws/invoices", () =>
+    paged([
+      row({ id: "d", invoice_nr: null, status: "draft", customer_name: "Old Mill Gift Shop" }),
+      row({
+        id: "c",
+        invoice_nr: "N/A",
+        status: "cancelled",
+        customer_name: "Two Ravens Coffee Bar",
+        total_amount: "449.40",
+        balance: { open: 449.4, paid: 0 },
+      }),
+      row({ id: "p", invoice_nr: "1", status: "pending", customer_name: "Brightwater Co-op" }),
+      row({
+        id: "n",
+        invoice_nr: "2",
+        status: "credited",
+        is_credit: true,
+        customer_name: "Copper Kettle",
+        total_amount: "-12.05",
+        balance: { open: 0, paid: "-12.05000000" },
+      }),
+    ])
+  )
+  await page.goto("/invoices")
+  const draft = page.getByRole("row", { name: /Old Mill/ })
+  await expect(draft.getByRole("cell").first()).toHaveText("—")
+  await expect(draft.getByRole("link", { name: "Open the invoice without a number" })).toBeVisible()
+  const cancelled = page.getByRole("row", { name: /Two Ravens/ })
+  await expect(cancelled.getByRole("cell").first()).toHaveText("—")
+  // Total and open in one format, from the API's text and its JSON number alike.
+  await expect(cancelled.getByRole("cell", { name: "€449.40" }).first()).toBeVisible()
+  // Open is hidden on a phone, so count the cells' text.
+  const texts = await cancelled.getByRole("cell", { includeHidden: true }).allTextContents()
+  expect(texts.filter((x) => x === "€449.40")).toHaveLength(2)
+  await expect(page.getByRole("row", { name: /Brightwater/ })).toContainText("Sent")
+  await expect(page.getByRole("row", { name: /Copper Kettle/ })).toContainText("-€12.05")
+  await expect(page.getByText("N/A")).toHaveCount(0)
+  await expectNoRawValues(page, { allow: [/\b\d{4}-\d{4}\b/] })
+  await expectFits(page)
+})
+
+test("detail: a draft and a credit note get their own title", async ({ page, api }) => {
+  let current: Record<string, unknown> = { ...invoice, invoice_nr: null, status: "draft" }
+  api.on("GET", "/workspace/:ws/invoices/:id", () => ({ data: current }))
+  await page.goto("/invoices/inv-1")
+  await expect(page.getByRole("heading", { name: "Draft invoice" })).toBeVisible()
+  current = { ...invoice, id: "inv-2", invoice_nr: "2026-0008", is_credit: true, status: "pending" }
+  await page.goto("/invoices/inv-2")
+  await expect(page.getByRole("heading", { name: "Credit note 2026-0008" })).toBeVisible()
+  await expectNoRawValues(page, { allow: [/\b\d{4}-\d{4}\b/] })
+})
+
+test("nl: statuses and the draft title in Dutch", async ({ page, api, context, baseURL }) => {
+  await context.addCookies([{ name: "NEXT_LOCALE", value: "nl", url: baseURL! }])
+  api.on("GET", "/workspace/:ws/invoices", () =>
+    paged([{ ...invoice, status: "pending", relationships: { currency: eur } }])
+  )
+  await page.goto("/invoices")
+  await expect(page.getByRole("row", { name: /2026-0001/ })).toContainText("Verzonden")
+  await expect(page.getByRole("row", { name: /2026-0001/ })).toContainText("€ 121,00")
+  await expectNoRawValues(page, { allow: [/\b\d{4}-\d{4}\b/] })
 })

@@ -28,6 +28,8 @@ import {
 import { StatusBadge } from "@/components/status-badge"
 import { Empty, LoadError } from "@/components/states"
 
+import { invoiceMoney, invoiceNumber } from "./shared"
+
 export default function InvoicesPage({
   searchParams,
 }: {
@@ -129,42 +131,57 @@ export default function InvoicesPage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.data.data.map((inv) => (
-                <TableRow key={inv.id}>
-                  <TableCell>
-                    <Link
-                      className="font-mono font-semibold tracking-[0.04em] underline-offset-4 hover:underline"
-                      href={`/invoices/${inv.id}`}
+              {invoices.data.data.map((inv) => {
+                const nr = invoiceNumber(inv.invoice_nr)
+                const money = (amount: string | number) =>
+                  invoiceMoney(amount, inv.relationships.currency, locale)
+                return (
+                  <TableRow key={inv.id}>
+                    <TableCell>
+                      <Link
+                        className={
+                          nr
+                            ? "inline-flex min-w-11 font-mono font-semibold tracking-[0.04em] underline-offset-4 hover:underline"
+                            : "inline-flex min-w-11 text-muted-foreground underline-offset-4 hover:underline"
+                        }
+                        href={`/invoices/${inv.id}`}
+                        aria-label={nr ? undefined : t("invoices.unnumbered")}
+                      >
+                        {nr ?? "—"}
+                      </Link>
+                      {inv.is_credit ? ` · ${t("invoices.credit")}` : ""}
+                    </TableCell>
+                    <TableCell data-m="sub">
+                      {inv.customer_name ?? "—"}
+                    </TableCell>
+                    <TableCell data-m="badge">
+                      <StatusBadge
+                        status={inv.status}
+                        label={t(`invoices.statuses.${inv.status}`)}
+                      />
+                    </TableCell>
+                    <TableCell data-m="hide" className="text-muted-foreground">
+                      {formatDate(inv.created_at, locale)}
+                    </TableCell>
+                    <TableCell data-m="hide" className="text-muted-foreground">
+                      {inv.due_date ? formatDate(inv.due_date, locale) : "—"}
+                    </TableCell>
+                    {/* The API's amounts, formatted exactly; never added up here. */}
+                    <TableCell
+                      data-m="right"
+                      className="text-right font-semibold tabular-nums"
                     >
-                      {inv.invoice_nr ?? t("invoices.draft")}
-                    </Link>
-                    {inv.is_credit ? ` · ${t("invoices.credit")}` : ""}
-                  </TableCell>
-                  <TableCell data-m="sub">{inv.customer_name ?? "—"}</TableCell>
-                  <TableCell data-m="badge">
-                    <StatusBadge
-                      status={inv.status}
-                      label={t(`invoices.statuses.${inv.status}`)}
-                    />
-                  </TableCell>
-                  <TableCell data-m="hide" className="text-muted-foreground">
-                    {formatDate(inv.created_at, locale)}
-                  </TableCell>
-                  <TableCell data-m="hide" className="text-muted-foreground">
-                    {inv.due_date ? formatDate(inv.due_date, locale) : "—"}
-                  </TableCell>
-                  {/* Amounts exactly as the API prints them; never added up here. */}
-                  <TableCell
-                    data-m="right"
-                    className="text-right font-semibold tabular-nums"
-                  >
-                    {inv.total_amount}
-                  </TableCell>
-                  <TableCell data-m="hide" className="text-right tabular-nums">
-                    {String(inv.balance.open)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                      {money(inv.total_amount)}
+                    </TableCell>
+                    <TableCell
+                      data-m="hide"
+                      className="text-right tabular-nums"
+                    >
+                      {money(inv.balance.open)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         )}

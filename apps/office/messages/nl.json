@@ -338,13 +338,19 @@
     "details": "Gegevens",
     "statuses": {
       "draft": "Concept",
-      "sent": "Verzonden",
-      "open": "Open",
       "partially_paid": "Deels betaald",
       "paid": "Betaald",
       "cancelled": "Geannuleerd",
-      "credited": "Gecrediteerd"
-    }
+      "credited": "Gecrediteerd",
+      "pending": "Verzonden",
+      "awaiting_payment": "Wacht op betaling",
+      "awaiting_pos_payment": "Wacht op kassabetaling",
+      "planned": "Gepland"
+    },
+    "draftTitle": "Conceptfactuur",
+    "creditTitle": "Creditnota {number}",
+    "unnumbered": "Open de factuur zonder nummer",
+    "draftCreditTitle": "Conceptcreditnota"
   },
   "orders": {
     "title": "Orders",
@@ -776,6 +782,7 @@
     "bank": "Bankoverschrijving",
     "bank_transfer": "Bankoverschrijving",
     "mollie": "Online",
-    "online": "Online"
+    "online": "Online",
+    "settled": "Verrekend met creditnota"
   }
 }

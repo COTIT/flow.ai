@@ -1,12 +1,15 @@
 // The API sends these as plain strings; the lists name every code office shows as a word.
+// Invoice statuses: the `invoices.status` CHECK in apps/api (the last three only old data has).
 export const INVOICE_STATUSES = [
   "draft",
-  "sent",
-  "open",
+  "pending",
   "partially_paid",
   "paid",
   "cancelled",
   "credited",
+  "awaiting_payment",
+  "awaiting_pos_payment",
+  "planned",
 ] as const
 export const PAY_METHODS = [
   "cash",
@@ -18,6 +21,7 @@ export const PAY_METHODS = [
   "bank_transfer",
   "mollie",
   "online",
+  "settled",
 ] as const
 export const MOVEMENT_TYPES = [
   "increase",

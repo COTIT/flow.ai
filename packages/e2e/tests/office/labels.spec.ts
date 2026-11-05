@@ -74,8 +74,8 @@ test("webhooks: events are words", async ({ page, api }) => {
   await expectNoRawValues(page, { allow })
 })
 
-const statuses = ["draft", "sent", "open", "partially_paid", "paid", "cancelled", "credited"]
-const methods = ["cash", "pin", "manual", "provider", "bank"]
+const statuses = ["draft", "pending", "partially_paid", "paid", "cancelled", "credited", "awaiting_payment", "awaiting_pos_payment", "planned"]
+const methods = ["cash", "pin", "manual", "provider", "bank", "settled"]
 const invoice = (status: string, i: number) => ({
   id: `inv-${i}`,
   invoice_nr: `2026-000${i}`,

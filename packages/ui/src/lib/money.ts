@@ -36,3 +36,17 @@ export function toMinor(text: string, decimals: number): number | null {
     ? Number(minor)
     : null
 }
+
+/**
+ * The API's decimal text ("449.40", "-12.05", "100.00000000", or `String()` of a JSON number)
+ * → integer minor units at `decimals`, by string, no floats. Digits past `decimals` must be
+ * zeros. null for anything else ("1e3", "0.125" at 2 places, "12,50").
+ */
+export function decimalToMinor(text: string, decimals: number): bigint | null {
+  const m = /^(-?)(\d+)(?:\.(\d+))?$/.exec(text)
+  if (!m) return null
+  const fraction = (m[3] ?? "").padEnd(decimals, "0")
+  if (/[^0]/.test(fraction.slice(decimals))) return null
+  const minor = BigInt(m[2]! + fraction.slice(0, decimals))
+  return m[1] ? -minor : minor
+}

@@ -26,6 +26,7 @@ import { StatusBadge } from "@/components/status-badge"
 import { Empty, LoadError } from "@/components/states"
 
 import { initials } from "../../orders/shared"
+import { invoiceMoney, invoiceNumber } from "../shared"
 
 type Text = string | null | undefined
 
@@ -58,6 +59,14 @@ export default function InvoicePage({
       />
     )
   const inv = invoice.data.data
+  const money = (amount: string | number) =>
+    invoiceMoney(amount, inv.relationships.currency, locale)
+  const nr = invoiceNumber(inv.invoice_nr)
+  const title = nr
+    ? t(inv.is_credit ? "invoices.creditTitle" : "invoices.detailTitle", {
+        number: nr,
+      })
+    : t(inv.is_credit ? "invoices.draftCreditTitle" : "invoices.draftTitle")
   const payments = inv.relationships.payments ?? []
   // Snapshots on the invoice, shown as stored; any of them may be missing.
   const relation = (inv.relationships.relation ?? {}) as {
@@ -88,9 +97,7 @@ export default function InvoicePage({
     <>
       <PageHead
         back={{ href: "/invoices", label: t("invoices.title") }}
-        title={t("invoices.detailTitle", {
-          number: inv.invoice_nr ?? t("invoices.draft"),
-        })}
+        title={title}
         actions={
           <>
             <StatusBadge
@@ -133,13 +140,13 @@ export default function InvoicePage({
                     {item.quantity}
                   </TableCell>
                   <TableCell data-m="hide" className="text-right tabular-nums">
-                    {item.price_incl}
+                    {money(item.price_incl)}
                   </TableCell>
                   <TableCell
                     data-m="right"
                     className="text-right font-semibold tabular-nums"
                   >
-                    {item.total_incl}
+                    {money(item.total_incl)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -151,18 +158,18 @@ export default function InvoicePage({
               <span className="text-muted-foreground">
                 {t("invoices.total")}
               </span>
-              <span className="tabular-nums">{String(inv.balance.total)}</span>
+              <span className="tabular-nums">{money(inv.balance.total)}</span>
             </p>
             <p className="flex justify-between text-[13px]">
               <span className="text-muted-foreground">
                 {t("invoices.paid")}
               </span>
-              <span className="tabular-nums">{String(inv.balance.paid)}</span>
+              <span className="tabular-nums">{money(inv.balance.paid)}</span>
             </p>
             <p className="flex items-center justify-between">
               <span className="font-semibold">{t("invoices.open")}</span>
               <span className="text-lg font-semibold tabular-nums max-md:text-base">
-                {String(inv.balance.open)}
+                {money(inv.balance.open)}
               </span>
             </p>
             <p className="text-xs text-muted-foreground">
@@ -284,7 +291,7 @@ export default function InvoicePage({
                       data-m="right"
                       className="text-right font-semibold tabular-nums"
                     >
-                      {pay.amount}
+                      {money(pay.amount)}
                     </TableCell>
                   </TableRow>
                 ))}

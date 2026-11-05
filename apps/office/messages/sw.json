@@ -338,13 +338,19 @@
     "details": "Maelezo",
     "statuses": {
       "draft": "Rasimu",
-      "sent": "Imetumwa",
-      "open": "Wazi",
       "partially_paid": "Imelipwa kiasi",
       "paid": "Imelipwa",
       "cancelled": "Imeghairiwa",
-      "credited": "Imepunguzwa"
-    }
+      "credited": "Imepunguzwa",
+      "pending": "Imetumwa",
+      "awaiting_payment": "Inasubiri malipo",
+      "awaiting_pos_payment": "Inasubiri malipo ya kaunta",
+      "planned": "Imepangwa"
+    },
+    "draftTitle": "Rasimu ya ankara",
+    "creditTitle": "Hati ya mkopo {number}",
+    "unnumbered": "Fungua ankara isiyo na namba",
+    "draftCreditTitle": "Rasimu ya hati ya mkopo"
   },
   "orders": {
     "title": "Oda",
@@ -776,6 +782,7 @@
     "bank": "Benki",
     "bank_transfer": "Benki",
     "mollie": "Mtandaoni",
-    "online": "Mtandaoni"
+    "online": "Mtandaoni",
+    "settled": "Imelipwa kwa hati ya mkopo"
   }
 }

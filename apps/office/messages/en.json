@@ -338,13 +338,19 @@
     "details": "Details",
     "statuses": {
       "draft": "Draft",
-      "sent": "Sent",
-      "open": "Open",
       "partially_paid": "Partly paid",
       "paid": "Paid",
       "cancelled": "Cancelled",
-      "credited": "Credited"
-    }
+      "credited": "Credited",
+      "pending": "Sent",
+      "awaiting_payment": "Awaiting payment",
+      "awaiting_pos_payment": "Awaiting till payment",
+      "planned": "Planned"
+    },
+    "draftTitle": "Draft invoice",
+    "creditTitle": "Credit note {number}",
+    "unnumbered": "Open the invoice without a number",
+    "draftCreditTitle": "Draft credit note"
   },
   "orders": {
     "title": "Orders",
@@ -776,6 +782,7 @@
     "bank": "Bank transfer",
     "bank_transfer": "Bank transfer",
     "mollie": "Online",
-    "online": "Online"
+    "online": "Online",
+    "settled": "Settled with credit note"
   }
 }
