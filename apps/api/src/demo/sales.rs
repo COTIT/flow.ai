@@ -477,7 +477,8 @@ async fn web(
                 let refund = api
                     .post(
                         &shop.at(&format!("/orders/{id}/refunds")),
-                        json!({ "amount": amount }),
+                        // Refunds take the amount as typed text (the shop's EUR, 2 places).
+                        json!({ "amount": super::dollars(amount) }),
                         &shop.owner,
                     )
                     .await?;

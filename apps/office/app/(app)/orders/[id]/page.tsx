@@ -48,7 +48,7 @@ import {
   TableHeader,
   TableRow,
 } from "@genesy/ui/components/table"
-import { formatMoney, toMinor } from "@genesy/ui/lib/money"
+import { formatMoney } from "@genesy/ui/lib/money"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { Field } from "@/components/field"
 import { PageHead } from "@/components/list"
@@ -836,7 +836,6 @@ function RefundDialog({
     mutation: { onSuccess: onDone, onSettled: (_d, e) => key.settle(e) },
     request: key.request,
   })
-  const minor = toMinor(amount, order.decimals)
   return (
     <Dialog
       open={open}
@@ -874,22 +873,18 @@ function RefundDialog({
             className="flex flex-col gap-3"
             onSubmit={(e) => {
               e.preventDefault()
-              if (minor !== null)
-                refund.mutate({
-                  workspace: workspaceId,
-                  order: order.id,
-                  data: { amount: minor },
-                })
+              // As typed: the API converts it to minor units and checks it.
+              refund.mutate({
+                workspace: workspaceId,
+                order: order.id,
+                data: { amount: amount.trim() },
+              })
             }}
           >
             <Field
               id="refund-amount"
               label={t("orders.refundAmount", { currency: order.currency })}
-              errors={
-                amount && minor === null
-                  ? [t("orders.badAmount")]
-                  : fieldErrors(refund.error).amount
-              }
+              errors={fieldErrors(refund.error).amount}
             >
               <Input
                 inputMode="decimal"
@@ -906,7 +901,7 @@ function RefundDialog({
               <Button
                 type="submit"
                 variant="destructive"
-                disabled={refund.isPending || minor === null}
+                disabled={refund.isPending || !amount.trim()}
               >
                 {t("orders.refund")}
               </Button>

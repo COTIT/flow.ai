@@ -52,7 +52,7 @@ One platform Stripe account for every workspace; the workspace travels in metada
 
 ## Refunds
 
-`POST /workspace/{workspace}/orders/{order}/refunds` (`order.delete`, Idempotency-Key): `{amount}` in minor units, 1 to paid − refunds not failed. The refund row commits as `creating`, then the provider is called; a failure is left to the sweep. Its status follows by webhook like a payment. A paid order cancels only once fully refunded (else 409 `refund_required`).
+`POST /workspace/{workspace}/orders/{order}/refunds` (`order.delete`, Idempotency-Key): `{amount}` as decimal text in the order's currency (`"12.50"`, as typed; a JSON number reads the same way), greater than 0, within the currency's decimals and at most paid − refunds not failed (422 on `amount`: `The amount must have at most 2 decimal places.`, `The amount must be greater than 0.`, `At most 25.00 can be refunded.`). The API converts it to minor units; the reply's `amount` is minor units. The refund row commits as `creating`, then the provider is called; a failure is left to the sweep. Its status follows by webhook like a payment. A paid order cancels only once fully refunded (else 409 `refund_required`).
 
 ## Adding a provider
 

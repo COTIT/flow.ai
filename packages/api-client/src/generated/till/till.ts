@@ -29,6 +29,7 @@ import type {
   CreateRegisterRequest,
   CreateTillUserRequest,
   CreateVaultRequest,
+  EnvelopeCountQuote,
   EnvelopeKeyRotated,
   EnvelopeOptionShiftResource,
   EnvelopePairedResource,
@@ -1371,6 +1372,75 @@ export const useTillShiftClose = <TError = ErrorType<MessageBody | ValidationErr
         TContext
       > => {
       return useMutation(getTillShiftCloseMutationOptions(options), queryClient);
+    }
+    /**
+ * The till's live figures while the cashier counts: the count's total and, with a shift open, the expected cash and the difference, in minor units. Books nothing.
+ * @summary Total a count and compare it with the drawer
+ */
+export const tillShiftCountQuote = (
+    workspace: string,
+    countRequest: BodyType<CountRequest>,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeCountQuote>(
+      {url: `/workspace/${workspace}/till/shift/count-quote`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: countRequest, signal
+    },
+      options);
+    }
+
+
+
+
+export const getTillShiftCountQuoteMutationKey = () => ['tillShiftCountQuote'] as const;
+
+export const getTillShiftCountQuoteMutationOptions = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillShiftCountQuote>>, TError,TillShiftCountQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+): UseMutationOptions<Awaited<ReturnType<typeof tillShiftCountQuote>>, TError,TillShiftCountQuoteMutationVariables, TContext> => {
+
+const mutationKey = getTillShiftCountQuoteMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof tillShiftCountQuote>>, TillShiftCountQuoteMutationVariables> = (props) => {
+          const {workspace,data} = props ?? {};
+
+          return  tillShiftCountQuote(workspace,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TillShiftCountQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof tillShiftCountQuote>>>
+    export type TillShiftCountQuoteMutationBody = BodyType<CountRequest>
+    export type TillShiftCountQuoteMutationError = ErrorType<MessageBody | ValidationErrorBody>
+    export type TillShiftCountQuoteMutationVariables = {workspace: string;data: BodyType<CountRequest>}
+
+    /**
+ * @summary Total a count and compare it with the drawer
+ */
+export const useTillShiftCountQuote = <TError = ErrorType<MessageBody | ValidationErrorBody>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof tillShiftCountQuote>>, TError,TillShiftCountQuoteMutationVariables, TContext>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof tillShiftCountQuote>>,
+        TError,
+        TillShiftCountQuoteMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTillShiftCountQuoteMutationOptions(options), queryClient);
     }
     /**
  * @summary Open the drawer with a counted float

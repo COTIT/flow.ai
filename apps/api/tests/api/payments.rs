@@ -473,7 +473,7 @@ async fn staff_refund_with_order_delete_and_cancel_only_once_refunded(pool: PgPo
         .call(
             Method::POST,
             &refunds,
-            Some(json!({ "amount": 500 })),
+            Some(json!({ "amount": "5.00" })),
             &clerk,
         )
         .await;
@@ -483,7 +483,7 @@ async fn staff_refund_with_order_delete_and_cancel_only_once_refunded(pool: PgPo
         .call(
             Method::POST,
             &refunds,
-            Some(json!({ "amount": 2501 })),
+            Some(json!({ "amount": "25.01" })),
             &w.api.owner,
         )
         .await;
@@ -493,7 +493,7 @@ async fn staff_refund_with_order_delete_and_cancel_only_once_refunded(pool: PgPo
         .call(
             Method::POST,
             &refunds,
-            Some(json!({ "amount": 500 })),
+            Some(json!({ "amount": "5.00" })),
             &w.api.owner,
         )
         .await;
@@ -512,7 +512,7 @@ async fn staff_refund_with_order_delete_and_cancel_only_once_refunded(pool: PgPo
         .call(
             Method::POST,
             &refunds,
-            Some(json!({ "amount": 2001 })),
+            Some(json!({ "amount": "20.01" })),
             &w.api.owner,
         )
         .await;
@@ -521,7 +521,7 @@ async fn staff_refund_with_order_delete_and_cancel_only_once_refunded(pool: PgPo
         .call(
             Method::POST,
             &refunds,
-            Some(json!({ "amount": 2000 })),
+            Some(json!({ "amount": "20.00" })),
             &w.api.owner,
         )
         .await;
@@ -558,7 +558,7 @@ async fn staff_refund_with_order_delete_and_cancel_only_once_refunded(pool: PgPo
         .call(
             Method::POST,
             &format!("/{unpaid}/refunds"),
-            Some(json!({ "amount": 1 })),
+            Some(json!({ "amount": "0.01" })),
             &w.api.owner,
         )
         .await;
@@ -619,7 +619,7 @@ async fn an_invoice_of_a_paid_order_books_paid_minus_refunded(pool: PgPool) {
         .call(
             Method::POST,
             &format!("/{part}/refunds"),
-            Some(json!({ "amount": 700 })),
+            Some(json!({ "amount": "7.00" })),
             &w.api.owner,
         )
         .await;
@@ -747,7 +747,7 @@ async fn web_order_events_name_the_shop_key_and_the_staff(pool: PgPool) {
         .call(
             Method::POST,
             &format!("/{id}/refunds"),
-            Some(json!({ "amount": 500 })),
+            Some(json!({ "amount": "5.00" })),
             &w.api.owner,
         )
         .await;
@@ -790,7 +790,7 @@ async fn sales_summary_shows_refunds_apart_from_gross(pool: PgPool) {
         .call(
             Method::POST,
             &format!("/{id}/refunds"),
-            Some(json!({ "amount": 500 })),
+            Some(json!({ "amount": "5.00" })),
             &w.api.owner,
         )
         .await;
@@ -1007,5 +1007,47 @@ async fn pay_right_after_cancel_gets_a_fresh_payment(pool: PgPool) {
         order_of(&w, &order).await["status"],
         "open",
         "paid without waiting for a drain"
+    );
+}
+
+/// The refund amount comes as typed (decimal text in the order's currency); the API converts it
+/// to minor units and checks it. Office does no money parsing.
+#[sqlx::test]
+async fn a_refund_amount_is_decimal_text_the_api_converts(pool: PgPool) {
+    let w = world(pool).await;
+    let id = paid(&w, 2).await;
+    let refunds = format!("/{id}/refunds");
+    let call = |amount: Value| {
+        let (api, refunds) = (&w.api, refunds.clone());
+        async move {
+            api.call(
+                Method::POST,
+                &refunds,
+                Some(json!({ "amount": amount })),
+                &api.owner,
+            )
+            .await
+        }
+    };
+    for (amount, error) in [
+        (
+            json!("12.505"),
+            "The amount must have at most 2 decimal places.",
+        ),
+        (json!("0"), "The amount must be greater than 0."),
+        (json!("-1"), "The amount must be greater than 0."),
+        (json!("1e3"), "The amount must be a number."),
+        (json!("12,50"), "The amount must be a number."),
+        (json!("25.01"), "At most 25.00 can be refunded."),
+    ] {
+        let (s, res) = call(amount.clone()).await;
+        assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "{amount}: {res}");
+        assert_eq!(res["errors"]["amount"][0], error, "{amount}");
+    }
+    let (s, res) = call(json!(" 12.5 ")).await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    assert_eq!(
+        res["data"]["amount"], 1250,
+        "minor units come back from the API"
     );
 }

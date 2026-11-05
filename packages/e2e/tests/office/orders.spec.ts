@@ -143,7 +143,8 @@ function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
       body: {
         data: {
           refund_id: "rf-1",
-          amount: (body as { amount: number }).amount,
+          // The API converts the typed text to minor units; this fake does it for USD.
+          amount: Math.round(Number((body as { amount: string }).amount) * 100),
           status: "creating",
         },
       },
@@ -291,7 +292,7 @@ test.describe(() => {
   })
 })
 
-test("refund: cancel sends nothing; 12.50 goes out as 1250 minor units", async ({
+test("refund: cancel sends nothing; the amount goes out as typed and the API's cents come back", async ({
   page,
   api,
 }) => {
@@ -307,16 +308,37 @@ test("refund: cancel sends nothing; 12.50 goes out as 1250 minor units", async (
 
   await page.getByRole("button", { name: "Refund" }).click()
   const dialog = page.getByRole("dialog")
-  await dialog.getByLabel("Amount (USD)").fill("12.505")
-  await expect(dialog.getByText("Enter an amount like 12.50.")).toBeVisible()
   await expect(dialog.getByRole("button", { name: "Refund" })).toBeDisabled()
   await dialog.getByLabel("Amount (USD)").fill("12.50")
   await dialog.getByRole("button", { name: "Refund" }).click()
   await expect(dialog.getByRole("status")).toContainText("$12.50")
+  // Text as typed; no parsing or rounding in the office.
   expect(
     api.callsTo("POST", "/workspace/:ws/orders/:id/refunds")[0]?.body
   ).toEqual({
-    amount: 1250,
+    amount: "12.50",
+  })
+})
+
+test.describe(() => {
+  test.use({ allow: { responses: [{ url: "/v1/workspace/w1/orders/ord-1/refunds", status: 422 }] } })
+
+  test("refund: the API judges the typed amount and its words show at the field", async ({ page, api }) => {
+    ordersApi(api, { status: "completed", paid_at: "2026-10-30T10:00:00Z" })
+    api.on("POST", "/workspace/:ws/orders/:id/refunds", () => ({
+      status: 422,
+      body: {
+        message: "The amount must have at most 2 decimal places.",
+        errors: { amount: ["The amount must have at most 2 decimal places."] },
+      },
+    }))
+    await page.goto("/orders/ord-1")
+    await page.getByRole("button", { name: "Refund" }).click()
+    const dialog = page.getByRole("dialog")
+    await dialog.getByLabel("Amount (USD)").fill("12.505")
+    await dialog.getByRole("button", { name: "Refund" }).click()
+    await expect(dialog.getByText("The amount must have at most 2 decimal places.").first()).toBeVisible()
+    expect(api.callsTo("POST", "/workspace/:ws/orders/:id/refunds")[0]?.body).toEqual({ amount: "12.505" })
   })
 })
 

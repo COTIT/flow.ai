@@ -466,7 +466,6 @@
     "refundTitle": "Terugbetaling op {number}",
     "refundText": "Het geld gaat via de betaalprovider terug naar de klant. Dit kan niet ongedaan worden gemaakt.",
     "refundAmount": "Bedrag ({currency})",
-    "badAmount": "Vul een bedrag in zoals 12.50.",
     "refundQueued": "Terugbetaling van {amount} naar de provider gestuurd (status: {status}).",
     "cancel": "Order annuleren",
     "cancelTitle": "Order {number} annuleren?",

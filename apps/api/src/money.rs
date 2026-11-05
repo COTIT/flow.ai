@@ -4,8 +4,26 @@
 
 use rust_decimal::{Decimal, RoundingStrategy};
 
+use crate::error::AppError;
+
 /// Largest `numeric(24,8)` value: 9999999999999999.99999999 (lo/mid/hi words of 10^24 - 1).
 pub const MAX: Decimal = Decimal::from_parts(2_701_131_775, 466_537_709, 54_210, false, 8);
+
+/// An `amount` the client typed, in minor units at `dp`, exact: 422 on `amount` past the
+/// currency's decimals or past i64. Trailing zeros are no extra decimals.
+pub fn minor(amount: Decimal, dp: u32) -> Result<i64, AppError> {
+    if amount.normalize().scale() > dp {
+        return Err(AppError::field(
+            "amount",
+            format!("The amount must have at most {dp} decimal places."),
+        ));
+    }
+    10_i64
+        .checked_pow(dp)
+        .and_then(|scale| amount.checked_mul(Decimal::from(scale)))
+        .and_then(|m| i64::try_from(m).ok())
+        .ok_or_else(|| AppError::field("amount", "The amount is out of range."))
+}
 
 /// How Laravel held an exact zero. A `float` cast or a computed value is PHP-falsy and prints
 /// `"0.00"`; an uncast DB string like `"0.00000000"` is truthy and prints `"0"`.
@@ -63,6 +81,22 @@ mod tests {
     use super::*;
     use serde::Deserialize;
     use std::str::FromStr;
+
+    #[test]
+    fn amounts_turn_into_minor_units_exactly() {
+        let m = |s: &str, dp| minor(Decimal::from_str(s).unwrap(), dp).ok();
+        assert_eq!(m("39.98", 2), Some(3_998));
+        assert_eq!(m("100", 2), Some(10_000));
+        assert_eq!(
+            m("1.50", 2),
+            Some(150),
+            "trailing zeros are no extra decimals"
+        );
+        assert_eq!(m("1.234", 2), None);
+        assert_eq!(m("1.234", 3), Some(1_234));
+        assert_eq!(m("12", 0), Some(12));
+        assert_eq!(m("99999999999999999", 2), None, "past i64");
+    }
 
     #[derive(Deserialize)]
     struct Case {

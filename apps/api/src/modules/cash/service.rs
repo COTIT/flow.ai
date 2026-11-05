@@ -10,7 +10,7 @@ use crate::{
     http::workspace::WorkspaceAccess,
     modules::{
         cash::{
-            dto::{Count, NewVault, Transfer, TransferResource},
+            dto::{Count, CountQuote, NewVault, Transfer, TransferResource},
             repo::{self, Entry, ShiftFilter, ShiftRow, VaultRow},
         },
         currencies, products,
@@ -41,8 +41,30 @@ pub async fn current(state: &AppState, s: &SessionRow) -> Result<Option<ShiftRow
     Ok(repo::open_shift(&state.db, s.workspace_id, s.register_id).await?)
 }
 
+/// The register's currency decimals, for typed `value`s.
+fn dp(s: &SessionRow) -> u32 {
+    u32::try_from(s.currency_decimals).unwrap_or(2)
+}
+
+/// A count's total and, with a shift open, the drawer's expected cash and counted − expected.
+/// Books nothing: the till's live figures while the cashier counts.
+pub async fn quote(state: &AppState, s: &SessionRow, count: Count) -> Result<CountQuote, AppError> {
+    let counted = count.resolve(dp(s))?;
+    let total = counted.total;
+    let expected = repo::open_shift(&state.db, s.workspace_id, s.register_id)
+        .await?
+        .map(|shift| shift.expected);
+    Ok(CountQuote {
+        total,
+        lines: counted.lines.iter().map(|(d, pieces)| d * pieces).collect(),
+        expected,
+        difference: expected.map(|e| total - e),
+    })
+}
+
 /// Open a shift with the counted float; 409 when one is open.
 pub async fn open(state: &AppState, s: &SessionRow, count: Count) -> Result<ShiftRow, AppError> {
+    let count = count.resolve(dp(s))?;
     let ws = s.workspace_id;
     let mut tx = state.db.begin().await?;
     repo::lock_register(&mut tx, ws, s.register_id).await?;
@@ -68,6 +90,7 @@ pub async fn open(state: &AppState, s: &SessionRow, count: Count) -> Result<Shif
 
 /// Close the open shift with the counted cash: stores expected, counted and the difference.
 pub async fn close(state: &AppState, s: &SessionRow, count: Count) -> Result<ShiftRow, AppError> {
+    let count = count.resolve(dp(s))?;
     let ws = s.workspace_id;
     let mut tx = state.db.begin().await?;
     repo::lock_register(&mut tx, ws, s.register_id).await?;
@@ -103,7 +126,8 @@ pub async fn transfer(
     input: Transfer,
 ) -> Result<TransferResource, AppError> {
     let ws = s.workspace_id;
-    let amount = input.count.total;
+    let count = input.count.resolve(dp(s))?;
+    let amount = count.total;
     let mut tx = state.db.begin().await?;
     repo::lock_register(&mut tx, ws, s.register_id).await?;
     let shift = repo::open_shift(&mut *tx, ws, s.register_id)
@@ -128,7 +152,7 @@ pub async fn transfer(
     }
     let transfer_id = Uuid::now_v7();
     let out = if input.to_vault { -1 } else { 1 };
-    let lines = &input.count.lines;
+    let lines = &count.lines;
     repo::book(
         &mut *tx,
         ws,

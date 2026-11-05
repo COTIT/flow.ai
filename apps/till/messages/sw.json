@@ -130,7 +130,9 @@
     "more": "Moja zaidi {value}",
     "row": "safu {n}",
     "padHint": "Kibodi inaandika kwenye safu uliyochagua ({row}).",
-    "expected": "Kinachotarajiwa"
+    "expected": "Kinachotarajiwa",
+    "difference": "Tofauti",
+    "offlineTotal": "Jumla itaonekana ukiwa mtandaoni."
   },
   "receipt": {
     "total": "Jumla",

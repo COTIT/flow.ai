@@ -130,7 +130,9 @@
     "more": "One more {value}",
     "row": "row {n}",
     "padHint": "The pad types into the selected row ({row}).",
-    "expected": "Expected"
+    "expected": "Expected",
+    "difference": "Difference",
+    "offlineTotal": "Total shown when online."
   },
   "receipt": {
     "total": "Total",

@@ -2,14 +2,17 @@
 //! integer minor units.
 
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::{
+    error::AppError,
     http::json::{Rules, Validate},
     modules::cash::repo::{ShiftFilter, ShiftRow, VaultRow},
+    money,
 };
 
 const COUNT_MAX: usize = 50;
@@ -20,26 +23,79 @@ const PIECES_MAX: i64 = 1_000_000;
 #[derive(Deserialize, ToSchema)]
 #[allow(dead_code)]
 pub struct CountLine {
-    /// Minor units per note or coin (500 = €5.00).
+    /// Minor units per note or coin (500 = €5.00), as the register's `accepted_cash` lists
+    /// them. Send this or `value`.
     #[schema(minimum = 1, maximum = 1_000_000_000, example = 500)]
-    denomination: i64,
+    denomination: Option<i64>,
+    /// A typed note or coin as decimal text in the register's currency (`"0.50"`); the API
+    /// converts it to minor units. Send this or `denomination`.
+    #[schema(example = "0.50")]
+    value: Option<String>,
     /// How many of them.
     #[schema(minimum = 0, maximum = 1_000_000, example = 3)]
     count: i64,
 }
 
-/// Validated count: `(denomination, pieces)` pairs and their total in minor units.
+/// A line's note or coin: minor units, or decimal text the register's decimals turn into them.
+pub enum Denomination {
+    Minor(i64),
+    Value(Decimal),
+}
+
+/// A count as sent: `(note or coin, pieces)` per line. `resolve` gives minor units.
 pub struct Count {
+    pub lines: Vec<(Denomination, i64)>,
+}
+
+/// A count in minor units: `(denomination, pieces)` pairs and their total.
+pub struct Counted {
     pub lines: Vec<(i64, i64)>,
     pub total: i64,
 }
 
-/// 0..=50 lines, each denomination once.
+impl Count {
+    /// Minor units at the register's `dp`, each denomination once; 422 on the line's
+    /// `denomination` / `value` (too many decimals, out of range, counted twice).
+    pub fn resolve(self, dp: u32) -> Result<Counted, AppError> {
+        let mut out = Counted {
+            lines: Vec::new(),
+            total: 0,
+        };
+        for (n, (d, pieces)) in self.lines.into_iter().enumerate() {
+            let (field, d) = match d {
+                Denomination::Minor(d) => (format!("count.{n}.denomination"), d),
+                Denomination::Value(v) => {
+                    let field = format!("count.{n}.value");
+                    let d = money::minor(v, dp).map_err(|_| {
+                        AppError::field(
+                            &field,
+                            format!("The value must have at most {dp} decimal places."),
+                        )
+                    })?;
+                    if !(1..=DENOMINATION_MAX).contains(&d) {
+                        return Err(AppError::field(&field, "The value must be greater than 0."));
+                    }
+                    (field, d)
+                }
+            };
+            if out.lines.iter().any(|(seen, _)| *seen == d) {
+                return Err(AppError::field(
+                    &field,
+                    "The denomination is counted twice.",
+                ));
+            }
+            out.lines.push((d, pieces));
+            // 50 × 1e9 × 1e6 stays far below i64::MAX.
+            out.total += d * pieces;
+        }
+        Ok(out)
+    }
+}
+
+/// 0..=50 lines; each a `denomination` (minor units, each once) or a `value` (decimal text),
+/// not both.
 fn count(r: &mut Rules, v: Option<Value>) -> Count {
-    let mut out = Count {
-        lines: Vec::new(),
-        total: 0,
-    };
+    let mut out = Count { lines: Vec::new() };
     let Some(v) = r.required_value("count", v) else {
         return out;
     };
@@ -48,24 +104,51 @@ fn count(r: &mut Rules, v: Option<Value>) -> Count {
         return out;
     };
     for (n, line) in list.iter().enumerate() {
-        let d = r.integer(
-            &format!("count.{n}.denomination"),
-            &line["denomination"],
-            1,
-            DENOMINATION_MAX,
-        );
         let c = r.integer(&format!("count.{n}.count"), &line["count"], 0, PIECES_MAX);
+        let d = match (line.get("denomination"), line.get("value")) {
+            (Some(d), None) => r
+                .integer(&format!("count.{n}.denomination"), d, 1, DENOMINATION_MAX)
+                .map(Denomination::Minor),
+            (None, Some(v)) => r
+                .decimal(&format!("count.{n}.value"), v, -money::MAX, money::MAX)
+                .and_then(|v| {
+                    if v > Decimal::ZERO {
+                        Some(Denomination::Value(v))
+                    } else {
+                        r.add(
+                            &format!("count.{n}.value"),
+                            "The value must be greater than 0.",
+                        );
+                        None
+                    }
+                }),
+            (Some(_), Some(_)) => {
+                r.add(
+                    &format!("count.{n}.value"),
+                    "Send the denomination or the value, not both.",
+                );
+                None
+            }
+            (None, None) => {
+                r.missing(&format!("count.{n}.denomination"));
+                None
+            }
+        };
         let (Some(d), Some(c)) = (d, c) else { continue };
-        if out.lines.iter().any(|(seen, _)| *seen == d) {
-            r.add(
-                &format!("count.{n}.denomination"),
-                "The denomination is counted twice.",
-            );
-            continue;
+        if let Denomination::Minor(m) = d {
+            let twice = out
+                .lines
+                .iter()
+                .any(|(seen, _)| matches!(seen, Denomination::Minor(s) if *s == m));
+            if twice {
+                r.add(
+                    &format!("count.{n}.denomination"),
+                    "The denomination is counted twice.",
+                );
+                continue;
+            }
         }
         out.lines.push((d, c));
-        // 50 × 1e9 × 1e6 stays far below i64::MAX.
-        out.total += d * c;
     }
     out
 }
@@ -128,7 +211,8 @@ impl Validate for TransferRequest {
             });
         let sent = self.count.as_ref().is_some_and(Value::is_array);
         let count = count(r, self.count);
-        if sent && count.total == 0 {
+        // Every denomination is at least 1, so nothing moves only when no piece is counted.
+        if sent && count.lines.iter().all(|(_, pieces)| *pieces == 0) {
             r.add("count", "The count must move some cash.");
         }
         Some(Transfer {
@@ -137,6 +221,19 @@ impl Validate for TransferRequest {
             count,
         })
     }
+}
+
+/// A count's figures in minor units, from `POST /till/shift/count-quote`.
+#[derive(Serialize, ToSchema)]
+pub struct CountQuote {
+    /// The count's total.
+    pub total: i64,
+    /// Each line's denomination × pieces, in the order sent.
+    pub lines: Vec<i64>,
+    /// The open shift's expected cash; null without an open shift.
+    pub expected: Option<i64>,
+    /// total − expected (negative = short); null without an open shift.
+    pub difference: Option<i64>,
 }
 
 /// A drawer shift. Open: `expected` is the drawer's cash so far; the close fields are null.
@@ -300,6 +397,7 @@ mod tests {
             { "denomination": 100, "count": 0 }
         ]));
         assert!(r.into_result().is_ok());
+        let c = c.resolve(2).ok().unwrap();
         assert_eq!(c.total, 4015);
         assert_eq!(c.lines.len(), 3);
     }
@@ -311,6 +409,6 @@ mod tests {
             .collect();
         let (c, r) = run(Value::Array(lines));
         assert!(r.into_result().is_ok());
-        assert!(c.total > 0);
+        assert!(c.resolve(2).ok().unwrap().total > 0);
     }
 }

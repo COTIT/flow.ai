@@ -9,8 +9,8 @@ import { Button } from "@genesy/ui/components/button"
 import { Input } from "@genesy/ui/components/input"
 import { Notice } from "@genesy/ui/components/notice"
 import { cn } from "@genesy/ui/lib/utils"
-import { toMinor } from "@genesy/ui/lib/money"
 import { Keypad, type PadKey } from "@/components/keypad"
+import { useCountQuote } from "@/lib/use-count-quote"
 import { useTill } from "@/lib/till-store"
 import { useTillMoney } from "@/lib/use-money"
 
@@ -45,7 +45,7 @@ export function CountForm({
   onSubmit: (count: CountLine[]) => void
 }) {
   const t = useTranslations("count")
-  const { money, decimals } = useTillMoney()
+  const { money } = useTillMoney()
   const accepted = useTill((s) => s.session?.register.accepted_cash) ?? []
   const [rows, setRows] = React.useState<Row[]>(() =>
     accepted.length
@@ -58,22 +58,26 @@ export function CountForm({
   const [selected, setSelected] = React.useState(0)
   const [invalid, setInvalid] = React.useState(false)
 
-  const lines = rows
-    .filter((r) => r.count.trim() || (!r.fixed && r.denomination.trim()))
-    .map((r) => ({
-      denomination:
-        r.fixed ??
-        (decimals == null ? null : toMinor(r.denomination, decimals)),
-      count: /^\d+$/.test(r.count.trim()) ? Number(r.count) : null,
-    }))
-  const valid = lines.every((l) => l.denomination != null && l.count != null)
-  // Counting the notes, not pricing: the API's own figures come back after submit.
-  const total = valid
-    ? lines.reduce(
-        (sum, l) => sum + BigInt(l.denomination!) * BigInt(l.count!),
-        0n
-      )
-    : null
+  // A listed note goes as its minor units, a typed one as the text typed: the API converts it.
+  const sent = rows.filter(
+    (r) => r.count.trim() || (!r.fixed && r.denomination.trim())
+  )
+  const lines = sent.map((r) => ({
+    ...(r.fixed
+      ? { denomination: r.fixed }
+      : { value: r.denomination.trim() || null }),
+    count: /^\d+$/.test(r.count.trim()) ? Number(r.count) : null,
+  }))
+  const valid = lines.every(
+    (l) => ("denomination" in l || l.value != null) && l.count != null
+  )
+  // The API adds the count up and compares it with the drawer; the till only shows it.
+  const { online, quote } = useCountQuote(valid ? (lines as CountLine[]) : null)
+  /** The API's denomination × pieces for a row; null until it has answered. */
+  const rowTotal = (r: Row) => {
+    const i = sent.indexOf(r)
+    return i < 0 ? null : (quote?.lines[i] ?? null)
+  }
 
   const set = (i: number, patch: Partial<Row>) =>
     setRows((all) => all.map((r, j) => (j === i ? { ...r, ...patch } : r)))
@@ -174,7 +178,7 @@ export function CountForm({
               </button>
             </span>
             <span className="flex items-center justify-end gap-1 text-right font-semibold tabular-nums">
-              {row.fixed ? money(row.fixed * pieces(row)) : null}
+              {rowTotal(row) == null ? null : money(rowTotal(row))}
               {row.fixed ? null : (
                 <Button
                   type="button"
@@ -226,10 +230,24 @@ export function CountForm({
               {t("total")}
             </span>
             <output aria-labelledby="counted-label" className="grand">
-              {total == null ? "—" : money(Number(total))}
+              {money(quote?.total)}
             </output>
           </div>
+          {quote?.difference != null ? (
+            <div className="flex items-center justify-between gap-3">
+              <span id="difference-label" className="text-muted-foreground">
+                {t("difference")}
+              </span>
+              <output
+                aria-labelledby="difference-label"
+                className="font-semibold tabular-nums"
+              >
+                {money(quote.difference)}
+              </output>
+            </div>
+          ) : null}
         </div>
+        {online ? null : <Notice variant="info" title={t("offlineTotal")} />}
         {aside}
         {invalid ? <Notice variant="error" title={t("invalid")} /> : null}
         <Keypad fn="clear" onKey={press} />

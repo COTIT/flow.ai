@@ -442,3 +442,114 @@ async fn office_shifts_filter_by_open_register_and_time(pool: PgPool) {
         .await;
     assert_eq!(res["meta"]["total"], 0, "acme's register under evil");
 }
+
+/// The till's live total: the API adds up a count and compares it with the drawer, writing
+/// nothing. The till shows only what comes back.
+#[sqlx::test]
+async fn a_count_quote_totals_and_compares_with_the_drawer(pool: PgPool) {
+    let t = till(pool).await;
+    let quote = |pairs: &[(i64, i64)]| {
+        let body = json!({ "count": count(pairs) });
+        let t = &t;
+        async move {
+            t.call(Method::POST, "/shift/count-quote", Some(body), &t.t1)
+                .await
+        }
+    };
+    let (status, res) = quote(&[(2000, 2), (100, 5), (5, 3)]).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(
+        res["data"],
+        json!({ "total": 4515, "lines": [4000, 500, 15], "expected": null, "difference": null }),
+        "no shift yet"
+    );
+
+    t.open(&t.t1, &[(2000, 2), (100, 5), (5, 3)]).await;
+    let (_, res) = quote(&[(2000, 2), (100, 5), (5, 2)]).await;
+    assert_eq!(
+        res["data"],
+        json!({ "total": 4510, "lines": [4000, 500, 10], "expected": 4515, "difference": -5 })
+    );
+    // Nothing booked: the shift still expects its float, and close works as before.
+    let (_, shift) = t.call(Method::GET, "/shift", None, &t.t1).await;
+    assert_eq!(shift["data"]["expected"], 4515);
+    let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM cash_ledger")
+        .fetch_one(&t.api.pool)
+        .await
+        .unwrap();
+    assert_eq!(rows, 3, "only the opening count's lines");
+
+    // The same rules as every count.
+    let (status, res) = t
+        .call(
+            Method::POST,
+            "/shift/count-quote",
+            Some(json!({ "count": [{ "denomination": 0, "count": 1 }] })),
+            &t.t1,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(res["errors"]["count.0.denomination"].is_array(), "{res}");
+}
+
+/// A typed note or coin goes as decimal text (`value`); the API converts it with the register's
+/// decimals. The till never parses money.
+#[sqlx::test]
+async fn a_typed_value_is_converted_by_the_api(pool: PgPool) {
+    let t = till(pool).await;
+    let quote = |count: Value| {
+        let t = &t;
+        async move {
+            t.call(
+                Method::POST,
+                "/shift/count-quote",
+                Some(json!({ "count": count })),
+                &t.t1,
+            )
+            .await
+        }
+    };
+    let (status, res) =
+        quote(json!([{ "value": "0.50", "count": 3 }, { "value": " 20 ", "count": 1 }])).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["total"], 2150);
+    for (count, field) in [
+        (json!([{ "value": "0.505", "count": 1 }]), "count.0.value"),
+        (json!([{ "value": "0", "count": 1 }]), "count.0.value"),
+        (json!([{ "value": "abc", "count": 1 }]), "count.0.value"),
+        (json!([{ "count": 1 }]), "count.0.denomination"),
+        (
+            json!([{ "denomination": 50, "value": "0.50", "count": 1 }]),
+            "count.0.value",
+        ),
+        (
+            json!([{ "denomination": 50, "count": 1 }, { "value": "0.50", "count": 2 }]),
+            "count.1.value",
+        ),
+    ] {
+        let (status, res) = quote(count.clone()).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{count}: {res}");
+        assert!(res["errors"][field].is_array(), "{count}: {res}");
+    }
+    // Opening with a typed value books it in minor units.
+    let (status, res) = t
+        .call(
+            Method::POST,
+            "/shift/open",
+            Some(json!({ "count": [{ "value": "0.50", "count": 3 }] })),
+            &t.t1,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+    assert_eq!(res["data"]["opening"], 150);
+}
+
+#[sqlx::test]
+async fn a_count_quote_under_another_workspace_is_a_404(pool: PgPool) {
+    let t = till(pool).await;
+    let eve = till_of(&t, "eve@example.com", "evil").await;
+    let uri = format!("/v1/workspace/{}/till/shift/count-quote", eve.0.ws);
+    let body = json!({ "count": count(&[(100, 1)]) });
+    let (status, _) = common::send(&t.api.app, Method::POST, &uri, Some(body), Some(&t.t1)).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}

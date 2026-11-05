@@ -5,7 +5,6 @@
 
 use std::collections::BTreeMap;
 
-use rust_decimal::Decimal;
 use serde_json::{Value, json};
 use sqlx::PgConnection;
 use uuid::Uuid;
@@ -25,6 +24,7 @@ use crate::{
             actions::{self, Facts, InvoiceAction},
         },
     },
+    money,
     numbering::Appendix,
 };
 
@@ -86,7 +86,7 @@ pub async fn create(
         )));
     }
     let dp = dp(&mut tx, workspace_id, &main).await?;
-    let amount = minor(input.amount, dp)?;
+    let amount = money::minor(input.amount, dp)?;
     // The paid total stays within i64 (its SUM would fail otherwise).
     main.paid_total
         .checked_add(amount)
@@ -332,21 +332,6 @@ async fn dp(conn: &mut PgConnection, workspace_id: Uuid, t: &Target) -> Result<u
     u32::try_from(decimals).map_err(|_| AppError::Internal("negative currency decimals".into()))
 }
 
-/// `amount` in minor units at `dp`; 422 past the currency's decimals or i64.
-fn minor(amount: Decimal, dp: u32) -> Result<i64, AppError> {
-    if amount.normalize().scale() > dp {
-        return Err(AppError::field(
-            "amount",
-            format!("The amount must have at most {dp} decimal places."),
-        ));
-    }
-    10_i64
-        .checked_pow(dp)
-        .and_then(|scale| amount.checked_mul(Decimal::from(scale)))
-        .and_then(|m| i64::try_from(m).ok())
-        .ok_or_else(|| AppError::field("amount", OUT_OF_RANGE))
-}
-
 /// The invoice's formatted number, as its PDF prints it.
 fn number(t: &Target) -> String {
     t.invoice_number
@@ -358,26 +343,4 @@ fn number(t: &Target) -> String {
 
 fn parse(id: &str) -> Result<Uuid, AppError> {
     Uuid::parse_str(id).map_err(|_| AppError::NotFound)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::str::FromStr;
-
-    #[test]
-    fn amounts_turn_into_minor_units_exactly() {
-        let m = |s: &str, dp| minor(Decimal::from_str(s).unwrap(), dp).ok();
-        assert_eq!(m("39.98", 2), Some(3_998));
-        assert_eq!(m("100", 2), Some(10_000));
-        assert_eq!(
-            m("1.50", 2),
-            Some(150),
-            "trailing zeros are no extra decimals"
-        );
-        assert_eq!(m("1.234", 2), None);
-        assert_eq!(m("1.234", 3), Some(1_234));
-        assert_eq!(m("12", 0), Some(12));
-        assert_eq!(m("99999999999999999", 2), None, "past i64");
-    }
 }

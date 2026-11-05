@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::{
     http::json::{Rules, Validate, present},
     modules::lots::public::Link,
+    money,
 };
 
 /// Most lines one order may have.
@@ -657,14 +658,16 @@ pub struct PaymentIntentResource {
 #[derive(Deserialize, ToSchema)]
 #[schema(description = "Refund part of what was paid online.")]
 pub struct RefundRequest {
-    /// Minor units, at least 1 and at most paid − refunds not failed.
-    #[schema(value_type = i64, example = 500)]
+    /// Decimal text in the order's currency as typed (`"12.50"`), greater than 0, within the
+    /// currency's decimals and at most paid − refunds not failed. The API converts it to minor
+    /// units.
+    #[schema(value_type = String, example = "5.00")]
     amount: Option<Value>,
 }
 
-/// Validated refund amount (minor units).
+/// Validated refund amount, in currency units until the order's decimals are known.
 pub struct RefundInput {
-    pub amount: i64,
+    pub amount: Decimal,
 }
 
 impl Validate for RefundRequest {
@@ -672,14 +675,23 @@ impl Validate for RefundRequest {
 
     fn validate(self, r: &mut Rules) -> Option<RefundInput> {
         let amount = match self.amount {
-            Some(v) => r.integer("amount", &v, 1, i64::MAX),
+            Some(v) => r
+                .decimal("amount", &v, -money::MAX, money::MAX)
+                .and_then(|a| {
+                    if a > Decimal::ZERO {
+                        Some(a)
+                    } else {
+                        r.add("amount", "The amount must be greater than 0.");
+                        None
+                    }
+                }),
             None => {
                 r.missing("amount");
                 None
             }
         };
         Some(RefundInput {
-            amount: amount.unwrap_or(0),
+            amount: amount.unwrap_or_default(),
         })
     }
 }

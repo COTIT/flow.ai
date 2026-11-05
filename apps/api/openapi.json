@@ -2334,16 +2334,26 @@
             "type": "integer"
           },
           "denomination": {
-            "description": "Minor units per note or coin (500 = €5.00).",
+            "description": "Minor units per note or coin (500 = €5.00), as the register's `accepted_cash` lists\nthem. Send this or `value`.",
             "example": 500,
             "format": "int64",
             "maximum": 1000000000,
             "minimum": 1,
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "value": {
+            "description": "A typed note or coin as decimal text in the register's currency (`\"0.50\"`); the API\nconverts it to minor units. Send this or `denomination`.",
+            "example": "0.50",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
-          "denomination",
           "count"
         ],
         "type": "object"
@@ -2363,6 +2373,45 @@
         "required": [
           "count",
           "minor"
+        ],
+        "type": "object"
+      },
+      "CountQuote": {
+        "description": "A count's figures in minor units, from `POST /till/shift/count-quote`.",
+        "properties": {
+          "difference": {
+            "description": "total − expected (negative = short); null without an open shift.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "expected": {
+            "description": "The open shift's expected cash; null without an open shift.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "lines": {
+            "description": "Each line's denomination × pieces, in the order sent.",
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "total": {
+            "description": "The count's total.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "lines"
         ],
         "type": "object"
       },
@@ -5323,6 +5372,18 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/CorrectionResource"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "Envelope_CountQuote": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CountQuote"
           }
         },
         "required": [
@@ -19373,10 +19434,9 @@
         "description": "Refund part of what was paid online.",
         "properties": {
           "amount": {
-            "description": "Minor units, at least 1 and at most paid − refunds not failed.",
-            "example": 500,
-            "format": "int64",
-            "type": "integer"
+            "description": "Decimal text in the order's currency as typed (`\"12.50\"`), greater than 0, within the\ncurrency's decimals and at most paid − refunds not failed. The API converts it to minor\nunits.",
+            "example": "5.00",
+            "type": "string"
           }
         },
         "required": [
@@ -82010,6 +82070,151 @@
           }
         ],
         "summary": "Close the drawer with a count",
+        "tags": [
+          "till"
+        ]
+      }
+    },
+    "/workspace/{workspace}/till/shift/count-quote": {
+      "post": {
+        "description": "The till's live figures while the cashier counts: the count's total and, with a shift open, the expected cash and the difference, in minor units. Books nothing.",
+        "operationId": "till_shift_count_quote",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CountQuote"
+                }
+              }
+            },
+            "description": "The count's figures"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "No live till session"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Workspace is not the session's"
+          },
+          "408": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body arrived too slowly"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Request body too large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorBody"
+                }
+              }
+            },
+            "description": "Invalid count"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "till_session": []
+          }
+        ],
+        "summary": "Total a count and compare it with the drawer",
         "tags": [
           "till"
         ]

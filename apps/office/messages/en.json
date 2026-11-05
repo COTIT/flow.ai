@@ -466,7 +466,6 @@
     "refundTitle": "Refund on {number}",
     "refundText": "Money goes back to the customer through the payment provider. This cannot be undone.",
     "refundAmount": "Amount ({currency})",
-    "badAmount": "Enter an amount like 12.50.",
     "refundQueued": "Refund of {amount} sent to the provider (status: {status}).",
     "cancel": "Cancel order",
     "cancelTitle": "Cancel order {number}?",
