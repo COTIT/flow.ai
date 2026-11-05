@@ -1062,12 +1062,14 @@ pub async fn order_of(
     .await
 }
 
-/// One line's amounts in minor units at `dp`, priced in SQL as `pricing::engine` prices a line
-/// (half away from zero): unit price incl. VAT, and excl + its own VAT (gross and discount
-/// rounded first).
+/// One line's amounts in minor units at `dp`, priced in SQL on exact `numeric` as
+/// `pricing::engine` prices a line, rounding half away from zero (Postgres `round(numeric)`,
+/// the engine's `MidpointAwayFromZero`): unit price incl. VAT; excl (gross and discount each
+/// rounded), which sums to the document subtotal; excl + the line's own VAT.
 pub struct LineCents {
     pub id: Uuid,
     pub unit_price_minor: i64,
+    pub subtotal_minor: i64,
     pub total_minor: i64,
 }
 
@@ -1083,6 +1085,7 @@ pub async fn line_cents(
         r#"SELECT l.id AS "id!",
                   round(l.price * (100 + l.vat) / 100 * power(10::numeric, $3::int))::bigint
                       AS "unit_price_minor!",
+                  e.excl::bigint AS "subtotal_minor!",
                   (e.excl + round(e.excl * l.vat / 100))::bigint AS "total_minor!"
            FROM items l
            CROSS JOIN LATERAL (SELECT round(l.quantity * l.price * power(10::numeric, $3::int)) AS gross) g

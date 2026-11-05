@@ -89,6 +89,11 @@ export interface InvoiceItem {
      */
   stock_id: string | null;
   subtotal: string;
+  /**
+     * Line total excl. VAT in minor units (gross and discount each rounded half away from
+     * zero); the lines' sum is `money.subtotal`.
+     */
+  subtotal_minor: number;
   title: string;
   total: string;
   total_each_price_incl: string;
@@ -97,7 +102,10 @@ export interface InvoiceItem {
      * @deprecated
      */
   total_incl: string;
-  /** Line total incl. VAT in minor units: excl (gross and discount rounded) + its own VAT. */
+  /**
+     * Line total incl. VAT in minor units: `subtotal_minor` + the line's own VAT. Their sum can
+     * differ from `money.total` by half a cent per line (document VAT is per rate).
+     */
   total_minor: number;
   /** Unit price incl. VAT in minor units, priced in SQL (half away from zero). */
   unit_price_minor: number;

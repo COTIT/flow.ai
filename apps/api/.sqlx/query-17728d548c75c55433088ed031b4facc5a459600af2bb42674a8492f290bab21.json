@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT l.id AS \"id!\",\n                  round(l.price * (100 + l.vat) / 100 * power(10::numeric, $3::int))::bigint\n                      AS \"unit_price_minor!\",\n                  e.excl::bigint AS \"subtotal_minor!\",\n                  (e.excl + round(e.excl * l.vat / 100))::bigint AS \"total_minor!\"\n           FROM items l\n           CROSS JOIN LATERAL (SELECT round(l.quantity * l.price * power(10::numeric, $3::int)) AS gross) g\n           CROSS JOIN LATERAL (SELECT g.gross - round(g.gross * l.discount_percentage / 100) AS excl) e\n           WHERE l.workspace_id = $1 AND l.invoice_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "items",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "unit_price_minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "subtotal_minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_minor!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "17728d548c75c55433088ed031b4facc5a459600af2bb42674a8492f290bab21"
+}

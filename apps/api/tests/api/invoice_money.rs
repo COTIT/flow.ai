@@ -114,3 +114,64 @@ async fn open_is_total_minus_paid_even_when_overpaid(pool: PgPool) {
         (Some(1250), Some(-250))
     );
 }
+
+/// Lines and totals can't disagree: each line's excl cents (`subtotal_minor`) sum to the
+/// document's `money.subtotal`. Line totals incl. VAT carry the line's own VAT, which may
+/// differ by half a cent per line from the per-rate document VAT (`docs/api/pricing.md`).
+#[sqlx::test]
+async fn line_subtotals_sum_to_the_invoice_subtotal(pool: PgPool) {
+    let f = setup(pool).await;
+    let id = draft(
+        &f,
+        json!([
+            { "title": "Honey", "quantity": 3, "price": "30.4733", "vat": "21" },
+            { "title": "Wax", "quantity": 2, "price": "19.3921", "vat": "9", "productDiscount": "12.5" },
+            { "title": "Jar", "quantity": "7.5", "price": "0.3333", "vat": "21" },
+        ]),
+        false,
+    )
+    .await;
+    let inv = get(&f, &format!("/{id}")).await["data"].clone();
+    let lines: i64 = inv["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| l["subtotal_minor"].as_i64().unwrap())
+        .sum();
+    assert_eq!(Some(lines), inv["money"]["subtotal"].as_i64());
+}
+
+/// Rounding is half away from zero at every step (the engine's `money::round`,
+/// `RoundingStrategy::MidpointAwayFromZero`; Postgres `round(numeric)`), exact decimals
+/// throughout: 0.125 → 0.13 and −0.125 → −0.13, where banker's rounding would give 0.12.
+#[sqlx::test]
+async fn midpoints_round_half_away_from_zero(pool: PgPool) {
+    let f = setup(pool).await;
+    let half = json!([{ "title": "Half", "quantity": 1, "price": "0.125", "vat": "0" }]);
+    let id = draft(&f, half, false).await;
+    let inv = get(&f, &format!("/{id}")).await["data"].clone();
+    let line = &inv["items"][0];
+    assert_eq!(
+        (
+            line["unit_price_minor"].as_i64(),
+            line["subtotal_minor"].as_i64(),
+            line["total_minor"].as_i64()
+        ),
+        (Some(13), Some(13), Some(13))
+    );
+    assert_eq!(
+        inv["money"]["subtotal"], 13,
+        "the engine's stored total rounds the same way"
+    );
+
+    let back = json!([{ "title": "Half", "quantity": -1, "price": "0.125", "vat": "0" }]);
+    let note = draft(&f, back, true).await;
+    let line = &get(&f, &format!("/{note}")).await["data"]["items"][0];
+    assert_eq!(
+        (
+            line["subtotal_minor"].as_i64(),
+            line["total_minor"].as_i64()
+        ),
+        (Some(-13), Some(-13))
+    );
+}

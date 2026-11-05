@@ -39,8 +39,9 @@ pub struct Embeds {
     pub payments: Vec<Value>,
     pub allowed_actions: Vec<InvoiceAction>,
     pub order: Option<Value>,
-    /// Detail only: each line's (unit price incl. VAT, total incl. VAT) in minor units, from SQL.
-    pub line_cents: HashMap<Uuid, (i64, i64)>,
+    /// Detail only: each line's (unit price incl. VAT, excl, total incl. VAT) in minor units,
+    /// from SQL.
+    pub line_cents: HashMap<Uuid, (i64, i64, i64)>,
 }
 
 /// `summary` as stored on the invoice: exact decimals as text, how many lines carry a discount
@@ -363,7 +364,8 @@ fn item(l: &ItemRow, e: &Embeds) -> Value {
         "title": l.title,
         "description": l.description,
         "unit_price_minor": cents.map(|c| c.0),
-        "total_minor": cents.map(|c| c.1),
+        "subtotal_minor": cents.map(|c| c.1),
+        "total_minor": cents.map(|c| c.2),
         "quantity": fd(l.quantity, 2),
         "price": fd(l.price, 4),
         "price_incl": fd(price_incl, 4),

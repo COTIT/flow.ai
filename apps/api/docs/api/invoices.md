@@ -152,7 +152,12 @@ Laravel InvoiceResource:
 - **`items`:** see below.
 - **`relationships`:** `relation` (RelationIndexResource), `currency`, `pdf_file` (the last sent PDF's FileResource; null before a send, or when that file was deleted), `payments` (unvoided, `invoice-payments.md`), `order` (`{id, number}` of the order it was made from, `POST /orders/{order}/invoice`; null otherwise), `custom_sections: []`, `child_invoices: []`. `estimate`, `parent_invoice`, `work_order`, `collective_invoice` and `cash_register` are null.
 
-**Lines** carry `unit_price_minor` (price incl. VAT, rounded half away from zero) and `total_minor` (gross and discount rounded per line, plus the line's own VAT), in minor units at `decimals`, priced in SQL the way `pricing::engine` prices a line. `price_incl`, `price_incl_vat` and `total_incl` are deprecated.
+**Lines** carry, in minor units at `decimals`, priced in SQL on exact `numeric` the way `pricing::engine` prices a line (no floats; every rounding half away from zero, as the engine's `MidpointAwayFromZero`: 0.125 → 0.13, −0.125 → −0.13):
+- `unit_price_minor`: price incl. VAT;
+- `subtotal_minor`: excl, gross and discount each rounded; the lines' sum is `money.subtotal`;
+- `total_minor`: `subtotal_minor` + the line's own VAT. Their sum can differ from `money.total` by half a cent per line, because document VAT is computed per rate.
+
+`price_incl`, `price_incl_vat` and `total_incl` are deprecated.
 
 **Lines** (ItemResource) print numbers with `formatDecimals`:
 - `quantity`, `vat`, `subtotal`, `total`, `total_incl`, `discount_percentage`, `discount_amount`, `discount_amount_incl`, `purchase_price`, `purchase_price_total`, `purchase_price_incl`, `marge`, `marge_total`, `marge_percentage` (null without a purchase price) and `price_incl_vat` at 2 places.
