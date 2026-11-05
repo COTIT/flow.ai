@@ -22501,6 +22501,10 @@
       "StockResource": {
         "description": "One stock row of `GET /products/stocks[/negative]`.",
         "properties": {
+          "available": {
+            "description": "`stock_lvl − reserved`, 2 decimals.",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -22556,9 +22560,8 @@
             "type": "object"
           },
           "reserved": {
-            "description": "Always 0 until orders exist.",
-            "format": "int64",
-            "type": "integer"
+            "description": "Held for orders, 2 decimals.",
+            "type": "string"
           },
           "stock_lvl": {
             "description": "2 decimals.",
@@ -22569,6 +22572,7 @@
           "id",
           "stock_lvl",
           "reserved",
+          "available",
           "minimal_stock_level",
           "maximum_stock_level",
           "meta",

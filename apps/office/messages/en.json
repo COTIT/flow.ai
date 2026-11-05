@@ -306,7 +306,9 @@
       "decrease": "Taken out",
       "set_level": "Count set",
       "set_requirements": "Minimum set"
-    }
+    },
+    "held": "Held",
+    "available": "Available"
   },
   "invoices": {
     "title": "Invoices",

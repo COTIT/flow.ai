@@ -13,6 +13,8 @@ import type { StockResourceRelationships } from './stockResourceRelationships';
  * One stock row of `GET /products/stocks[/negative]`.
  */
 export interface StockResource {
+  /** `stock_lvl − reserved`, 2 decimals. */
+  available: string;
   id: string;
   /**
      * `id`, `code`, `expires_on`; null for no-lot stock.
@@ -24,8 +26,8 @@ export interface StockResource {
   meta: StockResourceMeta;
   minimal_stock_level: number;
   relationships: StockResourceRelationships;
-  /** Always 0 until orders exist. */
-  reserved: number;
+  /** Held for orders, 2 decimals. */
+  reserved: string;
   /** 2 decimals. */
   stock_lvl: string;
 }

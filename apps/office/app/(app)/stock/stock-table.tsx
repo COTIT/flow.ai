@@ -43,7 +43,8 @@ export function StockTable({
     { label: t("products.name") },
     { label: t("stock.warehouse") },
     { label: t("stock.level"), right: true },
-    { label: t("stock.reserved"), right: true },
+    { label: t("stock.held"), right: true },
+    { label: t("stock.available"), right: true },
   ]
   return (
     <>
@@ -137,6 +138,9 @@ export function StockTable({
                     </TableCell>
                     <TableCell data-m="hide" className="text-right tabular-nums">
                       {s.reserved}
+                    </TableCell>
+                    <TableCell data-m="hide" className="text-right tabular-nums">
+                      {s.available}
                     </TableCell>
                   </TableRow>
                 )

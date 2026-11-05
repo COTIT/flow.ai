@@ -1021,11 +1021,8 @@ async fn stock_lists_all_and_negative(pool: PgPool) {
     assert_eq!(all["meta"]["total"], 2);
     let first = &rows[0];
     assert_eq!(first["stock_lvl"], "2.00");
-    assert_eq!(
-        first["reserved"],
-        json!(0),
-        "the product's reservations: none before orders"
-    );
+    assert_eq!(first["reserved"], "0.00");
+    assert_eq!(first["available"], "2.00");
     assert_eq!(first["relationships"]["product"]["id"], w.product.as_str());
     assert_eq!(first["relationships"]["product"]["name"], "A");
     assert_eq!(first["relationships"]["warehouse"]["id"], w.main.as_str());
@@ -1066,6 +1063,25 @@ async fn stock_lists_all_and_negative(pool: PgPool) {
         let (status, _) = w.api.call(Method::GET, path, None, &viewer).await;
         assert_eq!(status, StatusCode::FORBIDDEN, "{path}");
     }
+}
+
+#[sqlx::test]
+async fn stock_list_shows_what_orders_hold(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 5 }))
+        .await;
+    // An order's hold lives in `stocks.reserved` (reserve.rs is the only writer).
+    sqlx::query("UPDATE stocks SET reserved = 1.5 WHERE warehouse_id = $1::uuid")
+        .bind(&w.main)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let all = w.api.with_base("/products/stocks").list("").await;
+    let row = &all["data"][0];
+    assert_eq!(row["stock_lvl"], "5.00");
+    assert_eq!(row["reserved"], "1.50");
+    assert_eq!(row["available"], "3.50", "level minus held, from the API");
 }
 
 #[sqlx::test]

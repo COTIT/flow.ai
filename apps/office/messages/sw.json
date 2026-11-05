@@ -306,7 +306,9 @@
       "decrease": "Imetolewa",
       "set_level": "Hesabu imewekwa",
       "set_requirements": "Kiwango cha chini kimewekwa"
-    }
+    },
+    "held": "Imehifadhiwa",
+    "available": "Inapatikana"
   },
   "invoices": {
     "title": "Ankara",

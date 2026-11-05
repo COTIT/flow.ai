@@ -300,11 +300,12 @@ test.describe(() => {
   })
 })
 
-test("all stock and below-zero lists", async ({ page, api }) => {
+test("all stock and below-zero lists", async ({ page, api, isMobile }) => {
   const row = (id: string, lvl: string) => ({
     id,
     stock_lvl: lvl,
-    reserved: 0,
+    reserved: "4.00",
+    available: "116.00",
     minimal_stock_level: 0,
     maximum_stock_level: 0,
     meta: null,
@@ -321,6 +322,12 @@ test("all stock and below-zero lists", async ({ page, api }) => {
     )
   await page.goto("/stock")
   await expect(page.getByRole("cell", { name: "120.00" })).toBeVisible()
+  // Held and available come from the API; the page does no subtraction. Phone rows hide them.
+  if (!isMobile) {
+    await expect(page.getByRole("columnheader", { name: "Held" })).toBeVisible()
+    await expect(page.getByRole("columnheader", { name: "Available" })).toBeVisible()
+    await expect(page.getByRole("cell", { name: "116.00" })).toBeVisible()
+  }
   await page.getByRole("link", { name: "Below zero" }).click()
   await expect(page).toHaveURL(/\/stock\/negative$/)
   await expect(page.getByRole("cell", { name: "-3.00" })).toBeVisible()

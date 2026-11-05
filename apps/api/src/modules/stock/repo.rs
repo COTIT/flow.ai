@@ -869,6 +869,10 @@ pub struct ListRow {
     pub product_id: Uuid,
     pub warehouse_id: Uuid,
     pub stock_lvl: Decimal,
+    /// Held for orders (sum of the row's holds).
+    pub reserved: Decimal,
+    /// `stock_lvl − reserved`.
+    pub available: Decimal,
     pub minimal_stock_level: i32,
     pub maximum_stock_level: i32,
     pub meta: Option<Value>,
@@ -898,7 +902,8 @@ pub async fn list(
     if !f.negative {
         return sqlx::query_as!(
             ListRow,
-            r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
+            r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,
+                      s.stock_lvl - s.reserved AS "available!", s.minimal_stock_level,
                       s.maximum_stock_level, s.meta, l.id AS "lot_id?", l.code AS "lot_code?", l.expires_on AS "lot_expires_on?",
                       count(*) OVER () AS "total!"
                FROM stocks s
@@ -917,7 +922,8 @@ pub async fn list(
     }
     sqlx::query_as!(
         ListRow,
-        r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
+        r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,
+                      s.stock_lvl - s.reserved AS "available!", s.minimal_stock_level,
                   s.maximum_stock_level, s.meta, l.id AS "lot_id?", l.code AS "lot_code?", l.expires_on AS "lot_expires_on?",
                   count(*) OVER () AS "total!"
            FROM stocks s

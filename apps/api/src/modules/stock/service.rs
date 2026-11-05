@@ -541,8 +541,8 @@ pub async fn list(
             serde_json::json!({
                 "id": r.id,
                 "stock_lvl": resource::qty(r.stock_lvl),
-                // shortcut: the product's reservations come with orders (final batch).
-                "reserved": 0,
+                "reserved": resource::qty(r.reserved),
+                "available": resource::qty(r.available),
                 "minimal_stock_level": r.minimal_stock_level,
                 "maximum_stock_level": r.maximum_stock_level,
                 "meta": r.meta,

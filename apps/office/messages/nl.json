@@ -306,7 +306,9 @@
       "decrease": "Afgeboekt",
       "set_level": "Telling ingesteld",
       "set_requirements": "Minimum ingesteld"
-    }
+    },
+    "held": "Gereserveerd",
+    "available": "Beschikbaar"
   },
   "invoices": {
     "title": "Facturen",
