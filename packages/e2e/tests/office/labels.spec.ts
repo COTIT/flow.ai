@@ -85,6 +85,7 @@ const invoice = (status: string, i: number) => ({
   created_at: at,
   due_date: "2026-11-13",
   total_amount: "121.00",
+  allowed_actions: [],
   balance: { open: 21, paid: "100.00", total: 121 },
   items: [],
   relationships: {

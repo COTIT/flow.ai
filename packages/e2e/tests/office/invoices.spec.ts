@@ -11,6 +11,7 @@ const invoice = {
   created_at: "2026-10-30T09:00:00Z",
   due_date: "2026-11-13T00:00:00Z",
   total_amount: "121.00",
+  allowed_actions: [],
   balance: { open: 21, paid: "100.00000000", total: 121 },
   items: [
     {
