@@ -466,7 +466,6 @@
     "refundTitle": "Kurejesha pesa kwa {number}",
     "refundText": "Pesa zinarudi kwa mteja kupitia mtoa huduma wa malipo. Hili haliwezi kutenduliwa.",
     "refundAmount": "Kiasi ({currency})",
-    "badAmount": "Weka kiasi kama 12.50.",
     "refundQueued": "Marejesho ya {amount} yametumwa kwa mtoa huduma (hali: {status}).",
     "cancel": "Ghairi oda",
     "cancelTitle": "Ghairi oda {number}?",

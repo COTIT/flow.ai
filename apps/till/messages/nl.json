@@ -130,7 +130,9 @@
     "more": "Eén meer {value}",
     "row": "rij {n}",
     "padHint": "Het toetsenblok typt in de gekozen rij ({row}).",
-    "expected": "Verwacht"
+    "expected": "Verwacht",
+    "difference": "Verschil",
+    "offlineTotal": "Totaal zichtbaar zodra je online bent."
   },
   "receipt": {
     "total": "Totaal",

@@ -1,4 +1,4 @@
-import { expect, seedTill, test, type FakeApi, WS } from "./fake-till"
+import { amina, expect, register, seedTill, session, test, type FakeApi, WS } from "./fake-till"
 import { expectTillLook, tapKeys } from "./look"
 
 const openShift = {
@@ -14,10 +14,26 @@ const openShift = {
   difference: null,
 }
 
+type Line = { denomination?: number; value?: string; count: number }
+
 function drawerApi(api: FakeApi, start: typeof openShift | null) {
   let shift = start
   api
     .on("GET", "/workspace/:ws/till/shift", () => ({ data: shift }))
+    // The API's live figures; this fake adds up minor-unit lines and knows "0.50" only.
+    .on("POST", "/workspace/:ws/till/shift/count-quote", ({ body }) => {
+      const total = (body as { count: Line[] }).count.reduce(
+        (sum, l) => sum + (l.denomination ?? (l.value === "0.50" ? 50 : 0)) * l.count,
+        0
+      )
+      const expected = shift?.expected ?? null
+      const lines = (body as { count: Line[] }).count.map(
+        (l) => (l.denomination ?? (l.value === "0.50" ? 50 : 0)) * l.count
+      )
+      return {
+        data: { total, lines, expected, difference: expected == null ? null : total - expected },
+      }
+    })
     .on("POST", "/workspace/:ws/till/shift/open", () => {
       shift = { ...openShift, expected: 4515 }
       return { status: 201, body: { data: shift } }
@@ -63,7 +79,18 @@ test("opening a shift sends the counted float and shows the API's figures", asyn
   await page.getByRole("button", { name: "One less €1.00" }).click()
   await expect(page.getByLabel("Pieces of €20.00")).toHaveValue("2")
   await expect(page.getByLabel("Pieces of €0.05")).toHaveValue("3")
+  // The total is the API's (count-quote), never added up on the till.
   await expect(page.getByLabel("Counted")).toHaveText("€40.15")
+  const quotes = api.callsTo("POST", `/workspace/${WS}/till/shift/count-quote`)
+  expect(quotes.at(-1)!.body).toEqual({
+    count: [
+      { denomination: 2000, count: 2 },
+      { denomination: 100, count: 0 },
+      { denomination: 5, count: 3 },
+    ],
+  })
+  // Debounced: a burst of taps is not one call per tap.
+  expect(quotes.length).toBeLessThan(7)
   await expectTillLook(page)
   await page.getByRole("button", { name: "Open shift" }).click()
 
@@ -95,6 +122,9 @@ test("closing a shift shows the variance the API returns", async ({
   await expectTillLook(page)
 
   await page.getByLabel("Pieces of €50.00").fill("1")
+  // Live: the API compares the count with the drawer while the cashier counts.
+  await expect(page.getByLabel("Counted")).toHaveText("€50.00")
+  await expect(page.getByLabel("Difference")).toHaveText("-€15.15")
   await page.getByRole("button", { name: "Close shift" }).click()
 
   await expect(
@@ -194,4 +224,42 @@ test("Lock till on the close result ends the session", async ({
   await page.getByRole("button", { name: "Close shift" }).click()
   await page.getByRole("button", { name: "Lock till" }).click()
   await expect(page).toHaveURL("/login")
+})
+
+test("a typed note goes to the API as text; the total is the API's", async ({ page, api }) => {
+  drawerApi(api, null)
+  // A register that lists no notes: the cashier types each one.
+  api.on("GET", "/workspace/:ws/till/me", () => ({
+    data: { expires_at: session.expires_at, register: { ...register, accepted_cash: [] }, user: amina },
+  }))
+  await seedTill(page, { accepted: [] })
+  await page.goto("/drawer")
+  await page.getByLabel("Value of row 1").fill("0.50")
+  await page.getByLabel("Pieces of row 1").fill("3")
+  await expect(page.getByLabel("Counted")).toHaveText("€1.50")
+  // The row's amount is the API's too.
+  await expect(page.getByText("€1.50", { exact: true })).toHaveCount(2)
+  expect(api.callsTo("POST", `/workspace/${WS}/till/shift/count-quote`).at(-1)!.body).toEqual({
+    count: [{ value: "0.50", count: 3 }],
+  })
+  await page.getByRole("button", { name: "Open shift" }).click()
+  await expect(
+    page.getByRole("status").filter({ hasText: "Shift opened. You can start selling." })
+  ).toBeVisible()
+  const [open] = api.callsTo("POST", `/workspace/${WS}/till/shift/open`)
+  expect(open!.body).toEqual({ count: [{ value: "0.50", count: 3 }] })
+})
+
+test("offline: no total on the till, it says the total shows when online", async ({ page, api, context }) => {
+  drawerApi(api, null)
+  await seedTill(page)
+  await page.goto("/drawer")
+  await expect(page.getByRole("heading", { name: "Count the float" })).toBeVisible()
+  await context.setOffline(true)
+  await page.getByLabel("Pieces of €20.00").fill("2")
+  await expect(page.getByText("Total shown when online.")).toBeVisible()
+  await expect(page.getByLabel("Counted")).toHaveText("—")
+  await context.setOffline(false)
+  await expect(page.getByLabel("Counted")).toHaveText("€40.00")
+  await expect(page.getByText("Total shown when online.")).toHaveCount(0)
 })

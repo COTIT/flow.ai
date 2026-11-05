@@ -70,6 +70,12 @@ test("a cash sale is an office order, takes stock, is listed in the office and c
   await page.getByRole("link", { name: "Drawer", exact: true }).click()
   await expect(page.getByLabel("Expected")).toHaveText(money(open!.expected))
 
+  // While counting, the live total and difference are the API's (count-quote), not the till's.
+  await page.getByLabel(`Pieces of ${money(2000)}`).fill("1")
+  await expect(page.getByLabel("Counted")).toHaveText(money(2000))
+  await expect(page.getByLabel("Difference")).toHaveText(money(2000 - open!.expected))
+  await page.getByLabel(`Pieces of ${money(2000)}`).fill("")
+
   // An empty drawer at close: short by the sale, as the API works it out.
   await page.getByRole("button", { name: "Close shift" }).click()
   await expect(

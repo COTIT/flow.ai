@@ -138,12 +138,20 @@ export function quoteReply(body: QuoteBody, total: number, due: number) {
   }
 }
 
-/** Starts the page paired (and logged in unless `loggedIn: false`), via the till's localStorage entry. */
-export async function seedTill(page: Page, { loggedIn = true } = {}) {
+/**
+ * Starts the page paired (and logged in unless `loggedIn: false`), via the till's localStorage
+ * entry. `accepted`: the notes and coins the register lists (none: typed rows).
+ */
+export async function seedTill(
+  page: Page,
+  { loggedIn = true, accepted = register.accepted_cash } = {}
+) {
   const value = JSON.stringify({
     state: {
       device: { workspaceId: WS, deviceKey: DEVICE_KEY },
-      session: loggedIn ? session : null,
+      session: loggedIn
+        ? { ...session, register: { ...register, accepted_cash: accepted } }
+        : null,
     },
     version: 0,
   })
