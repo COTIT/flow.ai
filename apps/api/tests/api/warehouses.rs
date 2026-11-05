@@ -620,3 +620,55 @@ async fn parallel_first_creates_leave_one_default(pool: PgPool) {
         .count();
     assert_eq!(defaults, 1);
 }
+
+#[sqlx::test]
+async fn a_warehouse_holding_stock_or_holds_is_not_deleted(pool: PgPool) {
+    let api = api(pool.clone()).await;
+    let wh = api.create(json!({ "name": "Main" }), "warehouse_id").await;
+    let product = api
+        .with_base("/products")
+        .create(json!({ "name": "Honey", "price": 10 }), "product_id")
+        .await;
+    let stock = |value: i64| {
+        let body = json!({ "warehouse_id": wh, "mutation_value": value });
+        let (api, path) = (
+            api.with_base("/products"),
+            format!("/{product}/stocks"),
+        );
+        async move {
+            let (s, res) = api.call(Method::POST, &path, Some(body), &api.owner).await;
+            assert_eq!(s, StatusCode::OK, "{res}");
+        }
+    };
+    stock(3).await;
+
+    let refused = |res: &Value| res["message"] == "warehouse_holds_stock";
+    let (s, res) = api
+        .call(Method::DELETE, &format!("/{wh}"), None, &api.owner)
+        .await;
+    assert!(s == StatusCode::CONFLICT && refused(&res), "{s} {res}");
+
+    // Level back at 0 but an order still holds some: still refused.
+    stock(-3).await;
+    sqlx::query("UPDATE stocks SET reserved = 1 WHERE warehouse_id = $1::uuid")
+        .bind(&wh)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (s, res) = api
+        .call(Method::DELETE, &format!("/{wh}"), None, &api.owner)
+        .await;
+    assert!(s == StatusCode::CONFLICT && refused(&res), "{s} {res}");
+
+    sqlx::query("UPDATE stocks SET reserved = 0 WHERE warehouse_id = $1::uuid")
+        .bind(&wh)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let eve = api.as_new_owner("eve@evil.test", "evil").await;
+    let (s, _) = eve
+        .call(Method::DELETE, &format!("/{wh}"), None, &eve.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "another workspace's warehouse");
+    api.delete(&wh).await;
+}

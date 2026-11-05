@@ -98,17 +98,22 @@ pub async fn update(
         .ok_or(AppError::NotFound)
 }
 
-/// Soft delete, else 404.
+/// Soft delete; 409 `bin_holds_stock` while stock lies in it, else 404.
 pub async fn delete(
     state: &AppState,
     workspace_id: Uuid,
     sh: &ShelfRow,
     id: &str,
 ) -> Result<(), AppError> {
-    repo::soft_delete(&state.db, workspace_id, sh.id, parse(id)?)
-        .await?
-        .then_some(())
-        .ok_or(AppError::NotFound)
+    let id = parse(id)?;
+    if repo::soft_delete(&state.db, workspace_id, sh.id, id).await? {
+        return Ok(());
+    }
+    // Not deleted: unknown, or stock still lives in the bin.
+    if repo::find(&state.db, workspace_id, sh.id, id).await?.is_some() {
+        return Err(AppError::Conflict("bin_holds_stock"));
+    }
+    Err(AppError::NotFound)
 }
 
 /// True when the workspace can take `adding` more bins.

@@ -255,12 +255,18 @@ pub async fn set_default(state: &AppState, workspace_id: Uuid, id: &str) -> Resu
     Ok(())
 }
 
-/// Soft delete. Children keep their parent id and stay listed via `roots_only=0`.
+/// Soft delete. Children keep their parent id and stay listed via `roots_only=0`. 409
+/// `warehouse_holds_stock` while any stock level or hold here is not zero.
 pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
-    repo::soft_delete(&state.db, workspace_id, parse(id)?)
-        .await?
-        .then_some(())
-        .ok_or(AppError::NotFound)
+    let id = parse(id)?;
+    if repo::soft_delete(&state.db, workspace_id, id).await? {
+        return Ok(());
+    }
+    // Not deleted: unknown, or stock (or an order's hold) still lives here.
+    if repo::exists(&state.db, workspace_id, id).await? {
+        return Err(AppError::Conflict("warehouse_holds_stock"));
+    }
+    Err(AppError::NotFound)
 }
 
 /// A sent parent must be a live warehouse of this workspace (Laravel ValidateId).

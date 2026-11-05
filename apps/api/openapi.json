@@ -85699,6 +85699,16 @@
             },
             "description": "Unknown workspace or warehouse, or caller not a member"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`warehouse_holds_stock`: a stock level or an order hold here is not zero"
+          },
           "429": {
             "content": {
               "application/json": {
@@ -89192,6 +89202,16 @@
               }
             },
             "description": "Unknown workspace, warehouse, section, row, shelf or bin, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`bin_holds_stock`: stock still lies in the bin"
           },
           "429": {
             "content": {

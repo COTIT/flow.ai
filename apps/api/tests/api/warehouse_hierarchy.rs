@@ -810,3 +810,48 @@ async fn warehouse_bin_list_flags_truncation(pool: PgPool) {
     assert_eq!(data(&res).len(), 10_000);
     assert!(res.get("meta").is_none(), "exactly at the cap is complete");
 }
+
+#[sqlx::test]
+async fn a_bin_holding_stock_is_not_deleted(pool: PgPool) {
+    let w = World::new(pool).await;
+    let s = w.section("A").await;
+    let r = w.row(&s, "R1").await;
+    let sh = w.shelf(&s, &r, "S1").await;
+    let b = w.bin(&s, &r, &sh, "B1").await;
+    let product = w
+        .api
+        .with_base("/products")
+        .create(json!({ "name": "Honey", "price": 10 }), "product_id")
+        .await;
+    let products = w.api.with_base("/products");
+    let stock = |value: i64| {
+        let body = json!({ "warehouse_id": w.wh, "bin_id": b, "mutation_value": value });
+        let path = format!("/{product}/stocks");
+        let products = &products;
+        async move {
+            let (st, res) = products
+                .call(Method::POST, &path, Some(body), &products.owner)
+                .await;
+            assert_eq!(st, StatusCode::OK, "{res}");
+        }
+    };
+    stock(2).await;
+
+    let bins = w.bins(&s, &r, &sh);
+    let (st, res) = bins
+        .call(Method::DELETE, &format!("/{b}"), None, &bins.owner)
+        .await;
+    assert_eq!(
+        (st, &res["message"]),
+        (StatusCode::CONFLICT, &json!("bin_holds_stock")),
+        "{res}"
+    );
+
+    let eve = w.api.as_new_owner("eve@evil.test", "evil").await;
+    let path = format!("/warehouses/{}/sections/{s}/rows/{r}/shelves/{sh}/bins/{b}", w.wh);
+    let (st, _) = eve.call(Method::DELETE, &path, None, &eve.owner).await;
+    assert_eq!(st, StatusCode::NOT_FOUND, "another workspace's bin");
+
+    stock(-2).await;
+    bins.delete(&b).await;
+}

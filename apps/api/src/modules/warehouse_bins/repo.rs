@@ -325,7 +325,7 @@ pub async fn update(
     .map(|done| done.rows_affected() == 1)
 }
 
-/// Soft delete. False = no such live row.
+/// Soft delete. False = no such live row, or stock still lies in the bin.
 pub async fn soft_delete(
     db: impl PgExecutor<'_>,
     workspace_id: Uuid,
@@ -334,7 +334,10 @@ pub async fn soft_delete(
 ) -> Result<bool, sqlx::Error> {
     sqlx::query!(
         "UPDATE warehouse_section_row_bins SET deleted_at = now(), updated_at = now()
-         WHERE id = $1 AND workspace_id = $2 AND shelf_id = $3 AND deleted_at IS NULL",
+         WHERE id = $1 AND workspace_id = $2 AND shelf_id = $3 AND deleted_at IS NULL
+           AND NOT EXISTS (SELECT 1 FROM stocks s
+                           WHERE s.workspace_id = $2 AND s.bin_id = $1 AND s.deleted_at IS NULL
+                             AND (s.stock_lvl <> 0 OR s.reserved <> 0))",
         id,
         workspace_id,
         shelf_id,
