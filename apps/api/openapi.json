@@ -9501,6 +9501,11 @@
           "subtotal": {
             "type": "string"
           },
+          "subtotal_minor": {
+            "description": "Line total excl. VAT in minor units (gross and discount each rounded half away from\nzero); the lines' sum is `money.subtotal`.",
+            "format": "int64",
+            "type": "integer"
+          },
           "title": {
             "type": "string"
           },
@@ -9516,7 +9521,7 @@
             "type": "string"
           },
           "total_minor": {
-            "description": "Line total incl. VAT in minor units: excl (gross and discount rounded) + its own VAT.",
+            "description": "Line total incl. VAT in minor units: `subtotal_minor` + the line's own VAT. Their sum can\ndiffer from `money.total` by half a cent per line (document VAT is per rate).",
             "format": "int64",
             "type": "integer"
           },
@@ -9537,6 +9542,7 @@
           "title",
           "description",
           "unit_price_minor",
+          "subtotal_minor",
           "total_minor",
           "quantity",
           "price",

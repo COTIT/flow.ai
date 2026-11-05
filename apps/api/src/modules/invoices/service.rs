@@ -270,7 +270,7 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
     e.payment_hash = send::payment_token(state, workspace_id, &row);
     e.line_cents = line_cents
         .into_iter()
-        .map(|c| (c.id, (c.unit_price_minor, c.total_minor)))
+        .map(|c| (c.id, (c.unit_price_minor, c.subtotal_minor, c.total_minor)))
         .collect();
     e.payments = invoice_payments::repo::list(&state.db, workspace_id, id)
         .await?
