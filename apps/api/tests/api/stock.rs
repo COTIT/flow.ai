@@ -1473,9 +1473,7 @@ async fn set_stock_levels_keeps_holds_and_needs_a_tracked_product(pool: PgPool) 
     .execute(&pool)
     .await
     .unwrap();
-    let level = |v: &str| {
-        json!({ "warehouses": [{ "warehouse_id": w.main, "stock_lvl": v, "reason": "count" }] })
-    };
+    let level = |v: &str| json!({ "warehouses": [{ "warehouse_id": w.main, "stock_lvl": v, "reason": "count" }] });
 
     let (status, res) = w.post("set-stock-levels", level("1.5")).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
@@ -1507,12 +1505,11 @@ async fn set_stock_levels_keeps_holds_and_needs_a_tracked_product(pool: PgPool) 
         res["errors"]["warehouses"],
         json!(["This product doesn't track stock."])
     );
-    let rows: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM stock_movements WHERE product_id = $1::uuid",
-    )
-        .bind(&service)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    let rows: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM stock_movements WHERE product_id = $1::uuid")
+            .bind(&service)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(rows, 0, "nothing written for an untracked product");
 }

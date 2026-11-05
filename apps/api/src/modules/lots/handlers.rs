@@ -22,9 +22,9 @@ use crate::{
         app_keys::secret::CATALOG_READ,
         lots::{
             dto::{
-                CreateLotRequest, FarmerCreditsPage, ListQuery, LotEventResource, LotFreeStock, LotHold,
-                LotResource, LotStockLevel, PageQuery, PassportResource, StockMutationRequest,
-                UpdateLotRequest,
+                CreateLotRequest, FarmerCreditsPage, ListQuery, LotEventResource, LotFreeStock,
+                LotHold, LotResource, LotStockLevel, PageQuery, PassportResource,
+                StockMutationRequest, UpdateLotRequest,
             },
             passport::Passport,
             public::PublicLot,

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE warehouse_section_row_bins SET deleted_at = now(), updated_at = now()\n         WHERE id = $1 AND workspace_id = $2 AND shelf_id = $3 AND deleted_at IS NULL\n           AND NOT EXISTS (SELECT 1 FROM stocks s\n                           WHERE s.workspace_id = $2 AND s.bin_id = $1 AND s.deleted_at IS NULL\n                             AND (s.stock_lvl <> 0 OR s.reserved <> 0))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a23159c7f2c5d19bb1445117beeded5aa3432ed675ceb9da27434912610192c2"
+}

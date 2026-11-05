@@ -450,7 +450,10 @@ async fn status_moves_follow_the_rules_and_recalled_is_final(pool: PgPool) {
 
     let (status, res) = patch(&api, &id, json!({ "status": "released" })).await;
     assert_eq!(status, StatusCode::OK, "{res}");
-    assert_eq!(res["data"]["next_statuses"], json!(["quarantine", "recalled"]));
+    assert_eq!(
+        res["data"]["next_statuses"],
+        json!(["quarantine", "recalled"])
+    );
     let (status, res) = patch(&api, &id, json!({ "status": "recalled" })).await;
     assert_eq!(status, StatusCode::OK, "{res}");
     assert_eq!(res["data"]["next_statuses"], json!([]));

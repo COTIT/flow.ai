@@ -285,7 +285,14 @@ pub async fn update(
         repo::add_event(&mut tx, access.workspace_id, &event).await?;
     }
     if status_changed {
-        status_moved(&mut tx, access.workspace_id, access.user_id, &saved, &before.status).await?;
+        status_moved(
+            &mut tx,
+            access.workspace_id,
+            access.user_id,
+            &saved,
+            &before.status,
+        )
+        .await?;
     }
     tx.commit().await?;
     Ok(saved)
@@ -339,7 +346,13 @@ async fn status_moved(
                 "from_lot_code": lot.code,
                 "status": lot.status,
             });
-            events::emit(conn, t.to_workspace_id, SUPPLY_SOURCE_STATUS_CHANGED, payload).await?;
+            events::emit(
+                conn,
+                t.to_workspace_id,
+                SUPPLY_SOURCE_STATUS_CHANGED,
+                payload,
+            )
+            .await?;
         }
         if rank(&lot.status) <= rank(&from) {
             continue;

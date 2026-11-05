@@ -68,6 +68,7 @@ An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, p
   - optional `bin_id`
   - optional `minimal_stock_level` / `maximum_stock_level` (≥ 0; max ≥ min)
 - **Errors** name the entry: `warehouses.0.stock_lvl` with "The warehouses.0.stock lvl must be at least 0.", or "This warehouses.0.warehouse id does not exist".
+- **Holds and tracking:** a level below what orders hold on the row is a 422 on `warehouses.N.stock_lvl` ("The stock level can't be set below the 2 held for orders."), and nothing of the request is written. A product that doesn't track stock is a 422 on `warehouses` ("This product doesn't track stock.").
 - **Behaviour:**
   - All entries run in one transaction. Each entry is its own slot: Laravel leaked one entry's `bin_id` into the next.
   - An absent min or max keeps its value. Laravel logged it as changed to "not set".
@@ -165,11 +166,11 @@ An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, p
 ### `GET /products/stocks` and `/products/stocks/negative`
 
 - **Row** (Laravel `StockResource`):
-  - `{id, stock_lvl, reserved, minimal_stock_level, maximum_stock_level, meta}`
+  - `{id, stock_lvl, reserved, available, minimal_stock_level, maximum_stock_level, meta, lot}`
   - `relationships.product`: the product in list shape
   - `relationships.warehouse`: the full WarehouseResource
   - Products and warehouses load in one batch per page.
-- **`reserved`** is the product's reservations, which arrive with orders, so it is `0` for now.
+- **`reserved`** is what orders hold on the row, and **`available`** is `stock_lvl − reserved`, both 2-decimal text computed in SQL. Office shows both as they come.
 - **`/negative`:**
   - Shows store rows below 0, lowest first.
   - `q` (escaped, case-insensitive) matches the product name, reference, vendor reference, number and EAN, and the warehouse name and alias.
@@ -231,6 +232,6 @@ An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, p
 - **Zero callers:** `POST /products/{id}/move-stocks`.
 - **Not routed in Laravel:** `GetStockHistory`.
 - **Picqer:** stock sync, the `picqer_sync` relation, and blocking local mutations.
-- **Reservations:** `reserved` from orders and transfer lists (final batch).
+- **Reservations:** `reserved` from transfer lists.
 - **Second-chance NLA:** a product going `nla` when out of stock.
 - **Caches:** order-advice cache invalidation.

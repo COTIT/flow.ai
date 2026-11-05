@@ -730,7 +730,7 @@ async fn lots_show_their_lineage(pool: PgPool) {
     assert_eq!(
         got["received_from"],
         json!({ "transfer_id": transfer, "from_lot_code": jars_code,
-                "from_lot_public_code": jars_public })
+                "from_lot_public_code": jars_public, "from_lot_status": "released" })
     );
     assert_eq!(got["parent_lot"], Value::Null);
     // The sender's lot id stays on the farm side.

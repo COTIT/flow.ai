@@ -12,11 +12,12 @@ Paths sit under `/v1/workspace/{workspace}`. Members read; writes need `product.
 | `code` | string | 1–64 of `A-Z a-z 0-9 . _ / -`; unique per workspace, any case. Printed on the label. |
 | `public_code` | string | 10 Crockford base32 chars (`0-9`, `A-Z` without `I L O U`), made by the server, unique across all workspaces, never changes. The QR link is `/b/{public_code}`. |
 | `status` | string | `released` (default, sellable), `quarantine` or `recalled` |
+| `next_statuses` | string[] | the statuses a PATCH may set next: `released` → `quarantine`, `recalled`; `quarantine` → `released`, `recalled`; `recalled` → none (final). Office's status picker reads only this. |
 | `produced_on`, `best_before`, `expires_on` | date or null | `YYYY-MM-DD`; `best_before` and `expires_on` not before `produced_on` |
 | `origin` | string or null | up to 255 chars |
 | `parent_lot` | `{id, code}` or null | the lot of this workspace it was packed from (read only) |
 | `pack` | `{raw_kg, units}` or null | decimal strings: kg of the parent used and units made (read only) |
-| `received_from` | `{transfer_id, from_lot_code, from_lot_public_code}` or null | the supply transfer it was received from, with the sender's lot codes as `/supply-transfers` shows them; never the sender's ids (read only) |
+| `received_from` | `{transfer_id, from_lot_code, from_lot_public_code, from_lot_status}` or null | the supply transfer it was received from, with the sender's lot codes as `/supply-transfers` shows them and the sender's lot status now (`recalled` or `quarantine`: the supplier took it off sale; this lot's own status is never changed for you); never the sender's ids (read only) |
 | `created_at`, `updated_at` | date-time | |
 
 ## Routes
@@ -28,9 +29,23 @@ Paths sit under `/v1/workspace/{workspace}`. Members read; writes need `product.
 | GET | `/lots/{lot}` | | `200 {data}` |
 | PATCH | `/lots/{lot}` | any of `code`, `status`, dates, `origin`; absent keeps, `null` clears a nullable field | `200 {data}` |
 | GET | `/lots/{lot}/events` | `page`, `page_size` | `200 {data, meta}`, newest first |
+| GET | `/lots/{lot}/holds` | | `200 {data: [{order_id, number, warehouse_id, quantity}]}`, orders holding stock of this lot, oldest hold first; see "Status changes" |
 | GET | `/lots/{lot}/farmer-credits` | `page`, `page_size` | `200 {data, meta, farmer_groups, farmers}`, newest first; see below |
 
-**422 cases.** Missing `product_id` or `code`; bad code characters or length; unknown status; a date that isn't `YYYY-MM-DD`; a later date before `produced_on`; `origin` over 255. `product_id`: "The selected product id is invalid." when the product is malformed, unknown, deleted, of another workspace, or does not track stock. `code`: "The code has already been taken." (any case, this workspace only).
+**422 cases.** Missing `product_id` or `code`; bad code characters or length; unknown status; `status: recalled` on POST ("A new batch can only be released or in quarantine."); a date that isn't `YYYY-MM-DD`; a later date before `produced_on`; `origin` over 255. `product_id`: "The selected product id is invalid." when the product is malformed, unknown, deleted, of another workspace, or does not track stock. `code`: "The code has already been taken." (any case, this workspace only).
+
+**409 cases.** PATCH of a recalled lot's status: `409 {"message": "lot_status_final"}`. Sending the status it already has is no change (200).
+
+## Status changes
+
+A status change runs in the PATCH's transaction:
+
+1. Trail row `status_changed` and `lot.status_changed`.
+2. Each workspace that received stock of this lot over a supply link gets `supply.source_status_changed` in its own outbox. Their lot is never edited; they see the status through `received_from.from_lot_status` and the transfer's `from_lot.status`.
+3. Only when the lot goes off sale (released → quarantine, or → recalled):
+   - **Holds move.** Each order holding this lot, oldest hold first, has its hold moved to sellable lots (and no-lot stock) of the same product at the same warehouse, first-expired-first, if they can take the whole hold. Otherwise the order keeps its hold on this lot untouched, never split or shortened, and `GET /lots/{lot}/holds` lists it; completing it stays `409 lot_recalled` / `lot_quarantined` until the office cancels it or releases the lot.
+   - **Packed lots follow.** Every lot packed from it, down the whole line, whose status is looser moves to the same status, each with its own `status_changed` row (`meta.because_of`: the lot it followed), event, partner notices and hold move.
+4. Back to `released` moves no hold back and never cascades: packed lots stay on hold until released one by one.
 
 ## Farmer credits (selling side)
 
@@ -56,6 +71,8 @@ A PATCH that changes nothing writes nothing. Each row has `user_id` (null once t
 
 `lot.created` (on POST, same transaction): `{lot_id, product_id, code, public_code}`.
 
+`lot.status_changed` (each status change, same transaction, one per lot when packed lots follow): `{lot_id, product_id, code, public_code, from, to}`.
+
 ## Stock per lot
 
 Stock rows carry an optional `lot_id`. Null is the product's no-lot stock, which keeps the old one row per product, warehouse and bin. Each lot gets its own warehouse-level row next to it. Every ledger line (`stock_movements`) carries the row's `lot_id`, and so does `stock.changed`.
@@ -65,6 +82,7 @@ Stock rows carry an optional `lot_id`. Null is the product's no-lot stock, which
 - `quantity`: non-zero, rounded to 2 decimals. Positive puts stock in, negative takes it out.
 - Out may not take more than the row has free (level − reserved). Otherwise `422` on `quantity`: "Insufficient stock in this lot. Available: …, Reserved: …, Requested: …".
 - An unknown or foreign warehouse gives `422` on `warehouse_id`.
+- A recalled lot takes no stock in: positive `quantity` gives `409 {"message": "lot_recalled"}`, checked under the lot's row lock. Out (write-off) stays allowed. A lot in quarantine takes goods in for inspection.
 - Reply: `200 {data: {warehouse_id, stock_lvl}}`.
 
 `GET /lots/{lot}/stock` (any member, like reading the lot; another workspace's lot `404`): `200 {data: [{warehouse_id, level, reserved, available}]}`, one row per warehouse holding the lot (its rows there summed), by warehouse name, 2-decimal text. `available = level − reserved`. No stock: `[]`.
@@ -82,7 +100,7 @@ An order's hold (confirm) and shipment (complete) pick rows first-expired-first:
 
 Only `released` lots that are not past `expires_on` are sellable; quarantined, recalled and expired lots are never held. A hold may spread over several lots, and completing ships from exactly the rows held. Each ledger line names its lot.
 
-Completing an order that holds a lot recalled since the hold gives `409 {"message": "lot_recalled"}`. A lot put in quarantine since gives `409 {"message": "lot_quarantined"}`, and a lot past its expiry date since gives `409 {"message": "lot_expired"}`. In both cases nothing is written and the hold stays, so the office can cancel the order or release the hold; nothing is swapped to another lot silently.
+Completing an order that holds a lot recalled since the hold gives `409 {"message": "lot_recalled"}`. A lot put in quarantine since gives `409 {"message": "lot_quarantined"}`, and a lot past its expiry date since gives `409 {"message": "lot_expired"}`. In these cases nothing is written and the hold stays. A status change moves holds off a lot it takes off sale when another lot can take the whole hold (see "Status changes"), so this 409 means nothing else could.
 
 The storefront's `available_stock` counts only no-lot stock and sellable lot stock.
 

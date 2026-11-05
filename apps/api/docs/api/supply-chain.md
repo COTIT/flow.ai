@@ -15,6 +15,7 @@ An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, p
 
 - The lot must come from a supply batch or a supply transfer. Otherwise `422 Only a lot from a supply batch or a supply transfer can be packed.`
 - A packed lot, or one received already packed, gets `422 A packed lot can't be packed again.` (One packing per lineage, no blends.)
+- A recalled or quarantined lot gets `409 lot_recalled` / `409 lot_quarantined`, checked under the lot's row lock.
 - `units` and `raw_kg` are more than 0 with at most 2 decimals. `product_id` must be a live stock-tracked product here, and `warehouse_id` a warehouse here.
 - One transaction:
   - The child lot (`lot.created`): `parent_lot_id`, `pack_raw_kg`, `pack_units`. Kg per jar is `pack_raw_kg ÷ pack_units`, kept as the two exact numbers.
@@ -30,6 +31,7 @@ An optional `Idempotency-Key` header (1 to 255 visible characters, kept a day, p
 `{link_id, warehouse_id, quantity}`:
 - The link must be one this workspace granted (`422` on `link_id` otherwise). It must be live (`403 The supply link is not live.` when pending or revoked).
 - The lot must come from a supply batch.
+- A recalled or quarantined lot isn't sent: `409 lot_recalled` / `409 lot_quarantined`, checked under the lot's row lock.
 - One transaction: the quantity out of the lot in that warehouse (`422` when it holds less free), a `dispatched` transfer and a `dispatched` lot event.
 - Another workspace's lot gets `404`.
 - Farm ops and admin ship without `product.update`; a field officer, farmer or plain member gets `403`. Granting a link stays with workspace admins (it shares farmer data).
@@ -42,8 +44,8 @@ Transfers this workspace sent (`direction: "outgoing"`) or is sent (`"incoming"`
 - `status`: only `dispatched` (on the way, not received yet) or `received`. `direction`: only `outgoing` or `incoming`. Blank = no filter; any other value is a 422 on that field.
 - `?direction=incoming&status=dispatched` lists what is arriving; `meta.total` counts it.
 
-Transfer: `{id, link_id, direction, partner: {id, name, display_name}, from_lot: {code, public_code}, quantity, status, dispatched_at, to_lot, received_quantity, received_at}`.
-- `status` is `dispatched` or `received`.
+Transfer: `{id, link_id, direction, partner: {id, name, display_name}, from_lot: {code, public_code, status}, quantity, status, dispatched_at, to_lot, received_quantity, received_at}`.
+- `status` is `dispatched` or `received`. `from_lot.status` is the sent lot's status at the sender now; `recalled` or `quarantine` means the supplier took it off sale. Receiving stays allowed: the receiver decides (Office warns before it accepts).
 - No farmers, kg shares or prices ever appear.
 - A workspace that is not a side of a transfer never sees it.
 

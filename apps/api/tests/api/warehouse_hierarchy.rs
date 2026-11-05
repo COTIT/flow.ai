@@ -848,7 +848,10 @@ async fn a_bin_holding_stock_is_not_deleted(pool: PgPool) {
     );
 
     let eve = w.api.as_new_owner("eve@evil.test", "evil").await;
-    let path = format!("/warehouses/{}/sections/{s}/rows/{r}/shelves/{sh}/bins/{b}", w.wh);
+    let path = format!(
+        "/warehouses/{}/sections/{s}/rows/{r}/shelves/{sh}/bins/{b}",
+        w.wh
+    );
     let (st, _) = eve.call(Method::DELETE, &path, None, &eve.owner).await;
     assert_eq!(st, StatusCode::NOT_FOUND, "another workspace's bin");
 

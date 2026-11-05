@@ -926,7 +926,10 @@ async fn a_retried_packing_makes_one_batch_of_jars(pool: PgPool) {
 async fn held_or_recalled_lots_are_neither_packed_nor_sent(pool: PgPool) {
     let c = chain(pool).await;
     let s = shop(&c, json!([])).await;
-    for (status, code) in [("quarantine", "lot_quarantined"), ("recalled", "lot_recalled")] {
+    for (status, code) in [
+        ("quarantine", "lot_quarantined"),
+        ("recalled", "lot_recalled"),
+    ] {
         let (st, res) =
             c.f.ws_call(
                 Method::PATCH,
@@ -1021,15 +1024,24 @@ async fn a_recall_follows_every_lot_packed_from_it(pool: PgPool) {
 
     assert_eq!(
         status_trail(&c.f.pool, &c.raw).await,
-        ("recalled".to_owned(), vec![moved("released", "recalled", None)])
+        (
+            "recalled".to_owned(),
+            vec![moved("released", "recalled", None)]
+        )
     );
     assert_eq!(
         status_trail(&c.f.pool, &jar).await,
-        ("recalled".to_owned(), vec![moved("released", "recalled", Some(&c.raw))])
+        (
+            "recalled".to_owned(),
+            vec![moved("released", "recalled", Some(&c.raw))]
+        )
     );
     assert_eq!(
         status_trail(&c.f.pool, &grand).await,
-        ("recalled".to_owned(), vec![moved("quarantine", "recalled", Some(&jar))])
+        (
+            "recalled".to_owned(),
+            vec![moved("quarantine", "recalled", Some(&jar))]
+        )
     );
 }
 
@@ -1051,7 +1063,10 @@ async fn quarantine_follows_children_but_release_does_not(pool: PgPool) {
     }
     assert_eq!(
         status_trail(&c.f.pool, &jar).await,
-        ("quarantine".to_owned(), vec![moved("released", "quarantine", Some(&c.raw))]),
+        (
+            "quarantine".to_owned(),
+            vec![moved("released", "quarantine", Some(&c.raw))]
+        ),
         "the jars stay on hold until someone releases them"
     );
 }
@@ -1073,8 +1088,22 @@ async fn the_partner_hears_of_a_recall_and_sees_it_but_keeps_its_own_lot(pool: P
     assert_eq!(status, StatusCode::CREATED, "{res}");
     let (_, res) = dispatch(&c, &c.raw, &s.link, "4").await;
     let transfer = res["data"]["id"].as_str().unwrap().to_owned();
-    let a_product = a_create(&c.f, &s, "/products", json!({ "name": "Flour", "price": 10 }), "product_id").await;
-    let a_wh = a_create(&c.f, &s, "/warehouses", json!({ "name": "Hub" }), "warehouse_id").await;
+    let a_product = a_create(
+        &c.f,
+        &s,
+        "/products",
+        json!({ "name": "Flour", "price": 10 }),
+        "product_id",
+    )
+    .await;
+    let a_wh = a_create(
+        &c.f,
+        &s,
+        "/warehouses",
+        json!({ "name": "Hub" }),
+        "warehouse_id",
+    )
+    .await;
     let (status, res) = a_call(
         &c.f,
         &s.a_ws,
@@ -1097,18 +1126,28 @@ async fn the_partner_hears_of_a_recall_and_sees_it_but_keeps_its_own_lot(pool: P
         .await;
     assert_eq!(st, StatusCode::OK, "{res}");
 
-    let (_, lot) = a_call(&c.f, &s.a_ws, Method::GET, &format!("/lots/{a_lot}"), None, &s.a).await;
-    assert_eq!(lot["data"]["status"], "released", "the partner's lot is theirs");
+    let (_, lot) = a_call(
+        &c.f,
+        &s.a_ws,
+        Method::GET,
+        &format!("/lots/{a_lot}"),
+        None,
+        &s.a,
+    )
+    .await;
+    assert_eq!(
+        lot["data"]["status"], "released",
+        "the partner's lot is theirs"
+    );
     assert_eq!(lot["data"]["received_from"]["from_lot_status"], "recalled");
     let (_, list) = a_call(&c.f, &s.a_ws, Method::GET, "/supply-transfers", None, &s.a).await;
     assert_eq!(list["data"][0]["from_lot"]["status"], "recalled");
-    let hooks: Vec<(String, Value)> = sqlx::query_as(
-        "SELECT type, payload FROM webhook_events WHERE workspace_id = $1::uuid",
-    )
-    .bind(&s.a_ws)
-    .fetch_all(&c.f.pool)
-    .await
-    .unwrap();
+    let hooks: Vec<(String, Value)> =
+        sqlx::query_as("SELECT type, payload FROM webhook_events WHERE workspace_id = $1::uuid")
+            .bind(&s.a_ws)
+            .fetch_all(&c.f.pool)
+            .await
+            .unwrap();
     assert_eq!(
         hooks,
         [(

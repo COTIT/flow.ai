@@ -457,7 +457,10 @@ async fn a_hold_nothing_else_covers_stays_whole_and_the_lot_lists_its_order(pool
                  "warehouse_id": w.main, "quantity": "3.00" }])
     );
     let (s, res) = act(&w, &a, "complete").await;
-    assert_eq!((s, &res["message"]), (StatusCode::CONFLICT, &json!("lot_recalled")));
+    assert_eq!(
+        (s, &res["message"]),
+        (StatusCode::CONFLICT, &json!("lot_recalled"))
+    );
     let (s, res) = act(&w, &a, "cancel").await;
     assert_eq!(s, StatusCode::OK, "{res}");
     assert_eq!(holds(&w, &bad).await.1["data"], json!([]));

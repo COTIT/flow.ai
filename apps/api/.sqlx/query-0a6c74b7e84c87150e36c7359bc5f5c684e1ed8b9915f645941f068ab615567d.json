@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t.id, t.link_id, t.from_workspace_id, t.to_workspace_id, w.name AS partner_name,\n                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS \"partner_display_name!\",\n                  f.code AS from_lot_code, f.public_code AS from_lot_public_code,\n                  t.quantity, t.dispatched_at, t.to_lot_id,\n                  r.code AS \"to_lot_code?\", t.received_quantity, t.received_at\n           FROM supply_transfers t\n           JOIN lots f ON f.workspace_id = t.from_workspace_id AND f.id = t.from_lot_id\n           LEFT JOIN lots r ON r.workspace_id = t.to_workspace_id AND r.id = t.to_lot_id\n           JOIN workspaces w ON w.id = CASE WHEN t.from_workspace_id = $1\n                                            THEN t.to_workspace_id ELSE t.from_workspace_id END\n           WHERE (t.from_workspace_id = $1 OR t.to_workspace_id = $1)\n             AND ($2::uuid IS NULL OR t.id = $2)\n             AND ($5::text IS NULL OR ($5 = 'received') = (t.received_at IS NOT NULL))\n             AND ($6::text IS NULL OR ($6 = 'outgoing') = (t.from_workspace_id = $1))\n           ORDER BY t.dispatched_at DESC, t.id DESC LIMIT $3 OFFSET $4",
+  "query": "SELECT t.id, t.link_id, t.from_workspace_id, t.to_workspace_id, w.name AS partner_name,\n                  coalesce(nullif(btrim(w.profile->>'company_name'), ''), w.name) AS \"partner_display_name!\",\n                  f.code AS from_lot_code, f.public_code AS from_lot_public_code,\n                  f.status AS from_lot_status, t.quantity, t.dispatched_at, t.to_lot_id,\n                  r.code AS \"to_lot_code?\", t.received_quantity, t.received_at\n           FROM supply_transfers t\n           JOIN lots f ON f.workspace_id = t.from_workspace_id AND f.id = t.from_lot_id\n           LEFT JOIN lots r ON r.workspace_id = t.to_workspace_id AND r.id = t.to_lot_id\n           JOIN workspaces w ON w.id = CASE WHEN t.from_workspace_id = $1\n                                            THEN t.to_workspace_id ELSE t.from_workspace_id END\n           WHERE (t.from_workspace_id = $1 OR t.to_workspace_id = $1)\n             AND ($2::uuid IS NULL OR t.id = $2)\n             AND ($5::text IS NULL OR ($5 = 'received') = (t.received_at IS NOT NULL))\n             AND ($6::text IS NULL OR ($6 = 'outgoing') = (t.from_workspace_id = $1))\n           ORDER BY t.dispatched_at DESC, t.id DESC LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -88,6 +88,17 @@
       },
       {
         "ordinal": 8,
+        "name": "from_lot_status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "quantity",
         "type_info": "Numeric",
         "origin": {
@@ -98,7 +109,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "dispatched_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -109,7 +120,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "to_lot_id",
         "type_info": "Uuid",
         "origin": {
@@ -120,7 +131,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "to_lot_code?",
         "type_info": "Text",
         "origin": {
@@ -131,7 +142,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "received_quantity",
         "type_info": "Numeric",
         "origin": {
@@ -142,7 +153,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "received_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -174,11 +185,12 @@
       false,
       false,
       false,
+      false,
       true,
       false,
       true,
       true
     ]
   },
-  "hash": "c65db82fb859d246233a6a42b0579b9fdc08e48749f81a896eb9730638d58d10"
+  "hash": "0a6c74b7e84c87150e36c7359bc5f5c684e1ed8b9915f645941f068ab615567d"
 }

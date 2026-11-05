@@ -631,10 +631,7 @@ async fn a_warehouse_holding_stock_or_holds_is_not_deleted(pool: PgPool) {
         .await;
     let stock = |value: i64| {
         let body = json!({ "warehouse_id": wh, "mutation_value": value });
-        let (api, path) = (
-            api.with_base("/products"),
-            format!("/{product}/stocks"),
-        );
+        let (api, path) = (api.with_base("/products"), format!("/{product}/stocks"));
         async move {
             let (s, res) = api.call(Method::POST, &path, Some(body), &api.owner).await;
             assert_eq!(s, StatusCode::OK, "{res}");

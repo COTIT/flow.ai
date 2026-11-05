@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE lots SET status = $3, updated_at = now() WHERE id = $1 AND workspace_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2948069ec650c71f3ced2a126882c9687c094378be7aac93d172c6ab82a0b866"
+}

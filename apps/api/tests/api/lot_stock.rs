@@ -437,7 +437,11 @@ async fn a_recalled_lot_takes_no_new_stock_but_can_be_written_off(pool: PgPool) 
     }
 
     let (status, res) = mutate(&w, &held, json!(2)).await;
-    assert_eq!(status, StatusCode::OK, "quarantine takes goods in for inspection: {res}");
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "quarantine takes goods in for inspection: {res}"
+    );
     let (status, res) = mutate(&w, &bad, json!(2)).await;
     assert_eq!(
         (status, &res["message"]),

@@ -110,7 +110,10 @@ pub async fn delete(
         return Ok(());
     }
     // Not deleted: unknown, or stock still lives in the bin.
-    if repo::find(&state.db, workspace_id, sh.id, id).await?.is_some() {
+    if repo::find(&state.db, workspace_id, sh.id, id)
+        .await?
+        .is_some()
+    {
         return Err(AppError::Conflict("bin_holds_stock"));
     }
     Err(AppError::NotFound)

@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.stock_id, r.related_domain, r.related_id, sum(r.quantity) AS \"quantity!\",\n                    min(r.created_at) AS first\n             FROM stock_reservations r\n             JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id\n             WHERE r.workspace_id = $1 AND s.lot_id = $2 AND s.warehouse_id = $3\n             GROUP BY r.stock_id, r.related_domain, r.related_id\n             ORDER BY first, r.related_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "stock_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stock_reservations",
+            "name": "stock_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "related_domain",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stock_reservations",
+            "name": "related_domain"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "related_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "stock_reservations",
+            "name": "related_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "quantity!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "first",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "fbaf1c89098acf34a341327b023b71fc710f339db3080a2b4ad92f82b158aedb"
+}

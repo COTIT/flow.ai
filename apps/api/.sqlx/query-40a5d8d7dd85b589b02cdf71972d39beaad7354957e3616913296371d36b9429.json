@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,\n                  s.maximum_stock_level, s.meta, l.id AS \"lot_id?\", l.code AS \"lot_code?\", l.expires_on AS \"lot_expires_on?\",\n                  count(*) OVER () AS \"total!\"\n           FROM stocks s\n           JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL\n           JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN lots l ON l.id = s.lot_id\n           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL AND s.stock_lvl < 0 AND w.is_store\n             AND ($2::text IS NULL OR p.name ILIKE $2 OR p.reference ILIKE $2\n                  OR p.reference_vendor ILIKE $2 OR p.product_nr_formatted ILIKE $2\n                  OR p.ean13 ILIKE $2 OR w.name ILIKE $2 OR w.alias ILIKE $2)\n           ORDER BY s.stock_lvl, s.id\n           LIMIT $3 OFFSET $4",
+  "query": "SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,\n                      s.stock_lvl - s.reserved AS \"available!\", s.minimal_stock_level,\n                  s.maximum_stock_level, s.meta, l.id AS \"lot_id?\", l.code AS \"lot_code?\", l.expires_on AS \"lot_expires_on?\",\n                  count(*) OVER () AS \"total!\"\n           FROM stocks s\n           JOIN products p ON p.id = s.product_id AND p.deleted_at IS NULL\n           JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL\n           LEFT JOIN lots l ON l.id = s.lot_id\n           WHERE s.workspace_id = $1 AND s.deleted_at IS NULL AND s.stock_lvl < 0 AND w.is_store\n             AND ($2::text IS NULL OR p.name ILIKE $2 OR p.reference ILIKE $2\n                  OR p.reference_vendor ILIKE $2 OR p.product_nr_formatted ILIKE $2\n                  OR p.ean13 ILIKE $2 OR w.name ILIKE $2 OR w.alias ILIKE $2)\n           ORDER BY s.stock_lvl, s.id\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -49,6 +49,23 @@
       },
       {
         "ordinal": 4,
+        "name": "reserved",
+        "type_info": "Numeric",
+        "origin": {
+          "Table": {
+            "table": "stocks",
+            "name": "reserved"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "available!",
+        "type_info": "Numeric",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
         "name": "minimal_stock_level",
         "type_info": "Int4",
         "origin": {
@@ -59,7 +76,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 7,
         "name": "maximum_stock_level",
         "type_info": "Int4",
         "origin": {
@@ -70,7 +87,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 8,
         "name": "meta",
         "type_info": "Jsonb",
         "origin": {
@@ -81,7 +98,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 9,
         "name": "lot_id?",
         "type_info": "Uuid",
         "origin": {
@@ -92,7 +109,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "lot_code?",
         "type_info": "Text",
         "origin": {
@@ -103,7 +120,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "lot_expires_on?",
         "type_info": "Date",
         "origin": {
@@ -114,7 +131,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 12,
         "name": "total!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -134,6 +151,8 @@
       false,
       false,
       false,
+      null,
+      false,
       false,
       true,
       false,
@@ -142,5 +161,5 @@
       null
     ]
   },
-  "hash": "d82a39b5cf5cd56dd68e48d94bec64fa2b5b46173d6782f16ef904318684d2fa"
+  "hash": "40a5d8d7dd85b589b02cdf71972d39beaad7354957e3616913296371d36b9429"
 }
