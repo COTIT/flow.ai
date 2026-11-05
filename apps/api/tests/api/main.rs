@@ -48,6 +48,7 @@ mod hourly_rates;
 mod invites;
 mod invoice_actions;
 mod invoice_credit;
+mod invoice_money;
 mod invoice_payments;
 mod invoice_send;
 mod invoices;

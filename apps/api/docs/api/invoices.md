@@ -145,11 +145,14 @@ Laravel InvoiceResource:
   | `credit` | not a credit note, numbered, and `paid`/`partially_paid`; with an on-account relation any status but `credited` |
   | `pay` | not a credit note, `pending` or `partially_paid` |
   | `mark_as_credited` | a `pending` credit note |
-- **`balance`:** `{open, paid, total}`: `open` = total − paid (negative when overpaid, as Laravel), `paid` = the paid, unvoided payments as Laravel's decimal text (`"60.00000000"`, or `0` without any), `total` from the lines.
+- **`money`:** every amount in integer minor units, computed in SQL from the stored totals: `{currency, decimals, subtotal, vat, total, paid, open}`. `vat` = total − subtotal, `open` = total − paid (negative when overpaid). `currency` is the currency's code (`asset_type`), `decimals` the places the amounts are in (frozen once sent). Clients format these and do no money arithmetic. Also on list rows.
+- **`balance`** (deprecated, use `money`): `{open, paid, total}`: `open` = total − paid (negative when overpaid, as Laravel), `paid` = the paid, unvoided payments as Laravel's decimal text (`"60.00000000"`, or `0` without any), `total` from the lines.
 - **`summary`:** as `calculate-items` prints it, `discounts` holding one null per discounted line.
 - **`marge_calculation_summary`:** as `calculate-marge` prints it.
 - **`items`:** see below.
 - **`relationships`:** `relation` (RelationIndexResource), `currency`, `pdf_file` (the last sent PDF's FileResource; null before a send, or when that file was deleted), `payments` (unvoided, `invoice-payments.md`), `order` (`{id, number}` of the order it was made from, `POST /orders/{order}/invoice`; null otherwise), `custom_sections: []`, `child_invoices: []`. `estimate`, `parent_invoice`, `work_order`, `collective_invoice` and `cash_register` are null.
+
+**Lines** carry `unit_price_minor` (price incl. VAT, rounded half away from zero) and `total_minor` (gross and discount rounded per line, plus the line's own VAT), in minor units at `decimals`, priced in SQL the way `pricing::engine` prices a line. `price_incl`, `price_incl_vat` and `total_incl` are deprecated.
 
 **Lines** (ItemResource) print numbers with `formatDecimals`:
 - `quantity`, `vat`, `subtotal`, `total`, `total_incl`, `discount_percentage`, `discount_amount`, `discount_amount_incl`, `purchase_price`, `purchase_price_total`, `purchase_price_incl`, `marge`, `marge_total`, `marge_percentage` (null without a purchase price) and `price_incl_vat` at 2 places.

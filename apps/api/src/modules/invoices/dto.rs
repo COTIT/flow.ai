@@ -110,6 +110,27 @@ fn paid_schema() -> utoipa::openapi::Schema {
 
 // Doc-only: invoice resources are built with `json!` in `resource.rs`; these structs only
 // describe them. The contract check validates real replies against them.
+/// Every amount of an invoice in minor units, computed in SQL from the stored totals.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceMoney {
+    /// The currency's code (`asset_type`); null when the currency is gone.
+    #[schema(required = true)]
+    currency: Option<String>,
+    /// Decimals the amounts are in (frozen once sent).
+    decimals: u32,
+    /// Excl. VAT.
+    subtotal: i64,
+    /// total − subtotal.
+    vat: i64,
+    /// Incl. VAT.
+    total: i64,
+    /// Paid, unvoided payments.
+    paid: i64,
+    /// total − paid; negative when overpaid.
+    open: i64,
+}
+
 /// Paid, open and total amounts of an invoice.
 #[allow(dead_code)]
 #[derive(ToSchema)]
@@ -142,8 +163,11 @@ pub struct InvoicePayment {
     /// The payment day at midnight UTC.
     #[schema(value_type = String, format = DateTime)]
     date: String,
-    /// Decimal text with 8 places.
+    /// Decimal text with 8 places. Deprecated: use `amount_minor`.
+    #[schema(deprecated)]
     amount: String,
+    /// The amount in minor units of the invoice's currency, as stored.
+    amount_minor: i64,
     /// Always null.
     #[schema(value_type = Option<String>, required = true)]
     paid_amount: Option<String>,
@@ -170,9 +194,17 @@ pub struct InvoiceItem {
     title: String,
     #[schema(required = true)]
     description: Option<String>,
+    /// Unit price incl. VAT in minor units, priced in SQL (half away from zero).
+    unit_price_minor: i64,
+    /// Line total incl. VAT in minor units: excl (gross and discount rounded) + its own VAT.
+    total_minor: i64,
     quantity: String,
     price: String,
+    /// Deprecated: use `unit_price_minor`.
+    #[schema(deprecated)]
     price_incl: String,
+    /// Deprecated: use `unit_price_minor`.
+    #[schema(deprecated)]
     price_incl_vat: String,
     total_each_price_incl: String,
     marge: String,
@@ -192,6 +224,8 @@ pub struct InvoiceItem {
     returnable_serial_numbers: Vec<Value>,
     subtotal: String,
     total: String,
+    /// Deprecated: use `total_minor`.
+    #[schema(deprecated)]
     total_incl: String,
     vat_amount: String,
     discount_fixed: String,
@@ -258,7 +292,10 @@ pub struct InvoiceResource {
     #[schema(required = true)]
     payment_hash: Option<String>,
     payment_method: String,
+    /// Deprecated: use `money`.
+    #[schema(deprecated)]
     balance: InvoiceBalance,
+    money: InvoiceMoney,
     #[schema(required = true)]
     note: Option<String>,
     #[schema(required = true)]
@@ -355,7 +392,10 @@ pub struct InvoiceIndexResource {
     #[schema(required = true)]
     invoice_nr: Option<String>,
     status: String,
+    /// Deprecated: use `money`.
+    #[schema(deprecated)]
     balance: InvoiceListBalance,
+    money: InvoiceMoney,
     #[schema(required = true)]
     reference: Option<String>,
     /// Always null in lists.
@@ -376,7 +416,8 @@ pub struct InvoiceIndexResource {
     #[schema(required = true)]
     due_date: Option<DateTime<Utc>>,
     is_credit: bool,
-    /// Total with two decimals, e.g. `"121.00"`.
+    /// Total with two decimals, e.g. `"121.00"`. Deprecated: use `money.total`.
+    #[schema(deprecated)]
     total_amount: String,
     summary: SummaryResource,
     created_at: DateTime<Utc>,

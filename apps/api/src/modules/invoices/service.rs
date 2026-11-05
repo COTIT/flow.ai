@@ -264,8 +264,14 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
         None => dp(repo::currency_decimals(&state.db, workspace_id, row.currency_id).await?)?,
     };
     let (summary, margin) = price(&lines, dp)?;
+    let line_cents =
+        repo::line_cents(&state.db, workspace_id, id, i32::try_from(dp).unwrap_or(2)).await?;
     let mut e = embeds(state, workspace_id, std::slice::from_ref(&row)).await?;
     e.payment_hash = send::payment_token(state, workspace_id, &row);
+    e.line_cents = line_cents
+        .into_iter()
+        .map(|c| (c.id, (c.unit_price_minor, c.total_minor)))
+        .collect();
     e.payments = invoice_payments::repo::list(&state.db, workspace_id, id)
         .await?
         .iter()

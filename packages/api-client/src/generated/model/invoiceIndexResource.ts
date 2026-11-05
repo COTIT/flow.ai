@@ -8,12 +8,14 @@
 import type { InvoiceIndexLinks } from './invoiceIndexLinks';
 import type { InvoiceIndexResourceMeta } from './invoiceIndexResourceMeta';
 import type { InvoiceListBalance } from './invoiceListBalance';
+import type { InvoiceMoney } from './invoiceMoney';
 import type { SummaryResource } from './summaryResource';
 
 /**
  * An invoice in a list.
  */
 export interface InvoiceIndexResource {
+  /** Deprecated: use `money`. */
   balance: InvoiceListBalance;
   created_at: string;
   /**
@@ -46,6 +48,7 @@ export interface InvoiceIndexResource {
   last_updated_at: string;
   /** @nullable */
   meta: InvoiceIndexResourceMeta;
+  money: InvoiceMoney;
   /** @nullable */
   note: string | null;
   /**
@@ -61,6 +64,9 @@ export interface InvoiceIndexResource {
   send_date: string | null;
   status: string;
   summary: SummaryResource;
-  /** Total with two decimals, e.g. `"121.00"`. */
+  /**
+     * Total with two decimals, e.g. `"121.00"`. Deprecated: use `money.total`.
+     * @deprecated
+     */
   total_amount: string;
 }

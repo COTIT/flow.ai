@@ -197,3 +197,61 @@ async fn an_orders_invoice_links_its_order(pool: PgPool) {
         .assert_foreign_404(&invoice, json!({ "relation_id": f.rel }))
         .await;
 }
+
+/// The order reads its invoice's status (a read field, no order state): office shows the
+/// order paid once its invoice is.
+#[sqlx::test]
+async fn an_order_reads_its_invoices_status(pool: PgPool) {
+    let f = setup(pool).await;
+    let orders = f.api.with_base("/orders");
+    let body = json!({ "relation_id": f.rel, "lines": [{ "title": "Fee", "product_id": f.product, "quantity": 1 }] });
+    let (_, o) = orders
+        .call(Method::POST, "", Some(body), &orders.owner)
+        .await;
+    let order = o["data"]["order_id"].as_str().unwrap().to_owned();
+    let get = |path: String| {
+        let orders = &orders;
+        async move { orders.call(Method::GET, &path, None, &orders.owner).await.1["data"].clone() }
+    };
+    assert_eq!(
+        get(format!("/{order}")).await["invoice_status"],
+        Value::Null
+    );
+    orders
+        .call(
+            Method::POST,
+            &format!("/{order}/confirm"),
+            None,
+            &orders.owner,
+        )
+        .await;
+    let (_, o) = orders
+        .call(
+            Method::POST,
+            &format!("/{order}/invoice"),
+            None,
+            &orders.owner,
+        )
+        .await;
+    let invoice = o["data"]["invoice_id"].as_str().unwrap().to_owned();
+    assert_eq!(get(format!("/{order}")).await["invoice_status"], "draft");
+    assert_eq!(send(&f, &invoice, message(&f, "manual")).await, ok());
+    set_status(&f, &invoice, "paid").await;
+    assert_eq!(get(format!("/{order}")).await["invoice_status"], "paid");
+    let listed = orders.call(Method::GET, "", None, &orders.owner).await.1;
+    let row = listed["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["id"] == order)
+        .unwrap()
+        .clone();
+    assert_eq!(row["invoice_status"], "paid");
+    assert_eq!(row["status"], "open", "the order's own state doesn't move");
+    // Another workspace can't read the order, nor the status through it.
+    let eve = orders.as_new_owner("eve@example.com", "evil").await;
+    let (status, _) = eve
+        .call(Method::GET, &format!("/{order}"), None, &eve.owner)
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}

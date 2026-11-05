@@ -11,8 +11,13 @@ import type { InvoicePaymentMeta } from './invoicePaymentMeta';
  * A payment on an invoice.
  */
 export interface InvoicePayment {
-  /** Decimal text with 8 places. */
+  /**
+     * Decimal text with 8 places. Deprecated: use `amount_minor`.
+     * @deprecated
+     */
   amount: string;
+  /** The amount in minor units of the invoice's currency, as stored. */
+  amount_minor: number;
   created_at: string;
   /** The payment day at midnight UTC. */
   date: string;

@@ -19,6 +19,10 @@ Every other move is a 409. A paid order can't be cancelled until it is fully ref
 
 Holds come from the warehouse-level stock row of the order's warehouse (default: the main warehouse) and are all or nothing: a short line is a 422 on `lines.N.quantity` (`Not enough stock: 2 available.`) and holds nothing. Only lines of products with `has_stock` hold stock (`tracked`).
 
+### `invoice_status`
+
+Every order resource carries `invoice_status`: the status of the invoice made from it (`POST /orders/{order}/invoice`), read with the order in the same query, or null without one. A read field only: an office order's own status doesn't follow its invoice (that is F12). Office shows an order paid once its invoice is.
+
 ### `allowed_actions`
 
 Every order resource (get, list, each action's answer) lists the actions the API would accept now, in this order: `confirm`, `pick`, `complete`, `cancel`, `return`, `refund`, `invoice` (enum `OrderAction`). Each action route runs the same check under the order lock, so a listed action passes its state rules and an unlisted one is refused with the 409/422 that check gives. It covers status and payment rules only, not the caller's permissions, and not a request body's own validation (e.g. a pick quantity above the line).

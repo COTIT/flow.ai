@@ -43,6 +43,12 @@ export interface OrderResource {
   id: string;
   /** @nullable */
   invoice_id: string | null;
+  /**
+     * The linked invoice's status (`draft`, `pending`, `partially_paid`, `paid`, …); null
+     * without an invoice. Read with the order; the order's own status doesn't follow it.
+     * @nullable
+     */
+  invoice_status: string | null;
   lines: OrderLineResource[];
   /** @nullable */
   note: string | null;

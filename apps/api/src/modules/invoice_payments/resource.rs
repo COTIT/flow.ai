@@ -34,6 +34,8 @@ pub fn payment(p: &PaymentRow, dp: u32) -> Value {
         "description": p.description,
         "date": p.date.format("%Y-%m-%dT00:00:00.000000Z").to_string(),
         "amount": column(p.amount, dp),
+        // The stored minor units, as SQL has them.
+        "amount_minor": p.amount,
         // Laravel set it only on till and settle rows; its API payments printed null.
         "paid_amount": null,
         "is_paid": i32::from(p.is_paid),

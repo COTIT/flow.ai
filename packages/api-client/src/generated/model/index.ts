@@ -489,6 +489,7 @@ export * from './invoiceLinksRelation';
 export * from './invoiceLinksWorkOrder';
 export * from './invoiceListBalance';
 export * from './invoiceListPage';
+export * from './invoiceMoney';
 export * from './invoiceOrder';
 export * from './invoicePayment';
 export * from './invoicePaymentMeta';
