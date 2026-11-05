@@ -149,7 +149,9 @@
     "payoutOverBalance": "Kiasi kisizidi salio la {{balance}}.",
     "buyOwnVerification": "Mavuno uliyoyahakiki lazima yanunuliwe na mtu mwingine.",
     "buyBadHarvest": "Kiasi cha mavuno lazima kiwe kiasi halisi cha sasa kilichohakikiwa cha kijiji hiki na zao hili.",
-    "buyNoManager": "Shamba la mavuno haya halina msimamizi mkuu."
+    "buyNoManager": "Shamba la mavuno haya halina msimamizi mkuu.",
+    "lotRecalled": "Bechi hii imerudishwa, kwa hiyo haiwezi kutumwa.",
+    "lotQuarantined": "Bechi hii imesimamishwa, kwa hiyo haiwezi kutumwa. Iruhusu kwanza."
   },
   "empty": {
     "noAccessToThis": "Hakuna cha kuonyesha",

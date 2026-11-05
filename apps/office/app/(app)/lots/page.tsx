@@ -347,7 +347,6 @@ function CreateLot({
               data: {
                 product_id: String(f.get("product_id") ?? ""),
                 code: String(f.get("code") ?? ""),
-                status: text("status"),
                 produced_on: text("produced_on"),
                 best_before: text("best_before"),
                 expires_on: text("expires_on"),

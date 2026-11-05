@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT l.id AS lot_id, p.id AS \"parent_id?\", p.code AS \"parent_code?\",\n                  l.pack_raw_kg::text AS pack_raw_kg, l.pack_units::text AS pack_units,\n                  t.id AS \"transfer_id?\", f.code AS \"from_lot_code?\",\n                  f.public_code AS \"from_lot_public_code?\"\n           FROM lots l\n           LEFT JOIN lots p ON p.workspace_id = l.workspace_id AND p.id = l.parent_lot_id\n           LEFT JOIN supply_transfers t ON t.to_workspace_id = l.workspace_id\n                                       AND t.to_lot_id = l.id\n           LEFT JOIN lots f ON f.workspace_id = t.from_workspace_id AND f.id = t.from_lot_id\n           WHERE l.workspace_id = $1 AND l.id = ANY($2)",
+  "query": "SELECT l.id AS lot_id, p.id AS \"parent_id?\", p.code AS \"parent_code?\",\n                  l.pack_raw_kg::text AS pack_raw_kg, l.pack_units::text AS pack_units,\n                  t.id AS \"transfer_id?\", f.code AS \"from_lot_code?\",\n                  f.public_code AS \"from_lot_public_code?\", f.status AS \"from_lot_status?\"\n           FROM lots l\n           LEFT JOIN lots p ON p.workspace_id = l.workspace_id AND p.id = l.parent_lot_id\n           LEFT JOIN supply_transfers t ON t.to_workspace_id = l.workspace_id\n                                       AND t.to_lot_id = l.id\n           LEFT JOIN lots f ON f.workspace_id = t.from_workspace_id AND f.id = t.from_lot_id\n           WHERE l.workspace_id = $1 AND l.id = ANY($2)",
   "describe": {
     "columns": [
       {
@@ -80,6 +80,17 @@
             "name": "public_code"
           }
         }
+      },
+      {
+        "ordinal": 8,
+        "name": "from_lot_status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "status"
+          }
+        }
       }
     ],
     "parameters": {
@@ -96,8 +107,9 @@
       null,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "46ef5fe0f608ca484139dc5902bc8cf37c8df11cdaf29fb84cfbc1a6935e1919"
+  "hash": "d39dae09290729752a26f0407a1600e05370727664bff951e32f628987294cfa"
 }

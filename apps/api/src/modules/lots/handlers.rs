@@ -23,8 +23,8 @@ use crate::{
         lots::{
             dto::{
                 CreateLotRequest, FarmerCreditsPage, ListQuery, LotEventResource, LotFreeStock,
-                LotResource, LotStockLevel, PageQuery, PassportResource, StockMutationRequest,
-                UpdateLotRequest,
+                LotHold, LotResource, LotStockLevel, PageQuery, PassportResource,
+                StockMutationRequest, UpdateLotRequest,
             },
             passport::Passport,
             public::PublicLot,
@@ -147,6 +147,31 @@ pub async fn stock(
     Ok(Data(rows.into_iter().map(Into::into).collect()))
 }
 
+/// GET /lots/{lot}/holds -> orders still holding this lot.
+#[utoipa::path(
+    get, path = "/workspace/{workspace}/lots/{lot}/holds", tag = "lots",
+    operation_id = "lots_holds", summary = "Orders still holding a lot",
+    description = "Orders whose hold could not move off this lot when it went into quarantine or was recalled (no other sellable lot of the product at that warehouse had room for the whole hold). Oldest first. Cancel such an order, or release the lot, to clear it.",
+    params(
+        ("workspace" = Uuid, Path, description = "Workspace id"),
+        ("lot" = Uuid, Path, description = "Lot id"),
+    ),
+    responses(
+        (status = 200, body = Envelope<Vec<LotHold>>, description = "Orders holding the lot; empty when none"),
+        (status = 403, body = MessageBody, description = "Inactive membership"),
+        (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+    ),
+    security(("bearer" = []))
+)]
+pub async fn holds(
+    State(state): State<AppState>,
+    access: WorkspaceAccess,
+    Path((_, id)): LotPath,
+) -> Result<Data<Vec<LotHold>>, AppError> {
+    let rows = service::holds(&state, access.workspace_id, &id).await?;
+    Ok(Data(rows.into_iter().map(Into::into).collect()))
+}
+
 /// PATCH /lots/{lot} -> the updated lot.
 #[utoipa::path(
     patch, path = "/workspace/{workspace}/lots/{lot}", tag = "lots",
@@ -160,6 +185,7 @@ pub async fn stock(
         (status = 200, body = Envelope<LotResource>, description = "The updated lot"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+        (status = 409, body = MessageBody, description = "`lot_status_final`: a recalled lot keeps its status"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input or code taken"),
     ),
     security(("bearer" = []))
@@ -402,6 +428,7 @@ pub async fn storefront_get(
         (status = 200, body = Envelope<LotStockLevel>, description = "Stock moved; the lot's level at the warehouse"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+        (status = 409, body = MessageBody, description = "`lot_recalled`: stock can't go into a recalled lot (out stays allowed)"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input, unknown warehouse, more out than the lot has free, or Idempotency-Key reused for another request"),
     ),
     security(("bearer" = []))

@@ -204,6 +204,9 @@ export const DB_MESSAGE_RULES: DbMessageRule[] = [
     'The harvest report must be the current, verified actual figure of this village and crop.',
   ),
   fixed('dbError.buyNoManager', "The harvest's farm has no primary manager."),
+  // Dispatch of a lot that may not leave (409 codes).
+  fixed('dbError.lotRecalled', 'lot_recalled'),
+  fixed('dbError.lotQuarantined', 'lot_quarantined'),
 ]
 
 /**

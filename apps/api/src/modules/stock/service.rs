@@ -229,7 +229,8 @@ async fn entry_slots(
 }
 
 /// POST /products/{id}/set-stock-levels (Laravel SetProductStockLevels + StockLevelsSet), all
-/// entries in one transaction. Absent min/max keep their value.
+/// entries in one transaction. Absent min/max keep their value. The product must track stock
+/// (422), and a level never drops below what orders hold on the row (422 per entry).
 pub async fn set_levels(
     state: &AppState,
     workspace_id: Uuid,
@@ -238,13 +239,30 @@ pub async fn set_levels(
     user_id: Uuid,
 ) -> Result<(), AppError> {
     let product = product(state, workspace_id, product_id).await?;
+    if !tracks_stock(&product) {
+        return Err(AppError::field(
+            "warehouses",
+            "This product doesn't track stock.",
+        ));
+    }
     let slots = entry_slots(state, workspace_id, product.id, &entries).await?;
     let mut tx = state.db.begin().await?;
     let mut created = repo::lock_all(&mut tx, workspace_id, &slots).await?;
-    for (e, slot) in entries.iter().zip(slots) {
+    let mut held_errors: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for (i, (e, slot)) in entries.iter().zip(slots).enumerate() {
         let (row, _) = repo::lock_or_create(&mut tx, workspace_id, slot).await?;
         let existing = (!take(&mut created, &slot)).then_some(&row);
         let level = round(e.stock_lvl.unwrap_or_default(), 2);
+        if level < row.reserved {
+            held_errors.insert(
+                format!("warehouses.{i}.stock_lvl"),
+                vec![format!(
+                    "The stock level can't be set below the {} held for orders.",
+                    row.reserved.normalize()
+                )],
+            );
+            continue;
+        }
         let min = e.minimal.unwrap_or(row.minimal_stock_level);
         let max = e.maximum.unwrap_or(row.maximum_stock_level);
         let before = (
@@ -284,6 +302,10 @@ pub async fn set_levels(
             cause: &cause,
         };
         repo::record(&mut tx, workspace_id, &row, &movement).await?;
+    }
+    if !held_errors.is_empty() {
+        // Dropping the transaction rolls back every entry: all or nothing.
+        return Err(AppError::Validation(held_errors));
     }
     tx.commit().await?;
     Ok(())
@@ -541,8 +563,8 @@ pub async fn list(
             serde_json::json!({
                 "id": r.id,
                 "stock_lvl": resource::qty(r.stock_lvl),
-                // shortcut: the product's reservations come with orders (final batch).
-                "reserved": 0,
+                "reserved": resource::qty(r.reserved),
+                "available": resource::qty(r.available),
                 "minimal_stock_level": r.minimal_stock_level,
                 "maximum_stock_level": r.maximum_stock_level,
                 "meta": r.meta,

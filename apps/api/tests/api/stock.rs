@@ -1021,11 +1021,8 @@ async fn stock_lists_all_and_negative(pool: PgPool) {
     assert_eq!(all["meta"]["total"], 2);
     let first = &rows[0];
     assert_eq!(first["stock_lvl"], "2.00");
-    assert_eq!(
-        first["reserved"],
-        json!(0),
-        "the product's reservations: none before orders"
-    );
+    assert_eq!(first["reserved"], "0.00");
+    assert_eq!(first["available"], "2.00");
     assert_eq!(first["relationships"]["product"]["id"], w.product.as_str());
     assert_eq!(first["relationships"]["product"]["name"], "A");
     assert_eq!(first["relationships"]["warehouse"]["id"], w.main.as_str());
@@ -1066,6 +1063,25 @@ async fn stock_lists_all_and_negative(pool: PgPool) {
         let (status, _) = w.api.call(Method::GET, path, None, &viewer).await;
         assert_eq!(status, StatusCode::FORBIDDEN, "{path}");
     }
+}
+
+#[sqlx::test]
+async fn stock_list_shows_what_orders_hold(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 5 }))
+        .await;
+    // An order's hold lives in `stocks.reserved` (reserve.rs is the only writer).
+    sqlx::query("UPDATE stocks SET reserved = 1.5 WHERE warehouse_id = $1::uuid")
+        .bind(&w.main)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let all = w.api.with_base("/products/stocks").list("").await;
+    let row = &all["data"][0];
+    assert_eq!(row["stock_lvl"], "5.00");
+    assert_eq!(row["reserved"], "1.50");
+    assert_eq!(row["available"], "3.50", "level minus held, from the API");
 }
 
 #[sqlx::test]
@@ -1442,4 +1458,58 @@ async fn a_retried_stock_change_moves_stock_once(pool: PgPool) {
         StatusCode::NOT_FOUND,
         "acme's product under evil, never a replay"
     );
+}
+
+#[sqlx::test]
+async fn set_stock_levels_keeps_holds_and_needs_a_tracked_product(pool: PgPool) {
+    let w = world(pool.clone()).await;
+    w.mutate(json!({ "warehouse_id": w.main, "mutation_value": 5 }))
+        .await;
+    sqlx::query(
+        "UPDATE stocks SET reserved = 2
+         WHERE warehouse_id = $1::uuid AND bin_id IS NULL AND lot_id IS NULL",
+    )
+    .bind(&w.main)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let level = |v: &str| json!({ "warehouses": [{ "warehouse_id": w.main, "stock_lvl": v, "reason": "count" }] });
+
+    let (status, res) = w.post("set-stock-levels", level("1.5")).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["warehouses.0.stock_lvl"],
+        json!(["The stock level can't be set below the 2 held for orders."])
+    );
+    let (status, res) = w.post("set-stock-levels", level("2")).await;
+    assert_eq!(status, StatusCode::OK, "exactly what is held: {res}");
+
+    let service = w
+        .api
+        .create(
+            json!({ "name": "Fix", "price": 1, "type": "service" }),
+            "product_id",
+        )
+        .await;
+    let (status, res) = w
+        .api
+        .call(
+            Method::POST,
+            &format!("/{service}/set-stock-levels"),
+            Some(level("4")),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["warehouses"],
+        json!(["This product doesn't track stock."])
+    );
+    let rows: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM stock_movements WHERE product_id = $1::uuid")
+            .bind(&service)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(rows, 0, "nothing written for an untracked product");
 }

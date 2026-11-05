@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Lot guards (`docs/api/lots.md`, `stock.md`, `supply-chain.md`, `warehouses.md`, `webhooks.md`; no migration):
+  - Status rules: released ↔ quarantine, either → recalled; recalled is final (`409 lot_status_final`), and POST can't start a lot recalled. Lots gain `next_statuses`. Each change emits `lot.status_changed`.
+  - Recalled or held lots don't move: no stock into a recalled lot (`409 lot_recalled`; write-off and returns stay allowed, quarantine still takes goods in), no packing or dispatch from a recalled or quarantined lot (`409 lot_recalled` / `lot_quarantined`), all under the lot's row lock.
+  - Taking a lot off sale moves each order's hold to sellable lots at the same warehouse (FEFO, oldest hold first, all or nothing per order). Orders nothing else covers keep their hold and are listed by new `GET /lots/{lot}/holds`.
+  - Lots packed from it follow down the whole line (own trail row with `meta.because_of`, own event). Receiving workspaces get `supply.source_status_changed` and see the sender's status in `received_from.from_lot_status` and the transfer's `from_lot.status`; their lot is never edited.
+  - `GET /products/stocks` returns the real `reserved` and new `available` (was `reserved: 0`).
+  - A warehouse or bin holding stock or holds isn't deleted (`409 warehouse_holds_stock` / `bin_holds_stock`).
+  - `set-stock-levels` refuses a level below what orders hold, and products that don't track stock.
+
 - Money typed in office and till goes to the API as text (`docs/api/payments.md`, `till.md`; no migration). `POST /orders/{order}/refunds` takes `amount` as decimal text in the order's currency and converts it to minor units (its 422 says `At most 25.00 can be refunded.`, no longer minor units). A cash count line takes a typed `value` (decimal text) instead of `denomination`, converted with the register's decimals. New `POST /till/shift/count-quote` totals a count and compares it with the open shift (`{total, lines, expected, difference}`), booking nothing. `money::minor` is shared by invoice payments, refunds and counts.
 - Order resources gain `invoice_status` (`docs/api/orders.md`, no migration): the linked invoice's status, read in the order query. A read field; the order's own status doesn't change.
 - Invoice money in cents (`docs/api/invoices.md`, `invoice-payments.md`; no migration): the invoice detail and list rows gain `money` `{currency, decimals, subtotal, vat, total, paid, open}` in integer minor units, computed in SQL from the stored totals (vat = total − subtotal, open = total − paid). Lines gain `unit_price_minor`, `subtotal_minor` (their sum is `money.subtotal`) and `total_minor`, priced in SQL on exact numeric like the pricing engine prices a line, half away from zero (tested on 0.125 / −0.125); payments gain `amount_minor`. `balance`, `total_amount`, `price_incl`, `price_incl_vat`, `total_incl` and the payment `amount` are deprecated in OpenAPI. Office now only formats these.

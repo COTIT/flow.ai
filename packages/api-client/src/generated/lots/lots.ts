@@ -31,6 +31,7 @@ import type {
   EnvelopePassportResource,
   EnvelopePublicLot,
   EnvelopeVecLotFreeStock,
+  EnvelopeVecLotHold,
   FarmerCreditsPage,
   LotsEventsParams,
   LotsFarmerCreditsParams,
@@ -698,6 +699,106 @@ export function useLotsFarmerCredits<TData = Awaited<ReturnType<typeof lotsFarme
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getLotsFarmerCreditsQueryOptions(workspace,lot,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+/**
+ * Orders whose hold could not move off this lot when it went into quarantine or was recalled (no other sellable lot of the product at that warehouse had room for the whole hold). Oldest first. Cancel such an order, or release the lot, to clear it.
+ * @summary Orders still holding a lot
+ */
+export const lotsHolds = (
+    workspace: string,
+    lot: string,
+ options?: SecondParameter<typeof apiRequest>,signal?: AbortSignal
+) => {
+
+
+      return apiRequest<EnvelopeVecLotHold>(
+      {url: `/workspace/${workspace}/lots/${lot}/holds`, method: 'GET', signal
+    },
+      options);
+    }
+
+
+
+
+export const getLotsHoldsQueryKey = (workspace: string,
+    lot: string,) => {
+    return [
+    `/workspace/${workspace}/lots/${lot}/holds`
+    ] as const;
+    }
+
+
+export const getLotsHoldsQueryOptions = <TData = Awaited<ReturnType<typeof lotsHolds>>, TError = ErrorType<MessageBody>>(workspace: string,
+    lot: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsHolds>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getLotsHoldsQueryKey(workspace,lot);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof lotsHolds>>> = ({ signal }) => lotsHolds(workspace,lot, requestOptions, signal);
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: workspace !== null && workspace !== undefined && lot !== null && lot !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof lotsHolds>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type LotsHoldsQueryResult = NonNullable<Awaited<ReturnType<typeof lotsHolds>>>
+export type LotsHoldsQueryError = ErrorType<MessageBody>
+
+
+export function useLotsHolds<TData = Awaited<ReturnType<typeof lotsHolds>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    lot: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsHolds>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof lotsHolds>>,
+          TError,
+          Awaited<ReturnType<typeof lotsHolds>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLotsHolds<TData = Awaited<ReturnType<typeof lotsHolds>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    lot: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsHolds>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof lotsHolds>>,
+          TError,
+          Awaited<ReturnType<typeof lotsHolds>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useLotsHolds<TData = Awaited<ReturnType<typeof lotsHolds>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    lot: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsHolds>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Orders still holding a lot
+ */
+
+export function useLotsHolds<TData = Awaited<ReturnType<typeof lotsHolds>>, TError = ErrorType<MessageBody>>(
+ workspace: string,
+    lot: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof lotsHolds>>, TError, TData>>, request?: SecondParameter<typeof apiRequest>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getLotsHoldsQueryOptions(workspace,lot,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

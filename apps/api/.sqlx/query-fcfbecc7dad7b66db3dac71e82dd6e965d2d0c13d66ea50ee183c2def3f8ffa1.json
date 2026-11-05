@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM stock_reservations\n                     WHERE workspace_id = $1 AND stock_id = $2 AND related_domain = $3\n                       AND related_id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fcfbecc7dad7b66db3dac71e82dd6e965d2d0c13d66ea50ee183c2def3f8ffa1"
+}

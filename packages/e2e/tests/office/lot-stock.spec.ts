@@ -6,6 +6,7 @@ const lot = {
   code: "AFM-RAW-01",
   public_code: "AB12CD34EF",
   status: "released",
+  next_statuses: ["quarantine", "recalled"],
   produced_on: null,
   best_before: null,
   expires_on: null,
@@ -147,6 +148,35 @@ test.describe(() => {
     await dialog.getByRole("button", { name: "Save" }).click()
     await expect(dialog.getByText("Only 238.50 is free in this warehouse.")).toBeVisible()
     await expect(dialog.getByLabel("Quantity")).toHaveAttribute("aria-invalid", "true")
+  })
+})
+
+test.describe(() => {
+  test.use({
+    allow: {
+      responses: [{ url: "/v1/workspace/w1/lots/lot-1/stock-mutations", status: 409 }],
+    },
+  })
+
+  test("adding stock to a recalled batch reads as a sentence, not a code", async ({
+    page,
+    api,
+  }) => {
+    lotApi(api)
+    api.on("POST", "/workspace/:ws/lots/:id/stock-mutations", () => ({
+      status: 409,
+      body: { message: "lot_recalled" },
+    }))
+    await page.goto("/lots/lot-1")
+    await page.getByRole("button", { name: "Change stock" }).click()
+    await changeStock(page)
+    const dialog = page.getByRole("dialog")
+    await expect(
+      dialog.getByRole("alert").filter({
+        hasText: "This batch is recalled, so no stock can be added.",
+      })
+    ).toBeVisible()
+    await expect(dialog).not.toContainText("lot_recalled")
   })
 })
 

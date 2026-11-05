@@ -192,6 +192,7 @@ pub async fn set_default(
         (status = 200, body = MessageBody, description = "Done (`ok`)"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.delete`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or warehouse, or caller not a member"),
+        (status = 409, body = MessageBody, description = "`warehouse_holds_stock`: a stock level or an order hold here is not zero"),
     ),
     security(("bearer" = []))
 )]

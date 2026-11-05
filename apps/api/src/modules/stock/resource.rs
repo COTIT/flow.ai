@@ -180,8 +180,10 @@ pub struct StockDoc {
     id: Uuid,
     /// 2 decimals.
     stock_lvl: String,
-    /// Always 0 until orders exist.
-    reserved: i64,
+    /// Held for orders, 2 decimals.
+    reserved: String,
+    /// `stock_lvl − reserved`, 2 decimals.
+    available: String,
     minimal_stock_level: i32,
     maximum_stock_level: i32,
     #[schema(value_type = Option<Object>, required = true)]

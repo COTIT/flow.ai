@@ -131,6 +131,8 @@
   "dbError.buyOwnVerification": "c4043d3a6f",
   "dbError.buyBadHarvest": "e47e69feec",
   "dbError.buyNoManager": "5249f4016f",
+  "dbError.lotRecalled": "ec81246cd2",
+  "dbError.lotQuarantined": "b12cfb56ed",
   "empty.noAccessToThis": "901b56b2a8",
   "empty.noAccessDetail": "b6dbd70755",
   "notFound.title": "017a9a4569",

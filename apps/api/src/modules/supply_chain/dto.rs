@@ -225,6 +225,9 @@ pub struct SupplyTransferResource {
 pub struct TransferLot {
     code: String,
     public_code: String,
+    /// The sent lot's status at the sender now; `recalled` or `quarantine` means the supplier
+    /// took it off sale (receiving stays allowed).
+    status: String,
 }
 
 /// The lot a transfer was received into.
@@ -254,6 +257,7 @@ impl SupplyTransferResource {
             from_lot: TransferLot {
                 code: t.from_lot_code,
                 public_code: t.from_lot_public_code,
+                status: t.from_lot_status,
             },
             quantity: format!("{:.2}", t.quantity),
             status: if t.to_lot_id.is_some() {

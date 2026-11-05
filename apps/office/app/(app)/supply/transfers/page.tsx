@@ -16,7 +16,9 @@ import {
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
 import type { SupplyTransferResource } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
+import { Badge } from "@genesy/ui/components/badge"
 import { Button } from "@genesy/ui/components/button"
+import { Notice } from "@genesy/ui/components/notice"
 import {
   Dialog,
   DialogClose,
@@ -124,6 +126,15 @@ export default function SupplyTransfersPage() {
                   <span className="font-mono text-xs tracking-[0.04em] text-muted-foreground">
                     {tr.from_lot.public_code}
                   </span>
+                  {tr.direction === "incoming" &&
+                  (tr.from_lot.status === "recalled" ||
+                    tr.from_lot.status === "quarantine") ? (
+                    <Badge variant="red" className="ml-2">
+                      {tr.from_lot.status === "recalled"
+                        ? t("supplyWarn.badgeRecalled")
+                        : t("supplyWarn.badgeQuarantine")}
+                    </Badge>
+                  ) : null}
                 </TableCell>
                 <TableCell data-m="right" className="text-right tabular-nums">
                   {tr.quantity}
@@ -229,6 +240,19 @@ function ReceiveDialog({ transfer }: { transfer: SupplyTransferResource }) {
               {t("supply.receiveText", { quantity: transfer.quantity })}
             </DialogDescription>
           </DialogHeader>
+          {transfer.from_lot.status === "recalled" ||
+          transfer.from_lot.status === "quarantine" ? (
+            <Notice
+              variant="warning"
+              title={
+                transfer.from_lot.status === "recalled"
+                  ? t("supplyWarn.recalled")
+                  : t("supplyWarn.quarantine")
+              }
+            >
+              {t("supplyWarn.receiveHint")}
+            </Notice>
+          ) : null}
           <Capped meta={products.data?.meta} />
           <Field
             id="rcv-product"

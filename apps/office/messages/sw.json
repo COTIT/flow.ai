@@ -187,11 +187,13 @@
     "secretHint": "Uitumie kuthibitisha kwamba matukio yanatoka kweli kwa Genesy.",
     "eventNames": {
       "lot_created": "Fungu limeundwa",
+      "lot_status_changed": "Hali ya bechi imebadilika",
       "order_created": "Oda imewekwa",
       "passport_published": "Pasipoti imechapishwa",
       "product_changed": "Bidhaa imebadilishwa",
       "sale_attributed": "Mauzo yamehusishwa na mkulima",
-      "stock_changed": "Akiba imebadilika"
+      "stock_changed": "Akiba imebadilika",
+      "supply_source_status_changed": "Hali ya bechi ya msambazaji imebadilika"
     }
   },
   "passport": {
@@ -306,7 +308,9 @@
       "decrease": "Imetolewa",
       "set_level": "Hesabu imewekwa",
       "set_requirements": "Kiwango cha chini kimewekwa"
-    }
+    },
+    "held": "Imehifadhiwa",
+    "available": "Inapatikana"
   },
   "invoices": {
     "title": "Ankara",
@@ -869,5 +873,26 @@
     "mollie": "Mtandaoni",
     "online": "Mtandaoni",
     "settled": "Imelipwa kwa hati ya mkopo"
+  },
+  "lotErrors": {
+    "stockInRecalled": "Bechi hii imerudishwa, kwa hiyo hakuna bidhaa inayoweza kuongezwa. Bado unaweza kuondoa bidhaa.",
+    "packRecalled": "Bechi hii imerudishwa, kwa hiyo haiwezi kufungashwa.",
+    "packQuarantined": "Bechi hii imesimamishwa, kwa hiyo haiwezi kufungashwa. Iruhusu kwanza.",
+    "statusFinal": "Bechi iliyorudishwa haiwezi kubadilisha hali.",
+    "orderRecalled": "Bechi ambayo agizo hili linashikilia imerudishwa, na hakuna bechi nyingine iliyoweza kuchukua nafasi. Ghairi agizo ili kuiachilia.",
+    "orderQuarantined": "Bechi ambayo agizo hili linashikilia imesimamishwa. Iruhusu bechi au ghairi agizo.",
+    "orderExpired": "Bechi ambayo agizo hili linashikilia imeisha muda. Ghairi agizo ili kuiachilia."
+  },
+  "supplyWarn": {
+    "recalled": "Bechi ya chanzo imerudishwa na msambazaji.",
+    "quarantine": "Bechi ya chanzo imesimamishwa kwa msambazaji.",
+    "receiveHint": "Bado unaweza kuipokea. Amua cha kufanya na bidhaa: simamisha bechi yako au uirudishe.",
+    "badgeRecalled": "Imerudishwa na msambazaji",
+    "badgeQuarantine": "Imesimamishwa kwa msambazaji"
+  },
+  "lotHolds": {
+    "title": "Maagizo yanayosubiri bechi hii",
+    "hint": "Hakuna bechi nyingine katika ghala hilo iliyoweza kuchukua maagizo haya. Ghairi agizo, au iruhusu bechi hii.",
+    "held": "{quantity} imehifadhiwa"
   }
 }

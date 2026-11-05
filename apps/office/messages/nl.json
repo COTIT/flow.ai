@@ -187,11 +187,13 @@
     "secretHint": "Gebruik het om te controleren dat events echt van Genesy komen.",
     "eventNames": {
       "lot_created": "Batch aangemaakt",
+      "lot_status_changed": "Batchstatus gewijzigd",
       "order_created": "Order geplaatst",
       "passport_published": "Paspoort gepubliceerd",
       "product_changed": "Product gewijzigd",
       "sale_attributed": "Verkoop toegekend aan boer",
-      "stock_changed": "Voorraad gewijzigd"
+      "stock_changed": "Voorraad gewijzigd",
+      "supply_source_status_changed": "Status van leveranciersbatch gewijzigd"
     }
   },
   "passport": {
@@ -306,7 +308,9 @@
       "decrease": "Afgeboekt",
       "set_level": "Telling ingesteld",
       "set_requirements": "Minimum ingesteld"
-    }
+    },
+    "held": "Gereserveerd",
+    "available": "Beschikbaar"
   },
   "invoices": {
     "title": "Facturen",
@@ -869,5 +873,26 @@
     "mollie": "Online",
     "online": "Online",
     "settled": "Verrekend met creditnota"
+  },
+  "lotErrors": {
+    "stockInRecalled": "Deze batch is teruggeroepen, dus er kan geen voorraad bij. Afboeken kan nog wel.",
+    "packRecalled": "Deze batch is teruggeroepen en kan niet worden verpakt.",
+    "packQuarantined": "Deze batch staat in quarantaine en kan niet worden verpakt. Geef hem eerst vrij.",
+    "statusFinal": "Een teruggeroepen batch kan niet van status veranderen.",
+    "orderRecalled": "Een batch die deze bestelling vasthoudt is teruggeroepen en geen andere batch kon het overnemen. Annuleer de bestelling om hem vrij te geven.",
+    "orderQuarantined": "Een batch die deze bestelling vasthoudt staat in quarantaine. Geef de batch vrij of annuleer de bestelling.",
+    "orderExpired": "Een batch die deze bestelling vasthoudt is verlopen. Annuleer de bestelling om hem vrij te geven."
+  },
+  "supplyWarn": {
+    "recalled": "De bronbatch is door de leverancier teruggeroepen.",
+    "quarantine": "De bronbatch staat bij de leverancier in quarantaine.",
+    "receiveHint": "Je kunt hem nog ontvangen. Beslis wat je met de voorraad doet: zet je batch in quarantaine of roep hem terug.",
+    "badgeRecalled": "Teruggeroepen door leverancier",
+    "badgeQuarantine": "In quarantaine bij leverancier"
+  },
+  "lotHolds": {
+    "title": "Bestellingen die op deze batch wachten",
+    "hint": "Geen andere batch in dat magazijn kon deze bestellingen overnemen. Annuleer de bestelling of geef deze batch vrij.",
+    "held": "{quantity} gereserveerd"
   }
 }

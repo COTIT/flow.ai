@@ -7051,6 +7051,21 @@
         ],
         "type": "object"
       },
+      "Envelope_Vec_LotHold": {
+        "description": "Success body: the result under `data`.",
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/LotHold"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "Envelope_Vec_ProductImageResource": {
         "description": "Success body: the result under `data`.",
         "properties": {
@@ -11193,6 +11208,35 @@
         ],
         "type": "object"
       },
+      "LotHold": {
+        "description": "An order still holding stock of this lot (the lot was taken off sale and no other lot at\nthat warehouse could take the whole hold over).",
+        "properties": {
+          "number": {
+            "example": "ORD-0042",
+            "type": "string"
+          },
+          "order_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "2 decimals.",
+            "example": "3.00",
+            "type": "string"
+          },
+          "warehouse_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "order_id",
+          "number",
+          "warehouse_id",
+          "quantity"
+        ],
+        "type": "object"
+      },
       "LotRef": {
         "description": "Another lot of this workspace.",
         "properties": {
@@ -11240,6 +11284,17 @@
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "next_statuses": {
+            "description": "Statuses a PATCH may set next; empty once recalled (final).",
+            "example": [
+              "quarantine",
+              "recalled"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "origin": {
             "type": [
@@ -11311,6 +11366,7 @@
           "code",
           "public_code",
           "status",
+          "next_statuses",
           "produced_on",
           "best_before",
           "expires_on",
@@ -19228,6 +19284,10 @@
           "from_lot_public_code": {
             "type": "string"
           },
+          "from_lot_status": {
+            "description": "The sender's lot status now: `recalled` or `quarantine` means the supplier took it off\nsale. Your own lot's status is never changed for you.",
+            "type": "string"
+          },
           "transfer_id": {
             "format": "uuid",
             "type": "string"
@@ -19236,7 +19296,8 @@
         "required": [
           "transfer_id",
           "from_lot_code",
-          "from_lot_public_code"
+          "from_lot_public_code",
+          "from_lot_status"
         ],
         "type": "object"
       },
@@ -22501,6 +22562,10 @@
       "StockResource": {
         "description": "One stock row of `GET /products/stocks[/negative]`.",
         "properties": {
+          "available": {
+            "description": "`stock_lvl − reserved`, 2 decimals.",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -22556,9 +22621,8 @@
             "type": "object"
           },
           "reserved": {
-            "description": "Always 0 until orders exist.",
-            "format": "int64",
-            "type": "integer"
+            "description": "Held for orders, 2 decimals.",
+            "type": "string"
           },
           "stock_lvl": {
             "description": "2 decimals.",
@@ -22569,6 +22633,7 @@
           "id",
           "stock_lvl",
           "reserved",
+          "available",
           "minimal_stock_level",
           "maximum_stock_level",
           "meta",
@@ -24254,11 +24319,16 @@
           },
           "public_code": {
             "type": "string"
+          },
+          "status": {
+            "description": "The sent lot's status at the sender now; `recalled` or `quarantine` means the supplier\ntook it off sale (receiving stays allowed).",
+            "type": "string"
           }
         },
         "required": [
           "code",
-          "public_code"
+          "public_code",
+          "status"
         ],
         "type": "object"
       },
@@ -27145,11 +27215,13 @@
         "description": "An event an endpoint can subscribe to.",
         "enum": [
           "lot.created",
+          "lot.status_changed",
           "order.created",
           "passport.published",
           "product.changed",
           "sale.attributed",
-          "stock.changed"
+          "stock.changed",
+          "supply.source_status_changed"
         ],
         "type": "string"
       },
@@ -62425,6 +62497,16 @@
             },
             "description": "Request body arrived too slowly"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_status_final`: a recalled lot keeps its status"
+          },
           "413": {
             "content": {
               "application/json": {
@@ -62791,6 +62873,131 @@
         ]
       }
     },
+    "/workspace/{workspace}/lots/{lot}/holds": {
+      "get": {
+        "description": "Orders whose hold could not move off this lot when it went into quarantine or was recalled (no other sellable lot of the product at that warehouse had room for the whole hold). Oldest first. Cancel such an order, or release the lot, to clear it.",
+        "operationId": "lots_holds",
+        "parameters": [
+          {
+            "description": "Workspace id",
+            "in": "path",
+            "name": "workspace",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Lot id",
+            "in": "path",
+            "name": "lot",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Vec_LotHold"
+                }
+              }
+            },
+            "description": "Orders holding the lot; empty when none"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or expired token"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Inactive membership"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Unknown workspace or lot, or caller not a member"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Too many requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "Busy or timed out; retry later",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before retrying",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Orders still holding a lot",
+        "tags": [
+          "lots"
+        ]
+      }
+    },
     "/workspace/{workspace}/lots/{lot}/packings": {
       "post": {
         "description": "Makes a child lot of the jar product with `parent_lot_id`, and the kg used and units made as two exact numbers. Moves `raw_kg` out of the parent and `units` into the child in the warehouse, in one transaction (`lot.created`, `packed` on the parent). Only a lot from a supply batch or a supply transfer; never a packed one.",
@@ -62889,6 +63096,16 @@
               }
             },
             "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_recalled` or `lot_quarantined`: the lot may not be packed"
           },
           "413": {
             "content": {
@@ -63733,6 +63950,16 @@
             },
             "description": "Request body arrived too slowly"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_recalled`: stock can't go into a recalled lot (out stays allowed)"
+          },
           "413": {
             "content": {
               "application/json": {
@@ -63909,6 +64136,16 @@
               }
             },
             "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_recalled` or `lot_quarantined`: the lot may not be sent"
           },
           "413": {
             "content": {
@@ -85462,6 +85699,16 @@
             },
             "description": "Unknown workspace or warehouse, or caller not a member"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`warehouse_holds_stock`: a stock level or an order hold here is not zero"
+          },
           "429": {
             "content": {
               "application/json": {
@@ -88955,6 +89202,16 @@
               }
             },
             "description": "Unknown workspace, warehouse, section, row, shelf or bin, or caller not a member"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`bin_holds_stock`: stock still lies in the bin"
           },
           "429": {
             "content": {

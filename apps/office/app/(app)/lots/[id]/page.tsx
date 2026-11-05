@@ -10,10 +10,12 @@ import { useSession } from "@genesy/api-client/auth"
 import {
   getLotsEventsQueryKey,
   getLotsGetQueryKey,
+  getLotsHoldsQueryKey,
   getLotsListQueryKey,
   useLotsEvents,
   useLotsFarmerCredits,
   useLotsGet,
+  useLotsHolds,
   useLotsPassportGet,
   useLotsUpdate,
 } from "@genesy/api-client/endpoints/lots"
@@ -23,6 +25,7 @@ import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Badge } from "@genesy/ui/components/badge"
 import { Button, buttonVariants } from "@genesy/ui/components/button"
 import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
+import { Notice } from "@genesy/ui/components/notice"
 import { Skeleton } from "@genesy/ui/components/skeleton"
 import {
   Table,
@@ -82,6 +85,7 @@ export default function LotPage({
     { query: { enabled: lot.isSuccess && viewProduct } }
   )
   const passport = useLotsPassportGet(workspaceId, id, known)
+  const holds = useLotsHolds(workspaceId, id, known)
   // The same first page the Farmer credits card reads (one request): its village groups.
   const credits = useLotsFarmerCredits(workspaceId, id, { page: 1 }, known)
   const groups = credits.data?.farmers ?? []
@@ -102,6 +106,7 @@ export default function LotPage({
         for (const queryKey of [
           getLotsGetQueryKey(workspaceId, id),
           getLotsEventsQueryKey(workspaceId, id),
+          getLotsHoldsQueryKey(workspaceId, id),
           getLotsListQueryKey(workspaceId),
         ])
           void queryClient.invalidateQueries({ queryKey })
@@ -168,7 +173,7 @@ export default function LotPage({
               {t(`lots.statusText.${current.status}`)}
             </p>
           ) : null}
-          {current.status !== "recalled" ? (
+          {current.next_statuses.includes("recalled") ? (
             <Button
               type="button"
               variant="outline"
@@ -179,6 +184,30 @@ export default function LotPage({
             </Button>
           ) : null}
         </Tile>
+
+        {/* Off sale with orders still holding it: the ones no other batch could take over. */}
+        {current.status !== "released" && holds.data?.data.length ? (
+          <Tile id="lot-holds" title={t("lotHolds.title")} span="col-span-4">
+            <p className="text-[13px] text-muted-foreground">
+              {t("lotHolds.hint")}
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {holds.data.data.map((h) => (
+                <li
+                  key={`${h.order_id}-${h.warehouse_id}`}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <Link className={linkClass} href={`/orders/${h.order_id}`}>
+                    {h.number}
+                  </Link>
+                  <span className="text-muted-foreground tabular-nums">
+                    {t("lotHolds.held", { quantity: h.quantity })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Tile>
+        ) : null}
 
         <Tile
           id="lot-passport"
@@ -319,6 +348,18 @@ export default function LotPage({
                   </div>
                 </SubTile>
               ) : null}
+              {current.received_from?.from_lot_status === "recalled" ||
+              current.received_from?.from_lot_status === "quarantine" ? (
+                <Notice
+                  variant="warning"
+                  live={false}
+                  title={
+                    current.received_from.from_lot_status === "recalled"
+                      ? t("supplyWarn.recalled")
+                      : t("supplyWarn.quarantine")
+                  }
+                />
+              ) : null}
             </div>
           ) : (
             <p className="text-[13px] text-muted-foreground">
@@ -352,7 +393,11 @@ export default function LotPage({
           >
             <LotFields lot={current} errors={fieldErrors(update.error)} />
             <div className="empty:hidden md:col-span-2">
-              <ApiError error={update.error} fallback={t("common.error")} />
+              <ApiError
+                error={update.error}
+                fallback={t("common.error")}
+                codes={{ lot_status_final: t("lotErrors.statusFinal") }}
+              />
             </div>
           </form>
         </Tile>

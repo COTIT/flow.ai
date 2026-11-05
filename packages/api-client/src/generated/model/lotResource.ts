@@ -21,6 +21,8 @@ export interface LotResource {
   /** @nullable */
   expires_on: string | null;
   id: string;
+  /** Statuses a PATCH may set next; empty once recalled (final). */
+  next_statuses: string[];
   /** @nullable */
   origin: string | null;
   pack: Pack | null;

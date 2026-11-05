@@ -43,7 +43,8 @@ export function StockTable({
     { label: t("products.name") },
     { label: t("stock.warehouse") },
     { label: t("stock.level"), right: true },
-    { label: t("stock.reserved"), right: true },
+    { label: t("stock.held"), right: true },
+    { label: t("stock.available"), right: true },
   ]
   return (
     <>
@@ -80,7 +81,10 @@ export function StockTable({
           <ListSkeleton columns={columns} />
         ) : query.error || !query.data ? (
           <CardState>
-            <LoadError error={query.error} onRetry={() => void query.refetch()} />
+            <LoadError
+              error={query.error}
+              onRetry={() => void query.refetch()}
+            />
           </CardState>
         ) : query.data.data.length === 0 ? (
           <CardState>
@@ -135,8 +139,17 @@ export function StockTable({
                         s.stock_lvl
                       )}
                     </TableCell>
-                    <TableCell data-m="hide" className="text-right tabular-nums">
+                    <TableCell
+                      data-m="hide"
+                      className="text-right tabular-nums"
+                    >
                       {s.reserved}
+                    </TableCell>
+                    <TableCell
+                      data-m="hide"
+                      className="text-right tabular-nums"
+                    >
+                      {s.available}
                     </TableCell>
                   </TableRow>
                 )

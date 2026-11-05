@@ -452,5 +452,7 @@
   "surveyAdmin.statusDone.closed": "Drafter: Claude, field states step 3; unreviewed.",
   "dbError.payoutOverLimit": "Drafter: 'kikomo cha afisa' (officer limit) composed; no glossary term for limit.",
   "dbError.buyNoManager": "Drafter: 'msimamizi mkuu' (primary manager) composed; no glossary term.",
-  "common.other": "Drafter: 'Nyingine' is the n/i-class form; it is a generic fallback label for an unknown code, so the noun class may not agree everywhere."
+  "common.other": "Drafter: 'Nyingine' is the n/i-class form; it is a generic fallback label for an unknown code, so the noun class may not agree everywhere.",
+  "dbError.lotRecalled": "Drafter: 'imerudishwa' (recalled) composed; no glossary term for a product recall.",
+  "dbError.lotQuarantined": "Drafter: 'imesimamishwa' (on hold) and 'Iruhusu' (release) composed; no glossary terms."
 }

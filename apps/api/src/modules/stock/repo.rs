@@ -228,7 +228,10 @@ pub async fn lines(
     .await
 }
 
-/// The slot's live row under `FOR NO KEY UPDATE`; None = no row yet.
+/// The slot's live row under `FOR NO KEY UPDATE`; None = no row yet. First takes `FOR SHARE`
+/// on the slot's warehouse (and bin) row, which a place delete takes `FOR UPDATE`: every stock
+/// writer comes through here, so a delete waits for open writes and sees them, and no write
+/// lands in a place deleted meanwhile (`RowNotFound`, a 404). Lock order: place, then stock.
 pub async fn locked(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -238,6 +241,28 @@ pub async fn locked(
     sqlx::query!("SET LOCAL lock_timeout = '5s'")
         .execute(&mut *conn)
         .await?;
+    sqlx::query_scalar!(
+        "SELECT id FROM warehouses
+         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+         FOR SHARE",
+        workspace_id,
+        slot.warehouse_id,
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .ok_or(sqlx::Error::RowNotFound)?;
+    if let Some(b) = slot.bin {
+        sqlx::query_scalar!(
+            "SELECT id FROM warehouse_section_row_bins
+             WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+             FOR SHARE",
+            workspace_id,
+            b.bin_id,
+        )
+        .fetch_optional(&mut *conn)
+        .await?
+        .ok_or(sqlx::Error::RowNotFound)?;
+    }
     sqlx::query_as!(
         StockRow,
         "SELECT id, product_id, warehouse_id, shelf_id, bin_id, lot_id, stock_lvl, reserved,
@@ -869,6 +894,10 @@ pub struct ListRow {
     pub product_id: Uuid,
     pub warehouse_id: Uuid,
     pub stock_lvl: Decimal,
+    /// Held for orders (sum of the row's holds).
+    pub reserved: Decimal,
+    /// `stock_lvl − reserved`.
+    pub available: Decimal,
     pub minimal_stock_level: i32,
     pub maximum_stock_level: i32,
     pub meta: Option<Value>,
@@ -898,7 +927,8 @@ pub async fn list(
     if !f.negative {
         return sqlx::query_as!(
             ListRow,
-            r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
+            r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,
+                      s.stock_lvl - s.reserved AS "available!", s.minimal_stock_level,
                       s.maximum_stock_level, s.meta, l.id AS "lot_id?", l.code AS "lot_code?", l.expires_on AS "lot_expires_on?",
                       count(*) OVER () AS "total!"
                FROM stocks s
@@ -917,7 +947,8 @@ pub async fn list(
     }
     sqlx::query_as!(
         ListRow,
-        r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.minimal_stock_level,
+        r#"SELECT s.id, s.product_id, s.warehouse_id, s.stock_lvl, s.reserved,
+                      s.stock_lvl - s.reserved AS "available!", s.minimal_stock_level,
                   s.maximum_stock_level, s.meta, l.id AS "lot_id?", l.code AS "lot_code?", l.expires_on AS "lot_expires_on?",
                   count(*) OVER () AS "total!"
            FROM stocks s

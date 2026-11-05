@@ -18,7 +18,10 @@ use crate::{
         farm_supply,
         files::{repo as files, service as files_service},
         lots::{
-            dto::{LotPatch, LotResource, LotStockLevel, NewLotInput, STATUSES, StockMutation},
+            dto::{
+                LotPatch, LotResource, LotStockLevel, NewLotInput, STATUSES, StockMutation,
+                next_statuses,
+            },
             passport::{FileUse, Passport},
             public::{Link, PublicFarmerGroup, PublicLot},
             repo::{self, EventRow, ListFilter, LotRow, NewEvent, PassportRow},
@@ -26,10 +29,13 @@ use crate::{
         products::repo as products,
         stock::{
             repo::{self as stock, Cause, Floor, Mutated, Slot},
+            reserve,
             service::tracks_stock,
         },
         warehouses::repo as warehouses,
-        webhooks::events::{self, LOT_CREATED, PASSPORT_PUBLISHED},
+        webhooks::events::{
+            self, LOT_CREATED, LOT_STATUS_CHANGED, PASSPORT_PUBLISHED, SUPPLY_SOURCE_STATUS_CHANGED,
+        },
     },
 };
 
@@ -150,6 +156,15 @@ pub async fn insert_lot(
     Ok(lot)
 }
 
+/// 409 when stock may not leave `lot` to be packed or sent: recalled or in quarantine.
+pub fn check_sendable(lot: &LotRow) -> Result<(), AppError> {
+    match lot.status.as_str() {
+        "recalled" => Err(AppError::Conflict("lot_recalled")),
+        "quarantine" => Err(AppError::Conflict("lot_quarantined")),
+        _ => Ok(()),
+    }
+}
+
 /// One lot of the workspace, else 404.
 pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<LotRow, AppError> {
     repo::find(&state.db, workspace_id, parse(id)?)
@@ -249,6 +264,9 @@ pub async fn update(
     .filter_map(|(f, c)| c.then_some(f))
     .collect();
     let status_changed = before.status != after.status;
+    if status_changed && !next_statuses(&before.status).contains(&after.status.as_str()) {
+        return Err(AppError::Conflict("lot_status_final"));
+    }
     if changed.is_empty() && !status_changed {
         return Ok(before);
     }
@@ -267,18 +285,119 @@ pub async fn update(
         repo::add_event(&mut tx, access.workspace_id, &event).await?;
     }
     if status_changed {
-        let event = NewEvent {
-            lot_id: id,
-            kind: "status_changed",
-            from_status: Some(&before.status),
-            to_status: Some(&after.status),
-            user_id: access.user_id,
-            meta: None,
-        };
-        repo::add_event(&mut tx, access.workspace_id, &event).await?;
+        status_moved(
+            &mut tx,
+            access.workspace_id,
+            access.user_id,
+            &saved,
+            &before.status,
+        )
+        .await?;
     }
     tx.commit().await?;
     Ok(saved)
+}
+
+/// How far off sale a status is: released < quarantine < recalled.
+fn rank(status: &str) -> u8 {
+    match status {
+        "released" => 0,
+        "quarantine" => 1,
+        _ => 2,
+    }
+}
+
+/// After `lot` (locked, saved) moved from `from`: its trail row and `lot.status_changed`, and
+/// each partner that got stock from it hears `supply.source_status_changed` (their data stays
+/// theirs). Off sale (tighter): every lot packed from it, down the whole line, that is looser
+/// follows to the same status with its own row and event, and holds move off each changed lot
+/// to sellable lots. Loosening never cascades.
+///
+/// Lock order is lot → stock, as in stock mutations, packing and dispatch: `lot` is locked by
+/// the caller, then the whole descendant line (id order), and only then stock rows (holds
+/// move last). Locking a child after a stock row could deadlock against a dispatch.
+async fn status_moved(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    user_id: Uuid,
+    lot: &LotRow,
+    from: &str,
+) -> Result<(), AppError> {
+    let tighter = rank(&lot.status) > rank(from);
+    let line = if tighter {
+        repo::descendants_locked(conn, workspace_id, lot.id).await?
+    } else {
+        Vec::new()
+    };
+    // Each lot that changes, with its old status and the lot it followed, parents first.
+    let mut changed = vec![(lot.clone(), from.to_owned(), None::<Uuid>)];
+    let mut next = 0;
+    while next < changed.len() {
+        let (parent, status) = (changed[next].0.id, changed[next].0.status.clone());
+        for d in line.iter().filter(|d| d.parent == parent) {
+            if rank(&d.lot.status) < rank(&status) {
+                let mut child = d.lot.clone();
+                let was = std::mem::replace(&mut child.status, status.clone());
+                changed.push((child, was, Some(parent)));
+            }
+        }
+        next += 1;
+    }
+    for (lot, from, because_of) in &changed {
+        if because_of.is_some() {
+            repo::set_status(conn, workspace_id, lot.id, &lot.status).await?;
+        }
+        let event = NewEvent {
+            lot_id: lot.id,
+            kind: "status_changed",
+            from_status: Some(from),
+            to_status: Some(&lot.status),
+            user_id,
+            meta: because_of.map(|p| json!({ "because_of": p })),
+        };
+        repo::add_event(conn, workspace_id, &event).await?;
+        let payload = json!({
+            "lot_id": lot.id,
+            "product_id": lot.product_id,
+            "code": lot.code,
+            "public_code": lot.public_code,
+            "from": from,
+            "to": lot.status,
+        });
+        events::emit(conn, workspace_id, LOT_STATUS_CHANGED, payload).await?;
+        for t in repo::sent(&mut *conn, workspace_id, lot.id).await? {
+            let payload = json!({
+                "transfer_id": t.id,
+                "to_lot_id": t.to_lot_id,
+                "from_lot_code": lot.code,
+                "status": lot.status,
+            });
+            events::emit(
+                conn,
+                t.to_workspace_id,
+                SUPPLY_SOURCE_STATUS_CHANGED,
+                payload,
+            )
+            .await?;
+        }
+    }
+    if tighter {
+        // Every lot is locked and saved: now the stock rows.
+        for (lot, _, _) in &changed {
+            reserve::move_off_lot(conn, workspace_id, lot.id, lot.product_id).await?;
+        }
+    }
+    Ok(())
+}
+
+/// GET /lots/{lot}/holds: orders still holding this lot's stock, after the same 404 as `get`.
+pub async fn holds(
+    state: &AppState,
+    workspace_id: Uuid,
+    id: &str,
+) -> Result<Vec<repo::HoldRow>, AppError> {
+    let lot = get(state, workspace_id, id).await?;
+    Ok(repo::holds(&state.db, workspace_id, lot.id).await?)
 }
 
 /// `rows` as resources, with where each came from (one statement for all).
@@ -545,6 +664,14 @@ pub async fn stock_mutation(
     let actor = idempotency::Actor::User(access.user_id);
     if let Some(a) = idempotency::replay(&mut tx, ws, actor, key.as_ref()).await? {
         return Ok(a);
+    }
+    // Under the lot lock, so a recall can't slip in between. Quarantine takes goods in for
+    // inspection; a recalled lot only gives stock out (write-off).
+    let lot = repo::locked(&mut tx, ws, lot.id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if lot.status == "recalled" && m.quantity > rust_decimal::Decimal::ZERO {
+        return Err(AppError::Conflict("lot_recalled"));
     }
     match stock::mutate(
         &mut tx,

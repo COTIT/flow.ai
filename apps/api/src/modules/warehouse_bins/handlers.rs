@@ -201,6 +201,7 @@ pub async fn update(
         (status = 200, body = MessageBody, description = "Done (`ok`)"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `warehouse.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, warehouse, section, row, shelf or bin, or caller not a member"),
+        (status = 409, body = MessageBody, description = "`bin_holds_stock`: stock still lies in the bin"),
     ),
     security(("bearer" = []))
 )]

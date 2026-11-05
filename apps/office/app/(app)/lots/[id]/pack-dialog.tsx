@@ -172,7 +172,14 @@ export function PackDialog({ lotId, code }: { lotId: string; code: string }) {
                 <Input name="expires_on" type="date" />
               </Field>
             </div>
-            <ApiError error={pack.error} fallback={t("common.error")} />
+            <ApiError
+              error={pack.error}
+              fallback={t("common.error")}
+              codes={{
+                lot_recalled: t("lotErrors.packRecalled"),
+                lot_quarantined: t("lotErrors.packQuarantined"),
+              }}
+            />
             <DialogFooter>
               <DialogClose render={<Button type="button" variant="outline" />}>
                 {t("actions.cancel")}

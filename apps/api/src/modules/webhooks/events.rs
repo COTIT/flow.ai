@@ -20,6 +20,12 @@ pub const STOCK_CHANGED: &str = "stock.changed";
 pub const PRODUCT_CHANGED: &str = "product.changed";
 /// A lot (batch) was created.
 pub const LOT_CREATED: &str = "lot.created";
+/// A lot's status changed (quarantine, released, recalled), by hand or because a lot it was
+/// packed from changed.
+pub const LOT_STATUS_CHANGED: &str = "lot.status_changed";
+/// A lot this workspace received over a supply link changed status at the sender (the sender's
+/// lot, never the receiver's).
+pub const SUPPLY_SOURCE_STATUS_CHANGED: &str = "supply.source_status_changed";
 /// A lot's passport was published (first time or a new version).
 pub const PASSPORT_PUBLISHED: &str = "passport.published";
 
@@ -33,11 +39,13 @@ pub const SALE_ATTRIBUTED: &str = "sale.attributed";
 /// Events an endpoint may subscribe to.
 pub const EVENTS: &[&str] = &[
     LOT_CREATED,
+    LOT_STATUS_CHANGED,
     ORDER_CREATED,
     PASSPORT_PUBLISHED,
     PRODUCT_CHANGED,
     SALE_ATTRIBUTED,
     STOCK_CHANGED,
+    SUPPLY_SOURCE_STATUS_CHANGED,
 ];
 
 /// Outbox write, in the caller's transaction: the event row when an active endpoint of the

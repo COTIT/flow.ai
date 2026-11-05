@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, to_workspace_id, to_lot_id FROM supply_transfers\n         WHERE from_workspace_id = $1 AND from_lot_id = $2\n         ORDER BY dispatched_at, id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "to_workspace_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "to_workspace_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "to_lot_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "supply_transfers",
+            "name": "to_lot_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7759be9e0a4ea5770a3708651c5f6f1ef9cc6a733288682b588f5d372db7b043"
+}

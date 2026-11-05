@@ -187,11 +187,13 @@
     "secretHint": "Use it to check that events really come from Genesy.",
     "eventNames": {
       "lot_created": "Batch created",
+      "lot_status_changed": "Batch status changed",
       "order_created": "Order placed",
       "passport_published": "Passport published",
       "product_changed": "Product changed",
       "sale_attributed": "Sale credited to a farmer",
-      "stock_changed": "Stock changed"
+      "stock_changed": "Stock changed",
+      "supply_source_status_changed": "Supplier batch status changed"
     }
   },
   "passport": {
@@ -306,7 +308,9 @@
       "decrease": "Taken out",
       "set_level": "Count set",
       "set_requirements": "Minimum set"
-    }
+    },
+    "held": "Held",
+    "available": "Available"
   },
   "invoices": {
     "title": "Invoices",
@@ -869,5 +873,26 @@
     "mollie": "Online",
     "online": "Online",
     "settled": "Settled with credit note"
+  },
+  "lotErrors": {
+    "stockInRecalled": "This batch is recalled, so no stock can be added. You can still write stock off.",
+    "packRecalled": "This batch is recalled, so it can't be packed.",
+    "packQuarantined": "This batch is on hold, so it can't be packed. Release it first.",
+    "statusFinal": "A recalled batch can't change status.",
+    "orderRecalled": "A batch this order holds was recalled, and no other batch could take over. Cancel the order to free it.",
+    "orderQuarantined": "A batch this order holds is on hold. Release the batch or cancel the order.",
+    "orderExpired": "A batch this order holds has expired. Cancel the order to free it."
+  },
+  "supplyWarn": {
+    "recalled": "The source batch was recalled by the supplier.",
+    "quarantine": "The source batch is on hold at the supplier.",
+    "receiveHint": "You can still receive it. Decide what to do with the stock: put your batch on hold or recall it.",
+    "badgeRecalled": "Recalled by supplier",
+    "badgeQuarantine": "On hold at supplier"
+  },
+  "lotHolds": {
+    "title": "Orders waiting on this batch",
+    "hint": "No other batch at that warehouse could take these orders over. Cancel the order, or release this batch.",
+    "held": "{quantity} held"
   }
 }

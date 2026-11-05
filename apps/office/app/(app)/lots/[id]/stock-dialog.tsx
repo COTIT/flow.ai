@@ -170,7 +170,11 @@ export function StockDialog({
               {t("lotStock.quantityHint")}
             </p>
           </div>
-          <Field id="ls-reason" label={t("stock.reason")} errors={errors.reason}>
+          <Field
+            id="ls-reason"
+            label={t("stock.reason")}
+            errors={errors.reason}
+          >
             <Input name="reason" maxLength={255} />
           </Field>
           <label className="flex items-center gap-2 text-sm max-md:min-h-11">
@@ -183,7 +187,11 @@ export function StockDialog({
               {errors.is_correction.join(" ")}
             </p>
           ) : null}
-          <ApiError error={mutate.error} fallback={t("common.error")} />
+          <ApiError
+            error={mutate.error}
+            fallback={t("common.error")}
+            codes={{ lot_recalled: t("lotErrors.stockInRecalled") }}
+          />
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>
               {t("actions.cancel")}

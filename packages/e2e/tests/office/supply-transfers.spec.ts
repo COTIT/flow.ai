@@ -7,7 +7,7 @@ function transfersApi(api: FakeApi) {
       link_id: "link-1",
       direction: "incoming",
       partner: { id: "ws-ruaha", name: "RUAHA Project" },
-      from_lot: { code: "ILU-H-2026-01", public_code: "7K3M9Q2XRT" },
+      from_lot: { code: "ILU-H-2026-01", public_code: "7K3M9Q2XRT", status: "released" },
       quantity: "250.00",
       status: "dispatched",
       dispatched_at: "2026-10-31T08:00:00Z",
@@ -22,6 +22,7 @@ function transfersApi(api: FakeApi) {
     code: "AFM-RAW-01",
     public_code: "AB12CD34EF",
     status: "released",
+    next_statuses: ["quarantine", "recalled"],
     produced_on: null,
     best_before: null,
     expires_on: null,
@@ -70,6 +71,37 @@ function transfersApi(api: FakeApi) {
     .on("GET", "/workspace/:ws/lots/:id", () => ({ data: lot }))
     .on("GET", "/workspace/:ws/lots/:id/events", () => paged([]))
 }
+
+test("an incoming delivery whose source was recalled warns before it is received", async ({
+  page,
+  api,
+}) => {
+  transfersApi(api)
+  api.on("GET", "/workspace/:ws/supply-transfers", () =>
+    paged([
+      {
+        id: "tr-1",
+        link_id: "link-1",
+        direction: "incoming",
+        partner: { id: "ws-ruaha", name: "RUAHA Project" },
+        from_lot: { code: "ILU-H-2026-01", public_code: "7K3M9Q2XRT", status: "recalled" },
+        quantity: "250.00",
+        status: "dispatched",
+        dispatched_at: "2026-10-31T08:00:00Z",
+        to_lot: null,
+        received_quantity: null,
+        received_at: null,
+      },
+    ])
+  )
+  await page.goto("/supply/transfers")
+  await expect(page.getByText("Recalled by supplier")).toBeVisible()
+  await page.getByRole("button", { name: "Receive batch ILU-H-2026-01" }).click()
+  const dialog = page.getByRole("dialog")
+  await expect(dialog.getByText("The source batch was recalled by the supplier.")).toBeVisible()
+  // Receiving stays the partner's call.
+  await expect(dialog.getByRole("button", { name: "Receive" })).toBeEnabled()
+})
 
 test("receive: cancel sends nothing; the body is exact; opens the new batch", async ({
   page,

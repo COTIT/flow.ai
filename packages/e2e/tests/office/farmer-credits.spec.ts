@@ -6,6 +6,7 @@ const lot = {
   code: "ILU-J-2026-01",
   public_code: "JR12JR34JR",
   status: "released",
+  next_statuses: ["quarantine", "recalled"],
   produced_on: null,
   best_before: null,
   expires_on: null,

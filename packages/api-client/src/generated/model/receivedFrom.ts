@@ -12,5 +12,10 @@
 export interface ReceivedFrom {
   from_lot_code: string;
   from_lot_public_code: string;
+  /**
+     * The sender's lot status now: `recalled` or `quarantine` means the supplier took it off
+     * sale. Your own lot's status is never changed for you.
+     */
+  from_lot_status: string;
   transfer_id: string;
 }

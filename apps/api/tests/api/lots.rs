@@ -429,3 +429,72 @@ async fn lot_events_name_who_did_it_while_they_are_a_member(pool: PgPool) {
     let trail = events(&api, id).await;
     assert_eq!(trail[0]["user"], Value::Null, "user gone");
 }
+
+#[sqlx::test]
+async fn status_moves_follow_the_rules_and_recalled_is_final(pool: PgPool) {
+    let (api, product) = world(pool).await;
+    let mut body = lot(&product, "ILU-1");
+    body["status"] = json!("recalled");
+    let (status, res) = api.call(Method::POST, "", Some(body), &api.owner).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{res}");
+    assert_eq!(
+        res["errors"]["status"][0],
+        "A new batch can only be released or in quarantine."
+    );
+
+    let mut body = lot(&product, "ILU-1");
+    body["status"] = json!("quarantine");
+    let created = create(&api, body).await;
+    assert_eq!(created["next_statuses"], json!(["released", "recalled"]));
+    let id = created["id"].as_str().unwrap().to_owned();
+
+    let (status, res) = patch(&api, &id, json!({ "status": "released" })).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(
+        res["data"]["next_statuses"],
+        json!(["quarantine", "recalled"])
+    );
+    let (status, res) = patch(&api, &id, json!({ "status": "recalled" })).await;
+    assert_eq!(status, StatusCode::OK, "{res}");
+    assert_eq!(res["data"]["next_statuses"], json!([]));
+
+    for to in ["released", "quarantine"] {
+        let (status, res) = patch(&api, &id, json!({ "status": to })).await;
+        assert_eq!(
+            (status, &res["message"]),
+            (StatusCode::CONFLICT, &json!("lot_status_final")),
+            "recalled → {to}"
+        );
+    }
+    let (status, res) = patch(&api, &id, json!({ "status": "recalled", "origin": "x" })).await;
+    assert_eq!(status, StatusCode::OK, "same status is no move: {res}");
+    assert_eq!(api.get(&id).await["status"], "recalled");
+}
+
+#[sqlx::test]
+async fn status_change_reaches_the_outbox(pool: PgPool) {
+    let (api, product) = world(pool).await;
+    let hooks = api.with_base("/webhook-endpoints");
+    let body = json!({ "url": "https://shop.example.com/hooks", "events": ["lot.status_changed"] });
+    let (status, res) = hooks.call(Method::POST, "", Some(body), &api.owner).await;
+    assert_eq!(status, StatusCode::CREATED, "{res}");
+
+    let created = create(&api, lot(&product, "ILU-1")).await;
+    let id = created["id"].as_str().unwrap();
+    patch(&api, id, json!({ "origin": "x" })).await;
+    patch(&api, id, json!({ "status": "quarantine" })).await;
+
+    let rows: Vec<(String, Value)> = sqlx::query_as("SELECT type, payload FROM webhook_events")
+        .fetch_all(&api.pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        rows,
+        [(
+            "lot.status_changed".to_owned(),
+            json!({ "lot_id": id, "product_id": product, "code": "ILU-1",
+                    "public_code": created["public_code"],
+                    "from": "released", "to": "quarantine" })
+        )]
+    );
+}

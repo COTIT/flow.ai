@@ -418,3 +418,54 @@ async fn a_retried_lot_stock_change_moves_stock_once(pool: PgPool) {
     .await;
     assert_eq!(s, StatusCode::NOT_FOUND);
 }
+
+#[sqlx::test]
+async fn a_recalled_lot_takes_no_new_stock_but_can_be_written_off(pool: PgPool) {
+    let w = world(pool).await;
+    let held = lot(&w, "Q-1").await;
+    let bad = lot(&w, "R-1").await;
+    for id in [&held, &bad] {
+        assert_eq!(mutate(&w, id, json!(5)).await.0, StatusCode::OK);
+    }
+    for (id, status) in [(&held, "quarantine"), (&bad, "recalled")] {
+        let body = Some(json!({ "status": status }));
+        let (s, res) = w
+            .api
+            .call(Method::PATCH, &format!("/{id}"), body, &w.api.owner)
+            .await;
+        assert_eq!(s, StatusCode::OK, "{res}");
+    }
+
+    let (status, res) = mutate(&w, &held, json!(2)).await;
+    assert_eq!(
+        status,
+        StatusCode::OK,
+        "quarantine takes goods in for inspection: {res}"
+    );
+    let (status, res) = mutate(&w, &bad, json!(2)).await;
+    assert_eq!(
+        (status, &res["message"]),
+        (StatusCode::CONFLICT, &json!("lot_recalled")),
+        "{res}"
+    );
+    let (status, res) = mutate(&w, &bad, json!(-5)).await;
+    assert_eq!(status, StatusCode::OK, "write-off stays allowed: {res}");
+    assert_eq!(
+        levels(&w).await,
+        [
+            ("Q-1".to_owned(), "7.00".to_owned()),
+            ("R-1".to_owned(), "0.00".to_owned())
+        ]
+    );
+
+    let eve = w.api.as_new_owner("eve@evil.test", "evil").await;
+    let (status, _) = eve
+        .call(
+            Method::POST,
+            &format!("/{bad}/stock-mutations"),
+            Some(json!({ "warehouse_id": w.warehouse, "quantity": 1 })),
+            &eve.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "another workspace's lot");
+}

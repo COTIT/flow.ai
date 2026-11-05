@@ -48,6 +48,7 @@ permissions! {
         (status = 201, body = Envelope<PackedLotResource>, description = "Packed"),
         (status = 403, body = MessageBody, description = "No `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown lot, or another workspace's"),
+        (status = 409, body = MessageBody, description = "`lot_recalled` or `lot_quarantined`: the lot may not be packed"),
         (status = 422, body = UnprocessableBody, description = "Invalid input, not enough kg free, a lot that can't be packed, or Idempotency-Key reused for another request"),
     ),
     security(("bearer" = []))
@@ -76,6 +77,7 @@ pub async fn pack(
         (status = 201, body = Envelope<SupplyTransferResource>, description = "Dispatched (or the first answer again, for a retried Idempotency-Key)"),
         (status = 403, body = MessageBody, description = "Neither `product.update` nor farm ops/admin, or the link is not live"),
         (status = 404, body = MessageBody, description = "Unknown lot, or another workspace's"),
+        (status = 409, body = MessageBody, description = "`lot_recalled` or `lot_quarantined`: the lot may not be sent"),
         (status = 422, body = UnprocessableBody, description = "Invalid input or Idempotency-Key, key reused for another request, unknown link, not enough stock, or not a supply lot"),
     ),
     security(("bearer" = []))

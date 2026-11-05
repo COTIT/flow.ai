@@ -620,3 +620,105 @@ async fn parallel_first_creates_leave_one_default(pool: PgPool) {
         .count();
     assert_eq!(defaults, 1);
 }
+
+#[sqlx::test]
+async fn a_warehouse_holding_stock_or_holds_is_not_deleted(pool: PgPool) {
+    let api = api(pool.clone()).await;
+    let wh = api.create(json!({ "name": "Main" }), "warehouse_id").await;
+    let product = api
+        .with_base("/products")
+        .create(json!({ "name": "Honey", "price": 10 }), "product_id")
+        .await;
+    let stock = |value: i64| {
+        let body = json!({ "warehouse_id": wh, "mutation_value": value });
+        let (api, path) = (api.with_base("/products"), format!("/{product}/stocks"));
+        async move {
+            let (s, res) = api.call(Method::POST, &path, Some(body), &api.owner).await;
+            assert_eq!(s, StatusCode::OK, "{res}");
+        }
+    };
+    stock(3).await;
+
+    let refused = |res: &Value| res["message"] == "warehouse_holds_stock";
+    let (s, res) = api
+        .call(Method::DELETE, &format!("/{wh}"), None, &api.owner)
+        .await;
+    assert!(s == StatusCode::CONFLICT && refused(&res), "{s} {res}");
+
+    // Level back at 0 but an order still holds some: still refused.
+    stock(-3).await;
+    sqlx::query("UPDATE stocks SET reserved = 1 WHERE warehouse_id = $1::uuid")
+        .bind(&wh)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (s, res) = api
+        .call(Method::DELETE, &format!("/{wh}"), None, &api.owner)
+        .await;
+    assert!(s == StatusCode::CONFLICT && refused(&res), "{s} {res}");
+
+    sqlx::query("UPDATE stocks SET reserved = 0 WHERE warehouse_id = $1::uuid")
+        .bind(&wh)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let eve = api.as_new_owner("eve@evil.test", "evil").await;
+    let (s, _) = eve
+        .call(Method::DELETE, &format!("/{wh}"), None, &eve.owner)
+        .await;
+    assert_eq!(s, StatusCode::NOT_FOUND, "another workspace's warehouse");
+    api.delete(&wh).await;
+}
+
+/// A stock write still open when the delete runs: the delete waits for it and then sees it.
+#[sqlx::test]
+async fn a_delete_waits_for_an_open_stock_write_and_then_refuses(pool: PgPool) {
+    let api = api(pool.clone()).await;
+    let wh = api.create(json!({ "name": "Main" }), "warehouse_id").await;
+    let product = api
+        .with_base("/products")
+        .create(json!({ "name": "Honey", "price": 10 }), "product_id")
+        .await;
+    // Park the writer mid-transaction: hold the stock row it will lock.
+    let mut hold = pool.begin().await.unwrap();
+    sqlx::query(
+        "INSERT INTO stocks (workspace_id, product_id, warehouse_id)
+         SELECT workspace_id, id, $2::uuid FROM products WHERE id = $1::uuid
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(&product)
+    .bind(&wh)
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query("SELECT 1 FROM stocks WHERE product_id = $1::uuid FOR UPDATE")
+        .bind(&product)
+        .execute(&mut *hold)
+        .await
+        .unwrap();
+
+    let call = |method: Method, path: String, body: Option<Value>| {
+        let (app, token) = (api.app.clone(), api.owner.clone());
+        tokio::spawn(async move { send(&app, method, &path, body, Some(&token)).await })
+    };
+    let ws = format!("/v1/workspace/{}", api.ws);
+    let write = call(
+        Method::POST,
+        format!("{ws}/products/{product}/stocks"),
+        Some(json!({ "warehouse_id": wh, "mutation_value": 3 })),
+    );
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+    let delete = call(Method::DELETE, format!("{ws}/warehouses/{wh}"), None);
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+    assert!(!delete.is_finished(), "the delete waits for the open write");
+    hold.rollback().await.unwrap();
+
+    let (status, res) = write.await.unwrap();
+    assert_eq!(status, StatusCode::OK, "{res}");
+    let (status, res) = delete.await.unwrap();
+    assert_eq!(
+        (status, &res["message"]),
+        (StatusCode::CONFLICT, &json!("warehouse_holds_stock")),
+        "{res}"
+    );
+}

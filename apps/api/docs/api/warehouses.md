@@ -9,6 +9,8 @@ Shared rules (guard order, 404s, patch updates, list `meta`) are in `conventions
 
 Deletes are soft and don't cascade, as in Laravel. A child of a deleted parent still exists, but every route reaches it through its parents, so it answers 404.
 
+A warehouse or bin holding stock is not deleted: while any live stock row there has a level or an order hold that is not zero (negative store stock counts), `DELETE` answers `409 {"message": "warehouse_holds_stock"}` / `bin_holds_stock`. Move or write the stock off first. Laravel deleted it and stranded the stock.
+
 ## Permissions
 
 | Routes | Permission |
