@@ -69,7 +69,7 @@ test("motion: none rendered passes, an animated island fails", async ({ page }) 
 test("raw values: passes readable text, keys, URLs and allowed codes", async ({ page }) => {
   await page.setContent(
     `<h1>App keys</h1><p>Last used 4 Nov 2026, 18:12. Note: read the docs at https://genesy.app/docs or mail ops@genesy.app, e.g. now.</p>
-     <span>gsk_0f6b</span><span>Read catalogue</span><span>Price 12.50</span><span>06:12</span>
+     <span>gsk_0f6b</span><span>Read catalogue</span><span>Price 12.50</span><span>06:12</span><span>Open 449.40</span><span>v1.2.3</span>
      <input value="catalog:read"><code>stock.changed</code><pre>till_login</pre><kbd>pending_review</kbd>
      <span data-raw>lot_code_7</span><span hidden>store_only</span><span style="display:none">true</span>`
   )
@@ -85,6 +85,8 @@ for (const [name, html] of [
   ["ISO date", "<td>2026-11-04</td>"],
   ["ISO timestamp", "<td>2026-11-04T18:12:49Z</td>"],
   ["US date", "<td>11/4/2026, 6:12:49 PM</td>"],
+  ["i18n key", "<span>invoices.statuses.pending</span>"],
+  ["camelCase i18n key", "<button>orders.makeInvoice</button>"],
 ] as const)
   test(`raw values: catches a ${name}`, async ({ page }) => {
     await page.setContent(`<p>Fine text</p>${html}`)

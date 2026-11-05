@@ -155,6 +155,8 @@ export async function expectNoMotion(page: Page) {
 const RAW_PATTERNS: [string, RegExp][] = [
   ["scope key", /\b[a-z]+:[a-z_]+\b/],
   ["event name", /\b[a-z]+\.[a-z_]{3,}\b/],
+  // A missing translation prints its key: `invoices.statuses.pending`, `orders.makeInvoice`.
+  ["i18n key", /\b[a-z][a-zA-Z]+(?:\.[a-zA-Z][a-zA-Z0-9_]+)+\b/],
   ["snake_case", /\b[a-z0-9]+(?:_[a-z0-9]+)+\b/],
   ["UUID", /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i],
   ["boolean", /^(?:true|false)$/],
@@ -171,7 +173,7 @@ const NOT_RAW = [
 
 /**
  * No visible text is a raw internal value: a scope key (`catalog:read`), an event name
- * (`stock.changed`), a snake_case code, a UUID, a bare `true`/`false`, or an ISO or US machine
+ * (`stock.changed`), a translation key (`orders.makeInvoice`), a snake_case code, a UUID, a bare `true`/`false`, or an ISO or US machine
  * date. Inputs, `code`/`pre`/`kbd` and anything marked `data-raw` are skipped; `allow` lets legit
  * codes through (exact strings or patterns), `within` limits the check to part of the page.
  */
