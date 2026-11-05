@@ -26,6 +26,16 @@ const REASON_MAX: usize = 255;
 const BAD_CODE: &str = "The code may only contain letters, digits and . _ / -";
 /// Lot statuses; only `released` lots are sellable.
 pub const STATUSES: [&str; 3] = ["quarantine", "released", "recalled"];
+const NEW_STATUS: &str = "A new batch can only be released or in quarantine.";
+
+/// Statuses a lot in `from` may move to: released ↔ quarantine, either → recalled (final).
+pub fn next_statuses(from: &str) -> &'static [&'static str] {
+    match from {
+        "released" => &["quarantine", "recalled"],
+        "quarantine" => &["released", "recalled"],
+        _ => &[],
+    }
+}
 
 /// A lot (batch) of one product.
 #[derive(Serialize, ToSchema)]
@@ -41,6 +51,9 @@ pub struct LotResource {
     public_code: String,
     /// `quarantine`, `released` (sellable) or `recalled`.
     status: String,
+    /// Statuses a PATCH may set next; empty once recalled (final).
+    #[schema(example = json!(["quarantine", "recalled"]))]
+    next_statuses: Vec<&'static str>,
     #[schema(required = true)]
     produced_on: Option<NaiveDate>,
     #[schema(required = true)]
@@ -119,6 +132,7 @@ impl LotResource {
             product_id: l.product_id,
             code: l.code,
             public_code: l.public_code,
+            next_statuses: next_statuses(&l.status).to_vec(),
             status: l.status,
             produced_on: l.produced_on,
             best_before: l.best_before,
@@ -319,7 +333,13 @@ impl Validate for CreateLotRequest {
         Some(NewLotInput {
             product_id,
             code: code(r, self.code),
-            status: status(r, self.status).unwrap_or_else(|| "released".to_owned()),
+            status: status(r, self.status)
+                .filter(|s| {
+                    let ok = s != "recalled";
+                    r.check("status", ok, NEW_STATUS);
+                    ok
+                })
+                .unwrap_or_else(|| "released".to_owned()),
             produced_on: date(r, "produced_on", self.produced_on),
             best_before: date(r, "best_before", self.best_before),
             expires_on: date(r, "expires_on", self.expires_on),

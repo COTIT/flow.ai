@@ -7,6 +7,7 @@ function packingApi(api: FakeApi) {
     code: "AFM-RAW-01",
     public_code: "AB12CD34EF",
     status: "released",
+    next_statuses: ["quarantine", "recalled"],
     produced_on: null,
     best_before: null,
     expires_on: null,

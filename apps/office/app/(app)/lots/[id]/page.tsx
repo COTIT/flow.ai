@@ -168,7 +168,7 @@ export default function LotPage({
               {t(`lots.statusText.${current.status}`)}
             </p>
           ) : null}
-          {current.status !== "recalled" ? (
+          {current.next_statuses.includes("recalled") ? (
             <Button
               type="button"
               variant="outline"

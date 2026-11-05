@@ -160,6 +160,7 @@ pub async fn stock(
         (status = 200, body = Envelope<LotResource>, description = "The updated lot"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.update`"),
         (status = 404, body = MessageBody, description = "Unknown workspace or lot, or caller not a member"),
+        (status = 409, body = MessageBody, description = "`lot_status_final`: a recalled lot keeps its status"),
         (status = 422, body = ValidationErrorBody, description = "Invalid input or code taken"),
     ),
     security(("bearer" = []))

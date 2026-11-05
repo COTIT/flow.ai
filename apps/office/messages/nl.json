@@ -187,11 +187,13 @@
     "secretHint": "Gebruik het om te controleren dat events echt van Genesy komen.",
     "eventNames": {
       "lot_created": "Batch aangemaakt",
+      "lot_status_changed": "Batchstatus gewijzigd",
       "order_created": "Order geplaatst",
       "passport_published": "Paspoort gepubliceerd",
       "product_changed": "Product gewijzigd",
       "sale_attributed": "Verkoop toegekend aan boer",
-      "stock_changed": "Voorraad gewijzigd"
+      "stock_changed": "Voorraad gewijzigd",
+      "supply_source_status_changed": "Status van leveranciersbatch gewijzigd"
     }
   },
   "passport": {

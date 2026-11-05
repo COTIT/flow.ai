@@ -16,6 +16,7 @@ function lotsApi(api: FakeApi) {
       code: "ILU-2026-01",
       public_code: "7K3M9Q2XRT",
       status: "released",
+      next_statuses: ["quarantine", "recalled"],
       produced_on: "2026-09-01",
       best_before: "2028-09-01",
       expires_on: null,
@@ -84,7 +85,14 @@ function lotsApi(api: FakeApi) {
           from_status: lot.status,
           to_status: b.status,
         })
+      // The fake answers like the API: what may come next after the new status.
+      const next: Record<string, string[]> = {
+        released: ["quarantine", "recalled"],
+        quarantine: ["released", "recalled"],
+        recalled: [],
+      }
       Object.assign(lot, b, { updated_at: new Date().toISOString() })
+      if (b.status) lot.next_statuses = next[b.status] ?? []
       return { data: lot }
     })
     .on("GET", "/workspace/:ws/lots/:lot/events", () => paged(events))
@@ -258,6 +266,19 @@ test("recall from the status field, confirmed: saved and history shows the chang
   ).toMatchObject({
     status: "recalled",
   })
+  // Recalled is final: the picker offers only the moves the API lists, so it locks.
+  await expect(page.getByRole("combobox", { name: "Status" })).toBeDisabled()
+  await expect(page.getByRole("button", { name: "Recall this batch…" })).toHaveCount(0)
+})
+
+test("the status picker offers only the API's next statuses", async ({ page, api }) => {
+  const lots = lotsApi(api)
+  lots[0]!.status = "quarantine"
+  lots[0]!.next_statuses = ["released", "recalled"]
+  await page.goto("/lots/lot-1")
+  await expect(
+    page.getByRole("combobox", { name: "Status" }).getByRole("option")
+  ).toHaveText(["Quarantine", "Released", "Recalled"])
 })
 
 test("history says who did it: a name, the system, or a user who left", async ({

@@ -11241,6 +11241,17 @@
             "format": "uuid",
             "type": "string"
           },
+          "next_statuses": {
+            "description": "Statuses a PATCH may set next; empty once recalled (final).",
+            "example": [
+              "quarantine",
+              "recalled"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "origin": {
             "type": [
               "string",
@@ -11311,6 +11322,7 @@
           "code",
           "public_code",
           "status",
+          "next_statuses",
           "produced_on",
           "best_before",
           "expires_on",
@@ -27149,11 +27161,13 @@
         "description": "An event an endpoint can subscribe to.",
         "enum": [
           "lot.created",
+          "lot.status_changed",
           "order.created",
           "passport.published",
           "product.changed",
           "sale.attributed",
-          "stock.changed"
+          "stock.changed",
+          "supply.source_status_changed"
         ],
         "type": "string"
       },
@@ -62428,6 +62442,16 @@
               }
             },
             "description": "Request body arrived too slowly"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageBody"
+                }
+              }
+            },
+            "description": "`lot_status_final`: a recalled lot keeps its status"
           },
           "413": {
             "content": {

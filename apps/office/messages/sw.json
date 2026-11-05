@@ -187,11 +187,13 @@
     "secretHint": "Uitumie kuthibitisha kwamba matukio yanatoka kweli kwa Genesy.",
     "eventNames": {
       "lot_created": "Fungu limeundwa",
+      "lot_status_changed": "Hali ya bechi imebadilika",
       "order_created": "Oda imewekwa",
       "passport_published": "Pasipoti imechapishwa",
       "product_changed": "Bidhaa imebadilishwa",
       "sale_attributed": "Mauzo yamehusishwa na mkulima",
-      "stock_changed": "Akiba imebadilika"
+      "stock_changed": "Akiba imebadilika",
+      "supply_source_status_changed": "Hali ya bechi ya msambazaji imebadilika"
     }
   },
   "passport": {

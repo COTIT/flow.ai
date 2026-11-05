@@ -18,7 +18,10 @@ use crate::{
         farm_supply,
         files::{repo as files, service as files_service},
         lots::{
-            dto::{LotPatch, LotResource, LotStockLevel, NewLotInput, STATUSES, StockMutation},
+            dto::{
+                LotPatch, LotResource, LotStockLevel, NewLotInput, STATUSES, StockMutation,
+                next_statuses,
+            },
             passport::{FileUse, Passport},
             public::{Link, PublicFarmerGroup, PublicLot},
             repo::{self, EventRow, ListFilter, LotRow, NewEvent, PassportRow},
@@ -29,7 +32,7 @@ use crate::{
             service::tracks_stock,
         },
         warehouses::repo as warehouses,
-        webhooks::events::{self, LOT_CREATED, PASSPORT_PUBLISHED},
+        webhooks::events::{self, LOT_CREATED, LOT_STATUS_CHANGED, PASSPORT_PUBLISHED},
     },
 };
 
@@ -249,6 +252,9 @@ pub async fn update(
     .filter_map(|(f, c)| c.then_some(f))
     .collect();
     let status_changed = before.status != after.status;
+    if status_changed && !next_statuses(&before.status).contains(&after.status.as_str()) {
+        return Err(AppError::Conflict("lot_status_final"));
+    }
     if changed.is_empty() && !status_changed {
         return Ok(before);
     }
@@ -276,6 +282,15 @@ pub async fn update(
             meta: None,
         };
         repo::add_event(&mut tx, access.workspace_id, &event).await?;
+        let payload = json!({
+            "lot_id": id,
+            "product_id": saved.product_id,
+            "code": saved.code,
+            "public_code": saved.public_code,
+            "from": before.status,
+            "to": after.status,
+        });
+        events::emit(&mut tx, access.workspace_id, LOT_STATUS_CHANGED, payload).await?;
     }
     tx.commit().await?;
     Ok(saved)

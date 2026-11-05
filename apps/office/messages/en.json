@@ -187,11 +187,13 @@
     "secretHint": "Use it to check that events really come from Genesy.",
     "eventNames": {
       "lot_created": "Batch created",
+      "lot_status_changed": "Batch status changed",
       "order_created": "Order placed",
       "passport_published": "Passport published",
       "product_changed": "Product changed",
       "sale_attributed": "Sale credited to a farmer",
-      "stock_changed": "Stock changed"
+      "stock_changed": "Stock changed",
+      "supply_source_status_changed": "Supplier batch status changed"
     }
   },
   "passport": {

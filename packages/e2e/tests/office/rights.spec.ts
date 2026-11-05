@@ -84,6 +84,7 @@ const lot = {
   code: "ILU-2026-01",
   public_code: "7K3M9Q2XRT",
   status: "released",
+  next_statuses: ["quarantine", "recalled"],
   produced_on: "2026-09-01",
   best_before: null,
   expires_on: null,

@@ -14,9 +14,11 @@ export type WebhookEvent = typeof WebhookEvent[keyof typeof WebhookEvent];
 
 export const WebhookEvent = {
   lotcreated: 'lot.created',
+  lotstatus_changed: 'lot.status_changed',
   ordercreated: 'order.created',
   passportpublished: 'passport.published',
   productchanged: 'product.changed',
   saleattributed: 'sale.attributed',
   stockchanged: 'stock.changed',
+  supplysource_status_changed: 'supply.source_status_changed',
 } as const;
