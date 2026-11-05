@@ -132,10 +132,6 @@ test.describe(() => {
   })
 
   test("/invoices/[id] PDF: after a failure, Make PDF asks the API again", async ({ page, api }) => {
-    test.fail(
-      true,
-      "BUG: after a failed PDF, Make PDF only sets wantPdf (already true), so nothing is asked again until a reload (apps/office/app/(app)/invoices/[id]/page.tsx:189)"
-    )
     invoicesApi(api)
     let fail = true
     api.on("GET", "/workspace/:ws/invoices/:id/preview", () =>
