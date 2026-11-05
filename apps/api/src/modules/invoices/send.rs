@@ -20,6 +20,7 @@ use crate::{
         currencies, files,
         invoice_payments::{self, balance},
         invoices::{
+            actions::{self, Facts, InvoiceAction},
             pdf, repo,
             service::{parse, store_totals},
         },
@@ -106,7 +107,7 @@ pub async fn resend(
     let locked = repo::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if locked.invoice_number.is_none() {
+    if !actions::allows(InvoiceAction::Resend, &Facts::of(&locked, false)) {
         return Err(AppError::Unprocessable(CAN_NOT_RESEND.into()));
     }
     let (billing, contact) = recipient(&mut tx, workspace_id, locked.relation_id, &input).await?;
@@ -185,7 +186,7 @@ pub(crate) async fn number(
     let locked = repo::lock(&mut tx, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if locked.status != "draft" {
+    if !actions::allows(InvoiceAction::Send, &Facts::of(&locked, false)) {
         return Err(AppError::Unprocessable(CAN_NOT_SEND.into()));
     }
     let (billing, contact) = recipient(&mut tx, workspace_id, locked.relation_id, input).await?;

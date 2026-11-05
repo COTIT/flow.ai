@@ -2,6 +2,7 @@
 //! with item diff, cancel, duplicate, list, detail) with totals stored per write; sending
 //! (numbering, stock, PDF, mail, public link) and credit notes.
 
+pub mod actions;
 pub mod credit;
 pub mod dto;
 pub mod handlers;

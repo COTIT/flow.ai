@@ -9011,6 +9011,20 @@
         ],
         "type": "object"
       },
+      "InvoiceAction": {
+        "description": "An action Office can offer on an invoice (`allowed_actions`, in this order).",
+        "enum": [
+          "edit",
+          "send",
+          "resend",
+          "cancel",
+          "duplicate",
+          "credit",
+          "pay",
+          "mark_as_credited"
+        ],
+        "type": "string"
+      },
       "InvoiceBalance": {
         "description": "Paid, open and total amounts of an invoice.",
         "properties": {
@@ -9619,10 +9633,14 @@
             ]
           },
           "order": {
-            "description": "Always null.",
-            "type": [
-              "object",
-              "null"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceOrder",
+                "description": "The order this invoice was made from; null for any other invoice."
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "parent_invoice": {
@@ -9727,6 +9745,24 @@
         ],
         "type": "object"
       },
+      "InvoiceOrder": {
+        "description": "The order an invoice was made from.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "number": {
+            "description": "The order number, e.g. `ORD-0029`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number"
+        ],
+        "type": "object"
+      },
       "InvoicePayment": {
         "description": "A payment on an invoice.",
         "properties": {
@@ -9823,6 +9859,13 @@
               "object",
               "null"
             ]
+          },
+          "allowed_actions": {
+            "description": "What the API accepts on this invoice now (status rules only, not permissions).",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceAction"
+            },
+            "type": "array"
           },
           "balance": {
             "$ref": "#/components/schemas/InvoiceBalance"
@@ -9975,6 +10018,7 @@
           "created_at",
           "last_updated_at",
           "meta",
+          "allowed_actions",
           "relationships"
         ],
         "type": "object"

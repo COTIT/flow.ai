@@ -135,11 +135,21 @@ Laravel created lines without recomputing, so its stored totals of a fresh draft
 
 Laravel InvoiceResource:
 - **Top level:** `id`, `invoice_nr` (null until sent; `"N/A"` once cancelled), `status`, `reference`, `payment_hash` (the public link token once sent, else null), `payment_method`, `note`, `send_date`, `due_date`, `is_credit`, `previous_invoice_id` (a credit note's source), `mollie_refunds` (`[]`), `addressed_contact`, `billing_address` (address with `formatted`), `import_id` / `import_source` (null), `customer_ref`, `created_at`, `last_updated_at`, `meta`.
+- **`allowed_actions`:** what the API accepts on this invoice now, in this order (enum `InvoiceAction`). Each action route runs the same rule under the invoice lock, so a listed action passes its state rule and an unlisted one gets that route's 422/400. Status rules only: not permissions, not a body's own validation.
+
+  | Action | Listed when |
+  |---|---|
+  | `edit`, `send`, `cancel` | `draft` |
+  | `resend` | numbered |
+  | `duplicate` | always |
+  | `credit` | not a credit note, numbered, and `paid`/`partially_paid`; with an on-account relation any status but `credited` |
+  | `pay` | not a credit note, `pending` or `partially_paid` |
+  | `mark_as_credited` | a `pending` credit note |
 - **`balance`:** `{open, paid, total}`: `open` = total − paid (negative when overpaid, as Laravel), `paid` = the paid, unvoided payments as Laravel's decimal text (`"60.00000000"`, or `0` without any), `total` from the lines.
 - **`summary`:** as `calculate-items` prints it, `discounts` holding one null per discounted line.
 - **`marge_calculation_summary`:** as `calculate-marge` prints it.
 - **`items`:** see below.
-- **`relationships`:** `relation` (RelationIndexResource), `currency`, `pdf_file` (the last sent PDF's FileResource; null before a send, or when that file was deleted), `payments` (unvoided, `invoice-payments.md`), `custom_sections: []`, `child_invoices: []`. `estimate`, `parent_invoice`, `order`, `work_order`, `collective_invoice` and `cash_register` are null.
+- **`relationships`:** `relation` (RelationIndexResource), `currency`, `pdf_file` (the last sent PDF's FileResource; null before a send, or when that file was deleted), `payments` (unvoided, `invoice-payments.md`), `order` (`{id, number}` of the order it was made from, `POST /orders/{order}/invoice`; null otherwise), `custom_sections: []`, `child_invoices: []`. `estimate`, `parent_invoice`, `work_order`, `collective_invoice` and `cash_register` are null.
 
 **Lines** (ItemResource) print numbers with `formatDecimals`:
 - `quantity`, `vat`, `subtotal`, `total`, `total_incl`, `discount_percentage`, `discount_amount`, `discount_amount_incl`, `purchase_price`, `purchase_price_total`, `purchase_price_incl`, `marge`, `marge_total`, `marge_percentage` (null without a purchase price) and `price_incl_vat` at 2 places.

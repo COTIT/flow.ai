@@ -17,6 +17,7 @@ use crate::{
         currencies::{self, dto::CurrencyResource},
         files, invoice_payments,
         invoices::{
+            actions::{self, Facts, InvoiceAction},
             dto::{InvoiceInput, ItemFields, ItemRow, RowKind},
             repo::{self, HeaderPatch, LineChanges, NewInvoice, NewLines},
             resource::{self, Embeds},
@@ -278,6 +279,19 @@ pub async fn get(state: &AppState, workspace_id: Uuid, id: &str) -> Result<Value
             Err(err) => return Err(err),
         };
     }
+    let on_account = repo::relation_terms(&state.db, workspace_id, row.relation_id)
+        .await?
+        .is_some_and(|t| t.allow_invoicing_on_account);
+    e.allowed_actions = actions::allowed(&Facts {
+        status: &row.status,
+        is_credit: row.is_credit,
+        numbered: row.invoice_number.is_some(),
+        on_account,
+    });
+    e.order = repo::order_of(&state.db, workspace_id, id)
+        .await?
+        .map(|o| to_json(&o))
+        .transpose()?;
     let product_ids = unique(lines.iter().filter_map(|l| l.product_id));
     e.products = products::service::render_many(state, workspace_id, &product_ids).await?;
     let warehouse_ids = unique(lines.iter().filter_map(|l| l.mutate_from_warehouse_id));
@@ -368,7 +382,7 @@ async fn draft(
     let locked = repo::lock(conn, workspace_id, id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if locked.status != "draft" {
+    if !actions::allows(InvoiceAction::Edit, &Facts::of(&locked, false)) {
         return Err(AppError::Unprocessable(NOT_DRAFT.into()));
     }
     Ok(locked)

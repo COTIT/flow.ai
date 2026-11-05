@@ -13,6 +13,7 @@ use crate::{
     http::json::human,
     modules::{
         invoices::{
+            actions::{self, Facts, InvoiceAction},
             dto::{CreditInput, CreditLine},
             repo::{self, ItemRow, NewInvoice, NewLines},
             service::{Errors, parse, store_totals},
@@ -50,18 +51,11 @@ pub async fn credit(
     if locked.is_credit {
         return Err(AppError::Unprocessable(CREDIT_NOTE.into()));
     }
-    // Laravel Invoice::canBeCredited, plus: only a sent invoice (an unsent one moved no stock
-    // and has no number to credit; Laravel allowed on-account drafts of the till, F15).
+    // Laravel allowed on-account drafts of the till too (F15); an unsent one moved no stock.
     let on_account = repo::relation_terms(&mut *tx, workspace_id, locked.relation_id)
         .await?
         .is_some_and(|t| t.allow_invoicing_on_account);
-    let allowed = locked.invoice_number.is_some()
-        && if on_account {
-            locked.status != "credited"
-        } else {
-            matches!(locked.status.as_str(), "paid" | "partially_paid")
-        };
-    if !allowed {
+    if !actions::allows(InvoiceAction::Credit, &Facts::of(&locked, on_account)) {
         return Err(AppError::Unprocessable(format!(
             "This Invoice has the status {} and does not have the correct status to be credited.",
             locked.status

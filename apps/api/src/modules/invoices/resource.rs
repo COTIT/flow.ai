@@ -11,7 +11,10 @@ use uuid::Uuid;
 use crate::{
     modules::{
         invoice_payments::resource as payments,
-        invoices::repo::{InvoiceRow, ItemRow},
+        invoices::{
+            actions::InvoiceAction,
+            repo::{InvoiceRow, ItemRow},
+        },
         pricing::{
             dto::{MarginResource, SummaryResource},
             engine::{Amounts, Margin, RateTotal, Summary},
@@ -29,10 +32,13 @@ pub struct Embeds {
     pub currencies: HashMap<Uuid, Value>,
     pub products: HashMap<Uuid, Value>,
     pub warehouses: HashMap<Uuid, Value>,
-    /// Detail only: the opened payment token, the sent PDF's file resource, the payments.
+    /// Detail only: the opened payment token, the sent PDF's file resource, the payments,
+    /// the actions that pass now and the order it was made from.
     pub payment_hash: Option<String>,
     pub pdf_file: Option<Value>,
     pub payments: Vec<Value>,
+    pub allowed_actions: Vec<InvoiceAction>,
+    pub order: Option<Value>,
 }
 
 /// `summary` as stored on the invoice: exact decimals as text, how many lines carry a discount
@@ -180,6 +186,7 @@ pub fn detail(
         "created_at": row.created_at,
         "last_updated_at": row.updated_at,
         "meta": row.meta,
+        "allowed_actions": e.allowed_actions,
         "relationships": {
             "pdf_file": e.pdf_file,
             "estimate": null,
@@ -189,7 +196,7 @@ pub fn detail(
             "custom_sections": [],
             "parent_invoice": null,
             "child_invoices": [],
-            "order": null,
+            "order": e.order,
             "work_order": null,
             "collective_invoice": null,
             "cash_register": null,

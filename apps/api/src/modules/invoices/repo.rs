@@ -1026,3 +1026,26 @@ pub async fn sent_in_currency(
     .fetch_one(db)
     .await
 }
+
+/// The order an invoice was made from (`orders.invoice_id`, unique per workspace).
+#[derive(serde::Serialize)]
+pub struct OrderLink {
+    pub id: Uuid,
+    pub number: String,
+}
+
+/// `id`'s order, if it was made from one.
+pub async fn order_of(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<OrderLink>, sqlx::Error> {
+    sqlx::query_as!(
+        OrderLink,
+        "SELECT id, number FROM orders WHERE workspace_id = $1 AND invoice_id = $2",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(db)
+    .await
+}

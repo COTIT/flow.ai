@@ -14,6 +14,7 @@ use crate::{
     modules::{
         currencies::dto::CurrencyResource,
         files::dto::FileResource,
+        invoices::actions::InvoiceAction,
         pricing::{
             body::{Capped, Items, MAX_ITEMS, RawItem, Row, Scalar},
             dto::{ItemLine, MarginResource, SummaryResource},
@@ -292,7 +293,18 @@ pub struct InvoiceResource {
     last_updated_at: DateTime<Utc>,
     #[schema(value_type = Option<Object>, required = true)]
     meta: Option<Value>,
+    /// What the API accepts on this invoice now (status rules only, not permissions).
+    allowed_actions: Vec<InvoiceAction>,
     relationships: InvoiceLinks,
+}
+
+/// The order an invoice was made from.
+#[allow(dead_code)]
+#[derive(ToSchema)]
+pub struct InvoiceOrder {
+    id: Uuid,
+    /// The order number, e.g. `ORD-0029`.
+    number: String,
 }
 
 /// Invoice `relationships`; the always-null and always-empty ones are kept for old clients.
@@ -320,9 +332,9 @@ pub struct InvoiceLinks {
     /// Always empty.
     #[schema(value_type = Vec<Object>, max_items = 0)]
     child_invoices: Vec<Value>,
-    /// Always null.
-    #[schema(value_type = Option<Object>, required = true)]
-    order: Option<Value>,
+    /// The order this invoice was made from; null for any other invoice.
+    #[schema(required = true)]
+    order: Option<InvoiceOrder>,
     /// Always null.
     #[schema(value_type = Option<Object>, required = true)]
     work_order: Option<Value>,

@@ -20,10 +20,23 @@ use crate::{
             dto::{MarkCreditedInput, Method, Pay, PaymentInput},
             repo::{self, NewPayment, Target},
         },
-        invoices,
+        invoices::{
+            self,
+            actions::{self, Facts, InvoiceAction},
+        },
     },
     numbering::Appendix,
 };
+
+/// A locked invoice's facts; pay and mark-as-credited don't read `on_account`.
+fn facts(t: &Target) -> Facts<'_> {
+    Facts {
+        status: &t.status,
+        is_credit: t.is_credit,
+        numbered: t.invoice_number.is_some(),
+        on_account: false,
+    }
+}
 
 const NOT_OPEN: &str = "Invoice must be pending or partially paid to create a payment";
 const CREDIT_NOTE: &str =
@@ -64,7 +77,7 @@ pub async fn create(
     if main.is_credit {
         return Err(AppError::Unprocessable(CREDIT_NOTE.into()));
     }
-    if !matches!(main.status.as_str(), "pending" | "partially_paid") {
+    if !actions::allows(InvoiceAction::Pay, &facts(&main)) {
         return Err(AppError::Unprocessable(NOT_OPEN.into()));
     }
     if repo::count_live(&mut tx, workspace_id, id).await? >= MAX_PAYMENTS {
@@ -224,7 +237,7 @@ pub async fn mark_as_credited(
         tx.commit().await?;
         return Ok(answer);
     }
-    if !(note.is_credit && note.status == "pending") {
+    if !actions::allows(InvoiceAction::MarkAsCredited, &facts(&note)) {
         return Err(AppError::BadRequest(NOT_CREDITABLE.into()));
     }
     let open = note.total - note.paid_total;
