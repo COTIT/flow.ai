@@ -130,7 +130,7 @@ describe('OfficerFarmScreen', () => {
 
     expect(screen.getByTestId('farm-detail')).toHaveTextContent('Shamba la Neema')
     expect(screen.getByTestId('farm-plot')).toHaveTextContent('Kipande cha juu')
-    expect(screen.getByTestId('farm-plot')).toHaveTextContent('1.8000 ha')
+    expect(screen.getByTestId('farm-plot')).toHaveTextContent('1.80 ha')
     // Farm-level plus plot-level.
     expect(screen.getAllByTestId('provenance-badge')).toHaveLength(2)
   })
@@ -224,7 +224,7 @@ describe('OfficerCycleScreen', () => {
     const detail = screen.getByTestId('cycle-detail')
     expect(detail).toHaveTextContent('Maize')
     expect(detail).toHaveTextContent('Kipande cha juu')
-    expect(detail).toHaveTextContent('1.6000 ha')
+    expect(detail).toHaveTextContent('1.60 ha')
     expect(detail).toHaveTextContent('Growing')
   })
 
@@ -250,7 +250,7 @@ describe('OfficerCycleScreen', () => {
   })
 
   // The measure branches on crop.measured_by: exactly one of area, trees or
-  // units is set, and a tree crop must not render as "0.0000 ha".
+  // units is set, and a tree crop must not render as "0.00 ha".
   test('a tree-counted crop shows trees, not hectares', () => {
     useCycleDetail.mockReturnValue({
       isLoading: false,

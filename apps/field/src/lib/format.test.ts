@@ -20,11 +20,11 @@ const i18n = (await import('@/i18n')).default
 describe('area', () => {
   // Storage is ALWAYS hectares. area_unit is a display preference only.
   test('hectares display as hectares', () => {
-    expect(formatArea(1.8, 'hectare')).toBe('1.8000 ha')
+    expect(formatArea(1.8, 'hectare')).toBe('1.80 ha')
   })
 
   test('hectares convert for display in acres', () => {
-    expect(formatArea(1, 'acre')).toBe('2.4711 ac')
+    expect(formatArea(1, 'acre')).toBe('2.47 ac')
   })
 
   test('conversion round-trips within storage precision', () => {
@@ -32,7 +32,7 @@ describe('area', () => {
   })
 
   test('zero is a real value, not a blank', () => {
-    expect(formatArea(0, 'hectare')).toBe('0.0000 ha')
+    expect(formatArea(0, 'hectare')).toBe('0.00 ha')
   })
 
   test('null area reads as unknown rather than zero', () => {

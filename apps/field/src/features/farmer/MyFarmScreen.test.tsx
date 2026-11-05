@@ -94,7 +94,7 @@ describe('MyFarmScreen states', () => {
     })
     render(<MyFarmScreen />)
 
-    expect(screen.getByText('1.8000 ha')).toBeInTheDocument()
+    expect(screen.getByText('1.80 ha')).toBeInTheDocument()
     expect(screen.getByText('No crops recorded on this plot yet')).toBeInTheDocument()
   })
 

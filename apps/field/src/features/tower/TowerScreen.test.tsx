@@ -161,7 +161,7 @@ describe('the Control Tower keeps planted area honest', () => {
     render(<TowerScreen />)
     const tile = screen.getByTestId('tile-production')
 
-    expect(tile).toHaveTextContent('4.9000 ha')
+    expect(tile).toHaveTextContent('4.90 ha')
     expect(tile).toHaveTextContent(/planted area across cycles/i)
     expect(tile).toHaveTextContent(/it is not land area/i)
   })

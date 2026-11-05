@@ -48,7 +48,7 @@ test("the Tower overview shows each village figure as the API gave it", async ({
   const productionTile = page.getByTestId("tile-production")
   await expect(productionTile).toContainText("Maize")
   await expect(productionTile).toContainText("3,200.00 kg")
-  await expect(productionTile).toContainText("1.6000 ha")
+  await expect(productionTile).toContainText("1.60 ha")
   await expect(productionTile).toContainText(/not land area/i)
 
   await expect(page.getByTestId("tower-capacity")).toContainText("500.000 kW")
@@ -79,7 +79,7 @@ test("the production drill shows the cycle area as a sum of cycle areas, and eve
 
   const group = page.getByTestId("production-group")
   await expect(group).toContainText("Planted area across cycles")
-  await expect(group).toContainText("1.6000 ha")
+  await expect(group).toContainText("1.60 ha")
   await expect(page.getByText(/The sum of cycle areas/)).toBeVisible()
 
   const row = page.getByTestId("production-row")

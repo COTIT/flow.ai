@@ -47,8 +47,8 @@ function fixed(value: number, dp: number): string {
 export function formatArea(hectares: number | null, unit: AreaUnit): string {
   if (hectares === null) return UNKNOWN
   return unit === 'acre'
-    ? `${fixed(hectaresToAcres(hectares), 4)} ac`
-    : `${fixed(hectares, 4)} ha`
+    ? `${fixed(hectaresToAcres(hectares), 2)} ac`
+    : `${fixed(hectares, 2)} ha`
 }
 
 /** kg, 2 dp. */

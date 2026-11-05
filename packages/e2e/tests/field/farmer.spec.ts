@@ -114,7 +114,7 @@ test("my farm shows the household, farm, plot and crop with its current expected
   await expect(farm).toContainText("Riverside farm")
   await expect(farm.getByTestId("farm-household")).toHaveText("Mwakalinga household")
   await expect(farm.getByTestId("plot-card")).toContainText("Riverside")
-  await expect(farm.getByTestId("plot-card")).toContainText("1.8000 ha")
+  await expect(farm.getByTestId("plot-card")).toContainText("1.80 ha")
   const cycle = farm.getByTestId("cycle-card")
   await expect(cycle).toContainText("Maize")
   await expect(cycle).toContainText("4,100.00 kg")

@@ -52,7 +52,7 @@ describe('Tower drill-down screens', () => {
   test('production shows each group\'s cycle area with its "sum of cycle areas" label', () => {
     render(<TowerProductionScreen />)
     const group = screen.getByTestId('production-group')
-    expect(group).toHaveTextContent('4.9000 ha')
+    expect(group).toHaveTextContent('4.90 ha')
     expect(group).toHaveTextContent(/planted area across cycles/i)
     expect(screen.getByText(/the sum of cycle areas/i)).toBeInTheDocument()
   })
