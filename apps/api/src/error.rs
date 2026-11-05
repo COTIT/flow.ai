@@ -271,6 +271,8 @@ impl IntoResponse for AppError {
             )
                 .into_response(),
             // Postgres refuses NUL in text (22021) and \u0000 in jsonb (22P05): bad input, not a fault.
+            // A row gone under a lock (e.g. a place deleted while a stock write waited).
+            Self::Database(sqlx::Error::RowNotFound) => Self::NotFound.into_response(),
             Self::Database(e) if is_nul_rejection(&e) => {
                 Self::field("input", NUL_TEXT).into_response()
             }

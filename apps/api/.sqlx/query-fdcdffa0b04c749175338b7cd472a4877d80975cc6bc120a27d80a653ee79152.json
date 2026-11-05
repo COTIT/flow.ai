@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, product_id, code, public_code, status, produced_on, best_before, expires_on,\n                origin, created_at, updated_at\n         FROM lots WHERE workspace_id = $1 AND parent_lot_id = $2\n         ORDER BY id\n         FOR NO KEY UPDATE",
+  "query": "WITH RECURSIVE d AS (\n               SELECT id FROM lots WHERE workspace_id = $1 AND parent_lot_id = $2\n               UNION\n               SELECT l.id FROM lots l JOIN d ON l.parent_lot_id = d.id\n               WHERE l.workspace_id = $1\n           )\n           SELECT id, product_id, code, public_code, status, produced_on, best_before,\n                  expires_on, origin, created_at, updated_at, parent_lot_id AS \"parent!\"\n           FROM lots\n           WHERE workspace_id = $1 AND id IN (SELECT id FROM d)\n           ORDER BY id\n           FOR NO KEY UPDATE",
   "describe": {
     "columns": [
       {
@@ -123,6 +123,17 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 11,
+        "name": "parent!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "lots",
+            "name": "parent_lot_id"
+          }
+        }
       }
     ],
     "parameters": {
@@ -142,8 +153,9 @@
       true,
       true,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "401dd76b03a47b9efcf3dc4f5805c561e050e71e5038159c47eebcaa10d4cc18"
+  "hash": "fdcdffa0b04c749175338b7cd472a4877d80975cc6bc120a27d80a653ee79152"
 }

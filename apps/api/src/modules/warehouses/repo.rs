@@ -607,6 +607,24 @@ pub async fn children_of(
     .await
 }
 
+/// The live warehouse under `FOR UPDATE`, so stock writers (`FOR SHARE` in
+/// `stock::repo::locked`) finish first and new ones wait; false = no such live row.
+pub async fn lock_for_delete(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM warehouses WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL
+         FOR UPDATE",
+        id,
+        workspace_id,
+    )
+    .fetch_optional(conn)
+    .await
+    .map(|r| r.is_some())
+}
+
 /// Soft delete; children stay, as in Laravel. False = no such live row, or a live stock row here
 /// still has a level or a hold (deleting would drop it).
 pub async fn soft_delete(

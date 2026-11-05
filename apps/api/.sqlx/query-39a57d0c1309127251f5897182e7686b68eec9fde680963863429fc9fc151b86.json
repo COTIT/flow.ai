@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT r.stock_id, r.related_domain, r.related_id, sum(r.quantity) AS \"quantity!\",\n                    min(r.created_at) AS first\n             FROM stock_reservations r\n             JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id\n             WHERE r.workspace_id = $1 AND s.lot_id = $2 AND s.warehouse_id = $3\n             GROUP BY r.stock_id, r.related_domain, r.related_id\n             ORDER BY first, r.related_id",
+  "query": "SELECT r.stock_id, r.related_domain, r.related_id, sum(r.quantity) AS \"quantity!\",\n                      min(r.created_at) AS \"first!\"\n               FROM stock_reservations r\n               JOIN stocks s ON s.workspace_id = r.workspace_id AND s.id = r.stock_id\n               WHERE r.workspace_id = $1 AND s.lot_id = $2 AND s.warehouse_id = $3\n               GROUP BY r.stock_id, r.related_domain, r.related_id",
   "describe": {
     "columns": [
       {
@@ -44,7 +44,7 @@
       },
       {
         "ordinal": 4,
-        "name": "first",
+        "name": "first!",
         "type_info": "Timestamptz",
         "origin": "Expression"
       }
@@ -64,5 +64,5 @@
       null
     ]
   },
-  "hash": "fbaf1c89098acf34a341327b023b71fc710f339db3080a2b4ad92f82b158aedb"
+  "hash": "39a57d0c1309127251f5897182e7686b68eec9fde680963863429fc9fc151b86"
 }

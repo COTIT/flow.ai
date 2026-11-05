@@ -520,8 +520,10 @@ async fn an_order_holding_the_lot_on_two_rows_moves_whole_or_not_at_all(pool: Pg
         .call(
             Method::POST,
             &format!("/{}/sections", w.main),
-            Some(json!({ "section_name": "Hall", "section_code": "H", "rows": 1,
-                         "shelves_per_row": 1, "bins_per_shelf": 1 })),
+            Some(
+                json!({ "section_name": "Hall", "section_code": "H", "rows": 1,
+                         "shelves_per_row": 1, "bins_per_shelf": 1 }),
+            ),
             &w.api.owner,
         )
         .await;

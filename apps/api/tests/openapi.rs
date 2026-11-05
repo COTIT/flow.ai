@@ -1956,11 +1956,13 @@ fn key_and_webhook_lists_are_enums() {
         values("WebhookEvent"),
         [
             "lot.created",
+            "lot.status_changed",
             "order.created",
             "passport.published",
             "product.changed",
             "sale.attributed",
-            "stock.changed"
+            "stock.changed",
+            "supply.source_status_changed"
         ]
     );
 

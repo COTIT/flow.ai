@@ -228,7 +228,10 @@ pub async fn lines(
     .await
 }
 
-/// The slot's live row under `FOR NO KEY UPDATE`; None = no row yet.
+/// The slot's live row under `FOR NO KEY UPDATE`; None = no row yet. First takes `FOR SHARE`
+/// on the slot's warehouse (and bin) row, which a place delete takes `FOR UPDATE`: every stock
+/// writer comes through here, so a delete waits for open writes and sees them, and no write
+/// lands in a place deleted meanwhile (`RowNotFound`, a 404). Lock order: place, then stock.
 pub async fn locked(
     conn: &mut PgConnection,
     workspace_id: Uuid,
@@ -238,6 +241,28 @@ pub async fn locked(
     sqlx::query!("SET LOCAL lock_timeout = '5s'")
         .execute(&mut *conn)
         .await?;
+    sqlx::query_scalar!(
+        "SELECT id FROM warehouses
+         WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+         FOR SHARE",
+        workspace_id,
+        slot.warehouse_id,
+    )
+    .fetch_optional(&mut *conn)
+    .await?
+    .ok_or(sqlx::Error::RowNotFound)?;
+    if let Some(b) = slot.bin {
+        sqlx::query_scalar!(
+            "SELECT id FROM warehouse_section_row_bins
+             WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL
+             FOR SHARE",
+            workspace_id,
+            b.bin_id,
+        )
+        .fetch_optional(&mut *conn)
+        .await?
+        .ok_or(sqlx::Error::RowNotFound)?;
+    }
     sqlx::query_as!(
         StockRow,
         "SELECT id, product_id, warehouse_id, shelf_id, bin_id, lot_id, stock_lvl, reserved,

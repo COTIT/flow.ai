@@ -2,7 +2,7 @@
 //! takes `workspace_id` + `shelf_id` (or the warehouse for the flat list) and skips deleted rows.
 
 use chrono::{DateTime, Utc};
-use sqlx::PgExecutor;
+use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
 use crate::modules::{
@@ -323,6 +323,27 @@ pub async fn update(
     .execute(db)
     .await
     .map(|done| done.rows_affected() == 1)
+}
+
+/// The shelf's live bin under `FOR UPDATE`, so stock writers (`FOR SHARE` in
+/// `stock::repo::locked`) finish first and new ones wait; false = no such live row.
+pub async fn lock_for_delete(
+    conn: &mut PgConnection,
+    workspace_id: Uuid,
+    shelf_id: Uuid,
+    id: Uuid,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar!(
+        "SELECT id FROM warehouse_section_row_bins
+         WHERE id = $1 AND workspace_id = $2 AND shelf_id = $3 AND deleted_at IS NULL
+         FOR UPDATE",
+        id,
+        workspace_id,
+        shelf_id,
+    )
+    .fetch_optional(conn)
+    .await
+    .map(|r| r.is_some())
 }
 
 /// Soft delete. False = no such live row, or stock still lies in the bin.

@@ -384,6 +384,9 @@ pub async fn take(
     Ok(Taken::Done)
 }
 
+/// One record's holds on a lot: `(stock row, quantity)` per row.
+type Held = Vec<(Uuid, Decimal)>;
+
 /// Move every hold off `lot_id` (just put out of sale, so [`pick`] skips it) onto the
 /// sellable rows of the same product at the same warehouse, first-expired-first. Record by
 /// record (an order), oldest hold first, all or nothing over every row it holds of the lot
@@ -422,7 +425,7 @@ pub async fn move_off_lot(
         )
         .fetch_all(&mut *conn)
         .await?;
-        let mut records: Vec<(String, Uuid, Vec<(Uuid, Decimal)>)> = Vec::new();
+        let mut records: Vec<(String, Uuid, Held)> = Vec::new();
         let mut order: Vec<_> = held.iter().collect();
         order.sort_by_key(|h| (h.first, h.related_id, h.stock_id));
         for h in order {

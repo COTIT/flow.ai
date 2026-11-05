@@ -106,17 +106,16 @@ pub async fn delete(
     id: &str,
 ) -> Result<(), AppError> {
     let id = parse(id)?;
-    if repo::soft_delete(&state.db, workspace_id, sh.id, id).await? {
-        return Ok(());
+    let mut tx = state.db.begin().await?;
+    // Waits for open stock writes in the bin; the check below then sees them.
+    if !repo::lock_for_delete(&mut tx, workspace_id, sh.id, id).await? {
+        return Err(AppError::NotFound);
     }
-    // Not deleted: unknown, or stock still lives in the bin.
-    if repo::find(&state.db, workspace_id, sh.id, id)
-        .await?
-        .is_some()
-    {
+    if !repo::soft_delete(&mut *tx, workspace_id, sh.id, id).await? {
         return Err(AppError::Conflict("bin_holds_stock"));
     }
-    Err(AppError::NotFound)
+    tx.commit().await?;
+    Ok(())
 }
 
 /// True when the workspace can take `adding` more bins.

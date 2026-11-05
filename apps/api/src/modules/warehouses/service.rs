@@ -259,14 +259,16 @@ pub async fn set_default(state: &AppState, workspace_id: Uuid, id: &str) -> Resu
 /// `warehouse_holds_stock` while any stock level or hold here is not zero.
 pub async fn delete(state: &AppState, workspace_id: Uuid, id: &str) -> Result<(), AppError> {
     let id = parse(id)?;
-    if repo::soft_delete(&state.db, workspace_id, id).await? {
-        return Ok(());
+    let mut tx = state.db.begin().await?;
+    // Waits for open stock writes here; the check below then sees them.
+    if !repo::lock_for_delete(&mut tx, workspace_id, id).await? {
+        return Err(AppError::NotFound);
     }
-    // Not deleted: unknown, or stock (or an order's hold) still lives here.
-    if repo::exists(&state.db, workspace_id, id).await? {
+    if !repo::soft_delete(&mut *tx, workspace_id, id).await? {
         return Err(AppError::Conflict("warehouse_holds_stock"));
     }
-    Err(AppError::NotFound)
+    tx.commit().await?;
+    Ok(())
 }
 
 /// A sent parent must be a live warehouse of this workspace (Laravel ValidateId).
