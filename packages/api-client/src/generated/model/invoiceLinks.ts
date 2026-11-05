@@ -12,10 +12,10 @@ import type { InvoiceLinksChildInvoicesItem } from './invoiceLinksChildInvoicesI
 import type { InvoiceLinksCollectiveInvoice } from './invoiceLinksCollectiveInvoice';
 import type { InvoiceLinksCustomSectionsItem } from './invoiceLinksCustomSectionsItem';
 import type { InvoiceLinksEstimate } from './invoiceLinksEstimate';
-import type { InvoiceLinksOrder } from './invoiceLinksOrder';
 import type { InvoiceLinksParentInvoice } from './invoiceLinksParentInvoice';
 import type { InvoiceLinksRelation } from './invoiceLinksRelation';
 import type { InvoiceLinksWorkOrder } from './invoiceLinksWorkOrder';
+import type { InvoiceOrder } from './invoiceOrder';
 import type { InvoicePayment } from './invoicePayment';
 
 /**
@@ -48,11 +48,7 @@ export interface InvoiceLinks {
      * @nullable
      */
   estimate: InvoiceLinksEstimate;
-  /**
-     * Always null.
-     * @nullable
-     */
-  order: InvoiceLinksOrder;
+  order: InvoiceOrder | null;
   /**
      * Always null.
      * @nullable

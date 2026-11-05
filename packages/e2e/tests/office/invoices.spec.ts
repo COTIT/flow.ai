@@ -1,15 +1,19 @@
+import { expectNoRawValues } from "../../src/test"
+
 import { expect, expectFits, type FakeApi, paged, test } from "./fake-api"
 
 const invoice = {
   id: "inv-1",
   invoice_nr: "2026-0001",
   customer_name: "Acme Imports",
-  status: "sent",
+  status: "partially_paid",
   is_credit: false,
   created_at: "2026-10-30T09:00:00Z",
   due_date: "2026-11-13T00:00:00Z",
   total_amount: "121.00",
+  allowed_actions: [],
   balance: { open: 21, paid: "100.00000000", total: 121 },
+  money: { currency: "EUR", decimals: 2, subtotal: 10000, vat: 2100, total: 12100, paid: 10000, open: 2100 },
   items: [
     {
       id: "it-1",
@@ -17,15 +21,19 @@ const invoice = {
       quantity: "10.00",
       price_incl: "12.10",
       total_incl: "121.00",
+      unit_price_minor: 1210,
+      total_minor: 12100,
     },
   ],
   relationships: {
+    currency: { asset_type: "EUR", decimals: 2 },
     payments: [
       {
         id: "pay-1",
         date: "2026-10-31",
         payment_method: "bank",
         amount: "100.00000000",
+        amount_minor: 10000,
       },
     ],
   },
@@ -53,13 +61,13 @@ function invoicesApi(api: FakeApi) {
     }))
 }
 
-test("invoice list to detail; amounts shown as the API gives them", async ({
+test("invoice list to detail; the API's amounts in the invoice's currency", async ({
   page,
   api,
 }) => {
   invoicesApi(api)
   await page.goto("/invoices")
-  await expect(page.getByRole("cell", { name: "121.00" }).first()).toBeVisible()
+  await expect(page.getByRole("cell", { name: "€121.00" }).first()).toBeVisible()
   await expect(
     page
       .getByRole("row", { name: /2026-0001/ })
@@ -75,7 +83,7 @@ test("invoice list to detail; amounts shown as the API gives them", async ({
   await page.getByRole("link", { name: "2026-0001" }).click()
   await expect(page.getByRole("heading", { name: "2026-0001" })).toBeVisible()
   await expect(page.getByRole("cell", { name: "AFM Honey 500g" })).toBeVisible()
-  await expect(page.getByRole("cell", { name: "100.00000000" })).toBeVisible()
+  await expect(page.getByRole("cell", { name: "€100.00" })).toBeVisible()
   await expect(page.getByRole("region", { name: "Lines" })).toContainText(
     "Amounts as calculated by the server."
   )
@@ -128,10 +136,6 @@ test.describe(() => {
   })
 
   test("/invoices/[id] PDF: after a failure, Make PDF asks the API again", async ({ page, api }) => {
-    test.fail(
-      true,
-      "BUG: after a failed PDF, Make PDF only sets wantPdf (already true), so nothing is asked again until a reload (apps/office/app/(app)/invoices/[id]/page.tsx:189)"
-    )
     invoicesApi(api)
     let fail = true
     api.on("GET", "/workspace/:ws/invoices/:id/preview", () =>
@@ -148,4 +152,104 @@ test.describe(() => {
     await page.getByRole("button", { name: "Make PDF" }).click()
     await expect(page.getByRole("link", { name: "Open PDF" })).toBeVisible({ timeout: 5_000 })
   })
+})
+
+const eur = { asset_type: "EUR", decimals: 2 }
+
+test("list: every number, status and amount is readable", async ({ page, api }) => {
+  const row = (over: Record<string, unknown>) => ({
+    ...invoice,
+    relationships: { currency: eur },
+    ...over,
+  })
+  api.on("GET", "/workspace/:ws/invoices", () =>
+    paged([
+      row({ id: "d", invoice_nr: null, status: "draft", customer_name: "Old Mill Gift Shop" }),
+      row({
+        id: "c",
+        invoice_nr: "N/A",
+        status: "cancelled",
+        customer_name: "Two Ravens Coffee Bar",
+        total_amount: "449.40",
+        balance: { open: 449.4, paid: 0 },
+        money: { currency: "EUR", decimals: 2, subtotal: 37140, vat: 7800, total: 44940, paid: 0, open: 44940 },
+      }),
+      row({ id: "p", invoice_nr: "1", status: "pending", customer_name: "Brightwater Co-op" }),
+      row({
+        id: "n",
+        invoice_nr: "2",
+        status: "credited",
+        is_credit: true,
+        customer_name: "Copper Kettle",
+        total_amount: "-12.05",
+        balance: { open: 0, paid: "-12.05000000" },
+        money: { currency: "EUR", decimals: 2, subtotal: -996, vat: -209, total: -1205, paid: -1205, open: 0 },
+      }),
+    ])
+  )
+  await page.goto("/invoices")
+  const draft = page.getByRole("row", { name: /Old Mill/ })
+  await expect(draft.getByRole("cell").first()).toHaveText("—")
+  await expect(draft.getByRole("link", { name: "Open the invoice without a number" })).toBeVisible()
+  const cancelled = page.getByRole("row", { name: /Two Ravens/ })
+  await expect(cancelled.getByRole("cell").first()).toHaveText("—")
+  // Total and open in one format, from the API's cents.
+  await expect(cancelled.getByRole("cell", { name: "€449.40" }).first()).toBeVisible()
+  // Open is hidden on a phone, so count the cells' text.
+  const texts = await cancelled.getByRole("cell", { includeHidden: true }).allTextContents()
+  expect(texts.filter((x) => x === "€449.40")).toHaveLength(2)
+  await expect(page.getByRole("row", { name: /Brightwater/ })).toContainText("Sent")
+  await expect(page.getByRole("row", { name: /Copper Kettle/ })).toContainText("-€12.05")
+  await expect(page.getByText("N/A")).toHaveCount(0)
+  await expectNoRawValues(page, { allow: [/\b\d{4}-\d{4}\b/] })
+  await expectFits(page)
+})
+
+test("detail: a draft and a credit note get their own title", async ({ page, api }) => {
+  let current: Record<string, unknown> = { ...invoice, invoice_nr: null, status: "draft" }
+  api.on("GET", "/workspace/:ws/invoices/:id", () => ({ data: current }))
+  await page.goto("/invoices/inv-1")
+  await expect(page.getByRole("heading", { name: "Draft invoice" })).toBeVisible()
+  current = { ...invoice, id: "inv-2", invoice_nr: "2026-0008", is_credit: true, status: "pending" }
+  await page.goto("/invoices/inv-2")
+  await expect(page.getByRole("heading", { name: "Credit note 2026-0008" })).toBeVisible()
+  await expectNoRawValues(page, { allow: [/\b\d{4}-\d{4}\b/] })
+})
+
+test("nl: statuses and the draft title in Dutch", async ({ page, api, context, baseURL }) => {
+  await context.addCookies([{ name: "NEXT_LOCALE", value: "nl", url: baseURL! }])
+  api.on("GET", "/workspace/:ws/invoices", () =>
+    paged([{ ...invoice, status: "pending", relationships: { currency: eur } }])
+  )
+  await page.goto("/invoices")
+  await expect(page.getByRole("row", { name: /2026-0001/ })).toContainText("Verzonden")
+  await expect(page.getByRole("row", { name: /2026-0001/ })).toContainText("€ 121,00")
+  await expectNoRawValues(page, { allow: [/\b\d{4}-\d{4}\b/] })
+})
+
+test("detail: amounts are the API's cents; its raw decimals never reach the screen", async ({ page, api }) => {
+  // Staging's invoice 21: four-decimal unit prices and an 8-place paid amount in the old fields.
+  api.on("GET", "/workspace/:ws/invoices/:id", () => ({
+    data: {
+      ...invoice,
+      status: "paid",
+      balance: { open: 0, paid: "118.82000000", total: 118.82 },
+      money: { currency: "EUR", decimals: 2, subtotal: 9820, vat: 2062, total: 11882, paid: 11882, open: 0 },
+      items: [
+        { id: "a", title: "Honey", quantity: "2.00", price_incl: "30.4733", total_incl: "60.95", unit_price_minor: 3047, total_minor: 6095 },
+        { id: "b", title: "Wax", quantity: "3.00", price_incl: "19.3921", total_incl: "57.87", unit_price_minor: 1939, total_minor: 5787 },
+      ],
+      relationships: {
+        currency: { asset_type: "EUR", decimals: 2 },
+        payments: [{ id: "p", date: "2026-11-01", payment_method: "cash", amount: "118.82000000", amount_minor: 11882 }],
+      },
+    },
+  }))
+  await page.goto("/invoices/inv-1")
+  const lines = page.getByRole("region", { name: "Lines" })
+  await expect(lines.getByRole("row", { name: /Honey/ })).toContainText("€30.47")
+  await expect(lines.getByRole("row", { name: /Wax/ })).toContainText("€19.39")
+  await expect(page.getByRole("region", { name: "Payments" }).getByRole("cell", { name: "€118.82" })).toBeVisible()
+  for (const raw of ["30.4733", "19.3921", "118.82000000"]) await expect(page.getByText(raw)).toHaveCount(0)
+  await expectNoRawValues(page, { allow: [/\b\d{4}-\d{4}\b/] })
 })

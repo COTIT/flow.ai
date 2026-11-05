@@ -510,6 +510,7 @@ pub fn resource(o: OrderRow, lines: Vec<LineRow>, paid: Paid, x: &Extras) -> Ord
         confirmed_at: o.confirmed_at,
         picked_at: o.picked_at,
         invoice_id: o.invoice_id,
+        invoice_status: o.invoice_status.clone(),
         lines: lines
             .into_iter()
             .map(|l| OrderLineResource {

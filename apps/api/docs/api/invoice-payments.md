@@ -133,12 +133,12 @@ The SPA sends an `Idempotency-Key` header on every POST and DELETE and reuses it
 Unvoided, by date then entry:
 
 ```json
-{ "id": "…", "description": "…", "date": "2026-10-23T00:00:00.000000Z", "amount": "60.00000000",
+{ "id": "…", "description": "…", "date": "2026-10-23T00:00:00.000000Z", "amount": "60.00000000", "amount_minor": 6000,
   "paid_amount": null, "is_paid": 1, "provider": null, "provider_id": null, "status": "paid",
   "payment_method": "cash", "created_at": "…", "last_updated_at": "…", "meta": null }
 ```
 
-- `amount` prints Laravel's decimal(40,8) column: 8 places.
+- `amount_minor` is the stored minor units (use this); `amount` (deprecated) prints Laravel's decimal(40,8) column: 8 places.
 - `paid_amount` is null: Laravel set it only on till and settle rows.
 
 ## Concurrency

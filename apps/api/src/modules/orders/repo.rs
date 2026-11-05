@@ -243,6 +243,8 @@ pub struct OrderRow {
     pub confirmed_at: Option<DateTime<Utc>>,
     pub picked_at: Option<DateTime<Utc>>,
     pub invoice_id: Option<Uuid>,
+    /// The linked invoice's status, read with the order (no order state of its own).
+    pub invoice_status: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -258,7 +260,10 @@ pub async fn lock(
         r#"SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
-                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,
+                  (SELECT i.status FROM invoices i
+                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,
+                  o.created_at,
                   o.confirmed_at, o.picked_at,
                   o.updated_at
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
@@ -282,7 +287,10 @@ pub async fn find(
         r#"SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
-                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,
+                  (SELECT i.status FROM invoices i
+                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,
+                  o.created_at,
                   o.confirmed_at, o.picked_at,
                   o.updated_at
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
@@ -306,7 +314,10 @@ pub async fn list(
         r#"SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,
                   upper(c.asset_type) AS "currency!", c.decimals, o.warehouse_id, o.customer,
                   o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,
-                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,
+                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,
+                  (SELECT i.status FROM invoices i
+                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,
+                  o.created_at,
                   o.confirmed_at, o.picked_at,
                   o.updated_at, count(*) OVER () AS "total_rows!"
            FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id
@@ -347,6 +358,7 @@ pub async fn list(
             confirmed_at: r.confirmed_at,
             picked_at: r.picked_at,
             invoice_id: r.invoice_id,
+            invoice_status: r.invoice_status,
             created_at: r.created_at,
             updated_at: r.updated_at,
         })

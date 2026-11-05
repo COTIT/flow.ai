@@ -11,7 +11,10 @@ use uuid::Uuid;
 use crate::{
     modules::{
         invoice_payments::resource as payments,
-        invoices::repo::{InvoiceRow, ItemRow},
+        invoices::{
+            actions::InvoiceAction,
+            repo::{InvoiceRow, ItemRow},
+        },
         pricing::{
             dto::{MarginResource, SummaryResource},
             engine::{Amounts, Margin, RateTotal, Summary},
@@ -29,10 +32,15 @@ pub struct Embeds {
     pub currencies: HashMap<Uuid, Value>,
     pub products: HashMap<Uuid, Value>,
     pub warehouses: HashMap<Uuid, Value>,
-    /// Detail only: the opened payment token, the sent PDF's file resource, the payments.
+    /// Detail only: the opened payment token, the sent PDF's file resource, the payments,
+    /// the actions that pass now and the order it was made from.
     pub payment_hash: Option<String>,
     pub pdf_file: Option<Value>,
     pub payments: Vec<Value>,
+    pub allowed_actions: Vec<InvoiceAction>,
+    pub order: Option<Value>,
+    /// Detail only: each line's (unit price incl. VAT, total incl. VAT) in minor units, from SQL.
+    pub line_cents: HashMap<Uuid, (i64, i64)>,
 }
 
 /// `summary` as stored on the invoice: exact decimals as text, how many lines carry a discount
@@ -113,6 +121,24 @@ fn dp(row: &InvoiceRow) -> u32 {
     read_summary(&row.summary).2.unwrap_or(2)
 }
 
+/// `money`: every amount of the invoice in minor units as SQL computed them, with the currency
+/// code and the decimals they are in. Clients format these; they never add them up.
+fn money(row: &InvoiceRow, e: &Embeds) -> Value {
+    let currency = e
+        .currencies
+        .get(&row.currency_id)
+        .map(|c| c["asset_type"].clone());
+    json!({
+        "currency": currency.unwrap_or(Value::Null),
+        "decimals": dp(row),
+        "subtotal": row.subtotal,
+        "vat": row.vat_total,
+        "total": row.total,
+        "paid": row.paid_total,
+        "open": row.open_total,
+    })
+}
+
 /// Laravel getOpenBalance: total minus what is paid (negative when overpaid).
 fn open(row: &InvoiceRow, total: Decimal) -> Decimal {
     total
@@ -163,6 +189,7 @@ pub fn detail(
         "payment_hash": e.payment_hash,
         "payment_method": row.payment_method,
         "balance": balance,
+        "money": money(row, e),
         "note": row.note,
         "send_date": row.send_date,
         "due_date": row.due_date,
@@ -180,6 +207,7 @@ pub fn detail(
         "created_at": row.created_at,
         "last_updated_at": row.updated_at,
         "meta": row.meta,
+        "allowed_actions": e.allowed_actions,
         "relationships": {
             "pdf_file": e.pdf_file,
             "estimate": null,
@@ -189,7 +217,7 @@ pub fn detail(
             "custom_sections": [],
             "parent_invoice": null,
             "child_invoices": [],
-            "order": null,
+            "order": e.order,
             "work_order": null,
             "collective_invoice": null,
             "cash_register": null,
@@ -223,6 +251,7 @@ pub fn index(row: &InvoiceRow, e: &Embeds) -> Value {
         "invoice_nr": invoice_nr(row),
         "status": row.status,
         "balance": { "paid": paid(row), "open": php_number(open(row, summary.total)) },
+        "money": money(row, e),
         "reference": row.reference,
         "payment_hash": null,
         "payment_method": row.payment_method,
@@ -328,10 +357,13 @@ fn item(l: &ItemRow, e: &Embeds) -> Value {
             .cloned()
             .unwrap_or(Value::Null),
     );
+    let cents = e.line_cents.get(&l.id);
     json!({
         "id": l.id,
         "title": l.title,
         "description": l.description,
+        "unit_price_minor": cents.map(|c| c.0),
+        "total_minor": cents.map(|c| c.1),
         "quantity": fd(l.quantity, 2),
         "price": fd(l.price, 4),
         "price_incl": fd(price_incl, 4),

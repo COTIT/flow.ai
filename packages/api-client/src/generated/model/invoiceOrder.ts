@@ -7,7 +7,10 @@
  */
 
 /**
- * Always null.
- * @nullable
+ * The order an invoice was made from.
  */
-export type InvoiceLinksOrder = { [key: string]: unknown } | null;
+export interface InvoiceOrder {
+  id: string;
+  /** The order number, e.g. `ORD-0029`. */
+  number: string;
+}

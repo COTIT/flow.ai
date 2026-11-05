@@ -481,6 +481,12 @@ export default function OrderPage({
                     })
                   : t("orders.paid")}
               </Badge>
+            ) : o.invoice_status === "paid" ||
+              o.invoice_status === "partially_paid" ? (
+              // Office orders are paid through their invoice; the API reads its status.
+              <Badge variant={o.invoice_status === "paid" ? "teal" : "gold"}>
+                {t(`orders.byInvoice.${o.invoice_status}`)}
+              </Badge>
             ) : (
               <Badge variant="slate">{t("orders.notPaid")}</Badge>
             )}
@@ -504,6 +510,12 @@ export default function OrderPage({
               >
                 {t("orders.openInvoice")}
               </Link>
+              {o.invoice_status ? (
+                <StatusBadge
+                  status={o.invoice_status}
+                  label={t(`invoices.statuses.${o.invoice_status}`)}
+                />
+              ) : null}
             </p>
           ) : null}
         </SideCard>

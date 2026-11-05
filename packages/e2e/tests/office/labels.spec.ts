@@ -74,8 +74,8 @@ test("webhooks: events are words", async ({ page, api }) => {
   await expectNoRawValues(page, { allow })
 })
 
-const statuses = ["draft", "sent", "open", "partially_paid", "paid", "cancelled", "credited"]
-const methods = ["cash", "pin", "manual", "provider", "bank"]
+const statuses = ["draft", "pending", "partially_paid", "paid", "cancelled", "credited", "awaiting_payment", "awaiting_pos_payment", "planned"]
+const methods = ["cash", "pin", "manual", "provider", "bank", "settled"]
 const invoice = (status: string, i: number) => ({
   id: `inv-${i}`,
   invoice_nr: `2026-000${i}`,
@@ -85,7 +85,9 @@ const invoice = (status: string, i: number) => ({
   created_at: at,
   due_date: "2026-11-13",
   total_amount: "121.00",
+  allowed_actions: [],
   balance: { open: 21, paid: "100.00", total: 121 },
+  money: { currency: "EUR", decimals: 2, subtotal: 10000, vat: 2100, total: 12100, paid: 10000, open: 2100 },
   items: [],
   relationships: {
     payments: methods.map((m, j) => ({
@@ -93,6 +95,7 @@ const invoice = (status: string, i: number) => ({
       date: "2026-10-31",
       payment_method: m,
       amount: "20.00",
+      amount_minor: 2000,
     })),
   },
 })

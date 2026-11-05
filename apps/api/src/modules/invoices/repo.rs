@@ -35,6 +35,12 @@ pub struct InvoiceRow {
     pub payment_token_key_id: Option<String>,
     /// Paid, unvoided payments, minor units.
     pub paid_total: i64,
+    /// Minor units, from the stored totals in SQL: excl, VAT (total − excl), incl, and open
+    /// (total − paid; negative when overpaid).
+    pub subtotal: i64,
+    pub vat_total: i64,
+    pub total: i64,
+    pub open_total: i64,
 }
 
 /// One stored item line.
@@ -325,7 +331,9 @@ pub async fn find_for_share(
         "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,
                 billing_address, addressed_contact, customer_ref, meta, due_date, send_date,
                 summary, created_at, updated_at, invoice_number, invoice_appendix,
-                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total
+                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total,
+                subtotal, total - subtotal AS \"vat_total!\", total,
+                total - paid_total AS \"open_total!\"
          FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE",
         workspace_id,
         id,
@@ -645,7 +653,9 @@ pub async fn find(
         "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,
                 billing_address, addressed_contact, customer_ref, meta, due_date, send_date,
                 summary, created_at, updated_at, invoice_number, invoice_appendix,
-                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total
+                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total,
+                subtotal, total - subtotal AS \"vat_total!\", total,
+                total - paid_total AS \"open_total!\"
          FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
         workspace_id,
         id,
@@ -682,7 +692,9 @@ pub async fn list(
                   i.reference, i.note, i.billing_address, i.addressed_contact, i.customer_ref,
                   i.meta, i.due_date, i.send_date, i.summary, i.created_at, i.updated_at,
                   i.invoice_number, i.invoice_appendix, i.previous_invoice_id, i.pdf_file_id,
-                  i.payment_token, i.payment_token_key_id, i.paid_total
+                  i.payment_token, i.payment_token_key_id, i.paid_total, i.subtotal,
+                  i.total - i.subtotal AS "vat_total!", i.total,
+                  i.total - i.paid_total AS "open_total!"
            FROM invoices i
            WHERE i.workspace_id = $1 AND i.deleted_at IS NULL
              AND ($2::uuid IS NULL OR i.relation_id = $2)
@@ -1024,5 +1036,62 @@ pub async fn sent_in_currency(
         currency_id,
     )
     .fetch_one(db)
+    .await
+}
+
+/// The order an invoice was made from (`orders.invoice_id`, unique per workspace).
+#[derive(serde::Serialize)]
+pub struct OrderLink {
+    pub id: Uuid,
+    pub number: String,
+}
+
+/// `id`'s order, if it was made from one.
+pub async fn order_of(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    id: Uuid,
+) -> Result<Option<OrderLink>, sqlx::Error> {
+    sqlx::query_as!(
+        OrderLink,
+        "SELECT id, number FROM orders WHERE workspace_id = $1 AND invoice_id = $2",
+        workspace_id,
+        id,
+    )
+    .fetch_optional(db)
+    .await
+}
+
+/// One line's amounts in minor units at `dp`, priced in SQL as `pricing::engine` prices a line
+/// (half away from zero): unit price incl. VAT, and excl + its own VAT (gross and discount
+/// rounded first).
+pub struct LineCents {
+    pub id: Uuid,
+    pub unit_price_minor: i64,
+    pub total_minor: i64,
+}
+
+/// Every line of `invoice_id` in minor units at `dp` decimals.
+pub async fn line_cents(
+    db: impl PgExecutor<'_>,
+    workspace_id: Uuid,
+    invoice_id: Uuid,
+    dp: i32,
+) -> Result<Vec<LineCents>, sqlx::Error> {
+    sqlx::query_as!(
+        LineCents,
+        r#"SELECT l.id AS "id!",
+                  round(l.price * (100 + l.vat) / 100 * power(10::numeric, $3::int))::bigint
+                      AS "unit_price_minor!",
+                  (e.excl + round(e.excl * l.vat / 100))::bigint AS "total_minor!"
+           FROM items l
+           CROSS JOIN LATERAL (SELECT round(l.quantity * l.price * power(10::numeric, $3::int)) AS gross) g
+           CROSS JOIN LATERAL (SELECT g.gross - round(g.gross * l.discount_percentage / 100) AS excl) e
+           WHERE l.workspace_id = $1 AND l.invoice_id = $2"#,
+        workspace_id,
+        invoice_id,
+        dp,
+    )
+    .fetch_all(db)
     .await
 }

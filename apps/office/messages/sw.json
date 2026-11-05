@@ -338,13 +338,92 @@
     "details": "Maelezo",
     "statuses": {
       "draft": "Rasimu",
-      "sent": "Imetumwa",
-      "open": "Wazi",
       "partially_paid": "Imelipwa kiasi",
       "paid": "Imelipwa",
       "cancelled": "Imeghairiwa",
-      "credited": "Imepunguzwa"
-    }
+      "credited": "Imepunguzwa",
+      "pending": "Imetumwa",
+      "awaiting_payment": "Inasubiri malipo",
+      "awaiting_pos_payment": "Inasubiri malipo ya kaunta",
+      "planned": "Imepangwa"
+    },
+    "draftTitle": "Rasimu ya ankara",
+    "creditTitle": "Hati ya mkopo {number}",
+    "unnumbered": "Fungua ankara isiyo na namba",
+    "draftCreditTitle": "Rasimu ya hati ya mkopo",
+    "nextStep": "Hatua inayofuata",
+    "nothingToDo": "Hakuna kingine cha kufanya kwenye ankara hii.",
+    "draftInfo": "Rasimu inapata namba unapoituma.",
+    "next": {
+      "send": "Kagua mistari, kisha uitume.",
+      "pay": "Rekodi malipo mteja anapolipa.",
+      "credit": "Toa hati ya mkopo kurudisha mistari.",
+      "mark_as_credited": "Iweke kama imepunguzwa marejesho yakishalipwa.",
+      "resend": "Mtumie mteja tena.",
+      "duplicate": "Anza rasimu mpya kutoka hii."
+    },
+    "act": {
+      "edit": "Hariri maelezo",
+      "send": "Tuma",
+      "resend": "Tuma tena",
+      "cancel": "Ghairi rasimu",
+      "duplicate": "Nakili",
+      "credit": "Toa hati ya mkopo",
+      "pay": "Rekodi malipo",
+      "mark_as_credited": "Weka kama imepunguzwa"
+    },
+    "sendTitle": "Tuma ankara",
+    "resendTitle": "Tuma ankara tena",
+    "sendHow": "Njia",
+    "sendManual": "Weka kama imetumwa (bila barua pepe)",
+    "sendEmail": "Mtumie mteja barua pepe",
+    "sendTo": "Kwa",
+    "sendSubject": "Kichwa",
+    "sendMessage": "Ujumbe",
+    "sendSubjectDefault": "Ankara {nr}",
+    "sendMessageDefault": "Ankara yako imeambatishwa.",
+    "emailUnavailable": "Kutuma barua pepe bado hakujawekwa.",
+    "pdfUnavailable": "PDF bado hazipatikani kwenye seva hii.",
+    "cancelTitle": "Ghairi rasimu hii?",
+    "cancelText": "Inabaki kwenye orodha kama imeghairiwa na haipati namba kamwe.",
+    "keep": "Bakiza rasimu",
+    "payTitle": "Rekodi malipo",
+    "payDate": "Tarehe",
+    "payAmount": "Kiasi ({currency})",
+    "payMethod": "Imelipwa kwa",
+    "payNote": "Maelezo",
+    "payBy": {
+      "cash": "Taslimu",
+      "pin": "Kadi",
+      "manual": "Benki au nyingine",
+      "settle": "Hati ya mkopo ya mteja huyu"
+    },
+    "payCreditNote": "Hati ya mkopo",
+    "noCreditNotes": "Mteja huyu hana hati ya mkopo iliyo wazi.",
+    "creditNoteOption": "{number} · {open} wazi",
+    "voidPayment": "Batilisha",
+    "voidTitle": "Batilisha malipo haya?",
+    "voidText": "Yanabaki kwenye kumbukumbu kama yamebatilishwa na hayahesabiwi tena.",
+    "creditDialogTitle": "Toa mkopo kwa mistari",
+    "creditDialogText": "Inatengeneza rasimu ya hati ya mkopo. Itume ili ipate namba.",
+    "creditAll": "Kila kilichobaki",
+    "creditLines": "Chagua mistari",
+    "creditLeft": "zimebaki {left}",
+    "creditQty": "Idadi ya mkopo kwa {title}",
+    "makeCredit": "Tengeneza hati ya mkopo",
+    "markTitle": "Weka kama imepunguzwa",
+    "markText": "Inarekodi marejesho ya kiasi kilichobaki na kufunga hati ya mkopo.",
+    "editTitle": "Hariri maelezo",
+    "reference": "Kumbukumbu",
+    "note": "Maelezo",
+    "dueDate": "Tarehe ya mwisho",
+    "save": "Hifadhi",
+    "order": "Oda",
+    "openOrder": "Fungua oda {number}",
+    "noContact": "Mteja huyu bado hana mtu wa mawasiliano.",
+    "noAddress": "Mteja huyu bado hana anwani.",
+    "sendContact": "Mtu wa mawasiliano",
+    "openHint": "Kinachodaiwa: {amount}"
   },
   "orders": {
     "title": "Oda",
@@ -435,7 +514,11 @@
       "refunded": "Pesa imerejeshwa",
       "invoiced": "Ankara imetolewa"
     },
-    "trailNote": "Nani alifanya nini kinarekodiwa kuanzia sasa; hatua za zamani zinaonyesha muda tu."
+    "trailNote": "Nani alifanya nini kinarekodiwa kuanzia sasa; hatua za zamani zinaonyesha muda tu.",
+    "byInvoice": {
+      "paid": "Imelipwa · ankara",
+      "partially_paid": "Imelipwa kiasi · ankara"
+    }
   },
   "till": {
     "title": "Kaunta",
@@ -615,7 +698,16 @@
     "sizeAdded": "Saizi imeongezwa.",
     "inviteSent": "Mwaliko umetumwa kwa {email}",
     "inviteWithdrawn": "Mwaliko umeondolewa.",
-    "lotStockChanged": "Akiba imebadilishwa."
+    "lotStockChanged": "Akiba imebadilishwa.",
+    "invoice": {
+      "sent": "Ankara imetumwa.",
+      "resent": "Ankara imetumwa tena.",
+      "paid": "Malipo yamerekodiwa.",
+      "voided": "Malipo yamebatilishwa.",
+      "cancelled": "Rasimu imeghairiwa.",
+      "marked": "Hati ya mkopo imewekwa kama imepunguzwa.",
+      "saved": "Maelezo yamehifadhiwa."
+    }
   },
   "images": {
     "title": "Picha",
@@ -776,6 +868,7 @@
     "bank": "Benki",
     "bank_transfer": "Benki",
     "mollie": "Mtandaoni",
-    "online": "Mtandaoni"
+    "online": "Mtandaoni",
+    "settled": "Imelipwa kwa hati ya mkopo"
   }
 }

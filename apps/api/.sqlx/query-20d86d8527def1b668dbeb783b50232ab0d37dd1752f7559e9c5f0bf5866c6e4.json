@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at, invoice_number, invoice_appendix,\n                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE",
+  "query": "SELECT i.id, i.relation_id, i.currency_id, i.status, i.is_credit, i.payment_method,\n                  i.reference, i.note, i.billing_address, i.addressed_contact, i.customer_ref,\n                  i.meta, i.due_date, i.send_date, i.summary, i.created_at, i.updated_at,\n                  i.invoice_number, i.invoice_appendix, i.previous_invoice_id, i.pdf_file_id,\n                  i.payment_token, i.payment_token_key_id, i.paid_total, i.subtotal,\n                  i.total - i.subtotal AS \"vat_total!\", i.total,\n                  i.total - i.paid_total AS \"open_total!\"\n           FROM invoices i\n           WHERE i.workspace_id = $1 AND i.deleted_at IS NULL\n             AND ($2::uuid IS NULL OR i.relation_id = $2)\n             AND ($3::text IS NULL OR i.status = $3)\n             AND ($5::bool IS NULL OR i.is_credit = $5)\n             AND (CASE WHEN $6\n                       THEN ($4::text[] IS NOT NULL AND i.status = ANY($4))\n                            OR (i.meta -> 'on_account' = 'true'\n                                AND i.status NOT IN ('paid', 'credited', 'cancelled'))\n                       ELSE $4::text[] IS NULL OR i.status = ANY($4) END)\n             AND ($7::text IS NULL OR i.reference ILIKE $7 OR EXISTS (\n                     SELECT 1 FROM relations r\n                     WHERE r.workspace_id = i.workspace_id AND r.id = i.relation_id\n                       AND (r.company_name ILIKE $7 OR r.alias ILIKE $7)))\n           ORDER BY i.created_at DESC, i.id DESC\n           LIMIT $8 OFFSET $9",
   "describe": {
     "columns": [
       {
@@ -266,12 +266,53 @@
             "name": "paid_total"
           }
         }
+      },
+      {
+        "ordinal": 24,
+        "name": "subtotal",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "subtotal"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "vat_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 26,
+        "name": "total",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "total"
+          }
+        }
+      },
+      {
+        "ordinal": 27,
+        "name": "open_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Uuid",
+        "Text",
+        "TextArray",
+        "Bool",
+        "Bool",
+        "Text",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -298,8 +339,12 @@
       true,
       true,
       true,
-      false
+      false,
+      false,
+      null,
+      false,
+      null
     ]
   },
-  "hash": "c9b26648c66d886dd7afb84ef7edc68e3654d30d4f78d9de18f5c334809ced51"
+  "hash": "20d86d8527def1b668dbeb783b50232ab0d37dd1752f7559e9c5f0bf5866c6e4"
 }

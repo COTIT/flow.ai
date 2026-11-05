@@ -54,7 +54,15 @@ export interface InvoiceItem {
   picked: string;
   position: number;
   price: string;
+  /**
+     * Deprecated: use `unit_price_minor`.
+     * @deprecated
+     */
   price_incl: string;
+  /**
+     * Deprecated: use `unit_price_minor`.
+     * @deprecated
+     */
   price_incl_vat: string;
   /** @nullable */
   product_variant_id: string | null;
@@ -84,7 +92,15 @@ export interface InvoiceItem {
   title: string;
   total: string;
   total_each_price_incl: string;
+  /**
+     * Deprecated: use `total_minor`.
+     * @deprecated
+     */
   total_incl: string;
+  /** Line total incl. VAT in minor units: excl (gross and discount rounded) + its own VAT. */
+  total_minor: number;
+  /** Unit price incl. VAT in minor units, priced in SQL (half away from zero). */
+  unit_price_minor: number;
   vat: string;
   vat_amount: string;
 }

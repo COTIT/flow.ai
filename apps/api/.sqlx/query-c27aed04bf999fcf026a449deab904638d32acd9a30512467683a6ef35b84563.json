@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id, o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND o.id = $2\n           FOR UPDATE OF o",
+  "query": "SELECT o.id, o.number, o.status, o.source, o.relation_id, o.currency_id,\n                  upper(c.asset_type) AS \"currency!\", c.decimals, o.warehouse_id, o.customer,\n                  o.reference, o.note, o.subtotal, o.vat, o.total, o.summary, o.expires_at,\n                  o.paid_at, o.completed_at, o.cancelled_at, o.invoice_id,\n                  (SELECT i.status FROM invoices i\n                   WHERE i.workspace_id = o.workspace_id AND i.id = o.invoice_id) AS invoice_status,\n                  o.created_at,\n                  o.confirmed_at, o.picked_at,\n                  o.updated_at, count(*) OVER () AS \"total_rows!\"\n           FROM orders o JOIN currencies c ON c.workspace_id = o.workspace_id AND c.id = o.currency_id\n           WHERE o.workspace_id = $1 AND ($2::text IS NULL OR o.status = $2)\n           ORDER BY o.created_at DESC, o.id DESC\n           LIMIT $3 OFFSET $4",
   "describe": {
     "columns": [
       {
@@ -231,6 +231,12 @@
       },
       {
         "ordinal": 21,
+        "name": "invoice_status",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 22,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -241,7 +247,7 @@
         }
       },
       {
-        "ordinal": 22,
+        "ordinal": 23,
         "name": "confirmed_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -252,7 +258,7 @@
         }
       },
       {
-        "ordinal": 23,
+        "ordinal": 24,
         "name": "picked_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -263,7 +269,7 @@
         }
       },
       {
-        "ordinal": 24,
+        "ordinal": 25,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -272,12 +278,20 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 26,
+        "name": "total_rows!",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
-        "Uuid"
+        "Text",
+        "Int8",
+        "Int8"
       ]
     },
     "nullable": [
@@ -302,11 +316,13 @@
       true,
       true,
       true,
+      null,
       false,
       true,
       true,
-      false
+      false,
+      null
     ]
   },
-  "hash": "6def593b45c24c7ae2d332aea0129c64491dc6f8b86b7d0b62a461877181f660"
+  "hash": "c27aed04bf999fcf026a449deab904638d32acd9a30512467683a6ef35b84563"
 }

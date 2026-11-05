@@ -436,6 +436,10 @@ pub struct OrderResource {
     pub picked_at: Option<DateTime<Utc>>,
     #[schema(required = true)]
     pub invoice_id: Option<Uuid>,
+    /// The linked invoice's status (`draft`, `pending`, `partially_paid`, `paid`, …); null
+    /// without an invoice. Read with the order; the order's own status doesn't follow it.
+    #[schema(required = true)]
+    pub invoice_status: Option<String>,
     /// What the API would accept on this order now, from the rules its action routes enforce.
     /// Status and payment rules only, not the caller's permissions.
     pub allowed_actions: Vec<OrderAction>,

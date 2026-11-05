@@ -9011,6 +9011,20 @@
         ],
         "type": "object"
       },
+      "InvoiceAction": {
+        "description": "An action Office can offer on an invoice (`allowed_actions`, in this order).",
+        "enum": [
+          "edit",
+          "send",
+          "resend",
+          "cancel",
+          "duplicate",
+          "credit",
+          "pay",
+          "mark_as_credited"
+        ],
+        "type": "string"
+      },
       "InvoiceBalance": {
         "description": "Paid, open and total amounts of an invoice.",
         "properties": {
@@ -9181,7 +9195,8 @@
         "description": "An invoice in a list.",
         "properties": {
           "balance": {
-            "$ref": "#/components/schemas/InvoiceListBalance"
+            "$ref": "#/components/schemas/InvoiceListBalance",
+            "description": "Deprecated: use `money`."
           },
           "created_at": {
             "format": "date-time",
@@ -9248,6 +9263,9 @@
               "null"
             ]
           },
+          "money": {
+            "$ref": "#/components/schemas/InvoiceMoney"
+          },
           "note": {
             "type": [
               "string",
@@ -9287,7 +9305,8 @@
             "$ref": "#/components/schemas/SummaryResource"
           },
           "total_amount": {
-            "description": "Total with two decimals, e.g. `\"121.00\"`.",
+            "deprecated": true,
+            "description": "Total with two decimals, e.g. `\"121.00\"`. Deprecated: use `money.total`.",
             "type": "string"
           }
         },
@@ -9296,6 +9315,7 @@
           "invoice_nr",
           "status",
           "balance",
+          "money",
           "reference",
           "payment_hash",
           "payment_method",
@@ -9417,9 +9437,13 @@
             "type": "string"
           },
           "price_incl": {
+            "deprecated": true,
+            "description": "Deprecated: use `unit_price_minor`.",
             "type": "string"
           },
           "price_incl_vat": {
+            "deprecated": true,
+            "description": "Deprecated: use `unit_price_minor`.",
             "type": "string"
           },
           "product_variant_id": {
@@ -9487,7 +9511,19 @@
             "type": "string"
           },
           "total_incl": {
+            "deprecated": true,
+            "description": "Deprecated: use `total_minor`.",
             "type": "string"
+          },
+          "total_minor": {
+            "description": "Line total incl. VAT in minor units: excl (gross and discount rounded) + its own VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "unit_price_minor": {
+            "description": "Unit price incl. VAT in minor units, priced in SQL (half away from zero).",
+            "format": "int64",
+            "type": "integer"
           },
           "vat": {
             "type": "string"
@@ -9500,6 +9536,8 @@
           "id",
           "title",
           "description",
+          "unit_price_minor",
+          "total_minor",
           "quantity",
           "price",
           "price_incl",
@@ -9619,10 +9657,14 @@
             ]
           },
           "order": {
-            "description": "Always null.",
-            "type": [
-              "object",
-              "null"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceOrder",
+                "description": "The order this invoice was made from; null for any other invoice."
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "parent_invoice": {
@@ -9727,12 +9769,89 @@
         ],
         "type": "object"
       },
+      "InvoiceMoney": {
+        "description": "Every amount of an invoice in minor units, computed in SQL from the stored totals.",
+        "properties": {
+          "currency": {
+            "description": "The currency's code (`asset_type`); null when the currency is gone.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decimals": {
+            "description": "Decimals the amounts are in (frozen once sent).",
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "open": {
+            "description": "total − paid; negative when overpaid.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "paid": {
+            "description": "Paid, unvoided payments.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "subtotal": {
+            "description": "Excl. VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Incl. VAT.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "vat": {
+            "description": "total − subtotal.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "currency",
+          "decimals",
+          "subtotal",
+          "vat",
+          "total",
+          "paid",
+          "open"
+        ],
+        "type": "object"
+      },
+      "InvoiceOrder": {
+        "description": "The order an invoice was made from.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "number": {
+            "description": "The order number, e.g. `ORD-0029`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number"
+        ],
+        "type": "object"
+      },
       "InvoicePayment": {
         "description": "A payment on an invoice.",
         "properties": {
           "amount": {
-            "description": "Decimal text with 8 places.",
+            "deprecated": true,
+            "description": "Decimal text with 8 places. Deprecated: use `amount_minor`.",
             "type": "string"
+          },
+          "amount_minor": {
+            "description": "The amount in minor units of the invoice's currency, as stored.",
+            "format": "int64",
+            "type": "integer"
           },
           "created_at": {
             "format": "date-time",
@@ -9802,6 +9921,7 @@
           "description",
           "date",
           "amount",
+          "amount_minor",
           "paid_amount",
           "is_paid",
           "provider",
@@ -9824,8 +9944,16 @@
               "null"
             ]
           },
+          "allowed_actions": {
+            "description": "What the API accepts on this invoice now (status rules only, not permissions).",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceAction"
+            },
+            "type": "array"
+          },
           "balance": {
-            "$ref": "#/components/schemas/InvoiceBalance"
+            "$ref": "#/components/schemas/InvoiceBalance",
+            "description": "Deprecated: use `money`."
           },
           "billing_address": {
             "description": "Address snapshot.",
@@ -9904,6 +10032,9 @@
             "maxItems": 0,
             "type": "array"
           },
+          "money": {
+            "$ref": "#/components/schemas/InvoiceMoney"
+          },
           "note": {
             "type": [
               "string",
@@ -9958,6 +10089,7 @@
           "payment_hash",
           "payment_method",
           "balance",
+          "money",
           "note",
           "send_date",
           "due_date",
@@ -9975,6 +10107,7 @@
           "created_at",
           "last_updated_at",
           "meta",
+          "allowed_actions",
           "relationships"
         ],
         "type": "object"
@@ -12576,6 +12709,13 @@
               "null"
             ]
           },
+          "invoice_status": {
+            "description": "The linked invoice's status (`draft`, `pending`, `partially_paid`, `paid`, …); null\nwithout an invoice. Read with the order; the order's own status doesn't follow it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "lines": {
             "items": {
               "$ref": "#/components/schemas/OrderLineResource"
@@ -12691,6 +12831,7 @@
           "confirmed_at",
           "picked_at",
           "invoice_id",
+          "invoice_status",
           "allowed_actions",
           "units",
           "payment_method",

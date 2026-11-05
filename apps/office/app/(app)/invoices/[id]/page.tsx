@@ -1,15 +1,21 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useLocale, useTranslations } from "next-intl"
+import { useQueryClient } from "@tanstack/react-query"
 
 import { useSession } from "@genesy/api-client/auth"
+import { useInvoicePaymentsVoid } from "@genesy/api-client/endpoints/invoice-payments"
 import {
+  getInvoicesGetQueryKey,
+  getInvoicesListQueryKey,
   useInvoicesGet,
   useInvoicesPreview,
 } from "@genesy/api-client/endpoints/invoices"
 import { ApiError } from "@genesy/ui/components/api-error"
 import { Button } from "@genesy/ui/components/button"
+import { ConfirmDialog } from "@genesy/ui/components/confirm-dialog"
 import { Notice } from "@genesy/ui/components/notice"
 import {
   Table,
@@ -23,9 +29,12 @@ import { formatDate } from "@genesy/ui/lib/format"
 import { Bento, DetailSkeleton, SubTile, Tile } from "@/components/bento"
 import { CardState, PageHead } from "@/components/list"
 import { StatusBadge } from "@/components/status-badge"
-import { Empty, LoadError } from "@/components/states"
+import { Done, Empty, LoadError, useDone } from "@/components/states"
+import { useCan } from "@/lib/can"
 
 import { initials } from "../../orders/shared"
+import { invoiceMoney, invoiceNumber } from "../shared"
+import { NextStep } from "./actions"
 
 type Text = string | null | undefined
 
@@ -47,6 +56,31 @@ export default function InvoicePage({
   const pdf = useInvoicesPreview(workspaceId, id, undefined, {
     query: { enabled: wantPdf, retry: false },
   })
+  const queryClient = useQueryClient()
+  const changed = () => {
+    for (const queryKey of [
+      getInvoicesGetQueryKey(workspaceId, id),
+      getInvoicesListQueryKey(workspaceId),
+    ])
+      void queryClient.invalidateQueries({ queryKey })
+  }
+  const mayVoid = useCan("invoicepayment.delete")
+  const voided = useDone()
+  const [voiding, setVoiding] = React.useState<string | null>(null)
+  const voidPayment = useInvoicePaymentsVoid({
+    mutation: {
+      onMutate: voided.clear,
+      onSuccess: () => {
+        setVoiding(null)
+        voided.show(t("done.invoice.voided"))
+        changed()
+      },
+    },
+  })
+  const order = (invoice.data?.data.relationships.order ?? null) as {
+    id: string
+    number: string
+  } | null
 
   if (invoice.isPending) return <DetailSkeleton />
   if (invoice.isError)
@@ -58,6 +92,13 @@ export default function InvoicePage({
       />
     )
   const inv = invoice.data.data
+  const money = (minor: number) => invoiceMoney(minor, inv.money, locale)
+  const nr = invoiceNumber(inv.invoice_nr)
+  const title = nr
+    ? t(inv.is_credit ? "invoices.creditTitle" : "invoices.detailTitle", {
+        number: nr,
+      })
+    : t(inv.is_credit ? "invoices.draftCreditTitle" : "invoices.draftTitle")
   const payments = inv.relationships.payments ?? []
   // Snapshots on the invoice, shown as stored; any of them may be missing.
   const relation = (inv.relationships.relation ?? {}) as {
@@ -88,9 +129,7 @@ export default function InvoicePage({
     <>
       <PageHead
         back={{ href: "/invoices", label: t("invoices.title") }}
-        title={t("invoices.detailTitle", {
-          number: inv.invoice_nr ?? t("invoices.draft"),
-        })}
+        title={title}
         actions={
           <>
             <StatusBadge
@@ -104,6 +143,7 @@ export default function InvoicePage({
         }
       />
       <Bento>
+        <NextStep inv={inv} onChanged={changed} />
         <Tile
           id="invoice-lines"
           title={t("invoices.lines")}
@@ -133,13 +173,13 @@ export default function InvoicePage({
                     {item.quantity}
                   </TableCell>
                   <TableCell data-m="hide" className="text-right tabular-nums">
-                    {item.price_incl}
+                    {money(item.unit_price_minor)}
                   </TableCell>
                   <TableCell
                     data-m="right"
                     className="text-right font-semibold tabular-nums"
                   >
-                    {item.total_incl}
+                    {money(item.total_minor)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -151,18 +191,18 @@ export default function InvoicePage({
               <span className="text-muted-foreground">
                 {t("invoices.total")}
               </span>
-              <span className="tabular-nums">{String(inv.balance.total)}</span>
+              <span className="tabular-nums">{money(inv.money.total)}</span>
             </p>
             <p className="flex justify-between text-[13px]">
               <span className="text-muted-foreground">
                 {t("invoices.paid")}
               </span>
-              <span className="tabular-nums">{String(inv.balance.paid)}</span>
+              <span className="tabular-nums">{money(inv.money.paid)}</span>
             </p>
             <p className="flex items-center justify-between">
               <span className="font-semibold">{t("invoices.open")}</span>
               <span className="text-lg font-semibold tabular-nums max-md:text-base">
-                {String(inv.balance.open)}
+                {money(inv.money.open)}
               </span>
             </p>
             <p className="text-xs text-muted-foreground">
@@ -185,13 +225,30 @@ export default function InvoicePage({
               <dt className="text-muted-foreground">{t("invoices.due")}</dt>
               <dd>{inv.due_date ? formatDate(inv.due_date, locale) : "—"}</dd>
             </div>
+            {order ? (
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-muted-foreground">{t("invoices.order")}</dt>
+                <dd>
+                  <Link
+                    className="inline-flex min-h-11 items-center font-mono font-semibold underline-offset-4 hover:underline"
+                    href={`/orders/${order.id}`}
+                    aria-label={t("invoices.openOrder", {
+                      number: order.number,
+                    })}
+                  >
+                    {order.number}
+                  </Link>
+                </dd>
+              </div>
+            ) : null}
           </dl>
           {pdf.data ? null : (
             <Button
               variant="outline"
               className="w-full"
               disabled={pdf.isFetching}
-              onClick={() => setWantPdf(true)}
+              // After a failure the query is already enabled: ask again.
+              onClick={() => (wantPdf ? void pdf.refetch() : setWantPdf(true))}
             >
               {t("invoices.makePdf")}
             </Button>
@@ -215,7 +272,12 @@ export default function InvoicePage({
               />
             ) : null}
           </div>
-          <ApiError error={pdf.error} fallback={t("common.error")} />
+          {(pdf.error as { response?: { status?: number } } | null)?.response
+            ?.status === 503 ? (
+            <Notice variant="warning" title={t("invoices.pdfUnavailable")} />
+          ) : (
+            <ApiError error={pdf.error} fallback={t("common.error")} />
+          )}
         </Tile>
 
         <Tile
@@ -258,6 +320,15 @@ export default function InvoicePage({
           span="col-span-12"
           flush
         >
+          {voided.message || voidPayment.error ? (
+            <div className="px-5 pt-4">
+              <Done message={voided.message} />
+              <ApiError
+                error={voidPayment.error}
+                fallback={t("common.error")}
+              />
+            </div>
+          ) : null}
           {payments.length === 0 ? (
             <CardState>
               <Empty title={t("invoices.noPayments")} />
@@ -271,6 +342,13 @@ export default function InvoicePage({
                   <TableHead className="text-right">
                     {t("invoices.amount")}
                   </TableHead>
+                  {mayVoid ? (
+                    <TableHead>
+                      <span className="sr-only">
+                        {t("invoices.voidPayment")}
+                      </span>
+                    </TableHead>
+                  ) : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -284,8 +362,20 @@ export default function InvoicePage({
                       data-m="right"
                       className="text-right font-semibold tabular-nums"
                     >
-                      {pay.amount}
+                      {money(pay.amount_minor)}
                     </TableCell>
+                    {mayVoid ? (
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="max-md:min-h-11"
+                          onClick={() => setVoiding(pay.id)}
+                        >
+                          {t("invoices.voidPayment")}
+                        </Button>
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 ))}
               </TableBody>
@@ -293,6 +383,23 @@ export default function InvoicePage({
           )}
         </Tile>
       </Bento>
+      <ConfirmDialog
+        open={voiding !== null}
+        onOpenChange={(open) => (open ? null : setVoiding(null))}
+        title={t("invoices.voidTitle")}
+        description={t("invoices.voidText")}
+        confirm={t("invoices.voidPayment")}
+        cancel={t("actions.cancel")}
+        disabled={voidPayment.isPending}
+        onConfirm={() =>
+          voiding &&
+          voidPayment.mutate({
+            workspace: workspaceId,
+            invoice: id,
+            payment: voiding,
+          })
+        }
+      />
     </>
   )
 }

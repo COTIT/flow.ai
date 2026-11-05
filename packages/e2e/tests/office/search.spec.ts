@@ -14,7 +14,7 @@ const results = {
       total: 4850,
     },
   ],
-  invoices: [{ id: "inv-1", number: "2026-0042", customer_name: "Honey House Ltd", status: "sent" }],
+  invoices: [{ id: "inv-1", number: "2026-0042", customer_name: "Honey House Ltd", status: "pending" }],
   lots: [{ id: "lot-1", code: "AFM-HN-2026-07", product_name: "Honey jar 500 g", public_code: "7K3M9QX2WD" }],
   relations: [{ id: "rel-1", name: "Honey House Ltd" }],
 }

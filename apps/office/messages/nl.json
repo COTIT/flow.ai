@@ -338,13 +338,92 @@
     "details": "Gegevens",
     "statuses": {
       "draft": "Concept",
-      "sent": "Verzonden",
-      "open": "Open",
       "partially_paid": "Deels betaald",
       "paid": "Betaald",
       "cancelled": "Geannuleerd",
-      "credited": "Gecrediteerd"
-    }
+      "credited": "Gecrediteerd",
+      "pending": "Verzonden",
+      "awaiting_payment": "Wacht op betaling",
+      "awaiting_pos_payment": "Wacht op kassabetaling",
+      "planned": "Gepland"
+    },
+    "draftTitle": "Conceptfactuur",
+    "creditTitle": "Creditnota {number}",
+    "unnumbered": "Open de factuur zonder nummer",
+    "draftCreditTitle": "Conceptcreditnota",
+    "nextStep": "Volgende stap",
+    "nothingToDo": "Niets meer te doen aan deze factuur.",
+    "draftInfo": "Een concept krijgt een nummer zodra je het verstuurt.",
+    "next": {
+      "send": "Controleer de regels en verstuur hem.",
+      "pay": "Registreer een betaling zodra de klant betaalt.",
+      "credit": "Crediteer om regels terug te nemen.",
+      "mark_as_credited": "Markeer als gecrediteerd zodra het terugbetaald is.",
+      "resend": "Stuur hem opnieuw naar de klant.",
+      "duplicate": "Begin een nieuw concept vanaf deze factuur."
+    },
+    "act": {
+      "edit": "Gegevens wijzigen",
+      "send": "Versturen",
+      "resend": "Opnieuw versturen",
+      "cancel": "Concept annuleren",
+      "duplicate": "Dupliceren",
+      "credit": "Crediteren",
+      "pay": "Betaling registreren",
+      "mark_as_credited": "Markeren als gecrediteerd"
+    },
+    "sendTitle": "Factuur versturen",
+    "resendTitle": "Factuur opnieuw versturen",
+    "sendHow": "Hoe",
+    "sendManual": "Markeren als verstuurd (geen e-mail)",
+    "sendEmail": "E-mailen naar de klant",
+    "sendTo": "Aan",
+    "sendSubject": "Onderwerp",
+    "sendMessage": "Bericht",
+    "sendSubjectDefault": "Factuur {nr}",
+    "sendMessageDefault": "In de bijlage vind je je factuur.",
+    "emailUnavailable": "E-mail versturen is nog niet ingesteld.",
+    "pdfUnavailable": "PDF's zijn op deze server nog niet beschikbaar.",
+    "cancelTitle": "Dit concept annuleren?",
+    "cancelText": "Het blijft als geannuleerd in de lijst en krijgt nooit een nummer.",
+    "keep": "Concept houden",
+    "payTitle": "Betaling registreren",
+    "payDate": "Datum",
+    "payAmount": "Bedrag ({currency})",
+    "payMethod": "Betaald met",
+    "payNote": "Notitie",
+    "payBy": {
+      "cash": "Contant",
+      "pin": "Pin",
+      "manual": "Overschrijving of anders",
+      "settle": "Een creditnota van deze klant"
+    },
+    "payCreditNote": "Creditnota",
+    "noCreditNotes": "Deze klant heeft geen open creditnota.",
+    "creditNoteOption": "{number} · {open} open",
+    "voidPayment": "Vervallen",
+    "voidTitle": "Deze betaling laten vervallen?",
+    "voidText": "Hij blijft bewaard als vervallen en telt niet meer mee.",
+    "creditDialogTitle": "Regels crediteren",
+    "creditDialogText": "Maakt een conceptcreditnota. Verstuur hem om hem te nummeren.",
+    "creditAll": "Alles wat over is",
+    "creditLines": "Regels kiezen",
+    "creditLeft": "nog {left}",
+    "creditQty": "Aantal te crediteren voor {title}",
+    "makeCredit": "Creditnota maken",
+    "markTitle": "Markeren als gecrediteerd",
+    "markText": "Registreert de terugbetaling van het openstaande bedrag en sluit de creditnota.",
+    "editTitle": "Gegevens wijzigen",
+    "reference": "Referentie",
+    "note": "Notitie",
+    "dueDate": "Vervaldatum",
+    "save": "Opslaan",
+    "order": "Bestelling",
+    "openOrder": "Bestelling {number} openen",
+    "noContact": "Deze klant heeft nog geen contactpersoon.",
+    "noAddress": "Deze klant heeft nog geen adres.",
+    "sendContact": "Contactpersoon",
+    "openHint": "Openstaand: {amount}"
   },
   "orders": {
     "title": "Orders",
@@ -435,7 +514,11 @@
       "refunded": "Terugbetaald",
       "invoiced": "Gefactureerd"
     },
-    "trailNote": "Wie wat deed wordt vanaf nu bijgehouden; oudere stappen tonen alleen hun tijd."
+    "trailNote": "Wie wat deed wordt vanaf nu bijgehouden; oudere stappen tonen alleen hun tijd.",
+    "byInvoice": {
+      "paid": "Betaald · factuur",
+      "partially_paid": "Deels betaald · factuur"
+    }
   },
   "till": {
     "title": "Kassa",
@@ -615,7 +698,16 @@
     "sizeAdded": "Maat toegevoegd.",
     "inviteSent": "Uitnodiging verstuurd naar {email}",
     "inviteWithdrawn": "Uitnodiging ingetrokken.",
-    "lotStockChanged": "Voorraad gewijzigd."
+    "lotStockChanged": "Voorraad gewijzigd.",
+    "invoice": {
+      "sent": "Factuur verstuurd.",
+      "resent": "Factuur opnieuw verstuurd.",
+      "paid": "Betaling geregistreerd.",
+      "voided": "Betaling vervallen.",
+      "cancelled": "Concept geannuleerd.",
+      "marked": "Creditnota gemarkeerd als gecrediteerd.",
+      "saved": "Gegevens opgeslagen."
+    }
   },
   "images": {
     "title": "Afbeeldingen",
@@ -776,6 +868,7 @@
     "bank": "Bankoverschrijving",
     "bank_transfer": "Bankoverschrijving",
     "mollie": "Online",
-    "online": "Online"
+    "online": "Online",
+    "settled": "Verrekend met creditnota"
   }
 }

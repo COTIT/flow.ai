@@ -5,9 +5,11 @@
  * One backend for the Genesy shop, office, field and till apps. Every private route needs `Authorization: Bearer <token>`.
  * OpenAPI spec version: 0.1.0
  */
+import type { InvoiceAction } from './invoiceAction';
 import type { InvoiceBalance } from './invoiceBalance';
 import type { InvoiceItem } from './invoiceItem';
 import type { InvoiceLinks } from './invoiceLinks';
+import type { InvoiceMoney } from './invoiceMoney';
 import type { InvoiceResourceAddressedContact } from './invoiceResourceAddressedContact';
 import type { InvoiceResourceBillingAddress } from './invoiceResourceBillingAddress';
 import type { InvoiceResourceCustomerRef } from './invoiceResourceCustomerRef';
@@ -25,6 +27,9 @@ export interface InvoiceResource {
      * @nullable
      */
   addressed_contact: InvoiceResourceAddressedContact;
+  /** What the API accepts on this invoice now (status rules only, not permissions). */
+  allowed_actions: InvoiceAction[];
+  /** Deprecated: use `money`. */
   balance: InvoiceBalance;
   /**
      * Address snapshot.
@@ -63,6 +68,7 @@ export interface InvoiceResource {
      * @maxItems 0
      */
   mollie_refunds: InvoiceResourceMollieRefundsItem[];
+  money: InvoiceMoney;
   /** @nullable */
   note: string | null;
   /**

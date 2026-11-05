@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at, invoice_number, invoice_appendix,\n                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
+  "query": "SELECT id, relation_id, currency_id, status, is_credit, payment_method, reference, note,\n                billing_address, addressed_contact, customer_ref, meta, due_date, send_date,\n                summary, created_at, updated_at, invoice_number, invoice_appendix,\n                previous_invoice_id, pdf_file_id, payment_token, payment_token_key_id, paid_total,\n                subtotal, total - subtotal AS \"vat_total!\", total,\n                total - paid_total AS \"open_total!\"\n         FROM invoices WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR SHARE",
   "describe": {
     "columns": [
       {
@@ -266,6 +266,40 @@
             "name": "paid_total"
           }
         }
+      },
+      {
+        "ordinal": 24,
+        "name": "subtotal",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "subtotal"
+          }
+        }
+      },
+      {
+        "ordinal": 25,
+        "name": "vat_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 26,
+        "name": "total",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "invoices",
+            "name": "total"
+          }
+        }
+      },
+      {
+        "ordinal": 27,
+        "name": "open_total!",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -298,8 +332,12 @@
       true,
       true,
       true,
-      false
+      false,
+      false,
+      null,
+      false,
+      null
     ]
   },
-  "hash": "914fa30eea8f8d0e8a63b0f8039e61064359e9cf649e0f1fbfba79d844be6266"
+  "hash": "f092dfd0cc3413aab1d308d78970c43016e49588e9676a0dbb2a1c58c9064471"
 }
