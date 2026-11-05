@@ -755,3 +755,64 @@ async fn an_invoice_of_an_order_never_moves_stock_again(pool: PgPool) {
     assert_eq!(level(&f, &f.main).await, "7.00");
     assert_eq!(moves(&f).await, (1, 1));
 }
+
+/// Staging has no PDF sidecar and no file store: a manual send still numbers the draft and
+/// sets its status in one transaction; it just has no PDF. An email send still needs both.
+#[sqlx::test]
+async fn a_manual_send_numbers_without_a_renderer(pool: PgPool) {
+    let f = setup_with(pool, false).await;
+    let id = draft(&f, chairs(&f, 1, None), false).await;
+    assert_eq!(send(&f, &id, message(&f, "manual")).await, ok());
+    assert_eq!(numbered(&f, &id).await, (Some(1000), "pending".to_owned()));
+    let (_, detail) = f
+        .api
+        .call(Method::GET, &format!("/{id}"), None, &f.api.owner)
+        .await;
+    assert_eq!(detail["data"]["relationships"]["pdf_file"], Value::Null);
+    assert_eq!(detail["data"]["invoice_nr"], "INV-1000");
+
+    let other = draft(&f, chairs(&f, 1, None), false).await;
+    let (status, res) = send(&f, &other, message(&f, "email")).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{res}");
+    assert_eq!(
+        numbered(&f, &other).await,
+        (None, "draft".to_owned()),
+        "email send stores nothing"
+    );
+    let (status, _) = resend(&f, &id, message(&f, "email")).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+}
+
+/// Two manual sends at once take two consecutive numbers: no gap, no clash.
+#[sqlx::test]
+async fn parallel_manual_sends_take_consecutive_numbers(pool: PgPool) {
+    let f = setup_with(pool, false).await;
+    let a = draft(&f, chairs(&f, 1, None), false).await;
+    let b = draft(&f, chairs(&f, 1, None), false).await;
+    let (ra, rb) = tokio::join!(
+        send(&f, &a, message(&f, "manual")),
+        send(&f, &b, message(&f, "manual"))
+    );
+    assert_eq!((ra, rb), (ok(), ok()));
+    let mut numbers = vec![numbered(&f, &a).await.0, numbered(&f, &b).await.0];
+    numbers.sort();
+    assert_eq!(numbers, [Some(1000), Some(1001)]);
+}
+
+/// Another workspace can't send this workspace's draft, renderer or not.
+#[sqlx::test]
+async fn a_manual_send_of_another_workspaces_draft_is_a_404(pool: PgPool) {
+    let f = setup_with(pool, false).await;
+    let id = draft(&f, chairs(&f, 1, None), false).await;
+    let eve = f.api.as_new_owner("eve@example.com", "evil").await;
+    let (status, _) = eve
+        .call(
+            Method::POST,
+            &format!("/{id}/send"),
+            Some(message(&f, "manual")),
+            &eve.owner,
+        )
+        .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert_eq!(numbered(&f, &id).await, (None, "draft".to_owned()));
+}

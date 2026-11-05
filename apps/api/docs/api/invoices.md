@@ -191,7 +191,7 @@ Rows (InvoiceIndexResource):
 The body is the `POST /send-message` body (`messages.md`, up to 1 MiB): `addressed_contact_id` (a contact of the invoice's relation, else 422 `The selected addressed contact id is invalid.`), `address`, `send_method`, `subject`, `body`, `to` / `cc` / `bcc`, `attachments`, `email_profile_id`, plus `pdf_template_id`.
 
 **Checked before anything is stored** (a refusal leaves the draft as it was):
-- the PDF sidecar and the file store are configured (503 otherwise, as on preview);
+- the PDF sidecar and the file store are configured (503 otherwise, as on preview). Not for a manual send (`send_method: manual`): without either, it numbers the invoice and sets its status as below and renders no PDF (`pdf_file` stays null; preview still answers 503). With both, a manual send renders the PDF as before;
 - `pdf_template_id`, when sent, is an invoice template of this workspace (422 on `pdf_template_id`: `The selected pdf template id is invalid.`; Laravel's preview fell back to the built-in layout, a send doesn't);
 - for an email: the attachments, the profile and a mail server with a from address (the `/send-message` 422s), and a recipient: without `to` the addressed contact needs an email (422 on `to`: `The to field is required when the contact has no email address.`).
 

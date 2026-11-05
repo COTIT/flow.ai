@@ -81,6 +81,10 @@ pub async fn send(
     let id = parse(id)?;
     let template = ready(state, workspace_id, &input, Kind::Send).await?;
     number(state, workspace_id, user_id, id, &input).await?;
+    if input.manual && !renders(state) {
+        // Nothing to mail and nothing to render with: numbered, no PDF (preview still 503s).
+        return Ok(());
+    }
     detached(
         state,
         workspace_id,
@@ -139,19 +143,27 @@ pub async fn resend(
     .await
 }
 
+/// Whether this server can render and store a PDF.
+fn renders(state: &AppState) -> bool {
+    state.pdf.is_some() && state.files.is_some()
+}
+
 /// What the PDF and the mail need, checked before anything is stored: the sidecar and the
-/// store, the PDF template, and (for an email) attachments, sender and server. The invoice
-/// template; None for the built-in layout.
+/// store (not for a manual send), the PDF template, and (for an email) attachments, sender
+/// and server. The invoice template; None for the built-in layout.
 async fn ready(
     state: &AppState,
     workspace_id: Uuid,
     input: &SendInput,
     kind: Kind,
 ) -> Result<Option<TemplateRow>, AppError> {
-    if state.pdf.is_none() {
-        return Err(AppError::Unavailable(pdf::NO_RENDERER));
+    // A manual send needs no PDF, so it numbers without the sidecar or the store.
+    if !(input.manual && kind == Kind::Send) {
+        if state.pdf.is_none() {
+            return Err(AppError::Unavailable(pdf::NO_RENDERER));
+        }
+        files::service::store(state)?;
     }
-    files::service::store(state)?;
     let template = match input.pdf_template_id {
         Some(t) => Some(
             pdf_templates::repo::find(&state.db, workspace_id, t, Some("invoice"))

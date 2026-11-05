@@ -23,6 +23,11 @@ pub struct F {
 }
 
 pub async fn setup(pool: PgPool) -> F {
+    setup_with(pool, true).await
+}
+
+/// `setup`, or without the PDF sidecar and the file store (`renders: false`, as staging).
+pub async fn setup_with(pool: PgPool, renders: bool) -> F {
     let (smtp_port, inbox) = fake_smtp::start().await;
     let (pdf_url, _) = fake_pdf::start(b"%PDF-1.4 invoice".to_vec()).await;
     let mailer = Mailer::capture()
@@ -34,6 +39,10 @@ pub async fn setup(pool: PgPool) -> F {
         &pdf_url,
         Outbound::new(&["127.0.0.1".to_owned()]).unwrap(),
     ));
+    if !renders {
+        state.pdf = None;
+        state.files = None;
+    }
     let mut api = Api::new(pool, "/invoices").await;
     api.app = build_app(state);
     settings(
