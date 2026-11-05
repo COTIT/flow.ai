@@ -504,3 +504,63 @@ async fn another_workspace_cannot_read_a_lots_holds(pool: PgPool) {
         .await;
     assert_eq!(s, StatusCode::NOT_FOUND);
 }
+
+#[sqlx::test]
+async fn an_order_holding_the_lot_on_two_rows_moves_whole_or_not_at_all(pool: PgPool) {
+    let w = world(pool).await;
+    let bad = lot(&w, &w.honey, "BAD", Some("2098-01-01"), 5).await;
+    lot(&w, &w.honey, "GOOD", Some("2099-01-01"), 4).await;
+    let a = draft(&w, json!([line(&w.honey, "3")])).await;
+    act(&w, &a, "confirm").await;
+    // The same order also holds 2 of the lot on a bin row (older data, or a hand fix): 5 in
+    // all, of which GOOD could take only one record.
+    let (s, res) = w
+        .api
+        .with_base("/warehouses")
+        .call(
+            Method::POST,
+            &format!("/{}/sections", w.main),
+            Some(json!({ "section_name": "Hall", "section_code": "H", "rows": 1,
+                         "shelves_per_row": 1, "bins_per_shelf": 1 })),
+            &w.api.owner,
+        )
+        .await;
+    assert_eq!(s, StatusCode::CREATED, "{res}");
+    sqlx::query(
+        "WITH b AS (SELECT id, shelf_id FROM warehouse_section_row_bins LIMIT 1),
+              s AS (INSERT INTO stocks (workspace_id, product_id, warehouse_id, shelf_id, bin_id,
+                                        lot_id, stock_lvl, reserved)
+                    SELECT o.workspace_id, $2::uuid, $3::uuid, b.shelf_id, b.id, $4::uuid, 2, 2
+                    FROM orders o, b WHERE o.id = $1::uuid
+                    RETURNING id, workspace_id)
+         INSERT INTO stock_reservations (workspace_id, stock_id, product_id, related_domain,
+                                         related_id, quantity)
+         SELECT s.workspace_id, s.id, $2::uuid, 'order', $1::uuid, 2 FROM s",
+    )
+    .bind(&a)
+    .bind(&w.honey)
+    .bind(&w.main)
+    .bind(&bad)
+    .execute(&w.api.pool)
+    .await
+    .unwrap();
+
+    set_lot(&w, &bad, json!({ "status": "recalled" })).await;
+    let on_bad: Vec<(String,)> = sqlx::query_as(
+        "SELECT r.quantity::text FROM stock_reservations r JOIN stocks s ON s.id = r.stock_id
+         WHERE r.related_id = $1::uuid AND s.lot_id = $2::uuid ORDER BY 1",
+    )
+    .bind(&a)
+    .bind(&bad)
+    .fetch_all(&w.api.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        on_bad,
+        [("2.00".to_owned(),), ("3.00".to_owned(),)],
+        "nothing of the order moved"
+    );
+    let (_, res) = holds(&w, &bad).await;
+    assert_eq!(res["data"][0]["order_id"], a.as_str());
+    assert_eq!(res["data"][0]["quantity"], "5.00");
+}
