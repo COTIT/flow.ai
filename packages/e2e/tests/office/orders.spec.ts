@@ -105,6 +105,10 @@ function ordersApi(api: FakeApi, start: Partial<Order> = {}) {
   api
     .on("GET", "/workspace/:ws/orders", () => paged([order]))
     .on("GET", "/workspace/:ws/orders/:id", () => ({ data: order }))
+    // The order page reads its invoice's status; a fresh one is a draft.
+    .on("GET", "/workspace/:ws/invoices/:id", () => ({
+      data: { id: order.invoice_id, status: "draft", invoice_nr: null },
+    }))
     .on("POST", "/workspace/:ws/orders/:id/confirm", to("open"))
     .on("POST", "/workspace/:ws/orders/:id/complete", to("completed"))
     .on("POST", "/workspace/:ws/orders/:id/cancel", () =>
@@ -321,6 +325,9 @@ test("returns send only the lines filled in; invoice links once made", async ({
   api,
 }) => {
   ordersApi(api, { status: "completed" })
+  api.on("GET", "/workspace/:ws/invoices/:id", () => ({
+    data: { id: "inv-9", status: "partially_paid", invoice_nr: "2026-0007" },
+  }))
   await page.goto("/orders/ord-1")
   await page.getByRole("button", { name: "Take back returns" }).click()
   await page.getByRole("dialog").getByLabel("AFM Honey 500g (8)").fill("1")
@@ -340,6 +347,28 @@ test("returns send only the lines filled in; invoice links once made", async ({
   await expect(
     page.getByRole("link", { name: "Open invoice" })
   ).toHaveAttribute("href", "/invoices/inv-9")
+  // The invoice's own status, in words, next to the link.
+  await expect(
+    page.getByRole("region", { name: "Customer" }).getByText("Partly paid")
+  ).toBeVisible()
+})
+
+test.describe(() => {
+  test.use({ allow: { responses: [{ url: "/v1/workspace/w1/invoices/inv-9", status: 403 }] } })
+
+  test("a member who may not read invoices still gets the link, without a status", async ({
+    page,
+    api,
+  }) => {
+    ordersApi(api, { status: "completed", invoice_id: "inv-9" })
+    api.on("GET", "/workspace/:ws/invoices/:id", () => ({
+      status: 403,
+      body: { message: "This action is unauthorized." },
+    }))
+    await page.goto("/orders/ord-1")
+    await expect(page.getByRole("link", { name: "Open invoice" })).toBeVisible()
+    await expect(page.getByText("This action is unauthorized.")).toHaveCount(0)
+  })
 })
 
 test("refund retried after a network failure reuses its key; the API sees one refund", async ({
@@ -714,6 +743,9 @@ test("orders/[id] returns dialog: every control is a 44 px target on a phone", a
     "BUG: the Restock box is a bare 13x13 <input type=checkbox> (apps/office/app/(app)/orders/[id]/page.tsx:789), not the 44 px Checkbox"
   )
   ordersApi(api, { status: "completed" })
+  api.on("GET", "/workspace/:ws/invoices/:id", () => ({
+    data: { id: "inv-9", status: "partially_paid", invoice_nr: "2026-0007" },
+  }))
   await page.goto("/orders/ord-1")
   await page.getByRole("button", { name: "Take back returns" }).click()
   await expect(page.getByRole("dialog").getByLabel("Put returned goods back on stock")).toBeChecked()

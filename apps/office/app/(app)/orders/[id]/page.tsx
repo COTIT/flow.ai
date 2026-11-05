@@ -21,6 +21,7 @@ import {
   useOrdersRefund,
   useOrdersReturns,
 } from "@genesy/api-client/endpoints/orders"
+import { useInvoicesGet } from "@genesy/api-client/endpoints/invoices"
 import type { OrderAction, OrderResource } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
 import { Badge } from "@genesy/ui/components/badge"
@@ -97,6 +98,11 @@ export default function OrderPage({
   // shortcut: the newest page of the trail only; page it when orders get that many steps.
   const trail = useOrdersEvents(workspaceId, id, undefined, {
     query: { enabled: Boolean(workspaceId) },
+  })
+  // The invoice's status next to its link; a member who may not read invoices gets the link only.
+  const invoiceId = order.data?.data.invoice_id ?? ""
+  const linked = useInvoicesGet(workspaceId, invoiceId, {
+    query: { enabled: Boolean(workspaceId && invoiceId), retry: false },
   })
   const onSuccess = () => {
     for (const queryKey of [
@@ -504,6 +510,12 @@ export default function OrderPage({
               >
                 {t("orders.openInvoice")}
               </Link>
+              {linked.data ? (
+                <StatusBadge
+                  status={linked.data.data.status}
+                  label={t(`invoices.statuses.${linked.data.data.status}`)}
+                />
+              ) : null}
             </p>
           ) : null}
         </SideCard>
