@@ -537,6 +537,9 @@ pub struct ListQuery {
     /// Same as `supplier_id`.
     #[param(value_type = Option<Uuid>)]
     pub supplier_relation_id: Option<String>,
+    /// Only products of this category (`/erp/product-categories`).
+    #[param(value_type = Option<Uuid>)]
+    pub category_id: Option<String>,
     /// Exact EAN-13.
     pub ean13: Option<String>,
     /// Comma-separated product ids to leave out, at most 100.

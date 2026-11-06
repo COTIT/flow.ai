@@ -20,6 +20,7 @@ import {
   useStockMutate,
   useStockWithBins,
 } from "@genesy/api-client/endpoints/stock"
+import { useProductCategoriesList } from "@genesy/api-client/endpoints/product-categories"
 import { useWarehousesList } from "@genesy/api-client/endpoints/warehouses"
 import type { StockWithBins } from "@genesy/api-client/model"
 import { ApiError, fieldErrors } from "@genesy/ui/components/api-error"
@@ -34,6 +35,7 @@ import {
   DialogTrigger,
 } from "@genesy/ui/components/dialog"
 import { Input } from "@genesy/ui/components/input"
+import { Notice } from "@genesy/ui/components/notice"
 import {
   Table,
   TableBody,
@@ -92,6 +94,12 @@ export default function ProductPage({
     query: { enabled: Boolean(workspaceId && product.data?.data) },
   })
   const stock = useStockWithBins(workspaceId, id, enabled)
+  // shortcut: first 100 categories in the picker; page or search when a workspace has more.
+  const categories = useProductCategoriesList(
+    workspaceId,
+    { page_size: 100 },
+    enabled
+  )
   const [page, setPage] = React.useState(1)
   // The API's movement types; "decrease" also covers hand corrections, so it reads "Decreases".
   const [type, setType] = React.useState<"" | "decrease" | "set_level">("")
@@ -219,6 +227,10 @@ export default function ProductPage({
               e.preventDefault()
               const f = new FormData(e.currentTarget)
               const text = (k: string) => String(f.get(k) ?? "") || null
+              // Sent only once the picker is filled and changed: a failed list never clears it.
+              const category = text("category_id")
+              const categoryChanged =
+                categories.isSuccess && category !== (p.category_id ?? null)
               // Only these keys: the API keeps every key left out.
               update.mutate({
                 workspace: workspaceId,
@@ -236,6 +248,7 @@ export default function ProductPage({
                     .split(",")
                     .map((l) => l.trim())
                     .filter(Boolean),
+                  ...(categoryChanged ? { category_id: category } : {}),
                 },
               })
             }}
@@ -294,6 +307,35 @@ export default function ProductPage({
                 </select>
               </Field>
             </div>
+            <Field
+              id="p-category"
+              label={t("products.category")}
+              errors={errors.category_id}
+            >
+              <select
+                name="category_id"
+                // Keyed: the saved value applies once the options arrive.
+                key={categories.dataUpdatedAt}
+                defaultValue={p.category_id ?? ""}
+                disabled={!categories.isSuccess}
+                className={selectClass}
+              >
+                <option value="">{t("products.noCategory")}</option>
+                {categories.data?.data.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {categories.isError ? (
+              <Notice
+                variant="warning"
+                title={t("products.categoriesFailed")}
+              />
+            ) : (
+              <Capped meta={categories.data?.meta} />
+            )}
             <Field
               id="p-short"
               label={t("products.shortDescription")}

@@ -44,6 +44,10 @@ supplier_id?: string;
  */
 supplier_relation_id?: string;
 /**
+ * Only products of this category (`/erp/product-categories`).
+ */
+category_id?: string;
+/**
  * Exact EAN-13.
  */
 ean13?: string;

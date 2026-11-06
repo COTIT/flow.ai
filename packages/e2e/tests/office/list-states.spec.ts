@@ -167,6 +167,18 @@ const lists: {
         .on("GET", "/workspace/:ws/warehouses", () => paged([warehouse])),
   },
   {
+    route: "/products/categories",
+    path: "/workspace/:ws/erp/product-categories",
+    empty: "No categories yet.",
+    row: (i) => ({
+      id: `cat-${i}`,
+      name: `Category ${i}`,
+      description: null,
+      products_count: 0,
+    }),
+    name: (i) => `Category ${i}`,
+  },
+  {
     route: "/till/registers",
     path: "/workspace/:ws/till/registers",
     empty: "No registers yet.",

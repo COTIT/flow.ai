@@ -293,12 +293,12 @@ async fn search_domains(pool: PgPool) {
 #[sqlx::test]
 async fn parallel_reparenting_cannot_make_a_cycle(pool: PgPool) {
     let api = Api::new(pool, "/erp/product-categories").await;
-    for _ in 0..5 {
+    for i in 0..5 {
         let x = api
-            .create(json!({ "name": "x" }), "product_category_id")
+            .create(json!({ "name": format!("x{i}") }), "product_category_id")
             .await;
         let y = api
-            .create(json!({ "name": "y" }), "product_category_id")
+            .create(json!({ "name": format!("y{i}") }), "product_category_id")
             .await;
         let mut set = tokio::task::JoinSet::new();
         for (child, parent) in [(&x, &y), (&y, &x)] {

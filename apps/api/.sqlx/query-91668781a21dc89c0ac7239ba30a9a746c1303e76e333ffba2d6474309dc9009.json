@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, parent_id, name, description, meta, created_at, updated_at\n         FROM product_categories WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
+  "query": "SELECT id, parent_id, name, description, meta, created_at, updated_at, (SELECT count(*) FROM products p\n              WHERE p.workspace_id = c.workspace_id AND p.category_id = c.id\n                AND p.deleted_at IS NULL) AS \"products_count!\" FROM product_categories c\n         WHERE id = $1 AND workspace_id = $2 AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,12 @@
             "name": "updated_at"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "products_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -94,8 +100,9 @@
       true,
       true,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "2ac9da07f7a930b78a9d5b66640ef293969e6e406e8d750f550ccb7f454d2092"
+  "hash": "91668781a21dc89c0ac7239ba30a9a746c1303e76e333ffba2d6474309dc9009"
 }

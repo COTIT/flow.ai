@@ -16,7 +16,9 @@ Shared rules (guard order, 404s, patch updates, list `meta`, money printing) are
   - `name` is required, ≤255.
   - `logo` and `website` must be valid URLs, ≤2048. Laravel validated 2048 but stored 255.
   - `meta` is an object.
-- **Category:** `{id, product_category_id, name, description, meta, created_at, updated_at, relationships}`.
+- **Category:** `{id, product_category_id, name, description, meta, products_count, created_at, updated_at, relationships}`.
+  - `products_count` (Genesy addition): live products of any status whose `category_id` is this category. Office shows it before a remove.
+  - `name` is unique among the workspace's live categories, compared trimmed and case-insensitive (Genesy addition; Laravel allowed duplicates). Create and rename answer 422 `The name has already been taken.` for a taken name. Renaming to its own name, or another case of it, is allowed; a removed category's name is free again; names stored before the rule stay as they are.
   - On GET one, `relationships` holds `parent` and `children`. Lists print `[]`, because Laravel loaded nothing there.
   - `parent_id` must be a live category of this workspace, and never the category itself or one of its descendants. Laravel had no cycle guard. The error text is "The parent id is an invalid id for the product_category domain."
 - **List:**
@@ -129,6 +131,7 @@ The product resource follows Laravel `ProductResource`; see `src/modules/product
 - **Filters:**
   - `status` (default `active`)
   - `q`, or `search` (the RN app's name): ILIKE on name, reference, vendor reference, EAN, barcode and product number
+  - `category_id` (uuid, Genesy addition): only products of this category. Another workspace's id finds nothing; a malformed one is 422 `The category id must be a valid UUID.`
   - `supplier_id` / `supplier_relation_id` (uuid)
   - `ean13` (exact)
   - `exclude_ids` (comma-separated, at most 100)

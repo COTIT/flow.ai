@@ -56,7 +56,7 @@ fn created(id: Uuid) -> (StatusCode, Data<Value>) {
         (status = 200, body = Paginated<ProductDoc>, description = "One page of products, newest first"),
         (status = 403, body = MessageBody, description = "Inactive membership or missing `product.list`"),
         (status = 404, body = MessageBody, description = "Unknown workspace, or caller not a member"),
-        (status = 422, body = ValidationErrorBody, description = "Search text too long, malformed `supplier_id`, or too many `exclude_ids`"),
+        (status = 422, body = ValidationErrorBody, description = "Search text too long, malformed `supplier_id` or `category_id`, or too many `exclude_ids`"),
     ),
     security(("bearer" = []))
 )]
@@ -80,6 +80,12 @@ pub async fn list(
     {
         Some(s) if !s.trim().is_empty() => Some(Uuid::parse_str(s.trim()).map_err(|_| {
             AppError::field("supplier_id", "The supplier id must be a valid UUID.")
+        })?),
+        _ => None,
+    };
+    let category = match q.category_id.as_deref().map(str::trim) {
+        Some(s) if !s.is_empty() => Some(Uuid::parse_str(s).map_err(|_| {
+            AppError::field("category_id", "The category id must be a valid UUID.")
         })?),
         _ => None,
     };
@@ -107,6 +113,7 @@ pub async fn list(
         status,
         pattern: pattern.as_deref(),
         supplier,
+        category,
         ean13,
         exclude: &exclude,
         limit: page.size,

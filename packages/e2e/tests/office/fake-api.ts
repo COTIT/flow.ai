@@ -115,6 +115,8 @@ export async function fakeApi(page: Page) {
     }))
     // Every batch page reads the orders still holding it; specs that care override this.
     .on("GET", "/workspace/:ws/lots/:lot/holds", () => ({ data: [] }))
+    // Product pages, the list and New product read the categories; specs that care override this.
+    .on("GET", "/workspace/:ws/erp/product-categories", () => paged([], 1, 100))
   await page.route("**/v1/**", (route) => api.handle(route))
   return api
 }
