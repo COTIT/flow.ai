@@ -13,7 +13,13 @@ import { buttonVariants } from "@genesy/ui/components/button"
 import { cn } from "@genesy/ui/lib/utils"
 
 import { AddToCart } from "@/components/add-to-cart"
-import { groupLine, lotPlace, lotStatus, MapArea } from "@/components/passport"
+import {
+  groupLine,
+  LotWarning,
+  lotPlace,
+  lotStatus,
+  MapArea,
+} from "@/components/passport"
 import { ProductGallery } from "@/components/product-gallery"
 import { isSoldOut } from "@/components/stock-badge"
 import { card, cardTitle, h2, tag } from "@/lib/look"
@@ -87,6 +93,9 @@ export default async function ProductPage({ params }: Props) {
           ) : null}
         </ol>
       </nav>
+
+      {/* The product links its released batch; one recalled or put on hold since says so first. */}
+      {lot ? <LotWarning status={lot.status} t={tb} tp={tp} /> : null}
 
       <section className="grid grid-cols-12 gap-3 md:gap-4">
         <div

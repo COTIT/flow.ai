@@ -20,6 +20,10 @@ export const PRODUCT = {
   failing: "55555555-5555-4555-8555-555555555555",
   /** Alone on catalogue page 2, with a name far longer than a card is wide. */
   long: "77777777-7777-4777-8777-777777777777",
+  /** AFM honey whose linked batch was recalled after the product listed it. */
+  recalledHoney: "afa00001-0000-4000-8000-000000000001",
+  /** AFM tea whose linked batch is on hold. */
+  heldTea: "afa00005-0000-4000-8000-000000000005",
   /** Accounts specs: the API refuses the shop's key as revoked (401) or short of a scope (403). */
   accountsKeyRevoked: "acc00401-0000-4000-8000-000000000401",
   accountsKeyNoScope: "acc00403-0000-4000-8000-000000000403",

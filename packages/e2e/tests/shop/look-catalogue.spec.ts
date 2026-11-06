@@ -108,7 +108,7 @@ test("the server sends the headline, categories and products (search engines see
 }) => {
   const html = await (await request.get("/")).text()
   expect(html).toContain("Rooted in African soil.")
-  expect(html).toContain("Figurines &amp; Games")
+  expect(html).toContain("Toys &amp; games")
   expect(html).toContain("Mary&#x27;s Tanzanian Wildflower Honey")
 })
 

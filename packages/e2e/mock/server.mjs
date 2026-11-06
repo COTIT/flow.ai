@@ -43,7 +43,7 @@ const categories = [
   [CATEGORY.tea, "Tea", "Roselle and black teas from Tanzania and Kenya."],
   [CATEGORY.spices, "Spices", "Whole and ground spices grown in Tanzania."],
   [CATEGORY.baskets, "Baskets", "Handwoven baskets from East African makers."],
-  [CATEGORY.toys, "Figurines & Games", "Hand-carved animals and bao boards."],
+  [CATEGORY.toys, "Toys & games", "Hand-carved animals and bao boards."],
   [CATEGORY.art, "Art", "Originals and prints from East African artists."],
   [CATEGORY.books, "Books", "Stories from the farm and the village."],
   [CATEGORY.apparel, "Apparel", "Cotton shirts that carry the story."],
@@ -193,7 +193,10 @@ products.push(
     2799,
     "18.000",
     "Raw, unfiltered wildflower honey from the Illundo beekeepers.",
-    { labels: ["Raw", "Unfiltered", "13 oz"] }
+    {
+      labels: ["Raw", "Unfiltered", "13 oz"],
+      passport: { public_code: LOT.recalled },
+    }
   ),
   afm(
     CATEGORY.coffee,
@@ -216,7 +219,9 @@ products.push(
     "14.000",
     "Caffeine-free roselle from Tanzania."
   ),
-  afm(CATEGORY.tea, "Kizazi Tea", 2999, "9.000", "Kenyan black tea, 18 oz."),
+  afm(CATEGORY.tea, "Kizazi Tea", 2999, "9.000", "Kenyan black tea, 18 oz.", {
+    passport: { public_code: LOT.quarantine },
+  }),
   afm(
     CATEGORY.spices,
     "Whole Cloves",
