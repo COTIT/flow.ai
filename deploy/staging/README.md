@@ -12,12 +12,13 @@ Think of it as a dress rehearsal stage: same sets as opening night, fake money i
 | `staging-till.genesy.app`   | till    | 3000           |
 | `staging-field.genesy.app`  | field   | 8080           |
 | `staging.genesy.app`        | landing | 3000           |
+| `staging-files.genesy.app`  | files   | 3900 (GET/HEAD only, once "Image store" is on) |
 
 **What staging is not:**
 
 - No real payment provider. `PAYMENTS_PROVIDER=fake`, so checkout links go to `pay.fake.test`.
 - No outgoing mail. Every mail lands in Mailpit.
-- No uploads bucket, no PDF renderer. Those routes answer 503, as designed.
+- No PDF renderer: those routes answer 503, as designed. File uploads answer 503 too until the image store is on ("Image store"); it is staging's own Garage, never the production B2 bucket.
 - Field is built with `VITE_FEATURE_RESOURCES=on` (equipment, loans, requests) and the demo banner.
 - No prod secret, ever.
 
@@ -28,6 +29,8 @@ Every step below is for the user to run on the VPS, or for the coordinator once 
 | File                         | What                                                                                 |
 | ---------------------------- | ------------------------------------------------------------------------------------ |
 | `docker-compose.staging.yml` | The stack, with Traefik labels                                                       |
+| `docker-compose.files.yml`   | Image store overlay (Garage), added by `deploy.sh` once `secrets/files.env` exists |
+| `garage.toml`                | Garage settings, no secrets                                                          |
 | `docker-compose.local.yml`   | Local override: no Traefik, ports on `127.0.0.1:18080` and `18100`–`18103`           |
 | `.env.staging.example`       | Every variable, no secrets. Copy it to `.env.staging` on the VPS.                    |
 | `secrets/`                   | Secret files on the VPS only. Git ignores everything in it.                          |
@@ -182,6 +185,33 @@ Staging runs the in-process fake until this is done. The staging image keeps deb
 
 Mail on staging stays on Mailpit; Resend is production only.
 
+## Image store
+
+Product photos and other uploads live in Garage, a small S3-compatible store, in its own container (`files`, volume `genesy-staging_files`, 0.25 CPU and 256 MB at most). The API writes to it inside Docker (`http://files:3900`). Browsers only read, through Traefik on `staging-files.genesy.app`, which passes GET and HEAD and nothing else. The links are signed by the API and expire after 10 minutes. The shop's and office's image CSP allows exactly that origin.
+
+**Image:** `dxflrs/garage:v2.4.1`, pushed 2026-09-08, pinned by digest in `docker-compose.files.yml`.
+
+**DNS:** one more record, like the other staging hosts: `A staging-files 185.77.96.44`, TTL 3600.
+
+**One-time setup (on the VPS, as user deploy).** Random secrets made on the VPS. Nothing is printed, and nothing goes on a command line that `ps` could show to another user:
+
+```bash
+cd /srv/genesy-staging/deploy/staging
+umask 077
+kid="GK$(openssl rand -hex 12)"
+secret="$(openssl rand -hex 32)"
+printf 'GARAGE_RPC_SECRET=%s\nGARAGE_DEFAULT_ACCESS_KEY=%s\nGARAGE_DEFAULT_SECRET_KEY=%s\nGARAGE_DEFAULT_BUCKET=genesy-staging\n' \
+  "$(openssl rand -hex 32)" "$kid" "$secret" > secrets/files.env
+printf '%s' "$secret" > secrets/files_secret_key
+echo "FILES_KEY_ID=$kid" >> .env.staging
+unset kid secret
+chmod 444 secrets/files_secret_key && chmod 400 secrets/files.env
+```
+
+`printf` is a shell builtin, so the secret never shows up in the process list. The key id isn't secret. `files.env` is read by Docker, not the container user, so it can stay `400`. From the next `deploy.sh staging …` on, the overlay is in every compose command. Keep both files: a new key or RPC secret won't match the stored data.
+
+**Photos.** The overlay runs the seed as `seed-demo --images`. It fetches AFM's product photos one at a time from AFM's image CDN and keeps a copy in the store under `demo-cache/` (a sha256 of the URL), so later reseeds read the copy and never need AFM. If AFM can't be reached and no copy exists, the products are seeded without that photo and one warning line says how many are missing. The rest of the seed is unchanged.
+
 ## Reset
 
 This wipes the staging database and every caught mail, starts clean, then reseeds:
@@ -195,7 +225,7 @@ deploy/deploy.sh staging compose up -d --wait
 deploy/deploy.sh staging compose --profile seed run --rm seed
 ```
 
-`down -v` only removes this project's volume (`genesy-staging_pg`). The secret files stay, so the new database gets the same password.
+`down -v` removes this project's volumes: `genesy-staging_pg` and, with the image store on, `genesy-staging_files`, which holds the photo copies too, so the next seed fetches them from AFM again. The secret files stay, so the new database and store get the same password and key.
 
 To remove staging entirely, run `deploy/deploy.sh staging compose down -v --rmi all`, then delete `/srv/genesy-staging`, the staging DNS records and the staging timers (`sudo systemctl disable --now genesy-backup-staging.timer genesy-restore-test-staging.timer genesy-prune-staging.timer`).
 
